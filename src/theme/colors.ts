@@ -1,0 +1,23 @@
+export const colors = {
+  background: '#FFFFFF',
+  navigationBackground: 'rgba(255, 255, 255, 0.8)',
+  surface: '#F8F9FC',
+  card: '#FFFFFF',
+  primary: '#000000',
+  secondary: '#2563EB',
+  accent: '#4338CA',
+  text: '#000000',
+  muted: '#595858',
+  subText: '#4B5563',
+  border: '#E5E7EB',
+  tabInactive: 'rgba(0, 0, 0, 0.5)',
+  tabActive: '#000000',
+  buttonBackground: '#2F3036',
+  buttonText: '#FFFFFF',
+  cardMeta: '#7C7C7C',
+  fieldBackground: '#D9D9D9',
+  fieldLabel: '#4B4B4B',
+  sliderUnselected: '#A0A0A0',
+  sliderMarker: '#7D7D7D',
+  datePill: '#BEBEBE'
+} as const;
