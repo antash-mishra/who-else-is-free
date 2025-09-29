@@ -28,3 +28,7 @@
 - Added `prop-types` dependency required by the multi-slider control.
 - Anchored the Create CTA to the bottom of the screen and restrict the time picker edits to filter only today's past slots.
 - Introduced an events context so newly created events appear in the "Your Events" tab with the same card styling as the main feed.
+
+## Backend service
+- Added a modular Gin + SQLite server (`server/`) with repository, handlers, and router packages for events.
+- Implemented `/api/events` GET/POST endpoints backed by the `event.sqlite` database, including automatic schema migration at startup.
