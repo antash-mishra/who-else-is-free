@@ -1,0 +1,20 @@
+package main
+
+import (
+    "net/http"
+
+    "github.com/gin-gonic/gin"
+)
+
+func setupRouter(eventHandler *EventHandler) *gin.Engine {
+    r := gin.Default()
+
+    r.GET("/health", func(c *gin.Context) {
+        c.JSON(http.StatusOK, gin.H{"status": "ok"})
+    })
+
+    api := r.Group("/api")
+    eventHandler.RegisterRoutes(api)
+
+    return r
+}
