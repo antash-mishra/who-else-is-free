@@ -16,12 +16,10 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import ScreenContainer from '@components/ScreenContainer';
 import { RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
-import { useEvents } from '@context/EventsContext';
+import { DEFAULT_EVENT_IMAGE, useEvents } from '@context/EventsContext';
 
 const AGE_MIN = 18;
 const AGE_MAX = 60;
-const DEFAULT_EVENT_IMAGE =
-  'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=400&q=80';
 
 const groupOptions = ['Single', 'Group'] as const;
 const genderOptions = ['Any', 'Female', 'Male'] as const;
@@ -67,6 +65,21 @@ const CreateEventScreen = () => {
   const [location, setLocation] = useState('');
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [sliderWidth, setSliderWidth] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setEventName('');
+    setDescription('');
+    setGroupType('Single');
+    setGender('Any');
+    setAgeRange([18, 25]);
+    setDateChoice('today');
+    setTime('7:00pm');
+    setLocation('');
+    setTimePickerVisible(false);
+    setSubmitError(null);
+  };
 
   const timeOptions = useMemo(() => {
     const now = new Date();
@@ -99,6 +112,45 @@ const CreateEventScreen = () => {
       return values[(index + 1) % values.length];
     };
   }, []);
+
+  const handleCreate = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    const title = eventName.trim() || 'New event';
+    const locationLabel = location.trim() || 'To be decided';
+    const descriptionText = description.trim();
+    const [rangeStart, rangeEnd] = ageRange;
+    const minAge = Math.min(rangeStart, rangeEnd);
+    const maxAge = Math.max(rangeStart, rangeEnd);
+
+    try {
+      await addUserEvent({
+        title,
+        location: locationLabel,
+        time,
+        description: descriptionText.length ? descriptionText : undefined,
+        gender,
+        minAge,
+        maxAge,
+        dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
+        badgeLabel: groupType === 'Group' ? 'Group' : undefined,
+        imageUri: DEFAULT_EVENT_IMAGE
+      });
+
+      resetForm();
+      navigation.navigate('Events', { initialTab: 'mine' });
+    } catch (err) {
+      console.error('Failed to create event', err);
+      setSubmitError('Unable to create event. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <ScreenContainer>
@@ -205,23 +257,14 @@ const CreateEventScreen = () => {
         />
       </ScrollView>
 
-        <Pressable style={styles.primaryButton} onPress={() => {
-          const title = eventName.trim() || 'New event';
-          const locationLabel = location.trim() || 'To be decided';
-          const audienceLabel = `${gender === 'Any' ? 'Any gender' : gender}, ${ageRange[0]} to ${ageRange[1]} years`;
-          addUserEvent({
-            title,
-            location: locationLabel,
-            time,
-            audience: audienceLabel,
-            imageUri: DEFAULT_EVENT_IMAGE,
-            badgeLabel: groupType === 'Group' ? 'Group' : undefined,
-            dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
-            description: description.trim()
-          });
-          navigation.navigate('Events', { initialTab: 'mine' });
-        }}>
-          <Text style={styles.primaryButtonText}>Create</Text>
+        {submitError ? <Text style={styles.errorText}>{submitError}</Text> : null}
+
+        <Pressable
+          style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]}
+          onPress={handleCreate}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.primaryButtonText}>{isSubmitting ? 'Creating...' : 'Create'}</Text>
         </Pressable>
       </View>
 
@@ -406,12 +449,24 @@ const styles = StyleSheet.create({
   locationInput: {
     marginTop: spacing.sm
   },
+  errorText: {
+    textAlign: 'center',
+    color: '#B00020',
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyMedium,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing,
+    marginTop: spacing.lg
+  },
   primaryButton: {
     marginTop: spacing.xl,
     backgroundColor: colors.primary,
     borderRadius: 999,
     paddingVertical: spacing.md,
     alignItems: 'center'
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6
   },
   primaryButtonText: {
     color: colors.buttonText,

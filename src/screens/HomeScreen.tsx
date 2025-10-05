@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
   SectionList,
   SectionListRenderItemInfo,
   StyleSheet,
@@ -15,7 +18,7 @@ import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl from '@components/SegmentedControl';
 import { RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
-import { DateLabel, useEvents } from '@context/EventsContext';
+import { DateLabel, UserEvent, useEvents } from '@context/EventsContext';
 
 type TabValue = 'all' | 'mine';
 
@@ -32,49 +35,33 @@ const tabs = [
   { label: 'Your Events', value: 'mine' satisfies TabValue }
 ];
 
-const allEventsSections: EventSection[] = [
-  {
-    title: 'Today',
-    data: [
-      {
-        id: '1',
-        title: 'Running buddy',
-        location: 'Phoenix park',
-        time: '9pm',
-        audience: 'Any gender, 20-25 years',
-        imageUri:
-          'https://images.unsplash.com/photo-1526401485004-46910ecc8e51?auto=format&fit=crop&w=400&q=80'
-      },
-      {
-        id: '2',
-        title: 'Music gig',
-        location: 'Workmans club',
-        time: '12pm',
-        audience: 'Female, 20-25 years',
-        imageUri:
-          'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=400&q=80',
-        badgeLabel: 'Group'
-      }
-    ]
-  },
-  {
-    title: 'Tomorrow',
-    data: Array.from({ length: 4 }).map((_, index) => ({
-      id: `t-${index}`,
-      title: 'Run, coffee and sauna',
-      location: 'Howth',
-      time: '10am',
-      audience: 'Female, 20-25 years',
-      imageUri:
-        'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=400&q=80'
-    }))
-  }
+const sectionOrder: { label: string; value: DateLabel }[] = [
+  { label: 'Today', value: 'Today' },
+  { label: 'Tomorrow', value: 'Tmrw' }
 ];
+
+const buildSections = (items: UserEvent[]): EventSection[] => {
+  const grouped: Record<DateLabel, EventItemProps[]> = {
+    Today: [],
+    Tmrw: []
+  };
+
+  items.forEach(({ id, title, location, time, audience, imageUri, badgeLabel, dateLabel }) => {
+    grouped[dateLabel].push({ id, title, location, time, audience, imageUri, badgeLabel });
+  });
+
+  return sectionOrder
+    .map(({ label, value }) => ({
+      title: label,
+      data: grouped[value]
+    }))
+    .filter((section) => section.data.length > 0);
+};
 
 const HomeScreen = () => {
   const navigation = useNavigation<EventsNavigation>();
   const route = useRoute<EventsRoute>();
-  const { userEvents } = useEvents();
+  const { events: allEvents, userEvents: createdEvents, isLoading, error, refreshEvents } = useEvents();
   const [activeTab, setActiveTab] = useState<TabValue>('all');
 
   useEffect(() => {
@@ -84,27 +71,18 @@ const HomeScreen = () => {
     }
   }, [navigation, route.params?.initialTab]);
 
-  const userEventSections = useMemo<EventSection[]>(() => {
-    if (!userEvents.length) {
-      return [];
-    }
+  const userEventSections = useMemo<EventSection[]>(() => buildSections(createdEvents), [createdEvents]);
+  const allEventSections = useMemo<EventSection[]>(() => buildSections(allEvents), [allEvents]);
 
-    const order: DateLabel[] = ['Today', 'Tmrw'];
-    const labelMap: Record<DateLabel, string> = {
-      Today: 'Today',
-      Tmrw: 'Tomorrow'
-    };
-
-    return order
-      .map((label) => ({
-        title: labelMap[label],
-        data: userEvents.filter((event) => event.dateLabel === label)
-      }))
-      .filter((section) => section.data.length > 0);
-  }, [userEvents]);
-
-  const sections = activeTab === 'mine' ? userEventSections : allEventsSections;
+  const sections = activeTab === 'mine' ? userEventSections : allEventSections;
   const hasUserEvents = userEventSections.length > 0;
+  const showAllEventsLoading = activeTab === 'all' && isLoading && sections.length === 0;
+  const showAllEventsError = activeTab === 'all' && !!error && !isLoading && sections.length === 0;
+  const showAllEventsEmpty = activeTab === 'all' && !isLoading && sections.length === 0 && !error;
+
+  const handleRefresh = useCallback(() => {
+    refreshEvents().catch(() => undefined);
+  }, [refreshEvents]);
 
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
     <Text style={styles.sectionHeader}>
@@ -126,6 +104,21 @@ const HomeScreen = () => {
           actionLabel="Create an event"
           onActionPress={() => navigation.navigate('Create')}
         />
+      ) : showAllEventsLoading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : showAllEventsError ? (
+        <View style={styles.centerContent}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : showAllEventsEmpty ? (
+        <View style={styles.centerContent}>
+          <Text style={styles.emptyAllText}>No events available yet.</Text>
+        </View>
       ) : (
         <SectionList<EventItemProps, EventSection>
           sections={sections}
@@ -138,6 +131,11 @@ const HomeScreen = () => {
           SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
           ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
           ListFooterComponent={<View style={styles.footerSpacing} />}
+          refreshControl={
+            activeTab === 'all' ? (
+              <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={colors.primary} />
+            ) : undefined
+          }
         />
       )}
     </ScreenContainer>
@@ -170,6 +168,40 @@ const styles = StyleSheet.create({
   },
   footerSpacing: {
     height: spacing.xl
+  },
+  centerContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.md
+  },
+  errorText: {
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamilyMedium,
+    color: '#B00020',
+    textAlign: 'center'
+  },
+  retryButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.primary
+  },
+  retryButtonText: {
+    color: colors.buttonText,
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyMedium,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing
+  },
+  emptyAllText: {
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.muted,
+    textAlign: 'center',
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing
   }
 });
 

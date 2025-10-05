@@ -1,4 +1,17 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+// TODO: replace in-memory state with persisted cache for offline support when API integration stabilises.
 
 import { EventItemProps } from '@components/EventCard';
 
@@ -9,27 +22,207 @@ export interface UserEvent extends EventItemProps {
   description?: string;
 }
 
+interface CreateEventInput {
+  title: string;
+  location: string;
+  time: string;
+  description?: string;
+  gender: string;
+  minAge: number;
+  maxAge: number;
+  dateLabel: DateLabel;
+  badgeLabel?: string;
+  imageUri?: string;
+}
+
 interface EventsContextValue {
+  events: UserEvent[];
   userEvents: UserEvent[];
-  addUserEvent: (event: Omit<UserEvent, 'id'>) => void;
+  isLoading: boolean;
+  error: string | null;
+  refreshEvents: () => Promise<void>;
+  addUserEvent: (event: CreateEventInput) => Promise<string>;
 }
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
 
-export const EventsProvider = ({ children }: { children: ReactNode }) => {
-  const [userEvents, setUserEvents] = useState<UserEvent[]>([]);
+const resolveApiBaseUrl = () => {
+  const envUrl =
+    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) || undefined;
+  if (envUrl && envUrl.length > 0) {
+    return envUrl.replace(/\/$/, '');
+  }
 
-  const addUserEvent = (event: Omit<UserEvent, 'id'>) => {
-    setUserEvents((prev) => [
-      ...prev,
-      {
-        ...event,
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    Constants.manifest2?.extra?.expoClientHost ||
+    Constants.manifest?.debuggerHost;
+
+  if (hostUri) {
+    try {
+      const normalized = hostUri.includes('://') ? hostUri : `http://${hostUri}`;
+      const url = new URL(normalized);
+      const host = url.hostname;
+      if (host) {
+        const resolvedHost = host === 'localhost' && Platform.OS === 'android' ? '10.0.2.2' : host;
+        return `http://${resolvedHost}:8090`;
       }
-    ]);
-  };
+    } catch (error) {
+      console.warn('Failed to derive host from Expo metadata', error);
+    }
+  }
 
-  const value = useMemo(() => ({ userEvents, addUserEvent }), [userEvents]);
+  return 'http://192.168.1.10:8090';
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
+
+type ApiEvent = {
+  id: number;
+  title: string;
+  location: string;
+  time: string;
+  description?: string;
+  gender: string;
+  min_age: number;
+  max_age: number;
+  date_label: DateLabel;
+};
+
+interface EventMeta {
+  badgeLabel?: string;
+  imageUri?: string;
+}
+
+export const DEFAULT_EVENT_IMAGE =
+  'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=400&q=80';
+
+const formatAudience = (gender: string, minAge: number, maxAge: number) => {
+  const genderLabel = gender.toLowerCase() === 'any' ? 'Any gender' : gender;
+  return `${genderLabel}, ${minAge} to ${maxAge} years`;
+};
+
+const mapApiEvent = (event: ApiEvent, meta: EventMeta | undefined): UserEvent => ({
+  id: String(event.id),
+  title: event.title,
+  location: event.location,
+  time: event.time,
+  audience: formatAudience(event.gender, event.min_age, event.max_age),
+  imageUri: meta?.imageUri ?? DEFAULT_EVENT_IMAGE,
+  badgeLabel: meta?.badgeLabel,
+  dateLabel: event.date_label,
+  description: event.description
+});
+
+export const EventsProvider = ({ children }: { children: ReactNode }) => {
+  const [events, setEvents] = useState<UserEvent[]>([]);
+  const [createdEventIds, setCreatedEventIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const metaRef = useRef<Record<string, EventMeta>>({});
+
+  const refreshEvents = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/events`);
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const payload: { data: ApiEvent[] } = await response.json();
+      const nextEvents = payload.data.map((event) =>
+        mapApiEvent(event, metaRef.current[String(event.id)])
+      );
+      setEvents(nextEvents);
+    } catch (err) {
+      console.error('Failed to fetch events', err);
+      setError('Unable to load events. Pull to refresh.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const addUserEvent = useCallback(
+    async (event: CreateEventInput) => {
+      const payload = {
+        title: event.title,
+        location: event.location,
+        time: event.time,
+        description: event.description ?? '',
+        gender: event.gender,
+        min_age: event.minAge,
+        max_age: event.maxAge,
+        date_label: event.dateLabel
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const message = `Request failed with status ${response.status}`;
+        throw new Error(message);
+      }
+
+      const { id } = (await response.json()) as { id: number };
+      const eventId = String(id);
+
+      metaRef.current = {
+        ...metaRef.current,
+        [eventId]: {
+          badgeLabel: event.badgeLabel,
+          imageUri: event.imageUri ?? DEFAULT_EVENT_IMAGE
+        }
+      };
+
+      setCreatedEventIds((prev) => (prev.includes(eventId) ? prev : [...prev, eventId]));
+
+      const optimisticEvent: ApiEvent = {
+        id,
+        title: event.title,
+        location: event.location,
+        time: event.time,
+        description: event.description,
+        gender: event.gender,
+        min_age: event.minAge,
+        max_age: event.maxAge,
+        date_label: event.dateLabel
+      };
+
+      setEvents((prev) => {
+        const withoutNew = prev.filter((item) => item.id !== eventId);
+        return [mapApiEvent(optimisticEvent, metaRef.current[eventId]), ...withoutNew];
+      });
+
+      await refreshEvents();
+
+      return eventId;
+    },
+    [refreshEvents]
+  );
+
+  useEffect(() => {
+    refreshEvents().catch(() => undefined);
+  }, [refreshEvents]);
+
+  const userEvents = useMemo(() => {
+    if (!createdEventIds.length) {
+      return [];
+    }
+
+    const idSet = new Set(createdEventIds);
+    return events.filter((event) => idSet.has(event.id));
+  }, [events, createdEventIds]);
+
+  const value = useMemo(
+    () => ({ events, userEvents, isLoading, error, refreshEvents, addUserEvent }),
+    [events, userEvents, isLoading, error, refreshEvents, addUserEvent]
+  );
 
   return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;
 };
