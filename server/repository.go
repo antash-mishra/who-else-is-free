@@ -3,8 +3,21 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
+
+var ErrInvalidCredentials = errors.New("invalid credentials")
+
+const createTableUsers = `
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`
 
 const createTableEvents = `
 CREATE TABLE IF NOT EXISTS events (
@@ -28,6 +41,11 @@ INSERT INTO events (title, location, time, description, gender, min_age, max_age
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 `
 
+const insertUser = `
+INSERT INTO users (name, email, password)
+VALUES (?, ?, ?);
+`
+
 const selectEvents = `
 SELECT id, title, location, time, description, gender, min_age, max_age, date_label, created_at
 FROM events
@@ -39,6 +57,17 @@ SELECT COUNT(1)
 FROM events;
 `
 
+const countUsers = `
+SELECT COUNT(1)
+FROM users;
+`
+
+const selectUserByEmail = `
+SELECT id, name, email, password, created_at
+FROM users
+WHERE email = ?;
+`
+
 type EventRepository struct {
 	db *sql.DB
 }
@@ -48,6 +77,9 @@ func NewEventRepository(db *sql.DB) *EventRepository {
 }
 
 func (r *EventRepository) Init(ctx context.Context) error {
+	if _, err := r.db.ExecContext(ctx, createTableUsers); err != nil {
+		return fmt.Errorf("create users table: %w", err)
+	}
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)
 	}
@@ -146,6 +178,56 @@ var seedEvents = []CreateEventParams{
 }
 
 func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
+	if err := r.ensureSeedUsers(ctx); err != nil {
+		return err
+	}
+	return r.ensureSeedEvents(ctx)
+}
+
+type seedUser struct {
+	Name     string
+	Email    string
+	Password string
+}
+
+var seedUsers = []seedUser{
+	{
+		Name:     "Ava Johnson",
+		Email:    "ava@example.com",
+		Password: "password123",
+	},
+	{
+		Name:     "Liam Patel",
+		Email:    "liam@example.com",
+		Password: "welcome123",
+	},
+	{
+		Name:     "Sophia Chen",
+		Email:    "sophia@example.com",
+		Password: "secret123",
+	},
+}
+
+func (r *EventRepository) ensureSeedUsers(ctx context.Context) error {
+	var count int
+	if err := r.db.QueryRowContext(ctx, countUsers).Scan(&count); err != nil {
+		return fmt.Errorf("count users: %w", err)
+	}
+
+	if count > 0 {
+		return nil
+	}
+
+	for _, user := range seedUsers {
+		if _, err := r.db.ExecContext(ctx, insertUser, user.Name, user.Email, user.Password); err != nil {
+			return fmt.Errorf("seed user %q: %w", user.Email, err)
+		}
+	}
+
+	return nil
+}
+
+func (r *EventRepository) ensureSeedEvents(ctx context.Context) error {
 	var count int
 	if err := r.db.QueryRowContext(ctx, countEvents).Scan(&count); err != nil {
 		return fmt.Errorf("count events: %w", err)
@@ -162,4 +244,27 @@ func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (r *EventRepository) AuthenticateUser(ctx context.Context, email, password string) (*User, error) {
+	var user User
+	var storedPassword string
+	if err := r.db.QueryRowContext(ctx, selectUserByEmail, email).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&storedPassword,
+		&user.CreatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("lookup user: %w", err)
+	}
+
+	if storedPassword != password {
+		return nil, ErrInvalidCredentials
+	}
+
+	return &user, nil
 }

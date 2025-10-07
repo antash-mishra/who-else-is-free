@@ -15,6 +15,14 @@ type Event struct {
     CreatedAt   time.Time `json:"created_at"`
 }
 
+type User struct {
+    ID        int64     `json:"id"`
+    Name      string    `json:"name"`
+    Email     string    `json:"email"`
+    Password  string    `json:"-"`
+    CreatedAt time.Time `json:"created_at"`
+}
+
 type CreateEventParams struct {
     Title       string `json:"title" binding:"required,min=1"`
     Location    string `json:"location" binding:"required,min=1"`

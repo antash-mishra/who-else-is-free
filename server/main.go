@@ -33,7 +33,8 @@ func main() {
 	}
 
 	eventHandler := NewEventHandler(repo)
-	srv := setupRouter(eventHandler)
+	authHandler := NewAuthHandler(repo)
+	srv := setupRouter(eventHandler, authHandler)
 
 	if err := srv.Run(); err != nil {
 		log.Fatalf("failed to start server: %v", err)

@@ -32,3 +32,18 @@
 ## Backend service
 - Added a modular Gin + SQLite server (`server/`) with repository, handlers, and router packages for events.
 - Implemented `/api/events` GET/POST endpoints backed by the `event.sqlite` database, including automatic schema migration at startup.
+
+## Frontend & API integration
+- Hooked the React Native create flow to the events API so that newly created plans persist through the backend.
+- Pulled event listings from the API into the "Your Events" tab, keeping the UI and server data in sync.
+
+## User accounts
+- Created a SQLite `users` table with seed demo profiles and a `/api/login` endpoint that authenticates email/password pairs.
+- Documented shared API base URL resolution so both authentication and events modules target the same backend host.
+
+## Authentication flow
+- Added a dedicated login screen with form validation, seeded credential hints, and loading/error feedback.
+- Introduced an auth context and navigation guard so the tab experience loads only after a successful sign in.
+
+## Product vision
+- Building a companion-finder that helps people discover last-minute event buddies, create new gatherings, and keep track of their own plans in one place.

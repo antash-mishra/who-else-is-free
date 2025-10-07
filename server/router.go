@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupRouter(eventHandler *EventHandler) *gin.Engine {
+func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -25,6 +25,7 @@ func setupRouter(eventHandler *EventHandler) *gin.Engine {
 
 	api := r.Group("/api")
 	eventHandler.RegisterRoutes(api)
+	authHandler.RegisterRoutes(api)
 
 	return r
 }

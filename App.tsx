@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from '@navigation/AppNavigator';
 import { colors } from '@theme/colors';
 import { EventsProvider } from '@context/EventsContext';
+import { AuthProvider } from '@context/AuthContext';
 
 const App = () => {
   const [fontsLoaded] = useFonts({
@@ -26,9 +27,11 @@ const App = () => {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <EventsProvider>
-          <AppNavigator />
-        </EventsProvider>
+        <AuthProvider>
+          <EventsProvider>
+            <AppNavigator />
+          </EventsProvider>
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
