@@ -17,6 +17,7 @@ import ScreenContainer from '@components/ScreenContainer';
 import { RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
 import { DEFAULT_EVENT_IMAGE, useEvents } from '@context/EventsContext';
+import { useAuth } from '@context/AuthContext';
 
 const AGE_MIN = 18;
 const AGE_MAX = 60;
@@ -54,6 +55,7 @@ const timeStringToMinutes = (timeLabel: string) => {
 const CreateEventScreen = () => {
   const navigation = useNavigation<CreateNavigation>();
   const { addUserEvent } = useEvents();
+  const { user } = useAuth();
 
   const [eventName, setEventName] = useState('');
   const [description, setDescription] = useState('');
@@ -118,6 +120,11 @@ const CreateEventScreen = () => {
       return;
     }
 
+    if (!user) {
+      setSubmitError('You must be signed in to create an event.');
+      return;
+    }
+
     setSubmitError(null);
     setIsSubmitting(true);
 
@@ -139,7 +146,8 @@ const CreateEventScreen = () => {
         maxAge,
         dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
         badgeLabel: groupType === 'Group' ? 'Group' : undefined,
-        imageUri: DEFAULT_EVENT_IMAGE
+        imageUri: DEFAULT_EVENT_IMAGE,
+        userId: user.id
       });
 
       resetForm();

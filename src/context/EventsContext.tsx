@@ -18,6 +18,7 @@ export type DateLabel = 'Today' | 'Tmrw';
 export interface UserEvent extends EventItemProps {
   dateLabel: DateLabel;
   description?: string;
+  ownerId: number;
 }
 
 interface CreateEventInput {
@@ -31,6 +32,7 @@ interface CreateEventInput {
   dateLabel: DateLabel;
   badgeLabel?: string;
   imageUri?: string;
+  userId: number;
 }
 
 interface EventsContextValue {
@@ -54,6 +56,7 @@ type ApiEvent = {
   min_age: number;
   max_age: number;
   date_label: DateLabel;
+  user_id: number;
 };
 
 interface EventMeta {
@@ -78,7 +81,8 @@ const mapApiEvent = (event: ApiEvent, meta: EventMeta | undefined): UserEvent =>
   imageUri: meta?.imageUri ?? DEFAULT_EVENT_IMAGE,
   badgeLabel: meta?.badgeLabel,
   dateLabel: event.date_label,
-  description: event.description
+  description: event.description,
+  ownerId: event.user_id
 });
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
@@ -120,7 +124,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
-        date_label: event.dateLabel
+        date_label: event.dateLabel,
+        user_id: event.userId
       };
 
       const response = await fetch(`${API_BASE_URL}/api/events`, {
@@ -158,7 +163,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
-        date_label: event.dateLabel
+        date_label: event.dateLabel,
+        user_id: event.userId
       };
 
       setEvents((prev) => {

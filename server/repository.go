@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
 const createTableEvents = `
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
     title TEXT NOT NULL,
     location TEXT NOT NULL,
     time TEXT NOT NULL,
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS events (
     max_age INTEGER NOT NULL,
     date_label TEXT NOT NULL CHECK(date_label IN ('Today', 'Tmrw')),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
     CHECK (min_age >= 0),
     CHECK (max_age >= min_age)
 );
@@ -91,8 +93,8 @@ CREATE TABLE IF NOT EXISTS conversation_read_state (
 `
 
 const insertEvent = `
-INSERT INTO events (title, location, time, description, gender, min_age, max_age, date_label)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO events (user_id, title, location, time, description, gender, min_age, max_age, date_label)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
 const insertUser = `
@@ -169,7 +171,7 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT id, title, location, time, description, gender, min_age, max_age, date_label, created_at
+SELECT id, user_id, title, location, time, description, gender, min_age, max_age, date_label, created_at
 FROM events
 ORDER BY created_at DESC;
 `
@@ -234,8 +236,66 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	return nil
 }
 
+func (r *EventRepository) ensureEventsUserIDColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(events);`)
+	if err != nil {
+		return fmt.Errorf("inspect events table: %w", err)
+	}
+	defer rows.Close()
+
+	hasUserID := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan events schema: %w", err)
+		}
+		_ = cid
+		_ = colType
+		_ = notNull
+		_ = defaultVal
+		_ = pk
+		if name == "user_id" {
+			hasUserID = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate events schema: %w", err)
+	}
+	if hasUserID {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1 REFERENCES users(id);`); err != nil {
+		return fmt.Errorf("add user_id column: %w", err)
+	}
+
+	var fallbackUserID int64
+	if err := r.db.QueryRowContext(ctx, `SELECT id FROM users ORDER BY id ASC LIMIT 1`).Scan(&fallbackUserID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Users will be seeded shortly; existing rows carry the default until then.
+			return nil
+		}
+		return fmt.Errorf("lookup fallback user: %w", err)
+	}
+
+	if _, err := r.db.ExecContext(ctx, `UPDATE events SET user_id = ? WHERE user_id = 1;`, fallbackUserID); err != nil {
+		return fmt.Errorf("backfill event owners: %w", err)
+	}
+
+	return nil
+}
+
 func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) (int64, error) {
 	res, err := r.db.ExecContext(ctx, insertEvent,
+		params.UserID,
 		params.Title,
 		params.Location,
 		params.Time,
@@ -270,6 +330,7 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 		var evt Event
 		if err := rows.Scan(
 			&evt.ID,
+			&evt.UserID,
 			&evt.Title,
 			&evt.Location,
 			&evt.Time,
@@ -583,6 +644,7 @@ func (r *EventRepository) IsConversationMember(ctx context.Context, conversation
 
 var seedEvents = []CreateEventParams{
 	{
+		UserID:      1,
 		Title:       "Running Buddy",
 		Location:    "Phoenix Park",
 		Time:        "09:00",
@@ -593,6 +655,7 @@ var seedEvents = []CreateEventParams{
 		DateLabel:   "Today",
 	},
 	{
+		UserID:      2,
 		Title:       "Live Music Night",
 		Location:    "Workmans Club",
 		Time:        "20:00",
@@ -603,6 +666,7 @@ var seedEvents = []CreateEventParams{
 		DateLabel:   "Today",
 	},
 	{
+		UserID:      3,
 		Title:       "Trail Hike",
 		Location:    "Howth Cliffs",
 		Time:        "10:00",
@@ -612,10 +676,35 @@ var seedEvents = []CreateEventParams{
 		MaxAge:      40,
 		DateLabel:   "Tmrw",
 	},
+	{
+		UserID:      1,
+		Title:       "Community Potluck",
+		Location:    "Docklands Hub",
+		Time:        "19:00",
+		Description: "Bring a dish and meet new neighbours.",
+		Gender:      "Any",
+		MinAge:      21,
+		MaxAge:      45,
+		DateLabel:   "Tmrw",
+	},
+	{
+		UserID:      2,
+		Title:       "Indie Film Screening",
+		Location:    "Lightbox Cinema",
+		Time:        "21:30",
+		Description: "Private screening of festival favourites.",
+		Gender:      "Any",
+		MinAge:      23,
+		MaxAge:      38,
+		DateLabel:   "Today",
+	},
 }
 
 func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
 	if err := r.ensureSeedUsers(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEventsUserIDColumn(ctx); err != nil {
 		return err
 	}
 	if err := r.ensureSeedEvents(ctx); err != nil {

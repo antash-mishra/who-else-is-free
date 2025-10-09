@@ -4,6 +4,7 @@ import "time"
 
 type Event struct {
 	ID          int64     `json:"id"`
+	UserID      int64     `json:"user_id"`
 	Title       string    `json:"title"`
 	Location    string    `json:"location"`
 	Time        string    `json:"time"`
@@ -84,4 +85,5 @@ type CreateEventParams struct {
 	MinAge      int    `json:"min_age" binding:"required,gte=0"`
 	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
 	DateLabel   string `json:"date_label" binding:"required,oneof=Today Tmrw"`
+	UserID      int64  `json:"user_id" binding:"required,gte=1"`
 }

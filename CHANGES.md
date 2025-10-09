@@ -61,5 +61,10 @@
 - Added WebSocket rate limiting, reused ping/pong keepalives, and tracked per-user read cursors with unread counts in summaries.
 - Hardened the client: Authorization headers on chat fetches, token-based sockets, conversation pull-to-refresh, auto-scroll to latest, and retry taps for failed sends.
 
+## Event ownership
+- Added `user_id` ownership metadata to events across schema, repository, and API payloads with backward-compatible migration.
+- Guarded event creation behind authentication on the client and wired the Events context to persist the creator id when posting new plans.
+- Seeded additional demo events linked to existing users for easier backend/frontend verification.
+
 ## Product vision
 - Building a companion-finder that helps people discover last-minute event buddies, create new gatherings, and keep track of their own plans in one place.
