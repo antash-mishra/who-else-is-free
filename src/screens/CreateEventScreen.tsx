@@ -143,7 +143,7 @@ const CreateEventScreen = () => {
       });
 
       resetForm();
-      navigation.navigate('Events', { initialTab: 'mine' });
+      navigation.navigate('MyEvents');
     } catch (err) {
       console.error('Failed to create event', err);
       setSubmitError('Unable to create event. Please try again.');

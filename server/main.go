@@ -19,7 +19,15 @@ func main() {
 		}
 	}()
 
+    // Load optional server/.env so local dev can configure secrets easily.
+    loadServerEnv()
+
 	repo := NewEventRepository(database)
+
+	signer, err := newTokenSignerFromEnv()
+	if err != nil {
+		log.Fatalf("failed to load session signer: %v", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -33,8 +41,10 @@ func main() {
 	}
 
 	eventHandler := NewEventHandler(repo)
-	authHandler := NewAuthHandler(repo)
-	srv := setupRouter(eventHandler, authHandler)
+	authHandler := NewAuthHandler(repo, signer)
+	chatHub := NewChatHub(repo, signer)
+	go chatHub.Run()
+	srv := setupRouter(eventHandler, authHandler, chatHub, signer)
 
 	if err := srv.Run(); err != nil {
 		log.Fatalf("failed to start server: %v", err)

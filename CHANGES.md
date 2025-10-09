@@ -37,6 +37,11 @@
 - Hooked the React Native create flow to the events API so that newly created plans persist through the backend.
 - Pulled event listings from the API into the "Your Events" tab, keeping the UI and server data in sync.
 
+## Navigation refinements
+- Replaced the static SVG tab assets with focus-aware icons so the active tab fills solid black while inactive states remain outlined.
+- Split "Your Events" into a dedicated `MyEvents` screen and removed the segmented control from the `Events` feed, keeping that view focused on all listings.
+- Wired the My Events tab to the new screen and now route users there automatically after creating an event.
+
 ## User accounts
 - Created a SQLite `users` table with seed demo profiles and a `/api/login` endpoint that authenticates email/password pairs.
 - Documented shared API base URL resolution so both authentication and events modules target the same backend host.
@@ -44,6 +49,17 @@
 ## Authentication flow
 - Added a dedicated login screen with form validation, seeded credential hints, and loading/error feedback.
 - Introduced an auth context and navigation guard so the tab experience loads only after a successful sign in.
+
+## Chat MVP (Stage 1)
+- Implemented conversation/message tables with seeded one-to-one chats between demo users.
+- Added Gin handlers and Gorilla WebSocket hub (`/api/ws`) plus REST endpoints for conversations and messages.
+- Created a React Native chat context with WebSocket wiring and a basic Messages screen UI supporting optimistic sends.
+- Shifted the experience to direct user-to-user conversations with name/preview roster and detail thread view selection.
+
+## Chat Stage 2 – Auth & stability
+- Issued HMAC-signed session tokens from `/api/login` and protected chat REST/WS flows with middleware + query token verification.
+- Added WebSocket rate limiting, reused ping/pong keepalives, and tracked per-user read cursors with unread counts in summaries.
+- Hardened the client: Authorization headers on chat fetches, token-based sockets, conversation pull-to-refresh, auto-scroll to latest, and retry taps for failed sends.
 
 ## Product vision
 - Building a companion-finder that helps people discover last-minute event buddies, create new gatherings, and keep track of their own plans in one place.

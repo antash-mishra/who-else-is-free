@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 2
+    gap: 1
   },
   title: {
     fontSize: typography.cardTitle,

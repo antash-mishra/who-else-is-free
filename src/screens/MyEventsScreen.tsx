@@ -1,7 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
   RefreshControl,
   SectionList,
   SectionListRenderItemInfo,
@@ -9,10 +7,17 @@ import {
   Text,
   View
 } from 'react-native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
+
+import EmptyState from '@components/EmptyState';
 import EventCard, { EventItemProps } from '@components/EventCard';
 import ScreenContainer from '@components/ScreenContainer';
+import { RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
 import { DateLabel, UserEvent, useEvents } from '@context/EventsContext';
+
+type MyEventsNavigation = BottomTabNavigationProp<RootTabParamList, 'MyEvents'>;
 
 type EventSection = {
   title: string;
@@ -42,14 +47,12 @@ const buildSections = (items: UserEvent[]): EventSection[] => {
     .filter((section) => section.data.length > 0);
 };
 
-const HomeScreen = () => {
-  const { events: allEvents, isLoading, error, refreshEvents } = useEvents();
-  const allEventSections = useMemo<EventSection[]>(() => buildSections(allEvents), [allEvents]);
+const MyEventsScreen = () => {
+  const navigation = useNavigation<MyEventsNavigation>();
+  const { userEvents, isLoading, refreshEvents } = useEvents();
 
-  const sections = allEventSections;
-  const showAllEventsLoading = isLoading && sections.length === 0;
-  const showAllEventsError = !!error && !isLoading && sections.length === 0;
-  const showAllEventsEmpty = !isLoading && sections.length === 0 && !error;
+  const sections = useMemo<EventSection[]>(() => buildSections(userEvents), [userEvents]);
+  const hasEvents = sections.length > 0;
 
   const handleRefresh = useCallback(() => {
     refreshEvents().catch(() => undefined);
@@ -66,23 +69,15 @@ const HomeScreen = () => {
   return (
     <ScreenContainer>
       <View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>All Events</Text>
+        <Text style={styles.headerTitle}>Your Events</Text>
       </View>
-      {showAllEventsLoading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : showAllEventsError ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={handleRefresh}>
-            <Text style={styles.retryButtonText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : showAllEventsEmpty ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyAllText}>No events available yet.</Text>
-        </View>
+      {!hasEvents ? (
+        <EmptyState
+          title="You haven’t created any event yet"
+          description="Tap the button below to start planning your next experience."
+          actionLabel="Create an event"
+          onActionPress={() => navigation.navigate('Create')}
+        />
       ) : (
         <SectionList<EventItemProps, EventSection>
           sections={sections}
@@ -137,41 +132,7 @@ const styles = StyleSheet.create({
   },
   footerSpacing: {
     height: spacing.xl
-  },
-  centerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.md
-  },
-  errorText: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilyMedium,
-    color: '#B00020',
-    textAlign: 'center'
-  },
-  retryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 999,
-    backgroundColor: colors.primary
-  },
-  retryButtonText: {
-    color: colors.buttonText,
-    fontSize: typography.body,
-    fontFamily: typography.fontFamilyMedium,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
-  },
-  emptyAllText: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.muted,
-    textAlign: 'center',
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
   }
 });
 
-export default HomeScreen;
+export default MyEventsScreen;

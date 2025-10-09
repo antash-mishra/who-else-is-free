@@ -10,6 +10,7 @@ import AppNavigator from '@navigation/AppNavigator';
 import { colors } from '@theme/colors';
 import { EventsProvider } from '@context/EventsContext';
 import { AuthProvider } from '@context/AuthContext';
+import { ChatProvider } from '@context/ChatContext';
 
 const App = () => {
   const [fontsLoaded] = useFonts({
@@ -28,9 +29,11 @@ const App = () => {
       <SafeAreaProvider>
         <StatusBar style="dark" />
         <AuthProvider>
-          <EventsProvider>
-            <AppNavigator />
-          </EventsProvider>
+          <ChatProvider>
+            <EventsProvider>
+              <AppNavigator />
+            </EventsProvider>
+          </ChatProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

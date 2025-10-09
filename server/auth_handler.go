@@ -9,11 +9,12 @@ import (
 )
 
 type AuthHandler struct {
-	repo *EventRepository
+    repo   *EventRepository
+    signer *tokenSigner
 }
 
-func NewAuthHandler(repo *EventRepository) *AuthHandler {
-	return &AuthHandler{repo: repo}
+func NewAuthHandler(repo *EventRepository, signer *tokenSigner) *AuthHandler {
+    return &AuthHandler{repo: repo, signer: signer}
 }
 
 func (h *AuthHandler) RegisterRoutes(group *gin.RouterGroup) {
@@ -26,7 +27,8 @@ type loginRequest struct {
 }
 
 func (h *AuthHandler) login(c *gin.Context) {
-	var payload loginRequest
+    // Authenticate the user, then issue a signed chat token consumed by REST + WS flows.
+    var payload loginRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -45,11 +47,19 @@ func (h *AuthHandler) login(c *gin.Context) {
 		return
 	}
 
+	token, claims, err := h.signer.issue(user.ID, user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to issue session token"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
 			"id":    user.ID,
 			"name":  user.Name,
 			"email": user.Email,
 		},
+		"token":      token,
+		"expires_at": claims.ExpiresAt,
 	})
 }

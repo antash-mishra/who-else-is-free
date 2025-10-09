@@ -8,13 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler) *gin.Engine {
+func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *ChatHub, signer *tokenSigner) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:  []string{"*"},
 		AllowMethods:  []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:  []string{"Origin", "Content-Type"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders: []string{"Content-Length"},
 		MaxAge:        12 * time.Hour,
 	}))
@@ -24,8 +24,14 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler) *gin.Engi
 	})
 
 	api := r.Group("/api")
-	eventHandler.RegisterRoutes(api)
 	authHandler.RegisterRoutes(api)
+	eventHandler.RegisterRoutes(api)
+
+	protected := api.Group("")
+	protected.Use(sessionMiddleware(signer))
+	RegisterChatRoutes(protected, eventHandler.repo)
+
+	api.GET("/ws", chatHub.handleWebSocket)
 
 	return r
 }

@@ -17,6 +17,7 @@ type AuthUser = {
 
 interface AuthContextValue {
   user: AuthUser | null;
+  token: string | null;
   isSigningIn: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const signIn = useCallback(async (email: string, password: string) => {
@@ -47,8 +49,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(message);
       }
 
-      const payload = (await response.json()) as { user: AuthUser };
+      const payload = (await response.json()) as { user: AuthUser; token: string };
       setUser(payload.user);
+      setToken(payload.token);
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -61,16 +64,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = useCallback(() => {
     setUser(null);
+    setToken(null);
   }, []);
 
   const value = useMemo(
     () => ({
       user,
+      token,
       isSigningIn,
       signIn,
       signOut
     }),
-    [user, isSigningIn, signIn, signOut]
+    [user, token, isSigningIn, signIn, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

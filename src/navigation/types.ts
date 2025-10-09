@@ -4,7 +4,8 @@ export type RootStackParamList = {
 };
 
 export type RootTabParamList = {
-  Events: { initialTab?: 'all' | 'mine' } | undefined;
+  Events: undefined;
+  MyEvents: undefined;
   Messages: undefined;
   Create: undefined;
   Profile: undefined;

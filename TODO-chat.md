@@ -1,24 +1,34 @@
-# Real-time Chat TODO
+# Real-time Chat Roadmap
 
-- [ ] **Backend: WebSocket Infrastructure**
-  - [ ] Add Gorilla WebSocket (or equivalent) dependency and wire a `/api/ws` endpoint that upgrades connections.
-  - [ ] Model chat rooms/messages in SQLite (tables: `conversations`, `messages`, `conversation_members`).
-  - [ ] Implement connection manager to broadcast messages to room members and handle join/leave lifecycle.
-  - [ ] Persist inbound messages with sender metadata, timestamps, and delivery status.
-  - [ ] Expose REST fallbacks for fetching recent conversations/history and for sending messages when sockets fail.
+## Stage 0 – Prep work
+- [x] Finalise the long-term auth plan (Google Sign-In) and document how temporary users from the seeded table map to Google accounts once ready.
+- [x] Sketch the chat data model (schemas + migrations) and message payload contract shared between backend and mobile.
+- [x] Decide on environment configuration (WS base URL, feature flags) and how they surface in Expo + server.
 
-- [ ] **Authentication & Presence**
-  - [ ] Re-use login credentials to authenticate socket handshakes (token or session cookie).
-  - [ ] Track online/offline state per user and surface presence updates to room members.
-  - [ ] Add rate limiting / heartbeat pings to detect stale connections.
+## Stage 1 – Core messaging MVP
+- [x] Add Gorilla WebSocket (or equivalent) and expose `/api/ws` for realtime messaging.
+- [x] Create minimal SQLite schema: `conversations`, `conversation_members`, `messages` (timestamps + sender id).
+- [x] Implement a simple in-memory hub that routes messages to members of a conversation and persists each payload.
+- [x] Provide REST endpoints for listing user conversations and fetching latest messages (pagination stub).
+- [x] Build a React context/service that opens one socket, handles reconnect/backoff, and surfaces a basic list + thread UI (text only, no typing indicators).
+- [x] Surface a direct-message roster with participant name, event label, and last message preview before entering the thread.
 
-- [ ] **Frontend: Messaging UX**
-  - [ ] Create chat context/service to establish a WebSocket connection and manage reconnection/backoff.
-  - [ ] Build conversation list screen with last message preview, unread count, and online status indicators.
-  - [ ] Implement chat thread UI with message bubbles, typing indicators, and optimistic message sending.
-  - [ ] Provide attachment support (images at minimum) and graceful error toasts/retry flows.
+## Stage 2 – Authentication bridge & stability
+- [x] Introduce a lightweight token/session issued by the existing `/api/login` so MVP sockets can authenticate (upgrade middleware + REST guards).
+- [x] Add keepalive pings + rate limiting to drop abusive/stale connections.
+- [x] Store and expose read cursors per user (unread badge counts in conversation list).
+- [x] Harden the UI with optimistic send + retry, scroll-to-latest, and manual refresh.
+- [ ] Document how to migrate tokens to Google Sign-In once ready (identify fields to carry over).
 
-- [ ] **Notifications & Quality**
-  - [ ] Trigger push/local notifications for new messages when chats are not in focus.
-  - [ ] Add integration tests for message delivery ordering and load tests for concurrent connections.
-  - [ ] Document setup/run instructions plus failure recovery procedures in `CHANGES.md` or dedicated README.
+## Stage 3 – Presence & richer UX
+- [ ] Track online state per user (in-memory map + heartbeat expiry) and broadcast join/leave events in conversations.
+- [ ] Show presence indicators in the UI and pipe typing indicators over the socket.
+- [ ] Support attachments (begin with image upload to a storage bucket + message enrichment).
+- [ ] Add push/local notifications when a new message arrives for inactive conversations.
+- [ ] Instrument integration tests for message ordering, presence updates, and concurrency (at least happy-path automated coverage).
+
+## Stage 4 – Production readiness
+- [ ] Replace temporary login with Google Sign-In tokens for REST + WebSocket auth.
+- [ ] Add load testing scripts, observability (structured logs, metrics), and a troubleshooting runbook in a dedicated README.
+- [ ] Perform manual regression checklist (multi-device chat, offline/online transitions, attachment failure cases).
+- [ ] Update `CHANGES.md` and product docs with rollout guidance.

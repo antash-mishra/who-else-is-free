@@ -1,17 +1,31 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback } from 'react';
 
 import ScreenContainer from '@components/ScreenContainer';
 import { colors, spacing, typography } from '@theme/index';
+import { useAuth } from '@context/AuthContext';
 
 const ProfileScreen = () => {
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = useCallback(() => {
+    signOut();
+  }, [signOut]);
+
+  const initial = user?.name?.charAt(0).toUpperCase() ?? 'Y';
+
   return (
     <ScreenContainer>
       <View style={styles.container}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>A</Text>
+          <Text style={styles.avatarInitial}>{initial}</Text>
         </View>
-        <Text style={styles.name}>Your Profile</Text>
-        <Text style={styles.caption}>Complete your profile to make it easier for others to find you.</Text>
+        <Text style={styles.name}>{user?.name ?? 'Your Profile'}</Text>
+        <Text style={styles.caption}>{user?.email ?? 'Complete your profile to make it easier for others to find you.'}</Text>
+
+        <Pressable onPress={handleSignOut} style={styles.signOutButton} accessibilityRole="button">
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </Pressable>
       </View>
     </ScreenContainer>
   );
@@ -53,6 +67,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: typography.fontFamilyRegular,
     lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing
+  },
+  signOutButton: {
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: 24,
+    backgroundColor: colors.primary
+  },
+  signOutText: {
+    color: colors.buttonText,
+    fontFamily: typography.fontFamilySemiBold,
+    fontSize: typography.subtitle,
     letterSpacing: typography.letterSpacing
   }
 });
