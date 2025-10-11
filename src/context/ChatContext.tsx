@@ -9,6 +9,8 @@ import {
   useState
 } from 'react';
 
+import { AppState, AppStateStatus } from 'react-native';
+
 import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from '@api/config';
 import { useAuth } from '@context/AuthContext';
 
@@ -24,6 +26,14 @@ type ConversationLastMessage = {
   created_at: string;
 };
 
+type ConversationEventApi = {
+  id: number;
+  title: string;
+  location: string;
+  time: string;
+  date_label: string;
+};
+
 export type ChatConversation = {
   id: number;
   title?: string | null;
@@ -32,6 +42,14 @@ export type ChatConversation = {
   displayName: string;
   lastMessage?: ChatMessage;
   unreadCount: number;
+  eventId: number | null;
+  event?: {
+    id: number;
+    title: string;
+    location: string;
+    time: string;
+    dateLabel: string;
+  };
 };
 
 export type ChatMessage = {
@@ -80,6 +98,9 @@ type ServerEnvelope = {
     body: string;
     createdAt: string;
   };
+  conversationId?: number;
+  userId?: number;
+  action?: string;
 };
 
 type ConversationsResponse = {
@@ -90,6 +111,7 @@ type ConversationsResponse = {
     participants: ConversationParticipant[];
     last_message?: ConversationLastMessage;
     unread_count?: number;
+    event?: ConversationEventApi;
   }>;
 };
 
@@ -112,6 +134,19 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isRefreshingConversations, setIsRefreshingConversations] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const manuallyClosedRef = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
+  const activeConversationRef = useRef<number | null>(null);
+  const userIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    activeConversationRef.current = activeConversationId;
+  }, [activeConversationId]);
+
+  useEffect(() => {
+    userIdRef.current = user?.id ?? null;
+  }, [user]);
 
   const mapServerMessage = useCallback((payload: ServerEnvelope['message']): ChatMessage | null => {
     if (!payload) {
@@ -131,9 +166,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       setConversations([]);
       setMessagesByConversation({});
       setActiveConversationId(null);
+      manuallyClosedRef.current = true;
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
     }
   }, [token, user]);
@@ -214,8 +254,22 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const normalized = payload.conversations.map((conversation) => {
         const participants = conversation.participants ?? [];
         const counterpart = participants.find((participant) => participant.id !== user.id);
-        const fallbackName = participants[0]?.name ?? conversation.title ?? 'Conversation';
-        const displayName = counterpart?.name ?? fallbackName;
+        const event = conversation.event
+          ? {
+              id: conversation.event.id,
+              title: conversation.event.title,
+              location: conversation.event.location,
+              time: conversation.event.time,
+              dateLabel: conversation.event.date_label
+            }
+          : undefined;
+        const memberCount = conversation.member_ids?.length ?? participants.length;
+        const isGroup =
+          memberCount > 2 || !!event || (!!conversation.title && memberCount > 1);
+        const fallbackName = conversation.title ?? participants[0]?.name ?? 'Conversation';
+        const displayName = isGroup
+          ? event?.title ?? conversation.title ?? fallbackName
+          : counterpart?.name ?? fallbackName;
         const lastMessage = conversation.last_message
           ? {
               id: String(conversation.last_message.id),
@@ -233,7 +287,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           participants,
           displayName,
           lastMessage,
-          unreadCount: conversation.unread_count ?? 0
+          unreadCount: conversation.unread_count ?? 0,
+          eventId: event?.id ?? null,
+          event
         } as ChatConversation;
       });
 
@@ -249,10 +305,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           const previous = prevMap.get(item.id);
           const lastMessage = item.lastMessage ?? previous?.lastMessage;
           const unreadCount = item.unreadCount ?? previous?.unreadCount ?? 0;
+          const event = item.event ?? previous?.event;
+          const eventId = item.eventId ?? previous?.eventId ?? null;
           return {
             ...item,
             lastMessage,
-            unreadCount
+            unreadCount,
+            event,
+            eventId
           };
         });
       });
@@ -286,9 +346,114 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [activeConversationId, messagesByConversation, refreshMessages, user]);
 
-  useEffect(() => {
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, []);
+
+  const cleanupSocket = useCallback(() => {
+    clearReconnectTimeout();
+    if (socketRef.current) {
+      socketRef.current.onopen = null;
+      socketRef.current.onclose = null;
+      socketRef.current.onerror = null;
+      socketRef.current.onmessage = null;
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+  }, [clearReconnectTimeout]);
+
+  const handleServerEnvelope = useCallback(
+    (envelope: ServerEnvelope) => {
+      const currentUserId = userIdRef.current;
+      const currentActiveConversationId = activeConversationRef.current;
+
+      if (envelope.type === 'message:new') {
+        const message = mapServerMessage(envelope.message);
+        if (!message) {
+          return;
+        }
+
+        setMessagesByConversation((prev) => {
+          const existing = prev[message.conversationId] ?? [];
+          let nextMessages = existing;
+
+          if (envelope.tempId) {
+            nextMessages = existing.filter((item) => item.tempId !== envelope.tempId);
+          }
+
+          return {
+            ...prev,
+            [message.conversationId]: [...nextMessages, message]
+          };
+        });
+
+        setConversations((prev) => {
+          const preview: ChatMessage = {
+            ...message,
+            pending: false,
+            tempId: envelope.tempId
+          };
+          const updated = prev.map((conversation) =>
+            conversation.id === message.conversationId
+              ? {
+                  ...conversation,
+                  lastMessage: preview,
+                  unreadCount:
+                    message.senderId === currentUserId || conversation.id === currentActiveConversationId
+                      ? 0
+                      : (conversation.unreadCount ?? 0) + 1
+                }
+              : conversation
+          );
+          return sortConversationsByActivity(updated);
+        });
+        return;
+      }
+
+      if (envelope.type === 'conversation:membership') {
+        const { conversationId, userId, action } = envelope;
+        if (!conversationId || !action) {
+          return;
+        }
+
+        if (action === 'added') {
+          refreshConversations().catch(() => undefined);
+          return;
+        }
+
+        if (action === 'removed') {
+          if (userId === currentUserId) {
+            setConversations((prev) => prev.filter((conversation) => conversation.id !== conversationId));
+            setMessagesByConversation((prev) => {
+              if (!(conversationId in prev)) {
+                return prev;
+              }
+              const { [conversationId]: _removed, ...rest } = prev;
+              return rest;
+            });
+            if (currentActiveConversationId === conversationId) {
+              setActiveConversationId(null);
+            }
+          } else {
+            refreshConversations().catch(() => undefined);
+          }
+        }
+      }
+    },
+    [mapServerMessage, refreshConversations]
+  );
+
+  const connectSocket = useCallback(() => {
     if (!user || !CHAT_ENABLED || !token) {
-      return () => undefined;
+      return;
+    }
+
+    if (socketRef.current &&
+      (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
     }
 
     const protocolBase = `${WS_BASE_URL}${WS_PATH}`;
@@ -296,11 +461,19 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setIsConnecting(true);
     setError(null);
 
+    clearReconnectTimeout();
+
     const socket = new WebSocket(socketUrl);
     socketRef.current = socket;
+    manuallyClosedRef.current = false;
 
     socket.onopen = () => {
       setIsConnecting(false);
+      refreshConversations().catch(() => undefined);
+      const conversationId = activeConversationRef.current;
+      if (conversationId != null) {
+        refreshMessages(conversationId).catch(() => undefined);
+      }
     };
 
     socket.onerror = () => {
@@ -309,63 +482,76 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
 
     socket.onclose = () => {
+      socketRef.current = null;
       setIsConnecting(false);
+      if (!manuallyClosedRef.current && user && token) {
+        clearReconnectTimeout();
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connectSocket();
+        }, 1000);
+      }
     };
 
     socket.onmessage = (event) => {
       try {
         const envelope = JSON.parse(String(event.data)) as ServerEnvelope;
-        if (envelope.type === 'message:new') {
-          const message = mapServerMessage(envelope.message);
-          if (!message) {
-            return;
-          }
-
-          setMessagesByConversation((prev) => {
-            const existing = prev[message.conversationId] ?? [];
-            let nextMessages = existing;
-
-            if (envelope.tempId) {
-              nextMessages = existing.filter((item) => item.tempId !== envelope.tempId);
-            }
-
-            return {
-              ...prev,
-              [message.conversationId]: [...nextMessages, message]
-            };
-          });
-
-      setConversations((prev) => {
-        const preview: ChatMessage = {
-          ...message,
-          pending: false,
-          tempId: envelope.tempId
-        };
-        const updated = prev.map((conversation) =>
-          conversation.id === message.conversationId
-            ? {
-                ...conversation,
-                lastMessage: preview,
-                unreadCount:
-                  message.senderId === user?.id || conversation.id === activeConversationId
-                    ? 0
-                    : (conversation.unreadCount ?? 0) + 1
-              }
-            : conversation
-        );
-        return sortConversationsByActivity(updated);
-      });
-    }
+        handleServerEnvelope(envelope);
       } catch (err) {
         console.error('Failed to parse WS message', err);
       }
     };
+  }, [clearReconnectTimeout, handleServerEnvelope, refreshConversations, refreshMessages, token, user]);
+
+  useEffect(() => {
+    if (!user || !CHAT_ENABLED || !token) {
+      manuallyClosedRef.current = true;
+      cleanupSocket();
+      return;
+    }
+
+    connectSocket();
 
     return () => {
-      socket.close();
-      socketRef.current = null;
+      manuallyClosedRef.current = true;
+      cleanupSocket();
     };
-  }, [activeConversationId, token, user, mapServerMessage]);
+  }, [cleanupSocket, connectSocket, token, user]);
+
+  useEffect(() => {
+    if (!CHAT_ENABLED) {
+      return;
+    }
+
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      const previous = appStateRef.current;
+      appStateRef.current = nextState;
+
+      if (!user || !token) {
+        return;
+      }
+
+      if (nextState === 'active' && (previous === 'inactive' || previous === 'background')) {
+        manuallyClosedRef.current = false;
+        connectSocket();
+        refreshConversations().catch(() => undefined);
+        const conversationId = activeConversationRef.current;
+        if (conversationId != null) {
+          refreshMessages(conversationId).catch(() => undefined);
+        }
+        return;
+      }
+
+      if (nextState === 'background' || nextState === 'inactive') {
+        manuallyClosedRef.current = true;
+        cleanupSocket();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [cleanupSocket, connectSocket, refreshConversations, refreshMessages, token, user]);
 
   const sendMessage = useCallback(
     (conversationId: number, body: string) => {
@@ -379,6 +565,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
       if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
         setError('Chat connection is not ready.');
+        connectSocket();
 
         const failedMessage: ChatMessage = {
           id: tempId,
@@ -446,7 +633,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
       socketRef.current.send(JSON.stringify(payload));
     },
-    [user]
+    [connectSocket, user]
   );
 
   const retryMessage = useCallback(

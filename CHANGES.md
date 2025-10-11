@@ -41,6 +41,11 @@
 - Replaced the static SVG tab assets with focus-aware icons so the active tab fills solid black while inactive states remain outlined.
 - Split "Your Events" into a dedicated `MyEvents` screen and removed the segmented control from the `Events` feed, keeping that view focused on all listings.
 - Wired the My Events tab to the new screen and now route users there automatically after creating an event.
+- Restored screen headings so the Events feed shows “All Events” and the My Events tab reads “Your Events,” matching the latest mock.
+
+## Visual polish
+- Introduced a two-stop gradient background token set and threaded it through the shared `ScreenContainer` so screens fade from white into a warm cream near the tab bar.
+- Iterated on the gradient overlay to extend the fade horizontally toward the bottom-right corner, keeping the top half solid white for readability.
 
 ## User accounts
 - Created a SQLite `users` table with seed demo profiles and a `/api/login` endpoint that authenticates email/password pairs.
@@ -60,6 +65,23 @@
 - Issued HMAC-signed session tokens from `/api/login` and protected chat REST/WS flows with middleware + query token verification.
 - Added WebSocket rate limiting, reused ping/pong keepalives, and tracked per-user read cursors with unread counts in summaries.
 - Hardened the client: Authorization headers on chat fetches, token-based sockets, conversation pull-to-refresh, auto-scroll to latest, and retry taps for failed sends.
+
+## Chat Stage 3 – Event-driven group chat
+- Linked events to conversations so publishing an event provisions a matching group chat with the creator enrolled as host.
+- Added join-request storage, approval + denial endpoints, and membership removal handlers that push live updates over the WebSocket hub.
+- Seeded demo data with a multi-member event chat and a standalone “Planning Crew” group so QA can verify roster flows immediately.
+- Updated the React chat client to fetch event metadata, render participant avatars, show group titles correctly, and auto-refresh when screens regain focus.
+- Improved the Messages screen UX with keyboard avoidance, avatar-aligned bubbles, and reliable scroll-to-latest behaviour.
+
+## Chat resilience updates
+- Persisted auth sessions with Expo SecureStore so both REST and WebSocket calls survive app restarts without forcing a fresh sign-in.
+- Added automatic WebSocket reconnects (with missed-message refresh) whenever the app returns to the foreground or a send occurs while the socket is down.
+- Centralised chat socket cleanup to avoid duplicate close errors and ensure backgrounded apps pause traffic without losing state.
+
+## Chat server – concurrency & docs
+- Simplified server chat hub by removing the per-client `subscriptionsMu` lock; authorization now uses a DB membership check in `handleSend` to avoid stale client state (server/chat_hub.go).
+- Added thorough, doc-style comments throughout the hub (pumps, membership updates, registration) and every chat HTTP handler to explain inputs, responses, and side effects.
+- Maintained the same fan-out behavior and rate limiting; membership updates still broadcast `conversation:membership` events to live subscribers.
 
 ## Event ownership
 - Added `user_id` ownership metadata to events across schema, repository, and API payloads with backward-compatible migration.

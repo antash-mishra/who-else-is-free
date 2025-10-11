@@ -27,7 +27,7 @@ const resolveApiBaseUrl = () => {
     }
   }
 
-  return 'http://192.168.1.8:8080';
+  return 'http://192.168.1.10:8080';
 };
 
 export const API_BASE_URL = resolveApiBaseUrl();

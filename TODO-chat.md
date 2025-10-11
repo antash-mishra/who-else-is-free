@@ -18,16 +18,24 @@
 - [x] Add keepalive pings + rate limiting to drop abusive/stale connections.
 - [x] Store and expose read cursors per user (unread badge counts in conversation list).
 - [x] Harden the UI with optimistic send + retry, scroll-to-latest, and manual refresh.
+- [x] Persist chat sessions with secure token storage and auto-reconnect sockets when the app returns to the foreground.
 - [ ] Document how to migrate tokens to Google Sign-In once ready (identify fields to carry over).
 
-## Stage 3 – Presence & richer UX
+## Stage 3 – Event-driven group chat
+- [x] Auto-create a conversation when an event is published and persist the event/conversation linkage (creator joins as group host).
+- [x] Add endpoints + repo helpers so attendees can request to join, hosts can approve/deny/remove members, and membership updates are pushed to connected WebSocket clients.
+- [x] Update ChatContext to refresh membership rosters, surface event metadata (title/location/time) in the roster + thread, and react to membership churn.
+- [ ] Introduce event-centric UI: entry points from events list/detail, host approval flows for join requests, and leave actions for attendees.
+- [x] Seed sample events with multi-member chats so QA can verify the flow without manual setup.
+
+## Stage 4 – Presence & richer UX
 - [ ] Track online state per user (in-memory map + heartbeat expiry) and broadcast join/leave events in conversations.
 - [ ] Show presence indicators in the UI and pipe typing indicators over the socket.
 - [ ] Support attachments (begin with image upload to a storage bucket + message enrichment).
 - [ ] Add push/local notifications when a new message arrives for inactive conversations.
 - [ ] Instrument integration tests for message ordering, presence updates, and concurrency (at least happy-path automated coverage).
 
-## Stage 4 – Production readiness
+## Stage 5 – Production readiness
 - [ ] Replace temporary login with Google Sign-In tokens for REST + WebSocket auth.
 - [ ] Add load testing scripts, observability (structured logs, metrics), and a troubleshooting runbook in a dedicated README.
 - [ ] Perform manual regression checklist (multi-device chat, offline/online transitions, attachment failure cases).

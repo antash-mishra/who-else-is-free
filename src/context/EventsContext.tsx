@@ -12,6 +12,7 @@ import {
 
 import { EventItemProps } from '@components/EventCard';
 import { API_BASE_URL } from '@api/config';
+import { useAuth } from '@context/AuthContext';
 
 export type DateLabel = 'Today' | 'Tmrw';
 
@@ -86,8 +87,8 @@ const mapApiEvent = (event: ApiEvent, meta: EventMeta | undefined): UserEvent =>
 });
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
-  const [createdEventIds, setCreatedEventIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const metaRef = useRef<Record<string, EventMeta>>({});
@@ -152,8 +153,6 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         }
       };
 
-      setCreatedEventIds((prev) => (prev.includes(eventId) ? prev : [...prev, eventId]));
-
       const optimisticEvent: ApiEvent = {
         id,
         title: event.title,
@@ -184,13 +183,12 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshEvents]);
 
   const userEvents = useMemo(() => {
-    if (!createdEventIds.length) {
+    if (!user) {
       return [];
     }
 
-    const idSet = new Set(createdEventIds);
-    return events.filter((event) => idSet.has(event.id));
-  }, [events, createdEventIds]);
+    return events.filter((event) => event.ownerId === user.id);
+  }, [events, user]);
 
   const value = useMemo(
     () => ({ events, userEvents, isLoading, error, refreshEvents, addUserEvent }),

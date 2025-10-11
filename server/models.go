@@ -29,6 +29,7 @@ type Conversation struct {
 	Title     *string   `json:"title,omitempty"`
 	CreatedBy int64     `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
+	EventID   *int64    `json:"event_id,omitempty"`
 }
 
 type ConversationMember struct {
@@ -49,11 +50,12 @@ type Message struct {
 }
 
 type ConversationSummary struct {
-    Conversation
-    MemberIDs    []int64                   `json:"member_ids"`
-    Participants []ConversationParticipant `json:"participants"`
-    LastMessage  *MessageSummary           `json:"last_message,omitempty"`
-    UnreadCount  int                       `json:"unread_count"`
+	Conversation
+	MemberIDs    []int64                   `json:"member_ids"`
+	Participants []ConversationParticipant `json:"participants"`
+	Event        *ConversationEventMeta    `json:"event,omitempty"`
+	LastMessage  *MessageSummary           `json:"last_message,omitempty"`
+	UnreadCount  int                       `json:"unread_count"`
 }
 
 type CreateMessageParams struct {
@@ -69,11 +71,29 @@ type ConversationParticipant struct {
 	Name string `json:"name"`
 }
 
+type ConversationEventMeta struct {
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Location  string `json:"location"`
+	Time      string `json:"time"`
+	DateLabel string `json:"date_label"`
+}
+
 type MessageSummary struct {
 	ID        int64     `json:"id"`
 	SenderID  int64     `json:"sender_id"`
 	Body      string    `json:"body"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type ConversationJoinRequest struct {
+	ID        int64      `json:"id"`
+	EventID   int64      `json:"event_id"`
+	UserID    int64      `json:"user_id"`
+	Status    string     `json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	DecidedAt *time.Time `json:"decided_at,omitempty"`
+	DecidedBy *int64     `json:"decided_by,omitempty"`
 }
 
 type CreateEventParams struct {

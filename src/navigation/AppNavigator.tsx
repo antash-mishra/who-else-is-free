@@ -14,6 +14,7 @@ import LoginScreen from '@screens/LoginScreen';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors } from '@theme/colors';
 import { useAuth } from '@context/AuthContext';
+import { useChat } from '@context/ChatContext';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -135,82 +136,87 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
   );
 };
 
-const MainTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarShowLabel: false,
-      tabBarStyle:
-        route.name === 'Create'
-          ? { display: 'none' }
-          : {
-              backgroundColor: colors.background,
-              height: 72,
-              paddingBottom: 12,
-              paddingTop: 12
-            },
-      tabBarBackground:
-        route.name === 'Create'
-          ? undefined
-          : () => (
-              <BlurView
-                intensity={Platform.select({ ios: 44, android: 44, default: 44 })}
-                tint={Platform.OS === 'ios' ? 'light' : 'default'}
-                style={StyleSheet.absoluteFill}
-              />
-            ),
-      tabBarActiveTintColor: colors.tabActive,
-      tabBarInactiveTintColor: colors.tabInactive
-    })}
-  >
-    <Tab.Screen
-      name="Events"
-      component={HomeScreen}
-      options={{
-        tabBarIcon: ({ focused, color }) => (
-          <EventsTabIcon focused={focused} color={color} />
-        )
+const TAB_BAR_BASE_STYLE = {
+  backgroundColor: colors.background,
+  height: 72,
+  paddingBottom: 12,
+  paddingTop: 12
+};
+
+const MainTabs = () => {
+  const { activeConversationId } = useChat();
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => {
+        const hideTabBar = route.name === 'Create' || (route.name === 'Messages' && !!activeConversationId);
+
+        return {
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarStyle: hideTabBar ? { display: 'none' } : TAB_BAR_BASE_STYLE,
+          tabBarBackground: hideTabBar
+            ? undefined
+            : () => (
+                <BlurView
+                  intensity={Platform.select({ ios: 44, android: 44, default: 44 })}
+                  tint={Platform.OS === 'ios' ? 'light' : 'default'}
+                  style={StyleSheet.absoluteFill}
+                />
+              ),
+          tabBarActiveTintColor: colors.tabActive,
+          tabBarInactiveTintColor: colors.tabInactive
+        };
       }}
-    />
-    <Tab.Screen
-      name="MyEvents"
-      component={MyEventsScreen}
-      options={{
-        tabBarIcon: ({ focused, color }) => (
-          <MyEventsTabIcon focused={focused} color={color} />
-        )
-      }}
-    />
-    <Tab.Screen
-      name="Create"
-      component={CreateEventScreen}
-      options={{
-        tabBarIcon: ({ focused, color }) => (
-          <CreateTabIcon focused={focused} color={color} />
-        ),
-        tabBarStyle: { display: 'none' }
-      }}
-    />
-    <Tab.Screen
-      name="Messages"
-      component={MessagesScreen}
-      options={{
-        tabBarIcon: ({ focused, color }) => (
-          <MessagesTabIcon focused={focused} color={color} />
-        )
-      }}
-    />
-    <Tab.Screen
-      name="Profile"
-      component={ProfileScreen}
-      options={{
-        tabBarIcon: ({ focused, color }) => (
-          <ProfileTabIcon focused={focused} color={color} />
-        )
-      }}
-    />
-  </Tab.Navigator>
-);
+    >
+      <Tab.Screen
+        name="Events"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <EventsTabIcon focused={focused} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="MyEvents"
+        component={MyEventsScreen}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <MyEventsTabIcon focused={focused} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="Create"
+        component={CreateEventScreen}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <CreateTabIcon focused={focused} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <MessagesTabIcon focused={focused} color={color} />
+          )
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <ProfileTabIcon focused={focused} color={color} />
+          )
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const AppNavigator = () => {
   const { user } = useAuth();

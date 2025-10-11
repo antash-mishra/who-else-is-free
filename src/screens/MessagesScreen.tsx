@@ -1,11 +1,21 @@
 import { Feather } from '@expo/vector-icons';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 import ScreenContainer from '@components/ScreenContainer';
 import { colors, spacing, typography } from '@theme/index';
 import { useChat } from '@context/ChatContext';
-import type { ChatMessage } from '@context/ChatContext';
+import type { ChatConversation, ChatMessage } from '@context/ChatContext';
 import { useAuth } from '@context/AuthContext';
 
 const formatTimestamp = (value?: string) => {
@@ -69,6 +79,13 @@ const MessagesScreen = () => {
     messagesListRef.current.scrollToEnd({ animated: true });
   }, [activeConversationId, messages.length]);
 
+  useFocusEffect(
+    useCallback(() => {
+      refreshConversations().catch(() => undefined);
+      return undefined;
+    }, [refreshConversations])
+  );
+
   const handleSend = () => {
     if (!activeConversationId) {
       return;
@@ -79,8 +96,11 @@ const MessagesScreen = () => {
 
   const renderMessage = ({ item }: { item: typeof messages[number] }) => {
     const isOwn = item.senderId === user?.id;
+    const participant = activeConversation?.participants.find((p) => p.id === item.senderId);
+    const avatarLabel = participant?.name ?? activeConversation?.displayName ?? '';
+    const avatarColor = getAvatarColor(participant?.id, item.conversationId);
 
-    const messageContent = (
+    const bubble = (
       <View
         style={[
           styles.messageBubble,
@@ -104,21 +124,55 @@ const MessagesScreen = () => {
       </View>
     );
 
-    if (item.failed) {
-      return (
-        <Pressable onPress={() => retryMessage(item.conversationId, item)}>{messageContent}</Pressable>
-      );
-    }
+    const bubbleContent = item.failed ? (
+      <Pressable onPress={() => retryMessage(item.conversationId, item)}>{bubble}</Pressable>
+    ) : (
+      bubble
+    );
 
-    return messageContent;
+    const avatar = (
+      <View style={[styles.messageAvatar, { backgroundColor: avatarColor }]}> 
+        <Text style={styles.messageAvatarInitial}>{getInitial(avatarLabel)}</Text>
+      </View>
+    );
+
+    return (
+      <View style={[styles.messageRow, isOwn ? styles.messageRowOwn : styles.messageRowOther]}>
+        {!isOwn ? avatar : <View style={styles.messageAvatarPlaceholder} />}
+        <View
+          style={[
+            styles.messageBubbleContainer,
+            isOwn ? styles.messageBubbleContainerOwn : styles.messageBubbleContainerOther
+          ]}
+        >
+          {bubbleContent}
+        </View>
+        {isOwn ? avatar : <View style={styles.messageAvatarPlaceholder} />}
+      </View>
+    );
   };
 
-  const renderConversation = ({ item }: { item: (typeof conversations)[number] }) => {
-    const counterpart = item.participants.find((participant) => participant.id !== user?.id) ??
-      item.participants[0];
+  const renderConversation = ({ item }: { item: ChatConversation }) => {
+    const participants = item.participants ?? [];
+    const counterpart = participants.find((participant) => participant.id !== user?.id) ?? participants[0];
     const avatarColor = getAvatarColor(counterpart?.id, item.id);
-    const primaryLabel = counterpart?.name ?? item.displayName;
-    const secondaryLabel = item.title ? `${primaryLabel} • ${item.title}` : primaryLabel;
+    const memberCount = item.memberIds?.length ?? participants.length;
+    const isGroup = memberCount > 2 || !!item.event || (!!item.title && memberCount > 1);
+    const titleLabel = isGroup ? item.event?.title ?? item.title ?? item.displayName : counterpart?.name ?? item.displayName;
+    const primaryLabel = counterpart?.name ?? titleLabel;
+    const eventMetaParts: string[] = [];
+    if (item.event) {
+      if (item.event.location) {
+        eventMetaParts.push(item.event.location);
+      }
+      eventMetaParts.push(`${item.event.dateLabel} ${item.event.time}`);
+      if (isGroup && counterpart?.name) {
+        eventMetaParts.push(`With ${counterpart.name}`);
+      }
+    } else if (isGroup && counterpart?.name) {
+      eventMetaParts.push(`With ${counterpart.name}`);
+    }
+    const eventDetails = eventMetaParts.join(' • ');
     const previewText = item.lastMessage?.body ?? 'No messages yet';
 
     return (
@@ -126,13 +180,18 @@ const MessagesScreen = () => {
         onPress={() => setActiveConversation(item.id)}
         style={[styles.conversationRow, item.id === activeConversationId && styles.conversationRowActive]}
       >
-        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+        <View style={[styles.avatar, { backgroundColor: avatarColor }]}> 
           <Text style={styles.avatarInitial}>{getInitial(primaryLabel)}</Text>
         </View>
         <View style={styles.conversationCopy}>
           <Text style={styles.conversationName} numberOfLines={1}>
-            {secondaryLabel}
+            {titleLabel}
           </Text>
+          {eventDetails ? (
+            <Text style={styles.conversationEvent} numberOfLines={1}>
+              {eventDetails}
+            </Text>
+          ) : null}
           <Text style={styles.conversationPreview} numberOfLines={1}>
             {previewText}
           </Text>
@@ -174,15 +233,27 @@ const MessagesScreen = () => {
             }
             refreshing={isRefreshingConversations}
             onRefresh={refreshConversations}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           />
         </View>
       </ScreenContainer>
     );
   }
 
+  const threadTitleLabel = activeConversation.event?.title ?? activeConversation.displayName;
+  const threadEventDetails = activeConversation.event ? [
+    `${activeConversation.event.dateLabel} ${activeConversation.event.time}`,
+    activeConversation.event.location
+  ].filter(Boolean).join(' • ') : undefined;
+
   return (
     <ScreenContainer>
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.threadContainer}
+        behavior={Platform.select({ ios: 'padding', android: 'height' })}
+        keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
+      >
         <View style={styles.threadHeader}>
           <Pressable
             accessibilityLabel="Back to conversations"
@@ -192,7 +263,10 @@ const MessagesScreen = () => {
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.threadHeaderCopy}>
-            <Text style={styles.threadTitle}>{activeConversation.displayName}</Text>
+            <Text style={styles.threadTitle}>{threadTitleLabel}</Text>
+            {threadEventDetails ? (
+              <Text style={styles.threadEvent}>{threadEventDetails}</Text>
+            ) : null}
             {isConnecting ? <Text style={styles.threadSubtitle}>Connecting…</Text> : null}
           </View>
         </View>
@@ -205,6 +279,13 @@ const MessagesScreen = () => {
           renderItem={renderMessage}
           ref={messagesListRef}
           contentContainerStyle={styles.messagesList}
+          onContentSizeChange={() => {
+            if (messagesListRef.current) {
+              messagesListRef.current.scrollToEnd({ animated: false });
+            }
+          }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
 
         <View style={styles.composerContainer}>
@@ -224,7 +305,7 @@ const MessagesScreen = () => {
             <Text style={[styles.sendButtonText, (!activeConversationId || draft.trim().length === 0) && styles.sendButtonTextDisabled]}>Send</Text>
           </Pressable>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 };
@@ -234,6 +315,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
+    gap: spacing.md
+  },
+  threadContainer: {
+    flex: 1,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
     gap: spacing.md
   },
   header: {
@@ -259,7 +346,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -294,6 +381,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilySemiBold,
     fontSize: typography.subtitle,
     color: colors.text,
+    marginBottom: spacing.xs / 2
+  },
+  conversationEvent: {
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: typography.small,
+    color: colors.muted,
     marginBottom: spacing.xs / 2
   },
   conversationPreview: {
@@ -364,6 +457,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyBold,
     color: colors.text
   },
+  threadEvent: {
+    fontSize: typography.small,
+    fontFamily: typography.fontFamilyRegular,
+    color: colors.subText
+  },
   threadSubtitle: {
     fontSize: typography.caption,
     fontFamily: typography.fontFamilyRegular,
@@ -371,14 +469,53 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     flexGrow: 1,
-    paddingVertical: spacing.sm
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md
+  },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.xs,
+    marginBottom: spacing.sm
+  },
+  messageRowOwn: {
+    justifyContent: 'flex-end'
+  },
+  messageRowOther: {
+    justifyContent: 'flex-start'
+  },
+  messageBubbleContainer: {
+    flexShrink: 1,
+    flexGrow: 1,
+    maxWidth: '80%'
+  },
+  messageBubbleContainerOwn: {
+    alignItems: 'flex-end'
+  },
+  messageBubbleContainerOther: {
+    alignItems: 'flex-start'
+  },
+  messageAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  messageAvatarInitial: {
+    fontFamily: typography.fontFamilySemiBold,
+    fontSize: typography.small,
+    color: colors.text
+  },
+  messageAvatarPlaceholder: {
+    width: 32,
+    height: 32
   },
   messageBubble: {
     maxWidth: '80%',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 16,
-    marginBottom: spacing.sm
+    borderRadius: 16
   },
   messageBubbleOwn: {
     alignSelf: 'flex-end',
@@ -419,7 +556,8 @@ const styles = StyleSheet.create({
   composerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm
+    gap: spacing.sm,
+    paddingBottom: spacing.sm
   },
   composerInput: {
     flex: 1,

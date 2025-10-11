@@ -29,7 +29,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *
 
 	protected := api.Group("")
 	protected.Use(sessionMiddleware(signer))
-	RegisterChatRoutes(protected, eventHandler.repo)
+	RegisterChatRoutes(protected, eventHandler.repo, chatHub)
 
 	api.GET("/ws", chatHub.handleWebSocket)
 

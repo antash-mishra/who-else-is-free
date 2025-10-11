@@ -5,9 +5,22 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
+var ErrEventNotFound = errors.New("event not found")
+var ErrConversationNotFound = errors.New("conversation not found")
+var ErrAlreadyConversationMember = errors.New("user already a conversation member")
+var ErrJoinRequestExists = errors.New("join request already pending")
+var ErrJoinRequestNotFound = errors.New("join request not found")
+var ErrNotEventHost = errors.New("user is not the event host")
+var ErrCannotRemoveHost = errors.New("event host cannot be removed from the conversation")
+var ErrNotConversationMember = errors.New("user is not a conversation member")
+
+type rowQuery interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
 
 const createTableUsers = `
 CREATE TABLE IF NOT EXISTS users (
@@ -44,8 +57,10 @@ CREATE TABLE IF NOT EXISTS conversations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     created_by INTEGER NOT NULL,
+    event_id INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE
 );
 `
 
@@ -103,8 +118,8 @@ VALUES (?, ?, ?);
 `
 
 const insertConversation = `
-INSERT INTO conversations (title, created_by)
-VALUES (?, ?);
+INSERT INTO conversations (title, created_by, event_id)
+VALUES (?, ?, ?);
 `
 
 const insertConversationMember = `
@@ -126,7 +141,7 @@ DO UPDATE SET last_read_message_id = excluded.last_read_message_id, updated_at =
 `
 
 const selectConversationsForUser = `
-SELECT c.id, c.title, c.created_by, c.created_at
+SELECT c.id, c.title, c.created_by, c.created_at, c.event_id
 FROM conversations c
 JOIN conversation_members cm ON cm.conversation_id = c.id
 WHERE cm.user_id = ?
@@ -176,6 +191,13 @@ FROM events
 ORDER BY created_at DESC;
 `
 
+const selectEventByID = `
+SELECT id, user_id, title, location, time, description, gender, min_age, max_age, date_label, created_at
+FROM events
+WHERE id = ?
+LIMIT 1;
+`
+
 const countEvents = `
 SELECT COUNT(1)
 FROM events;
@@ -191,6 +213,35 @@ SELECT COUNT(1)
 FROM conversations;
 `
 
+const selectConversationByEventID = `
+SELECT id, title, created_by, created_at, event_id
+FROM conversations
+WHERE event_id = ?
+LIMIT 1;
+`
+
+const selectConversationByTitle = `
+SELECT id
+FROM conversations
+WHERE title = ?
+LIMIT 1;
+`
+
+const createTableConversationJoinRequests = `
+CREATE TABLE IF NOT EXISTS conversation_join_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending','approved','denied')) DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    decided_at DATETIME,
+    decided_by INTEGER,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (decided_by) REFERENCES users(id)
+);
+`
+
 const selectAllUsers = `
 SELECT id, name
 FROM users;
@@ -202,6 +253,40 @@ FROM users
 WHERE email = ?;
 `
 
+const selectPendingJoinRequest = `
+SELECT id, event_id, user_id, status, created_at, decided_at, decided_by
+FROM conversation_join_requests
+WHERE event_id = ? AND user_id = ? AND status = 'pending'
+LIMIT 1;
+`
+
+const selectJoinRequestByID = `
+SELECT id, event_id, user_id, status, created_at, decided_at, decided_by
+FROM conversation_join_requests
+WHERE id = ?;
+`
+
+const insertJoinRequest = `
+INSERT INTO conversation_join_requests (event_id, user_id, status)
+VALUES (?, ?, 'pending');
+`
+
+const updateJoinRequestStatus = `
+UPDATE conversation_join_requests
+SET status = ?, decided_at = CURRENT_TIMESTAMP, decided_by = ?
+WHERE id = ?;
+`
+
+const deleteConversationMember = `
+DELETE FROM conversation_members
+WHERE conversation_id = ? AND user_id = ?;
+`
+
+const deleteConversationReadState = `
+DELETE FROM conversation_read_state
+WHERE conversation_id = ? AND user_id = ?;
+`
+
 type EventRepository struct {
 	db *sql.DB
 }
@@ -211,7 +296,7 @@ func NewEventRepository(db *sql.DB) *EventRepository {
 }
 
 func (r *EventRepository) Init(ctx context.Context) error {
-    // Run idempotent migrations on startup so the server can launch without external tooling.
+	// Run idempotent migrations on startup so the server can launch without external tooling.
 	if _, err := r.db.ExecContext(ctx, createTableUsers); err != nil {
 		return fmt.Errorf("create users table: %w", err)
 	}
@@ -220,6 +305,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createTableConversations); err != nil {
 		return fmt.Errorf("create conversations table: %w", err)
+	}
+	if err := r.ensureConversationEventColumn(ctx); err != nil {
+		return err
 	}
 	if _, err := r.db.ExecContext(ctx, createTableConversationMembers); err != nil {
 		return fmt.Errorf("create conversation members table: %w", err)
@@ -232,6 +320,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createTableConversationReadState); err != nil {
 		return fmt.Errorf("create conversation read state table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableConversationJoinRequests); err != nil {
+		return fmt.Errorf("create conversation join requests table: %w", err)
 	}
 	return nil
 }
@@ -293,8 +384,56 @@ func (r *EventRepository) ensureEventsUserIDColumn(ctx context.Context) error {
 	return nil
 }
 
+func (r *EventRepository) ensureConversationEventColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(conversations);`)
+	if err != nil {
+		return fmt.Errorf("inspect conversations table: %w", err)
+	}
+	defer rows.Close()
+
+	hasEventID := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan conversations schema: %w", err)
+		}
+		_ = cid
+		_ = colType
+		_ = notNull
+		_ = defaultVal
+		_ = pk
+		if name == "event_id" {
+			hasEventID = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate conversations schema: %w", err)
+	}
+	if hasEventID {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE conversations ADD COLUMN event_id INTEGER REFERENCES events(id) ON DELETE CASCADE;`); err != nil {
+		return fmt.Errorf("add conversation event_id column: %w", err)
+	}
+	return nil
+}
+
 func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) (int64, error) {
-	res, err := r.db.ExecContext(ctx, insertEvent,
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin event tx: %w", err)
+	}
+
+	res, err := tx.ExecContext(ctx, insertEvent,
 		params.UserID,
 		params.Title,
 		params.Location,
@@ -306,12 +445,38 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		params.DateLabel,
 	)
 	if err != nil {
+		tx.Rollback()
 		return 0, fmt.Errorf("insert event: %w", err)
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
+		tx.Rollback()
 		return 0, fmt.Errorf("fetch event id: %w", err)
+	}
+
+	nullableTitle := sql.NullString{String: params.Title, Valid: len(strings.TrimSpace(params.Title)) > 0}
+	nullableEventID := sql.NullInt64{Int64: id, Valid: true}
+
+	convoRes, err := tx.ExecContext(ctx, insertConversation, nullableTitle, params.UserID, nullableEventID)
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("insert event conversation: %w", err)
+	}
+
+	convoID, err := convoRes.LastInsertId()
+	if err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("fetch event conversation id: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, insertConversationMember, convoID, params.UserID, "owner"); err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("insert event conversation owner: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit event: %w", err)
 	}
 
 	return id, nil
@@ -354,7 +519,7 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 }
 
 // CreateConversation creates a new conversation and ensures the creator is a member.
-func (r *EventRepository) CreateConversation(ctx context.Context, title *string, createdBy int64, memberIDs []int64) (*Conversation, error) {
+func (r *EventRepository) CreateConversation(ctx context.Context, title *string, createdBy int64, memberIDs []int64, eventID *int64) (*Conversation, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin conversation tx: %w", err)
@@ -365,8 +530,12 @@ func (r *EventRepository) CreateConversation(ctx context.Context, title *string,
 	if title != nil {
 		nullableTitle = sql.NullString{String: *title, Valid: true}
 	}
+	var nullableEventID sql.NullInt64
+	if eventID != nil {
+		nullableEventID = sql.NullInt64{Int64: *eventID, Valid: true}
+	}
 
-	res, err := tx.ExecContext(ctx, insertConversation, nullableTitle, createdBy)
+	res, err := tx.ExecContext(ctx, insertConversation, nullableTitle, createdBy, nullableEventID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("insert conversation: %w", err)
@@ -410,6 +579,10 @@ func (r *EventRepository) CreateConversation(ctx context.Context, title *string,
 		value := nullableTitle.String
 		conversation.Title = &value
 	}
+	if nullableEventID.Valid {
+		value := nullableEventID.Int64
+		conversation.EventID = &value
+	}
 
 	row := r.db.QueryRowContext(ctx, "SELECT created_at FROM conversations WHERE id = ?", convoID)
 	if err := row.Scan(&conversation.CreatedAt); err != nil {
@@ -430,13 +603,18 @@ func (r *EventRepository) ListConversations(ctx context.Context, userID int64) (
 	for rows.Next() {
 		var convo Conversation
 		var title sql.NullString
-		if err := rows.Scan(&convo.ID, &title, &convo.CreatedBy, &convo.CreatedAt); err != nil {
+		var eventID sql.NullInt64
+		if err := rows.Scan(&convo.ID, &title, &convo.CreatedBy, &convo.CreatedAt, &eventID); err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("scan conversation: %w", err)
 		}
 		if title.Valid {
 			value := title.String
 			convo.Title = &value
+		}
+		if eventID.Valid {
+			value := eventID.Int64
+			convo.EventID = &value
 		}
 		conversations = append(conversations, convo)
 	}
@@ -514,6 +692,255 @@ func (r *EventRepository) CreateMessage(ctx context.Context, params CreateMessag
 	return &msg, nil
 }
 
+func scanJoinRequest(row *sql.Row) (*ConversationJoinRequest, error) {
+	var req ConversationJoinRequest
+	var decidedAt sql.NullTime
+	var decidedBy sql.NullInt64
+	if err := row.Scan(&req.ID, &req.EventID, &req.UserID, &req.Status, &req.CreatedAt, &decidedAt, &decidedBy); err != nil {
+		return nil, err
+	}
+	if decidedAt.Valid {
+		t := decidedAt.Time
+		req.DecidedAt = &t
+	}
+	if decidedBy.Valid {
+		id := decidedBy.Int64
+		req.DecidedBy = &id
+	}
+	return &req, nil
+}
+
+func fetchJoinRequestByID(ctx context.Context, q rowQuery, id int64) (*ConversationJoinRequest, error) {
+	req, err := scanJoinRequest(q.QueryRowContext(ctx, selectJoinRequestByID, id))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrJoinRequestNotFound
+		}
+		return nil, fmt.Errorf("fetch join request: %w", err)
+	}
+	return req, nil
+}
+
+func fetchConversationByEventID(ctx context.Context, q rowQuery, eventID int64) (*Conversation, error) {
+	row := q.QueryRowContext(ctx, selectConversationByEventID, eventID)
+	var convo Conversation
+	var title sql.NullString
+	var eventIDValue sql.NullInt64
+	if err := row.Scan(&convo.ID, &title, &convo.CreatedBy, &convo.CreatedAt, &eventIDValue); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrConversationNotFound
+		}
+		return nil, fmt.Errorf("fetch conversation by event: %w", err)
+	}
+	if title.Valid {
+		value := title.String
+		convo.Title = &value
+	}
+	if eventIDValue.Valid {
+		value := eventIDValue.Int64
+		convo.EventID = &value
+	}
+	return &convo, nil
+}
+
+func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Event, error) {
+	row := r.db.QueryRowContext(ctx, selectEventByID, eventID)
+	var evt Event
+	if err := row.Scan(
+		&evt.ID,
+		&evt.UserID,
+		&evt.Title,
+		&evt.Location,
+		&evt.Time,
+		&evt.Description,
+		&evt.Gender,
+		&evt.MinAge,
+		&evt.MaxAge,
+		&evt.DateLabel,
+		&evt.CreatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrEventNotFound
+		}
+		return nil, fmt.Errorf("fetch event: %w", err)
+	}
+	return &evt, nil
+}
+
+func (r *EventRepository) GetConversationByEventID(ctx context.Context, eventID int64) (*Conversation, error) {
+	return fetchConversationByEventID(ctx, r.db, eventID)
+}
+
+func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID int64) (*ConversationJoinRequest, error) {
+	event, err := r.GetEventByID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	if event.UserID == userID {
+		return nil, ErrAlreadyConversationMember
+	}
+
+	convo, err := r.GetConversationByEventID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	isMember, err := r.IsConversationMember(ctx, convo.ID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if isMember {
+		return nil, ErrAlreadyConversationMember
+	}
+
+	if _, err := scanJoinRequest(r.db.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID)); err == nil {
+		return nil, ErrJoinRequestExists
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("check pending join request: %w", err)
+	}
+
+	res, err := r.db.ExecContext(ctx, insertJoinRequest, eventID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("insert join request: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("fetch join request id: %w", err)
+	}
+	return fetchJoinRequestByID(ctx, r.db, id)
+}
+
+func (r *EventRepository) ApproveJoinRequest(ctx context.Context, eventID, userID, approverID int64) (*ConversationJoinRequest, error) {
+	event, err := r.GetEventByID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	if event.UserID != approverID {
+		return nil, ErrNotEventHost
+	}
+
+	convo, err := r.GetConversationByEventID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+
+	isMember, err := r.IsConversationMember(ctx, convo.ID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if isMember {
+		return nil, ErrAlreadyConversationMember
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin approve join tx: %w", err)
+	}
+
+	req, err := scanJoinRequest(tx.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID))
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrJoinRequestNotFound
+		}
+		return nil, fmt.Errorf("fetch pending join request: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, updateJoinRequestStatus, "approved", approverID, req.ID); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("approve join request: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, insertConversationMember, convo.ID, userID, "member"); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("add conversation member: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit join approval: %w", err)
+	}
+
+	return fetchJoinRequestByID(ctx, r.db, req.ID)
+}
+
+func (r *EventRepository) DenyJoinRequest(ctx context.Context, eventID, userID, approverID int64) (*ConversationJoinRequest, error) {
+	event, err := r.GetEventByID(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	if event.UserID != approverID {
+		return nil, ErrNotEventHost
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin deny join tx: %w", err)
+	}
+
+	req, err := scanJoinRequest(tx.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID))
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrJoinRequestNotFound
+		}
+		return nil, fmt.Errorf("fetch pending join request: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, updateJoinRequestStatus, "denied", approverID, req.ID); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("deny join request: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit join denial: %w", err)
+	}
+
+	return fetchJoinRequestByID(ctx, r.db, req.ID)
+}
+
+func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID int64) error {
+	event, err := r.GetEventByID(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	if event.UserID == userID {
+		return ErrCannotRemoveHost
+	}
+
+	convo, err := r.GetConversationByEventID(ctx, eventID)
+	if err != nil {
+		return err
+	}
+
+	isMember, err := r.IsConversationMember(ctx, convo.ID, userID)
+	if err != nil {
+		return err
+	}
+	if !isMember {
+		return ErrNotConversationMember
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin remove member tx: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, deleteConversationMember, convo.ID, userID); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("delete conversation member: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, deleteConversationReadState, convo.ID, userID); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("delete conversation read state: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit remove member: %w", err)
+	}
+
+	return nil
+}
+
 // hydrateConversationSummary enriches a conversation with participant info and unread counts for the viewer.
 func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo Conversation, viewerID int64) (ConversationSummary, error) {
 	participants, memberIDs, err := r.fetchConversationParticipants(ctx, convo.ID)
@@ -531,10 +958,29 @@ func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo 
 		return ConversationSummary{}, err
 	}
 
+	var eventMeta *ConversationEventMeta
+	if convo.EventID != nil {
+		evt, err := r.GetEventByID(ctx, *convo.EventID)
+		if err != nil {
+			if !errors.Is(err, ErrEventNotFound) {
+				return ConversationSummary{}, err
+			}
+		} else {
+			eventMeta = &ConversationEventMeta{
+				ID:        evt.ID,
+				Title:     evt.Title,
+				Location:  evt.Location,
+				Time:      evt.Time,
+				DateLabel: evt.DateLabel,
+			}
+		}
+	}
+
 	summary := ConversationSummary{
 		Conversation: convo,
 		MemberIDs:    memberIDs,
 		Participants: participants,
+		Event:        eventMeta,
 		UnreadCount:  unreadCount,
 	}
 	if lastMessage != nil {
@@ -710,7 +1156,10 @@ func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
 	if err := r.ensureSeedEvents(ctx); err != nil {
 		return err
 	}
-	return r.ensureSeedConversations(ctx)
+	if err := r.ensureSeedConversations(ctx); err != nil {
+		return err
+	}
+	return r.ensureSeedEventGroupChat(ctx)
 }
 
 type seedUser struct {
@@ -734,6 +1183,11 @@ var seedUsers = []seedUser{
 		Name:     "Sophia Chen",
 		Email:    "sophia@example.com",
 		Password: "secret123",
+	},
+	{
+		Name:     "Noah Smith",
+		Email:    "noah@example.com",
+		Password: "sunset123",
 	},
 }
 
@@ -781,9 +1235,7 @@ func (r *EventRepository) ensureSeedConversations(ctx context.Context) error {
 		return fmt.Errorf("count conversations: %w", err)
 	}
 
-	if count > 0 {
-		return nil
-	}
+	alreadySeeded := count > 0
 
 	rows, err := r.db.QueryContext(ctx, selectAllUsers)
 	if err != nil {
@@ -812,49 +1264,168 @@ func (r *EventRepository) ensureSeedConversations(ctx context.Context) error {
 		return nil
 	}
 
-	sampleMessages := []string{
-		"Hey there! Want to sync up later?",
-		"Looking forward to catching up soon.",
-		"Should we plan something fun tonight?",
+	if !alreadySeeded {
+		sampleMessages := []string{
+			"Hey there! Want to sync up later?",
+			"Looking forward to catching up soon.",
+			"Should we plan something fun tonight?",
+		}
+
+		msgIndex := 0
+		for i := 0; i < len(users); i++ {
+			for j := i + 1; j < len(users); j++ {
+				pair := []int64{users[i].ID, users[j].ID}
+				convo, err := r.CreateConversation(ctx, nil, users[i].ID, pair, nil)
+				if err != nil {
+					return fmt.Errorf("seed direct conversation: %w", err)
+				}
+
+				intro := sampleMessages[msgIndex%len(sampleMessages)]
+				msgIndex++
+				if _, err = r.CreateMessage(ctx, CreateMessageParams{
+					ConversationID: convo.ID,
+					SenderID:       users[i].ID,
+					Body:           intro,
+					DeliveryStatus: "sent",
+				}); err != nil {
+					return fmt.Errorf("seed conversation message: %w", err)
+				}
+
+				reply := fmt.Sprintf("Hi %s! Count me in.", users[i].Name)
+				replyMsg, err := r.CreateMessage(ctx, CreateMessageParams{
+					ConversationID: convo.ID,
+					SenderID:       users[j].ID,
+					Body:           reply,
+					DeliveryStatus: "sent",
+				})
+				if err != nil {
+					return fmt.Errorf("seed conversation reply: %w", err)
+				}
+
+				if err := r.UpdateReadState(ctx, convo.ID, users[i].ID, replyMsg.ID); err != nil {
+					return fmt.Errorf("seed read state sender: %w", err)
+				}
+				if err := r.UpdateReadState(ctx, convo.ID, users[j].ID, replyMsg.ID); err != nil {
+					return fmt.Errorf("seed read state recipient: %w", err)
+				}
+			}
+		}
 	}
 
-	msgIndex := 0
-	for i := 0; i < len(users); i++ {
-		for j := i + 1; j < len(users); j++ {
-			pair := []int64{users[i].ID, users[j].ID}
-			convo, err := r.CreateConversation(ctx, nil, users[i].ID, pair)
+	if len(users) >= 3 {
+		groupTitle := "Planning Crew"
+		var existingID int64
+		err := r.db.QueryRowContext(ctx, selectConversationByTitle, groupTitle).Scan(&existingID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("check existing group conversation: %w", err)
+			}
+
+			members := []int64{users[0].ID, users[1].ID, users[2].ID}
+			convo, err := r.CreateConversation(ctx, &groupTitle, users[0].ID, members, nil)
 			if err != nil {
-				return fmt.Errorf("seed direct conversation: %w", err)
+				return fmt.Errorf("seed group conversation: %w", err)
 			}
 
-			intro := sampleMessages[msgIndex%len(sampleMessages)]
-			msgIndex++
-			if _, err = r.CreateMessage(ctx, CreateMessageParams{
-				ConversationID: convo.ID,
-				SenderID:       users[i].ID,
-				Body:           intro,
-				DeliveryStatus: "sent",
-			}); err != nil {
-				return fmt.Errorf("seed conversation message: %w", err)
+			seedGroupMessages := []struct {
+				sender int64
+				body   string
+			}{
+				{sender: users[0].ID, body: "Team, let's sync here about weekend ideas."},
+				{sender: users[1].ID, body: "Love it. How about a hike followed by brunch?"},
+				{sender: users[2].ID, body: "Count me in! I can book a table if we pick a spot."},
 			}
 
-			reply := fmt.Sprintf("Hi %s! Count me in.", users[i].Name)
-			replyMsg, err := r.CreateMessage(ctx, CreateMessageParams{
-				ConversationID: convo.ID,
-				SenderID:       users[j].ID,
-				Body:           reply,
-				DeliveryStatus: "sent",
-			})
-			if err != nil {
-				return fmt.Errorf("seed conversation reply: %w", err)
+			var lastMsgID int64
+			for _, msg := range seedGroupMessages {
+				created, err := r.CreateMessage(ctx, CreateMessageParams{
+					ConversationID: convo.ID,
+					SenderID:       msg.sender,
+					Body:           msg.body,
+					DeliveryStatus: "sent",
+				})
+				if err != nil {
+					return fmt.Errorf("seed group conversation message: %w", err)
+				}
+				if created != nil {
+					lastMsgID = created.ID
+				}
 			}
 
-			if err := r.UpdateReadState(ctx, convo.ID, users[i].ID, replyMsg.ID); err != nil {
-				return fmt.Errorf("seed read state sender: %w", err)
+			if lastMsgID > 0 {
+				for _, member := range members {
+					if err := r.UpdateReadState(ctx, convo.ID, member, lastMsgID); err != nil {
+						return fmt.Errorf("seed group conversation read state: %w", err)
+					}
+				}
 			}
-			if err := r.UpdateReadState(ctx, convo.ID, users[j].ID, replyMsg.ID); err != nil {
-				return fmt.Errorf("seed read state recipient: %w", err)
-			}
+		}
+	}
+
+	return nil
+}
+
+func (r *EventRepository) ensureSeedEventGroupChat(ctx context.Context) error {
+	convo, err := r.GetConversationByEventID(ctx, 1)
+	if err != nil {
+		if errors.Is(err, ErrConversationNotFound) || errors.Is(err, ErrEventNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	_, memberIDs, err := r.fetchConversationParticipants(ctx, convo.ID)
+	if err != nil {
+		return err
+	}
+	if len(memberIDs) >= 4 {
+		return nil
+	}
+
+	memberSet := make(map[int64]struct{}, len(memberIDs))
+	for _, id := range memberIDs {
+		memberSet[id] = struct{}{}
+	}
+
+	additionalMembers := []int64{2, 3, 4}
+	for _, userID := range additionalMembers {
+		if _, ok := memberSet[userID]; ok {
+			continue
+		}
+		if _, err := r.db.ExecContext(ctx, insertConversationMember, convo.ID, userID, "member"); err != nil {
+			return fmt.Errorf("seed event group member %d: %w", userID, err)
+		}
+	}
+
+	sampleMessages := []struct {
+		sender int64
+		body   string
+	}{
+		{sender: convo.CreatedBy, body: "Hey everyone! Use this chat to coordinate before the event."},
+		{sender: 2, body: "Thanks for adding me—looking forward to it."},
+		{sender: 3, body: "I'll bring snacks. Any allergy concerns?"},
+		{sender: 4, body: "I’m good with anything. See you all there!"},
+	}
+
+	var lastMessageID int64
+	for _, msg := range sampleMessages {
+		created, err := r.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: convo.ID,
+			SenderID:       msg.sender,
+			Body:           msg.body,
+			DeliveryStatus: "sent",
+		})
+		if err != nil {
+			return fmt.Errorf("seed event group message: %w", err)
+		}
+		if created != nil {
+			lastMessageID = created.ID
+		}
+	}
+
+	if lastMessageID > 0 {
+		if err := r.UpdateReadState(ctx, convo.ID, convo.CreatedBy, lastMessageID); err != nil {
+			return fmt.Errorf("seed event group read state: %w", err)
 		}
 	}
 
