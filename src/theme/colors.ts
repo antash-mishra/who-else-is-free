@@ -21,5 +21,9 @@ export const colors = {
   fieldLabel: '#4B4B4B',
   sliderUnselected: '#A0A0A0',
   sliderMarker: '#7D7D7D',
-  datePill: '#BEBEBE'
+  datePill: '#BEBEBE',
+  eventDetailGradientStart: '#F472B6',
+  eventDetailGradientEnd: '#C084FC',
+  eventDetailButtonBackground: '#E8E8E8',
+  eventDetailButtonText: '#1F2937'
 } as const;

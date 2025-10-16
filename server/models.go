@@ -13,6 +13,7 @@ type Event struct {
 	MinAge      int       `json:"min_age"`
 	MaxAge      int       `json:"max_age"`
 	DateLabel   string    `json:"date_label"`
+	HostName    string    `json:"host_name"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

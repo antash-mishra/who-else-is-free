@@ -11,6 +11,7 @@ import MyEventsScreen from '@screens/MyEventsScreen';
 import MessagesScreen from '@screens/MessagesScreen';
 import ProfileScreen from '@screens/ProfileScreen';
 import LoginScreen from '@screens/LoginScreen';
+import EventDetailsScreen from '@screens/EventDetailsScreen';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors } from '@theme/colors';
 import { useAuth } from '@context/AuthContext';
@@ -237,7 +238,14 @@ const AppNavigator = () => {
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen
+              name="EventDetails"
+              component={EventDetailsScreen}
+              options={{ headerShown: false }}
+            />
+          </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}

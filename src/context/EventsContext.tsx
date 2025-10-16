@@ -20,6 +20,7 @@ export interface UserEvent extends EventItemProps {
   dateLabel: DateLabel;
   description?: string;
   ownerId: number;
+  hostName: string;
 }
 
 interface CreateEventInput {
@@ -34,6 +35,7 @@ interface CreateEventInput {
   badgeLabel?: string;
   imageUri?: string;
   userId: number;
+  hostName: string;
 }
 
 interface EventsContextValue {
@@ -58,6 +60,7 @@ type ApiEvent = {
   max_age: number;
   date_label: DateLabel;
   user_id: number;
+  host_name: string;
 };
 
 interface EventMeta {
@@ -83,7 +86,8 @@ const mapApiEvent = (event: ApiEvent, meta: EventMeta | undefined): UserEvent =>
   badgeLabel: meta?.badgeLabel,
   dateLabel: event.date_label,
   description: event.description,
-  ownerId: event.user_id
+  ownerId: event.user_id,
+  hostName: event.host_name
 });
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
@@ -163,7 +167,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         min_age: event.minAge,
         max_age: event.maxAge,
         date_label: event.dateLabel,
-        user_id: event.userId
+        user_id: event.userId,
+        host_name: event.hostName
       };
 
       setEvents((prev) => {

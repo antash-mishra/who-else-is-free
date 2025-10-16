@@ -147,7 +147,8 @@ const CreateEventScreen = () => {
         dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
         badgeLabel: groupType === 'Group' ? 'Group' : undefined,
         imageUri: DEFAULT_EVENT_IMAGE,
-        userId: user.id
+        userId: user.id,
+        hostName: user.name
       });
 
       resetForm();

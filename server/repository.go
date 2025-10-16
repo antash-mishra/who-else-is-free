@@ -186,15 +186,17 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT id, user_id, title, location, time, description, gender, min_age, max_age, date_label, created_at
-FROM events
-ORDER BY created_at DESC;
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.created_at, u.name AS host_name
+FROM events e
+JOIN users u ON u.id = e.user_id
+ORDER BY e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT id, user_id, title, location, time, description, gender, min_age, max_age, date_label, created_at
-FROM events
-WHERE id = ?
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.created_at, u.name AS host_name
+FROM events e
+JOIN users u ON u.id = e.user_id
+WHERE e.id = ?
 LIMIT 1;
 `
 
@@ -505,6 +507,7 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.MaxAge,
 			&evt.DateLabel,
 			&evt.CreatedAt,
+			&evt.HostName,
 		); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)
 		}
@@ -758,6 +761,7 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.MaxAge,
 		&evt.DateLabel,
 		&evt.CreatedAt,
+		&evt.HostName,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrEventNotFound

@@ -1,6 +1,9 @@
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
+  EventDetails: {
+    eventId: string;
+  };
 };
 
 export type RootTabParamList = {

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import {
+  Pressable,
   RefreshControl,
   SectionList,
   SectionListRenderItemInfo,
@@ -8,16 +9,20 @@ import {
   View
 } from 'react-native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import EmptyState from '@components/EmptyState';
 import EventCard, { EventItemProps } from '@components/EventCard';
 import ScreenContainer from '@components/ScreenContainer';
-import { RootTabParamList } from '@navigation/types';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
 import { DateLabel, UserEvent, useEvents } from '@context/EventsContext';
 
-type MyEventsNavigation = BottomTabNavigationProp<RootTabParamList, 'MyEvents'>;
+type MyEventsNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList, 'MyEvents'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 type EventSection = {
   title: string;
@@ -64,7 +69,14 @@ const MyEventsScreen = () => {
     </Text>
   );
 
-  const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => <EventCard {...item} />;
+  const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
+    <Pressable
+      onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+      style={({ pressed }) => [styles.eventPressable, pressed && styles.eventPressablePressed]}
+    >
+      <EventCard {...item} />
+    </Pressable>
+  );
 
   return (
     <ScreenContainer>
@@ -132,6 +144,12 @@ const styles = StyleSheet.create({
   },
   footerSpacing: {
     height: spacing.xl
+  },
+  eventPressable: {
+    borderRadius: 20
+  },
+  eventPressablePressed: {
+    opacity: 0.85
   }
 });
 
