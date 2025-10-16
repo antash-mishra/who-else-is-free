@@ -25,5 +25,6 @@ export const colors = {
   eventDetailGradientStart: '#F472B6',
   eventDetailGradientEnd: '#C084FC',
   eventDetailButtonBackground: '#E8E8E8',
-  eventDetailButtonText: '#1F2937'
+  eventDetailButtonText: '#1F2937',
+  eventDetailRowText: '#191919'
 } as const;

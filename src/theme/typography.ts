@@ -3,6 +3,7 @@ export const typography = {
   fontFamilyMedium: 'Inter_500Medium',
   fontFamilySemiBold: 'Inter_600SemiBold',
   fontFamilyBold: 'Inter_700Bold',
+  titleLineHeight: 36,
   lineHeight: 24,
   letterSpacing: -0.5,
   header: 24,

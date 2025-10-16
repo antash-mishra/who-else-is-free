@@ -52,7 +52,7 @@ const EventDetailsScreen = () => {
   const isOwner = user?.id === event.ownerId;
   const hostLine = isOwner ? 'Hosted by you' : `Hosted by ${event.hostName}`;
   const scheduleLine = `${readableDateLabel(event.dateLabel)}, ${event.time}`;
-  const ctaLabel = isOwner ? 'Manage Event' : 'Send Invite';
+  const ctaLabel = isOwner ? 'Manage Event' : 'Interested';
 
   const handleCtaPress = () => {
     if (isOwner) {
@@ -94,22 +94,23 @@ const EventDetailsScreen = () => {
           <View style={styles.divider} />
 
           <Text style={styles.sectionHeading}>Details</Text>
-          <View style={styles.detailRow}>
-            <Feather name="map-pin" size={18} color={colors.subText} style={styles.detailIcon} />
-            <Text style={styles.detailText}>{event.location}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Feather name="clock" size={18} color={colors.subText} style={styles.detailIcon} />
-            <Text style={styles.detailText}>{scheduleLine}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Feather name="users" size={18} color={colors.subText} style={styles.detailIcon} />
-            <Text style={styles.detailText}>{event.audience}</Text>
+          <View style={styles.detailDiv}>
+            <View style={styles.detailRow}>
+              <Feather name="map-pin" size={18} color={colors.subText} style={styles.detailIcon} />
+              <Text style={styles.detailText}>{event.location}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Feather name="clock" size={18} color={colors.subText} style={styles.detailIcon} />
+              <Text style={styles.detailText}>{scheduleLine}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Feather name="users" size={18} color={colors.subText} style={styles.detailIcon} />
+              <Text style={styles.detailText}>{event.audience}</Text>
+            </View>
           </View>
 
           {!!event.description && (
             <>
-              <View style={styles.divider} />
               <Text style={styles.description}>{event.description}</Text>
             </>
           )}
@@ -171,20 +172,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 32,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
-    gap: spacing.md
+    gap: spacing.sm
   },
   title: {
-    fontSize: typography.header,
+    fontSize: 29,
     fontFamily: typography.fontFamilySemiBold,
     color: colors.text,
-    lineHeight: typography.lineHeight,
+    lineHeight: typography.titleLineHeight,
     letterSpacing: typography.letterSpacing
   },
   hostedBy: {
     fontSize: typography.body,
-    fontFamily: typography.fontFamilyMedium,
+    fontFamily: typography.fontFamilyRegular,
     color: colors.cardMeta,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing
@@ -195,16 +196,20 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs
   },
   sectionHeading: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilySemiBold,
-    color: colors.text,
+    fontSize: typography.caption,
+    fontFamily: typography.fontFamilyRegular,
+    color: '#525252',
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing
   },
+  detailDiv: {
+    flexDirection: 'column',
+    gap: 1, // 1px vertical space between child views
+  },
+
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md
   },
   detailIcon: {
     marginRight: spacing.sm
@@ -212,7 +217,7 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.subText,
+    color: colors.eventDetailRowText,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
     flex: 1
@@ -230,7 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card
   },
   ctaButton: {
-    backgroundColor: colors.eventDetailButtonBackground,
+    backgroundColor: colors.primary,
     borderRadius: 999,
     paddingVertical: spacing.md,
     alignItems: 'center'
@@ -241,7 +246,7 @@ const styles = StyleSheet.create({
   ctaLabel: {
     fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
-    color: colors.eventDetailButtonText,
+    color: colors.buttonText,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing
   },

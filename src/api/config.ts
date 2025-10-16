@@ -27,7 +27,7 @@ const resolveApiBaseUrl = () => {
     }
   }
 
-  return 'http://192.168.1.10:8080';
+  return 'http://192.168.1.8:8080';
 };
 
 export const API_BASE_URL = resolveApiBaseUrl();
@@ -47,7 +47,7 @@ const resolveWsBaseUrl = () => {
     console.warn('Failed to derive WS base URL, falling back to API base URL', error);
     return API_BASE_URL.replace(/^http/, 'ws');
   }
-};
+}; 
 
 export const WS_BASE_URL = resolveWsBaseUrl();
 
