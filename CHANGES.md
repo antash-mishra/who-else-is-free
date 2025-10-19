@@ -88,5 +88,21 @@
 - Guarded event creation behind authentication on the client and wired the Events context to persist the creator id when posting new plans.
 - Seeded additional demo events linked to existing users for easier backend/frontend verification.
 
+## Event details invite prompt
+- Replaced the generic Interested tap alert with an inline message overlay so non-owners can draft a note to the organizer from the event details screen.
+- Dim the underlying content, disable the Interested button, and surface a dismiss-on-backdrop tap while the prompt is open to match the latest mock.
+
+## Event Management UI Enhancements
+- Implemented a popup overlay for event owners triggered by the "Manage Event" button, featuring "Edit Event" and "Delete Event" options.
+- Styled the "Manage Event" button with a grey background (rgba(0, 0, 0, 0.08)) for owners, while non-owners retain the blue primary color.
+- Applied consistent grey backgrounds to "Edit Event" and "Delete Event" buttons in the popup, with red text (#E73737) for the "Delete Event" button to indicate destructive action.
+- Extracted overlay UI logic into a reusable `EventActionOverlay` component (`src/components/EventActionOverlay.tsx`) to improve code modularity and maintainability.
+- Added event editing functionality: clicking "Edit Event" navigates to the Create screen pre-filled with event details for updates.
+- Implemented backend support for event updates with PUT `/api/events/:id` endpoint, including ownership validation.
+- Added event deletion functionality: clicking "Delete Event" shows a confirmation dialog and deletes the event via DELETE `/api/events/:id` endpoint with ownership checks.
+- Modified the Create screen to handle both creation and editing modes based on route params.
+- Updated EventsContext with deleteUserEvent function and added Authorization headers to update/delete API calls for authentication.
+- Replaced native delete alerts with themed overlays, delivering an on-brand confirmation sheet and success acknowledgement on the Event Details screen.
+
 ## Product vision
 - Building a companion-finder that helps people discover last-minute event buddies, create new gatherings, and keep track of their own plans in one place.

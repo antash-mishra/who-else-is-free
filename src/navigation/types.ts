@@ -1,8 +1,9 @@
 export type RootStackParamList = {
   Login: undefined;
-  Main: undefined;
+  Main: any;
   EventDetails: {
     eventId: string;
+    origin?: 'Events' | 'MyEvents';
   };
 };
 
@@ -10,6 +11,6 @@ export type RootTabParamList = {
   Events: undefined;
   MyEvents: undefined;
   Messages: undefined;
-  Create: undefined;
+  Create: { editEventId?: string };
   Profile: undefined;
 };

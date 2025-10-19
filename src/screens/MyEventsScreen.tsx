@@ -71,7 +71,7 @@ const MyEventsScreen = () => {
 
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
     <Pressable
-      onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+      onPress={() => navigation.navigate('EventDetails', { eventId: item.id, origin: 'MyEvents' })}
       style={({ pressed }) => [styles.eventPressable, pressed && styles.eventPressablePressed]}
     >
       <EventCard {...item} />
@@ -88,7 +88,7 @@ const MyEventsScreen = () => {
           title="You haven’t created any event yet"
           description="Tap the button below to start planning your next experience."
           actionLabel="Create an event"
-          onActionPress={() => navigation.navigate('Create')}
+          onActionPress={() => navigation.navigate('Create', {})}
         />
       ) : (
         <SectionList<EventItemProps, EventSection>

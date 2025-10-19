@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -10,13 +10,13 @@ import {
 } from 'react-native';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import ScreenContainer from '@components/ScreenContainer';
 import { RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
-import { DEFAULT_EVENT_IMAGE, useEvents } from '@context/EventsContext';
+import { DEFAULT_EVENT_IMAGE, useEvents, UserEvent } from '@context/EventsContext';
 import { useAuth } from '@context/AuthContext';
 
 const AGE_MIN = 18;
@@ -32,6 +32,7 @@ type GenderOption = (typeof genderOptions)[number];
 type DateOption = (typeof dateOptions)[number];
 
 type CreateNavigation = BottomTabNavigationProp<RootTabParamList, 'Create'>;
+type CreateRoute = RouteProp<RootTabParamList, 'Create'>;
 
 const timeStringToMinutes = (timeLabel: string) => {
   const match = timeLabel.match(/(\d{1,2}):(\d{2})(am|pm)/i);
@@ -54,23 +55,28 @@ const timeStringToMinutes = (timeLabel: string) => {
 
 const CreateEventScreen = () => {
   const navigation = useNavigation<CreateNavigation>();
-  const { addUserEvent } = useEvents();
+  const route = useRoute<CreateRoute>();
+  const { addUserEvent, updateUserEvent, events } = useEvents();
   const { user } = useAuth();
 
-  const [eventName, setEventName] = useState('');
-  const [description, setDescription] = useState('');
-  const [groupType, setGroupType] = useState<GroupOption>('Single');
-  const [gender, setGender] = useState<GenderOption>('Any');
-  const [ageRange, setAgeRange] = useState<[number, number]>([18, 25]);
-  const [dateChoice, setDateChoice] = useState<DateOption>('today');
-  const [time, setTime] = useState('7:00pm');
-  const [location, setLocation] = useState('');
+  const editEventId = route.params?.editEventId;
+  const editEvent = editEventId ? events.find((eventItem) => eventItem.id === editEventId) : null;
+  const isEditing = !!editEvent;
+
+  const [eventName, setEventName] = useState(editEvent?.title || '');
+  const [description, setDescription] = useState(editEvent?.description || '');
+  const [groupType, setGroupType] = useState<GroupOption>(editEvent?.badgeLabel === 'Group' ? 'Group' : 'Single');
+  const [gender, setGender] = useState<GenderOption>((editEvent?.gender as GenderOption) || 'Any');
+  const [ageRange, setAgeRange] = useState<[number, number]>([editEvent?.minAge || 18, editEvent?.maxAge || 25]);
+  const [dateChoice, setDateChoice] = useState<DateOption>(editEvent?.dateLabel === 'Tmrw' ? 'tomorrow' : 'today');
+  const [time, setTime] = useState(editEvent?.time || '7:00pm');
+  const [location, setLocation] = useState(editEvent?.location || '');
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
   const [sliderWidth, setSliderWidth] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setEventName('');
     setDescription('');
     setGroupType('Single');
@@ -81,7 +87,38 @@ const CreateEventScreen = () => {
     setLocation('');
     setTimePickerVisible(false);
     setSubmitError(null);
-  };
+    setIsSubmitting(false);
+  }, []);
+
+  const applyEventToForm = useCallback((current: UserEvent) => {
+    setEventName(current.title);
+    setDescription(current.description ?? '');
+    setGroupType(current.badgeLabel === 'Group' ? 'Group' : 'Single');
+    setGender((current.gender as GenderOption) || 'Any');
+    setAgeRange([current.minAge ?? 18, current.maxAge ?? 25]);
+    setDateChoice(current.dateLabel === 'Tmrw' ? 'tomorrow' : 'today');
+    setTime(current.time || '7:00pm');
+    setLocation(current.location || '');
+    setTimePickerVisible(false);
+    setSubmitError(null);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (editEvent && editEventId) {
+        applyEventToForm(editEvent);
+      } else {
+        resetForm();
+      }
+
+      return () => {
+        if (editEventId) {
+          navigation.setParams({ editEventId: undefined });
+        }
+        resetForm();
+      };
+    }, [applyEventToForm, editEvent, editEventId, navigation, resetForm])
+  );
 
   const timeOptions = useMemo(() => {
     const now = new Date();
@@ -115,7 +152,7 @@ const CreateEventScreen = () => {
     };
   }, []);
 
-  const handleCreate = async () => {
+  const handleSubmit = async () => {
     if (isSubmitting) {
       return;
     }
@@ -136,26 +173,39 @@ const CreateEventScreen = () => {
     const maxAge = Math.max(rangeStart, rangeEnd);
 
     try {
-      await addUserEvent({
-        title,
-        location: locationLabel,
-        time,
-        description: descriptionText.length ? descriptionText : undefined,
-        gender,
-        minAge,
-        maxAge,
-        dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
-        badgeLabel: groupType === 'Group' ? 'Group' : undefined,
-        imageUri: DEFAULT_EVENT_IMAGE,
-        userId: user.id,
-        hostName: user.name
-      });
-
-      resetForm();
-      navigation.navigate('MyEvents');
+      if (isEditing && editEventId) {
+        await updateUserEvent(editEventId, {
+          title,
+          location: locationLabel,
+          time,
+          description: descriptionText.length ? descriptionText : undefined,
+          gender,
+          minAge,
+          maxAge,
+          dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw'
+        });
+        navigation.goBack();
+      } else {
+        await addUserEvent({
+          title,
+          location: locationLabel,
+          time,
+          description: descriptionText.length ? descriptionText : undefined,
+          gender,
+          minAge,
+          maxAge,
+          dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
+          badgeLabel: groupType === 'Group' ? 'Group' : undefined,
+          imageUri: DEFAULT_EVENT_IMAGE,
+          userId: user.id,
+          hostName: user.name
+        });
+        resetForm();
+        navigation.navigate('MyEvents');
+      }
     } catch (err) {
-      console.error('Failed to create event', err);
-      setSubmitError('Unable to create event. Please try again.');
+      console.error('Failed to submit event', err);
+      setSubmitError(`Unable to ${isEditing ? 'update' : 'create'} event. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -270,10 +320,10 @@ const CreateEventScreen = () => {
 
         <Pressable
           style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]}
-          onPress={handleCreate}
+          onPress={handleSubmit}
           disabled={isSubmitting}
         >
-          <Text style={styles.primaryButtonText}>{isSubmitting ? 'Creating...' : 'Create'}</Text>
+          <Text style={styles.primaryButtonText}>{isSubmitting ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update' : 'Create')}</Text>
         </Pressable>
       </View>
 

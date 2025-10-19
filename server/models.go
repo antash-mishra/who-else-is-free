@@ -108,3 +108,14 @@ type CreateEventParams struct {
 	DateLabel   string `json:"date_label" binding:"required,oneof=Today Tmrw"`
 	UserID      int64  `json:"user_id" binding:"required,gte=1"`
 }
+
+type UpdateEventParams struct {
+	Title       string `json:"title" binding:"required,min=1"`
+	Location    string `json:"location" binding:"required,min=1"`
+	Time        string `json:"time" binding:"required,min=1"`
+	Description string `json:"description"`
+	Gender      string `json:"gender" binding:"required,min=1"`
+	MinAge      int    `json:"min_age" binding:"required,gte=0"`
+	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
+	DateLabel   string `json:"date_label" binding:"required,oneof=Today Tmrw"`
+}

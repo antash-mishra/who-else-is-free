@@ -21,6 +21,9 @@ export interface UserEvent extends EventItemProps {
   description?: string;
   ownerId: number;
   hostName: string;
+  gender: string;
+  minAge: number;
+  maxAge: number;
 }
 
 interface CreateEventInput {
@@ -38,6 +41,17 @@ interface CreateEventInput {
   hostName: string;
 }
 
+interface UpdateEventInput {
+  title: string;
+  location: string;
+  time: string;
+  description?: string;
+  gender: string;
+  minAge: number;
+  maxAge: number;
+  dateLabel: DateLabel;
+}
+
 interface EventsContextValue {
   events: UserEvent[];
   userEvents: UserEvent[];
@@ -45,6 +59,8 @@ interface EventsContextValue {
   error: string | null;
   refreshEvents: () => Promise<void>;
   addUserEvent: (event: CreateEventInput) => Promise<string>;
+  updateUserEvent: (eventId: string, event: UpdateEventInput) => Promise<void>;
+  deleteUserEvent: (eventId: string) => Promise<void>;
 }
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
@@ -87,11 +103,14 @@ const mapApiEvent = (event: ApiEvent, meta: EventMeta | undefined): UserEvent =>
   dateLabel: event.date_label,
   description: event.description,
   ownerId: event.user_id,
-  hostName: event.host_name
+  hostName: event.host_name,
+  gender: event.gender,
+  minAge: event.min_age,
+  maxAge: event.max_age
 });
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -183,6 +202,65 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     [refreshEvents]
   );
 
+  const updateUserEvent = useCallback(
+    async (eventId: string, event: UpdateEventInput) => {
+      const payload = {
+        title: event.title,
+        location: event.location,
+        time: event.time,
+        description: event.description ?? '',
+        gender: event.gender,
+        min_age: event.minAge,
+        max_age: event.maxAge,
+        date_label: event.dateLabel
+      };
+
+      if (!token) {
+        throw new Error('You must be signed in to update an event.');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const message = `Request failed with status ${response.status}`;
+        throw new Error(message);
+      }
+
+      await refreshEvents();
+    },
+    [refreshEvents, token]
+  );
+
+  const deleteUserEvent = useCallback(
+    async (eventId: string) => {
+      if (!token) {
+        throw new Error('You must be signed in to delete an event.');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const message = `Request failed with status ${response.status}`;
+        throw new Error(message);
+      }
+
+      await refreshEvents();
+    },
+    [refreshEvents, token]
+  );
+
   useEffect(() => {
     refreshEvents().catch(() => undefined);
   }, [refreshEvents]);
@@ -196,8 +274,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   }, [events, user]);
 
   const value = useMemo(
-    () => ({ events, userEvents, isLoading, error, refreshEvents, addUserEvent }),
-    [events, userEvents, isLoading, error, refreshEvents, addUserEvent]
+    () => ({ events, userEvents, isLoading, error, refreshEvents, addUserEvent, updateUserEvent, deleteUserEvent }),
+    [events, userEvents, isLoading, error, refreshEvents, addUserEvent, updateUserEvent, deleteUserEvent]
   );
 
   return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;

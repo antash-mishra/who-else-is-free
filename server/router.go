@@ -13,7 +13,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:  []string{"*"},
-		AllowMethods:  []string{"GET", "POST", "OPTIONS"},
+		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders: []string{"Content-Length"},
 		MaxAge:        12 * time.Hour,
@@ -29,6 +29,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *
 
 	protected := api.Group("")
 	protected.Use(sessionMiddleware(signer))
+	eventHandler.RegisterProtectedRoutes(protected)
 	RegisterChatRoutes(protected, eventHandler.repo, chatHub)
 
 	api.GET("/ws", chatHub.handleWebSocket)

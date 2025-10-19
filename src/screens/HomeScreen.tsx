@@ -73,7 +73,7 @@ const HomeScreen = () => {
 
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
     <Pressable
-      onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+      onPress={() => navigation.navigate('EventDetails', { eventId: item.id, origin: 'Events' })}
       style={({ pressed }) => [styles.eventPressable, pressed && styles.eventPressablePressed]}
     >
       <EventCard {...item} />

@@ -112,6 +112,12 @@ INSERT INTO events (user_id, title, location, time, description, gender, min_age
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
+const updateEvent = `
+UPDATE events
+SET title = ?, location = ?, time = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?
+WHERE id = ? AND user_id = ?;
+`
+
 const insertUser = `
 INSERT INTO users (name, email, password)
 VALUES (?, ?, ?);
@@ -482,6 +488,65 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 	}
 
 	return id, nil
+}
+
+func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, params UpdateEventParams) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin event update tx: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, updateEvent,
+		params.Title,
+		params.Location,
+		params.Time,
+		params.Description,
+		params.Gender,
+		params.MinAge,
+		params.MaxAge,
+		params.DateLabel,
+		id,
+		userID,
+	)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("update event: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("check rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		tx.Rollback()
+		return ErrEventNotFound
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit event update: %w", err)
+	}
+
+	return nil
+}
+
+func (r *EventRepository) Delete(ctx context.Context, id int64, userID int64) error {
+	result, err := r.db.ExecContext(ctx, `DELETE FROM events WHERE id = ? AND user_id = ?`, id, userID)
+	if err != nil {
+		return fmt.Errorf("delete event: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check delete rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrEventNotFound
+	}
+
+	return nil
 }
 
 func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
