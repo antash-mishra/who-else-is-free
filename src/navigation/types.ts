@@ -1,5 +1,12 @@
 export type RootStackParamList = {
-  Login: undefined;
+  Login:
+    | {
+        redirect?: {
+          screen: keyof RootTabParamList;
+          params?: RootTabParamList[keyof RootTabParamList];
+        };
+      }
+    | undefined;
   Main: any;
   EventDetails: {
     eventId: string;

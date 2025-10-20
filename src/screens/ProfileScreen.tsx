@@ -1,21 +1,54 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCallback } from 'react';
+import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import ScreenContainer from '@components/ScreenContainer';
+import EmptyState from '@components/EmptyState';
 import { colors, spacing, typography } from '@theme/index';
 import { useAuth } from '@context/AuthContext';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import EmptyProfileIllustration from '@assets/empty-profile.svg';
+
+type ProfileNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList, 'Profile'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const ProfileScreen = () => {
   const { user, signOut } = useAuth();
+  const navigation = useNavigation<ProfileNavigation>();
 
   const handleSignOut = useCallback(() => {
     signOut();
   }, [signOut]);
 
+  if (!user) {
+    return (
+      <ScreenContainer>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+        <EmptyState
+          title="No profile to show"
+          description="Login to see the profile"
+          actionLabel="Login"
+          onActionPress={() => navigation.navigate('Login')}
+          illustration={EmptyProfileIllustration}
+          illustrationSize={40}
+        />
+      </ScreenContainer>
+    );
+  }
+
   const initial = user?.name?.charAt(0).toUpperCase() ?? 'Y';
 
   return (
     <ScreenContainer>
+      <View style={styles.headerSpacing}>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
       <View style={styles.container}>
         <View style={styles.avatar}>
           <Text style={styles.avatarInitial}>{initial}</Text>
@@ -32,6 +65,17 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  headerSpacing: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md
+  },
+  headerTitle: {
+    fontSize: typography.header,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.text,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing
+  },
   container: {
     flex: 1,
     justifyContent: 'center',

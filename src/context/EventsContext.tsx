@@ -52,6 +52,19 @@ interface UpdateEventInput {
   dateLabel: DateLabel;
 }
 
+export interface GuestEventDraft {
+  title: string;
+  location: string;
+  time: string;
+  description?: string;
+  gender: string;
+  minAge: number;
+  maxAge: number;
+  dateLabel: DateLabel;
+  badgeLabel?: string;
+  imageUri?: string;
+}
+
 interface EventsContextValue {
   events: UserEvent[];
   userEvents: UserEvent[];
@@ -61,6 +74,7 @@ interface EventsContextValue {
   addUserEvent: (event: CreateEventInput) => Promise<string>;
   updateUserEvent: (eventId: string, event: UpdateEventInput) => Promise<void>;
   deleteUserEvent: (eventId: string) => Promise<void>;
+  queueGuestEvent: (draft: GuestEventDraft) => void;
 }
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
@@ -114,6 +128,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingGuestEvent, setPendingGuestEvent] = useState<GuestEventDraft | null>(null);
   const metaRef = useRef<Record<string, EventMeta>>({});
 
   const refreshEvents = useCallback(async () => {
@@ -261,6 +276,49 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     [refreshEvents, token]
   );
 
+  const queueGuestEvent = useCallback((draft: GuestEventDraft) => {
+    setPendingGuestEvent(draft);
+  }, []);
+
+  useEffect(() => {
+    if (!user || !pendingGuestEvent) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const submitGuestEvent = async () => {
+      try {
+        await addUserEvent({
+          title: pendingGuestEvent.title,
+          location: pendingGuestEvent.location,
+          time: pendingGuestEvent.time,
+          description: pendingGuestEvent.description,
+          gender: pendingGuestEvent.gender,
+          minAge: pendingGuestEvent.minAge,
+          maxAge: pendingGuestEvent.maxAge,
+          dateLabel: pendingGuestEvent.dateLabel,
+          badgeLabel: pendingGuestEvent.badgeLabel,
+          imageUri: pendingGuestEvent.imageUri ?? DEFAULT_EVENT_IMAGE,
+          userId: user.id,
+          hostName: user.name
+        });
+      } catch (err) {
+        console.error('Failed to submit queued guest event', err);
+      } finally {
+        if (!cancelled) {
+          setPendingGuestEvent(null);
+        }
+      }
+    };
+
+    submitGuestEvent().catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addUserEvent, pendingGuestEvent, user]);
+
   useEffect(() => {
     refreshEvents().catch(() => undefined);
   }, [refreshEvents]);
@@ -274,8 +332,18 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   }, [events, user]);
 
   const value = useMemo(
-    () => ({ events, userEvents, isLoading, error, refreshEvents, addUserEvent, updateUserEvent, deleteUserEvent }),
-    [events, userEvents, isLoading, error, refreshEvents, addUserEvent, updateUserEvent, deleteUserEvent]
+    () => ({
+      events,
+      userEvents,
+      isLoading,
+      error,
+      refreshEvents,
+      addUserEvent,
+      updateUserEvent,
+      deleteUserEvent,
+      queueGuestEvent
+    }),
+    [events, userEvents, isLoading, error, refreshEvents, addUserEvent, updateUserEvent, deleteUserEvent, queueGuestEvent]
   );
 
   return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;

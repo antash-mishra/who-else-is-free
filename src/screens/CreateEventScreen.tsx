@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -10,13 +10,14 @@ import {
 } from 'react-native';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { Feather } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, RouteProp, CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import ScreenContainer from '@components/ScreenContainer';
-import { RootTabParamList } from '@navigation/types';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
-import { DEFAULT_EVENT_IMAGE, useEvents, UserEvent } from '@context/EventsContext';
+import { DEFAULT_EVENT_IMAGE, useEvents, UserEvent, GuestEventDraft } from '@context/EventsContext';
 import { useAuth } from '@context/AuthContext';
 
 const AGE_MIN = 18;
@@ -31,7 +32,21 @@ type GroupOption = (typeof groupOptions)[number];
 type GenderOption = (typeof genderOptions)[number];
 type DateOption = (typeof dateOptions)[number];
 
-type CreateNavigation = BottomTabNavigationProp<RootTabParamList, 'Create'>;
+type FormState = {
+  eventName: string;
+  description: string;
+  groupType: GroupOption;
+  gender: GenderOption;
+  ageRange: [number, number];
+  dateChoice: DateOption;
+  time: string;
+  location: string;
+};
+
+type CreateNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList, 'Create'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 type CreateRoute = RouteProp<RootTabParamList, 'Create'>;
 
 const timeStringToMinutes = (timeLabel: string) => {
@@ -55,8 +70,9 @@ const timeStringToMinutes = (timeLabel: string) => {
 
 const CreateEventScreen = () => {
   const navigation = useNavigation<CreateNavigation>();
+  const rootNavigation = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<CreateRoute>();
-  const { addUserEvent, updateUserEvent, events } = useEvents();
+  const { addUserEvent, updateUserEvent, events, queueGuestEvent } = useEvents();
   const { user } = useAuth();
 
   const editEventId = route.params?.editEventId;
@@ -103,6 +119,17 @@ const CreateEventScreen = () => {
     setSubmitError(null);
   }, []);
 
+  const getCurrentFormState = useCallback((): FormState => ({
+    eventName,
+    description,
+    groupType,
+    gender,
+    ageRange,
+    dateChoice,
+    time,
+    location
+  }), [ageRange, dateChoice, description, eventName, gender, groupType, location, time]);
+
   useFocusEffect(
     useCallback(() => {
       if (editEvent && editEventId) {
@@ -115,7 +142,6 @@ const CreateEventScreen = () => {
         if (editEventId) {
           navigation.setParams({ editEventId: undefined });
         }
-        resetForm();
       };
     }, [applyEventToForm, editEvent, editEventId, navigation, resetForm])
   );
@@ -152,64 +178,133 @@ const CreateEventScreen = () => {
     };
   }, []);
 
-  const handleSubmit = async () => {
-    if (isSubmitting) {
-      return;
-    }
+  const handleSubmit = useCallback(
+    async (formOverride?: FormState) => {
+      if (isSubmitting) {
+        return;
+      }
 
-    if (!user) {
-      setSubmitError('You must be signed in to create an event.');
-      return;
-    }
+      const form = formOverride ?? getCurrentFormState();
+      const trimmedName = form.eventName.trim();
+      const trimmedDescription = form.description.trim();
 
-    setSubmitError(null);
-    setIsSubmitting(true);
+      if (!trimmedName && !trimmedDescription) {
+        setSubmitError('Add a name or description before creating your event.');
+        return;
+      }
 
-    const title = eventName.trim() || 'New event';
-    const locationLabel = location.trim() || 'To be decided';
-    const descriptionText = description.trim();
-    const [rangeStart, rangeEnd] = ageRange;
+      if (!user) {
+        setSubmitError('You must be signed in to create an event.');
+        return;
+      }
+
+      setSubmitError(null);
+      setIsSubmitting(true);
+
+      const locationLabel = form.location.trim() || 'To be decided';
+      const [rangeStart, rangeEnd] = form.ageRange;
+      const minAge = Math.min(rangeStart, rangeEnd);
+      const maxAge = Math.max(rangeStart, rangeEnd);
+
+      try {
+        if (isEditing && editEventId) {
+          await updateUserEvent(editEventId, {
+            title: trimmedName || 'New event',
+            location: locationLabel,
+            time: form.time,
+            description: trimmedDescription.length ? trimmedDescription : undefined,
+            gender: form.gender,
+            minAge,
+            maxAge,
+            dateLabel: form.dateChoice === 'today' ? 'Today' : 'Tmrw'
+          });
+          navigation.goBack();
+        } else {
+          await addUserEvent({
+            title: trimmedName || 'New event',
+            location: locationLabel,
+            time: form.time,
+            description: trimmedDescription.length ? trimmedDescription : undefined,
+            gender: form.gender,
+            minAge,
+            maxAge,
+            dateLabel: form.dateChoice === 'today' ? 'Today' : 'Tmrw',
+            badgeLabel: form.groupType === 'Group' ? 'Group' : undefined,
+            imageUri: DEFAULT_EVENT_IMAGE,
+            userId: user.id,
+            hostName: user.name
+          });
+          resetForm();
+          navigation.navigate('MyEvents');
+        }
+      } catch (err) {
+        console.error('Failed to submit event', err);
+        setSubmitError(`Unable to ${isEditing ? 'update' : 'create'} event. Please try again.`);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [
+      addUserEvent,
+      editEventId,
+      getCurrentFormState,
+      isEditing,
+      isSubmitting,
+      navigation,
+      resetForm,
+      updateUserEvent,
+      user
+    ]
+  );
+
+  const handlePrimaryAction = () => {
+    const formState = getCurrentFormState();
+  const hasContent =
+      formState.eventName.trim().length > 0 || formState.description.trim().length > 0;
+
+  if (!hasContent) {
+    setSubmitError('Add a name or description before creating your event.');
+    return;
+  }
+
+  if (!user) {
+    const trimmedName = formState.eventName.trim();
+    const trimmedDescription = formState.description.trim();
+    const locationLabel = formState.location.trim() || 'To be decided';
+    const [rangeStart, rangeEnd] = formState.ageRange;
     const minAge = Math.min(rangeStart, rangeEnd);
     const maxAge = Math.max(rangeStart, rangeEnd);
 
-    try {
-      if (isEditing && editEventId) {
-        await updateUserEvent(editEventId, {
-          title,
-          location: locationLabel,
-          time,
-          description: descriptionText.length ? descriptionText : undefined,
-          gender,
-          minAge,
-          maxAge,
-          dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw'
-        });
-        navigation.goBack();
-      } else {
-        await addUserEvent({
-          title,
-          location: locationLabel,
-          time,
-          description: descriptionText.length ? descriptionText : undefined,
-          gender,
-          minAge,
-          maxAge,
-          dateLabel: dateChoice === 'today' ? 'Today' : 'Tmrw',
-          badgeLabel: groupType === 'Group' ? 'Group' : undefined,
-          imageUri: DEFAULT_EVENT_IMAGE,
-          userId: user.id,
-          hostName: user.name
-        });
-        resetForm();
-        navigation.navigate('MyEvents');
-      }
-    } catch (err) {
-      console.error('Failed to submit event', err);
-      setSubmitError(`Unable to ${isEditing ? 'update' : 'create'} event. Please try again.`);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const draftPayload: GuestEventDraft = {
+      title: trimmedName || 'New event',
+      location: locationLabel,
+      time: formState.time,
+      description: trimmedDescription.length ? trimmedDescription : undefined,
+      gender: formState.gender,
+      minAge,
+      maxAge,
+      dateLabel: formState.dateChoice === 'today' ? 'Today' : 'Tmrw',
+      badgeLabel: formState.groupType === 'Group' ? 'Group' : undefined,
+      imageUri: DEFAULT_EVENT_IMAGE
+    };
+
+    queueGuestEvent(draftPayload);
+    rootNavigation?.navigate('Login');
+    return;
+  }
+
+  void handleSubmit(formState);
   };
+
+  const primaryButtonLabel = user
+    ? isSubmitting
+      ? isEditing
+        ? 'Updating...'
+        : 'Creating...'
+      : isEditing
+      ? 'Update'
+      : 'Create'
+    : 'Login';
 
   return (
     <ScreenContainer>
@@ -320,10 +415,10 @@ const CreateEventScreen = () => {
 
         <Pressable
           style={[styles.primaryButton, isSubmitting && styles.primaryButtonDisabled]}
-          onPress={handleSubmit}
+          onPress={handlePrimaryAction}
           disabled={isSubmitting}
         >
-          <Text style={styles.primaryButtonText}>{isSubmitting ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update' : 'Create')}</Text>
+          <Text style={styles.primaryButtonText}>{primaryButtonLabel}</Text>
         </Pressable>
       </View>
 

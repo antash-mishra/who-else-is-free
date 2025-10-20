@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -18,6 +18,8 @@ import ScreenContainer from '@components/ScreenContainer';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
 import { DateLabel, UserEvent, useEvents } from '@context/EventsContext';
+import { useAuth } from '@context/AuthContext';
+import EmptyEventsIllustration from '@assets/create-event-empty-icon.svg';
 
 type MyEventsNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'MyEvents'>,
@@ -28,6 +30,8 @@ type EventSection = {
   title: string;
   data: EventItemProps[];
 };
+
+type EventFilter = 'created' | 'joined' | 'requested';
 
 const sectionOrder: { label: string; value: DateLabel }[] = [
   { label: 'Today', value: 'Today' },
@@ -55,8 +59,22 @@ const buildSections = (items: UserEvent[]): EventSection[] => {
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
   const { userEvents, isLoading, refreshEvents } = useEvents();
+  const { user } = useAuth();
+  const [selectedFilter, setSelectedFilter] = useState<EventFilter>('created');
 
-  const sections = useMemo<EventSection[]>(() => buildSections(userEvents), [userEvents]);
+  const filteredEvents = useMemo(() => {
+    switch (selectedFilter) {
+      case 'created':
+        return userEvents;
+      case 'joined':
+      case 'requested':
+        return [];
+      default:
+        return userEvents;
+    }
+  }, [selectedFilter, userEvents]);
+
+  const sections = useMemo<EventSection[]>(() => buildSections(filteredEvents), [filteredEvents]);
   const hasEvents = sections.length > 0;
 
   const handleRefresh = useCallback(() => {
@@ -78,10 +96,48 @@ const MyEventsScreen = () => {
     </Pressable>
   );
 
+  const filterOptions: { label: string; value: EventFilter }[] = [
+    { label: 'Created', value: 'created' },
+    { label: 'Joined', value: 'joined' },
+    { label: 'Requested', value: 'requested' }
+  ];
+
+  if (!user) {
+    return (
+      <ScreenContainer>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Your Events</Text>
+        </View>
+        <EmptyState
+          title="No events to show"
+          description="Log in to create an event"
+          actionLabel="Login"
+          onActionPress={() => navigation.navigate('Login')}
+          illustration={EmptyEventsIllustration}
+          illustrationSize={40}
+        />
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer>
       <View style={styles.headerSpacing}>
         <Text style={styles.headerTitle}>Your Events</Text>
+      </View>
+      <View style={styles.filterContainer}>
+        {filterOptions.map(({ label, value }) => {
+          const isSelected = value === selectedFilter;
+          return (
+            <Pressable
+              key={value}
+              onPress={() => setSelectedFilter(value)}
+              style={[styles.filterButton, isSelected && styles.filterButtonActive]}
+            >
+              <Text style={[styles.filterButtonText, isSelected && styles.filterButtonTextActive]}>{label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
       {!hasEvents ? (
         <EmptyState
@@ -122,6 +178,33 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.md
+  },
+  filterButton: {
+    flex: 1,
+    borderRadius: 40,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.07)'
+  },
+  filterButtonActive: {
+    backgroundColor: 'rgba(21, 44, 68, 0.09)'
+  },
+  filterButtonText: {
+    fontSize: typography.caption,
+    fontFamily: typography.fontFamilyMedium,
+    color: 'rgba(0, 0, 0, 0.69)',
+    letterSpacing: typography.letterSpacing
+  },
+  filterButtonTextActive: {
+    color: colors.tabActive
   },
   listContent: {
     paddingBottom: spacing.xl

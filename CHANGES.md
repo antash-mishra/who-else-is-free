@@ -104,5 +104,18 @@
 - Updated EventsContext with deleteUserEvent function and added Authorization headers to update/delete API calls for authentication.
 - Replaced native delete alerts with themed overlays, delivering an on-brand confirmation sheet and success acknowledgement on the Event Details screen.
 
+## Guest access & empty states
+- Updated navigation so unauthenticated visitors land on the Events feed while still having access to the login screen when needed.
+- Enhanced the shared `EmptyState` component to support custom illustrations and optional CTA buttons, then reused it across My Events, Messages, and Profile to show login prompts for guests.
+- Tweaked My Events filters, Messages, Profile, and Create Event flows so signed-out users see friendly copy, bespoke artwork, and a single-tap path to the login screen (including a Login CTA on the Create Event button).
+- Added event filter buttons ("Created", "Joined", "Requested") to MyEventsScreen below the header, styled as capsule buttons with selection states.
+
+## Login flow & Create Event (today)
+- Simplified login result: after signing in, reset to the main tab navigator (home) rather than popping back to the login screen history.
+- Added a guest event queue: if a signed-out user fills the Create form (with a name or description) and taps the CTA, their draft is queued and automatically posted immediately after successful login.
+- Enforced Create validation for all users: only allow submit when at least event name or description is present; otherwise show a clear error message.
+- Updated Create for guests: the primary button routes to Login and preserves the filled draft so publishing resumes post-auth.
+- Applied consistent top headers to Chat and Profile screens to match the My Events header style.
+
 ## Product vision
 - Building a companion-finder that helps people discover last-minute event buddies, create new gatherings, and keep track of their own plans in one place.

@@ -10,12 +10,19 @@ import {
   View
 } from 'react-native';
 
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import ScreenContainer from '@components/ScreenContainer';
 import { useAuth } from '@context/AuthContext';
 import { colors, spacing, typography } from '@theme/index';
+import { RootStackParamList } from '@navigation/types';
+
+type LoginNavigation = NativeStackNavigationProp<RootStackParamList>;
 
 const LoginScreen = () => {
   const { signIn, isSigningIn } = useAuth();
+  const navigation = useNavigation<LoginNavigation>();
   const [email, setEmail] = useState('ava@example.com');
   const [password, setPassword] = useState('password123');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -33,6 +40,10 @@ const LoginScreen = () => {
 
     try {
       await signIn(trimmedEmail, password);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' }]
+      });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to sign in. Please try again.');
     } finally {

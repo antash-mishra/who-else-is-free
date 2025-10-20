@@ -10,13 +10,23 @@ import {
   View
 } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import ScreenContainer from '@components/ScreenContainer';
+import EmptyState from '@components/EmptyState';
 import { colors, spacing, typography } from '@theme/index';
 import { useChat } from '@context/ChatContext';
 import type { ChatConversation, ChatMessage } from '@context/ChatContext';
 import { useAuth } from '@context/AuthContext';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import EmptyMessageIllustration from '@assets/empty-message.svg';
+
+type MessagesNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<RootTabParamList, 'Messages'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const formatTimestamp = (value?: string) => {
   if (!value) {
@@ -50,6 +60,7 @@ const getInitial = (label?: string | null) => {
 
 const MessagesScreen = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<MessagesNavigation>();
   const {
     conversations,
     activeConversationId,
@@ -81,10 +92,31 @@ const MessagesScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      if (!user) {
+        return undefined;
+      }
       refreshConversations().catch(() => undefined);
       return undefined;
-    }, [refreshConversations])
+    }, [refreshConversations, user])
   );
+
+  if (!user) {
+    return (
+      <ScreenContainer>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Chat</Text>
+        </View>
+        <EmptyState
+          title="No chats to show"
+          description="Log in to see all chats"
+          actionLabel="Login"
+          onActionPress={() => navigation.navigate('Login')}
+          illustration={EmptyMessageIllustration}
+          illustrationSize={40}
+        />
+      </ScreenContainer>
+    );
+  }
 
   const handleSend = () => {
     if (!activeConversationId) {
@@ -211,8 +243,10 @@ const MessagesScreen = () => {
   if (!activeConversation) {
     return (
       <ScreenContainer>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Chat</Text>
+        </View>
         <View style={styles.container}>
-          <Text style={styles.header}>Chat</Text>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           {isConnecting ? <Text style={styles.helperText}>Connecting to chat…</Text> : null}
           <FlatList
@@ -249,6 +283,9 @@ const MessagesScreen = () => {
 
   return (
     <ScreenContainer>
+      <View style={styles.headerSpacing}>
+        <Text style={styles.headerTitle}>Chat</Text>
+      </View>
       <KeyboardAvoidingView
         style={styles.threadContainer}
         behavior={Platform.select({ ios: 'padding', android: 'height' })}
@@ -313,20 +350,24 @@ const MessagesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: spacing.lg,
     paddingBottom: spacing.md,
     gap: spacing.md
   },
   threadContainer: {
     flex: 1,
-    paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
     gap: spacing.md
   },
-  header: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilyBold,
-    color: colors.text
+  headerSpacing: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md
+  },
+  headerTitle: {
+    fontSize: typography.header,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.text,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing
   },
   helperText: {
     fontSize: typography.caption,
