@@ -14,7 +14,6 @@ import LoginScreen from '@screens/LoginScreen';
 import EventDetailsScreen from '@screens/EventDetailsScreen';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors } from '@theme/colors';
-import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -220,8 +219,6 @@ const MainTabs = () => {
 };
 
 const AppNavigator = () => {
-  const { user } = useAuth();
-
   const navigationTheme = {
     ...DefaultTheme,
     colors: {
@@ -236,19 +233,14 @@ const AppNavigator = () => {
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabs} />
-            <Stack.Screen
-              name="EventDetails"
-              component={EventDetailsScreen}
-              options={{ headerShown: false }}
-            />
-          </>
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        )}
+      <Stack.Navigator initialRouteName="Main" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Main" component={MainTabs} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen
+          name="EventDetails"
+          component={EventDetailsScreen}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

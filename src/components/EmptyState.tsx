@@ -1,5 +1,6 @@
-import { memo } from 'react';
+import { ComponentType, memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SvgProps } from 'react-native-svg';
 
 import CreateEventIllustration from '@assets/create-event.svg';
 import { colors, spacing, typography } from '@theme/index';
@@ -7,19 +8,32 @@ import { colors, spacing, typography } from '@theme/index';
 interface EmptyStateProps {
   title: string;
   description: string;
-  actionLabel: string;
+  actionLabel?: string;
   onActionPress?: () => void;
+  illustration?: ComponentType<SvgProps>;
+  illustrationSize?: number;
 }
 
-const EmptyState = ({ title, description, actionLabel, onActionPress }: EmptyStateProps) => {
+const EmptyState = ({
+  title,
+  description,
+  actionLabel,
+  onActionPress,
+  illustration: Illustration = CreateEventIllustration,
+  illustrationSize = 88
+}: EmptyStateProps) => {
   return (
     <View style={styles.container}>
-      <CreateEventIllustration width={88} height={88} />
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
-      <Pressable style={styles.button} onPress={onActionPress}>
-        <Text style={styles.buttonText}>{actionLabel}</Text>
-      </Pressable>
+      <Illustration width={illustrationSize} height={illustrationSize} />    
+      <View style={styles.textContainer}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{description}</Text>
+      </View>
+      {actionLabel ? (
+        <Pressable style={styles.button} onPress={onActionPress}>
+          <Text style={styles.buttonText}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 };
@@ -29,22 +43,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.md
+    gap: 20
+  },
+  textContainer: {
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   title: {
-    fontSize: typography.subtitle,
+    fontSize: 17,
     color: colors.text,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: typography.lineHeight,
+    fontFamily: typography.fontFamilyMedium,
+    lineHeight: 14,
     letterSpacing: typography.letterSpacing
   },
   description: {
     fontSize: typography.body,
-    color: colors.subText,
+    color: '#7C7C7C',
     textAlign: 'center',
-    maxWidth: 240,
     fontFamily: typography.fontFamilyRegular,
-    lineHeight: typography.lineHeight,
+    lineHeight: 20,
     letterSpacing: typography.letterSpacing
   },
   button: {
