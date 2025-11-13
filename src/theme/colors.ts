@@ -26,5 +26,19 @@ export const colors = {
   eventDetailGradientEnd: '#C084FC',
   eventDetailButtonBackground: '#E8E8E8',
   eventDetailButtonText: '#1F2937',
-  eventDetailRowText: '#191919'
+  eventDetailRowText: '#191919',
+  createGradientStart: '#A6ADFF',
+  createGradientEnd: '#46ADF1',
+  createCardBackground: 'rgba(255, 255, 255, 0.3)',
+  createCardBorder: 'rgba(255, 255, 255, 0.03)',
+  createTextPrimary: '#F8FAFF',
+  createTextLabel: 'rgba(255, 255, 255, 0.7)',
+  createTextMuted: 'rgba(248, 250, 255, 0.7)',
+  createChipBackground: 'rgba(255, 255, 255, 0.2)',
+  createChipActiveBackground: '#FFFFFF',
+  createChipActiveText: '#1A1E2E',
+  createButtonBackground: '#FFFFFF',
+  createButtonText: '#1A1E2E',
+  createOverlay: 'rgba(10, 18, 40, 0.45)',
+  coverCardBase: '#FFFFFF'
 } as const;

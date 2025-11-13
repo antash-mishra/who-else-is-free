@@ -1,37 +1,46 @@
-import React from 'react';
-import { View, Text, Pressable, TextInput } from 'react-native';
+import React from "react";
+import { View, Text, Pressable, TextInput } from "react-native";
 
-import { colors } from '@theme/index';
-import EventActionConfirm, { EventActionConfirmProps } from './EventActionConfirm';
-import styles from './EventActionOverlay.styles';
+import { colors } from "@theme/index";
+import EventActionConfirm, {
+  EventActionConfirmProps,
+} from "./EventActionConfirm";
+import styles from "./EventActionOverlay.styles";
 
 type InviteOverlayProps = {
-  type: 'invite';
+  type: "invite";
   inviteMessage: string;
   onInviteMessageChange: (text: string) => void;
   onSendInvite: () => void;
+  inviteError?: string | null;
+  inviteSubmitting?: boolean;
+  inviteDisabled?: boolean;
 };
 
 type ManageOverlayProps = {
-  type: 'manage';
+  type: "manage";
   onEdit: () => void;
   onDelete: () => void;
 };
 
 type ConfirmOverlayProps = {
-  type: 'confirm';
+  type: "confirm";
 } & EventActionConfirmProps;
 
 type ResultOverlayProps = {
-  type: 'result';
+  type: "result";
   title: string;
   description?: string;
   dismissLabel: string;
   onDismiss: () => void;
-  tone?: 'default' | 'success' | 'error';
+  tone?: "default" | "success" | "error";
 };
 
-type OverlayVariantProps = InviteOverlayProps | ManageOverlayProps | ConfirmOverlayProps | ResultOverlayProps;
+type OverlayVariantProps =
+  | InviteOverlayProps
+  | ManageOverlayProps
+  | ConfirmOverlayProps
+  | ResultOverlayProps;
 
 type EventActionOverlayProps = {
   isVisible: boolean;
@@ -44,8 +53,17 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   if (!isVisible) return null;
 
   const renderInvitePrompt = () => {
-    if (props.type !== 'invite') return null;
-    const { inviteMessage, onInviteMessageChange, onSendInvite } = props;
+    if (props.type !== "invite") return null;
+    const {
+      inviteMessage,
+      onInviteMessageChange,
+      onSendInvite,
+      inviteError,
+      inviteSubmitting,
+      inviteDisabled,
+    } = props;
+
+    const isDisabled = inviteSubmitting || inviteDisabled;
 
     return (
       <View style={styles.prompt}>
@@ -58,22 +76,29 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           onChangeText={onInviteMessageChange}
           style={styles.inviteInput}
         />
+        {inviteError ? (
+          <Text style={styles.promptError}>{inviteError}</Text>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           onPress={onSendInvite}
+          disabled={isDisabled}
           style={({ pressed }) => [
             styles.sendButton,
-            pressed && styles.sendButtonPressed
+            isDisabled && styles.primaryButtonDisabled,
+            pressed && !isDisabled && styles.sendButtonPressed,
           ]}
         >
-          <Text style={styles.sendLabel}>Send</Text>
+          <Text style={styles.sendLabel}>
+            {inviteSubmitting ? "Sending…" : "Send"}
+          </Text>
         </Pressable>
       </View>
     );
   };
 
   const renderManagePrompt = () => {
-    if (props.type !== 'manage') return null;
+    if (props.type !== "manage") return null;
     const { onEdit, onDelete } = props;
 
     return (
@@ -83,7 +108,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           onPress={onEdit}
           style={({ pressed }) => [
             styles.manageButton,
-            pressed && styles.manageButtonPressed
+            pressed && styles.manageButtonPressed,
           ]}
         >
           <Text style={styles.manageLabel}>Edit Event</Text>
@@ -93,17 +118,19 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           onPress={onDelete}
           style={({ pressed }) => [
             styles.manageButton,
-            pressed && styles.manageButtonPressed
+            pressed && styles.manageButtonPressed,
           ]}
         >
-          <Text style={[styles.manageLabel, styles.deleteLabel]}>Delete Event</Text>
+          <Text style={[styles.manageLabel, styles.deleteLabel]}>
+            Delete Event
+          </Text>
         </Pressable>
       </View>
     );
   };
 
   const renderConfirmPrompt = () => {
-    if (props.type !== 'confirm') return null;
+    if (props.type !== "confirm") return null;
     const {
       title,
       description,
@@ -113,7 +140,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       onCancel,
       confirmTone,
       isConfirmLoading,
-      errorMessage
+      errorMessage,
     } = props;
 
     return (
@@ -132,28 +159,36 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   const renderResultPrompt = () => {
-    if (props.type !== 'result') return null;
-    const { title, description, dismissLabel, onDismiss, tone = 'default' } = props;
+    if (props.type !== "result") return null;
+    const {
+      title,
+      description,
+      dismissLabel,
+      onDismiss,
+      tone = "default",
+    } = props;
 
     return (
       <View style={styles.prompt}>
         <View style={styles.promptHeader}>
           <Text style={styles.promptTitle}>{title}</Text>
-          {description ? <Text style={styles.promptDescription}>{description}</Text> : null}
+          {description ? (
+            <Text style={styles.promptDescription}>{description}</Text>
+          ) : null}
         </View>
         <Pressable
           accessibilityRole="button"
           onPress={onDismiss}
           style={({ pressed }) => [
             styles.primaryButton,
-            tone === 'error' && styles.destructiveButton,
-            pressed && styles.primaryButtonPressed
+            tone === "error" && styles.destructiveButton,
+            pressed && styles.primaryButtonPressed,
           ]}
         >
           <Text
             style={[
               styles.primaryLabel,
-              tone === 'error' && styles.destructiveLabel
+              tone === "error" && styles.destructiveLabel,
             ]}
           >
             {dismissLabel}
@@ -166,10 +201,10 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   return (
     <View style={styles.overlayContainer} pointerEvents="box-none">
       <Pressable style={styles.overlayBackdrop} onPress={onBackdropPress} />
-      {type === 'invite' && renderInvitePrompt()}
-      {type === 'manage' && renderManagePrompt()}
-      {type === 'confirm' && renderConfirmPrompt()}
-      {type === 'result' && renderResultPrompt()}
+      {type === "invite" && renderInvitePrompt()}
+      {type === "manage" && renderManagePrompt()}
+      {type === "confirm" && renderConfirmPrompt()}
+      {type === "result" && renderResultPrompt()}
     </View>
   );
 };

@@ -1,18 +1,21 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useCallback } from 'react';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback } from "react";
+import {
+  CompositeNavigationProp,
+  useNavigation,
+} from "@react-navigation/native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ScreenContainer from '@components/ScreenContainer';
-import EmptyState from '@components/EmptyState';
-import { colors, spacing, typography } from '@theme/index';
-import { useAuth } from '@context/AuthContext';
-import { RootStackParamList, RootTabParamList } from '@navigation/types';
-import EmptyProfileIllustration from '@assets/empty-profile.svg';
+import ScreenContainer from "@components/ScreenContainer";
+import EmptyState from "@components/EmptyState";
+import { colors, spacing, typography } from "@theme/index";
+import { useAuth } from "@context/AuthContext";
+import { RootStackParamList, RootTabParamList } from "@navigation/types";
+import EmptyProfileIllustration from "@assets/empty-profile.svg";
 
 type ProfileNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<RootTabParamList, 'Profile'>,
+  BottomTabNavigationProp<RootTabParamList, "Profile">,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
@@ -34,7 +37,7 @@ const ProfileScreen = () => {
           title="No profile to show"
           description="Login to see the profile"
           actionLabel="Login"
-          onActionPress={() => navigation.navigate('Login')}
+          onActionPress={() => navigation.navigate("Login")}
           illustration={EmptyProfileIllustration}
           illustrationSize={40}
         />
@@ -42,7 +45,7 @@ const ProfileScreen = () => {
     );
   }
 
-  const initial = user?.name?.charAt(0).toUpperCase() ?? 'Y';
+  const initial = user?.name?.charAt(0).toUpperCase() ?? "Y";
 
   return (
     <ScreenContainer>
@@ -53,10 +56,17 @@ const ProfileScreen = () => {
         <View style={styles.avatar}>
           <Text style={styles.avatarInitial}>{initial}</Text>
         </View>
-        <Text style={styles.name}>{user?.name ?? 'Your Profile'}</Text>
-        <Text style={styles.caption}>{user?.email ?? 'Complete your profile to make it easier for others to find you.'}</Text>
+        <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
+        <Text style={styles.caption}>
+          {user?.email ??
+            "Complete your profile to make it easier for others to find you."}
+        </Text>
 
-        <Pressable onPress={handleSignOut} style={styles.signOutButton} accessibilityRole="button">
+        <Pressable
+          onPress={handleSignOut}
+          style={styles.signOutButton}
+          accessibilityRole="button"
+        >
           <Text style={styles.signOutText}>Sign Out</Text>
         </Pressable>
       </View>
@@ -66,66 +76,66 @@ const ProfileScreen = () => {
 
 const styles = StyleSheet.create({
   headerSpacing: {
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md
+    paddingTop: spacing.lg - spacing.md,
+    paddingBottom: spacing.md,
   },
   headerTitle: {
     fontSize: typography.header,
     fontFamily: typography.fontFamilySemiBold,
     color: colors.text,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: spacing.xl,
-    gap: spacing.md
+    gap: spacing.md,
   },
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center'
+    alignItems: "center",
+    justifyContent: "center",
   },
   avatarInitial: {
     fontSize: 40,
     color: colors.primary,
     fontFamily: typography.fontFamilyBold,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   name: {
     fontSize: typography.header,
     color: colors.text,
     fontFamily: typography.fontFamilyBold,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   caption: {
     fontSize: typography.body,
     color: colors.subText,
-    textAlign: 'center',
+    textAlign: "center",
     fontFamily: typography.fontFamilyRegular,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   signOutButton: {
     marginTop: spacing.xl,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderRadius: 24,
-    backgroundColor: colors.primary
+    backgroundColor: colors.primary,
   },
   signOutText: {
     color: colors.buttonText,
     fontFamily: typography.fontFamilySemiBold,
     fontSize: typography.subtitle,
-    letterSpacing: typography.letterSpacing
-  }
+    letterSpacing: typography.letterSpacing,
+  },
 });
 
 export default ProfileScreen;

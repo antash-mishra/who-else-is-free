@@ -19,13 +19,18 @@
 - [x] Store and expose read cursors per user (unread badge counts in conversation list).
 - [x] Harden the UI with optimistic send + retry, scroll-to-latest, and manual refresh.
 - [x] Persist chat sessions with secure token storage and auto-reconnect sockets when the app returns to the foreground.
-- [ ] Document how to migrate tokens to Google Sign-In once ready (identify fields to carry over).
+- [x] Document how to migrate tokens to Google Sign-In once ready (identify fields to carry over).
+
+Notes: Chat continues to use a single HMAC-signed session token issued by the backend. With Google Sign-In, the app exchanges the Google ID token for the same session token via POST /api/google-login. Existing users are matched by email; if a Google account uses a different email than the prior local account, update the users.email row to preserve identity and conversation visibility. No server chat changes required; REST (Bearer) and WS (?token=) auth flows remain the same.
 
 ## Stage 3 – Event-driven group chat
 - [x] Auto-create a conversation when an event is published and persist the event/conversation linkage (creator joins as group host).
 - [x] Add endpoints + repo helpers so attendees can request to join, hosts can approve/deny/remove members, and membership updates are pushed to connected WebSocket clients.
 - [x] Update ChatContext to refresh membership rosters, surface event metadata (title/location/time) in the roster + thread, and react to membership churn.
 - [ ] Introduce event-centric UI: entry points from events list/detail, host approval flows for join requests, and leave actions for attendees.
+- [ ] Hook the Event Details “Interested” CTA into the join-request API so guests can submit their invitation note (POST `/api/events/:id/chat/requests`) and get inline success/error feedback instead of the placeholder alert.
+- [ ] Deliver join-request notifications directly into the event’s group conversation (REST + WebSocket) so hosts see pending requests as system messages/cards and can accept/deny them without leaving the chat.
+- [ ] When a host accepts or denies, update the conversation thread with a system message, refresh membership, and notify the requester (e.g., toast + chat badge) so the flow feels complete.
 - [x] Seed sample events with multi-member chats so QA can verify the flow without manual setup.
 
 ## Stage 4 – Presence & richer UX

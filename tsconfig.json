@@ -13,12 +13,9 @@
       "@utils/*": ["src/utils/*"],
       "@context/*": ["src/context/*"],
       "@api/*": ["src/api/*"],
-      "@assets/*": ["assets/*"]
+      "@assets/*": ["assets/*"],
+      "@constants/*": ["src/constants/*"]
     }
   },
-  "include": [
-    "src",
-    "App.tsx",
-    "index.ts"
-  ]
+  "include": ["src", "App.tsx", "index.ts"]
 }

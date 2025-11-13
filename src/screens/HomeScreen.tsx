@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -7,16 +7,19 @@ import {
   SectionListRenderItemInfo,
   StyleSheet,
   Text,
-  View
-} from 'react-native';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import EventCard, { EventItemProps } from '@components/EventCard';
-import ScreenContainer from '@components/ScreenContainer';
-import { colors, spacing, typography } from '@theme/index';
-import { DateLabel, UserEvent, useEvents } from '@context/EventsContext';
-import { RootStackParamList, RootTabParamList } from '@navigation/types';
+  View,
+} from "react-native";
+import {
+  useNavigation,
+  CompositeNavigationProp,
+} from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import EventCard, { EventItemProps } from "@components/EventCard";
+import ScreenContainer from "@components/ScreenContainer";
+import { colors, spacing, typography } from "@theme/index";
+import { DateLabel, UserEvent, useEvents } from "@context/EventsContext";
+import { RootStackParamList, RootTabParamList } from "@navigation/types";
 
 type EventSection = {
   title: string;
@@ -24,37 +27,59 @@ type EventSection = {
 };
 
 const sectionOrder: { label: string; value: DateLabel }[] = [
-  { label: 'Today', value: 'Today' },
-  { label: 'Tomorrow', value: 'Tmrw' }
+  { label: "Today", value: "Today" },
+  { label: "Tomorrow", value: "Tmrw" },
 ];
 
 const buildSections = (items: UserEvent[]): EventSection[] => {
   const grouped: Record<DateLabel, EventItemProps[]> = {
     Today: [],
-    Tmrw: []
+    Tmrw: [],
   };
 
-  items.forEach(({ id, title, location, time, audience, imageUri, badgeLabel, dateLabel }) => {
-    grouped[dateLabel].push({ id, title, location, time, audience, imageUri, badgeLabel });
-  });
+  items.forEach(
+    ({
+      id,
+      title,
+      location,
+      time,
+      audience,
+      imageUri,
+      badgeLabel,
+      dateLabel,
+    }) => {
+      grouped[dateLabel].push({
+        id,
+        title,
+        location,
+        time,
+        audience,
+        imageUri,
+        badgeLabel,
+      });
+    },
+  );
 
   return sectionOrder
     .map(({ label, value }) => ({
       title: label,
-      data: grouped[value]
+      data: grouped[value],
     }))
     .filter((section) => section.data.length > 0);
 };
 
 const HomeScreen = () => {
   type HomeScreenNavigation = CompositeNavigationProp<
-    BottomTabNavigationProp<RootTabParamList, 'Events'>,
+    BottomTabNavigationProp<RootTabParamList, "Events">,
     NativeStackNavigationProp<RootStackParamList>
   >;
 
   const navigation = useNavigation<HomeScreenNavigation>();
   const { events: allEvents, isLoading, error, refreshEvents } = useEvents();
-  const allEventSections = useMemo<EventSection[]>(() => buildSections(allEvents), [allEvents]);
+  const allEventSections = useMemo<EventSection[]>(
+    () => buildSections(allEvents),
+    [allEvents],
+  );
 
   const sections = allEventSections;
   const showAllEventsLoading = isLoading && sections.length === 0;
@@ -66,15 +91,21 @@ const HomeScreen = () => {
   }, [refreshEvents]);
 
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
-    <Text style={styles.sectionHeader}>
-      {section.title.toUpperCase()}
-    </Text>
+    <Text style={styles.sectionHeader}>{section.title.toUpperCase()}</Text>
   );
 
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
     <Pressable
-      onPress={() => navigation.navigate('EventDetails', { eventId: item.id, origin: 'Events' })}
-      style={({ pressed }) => [styles.eventPressable, pressed && styles.eventPressablePressed]}
+      onPress={() =>
+        navigation.navigate("EventDetails", {
+          eventId: item.id,
+          origin: "Events",
+        })
+      }
+      style={({ pressed }) => [
+        styles.eventPressable,
+        pressed && styles.eventPressablePressed,
+      ]}
     >
       <EventCard {...item} />
     </Pressable>
@@ -109,11 +140,17 @@ const HomeScreen = () => {
           stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
-          SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+          SectionSeparatorComponent={() => (
+            <View style={styles.sectionSeparator} />
+          )}
           ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
           ListFooterComponent={<View style={styles.footerSpacing} />}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} tintColor={colors.primary} />
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
           }
         />
       )}
@@ -123,18 +160,18 @@ const HomeScreen = () => {
 
 const styles = StyleSheet.create({
   headerSpacing: {
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md
+    paddingTop: spacing.lg - spacing.md,
+    paddingBottom: spacing.sm,
   },
   headerTitle: {
     fontSize: typography.header,
     fontFamily: typography.fontFamilySemiBold,
     color: colors.text,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   listContent: {
-    paddingBottom: spacing.xl
+    paddingBottom: spacing.xl,
   },
   sectionHeader: {
     fontSize: typography.caption,
@@ -144,57 +181,57 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   sectionSeparator: {
-    height: spacing.md
+    height: spacing.md,
   },
   itemSeparator: {
-    height: spacing.md
+    height: spacing.md,
   },
   footerSpacing: {
-    height: spacing.xl
+    height: spacing.xl,
   },
   centerContent: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.xl,
-    gap: spacing.md
+    gap: spacing.md,
   },
   errorText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
-    color: '#B00020',
-    textAlign: 'center'
+    color: "#B00020",
+    textAlign: "center",
   },
   retryButton: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 999,
-    backgroundColor: colors.primary
+    backgroundColor: colors.primary,
   },
   retryButtonText: {
     color: colors.buttonText,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   emptyAllText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
     color: colors.muted,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   eventPressable: {
-    borderRadius: 20
+    borderRadius: 20,
   },
   eventPressablePressed: {
-    opacity: 0.85
-  }
+    opacity: 0.85,
+  },
 });
 
 export default HomeScreen;
