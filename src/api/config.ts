@@ -20,6 +20,7 @@ const resolveApiBaseUrl = () => {
       const host = url.hostname;
       if (host) {
         const resolvedHost = host === 'localhost' && Platform.OS === 'android' ? '10.0.2.2' : host;
+        // return `https://who-else-is-free-server.fly.dev`;
         return `http://${resolvedHost}:8080`;
       }
     } catch (error) {
@@ -27,7 +28,8 @@ const resolveApiBaseUrl = () => {
     }
   }
 
-  return 'http://192.168.1.8:8080';
+  // return 'https://who-else-is-free-server.fly.dev';
+  return 'http://192.168.1.76:8080';
 };
 
 export const API_BASE_URL = resolveApiBaseUrl();

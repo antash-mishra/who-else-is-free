@@ -28,6 +28,16 @@
 - Added `prop-types` dependency required by the multi-slider control.
 - Anchored the Create CTA to the bottom of the screen and restrict the time picker edits to filter only today's past slots.
 - Introduced an events context so newly created events appear in the "Your Events" tab with the same card styling as the main feed.
+- Refreshed the Create screen with the new gradient look: cover image picker, translucent cards, and on-brand typography to match the latest mock.
+- Replaced the age slider with a quick-select dropdown while preserving backend min/max handling and guest draft storage.
+- Added optional cover uploads (client-side metadata) so published events carry the chosen artwork when returning to the feed.
+- Updated the CTA copy and styling to surface "Publish Event" for signed-in creators while keeping guest hand-off to login.
+
+## Cover art presets
+- Added a curated library of 12 locally bundled cover illustrations plus a resolver helper so every event references a lightweight `cover_key`.
+- Reworked the Create Event hero to preview the selected cover cleanly (no overflow) and replaced the image picker with a half-sheet grid that shows multiple cards per swipe.
+- Removed the old photo picker dependency; creators now pick from the branded palette, and the selection rides through optimistic updates, guest drafts, and edits.
+- Extended the API/database to store `cover_key`, backfilled existing rows, updated seed data/tests, and ensured lists/details render the correct artwork across Home, My Events, and chat contexts.
 
 ## Backend service
 - Added a modular Gin + SQLite server (`server/`) with repository, handlers, and router packages for events.
@@ -109,12 +119,14 @@
 - Enhanced the shared `EmptyState` component to support custom illustrations and optional CTA buttons, then reused it across My Events, Messages, and Profile to show login prompts for guests.
 - Tweaked My Events filters, Messages, Profile, and Create Event flows so signed-out users see friendly copy, bespoke artwork, and a single-tap path to the login screen (including a Login CTA on the Create Event button).
 - Added event filter buttons ("Created", "Joined", "Requested") to MyEventsScreen below the header, styled as capsule buttons with selection states.
+- Added a Google Sign-In entry point powered by `@react-native-google-signin/google-signin`, guarded with a friendlier fallback if the native module is missing. App configuration now enables the Google Sign-In config plugin (requires rebuilding dev/prod binaries).
 
 ## Login flow & Create Event (today)
 - Simplified login result: after signing in, reset to the main tab navigator (home) rather than popping back to the login screen history.
 - Added a guest event queue: if a signed-out user fills the Create form (with a name or description) and taps the CTA, their draft is queued and automatically posted immediately after successful login.
 - Enforced Create validation for all users: only allow submit when at least event name or description is present; otherwise show a clear error message.
 - Updated Create for guests: the primary button routes to Login and preserves the filled draft so publishing resumes post-auth.
+- Replaced the username/password login flow with Google Sign-In: the app now exchanges the Google ID token for a 24-hour backend session token used on every API call.
 - Applied consistent top headers to Chat and Profile screens to match the My Events header style.
 
 ## Product vision

@@ -13,9 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.whoelseisfree.app"
     },
     "android": {
+      "package": "com.whoelseisfree.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,7 +29,26 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "reservedClientId": "com.googleusercontent.apps.413387391765-afsjurjtalucke0mctj7na1bqibh0mpc",
+          "iosUrlScheme": "com.googleusercontent.apps.413387391765-afsjurjtalucke0mctj7na1bqibh0mpc"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e"
+    }
   }
 }

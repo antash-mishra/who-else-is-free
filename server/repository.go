@@ -9,6 +9,7 @@ import (
 )
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
+var ErrUserNotFound = errors.New("user not found")
 var ErrEventNotFound = errors.New("event not found")
 var ErrConversationNotFound = errors.New("conversation not found")
 var ErrAlreadyConversationMember = errors.New("user already a conversation member")
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS events (
     min_age INTEGER NOT NULL,
     max_age INTEGER NOT NULL,
     date_label TEXT NOT NULL CHECK(date_label IN ('Today', 'Tmrw')),
+    cover_key TEXT NOT NULL DEFAULT 'cover_01',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     CHECK (min_age >= 0),
@@ -108,13 +110,13 @@ CREATE TABLE IF NOT EXISTS conversation_read_state (
 `
 
 const insertEvent = `
-INSERT INTO events (user_id, title, location, time, description, gender, min_age, max_age, date_label)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO events (user_id, title, location, time, description, gender, min_age, max_age, date_label, cover_key)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
 const updateEvent = `
 UPDATE events
-SET title = ?, location = ?, time = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?
+SET title = ?, location = ?, time = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key)
 WHERE id = ? AND user_id = ?;
 `
 
@@ -192,14 +194,14 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.cover_key, e.created_at, u.name AS host_name
 FROM events e
 JOIN users u ON u.id = e.user_id
 ORDER BY e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.cover_key, e.created_at, u.name AS host_name
 FROM events e
 JOIN users u ON u.id = e.user_id
 WHERE e.id = ?
@@ -240,6 +242,7 @@ CREATE TABLE IF NOT EXISTS conversation_join_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
+    message TEXT,
     status TEXT NOT NULL CHECK(status IN ('pending','approved','denied')) DEFAULT 'pending',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     decided_at DATETIME,
@@ -261,28 +264,50 @@ FROM users
 WHERE email = ?;
 `
 
+const selectUserByID = `
+SELECT id, name, email, password, created_at
+FROM users
+WHERE id = ?;
+`
+
 const selectPendingJoinRequest = `
-SELECT id, event_id, user_id, status, created_at, decided_at, decided_by
+SELECT id, event_id, user_id, status, message, created_at, decided_at, decided_by
 FROM conversation_join_requests
 WHERE event_id = ? AND user_id = ? AND status = 'pending'
 LIMIT 1;
 `
 
 const selectJoinRequestByID = `
-SELECT id, event_id, user_id, status, created_at, decided_at, decided_by
+SELECT id, event_id, user_id, status, message, created_at, decided_at, decided_by
 FROM conversation_join_requests
 WHERE id = ?;
 `
 
 const insertJoinRequest = `
-INSERT INTO conversation_join_requests (event_id, user_id, status)
-VALUES (?, ?, 'pending');
+INSERT INTO conversation_join_requests (event_id, user_id, message, status)
+VALUES (?, ?, ?, 'pending');
 `
 
 const updateJoinRequestStatus = `
 UPDATE conversation_join_requests
 SET status = ?, decided_at = CURRENT_TIMESTAMP, decided_by = ?
 WHERE id = ?;
+`
+
+const selectPendingJoinRequestsForEvent = `
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+FROM conversation_join_requests r
+JOIN users u ON u.id = r.user_id
+WHERE r.event_id = ? AND r.status = 'pending'
+ORDER BY r.created_at ASC;
+`
+
+const selectPendingJoinRequestsForUser = `
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+FROM conversation_join_requests r
+JOIN users u ON u.id = r.user_id
+WHERE r.user_id = ? AND r.status = 'pending'
+ORDER BY r.created_at DESC;
 `
 
 const deleteConversationMember = `
@@ -311,6 +336,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)
 	}
+	if err := r.ensureEventCoverKeyColumn(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createTableConversations); err != nil {
 		return fmt.Errorf("create conversations table: %w", err)
 	}
@@ -332,7 +360,34 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createTableConversationJoinRequests); err != nil {
 		return fmt.Errorf("create conversation join requests table: %w", err)
 	}
+	if err := r.ensureJoinRequestMessageColumn(ctx); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (r *EventRepository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	if err := r.db.QueryRowContext(ctx, selectUserByEmail, email).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.CreatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("lookup user: %w", err)
+	}
+	return &user, nil
+}
+
+func (r *EventRepository) CreateUserWithPassword(ctx context.Context, name, email, password string) (*User, error) {
+	if _, err := r.db.ExecContext(ctx, insertUser, name, email, password); err != nil {
+		return nil, fmt.Errorf("insert user: %w", err)
+	}
+	return r.GetUserByEmail(ctx, email)
 }
 
 func (r *EventRepository) ensureEventsUserIDColumn(ctx context.Context) error {
@@ -392,6 +447,82 @@ func (r *EventRepository) ensureEventsUserIDColumn(ctx context.Context) error {
 	return nil
 }
 
+func (r *EventRepository) ensureEventCoverKeyColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(events);`)
+	if err != nil {
+		return fmt.Errorf("inspect events table: %w", err)
+	}
+	defer rows.Close()
+
+	hasCoverKey := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan events schema: %w", err)
+		}
+		if name == "cover_key" {
+			hasCoverKey = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate events schema: %w", err)
+	}
+	if hasCoverKey {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN cover_key TEXT NOT NULL DEFAULT 'cover_01';`); err != nil {
+		return fmt.Errorf("add cover_key column: %w", err)
+	}
+	return nil
+}
+
+func (r *EventRepository) ensureJoinRequestMessageColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(conversation_join_requests);`)
+	if err != nil {
+		return fmt.Errorf("inspect conversation_join_requests table: %w", err)
+	}
+	defer rows.Close()
+
+	hasMessage := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan join requests schema: %w", err)
+		}
+		if name == "message" {
+			hasMessage = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate join requests schema: %w", err)
+	}
+	if hasMessage {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE conversation_join_requests ADD COLUMN message TEXT;`); err != nil {
+		return fmt.Errorf("add message column to join requests: %w", err)
+	}
+	return nil
+}
+
 func (r *EventRepository) ensureConversationEventColumn(ctx context.Context) error {
 	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(conversations);`)
 	if err != nil {
@@ -441,6 +572,11 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		return 0, fmt.Errorf("begin event tx: %w", err)
 	}
 
+	coverKey := strings.TrimSpace(params.CoverKey)
+	if coverKey == "" {
+		coverKey = defaultCoverKey
+	}
+
 	res, err := tx.ExecContext(ctx, insertEvent,
 		params.UserID,
 		params.Title,
@@ -451,6 +587,7 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		params.MinAge,
 		params.MaxAge,
 		params.DateLabel,
+		coverKey,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -496,6 +633,15 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		return fmt.Errorf("begin event update tx: %w", err)
 	}
 
+	coverKeyParam := ""
+	if params.CoverKey != nil {
+		value := strings.TrimSpace(*params.CoverKey)
+		if value == "" {
+			value = defaultCoverKey
+		}
+		coverKeyParam = value
+	}
+
 	result, err := tx.ExecContext(ctx, updateEvent,
 		params.Title,
 		params.Location,
@@ -505,6 +651,7 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		params.MinAge,
 		params.MaxAge,
 		params.DateLabel,
+		coverKeyParam,
 		id,
 		userID,
 	)
@@ -571,6 +718,7 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.MinAge,
 			&evt.MaxAge,
 			&evt.DateLabel,
+			&evt.CoverKey,
 			&evt.CreatedAt,
 			&evt.HostName,
 		); err != nil {
@@ -764,8 +912,12 @@ func scanJoinRequest(row *sql.Row) (*ConversationJoinRequest, error) {
 	var req ConversationJoinRequest
 	var decidedAt sql.NullTime
 	var decidedBy sql.NullInt64
-	if err := row.Scan(&req.ID, &req.EventID, &req.UserID, &req.Status, &req.CreatedAt, &decidedAt, &decidedBy); err != nil {
+	var message sql.NullString
+	if err := row.Scan(&req.ID, &req.EventID, &req.UserID, &req.Status, &message, &req.CreatedAt, &decidedAt, &decidedBy); err != nil {
 		return nil, err
+	}
+	if message.Valid {
+		req.Message = message.String
 	}
 	if decidedAt.Valid {
 		t := decidedAt.Time
@@ -825,6 +977,7 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.MinAge,
 		&evt.MaxAge,
 		&evt.DateLabel,
+		&evt.CoverKey,
 		&evt.CreatedAt,
 		&evt.HostName,
 	); err != nil {
@@ -840,7 +993,7 @@ func (r *EventRepository) GetConversationByEventID(ctx context.Context, eventID 
 	return fetchConversationByEventID(ctx, r.db, eventID)
 }
 
-func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID int64) (*ConversationJoinRequest, error) {
+func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID int64, message string) (*ConversationJoinRequest, error) {
 	event, err := r.GetEventByID(ctx, eventID)
 	if err != nil {
 		return nil, err
@@ -868,7 +1021,7 @@ func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID
 		return nil, fmt.Errorf("check pending join request: %w", err)
 	}
 
-	res, err := r.db.ExecContext(ctx, insertJoinRequest, eventID, userID)
+	res, err := r.db.ExecContext(ctx, insertJoinRequest, eventID, userID, message)
 	if err != nil {
 		return nil, fmt.Errorf("insert join request: %w", err)
 	}
@@ -1008,6 +1161,106 @@ func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID
 	}
 
 	return nil
+}
+
+func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64) ([]JoinRequestView, error) {
+	rows, err := r.db.QueryContext(ctx, selectPendingJoinRequestsForEvent, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("list join requests: %w", err)
+	}
+	defer rows.Close()
+
+	var requests []JoinRequestView
+	for rows.Next() {
+		var req JoinRequestView
+		var message sql.NullString
+		var decidedAt sql.NullTime
+		var decidedBy sql.NullInt64
+		var requesterName string
+		if err := rows.Scan(
+			&req.ID,
+			&req.EventID,
+			&req.UserID,
+			&req.Status,
+			&message,
+			&req.CreatedAt,
+			&decidedAt,
+			&decidedBy,
+			&requesterName,
+		); err != nil {
+			return nil, fmt.Errorf("scan join request: %w", err)
+		}
+		if message.Valid {
+			req.Message = message.String
+		}
+		if decidedAt.Valid {
+			t := decidedAt.Time
+			req.DecidedAt = &t
+		}
+		if decidedBy.Valid {
+			id := decidedBy.Int64
+			req.DecidedBy = &id
+		}
+		req.Requester = ConversationParticipant{
+			ID:   req.UserID,
+			Name: requesterName,
+		}
+		requests = append(requests, req)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate join requests: %w", err)
+	}
+	return requests, nil
+}
+
+func (r *EventRepository) ListJoinRequestsByUser(ctx context.Context, userID int64) ([]JoinRequestView, error) {
+	rows, err := r.db.QueryContext(ctx, selectPendingJoinRequestsForUser, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list user join requests: %w", err)
+	}
+	defer rows.Close()
+
+	var requests []JoinRequestView
+	for rows.Next() {
+		var req JoinRequestView
+		var message sql.NullString
+		var decidedAt sql.NullTime
+		var decidedBy sql.NullInt64
+		var requesterName string
+		if err := rows.Scan(
+			&req.ID,
+			&req.EventID,
+			&req.UserID,
+			&req.Status,
+			&message,
+			&req.CreatedAt,
+			&decidedAt,
+			&decidedBy,
+			&requesterName,
+		); err != nil {
+			return nil, fmt.Errorf("scan user join request: %w", err)
+		}
+		if message.Valid {
+			req.Message = message.String
+		}
+		if decidedAt.Valid {
+			t := decidedAt.Time
+			req.DecidedAt = &t
+		}
+		if decidedBy.Valid {
+			id := decidedBy.Int64
+			req.DecidedBy = &id
+		}
+		req.Requester = ConversationParticipant{
+			ID:   req.UserID,
+			Name: requesterName,
+		}
+		requests = append(requests, req)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user join requests: %w", err)
+	}
+	return requests, nil
 }
 
 // hydrateConversationSummary enriches a conversation with participant info and unread counts for the viewer.
@@ -1168,6 +1421,7 @@ var seedEvents = []CreateEventParams{
 		MinAge:      20,
 		MaxAge:      30,
 		DateLabel:   "Today",
+		CoverKey:    "cover_01",
 	},
 	{
 		UserID:      2,
@@ -1179,6 +1433,7 @@ var seedEvents = []CreateEventParams{
 		MinAge:      22,
 		MaxAge:      32,
 		DateLabel:   "Today",
+		CoverKey:    "cover_02",
 	},
 	{
 		UserID:      3,
@@ -1190,6 +1445,7 @@ var seedEvents = []CreateEventParams{
 		MinAge:      18,
 		MaxAge:      40,
 		DateLabel:   "Tmrw",
+		CoverKey:    "cover_03",
 	},
 	{
 		UserID:      1,
@@ -1201,6 +1457,7 @@ var seedEvents = []CreateEventParams{
 		MinAge:      21,
 		MaxAge:      45,
 		DateLabel:   "Tmrw",
+		CoverKey:    "cover_04",
 	},
 	{
 		UserID:      2,
@@ -1212,6 +1469,7 @@ var seedEvents = []CreateEventParams{
 		MinAge:      23,
 		MaxAge:      38,
 		DateLabel:   "Today",
+		CoverKey:    "cover_05",
 	},
 }
 
@@ -1220,6 +1478,9 @@ func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
 		return err
 	}
 	if err := r.ensureEventsUserIDColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEventCoverKeyColumn(ctx); err != nil {
 		return err
 	}
 	if err := r.ensureSeedEvents(ctx); err != nil {
@@ -1502,24 +1763,34 @@ func (r *EventRepository) ensureSeedEventGroupChat(ctx context.Context) error {
 }
 
 func (r *EventRepository) AuthenticateUser(ctx context.Context, email, password string) (*User, error) {
-	var user User
-	var storedPassword string
-	if err := r.db.QueryRowContext(ctx, selectUserByEmail, email).Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-		&storedPassword,
-		&user.CreatedAt,
-	); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	user, err := r.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
 			return nil, ErrInvalidCredentials
 		}
-		return nil, fmt.Errorf("lookup user: %w", err)
+		return nil, err
 	}
 
-	if storedPassword != password {
+	if user.Password != password {
 		return nil, ErrInvalidCredentials
 	}
 
+	return user, nil
+}
+
+func (r *EventRepository) GetUserByID(ctx context.Context, id int64) (*User, error) {
+	var user User
+	if err := r.db.QueryRowContext(ctx, selectUserByID, id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.CreatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("lookup user by id: %w", err)
+	}
 	return &user, nil
 }

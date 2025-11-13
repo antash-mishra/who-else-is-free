@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -55,6 +56,8 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 		return
 	}
 
+	payload.CoverKey = normalizeCoverKey(payload.CoverKey)
+
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
@@ -77,6 +80,11 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	if payload.MaxAge < payload.MinAge {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "max_age must be greater than or equal to min_age"})
 		return
+	}
+
+	if payload.CoverKey != nil {
+		value := normalizeCoverKey(*payload.CoverKey)
+		payload.CoverKey = &value
 	}
 
 	idStr := c.Param("id")
@@ -138,4 +146,12 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "event deleted"})
+}
+
+func normalizeCoverKey(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return defaultCoverKey
+	}
+	return trimmed
 }

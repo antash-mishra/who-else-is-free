@@ -1,14 +1,15 @@
 package main
 
 import (
-    "context"
-    "encoding/json"
-    "errors"
-    "log"
-    "net/http"
-    "strconv"
-    "strings"
-    "time"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -20,10 +21,10 @@ import (
 type ChatHub struct {
 	repo          *EventRepository
 	signer        *tokenSigner
-	register      chan *ChatClient            // fan-in of freshly upgraded sockets
-	unregister    chan *ChatClient            // fan-in of disconnecting sockets
-	broadcast     chan chatBroadcast          // queue of conversation payloads to fan back out
-	membership    chan membershipUpdate       // join/leave notifications from the HTTP layer
+	register      chan *ChatClient                   // fan-in of freshly upgraded sockets
+	unregister    chan *ChatClient                   // fan-in of disconnecting sockets
+	broadcast     chan chatBroadcast                 // queue of conversation payloads to fan back out
+	membership    chan membershipUpdate              // join/leave notifications from the HTTP layer
 	subscriptions map[int64]map[*ChatClient]struct{} // conversationID -> live clients in that room
 	clientsByUser map[int64]map[*ChatClient]struct{} // userID -> live sockets for that user
 }
@@ -47,15 +48,37 @@ type membershipEvent struct {
 	Action         string `json:"action"`
 }
 
+type joinRequestEvent struct {
+	Type           string             `json:"type"`
+	ConversationID int64              `json:"conversationId"`
+	Action         string             `json:"action"`
+	Request        joinRequestPayload `json:"request"`
+}
+
+type joinRequestPayload struct {
+	ID        int64                          `json:"id"`
+	EventID   int64                          `json:"eventId"`
+	UserID    int64                          `json:"userId"`
+	Message   string                         `json:"message"`
+	Status    string                         `json:"status"`
+	CreatedAt string                         `json:"createdAt"`
+	Requester conversationParticipantPayload `json:"requester"`
+}
+
+type conversationParticipantPayload struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 // ChatClient wraps a single WebSocket connection and bookkeeping that helps the
 // hub keep track of which conversations this socket should hear about.
 type ChatClient struct {
-    hub             *ChatHub
-    conn            *websocket.Conn
-    send            chan []byte
-    userID          int64
-    subscriptions   map[int64]struct{}
-    messageHistory  []time.Time
+	hub            *ChatHub
+	conn           *websocket.Conn
+	send           chan []byte
+	userID         int64
+	subscriptions  map[int64]struct{}
+	messageHistory []time.Time
 }
 
 const (
@@ -129,13 +152,13 @@ func (h *ChatHub) Run() {
 			}
 			h.detachClient(client)
 			for conversationID := range client.subscriptions {
-                if subs, ok := h.subscriptions[conversationID]; ok {
-                    delete(subs, client)
-                    if len(subs) == 0 {
-                        delete(h.subscriptions, conversationID)
-                    }
-                }
-            }
+				if subs, ok := h.subscriptions[conversationID]; ok {
+					delete(subs, client)
+					if len(subs) == 0 {
+						delete(h.subscriptions, conversationID)
+					}
+				}
+			}
 		case msg := <-h.broadcast:
 			// Persisted message payloads are fanned out to every subscribed client.
 			h.pushToConversation(msg.conversationID, msg.payload)
@@ -192,10 +215,10 @@ func (h *ChatHub) applyMembershipUpdate(update membershipUpdate) {
 		}
 		if clients, ok := h.clientsByUser[update.userID]; ok {
 			for client := range clients {
-                client.subscriptions[update.conversationID] = struct{}{}
-                h.subscriptions[update.conversationID][client] = struct{}{}
-            }
-        }
+				client.subscriptions[update.conversationID] = struct{}{}
+				h.subscriptions[update.conversationID][client] = struct{}{}
+			}
+		}
 	case "removed":
 		// Remove the conversation from each socket owned by the departing user
 		// and drop any room set that becomes empty.
@@ -204,12 +227,12 @@ func (h *ChatHub) applyMembershipUpdate(update membershipUpdate) {
 				for client := range clients {
 					delete(client.subscriptions, update.conversationID)
 					delete(subs, client)
-                }
-                if len(subs) == 0 {
-                    delete(h.subscriptions, update.conversationID)
-                }
-            }
-        }
+				}
+				if len(subs) == 0 {
+					delete(h.subscriptions, update.conversationID)
+				}
+			}
+		}
 	default:
 		log.Printf("unknown membership action: %s", update.action)
 		return
@@ -395,17 +418,17 @@ func (c *ChatClient) handleSend(inbound inboundEnvelope) {
 		log.Printf("membership check failed: %v", err)
 		return
 	}
-    if !allowed {
-        log.Printf("user %d attempted to send to conversation %d without membership", c.userID, inbound.ConversationID)
-        return
-    }
+	if !allowed {
+		log.Printf("user %d attempted to send to conversation %d without membership", c.userID, inbound.ConversationID)
+		return
+	}
 
-    params := CreateMessageParams{
-        ConversationID: inbound.ConversationID,
-        SenderID:       c.userID,
-        Body:           inbound.Body,
-        DeliveryStatus: "sent",
-    }
+	params := CreateMessageParams{
+		ConversationID: inbound.ConversationID,
+		SenderID:       c.userID,
+		Body:           inbound.Body,
+		DeliveryStatus: "sent",
+	}
 
 	msg, err := c.hub.repo.CreateMessage(ctx, params)
 	if err != nil {
@@ -417,25 +440,7 @@ func (c *ChatClient) handleSend(inbound inboundEnvelope) {
 		log.Printf("update read state after send failed: %v", err)
 	}
 
-	envelope := outboundMessage{
-		Type:   "message:new",
-		TempID: inbound.TempID,
-		Message: messagePayload{
-			ID:             msg.ID,
-			ConversationID: msg.ConversationID,
-			SenderID:       msg.SenderID,
-			Body:           msg.Body,
-			CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
-		},
-	}
-
-	payload, err := json.Marshal(envelope)
-	if err != nil {
-		log.Printf("marshal outbound failed: %v", err)
-		return
-	}
-
-	c.hub.broadcast <- chatBroadcast{conversationID: msg.ConversationID, payload: payload}
+	c.hub.emitChatMessage(msg, inbound.TempID)
 }
 
 // allowMessage implements a sliding window limiter to curb rapid sends.
@@ -469,6 +474,8 @@ func RegisterChatRoutes(router *gin.RouterGroup, repo *EventRepository, hub *Cha
 	router.GET("/conversations", handler.listConversations)
 	router.GET("/conversations/:id/messages", handler.listMessages)
 	router.POST("/conversations", handler.createConversation)
+	router.GET("/events/:id/chat/requests", handler.listJoinRequests)
+	router.GET("/chat/requests/me", handler.listUserJoinRequests)
 	router.POST("/events/:id/chat/requests", handler.requestJoin)
 	router.POST("/events/:id/chat/requests/:userId/approve", handler.approveJoin)
 	router.POST("/events/:id/chat/requests/:userId/deny", handler.denyJoin)
@@ -476,8 +483,8 @@ func RegisterChatRoutes(router *gin.RouterGroup, repo *EventRepository, hub *Cha
 }
 
 type ChatHTTPHandler struct {
-    repo *EventRepository
-    hub  *ChatHub
+	repo *EventRepository
+	hub  *ChatHub
 }
 
 type createConversationRequest struct {
@@ -498,7 +505,15 @@ type listMessagesResponse struct {
 }
 
 type joinRequestResponse struct {
-	Request ConversationJoinRequest `json:"request"`
+	Request JoinRequestView `json:"request"`
+}
+
+type joinRequestListResponse struct {
+	Requests []JoinRequestView `json:"requests"`
+}
+
+type joinRequestBody struct {
+	Message string `json:"message" binding:"required"`
 }
 
 // createConversation provisions a new conversation (optionally titled) and
@@ -506,10 +521,10 @@ type joinRequestResponse struct {
 // and a list of member IDs. The creator is automatically included if omitted.
 //
 // Responses:
-//  - 201 with a hydrated ConversationSummary on success
-//  - 401 if the caller has no session
-//  - 400 for invalid JSON
-//  - 500 for repository/database failures
+//   - 201 with a hydrated ConversationSummary on success
+//   - 401 if the caller has no session
+//   - 400 for invalid JSON
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) createConversation(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -546,9 +561,9 @@ func (h *ChatHTTPHandler) createConversation(c *gin.Context) {
 // optional event metadata.
 //
 // Responses:
-//  - 200 with a list of ConversationSummary items
-//  - 401 if the caller has no session
-//  - 500 for repository/database failures
+//   - 200 with a list of ConversationSummary items
+//   - 401 if the caller has no session
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) listConversations(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -574,11 +589,11 @@ func (h *ChatHTTPHandler) listConversations(c *gin.Context) {
 //
 // Query params: `limit` (default 20), `offset` (default 0).
 // Responses:
-//  - 200 with a chronologically ordered message list
-//  - 401 if the caller has no session
-//  - 400 for invalid conversation id
-//  - 403 if the user is not a member of the conversation
-//  - 500 for repository/database failures
+//   - 200 with a chronologically ordered message list
+//   - 401 if the caller has no session
+//   - 400 for invalid conversation id
+//   - 403 if the user is not a member of the conversation
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) listMessages(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -650,12 +665,12 @@ func (h *ChatHTTPHandler) listMessages(c *gin.Context) {
 // user is already a member or a request is pending, a conflict is returned.
 //
 // Responses:
-//  - 201 with the created join request
-//  - 401 if the caller has no session
-//  - 400 for invalid event id
-//  - 404 if the event or its conversation is missing
-//  - 409 if a request already exists or the user is already a member
-//  - 500 for repository/database failures
+//   - 201 with the created join request
+//   - 401 if the caller has no session
+//   - 400 for invalid event id
+//   - 404 if the event or its conversation is missing
+//   - 409 if a request already exists or the user is already a member
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -673,7 +688,19 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
-	req, err := h.repo.CreateJoinRequest(ctx, eventID, claims.UserID)
+	var payload joinRequestBody
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	message := strings.TrimSpace(payload.Message)
+	if message == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "message is required"})
+		return
+	}
+
+	req, err := h.repo.CreateJoinRequest(ctx, eventID, claims.UserID, message)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrEventNotFound):
@@ -690,7 +717,92 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, joinRequestResponse{Request: *req})
+	user, err := h.repo.GetUserByID(ctx, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load requester"})
+		return
+	}
+
+	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "chat conversation missing for event"})
+		return
+	}
+
+	view := JoinRequestView{
+		ConversationJoinRequest: *req,
+		Requester: ConversationParticipant{
+			ID:   user.ID,
+			Name: user.Name,
+		},
+	}
+
+	h.hub.emitJoinRequestEvent(convo.ID, "created", view)
+
+	c.JSON(http.StatusCreated, joinRequestResponse{Request: view})
+}
+
+// listJoinRequests returns all pending join requests for the specified event.
+// Only the event host may view the pending queue.
+func (h *ChatHTTPHandler) listJoinRequests(c *gin.Context) {
+	claims, ok := sessionFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing session"})
+		return
+	}
+
+	eventIDParam := c.Param("id")
+	eventID, err := strconv.ParseInt(eventIDParam, 10, 64)
+	if err != nil || eventID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	event, err := h.repo.GetEventByID(ctx, eventID)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+
+	if event.UserID != claims.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the event host can view join requests"})
+		return
+	}
+
+	requests, err := h.repo.ListJoinRequests(ctx, eventID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list join requests"})
+		return
+	}
+
+	c.JSON(http.StatusOK, joinRequestListResponse{Requests: requests})
+}
+
+// listUserJoinRequests returns all pending join requests created by the current user.
+func (h *ChatHTTPHandler) listUserJoinRequests(c *gin.Context) {
+	claims, ok := sessionFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing session"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	requests, err := h.repo.ListJoinRequestsByUser(ctx, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list join requests"})
+		return
+	}
+
+	c.JSON(http.StatusOK, joinRequestListResponse{Requests: requests})
 }
 
 // approveJoin allows the event host to approve a user's pending join request.
@@ -698,13 +810,13 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 // notified so any active sockets for that user start receiving events.
 //
 // Responses:
-//  - 200 with the approved request and `conversationId`
-//  - 401 if the caller has no session
-//  - 400 for invalid path params
-//  - 403 if the caller is not the event host
-//  - 404 if the event or pending request is not found
-//  - 409 if the user is already a member
-//  - 500 for repository/database failures
+//   - 200 with the approved request and `conversationId`
+//   - 401 if the caller has no session
+//   - 400 for invalid path params
+//   - 403 if the caller is not the event host
+//   - 404 if the event or pending request is not found
+//   - 409 if the user is already a member
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -752,10 +864,20 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		return
 	}
 
+	view, err := h.buildJoinRequestView(ctx, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load requester"})
+		return
+	}
+
 	h.hub.NotifyMembership(convo.ID, userID, "added")
+	h.hub.emitJoinRequestEvent(convo.ID, "approved", view)
+	if err := h.postJoinAnnouncement(ctx, convo.ID, view); err != nil {
+		log.Printf("post join announcement failed: %v", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"request":        req,
+		"request":        view,
 		"conversationId": convo.ID,
 	})
 }
@@ -764,12 +886,12 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 // This does not alter conversation membership and simply records the denial.
 //
 // Responses:
-//  - 200 with the updated (denied) request
-//  - 401 if the caller has no session
-//  - 400 for invalid path params
-//  - 403 if the caller is not the event host
-//  - 404 if the event or pending request is not found
-//  - 500 for repository/database failures
+//   - 200 with the updated (denied) request
+//   - 401 if the caller has no session
+//   - 400 for invalid path params
+//   - 403 if the caller is not the event host
+//   - 404 if the event or pending request is not found
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -809,7 +931,18 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, joinRequestResponse{Request: *req})
+	view, err := h.buildJoinRequestView(ctx, req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load requester"})
+		return
+	}
+
+	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
+	if err == nil {
+		h.hub.emitJoinRequestEvent(convo.ID, "denied", view)
+	}
+
+	c.JSON(http.StatusOK, joinRequestResponse{Request: view})
 }
 
 // removeMember removes a user from an event's group conversation. Only the
@@ -817,12 +950,12 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 // hub is notified so live sockets stop receiving that conversation's events.
 //
 // Responses:
-//  - 204 on success
-//  - 401 if the caller has no session
-//  - 400 for invalid path params or trying to remove the host
-//  - 403 if not authorized to update membership
-//  - 404 if the event or target membership is not found
-//  - 500 for repository/database failures
+//   - 204 on success
+//   - 401 if the caller has no session
+//   - 400 for invalid path params or trying to remove the host
+//   - 403 if not authorized to update membership
+//   - 404 if the event or target membership is not found
+//   - 500 for repository/database failures
 func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -883,6 +1016,7 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
 // containsInt64 reports whether target is present in values. Small helper used
 // when constructing membership lists.
 func containsInt64(values []int64, target int64) bool {
@@ -892,4 +1026,83 @@ func containsInt64(values []int64, target int64) bool {
 		}
 	}
 	return false
+}
+
+func (h *ChatHub) emitChatMessage(msg *Message, tempID string) {
+	envelope := outboundMessage{
+		Type:   "message:new",
+		TempID: tempID,
+		Message: messagePayload{
+			ID:             msg.ID,
+			ConversationID: msg.ConversationID,
+			SenderID:       msg.SenderID,
+			Body:           msg.Body,
+			CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
+		},
+	}
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		log.Printf("marshal outbound failed: %v", err)
+		return
+	}
+	h.broadcast <- chatBroadcast{conversationID: msg.ConversationID, payload: payload}
+}
+
+func (h *ChatHub) emitJoinRequestEvent(conversationID int64, action string, view JoinRequestView) {
+	envelope := joinRequestEvent{
+		Type:           "conversation:join_request",
+		ConversationID: conversationID,
+		Action:         action,
+		Request:        mapJoinRequestPayload(view),
+	}
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		log.Printf("marshal join request event failed: %v", err)
+		return
+	}
+	h.broadcast <- chatBroadcast{conversationID: conversationID, payload: payload}
+}
+
+func mapJoinRequestPayload(view JoinRequestView) joinRequestPayload {
+	return joinRequestPayload{
+		ID:        view.ID,
+		EventID:   view.EventID,
+		UserID:    view.UserID,
+		Message:   view.Message,
+		Status:    view.Status,
+		CreatedAt: view.CreatedAt.Format(time.RFC3339Nano),
+		Requester: conversationParticipantPayload{
+			ID:   view.Requester.ID,
+			Name: view.Requester.Name,
+		},
+	}
+}
+
+func (h *ChatHTTPHandler) buildJoinRequestView(ctx context.Context, req *ConversationJoinRequest) (JoinRequestView, error) {
+	user, err := h.repo.GetUserByID(ctx, req.UserID)
+	if err != nil {
+		return JoinRequestView{}, err
+	}
+	return JoinRequestView{
+		ConversationJoinRequest: *req,
+		Requester: ConversationParticipant{
+			ID:   user.ID,
+			Name: user.Name,
+		},
+	}, nil
+}
+
+func (h *ChatHTTPHandler) postJoinAnnouncement(ctx context.Context, conversationID int64, view JoinRequestView) error {
+	msgBody := fmt.Sprintf("%s joined the chat", view.Requester.Name)
+	msg, err := h.repo.CreateMessage(ctx, CreateMessageParams{
+		ConversationID: conversationID,
+		SenderID:       view.UserID,
+		Body:           msgBody,
+		DeliveryStatus: "sent",
+	})
+	if err != nil {
+		return err
+	}
+	h.hub.emitChatMessage(msg, "")
+	return nil
 }

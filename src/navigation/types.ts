@@ -12,6 +12,11 @@ export type RootStackParamList = {
     eventId: string;
     origin?: 'Events' | 'MyEvents';
   };
+  JoinRequests: {
+    conversationId: number;
+    eventId: number;
+    title: string;
+  };
 };
 
 export type RootTabParamList = {

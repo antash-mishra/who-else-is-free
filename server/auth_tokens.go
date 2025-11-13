@@ -14,7 +14,7 @@ import (
 )
 
 // defaultSessionTTL controls how long issued chat tokens remain valid.
-const defaultSessionTTL = 12 * time.Hour
+const defaultSessionTTL = 24 * time.Hour
 
 var (
 	errMissingSecret  = errors.New("chat session secret is not configured")

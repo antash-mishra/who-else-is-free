@@ -2,6 +2,8 @@ package main
 
 import "time"
 
+const defaultCoverKey = "cover_01"
+
 type Event struct {
 	ID          int64     `json:"id"`
 	UserID      int64     `json:"user_id"`
@@ -13,6 +15,7 @@ type Event struct {
 	MinAge      int       `json:"min_age"`
 	MaxAge      int       `json:"max_age"`
 	DateLabel   string    `json:"date_label"`
+	CoverKey    string    `json:"cover_key"`
 	HostName    string    `json:"host_name"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -91,10 +94,16 @@ type ConversationJoinRequest struct {
 	ID        int64      `json:"id"`
 	EventID   int64      `json:"event_id"`
 	UserID    int64      `json:"user_id"`
+	Message   string     `json:"message"`
 	Status    string     `json:"status"`
 	CreatedAt time.Time  `json:"created_at"`
 	DecidedAt *time.Time `json:"decided_at,omitempty"`
 	DecidedBy *int64     `json:"decided_by,omitempty"`
+}
+
+type JoinRequestView struct {
+	ConversationJoinRequest
+	Requester ConversationParticipant `json:"requester"`
 }
 
 type CreateEventParams struct {
@@ -106,6 +115,7 @@ type CreateEventParams struct {
 	MinAge      int    `json:"min_age" binding:"required,gte=0"`
 	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
 	DateLabel   string `json:"date_label" binding:"required,oneof=Today Tmrw"`
+	CoverKey    string `json:"cover_key" binding:"omitempty,min=1"`
 	UserID      int64  `json:"user_id" binding:"required,gte=1"`
 }
 
@@ -118,4 +128,5 @@ type UpdateEventParams struct {
 	MinAge      int    `json:"min_age" binding:"required,gte=0"`
 	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
 	DateLabel   string `json:"date_label" binding:"required,oneof=Today Tmrw"`
+	CoverKey    *string `json:"cover_key" binding:"omitempty,min=1"`
 }
