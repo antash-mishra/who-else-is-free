@@ -132,6 +132,17 @@ const ChatThreadScreen = () => {
   };
 
   const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
+    const lowerBody = item.body.toLowerCase();
+    const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
+
+    if (isJoinSystemMessage) {
+      return (
+        <View style={styles.systemMessageRow}>
+          <Text style={styles.systemMessageText}>{item.body}</Text>
+        </View>
+      );
+    }
+
     const isOwn = item.senderId === user?.id;
     const participant = activeConversation.participants?.find(
       (p) => p.id === item.senderId,
@@ -390,6 +401,17 @@ const styles = StyleSheet.create({
   },
   messageMetaFailed: {
     color: colors.accent,
+  },
+  systemMessageRow: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  systemMessageText: {
+    fontSize: typography.caption,
+    color: colors.subText,
+    textAlign: "center",
   },
   composerContainer: {
     flexDirection: "row",

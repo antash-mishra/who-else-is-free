@@ -29,7 +29,7 @@ const resolveApiBaseUrl = () => {
   }
 
   return 'https://who-else-is-free-server.fly.dev';
-  // return 'http://192.168.1.76:8080';
+  // return 'http://192.168.1.12:8080';
 };
 
 export const API_BASE_URL = resolveApiBaseUrl();

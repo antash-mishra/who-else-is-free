@@ -17,7 +17,7 @@ npm install --legacy-peer-deps
 Start the backend:
 ```bash
 cd server
-go run main.go
+go run .
 ```
 
 Start the mobile app (in another terminal, from the project root):

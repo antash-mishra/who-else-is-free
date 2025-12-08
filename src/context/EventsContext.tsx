@@ -221,10 +221,7 @@ const mapApiEvent = (
   meta: EventMeta | undefined,
 ): UserEvent => {
   const groupType = event.group_type ?? "Single";
-  const normalizedLabel =
-    event.date_label === "Today" || event.date_label === "Tmrw"
-      ? event.date_label
-      : deriveDateLabelFromDate(event.event_date);
+  const normalizedLabel = deriveDateLabelFromDate(event.event_date);
 
   return {
     id: String(event.id),
@@ -359,7 +356,15 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        const message = `Request failed with status ${response.status}`;
+        let message = `Request failed with status ${response.status}`;
+        try {
+          const data = (await response.json()) as { error?: string };
+          if (data?.error) {
+            message = data.error;
+          }
+        } catch {
+          // ignore JSON parse errors and fall back to generic message
+        }
         throw new Error(message);
       }
 
