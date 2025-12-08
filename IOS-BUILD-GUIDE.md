@@ -9,11 +9,11 @@ You only need:
 - Basic command‑line knowledge
 - An Expo account (free) and **Apple Developer account** (for installing builds on device)
 
-There is **one path** below: EAS development build + dev server.
+There is **one path** below, split into clear **stages**.
 
 ---
 
-### 1. Install required tools (one time)
+### Stage 1 – Install tools (one time)
 
 1. Install **Node.js LTS** (18 or 20) from:  
    https://nodejs.org
@@ -32,7 +32,7 @@ eas --version
 
 ---
 
-### 2. Clone the project
+### Stage 2 – Get the code and install dependencies
 
 In a terminal:
 ```bash
@@ -41,76 +41,84 @@ git clone https://github.com/antash-mishra/who-else-is-free
 cd who-else-is-free
 ```
 
-You should see files like `app.json`, `eas.json`, `package.json`, and `src/`.
-
----
-
-### 3. Install JavaScript dependencies
-
-From inside the project folder:
+Then install JavaScript dependencies:
 ```bash
 npm install --legacy-peer-deps
 ```
 
 Wait for this to finish.  
-This installs all JS/TS dependencies used by the app.
+You should now see files like `app.json`, `eas.json`, `package.json`, and `src/`.
 
 ---
 
-### 4. Log in to Expo / EAS
+### Stage 3 – Create your own Expo project (avoid permission errors)
 
-Create a free Expo account at https://expo.dev if you don’t have one.
+The repo is linked to the original author’s Expo/EAS project, so we first re‑link it to **your** Expo account.
 
-Then in the terminal:
-```bash
-eas login
-```
+1. Create a free Expo account at https://expo.dev if you don’t have one.
+2. Log in from the terminal (still in the project folder):
+   ```bash
+   eas login
+   ```
+3. Open `app.json` in the project root.
+4. **Keep the existing name and slug**, for example:
+   ```json
+   "name": "who-else-is-free",
+   "slug": "who-else-is-free",
+   ```
+5. Remove the `extra.eas` block that links to the original project, e.g. delete this part:
+   ```json
+   "extra": {
+     "eas": {
+       "projectId": "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e"
+     }
+   }
+   ```
+6. Back in the terminal, run:
+   ```bash
+   eas init
+   ```
+   - Choose **Create a new project** when asked.
+   - This creates a new Expo/EAS project under **your** account and writes a new `projectId`.
 
-Follow the prompts to log in with your Expo account.
+From now on, `eas build` will belong to your Expo project and you won’t see the “no permission to build this project” error.
 
 ---
 
-### 5. Create an iOS development build (EAS)
+### Stage 4 – Build and install the iOS dev app
 
-This builds a **custom development client** you can install on your iPhone.
+Now build a **development client** you can install on your iPhone:
 
-Run:
 ```bash
 eas build --platform ios --profile development
 ```
 
 On the first run, EAS will:
-- Ask to **link** the project to your Expo account (say **Yes**).
-- Ask for your **Apple ID** to connect to the Apple Developer account.
-- Offer to **auto‑manage certificates and provisioning profiles** (recommended: say **Yes**).
-- Ask you to **register your iPhone** if it’s not already registered.
+- Ask to **link** the project to your Expo account (confirm).
+- Ask for your **Apple ID** for Apple Developer access.
+- Offer to **auto‑manage certificates and provisioning profiles** (recommended).
+- Ask you to **register your iPhone** if needed.
 
-Then the build will run in the cloud (a few minutes).
-
-When it finishes, you’ll see in the terminal:
+The build runs in the cloud (a few minutes).  
+When it finishes, you’ll see:
 - A link to the build page on expo.dev
 - A **QR code** and/or **install link** for the iOS build
 
----
-
-### 6. Install the build on your iPhone
-
 On your iPhone:
-
-1. Open the Camera app and scan the QR code from the EAS build page  
+1. Open the Camera app and scan the QR code from the build page  
    **or** open the install link in Safari.
-2. Follow the prompts to install the app (it’s a dev build of `who-else-is-free`).
+2. Follow the prompts to install the app.
 
 If iOS shows a “Developer not trusted” message:
 - Go to **Settings → General → VPN & Device Management**.
 - Tap the profile with your Apple ID.
 - Tap **Trust** and confirm.
 
-Now you should see the app icon on your home screen.
+You should now see the app icon on your home screen.
 
 ---
 
-### 7. Start the development server
+### Stage 5 – Start the dev server and connect from the app
 
 The development build expects a Metro bundler/dev server to be running.
 
@@ -125,18 +133,9 @@ This will:
 
 Make sure your iPhone and your computer are on the **same Wi‑Fi network**.
 
-In the Expo dev tools (browser):
-- If connection is flaky, switch **Connection** mode between **LAN** and **Tunnel** and try again.
-
----
-
-### 8. Open the app and connect to the dev server
-
 On your iPhone:
-
-1. Open the `who-else-is-free` development build you installed in step 6.
-2. You should see an option to scan a QR code or automatically connect to the dev server.
-3. Scan the QR code from the browser or terminal (from `npx expo start --dev-client`).
+1. Open the `who-else-is-free` dev app you installed in Stage 4.
+2. When prompted, scan the QR code from the browser or terminal.
 
 The app will load the JS bundle from your computer and run the latest code.
 
@@ -145,9 +144,11 @@ Now you can:
 - Create events
 - Exercise the app on a real iPhone
 
+If connection is flaky, in the Expo dev tools (browser) try switching the **Connection** mode between **LAN** and **Tunnel**.
+
 ---
 
-### 9. Next time (short version)
+### Stage 6 – Next time (short version)
 
 After the first setup, you usually only need:
 
@@ -158,7 +159,7 @@ npm install --legacy-peer-deps # only if deps changed
 npx expo start --dev-client    # start dev server
 ```
 
-If you changed native config and need a new dev build, run:
+If you change native config and need a new dev build:
 ```bash
 eas build --platform ios --profile development
 ```
