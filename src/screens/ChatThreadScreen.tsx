@@ -117,6 +117,19 @@ const ChatThreadScreen = () => {
 
   const isConversationHost = user?.id === activeConversation.createdBy;
   const pendingJoinRequestCount = isConversationHost ? joinRequests.length : 0;
+  const canViewJoinRequests =
+    isConversationHost && !!activeConversation.eventId;
+
+  const handleOpenJoinRequests = () => {
+    if (!activeConversation || !activeConversation.eventId || !isConversationHost) {
+      return;
+    }
+    navigation.navigate("JoinRequests", {
+      conversationId: activeConversation.id,
+      eventId: activeConversation.eventId,
+      title: activeConversation.displayName,
+    });
+  };
 
   const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
     const isOwn = item.senderId === user?.id;
@@ -201,12 +214,18 @@ const ChatThreadScreen = () => {
               <Text style={styles.threadSubtitle}>Connecting…</Text>
             ) : null}
           </View>
-          {pendingJoinRequestCount > 0 ? (
-            <View style={styles.joinBadge}>
-              <Text style={styles.joinBadgeText}>
-                {pendingJoinRequestCount > 99 ? "99+" : pendingJoinRequestCount}
-              </Text>
-            </View>
+          {canViewJoinRequests && pendingJoinRequestCount > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View join requests"
+              onPress={handleOpenJoinRequests}
+            >
+              <View style={styles.joinBadge}>
+                <Text style={styles.joinBadgeText}>
+                  {pendingJoinRequestCount > 99 ? "99+" : pendingJoinRequestCount}
+                </Text>
+              </View>
+            </Pressable>
           ) : null}
         </View>
       </View>
