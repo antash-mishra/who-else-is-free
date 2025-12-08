@@ -1,17 +1,22 @@
 import { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Edge, SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 
 import { colors, spacing } from "@theme/index";
 
 interface ScreenContainerProps {
   children: ReactNode;
+  edges?: Edge[];
 }
 
-const ScreenContainer = ({ children }: ScreenContainerProps) => {
+const ScreenContainer = ({
+  children,
+  edges,
+}: ScreenContainerProps) => {
+  const resolvedEdges: Edge[] = edges ?? ["top", "bottom"];
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={resolvedEdges}>
       <View style={styles.gradient}>
         <Svg width="100%" height="100%">
           <Defs>

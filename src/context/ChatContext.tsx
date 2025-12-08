@@ -32,6 +32,8 @@ type ConversationEventApi = {
   location: string;
   time: string;
   date_label: string;
+  event_date?: string;
+  group_type?: string;
 };
 
 export type ChatConversation = {
@@ -50,6 +52,8 @@ export type ChatConversation = {
     location: string;
     time: string;
     dateLabel: string;
+    eventDate?: string;
+    groupType?: string;
   };
 };
 
@@ -369,19 +373,20 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
               location: conversation.event.location,
               time: conversation.event.time,
               dateLabel: conversation.event.date_label,
+              eventDate: conversation.event.event_date,
+              groupType: conversation.event.group_type,
             }
           : undefined;
         const memberCount =
           conversation.member_ids?.length ?? participants.length;
+        const hasEvent = !!event;
         const isGroup =
-          memberCount > 2 ||
-          !!event ||
-          (!!conversation.title && memberCount > 1);
+          hasEvent || memberCount > 2 || (!!conversation.title && memberCount > 1);
         const fallbackName =
           conversation.title ?? participants[0]?.name ?? "Conversation";
-        const displayName = isGroup
-          ? (event?.title ?? conversation.title ?? fallbackName)
-          : (counterpart?.name ?? fallbackName);
+        const displayName = hasEvent
+          ? event?.title ?? fallbackName
+          : counterpart?.name ?? fallbackName;
         const lastMessage = conversation.last_message
           ? {
               id: String(conversation.last_message.id),

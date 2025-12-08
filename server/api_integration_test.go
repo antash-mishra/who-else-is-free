@@ -197,20 +197,24 @@ func TestAPIIntegration(t *testing.T) {
 		}
 	})
 
+	token := env.issueTokenForEmail(t, "ava@example.com")
+
 	t.Run("create event", func(t *testing.T) {
-	body := CreateEventParams{
-		Title:       "Test Event",
-		Location:    "Test Location",
-		Time:        "12:00",
-		Description: "Integration event",
-		Gender:      "Any",
-		MinAge:      18,
-		MaxAge:      50,
-		DateLabel:   "Today",
-		CoverKey:    defaultCoverKey,
-		UserID:      1,
-	}
-		resp := env.doRequest(t, http.MethodPost, "/api/events", "", body)
+		body := CreateEventParams{
+			Title:       "Test Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(24 * time.Hour).Format("2006-01-02"),
+			Description: "Integration event",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			DateLabel:   "Tmrw",
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+			UserID:      1,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", token, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
@@ -220,7 +224,47 @@ func TestAPIIntegration(t *testing.T) {
 		}
 	})
 
-	token := env.issueTokenForEmail(t, "ava@example.com")
+	t.Run("reject past date and time", func(t *testing.T) {
+		token := env.issueTokenForEmail(t, "ava@example.com")
+		yesterday := time.Now().Add(-24 * time.Hour).Format("2006-01-02")
+		body := CreateEventParams{
+			Title:     "Past Event",
+			Location:  "Nowhere",
+			Time:      "12:00",
+			EventDate: yesterday,
+			Gender:    "Any",
+			MinAge:    18,
+			MaxAge:    30,
+			GroupType: "Single",
+			CoverKey:  defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 for past date, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("reject past time today", func(t *testing.T) {
+		token := env.issueTokenForEmail(t, "ava@example.com")
+		now := time.Now()
+		today := now.Format("2006-01-02")
+		pastTime := now.Add(-1 * time.Hour).Format("15:04")
+		body := CreateEventParams{
+			Title:     "Past Time",
+			Location:  "Somewhere",
+			Time:      pastTime,
+			EventDate: today,
+			Gender:    "Any",
+			MinAge:    18,
+			MaxAge:    40,
+			GroupType: "Group",
+			CoverKey:  defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 for past time today, got %d", resp.StatusCode)
+		}
+	})
 
 	t.Run("list conversations", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/conversations", token, nil)

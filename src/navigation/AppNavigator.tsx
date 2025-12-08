@@ -10,12 +10,12 @@ import HomeScreen from "@screens/HomeScreen";
 import CreateEventScreen from "@screens/CreateEventScreen";
 import MyEventsScreen from "@screens/MyEventsScreen";
 import MessagesScreen from "@screens/MessagesScreen";
+import ChatThreadScreen from "@screens/ChatThreadScreen";
 import ProfileScreen from "@screens/ProfileScreen";
 import LoginScreen from "@screens/LoginScreen";
 import EventDetailsScreen from "@screens/EventDetailsScreen";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
-import { useChat } from "@context/ChatContext";
 import GoogleSignIn from "@screens/GoogleSignIn";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -188,7 +188,6 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
 };
 
 const MainTabs = () => {
-  const { activeConversationId } = useChat();
   const insets = useSafeAreaInsets();
   const tabBarBaseStyle = useMemo(
     () => ({
@@ -199,18 +198,30 @@ const MainTabs = () => {
     }),
     [insets.bottom],
   );
+  const hiddenTabBarStyle = useMemo(
+    () => ({
+      height: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
+      borderTopWidth: 0,
+      opacity: 0,
+      position: "absolute" as const,
+      pointerEvents: "none" as const,
+    }),
+    [],
+  );
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => {
-        const hideTabBar =
-          route.name === "Create" ||
-          (route.name === "Messages" && !!activeConversationId);
+        const hideTabBar = route.name === "Create";
 
         return {
           headerShown: false,
           tabBarShowLabel: false,
-          tabBarStyle: hideTabBar ? { display: "none" } : tabBarBaseStyle,
+          tabBarStyle: hideTabBar
+            ? hiddenTabBarStyle
+            : tabBarBaseStyle,
           tabBarBackground: hideTabBar
             ? undefined
             : () => (
@@ -283,7 +294,7 @@ const AppNavigator = () => {
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
-      background: colors.navigationBackground,
+      background: colors.background,
       primary: colors.primary,
       card: colors.background,
       text: colors.text,
@@ -307,6 +318,11 @@ const AppNavigator = () => {
         <Stack.Screen
           name="JoinRequests"
           component={JoinRequestsScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ChatThread"
+          component={ChatThreadScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

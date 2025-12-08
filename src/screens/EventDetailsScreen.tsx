@@ -148,7 +148,7 @@ const EventDetailsScreen = () => {
       return;
     }
     setActiveConversation(eventConversation.id);
-    navigation.navigate("Main", { screen: "Messages" } as any);
+    (navigation as any).navigate("ChatThread");
   };
 
   const handleSendInvite = async () => {
