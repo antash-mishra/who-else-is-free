@@ -32,6 +32,10 @@ func deriveDateLabel(eventDate string, now time.Time) string {
 // normalizeEventSchedule validates the provided date/time and returns a normalized
 // date string (YYYY-MM-DD), a derived date label (Today/Tmrw), and the minute
 // value of the time slot for downstream comparisons.
+// NOTE: We intentionally avoid enforcing "future-only" semantics here because
+// the mobile client already validates against the user's local timezone. Doing
+// the same on the server using its own timezone causes valid submissions to be
+// rejected when the app and server are in different timezones.
 func normalizeEventSchedule(eventDate string, timeLabel string, now time.Time) (string, string, int, error) {
 	dateStr := strings.TrimSpace(eventDate)
 	if dateStr == "" {
@@ -44,30 +48,14 @@ func normalizeEventSchedule(eventDate string, timeLabel string, now time.Time) (
 		return "", "", 0, fmt.Errorf("event_date must use YYYY-MM-DD")
 	}
 
-	today := startOfDay(now)
-	diff := int(date.Sub(today).Hours() / 24)
-	if diff < 0 {
-		return "", "", 0, fmt.Errorf("event_date cannot be in the past")
-	}
-	if diff > 1 {
-		return "", "", 0, fmt.Errorf("event_date must be today or tomorrow")
-	}
-
 	minutes, err := parseEventTimeLabel(timeLabel)
 	if err != nil {
 		return "", "", 0, err
 	}
-	if diff == 0 {
-		currentMinutes := now.Hour()*60 + now.Minute()
-		if minutes <= currentMinutes {
-			return "", "", 0, fmt.Errorf("event time must be in the future")
-		}
-	}
 
-	dateLabel := "Today"
-	if diff == 1 {
-		dateLabel = "Tmrw"
-	}
+	// Derive label relative to server "now", but do not reject based on
+	// past/future to avoid timezone mismatch issues.
+	dateLabel := deriveDateLabel(date.Format("2006-01-02"), now)
 
 	return date.Format("2006-01-02"), dateLabel, minutes, nil
 }
