@@ -17,12 +17,13 @@ export type RootStackParamList = {
     eventId: number;
     title: string;
   };
+  ChatThread: undefined;
 };
 
 export type RootTabParamList = {
   Events: undefined;
   MyEvents: undefined;
-  Messages: undefined;
   Create: { editEventId?: string };
   Profile: undefined;
+  Messages: undefined;
 };

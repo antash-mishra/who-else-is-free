@@ -23,12 +23,14 @@ export type DateLabel = "Today" | "Tmrw";
 
 export interface UserEvent extends EventItemProps {
   dateLabel: DateLabel;
+  eventDate: string;
   description?: string;
   ownerId: number;
   hostName: string;
   gender: string;
   minAge: number;
   maxAge: number;
+  groupType: "Single" | "Group";
   coverKey?: CoverKey | null;
 }
 
@@ -36,11 +38,13 @@ interface CreateEventInput {
   title: string;
   location: string;
   time: string;
+  eventDate: string;
+  dateLabel?: DateLabel;
   description?: string;
   gender: string;
   minAge: number;
   maxAge: number;
-  dateLabel: DateLabel;
+  groupType: "Single" | "Group";
   badgeLabel?: string;
   coverKey: CoverKey;
   userId: number;
@@ -51,11 +55,13 @@ interface UpdateEventInput {
   title: string;
   location: string;
   time: string;
+  eventDate: string;
+  dateLabel?: DateLabel;
   description?: string;
   gender: string;
   minAge: number;
   maxAge: number;
-  dateLabel: DateLabel;
+  groupType: "Single" | "Group";
   badgeLabel?: string | null;
   coverKey?: CoverKey | null;
 }
@@ -64,11 +70,13 @@ export interface GuestEventDraft {
   title: string;
   location: string;
   time: string;
+  eventDate: string;
+  dateLabel?: DateLabel;
   description?: string;
   gender: string;
   minAge: number;
   maxAge: number;
-  dateLabel: DateLabel;
+  groupType: "Single" | "Group";
   badgeLabel?: string;
   coverKey: CoverKey;
 }
@@ -101,6 +109,8 @@ type ApiEvent = {
   min_age: number;
   max_age: number;
   date_label: DateLabel;
+  event_date: string;
+  group_type?: "Single" | "Group";
   user_id: number;
   host_name: string;
   cover_key?: CoverKey | null;
@@ -115,26 +125,127 @@ const formatAudience = (gender: string, minAge: number, maxAge: number) => {
   return `${genderLabel}, ${minAge} to ${maxAge} years`;
 };
 
+const parseTimeToMinutes = (timeLabel: string) => {
+  const match = timeLabel.trim().toLowerCase().match(/(\d{1,2}):(\d{2})(am|pm)?/);
+  if (!match) {
+    return null;
+  }
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridiem = match[3];
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  if (meridiem) {
+    if (meridiem === "pm" && hours !== 12) {
+      hours += 12;
+    }
+    if (meridiem === "am" && hours === 12) {
+      hours = 0;
+    }
+  }
+
+  return hours * 60 + minutes;
+};
+
+const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
+  const [year, month, day] = eventDate.split("-").map((part) => Number(part));
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day) ||
+    month < 1 ||
+    day < 1
+  ) {
+    return "Today";
+  }
+  const parsed = new Date(year, month - 1, day);
+  const diffDays = Math.floor(
+    (parsed.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return diffDays === 1 ? "Tmrw" : "Today";
+};
+
+const isUpcomingEvent = (eventDate: string, timeLabel: string) => {
+  const [year, month, day] = eventDate.split("-").map((part) => Number(part));
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day) ||
+    month < 1 ||
+    day < 1
+  ) {
+    return false;
+  }
+  const parsedDate = new Date(year, month - 1, day);
+  const diffDays = Math.floor(
+    (parsedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (Number.isNaN(diffDays)) {
+    return false;
+  }
+  if (diffDays < 0 || diffDays > 1) {
+    return false;
+  }
+  if (diffDays === 0) {
+    const minutes = parseTimeToMinutes(timeLabel);
+    if (minutes == null) {
+      return false;
+    }
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    return minutes > currentMinutes;
+  }
+  return true;
+};
+
+const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
+  if (a.eventDate === b.eventDate) {
+    const timeA = parseTimeToMinutes(a.time) ?? 0;
+    const timeB = parseTimeToMinutes(b.time) ?? 0;
+    if (timeA === timeB) {
+      return 0;
+    }
+    return timeA - timeB;
+  }
+  return a.eventDate.localeCompare(b.eventDate);
+};
+
 const mapApiEvent = (
   event: ApiEvent,
   meta: EventMeta | undefined,
-): UserEvent => ({
-  id: String(event.id),
-  title: event.title,
-  location: event.location,
-  time: event.time,
-  audience: formatAudience(event.gender, event.min_age, event.max_age),
-  imageUri: resolveCoverUri(event.cover_key),
-  badgeLabel: meta?.badgeLabel,
-  dateLabel: event.date_label,
-  description: event.description,
-  ownerId: event.user_id,
-  hostName: event.host_name,
-  gender: event.gender,
-  minAge: event.min_age,
-  maxAge: event.max_age,
-  coverKey: event.cover_key ?? null,
-});
+): UserEvent => {
+  const groupType = event.group_type ?? "Single";
+  const normalizedLabel =
+    event.date_label === "Today" || event.date_label === "Tmrw"
+      ? event.date_label
+      : deriveDateLabelFromDate(event.event_date);
+
+  return {
+    id: String(event.id),
+    title: event.title,
+    location: event.location,
+    time: event.time,
+    audience: formatAudience(event.gender, event.min_age, event.max_age),
+    imageUri: resolveCoverUri(event.cover_key),
+    badgeLabel: groupType === "Group" ? "Group" : meta?.badgeLabel,
+    dateLabel: normalizedLabel,
+    eventDate: event.event_date,
+    description: event.description,
+    ownerId: event.user_id,
+    hostName: event.host_name,
+    gender: event.gender,
+    minAge: event.min_age,
+    maxAge: event.max_age,
+    groupType,
+    coverKey: event.cover_key ?? null,
+  };
+};
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const { user, token } = useAuth();
@@ -160,9 +271,10 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const payload: { data: ApiEvent[] } = await response.json();
-      const nextEvents = payload.data.map((event) =>
-        mapApiEvent(event, metaRef.current[String(event.id)]),
-      );
+      const nextEvents = payload.data
+        .map((event) => mapApiEvent(event, metaRef.current[String(event.id)]))
+        .filter((event) => isUpcomingEvent(event.eventDate, event.time))
+        .sort(sortEventsBySchedule);
       setEvents(nextEvents);
     } catch (err) {
       console.error("Failed to fetch events", err);
@@ -222,6 +334,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("You must be signed in to create an event.");
       }
 
+      const derivedLabel = deriveDateLabelFromDate(event.eventDate);
       const payload = {
         title: event.title,
         location: event.location,
@@ -230,8 +343,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
-        date_label: event.dateLabel,
-        user_id: event.userId,
+        event_date: event.eventDate,
+        date_label: event.dateLabel ?? derivedLabel,
+        group_type: event.groupType,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
       };
 
@@ -255,7 +369,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       metaRef.current = {
         ...metaRef.current,
         [eventId]: {
-          badgeLabel: event.badgeLabel,
+          badgeLabel: event.groupType === "Group" ? "Group" : event.badgeLabel,
         },
       };
 
@@ -264,11 +378,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         title: event.title,
         location: event.location,
         time: event.time,
+        event_date: event.eventDate,
         description: event.description,
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
-        date_label: event.dateLabel,
+        date_label: event.dateLabel ?? derivedLabel,
+        group_type: event.groupType,
         user_id: event.userId,
         host_name: event.hostName,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
@@ -276,10 +392,12 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       setEvents((prev) => {
         const withoutNew = prev.filter((item) => item.id !== eventId);
-        return [
-          mapApiEvent(optimisticEvent, metaRef.current[eventId]),
-          ...withoutNew,
-        ];
+        const optimistic = mapApiEvent(optimisticEvent, metaRef.current[eventId]);
+        const next = [optimistic, ...withoutNew].filter((item) =>
+          isUpcomingEvent(item.eventDate, item.time),
+        );
+        next.sort(sortEventsBySchedule);
+        return next;
       });
 
       await refreshEvents();
@@ -299,7 +417,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
-        date_label: event.dateLabel,
+        event_date: event.eventDate,
+        date_label: event.dateLabel ?? deriveDateLabelFromDate(event.eventDate),
+        group_type: event.groupType,
         ...(event.coverKey !== undefined ? { cover_key: event.coverKey } : {}),
       };
 
@@ -325,8 +445,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         ...metaRef.current,
         [eventId]: {
           ...metaRef.current[eventId],
-          ...(event.badgeLabel !== undefined
-            ? { badgeLabel: event.badgeLabel ?? undefined }
+          ...(event.groupType !== undefined
+            ? {
+                badgeLabel:
+                  event.groupType === "Group"
+                    ? "Group"
+                    : event.badgeLabel ?? undefined,
+              }
             : {}),
         },
       };
@@ -376,11 +501,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           title: pendingGuestEvent.title,
           location: pendingGuestEvent.location,
           time: pendingGuestEvent.time,
+          eventDate: pendingGuestEvent.eventDate,
+          dateLabel: pendingGuestEvent.dateLabel,
           description: pendingGuestEvent.description,
           gender: pendingGuestEvent.gender,
           minAge: pendingGuestEvent.minAge,
           maxAge: pendingGuestEvent.maxAge,
-          dateLabel: pendingGuestEvent.dateLabel,
+          groupType: pendingGuestEvent.groupType,
           badgeLabel: pendingGuestEvent.badgeLabel,
           coverKey: pendingGuestEvent.coverKey ?? DEFAULT_COVER_KEY,
           userId: user.id,

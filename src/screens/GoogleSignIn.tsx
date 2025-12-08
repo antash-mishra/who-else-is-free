@@ -15,7 +15,7 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import { colors, spacing, typography } from "@theme/index";
-import { GOOGLE_WEB_CLIENT_ID } from "@constants/google";
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
 
 const GoogleSignInScreen = () => {
   const navigation =
@@ -30,6 +30,7 @@ const GoogleSignInScreen = () => {
       try {
         await GoogleSignin.configure({
           webClientId: GOOGLE_WEB_CLIENT_ID,
+          iosClientId: GOOGLE_IOS_CLIENT_ID,
           offlineAccess: true,
         });
         setIsNativeAvailable(true);

@@ -23,10 +23,10 @@ func NewEventHandler(repo *EventRepository) *EventHandler {
 
 func (h *EventHandler) RegisterRoutes(group *gin.RouterGroup) {
 	group.GET("/events", h.listEvents)
-	group.POST("/events", h.createEvent)
 }
 
 func (h *EventHandler) RegisterProtectedRoutes(group *gin.RouterGroup) {
+	group.POST("/events", h.createEvent)
 	group.PUT("/events/:id", h.updateEvent)
 	group.DELETE("/events/:id", h.deleteEvent)
 }
@@ -51,11 +51,47 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 		return
 	}
 
+	claims, exists := sessionFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	payload.UserID = claims.UserID
+
 	if payload.MaxAge < payload.MinAge {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "max_age must be greater than or equal to min_age"})
 		return
 	}
 
+	now := time.Now()
+	clientLabel := strings.ToLower(strings.TrimSpace(payload.DateLabel))
+	if clientLabel == "today" || clientLabel == "tmrw" {
+		target := startOfDay(now)
+		if clientLabel == "tmrw" {
+			target = target.AddDate(0, 0, 1)
+		}
+		payload.EventDate = target.Format("2006-01-02")
+	}
+
+	eventDate, fallbackLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	payload.EventDate = eventDate
+	if clientLabel == "today" {
+		payload.DateLabel = "Today"
+	} else if clientLabel == "tmrw" {
+		payload.DateLabel = "Tmrw"
+	} else {
+		payload.DateLabel = fallbackLabel
+	}
+	payload.GroupType = strings.TrimSpace(payload.GroupType)
+	if payload.GroupType == "" {
+		payload.GroupType = "Single"
+	}
 	payload.CoverKey = normalizeCoverKey(payload.CoverKey)
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
@@ -99,6 +135,34 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return
+	}
+
+	now := time.Now()
+	clientLabel := strings.ToLower(strings.TrimSpace(payload.DateLabel))
+	if clientLabel == "today" || clientLabel == "tmrw" {
+		target := startOfDay(now)
+		if clientLabel == "tmrw" {
+			target = target.AddDate(0, 0, 1)
+		}
+		payload.EventDate = target.Format("2006-01-02")
+	}
+
+	eventDate, fallbackLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	payload.EventDate = eventDate
+	if clientLabel == "today" {
+		payload.DateLabel = "Today"
+	} else if clientLabel == "tmrw" {
+		payload.DateLabel = "Tmrw"
+	} else {
+		payload.DateLabel = fallbackLabel
+	}
+	payload.GroupType = strings.TrimSpace(payload.GroupType)
+	if payload.GroupType == "" {
+		payload.GroupType = "Single"
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)

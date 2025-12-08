@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.whoelseisfree.app"
+      "bundleIdentifier": "com.whoelseisfree.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.whoelseisfree.app",
@@ -23,7 +26,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +38,7 @@
         "@react-native-google-signin/google-signin",
         {
           "reservedClientId": "com.googleusercontent.apps.413387391765-afsjurjtalucke0mctj7na1bqibh0mpc",
-          "iosUrlScheme": "com.googleusercontent.apps.413387391765-afsjurjtalucke0mctj7na1bqibh0mpc"
+          "iosUrlScheme": "com.googleusercontent.apps.413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v"
         }
       ],
       "expo-secure-store"

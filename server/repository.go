@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 )
 
 var ErrInvalidCredentials = errors.New("invalid credentials")
@@ -40,11 +42,13 @@ CREATE TABLE IF NOT EXISTS events (
     title TEXT NOT NULL,
     location TEXT NOT NULL,
     time TEXT NOT NULL,
+    event_date TEXT NOT NULL,
     description TEXT,
     gender TEXT NOT NULL,
     min_age INTEGER NOT NULL,
     max_age INTEGER NOT NULL,
     date_label TEXT NOT NULL CHECK(date_label IN ('Today', 'Tmrw')),
+    group_type TEXT NOT NULL DEFAULT 'Single',
     cover_key TEXT NOT NULL DEFAULT 'cover_01',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -110,13 +114,13 @@ CREATE TABLE IF NOT EXISTS conversation_read_state (
 `
 
 const insertEvent = `
-INSERT INTO events (user_id, title, location, time, description, gender, min_age, max_age, date_label, cover_key)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
 const updateEvent = `
 UPDATE events
-SET title = ?, location = ?, time = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key)
+SET title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key)
 WHERE id = ? AND user_id = ?;
 `
 
@@ -194,14 +198,14 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.cover_key, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.created_at, u.name AS host_name
 FROM events e
 JOIN users u ON u.id = e.user_id
-ORDER BY e.created_at DESC;
+ORDER BY e.event_date ASC, e.time ASC, e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.cover_key, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.created_at, u.name AS host_name
 FROM events e
 JOIN users u ON u.id = e.user_id
 WHERE e.id = ?
@@ -337,6 +341,12 @@ func (r *EventRepository) Init(ctx context.Context) error {
 		return fmt.Errorf("create events table: %w", err)
 	}
 	if err := r.ensureEventCoverKeyColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEventDateColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEventGroupTypeColumn(ctx); err != nil {
 		return err
 	}
 	if _, err := r.db.ExecContext(ctx, createTableConversations); err != nil {
@@ -485,6 +495,86 @@ func (r *EventRepository) ensureEventCoverKeyColumn(ctx context.Context) error {
 	return nil
 }
 
+func (r *EventRepository) ensureEventDateColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(events);`)
+	if err != nil {
+		return fmt.Errorf("inspect events table: %w", err)
+	}
+	defer rows.Close()
+
+	hasEventDate := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan events schema: %w", err)
+		}
+		if name == "event_date" {
+			hasEventDate = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate events schema: %w", err)
+	}
+	if hasEventDate {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN event_date TEXT NOT NULL DEFAULT '1970-01-01';`); err != nil {
+		return fmt.Errorf("add event_date column: %w", err)
+	}
+	today := time.Now().Format("2006-01-02")
+	if _, err := r.db.ExecContext(ctx, `UPDATE events SET event_date = ? WHERE event_date = '1970-01-01';`, today); err != nil {
+		return fmt.Errorf("backfill event_date: %w", err)
+	}
+	return nil
+}
+
+func (r *EventRepository) ensureEventGroupTypeColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(events);`)
+	if err != nil {
+		return fmt.Errorf("inspect events table: %w", err)
+	}
+	defer rows.Close()
+
+	hasGroupType := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan events schema: %w", err)
+		}
+		if name == "group_type" {
+			hasGroupType = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate events schema: %w", err)
+	}
+	if hasGroupType {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN group_type TEXT NOT NULL DEFAULT 'Single';`); err != nil {
+		return fmt.Errorf("add group_type column: %w", err)
+	}
+	return nil
+}
+
 func (r *EventRepository) ensureJoinRequestMessageColumn(ctx context.Context) error {
 	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(conversation_join_requests);`)
 	if err != nil {
@@ -572,9 +662,16 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		return 0, fmt.Errorf("begin event tx: %w", err)
 	}
 
+	params.EventDate = strings.TrimSpace(params.EventDate)
 	coverKey := strings.TrimSpace(params.CoverKey)
 	if coverKey == "" {
 		coverKey = defaultCoverKey
+	}
+	if strings.TrimSpace(params.GroupType) == "" {
+		params.GroupType = "Single"
+	}
+	if strings.TrimSpace(params.DateLabel) == "" {
+		params.DateLabel = deriveDateLabel(params.EventDate, time.Now())
 	}
 
 	res, err := tx.ExecContext(ctx, insertEvent,
@@ -582,11 +679,13 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		params.Title,
 		params.Location,
 		params.Time,
+		params.EventDate,
 		params.Description,
 		params.Gender,
 		params.MinAge,
 		params.MaxAge,
 		params.DateLabel,
+		params.GroupType,
 		coverKey,
 	)
 	if err != nil {
@@ -633,6 +732,7 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		return fmt.Errorf("begin event update tx: %w", err)
 	}
 
+	params.EventDate = strings.TrimSpace(params.EventDate)
 	coverKeyParam := ""
 	if params.CoverKey != nil {
 		value := strings.TrimSpace(*params.CoverKey)
@@ -641,16 +741,24 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		}
 		coverKeyParam = value
 	}
+	if strings.TrimSpace(params.GroupType) == "" {
+		params.GroupType = "Single"
+	}
+	if strings.TrimSpace(params.DateLabel) == "" {
+		params.DateLabel = deriveDateLabel(params.EventDate, time.Now())
+	}
 
 	result, err := tx.ExecContext(ctx, updateEvent,
 		params.Title,
 		params.Location,
 		params.Time,
+		params.EventDate,
 		params.Description,
 		params.Gender,
 		params.MinAge,
 		params.MaxAge,
 		params.DateLabel,
+		params.GroupType,
 		coverKeyParam,
 		id,
 		userID,
@@ -713,11 +821,13 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.Title,
 			&evt.Location,
 			&evt.Time,
+			&evt.EventDate,
 			&evt.Description,
 			&evt.Gender,
 			&evt.MinAge,
 			&evt.MaxAge,
 			&evt.DateLabel,
+			&evt.GroupType,
 			&evt.CoverKey,
 			&evt.CreatedAt,
 			&evt.HostName,
@@ -731,7 +841,53 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 		return nil, fmt.Errorf("iterate events: %w", err)
 	}
 
-	return events, nil
+	now := time.Now()
+	loc := now.Location()
+	today := startOfDay(now)
+	tomorrow := today.AddDate(0, 0, 1)
+	currentMinutes := now.Hour()*60 + now.Minute()
+
+	filtered := make([]Event, 0, len(events))
+	for _, evt := range events {
+		eventDate, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(evt.EventDate), loc)
+		if err != nil {
+			continue
+		}
+		eventDay := startOfDay(eventDate)
+		if eventDay.Before(today) || eventDay.After(tomorrow) {
+			continue
+		}
+		if eventDay.Equal(today) {
+			minutes, err := parseEventTimeLabel(evt.Time)
+			if err != nil {
+				continue
+			}
+			if minutes <= currentMinutes {
+				continue
+			}
+		}
+
+		if eventDay.Equal(today) {
+			evt.DateLabel = "Today"
+		} else {
+			evt.DateLabel = "Tmrw"
+		}
+		filtered = append(filtered, evt)
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		if filtered[i].EventDate == filtered[j].EventDate {
+			leftMinutes, _ := parseEventTimeLabel(filtered[i].Time)
+			rightMinutes, _ := parseEventTimeLabel(filtered[j].Time)
+			if leftMinutes == rightMinutes {
+				return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+			}
+			return leftMinutes < rightMinutes
+		}
+		return filtered[i].EventDate < filtered[j].EventDate
+	})
+
+	return filtered, nil
 }
 
 // CreateConversation creates a new conversation and ensures the creator is a member.
@@ -846,6 +1002,10 @@ func (r *EventRepository) ListConversations(ctx context.Context, userID int64) (
 	for _, convo := range conversations {
 		summary, err := r.hydrateConversationSummary(ctx, convo, userID)
 		if err != nil {
+			if errors.Is(err, ErrEventNotFound) {
+				// Skip conversations whose backing event has been deleted.
+				continue
+			}
 			return nil, err
 		}
 		summaries = append(summaries, summary)
@@ -972,11 +1132,13 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.Title,
 		&evt.Location,
 		&evt.Time,
+		&evt.EventDate,
 		&evt.Description,
 		&evt.Gender,
 		&evt.MinAge,
 		&evt.MaxAge,
 		&evt.DateLabel,
+		&evt.GroupType,
 		&evt.CoverKey,
 		&evt.CreatedAt,
 		&evt.HostName,
@@ -985,6 +1147,17 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 			return nil, ErrEventNotFound
 		}
 		return nil, fmt.Errorf("fetch event: %w", err)
+	}
+
+	now := time.Now()
+	if parsedDate, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(evt.EventDate), now.Location()); err == nil {
+		today := startOfDay(now)
+		eventDay := startOfDay(parsedDate)
+		if eventDay.Equal(today) {
+			evt.DateLabel = "Today"
+		} else if eventDay.Equal(today.AddDate(0, 0, 1)) {
+			evt.DateLabel = "Tmrw"
+		}
 	}
 	return &evt, nil
 }
@@ -1284,17 +1457,19 @@ func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo 
 	if convo.EventID != nil {
 		evt, err := r.GetEventByID(ctx, *convo.EventID)
 		if err != nil {
-			if !errors.Is(err, ErrEventNotFound) {
-				return ConversationSummary{}, err
+			if errors.Is(err, ErrEventNotFound) {
+				return ConversationSummary{}, ErrEventNotFound
 			}
-		} else {
-			eventMeta = &ConversationEventMeta{
-				ID:        evt.ID,
-				Title:     evt.Title,
-				Location:  evt.Location,
-				Time:      evt.Time,
-				DateLabel: evt.DateLabel,
-			}
+			return ConversationSummary{}, err
+		}
+		eventMeta = &ConversationEventMeta{
+			ID:        evt.ID,
+			Title:     evt.Title,
+			Location:  evt.Location,
+			Time:      evt.Time,
+			EventDate: evt.EventDate,
+			DateLabel: evt.DateLabel,
+			GroupType: evt.GroupType,
 		}
 	}
 
@@ -1483,6 +1658,12 @@ func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
 	if err := r.ensureEventCoverKeyColumn(ctx); err != nil {
 		return err
 	}
+	if err := r.ensureEventDateColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEventGroupTypeColumn(ctx); err != nil {
+		return err
+	}
 	if err := r.ensureSeedEvents(ctx); err != nil {
 		return err
 	}
@@ -1550,7 +1731,31 @@ func (r *EventRepository) ensureSeedEvents(ctx context.Context) error {
 		return nil
 	}
 
+	today := startOfDay(time.Now())
+	todayStr := today.Format("2006-01-02")
+	tomorrowStr := today.AddDate(0, 0, 1).Format("2006-01-02")
+
 	for _, evt := range seedEvents {
+		if strings.TrimSpace(evt.EventDate) == "" {
+			if evt.DateLabel == "Tmrw" {
+				evt.EventDate = tomorrowStr
+			} else {
+				evt.EventDate = todayStr
+			}
+		}
+		if strings.TrimSpace(evt.GroupType) == "" {
+			evt.GroupType = "Single"
+		}
+		parsedDate, err := time.Parse("2006-01-02", evt.EventDate)
+		if err != nil {
+			parsedDate = today
+		}
+		dayDiff := int(startOfDay(parsedDate).Sub(today).Hours() / 24)
+		if dayDiff == 1 {
+			evt.DateLabel = "Tmrw"
+		} else {
+			evt.DateLabel = "Today"
+		}
 		if _, err := r.Create(ctx, evt); err != nil {
 			return fmt.Errorf("seed event %q: %w", evt.Title, err)
 		}
