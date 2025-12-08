@@ -65,29 +65,14 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 	}
 
 	now := time.Now()
-	clientLabel := strings.ToLower(strings.TrimSpace(payload.DateLabel))
-	if clientLabel == "today" || clientLabel == "tmrw" {
-		target := startOfDay(now)
-		if clientLabel == "tmrw" {
-			target = target.AddDate(0, 0, 1)
-		}
-		payload.EventDate = target.Format("2006-01-02")
-	}
-
-	eventDate, fallbackLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
+	eventDate, normalizedLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	payload.EventDate = eventDate
-	if clientLabel == "today" {
-		payload.DateLabel = "Today"
-	} else if clientLabel == "tmrw" {
-		payload.DateLabel = "Tmrw"
-	} else {
-		payload.DateLabel = fallbackLabel
-	}
+	payload.DateLabel = normalizedLabel
 	payload.GroupType = strings.TrimSpace(payload.GroupType)
 	if payload.GroupType == "" {
 		payload.GroupType = "Single"
@@ -138,28 +123,13 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	}
 
 	now := time.Now()
-	clientLabel := strings.ToLower(strings.TrimSpace(payload.DateLabel))
-	if clientLabel == "today" || clientLabel == "tmrw" {
-		target := startOfDay(now)
-		if clientLabel == "tmrw" {
-			target = target.AddDate(0, 0, 1)
-		}
-		payload.EventDate = target.Format("2006-01-02")
-	}
-
-	eventDate, fallbackLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
+	eventDate, normalizedLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	payload.EventDate = eventDate
-	if clientLabel == "today" {
-		payload.DateLabel = "Today"
-	} else if clientLabel == "tmrw" {
-		payload.DateLabel = "Tmrw"
-	} else {
-		payload.DateLabel = fallbackLabel
-	}
+	payload.DateLabel = normalizedLabel
 	payload.GroupType = strings.TrimSpace(payload.GroupType)
 	if payload.GroupType == "" {
 		payload.GroupType = "Single"

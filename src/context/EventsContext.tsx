@@ -170,7 +170,7 @@ const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
   return diffDays === 1 ? "Tmrw" : "Today";
 };
 
-const isUpcomingEvent = (eventDate: string, timeLabel: string) => {
+const isUpcomingEvent = (eventDate: string, _timeLabel: string) => {
   const [year, month, day] = eventDate.split("-").map((part) => Number(part));
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -193,14 +193,10 @@ const isUpcomingEvent = (eventDate: string, timeLabel: string) => {
   if (diffDays < 0 || diffDays > 1) {
     return false;
   }
-  if (diffDays === 0) {
-    const minutes = parseTimeToMinutes(timeLabel);
-    if (minutes == null) {
-      return false;
-    }
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    return minutes > currentMinutes;
-  }
+  // We intentionally avoid filtering by time-of-day here. The mobile app
+  // already guides users to choose a future time, and relying on the device
+  // timezone avoids discrepancies with the server clock. Treat any event for
+  // today or tomorrow as "upcoming" so it always appears in the list.
   return true;
 };
 

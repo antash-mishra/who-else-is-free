@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "transparent",
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
