@@ -83,6 +83,8 @@ const MessagesScreen = () => {
     }
     const eventDetails = eventMetaParts.join(" • ");
     const previewText = item.lastMessage?.body ?? "No messages yet";
+    const isJoinSystemMessage =
+      previewText.toLowerCase().endsWith("joined the chat");
 
     return (
       <Pressable
@@ -104,7 +106,10 @@ const MessagesScreen = () => {
               {eventDetails}
             </Text>
           ) : null}
-          <Text style={styles.conversationPreview} numberOfLines={1}>
+          <Text
+            style={styles.conversationPreview}
+            numberOfLines={isJoinSystemMessage ? 2 : 1}
+          >
             {previewText}
           </Text>
         </View>

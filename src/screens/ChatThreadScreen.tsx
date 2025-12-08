@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  Image,
 } from "react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -20,12 +21,15 @@ import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatMessage } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
+import { useEvents } from "@context/EventsContext";
+import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
 
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { events } = useEvents();
   const {
     activeConversationId,
     conversations,
@@ -50,12 +54,32 @@ const ChatThreadScreen = () => {
     [conversations, activeConversationId],
   );
 
+  const eventCoverUri = useMemo(() => {
+    if (!activeConversation?.eventId) {
+      return null;
+    }
+    const match = events.find(
+      (eventItem) => Number(eventItem.id) === activeConversation.eventId,
+    );
+    if (!match) {
+      return null;
+    }
+    return resolveCoverUri(match.coverKey ?? null);
+  }, [activeConversation, events]);
+
   const joinRequests = useMemo(() => {
     if (!activeConversationId) {
       return [];
     }
     return joinRequestsByConversation[activeConversationId] ?? [];
   }, [activeConversationId, joinRequestsByConversation]);
+
+  const isConversationHost = useMemo(() => {
+    if (!activeConversation || !user) {
+      return false;
+    }
+    return user.id === activeConversation.createdBy;
+  }, [activeConversation, user]);
 
   useEffect(() => {
     if (!activeConversationId) {
@@ -64,14 +88,18 @@ const ChatThreadScreen = () => {
   }, [activeConversationId, navigation]);
 
   useEffect(() => {
-    if (!activeConversation || !activeConversation.eventId) {
+    if (
+      !activeConversation ||
+      !activeConversation.eventId ||
+      !isConversationHost
+    ) {
       return;
     }
     refreshJoinRequests(
       activeConversation.id,
       activeConversation.eventId,
     ).catch(() => undefined);
-  }, [activeConversation, refreshJoinRequests]);
+  }, [activeConversation, isConversationHost, refreshJoinRequests]);
 
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
   useEffect(() => {
@@ -115,7 +143,7 @@ const ChatThreadScreen = () => {
     return null;
   }
 
-  const isConversationHost = user?.id === activeConversation.createdBy;
+  const isSendDisabled = draft.trim().length === 0;
   const pendingJoinRequestCount = isConversationHost ? joinRequests.length : 0;
   const canViewJoinRequests =
     isConversationHost && !!activeConversation.eventId;
@@ -220,7 +248,17 @@ const ChatThreadScreen = () => {
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>
           <View style={styles.threadHeaderCopy}>
-            <Text style={styles.threadTitle}>{activeConversation.displayName}</Text>
+            <View style={styles.threadTitleRow}>
+              {eventCoverUri ? (
+                <Image
+                  source={{ uri: eventCoverUri }}
+                  style={styles.threadTitleCover}
+                />
+              ) : null}
+              <Text style={styles.threadTitle} numberOfLines={1}>
+                {activeConversation.displayName}
+              </Text>
+            </View>
             {isConnecting ? (
               <Text style={styles.threadSubtitle}>Connecting…</Text>
             ) : null}
@@ -259,33 +297,35 @@ const ChatThreadScreen = () => {
           <View
             style={[
               styles.composerContainer,
-              { paddingBottom: insets.bottom },
+              { paddingBottom: Math.max(insets.bottom, spacing.xs) },
             ]}
           >
-            <TextInput
-              placeholder={`Message ${activeConversation.displayName}`}
-              value={draft}
-              onChangeText={setDraft}
-              style={styles.composerInput}
-              placeholderTextColor={colors.muted}
-            />
-            <Pressable
-              onPress={handleSend}
-              disabled={draft.trim().length === 0}
-              style={[
-                styles.sendButton,
-                draft.trim().length === 0 && styles.sendButtonDisabled,
-              ]}
-            >
-              <Text
+            <View style={styles.composerInputWrapper}>
+              <TextInput
+                placeholder={`Message ${activeConversation.displayName}`}
+                value={draft}
+                onChangeText={setDraft}
+                style={styles.composerInput}
+                placeholderTextColor={colors.muted}
+                multiline
+              />
+              <Pressable
+                onPress={handleSend}
+                disabled={isSendDisabled}
                 style={[
-                  styles.sendButtonText,
-                  draft.trim().length === 0 && styles.sendButtonTextDisabled,
+                  styles.sendIconButton,
+                  isSendDisabled && styles.sendIconButtonDisabled,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel="Send message"
               >
-                Send
-              </Text>
-            </Pressable>
+                <Feather
+                  name="send"
+                  size={18}
+                  color={isSendDisabled ? colors.muted : colors.buttonText}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -301,7 +341,7 @@ const styles = StyleSheet.create({
   threadHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   backButton: {
     width: 40,
@@ -309,12 +349,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   threadHeaderCopy: {
     flex: 1,
+  },
+  threadTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  threadTitleCover: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   threadTitle: {
     fontSize: typography.title,
@@ -347,7 +394,7 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     flexGrow: 1,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
   },
   messageRow: {
     marginBottom: spacing.sm,
@@ -414,38 +461,36 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   composerContainer: {
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+  },
+  composerInputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: "transparent",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   composerInput: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: spacing.xs,
+    paddingRight: spacing.sm,
     fontFamily: typography.fontFamilyRegular,
   },
-  sendButton: {
+  sendIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
   },
-  sendButtonDisabled: {
-    backgroundColor: colors.muted,
-  },
-  sendButtonText: {
-    color: colors.buttonText,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  sendButtonTextDisabled: {
-    color: colors.surface,
+  sendIconButtonDisabled: {
+    backgroundColor: "transparent",
   },
 });
 
