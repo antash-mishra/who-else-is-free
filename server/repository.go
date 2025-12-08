@@ -841,53 +841,29 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 		return nil, fmt.Errorf("iterate events: %w", err)
 	}
 
+	// Do not enforce "upcoming only" semantics on the backend, as that
+	// introduces timezone differences between the server and mobile clients.
+	// The mobile app already filters events to show only future items using
+	// the device's local timezone.
 	now := time.Now()
-	loc := now.Location()
-	today := startOfDay(now)
-	tomorrow := today.AddDate(0, 0, 1)
-	currentMinutes := now.Hour()*60 + now.Minute()
 
-	filtered := make([]Event, 0, len(events))
-	for _, evt := range events {
-		eventDate, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(evt.EventDate), loc)
-		if err != nil {
-			continue
-		}
-		eventDay := startOfDay(eventDate)
-		if eventDay.Before(today) || eventDay.After(tomorrow) {
-			continue
-		}
-		if eventDay.Equal(today) {
-			minutes, err := parseEventTimeLabel(evt.Time)
-			if err != nil {
-				continue
-			}
-			if minutes <= currentMinutes {
-				continue
-			}
-		}
-
-		if eventDay.Equal(today) {
-			evt.DateLabel = "Today"
-		} else {
-			evt.DateLabel = "Tmrw"
-		}
-		filtered = append(filtered, evt)
+	for i := range events {
+		events[i].DateLabel = deriveDateLabel(events[i].EventDate, now)
 	}
 
-	sort.Slice(filtered, func(i, j int) bool {
-		if filtered[i].EventDate == filtered[j].EventDate {
-			leftMinutes, _ := parseEventTimeLabel(filtered[i].Time)
-			rightMinutes, _ := parseEventTimeLabel(filtered[j].Time)
+	sort.Slice(events, func(i, j int) bool {
+		if events[i].EventDate == events[j].EventDate {
+			leftMinutes, _ := parseEventTimeLabel(events[i].Time)
+			rightMinutes, _ := parseEventTimeLabel(events[j].Time)
 			if leftMinutes == rightMinutes {
-				return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+				return events[i].CreatedAt.After(events[j].CreatedAt)
 			}
 			return leftMinutes < rightMinutes
 		}
-		return filtered[i].EventDate < filtered[j].EventDate
+		return events[i].EventDate < events[j].EventDate
 	})
 
-	return filtered, nil
+	return events, nil
 }
 
 // CreateConversation creates a new conversation and ensures the creator is a member.
