@@ -44,7 +44,6 @@ const ChatThreadScreen = () => {
   } = useChat();
 
   const [draft, setDraft] = useState("");
-  const [keyboardExtraOffset, setKeyboardExtraOffset] = useState(0);
 
   const activeConversation = useMemo(
     () =>
@@ -108,23 +107,6 @@ const ChatThreadScreen = () => {
     }
     messagesListRef.current.scrollToEnd({ animated: true });
   }, [activeConversationId, messages.length]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const showSub = Keyboard.addListener(showEvent, () => {
-      setKeyboardExtraOffset(insets.bottom);
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardExtraOffset(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const handleBack = () => {
     setActiveConversation(null);
@@ -244,6 +226,7 @@ const ChatThreadScreen = () => {
             accessibilityRole="button"
             onPress={handleBack}
             style={styles.backButton}
+            hitSlop={8}
           >
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>
@@ -281,7 +264,7 @@ const ChatThreadScreen = () => {
       <KeyboardAvoidingView
         style={styles.threadContainer}
         behavior={Platform.select({ ios: "padding", android: "height" })}
-        keyboardVerticalOffset={keyboardExtraOffset}
+        keyboardVerticalOffset={insets.top}
       >
         <View style={styles.threadBody}>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -341,14 +324,14 @@ const styles = StyleSheet.create({
   threadHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: spacing.sm,
   },
   threadHeaderCopy: {
     flex: 1,
@@ -377,6 +360,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 16,
+    marginLeft: spacing.sm,
   },
   joinBadgeText: {
     color: colors.buttonText,

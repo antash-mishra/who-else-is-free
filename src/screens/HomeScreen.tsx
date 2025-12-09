@@ -20,6 +20,7 @@ import ScreenContainer from "@components/ScreenContainer";
 import { colors, spacing, typography } from "@theme/index";
 import { DateLabel, UserEvent, useEvents } from "@context/EventsContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type EventSection = {
   title: string;
@@ -76,6 +77,7 @@ const HomeScreen = () => {
 
   const navigation = useNavigation<HomeScreenNavigation>();
   const { events: allEvents, isLoading, error, refreshEvents } = useEvents();
+  const insets = useSafeAreaInsets();
   const allEventSections = useMemo<EventSection[]>(
     () => buildSections(allEvents),
     [allEvents],
@@ -139,7 +141,10 @@ const HomeScreen = () => {
           renderSectionHeader={renderSectionHeader}
           stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: spacing.xl + insets.bottom },
+          ]}
           SectionSeparatorComponent={() => (
             <View style={styles.sectionSeparator} />
           )}
@@ -171,7 +176,6 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   listContent: {
-    paddingBottom: spacing.xl,
   },
   sectionHeader: {
     fontSize: typography.caption,

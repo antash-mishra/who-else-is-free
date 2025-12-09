@@ -1,7 +1,16 @@
-import React from "react";
-import { View, Text, Pressable, TextInput } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Dimensions,
+  Keyboard,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
-import { colors } from "@theme/index";
+import { colors, spacing } from "@theme/index";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EventActionConfirm, {
   EventActionConfirmProps,
 } from "./EventActionConfirm";
@@ -49,6 +58,40 @@ type EventActionOverlayProps = {
 
 const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   const { isVisible, onBackdropPress, type } = props;
+  const insets = useSafeAreaInsets();
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      const windowHeight = Dimensions.get("window").height;
+      const screenY = event.endCoordinates?.screenY ?? windowHeight;
+      const keyboardHeight = Math.max(0, windowHeight - screenY);
+      setKeyboardOffset(keyboardHeight);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOffset(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const promptPositionStyle = useMemo(
+    () => ({
+      bottom:
+        keyboardOffset > 0
+          ? keyboardOffset + spacing.lg
+          : Math.max(insets.bottom, spacing.lg) + spacing.md,
+    }),
+    [insets.bottom, keyboardOffset],
+  );
 
   if (!isVisible) return null;
 
@@ -66,7 +109,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const isDisabled = inviteSubmitting || inviteDisabled;
 
     return (
-      <View style={styles.prompt}>
+      <View style={[styles.prompt, promptPositionStyle]}>
         <TextInput
           accessibilityLabel="Message to the organizer"
           placeholder="Message to the organizer"
@@ -102,7 +145,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const { onEdit, onDelete } = props;
 
     return (
-      <View style={styles.prompt}>
+      <View style={[styles.prompt, promptPositionStyle]}>
         <Pressable
           accessibilityRole="button"
           onPress={onEdit}
@@ -169,7 +212,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     } = props;
 
     return (
-      <View style={styles.prompt}>
+      <View style={[styles.prompt, promptPositionStyle]}>
         <View style={styles.promptHeader}>
           <Text style={styles.promptTitle}>{title}</Text>
           {description ? (

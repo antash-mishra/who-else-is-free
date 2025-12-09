@@ -14,6 +14,7 @@ import { Feather } from "@expo/vector-icons";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import { RootStackParamList } from "@navigation/types";
+import ScreenContainer from "@components/ScreenContainer";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
 type JoinRequestsNavigation = NativeStackNavigationProp<
@@ -76,70 +77,72 @@ const JoinRequestsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Feather name="chevron-left" size={24} color={colors.text} />
-        </Pressable>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle}>{title}</Text>
-          <Text style={styles.headerSubtitle}>Join Requests</Text>
-        </View>
-      </View>
-      <FlatList
-        data={requests}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardName}>{item.requester.name}</Text>
-              <Text style={styles.cardTime}>
-                {new Date(item.createdAt).toLocaleString([], {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </View>
-            {item.message ? (
-              <Text style={styles.cardMessage}>{item.message}</Text>
-            ) : null}
-            <View style={styles.cardActions}>
-              <Pressable
-                onPress={() => handleAction(item.id, item.userId, "deny")}
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  pressed && styles.secondaryButtonPressed,
-                ]}
-              >
-                <Text style={styles.secondaryLabel}>Decline</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => handleAction(item.id, item.userId, "approve")}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.primaryButtonPressed,
-                ]}
-              >
-                <Text style={styles.primaryLabel}>Accept</Text>
-              </Pressable>
-            </View>
+    <ScreenContainer edges={["top", "bottom"]}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Feather name="chevron-left" size={24} color={colors.text} />
+          </Pressable>
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerTitle}>{title}</Text>
+            <Text style={styles.headerSubtitle}>Join Requests</Text>
           </View>
-        )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        contentContainerStyle={
-          requests.length === 0 ? styles.listEmptyContent : styles.listContent
-        }
-        ListEmptyComponent={listEmpty}
-        onRefresh={handleRefresh}
-        refreshing={isRefreshing}
-      />
-    </View>
+        </View>
+        <FlatList
+          data={requests}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardName}>{item.requester.name}</Text>
+                <Text style={styles.cardTime}>
+                  {new Date(item.createdAt).toLocaleString([], {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+              </View>
+              {item.message ? (
+                <Text style={styles.cardMessage}>{item.message}</Text>
+              ) : null}
+              <View style={styles.cardActions}>
+                <Pressable
+                  onPress={() => handleAction(item.id, item.userId, "deny")}
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.secondaryLabel}>Decline</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => handleAction(item.id, item.userId, "approve")}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    pressed && styles.primaryButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.primaryLabel}>Accept</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={
+            requests.length === 0 ? styles.listEmptyContent : styles.listContent
+          }
+          ListEmptyComponent={listEmpty}
+          onRefresh={handleRefresh}
+          refreshing={isRefreshing}
+        />
+      </View>
+    </ScreenContainer>
   );
 };
 

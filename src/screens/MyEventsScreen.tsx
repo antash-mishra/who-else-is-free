@@ -24,6 +24,7 @@ import { DateLabel, UserEvent, useEvents } from "@context/EventsContext";
 import { useChat } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
 import EmptyEventsIllustration from "@assets/create-event-empty-icon.svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type MyEventsNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "MyEvents">,
@@ -93,6 +94,7 @@ const MyEventsScreen = () => {
   const { user } = useAuth();
   const [selectedFilter, setSelectedFilter] = useState<EventFilter>("created");
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const joinedEventIds = useMemo(() => {
     if (!user) {
@@ -275,7 +277,10 @@ const MyEventsScreen = () => {
           renderSectionHeader={renderSectionHeader}
           stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: spacing.xl + insets.bottom },
+          ]}
           SectionSeparatorComponent={() => (
             <View style={styles.sectionSeparator} />
           )}
@@ -334,7 +339,6 @@ const styles = StyleSheet.create({
     color: colors.tabActive,
   },
   listContent: {
-    paddingBottom: spacing.xl,
   },
   sectionHeader: {
     fontSize: typography.caption,

@@ -16,7 +16,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
-    bottom: spacing.xl + spacing.md,
     backgroundColor: colors.background,
     borderRadius: 24,
     paddingHorizontal: spacing.md,

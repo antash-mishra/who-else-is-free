@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
-    lineHeight: 14,
+    lineHeight: 20,
     letterSpacing: typography.letterSpacing
   },
   description: {
