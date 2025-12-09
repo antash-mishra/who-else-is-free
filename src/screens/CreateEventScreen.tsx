@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     FlatList,
     Image,
@@ -11,6 +11,7 @@ import {
     Text,
     TextInput,
     View,
+    useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -202,6 +203,20 @@ const CreateEventScreen = () => {
         useEvents();
     const { user } = useAuth();
     const insets = useSafeAreaInsets();
+    const scrollViewRef = useRef<KeyboardAwareScrollView>(null);
+
+    // Responsive scaling to fit content on screen
+    const { height: windowHeight } = useWindowDimensions();
+    // Available height = window - top inset - bottom inset - tab bar(~56)
+    const availableHeight = windowHeight - insets.top - insets.bottom - 56;
+    // Fixed content: header(50) + field cards(~320) + footer(60) + padding(16) = ~446px
+    const fixedContentHeight = 446;
+    // Remaining space for cover and gaps
+    const remainingHeight = Math.max(availableHeight - fixedContentHeight, 120);
+    // Allocate 70% to cover, 30% to gaps (7 gaps)
+    const coverHeight = Math.max(remainingHeight * 0.70, 100);
+    const totalGapSpace = remainingHeight * 0.30;
+    const responsiveGap = Math.max(Math.floor(totalGapSpace / 7), spacing.xs);
 
     const editEventId = route.params?.editEventId;
     const editEvent = editEventId
@@ -416,12 +431,22 @@ const CreateEventScreen = () => {
         () => [
             styles.content,
             {
-                paddingBottom: spacing.xl + Math.max(insets.bottom, spacing.lg),
+                paddingBottom: spacing.sm,
                 flexGrow: 1,
+                gap: responsiveGap,
             },
         ],
-        [insets.bottom],
+        [responsiveGap],
     );
+
+    // Dynamic cover card style - always use fixed height for consistency
+    const coverCardStyle = useMemo(
+        () => [styles.coverCard, { height: coverHeight }],
+        [coverHeight],
+    );
+
+    // Use standard field card style
+    const fieldCardStyle = styles.fieldCard;
 
     const nextGroupType = useMemo(() => {
         const values = [...groupOptions];
@@ -624,20 +649,200 @@ const CreateEventScreen = () => {
                 style={StyleSheet.absoluteFillObject}
             />
             <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={styles.overlay}
-                    keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
-                >
-                    <View style={styles.contentWrapper}>
+                {Platform.OS === "ios" ? (
+                    <KeyboardAvoidingView
+                        behavior="padding"
+                        style={styles.overlay}
+                        keyboardVerticalOffset={insets.top}
+                    >
+                        <View style={styles.contentWrapper}>
+                            <KeyboardAwareScrollView
+                                ref={scrollViewRef}
+                                style={styles.formScroll}
+                                contentContainerStyle={contentContainerStyle}
+                                showsVerticalScrollIndicator={false}
+                                keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode="interactive"
+                                enableOnAndroid={true}
+                                enableAutomaticScroll={true}
+                                extraScrollHeight={spacing.xl * 2}
+                            >
+                            <View style={styles.headerRow}>
+                                <Text style={styles.pageTitle}>Create Event</Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={() => navigation.goBack()}
+                                    style={styles.dismissButton}
+                                >
+                                    <Feather
+                                        name="chevron-down"
+                                        size={24}
+                                        color={colors.createTextPrimary}
+                                    />
+                                </Pressable>
+                            </View>
+
+                            <Pressable
+                                style={coverCardStyle}
+                                onPress={() => setCoverPickerVisible(true)}
+                                accessibilityRole="button"
+                            >
+                                <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
+                                <View style={styles.coverChip}>
+                                    <Feather
+                                        name="image"
+                                        size={16}
+                                        color={colors.createChipActiveText}
+                                    />
+                                    <Text style={styles.coverChipText}>{selectedCoverLabel}</Text>
+                                </View>
+                            </Pressable>
+
+                            <View style={fieldCardStyle}>
+                                <TextInput
+                                    placeholder="Event Name"
+                                    value={eventName}
+                                    onChangeText={setEventName}
+                                    placeholderTextColor={colors.createTextMuted}
+                                    style={styles.textInput}
+                                />
+                                <TextInput
+                                    placeholder="Description"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                    placeholderTextColor={colors.createTextMuted}
+                                    style={[styles.textInput]}
+                                    multiline
+                                    numberOfLines={2}
+                                    textAlignVertical="top"
+                                />
+                            </View>
+
+                            <View style={fieldCardStyle}>
+                                <Pressable
+                                    style={styles.fieldRow}
+                                    onPress={() => setGroupType((current) => nextGroupType(current))}
+                                >
+                                    <Text style={styles.fieldLabel}>Group Type</Text>
+                                    <View style={styles.fieldValuePill}>
+                                        <Text style={styles.fieldValueText}>{groupType}</Text>
+                                    </View>
+                                </Pressable>
+                            </View>
+
+                            <View style={fieldCardStyle}>
+                                <Pressable
+                                    style={styles.fieldRow}
+                                    onPress={() => setGender((current) => nextGender(current))}
+                                >
+                                    <Text style={styles.fieldLabel}>Gender</Text>
+                                    <View style={styles.fieldValuePill}>
+                                        <Text style={styles.fieldValueText}>{gender}</Text>
+                                    </View>
+                                </Pressable>
+
+                                <Pressable
+                                    style={styles.fieldRow}
+                                    onPress={() => setAgePickerVisible(true)}
+                                >
+                                    <Text style={styles.fieldLabel}>Age</Text>
+                                    <View style={styles.fieldValuePill}>
+                                        <Text style={styles.fieldValueText}>{ageLabel}</Text>
+                                    </View>
+                                </Pressable>
+                            </View>
+
+                            <View style={fieldCardStyle}>
+                                <View style={[styles.fieldRow, styles.dateRow]}>
+                                    <Text style={styles.fieldLabel}>Date & Time</Text>
+                                    <View style={styles.dateTimeContainer}>
+                                        <Pressable
+                                            style={styles.fieldValuePill}
+                                            onPress={toggleDateChoice}
+                                        >
+                                            <Text style={styles.fieldValueText}>{dateLabel}</Text>
+                                        </Pressable>
+                                        <View style={styles.timeInlineContainer}>
+                                            <TextInput
+                                                placeholder="HH"
+                                                value={hourInput}
+                                                onChangeText={handleHourChange}
+                                                onFocus={() => setIsHourEditing(true)}
+                                                onBlur={handleHourBlur}
+                                                placeholderTextColor={colors.createTextMuted}
+                                                style={styles.timeInputInline}
+                                                maxLength={2}
+                                                keyboardType="number-pad"
+                                            />
+                                            <Text style={styles.timeSeparatorInline}>:</Text>
+                                            <TextInput
+                                                placeholder="MM"
+                                                value={minuteInput}
+                                                onChangeText={handleMinuteChange}
+                                                onFocus={() => setIsMinuteEditing(true)}
+                                                onBlur={handleMinuteBlur}
+                                                placeholderTextColor={colors.createTextMuted}
+                                                style={styles.timeInputInline}
+                                                maxLength={2}
+                                                keyboardType="number-pad"
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+
+                            <View style={fieldCardStyle}>
+                                <View style={[styles.fieldRow, styles.locationRow]}>
+                                    <Text style={styles.fieldLabel}>Location</Text>
+                                    <TextInput
+                                        placeholder="Search..."
+                                        value={location}
+                                        onChangeText={setLocation}
+                                        placeholderTextColor={colors.createTextMuted}
+                                        style={[
+                                            styles.textInput,
+                                            styles.compactInput,
+                                            styles.locationInput,
+                                        ]}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.footer}>
+                                {submitError ? (
+                                    <Text style={styles.errorText}>{submitError}</Text>
+                                ) : null}
+
+                                <Pressable
+                                    style={[
+                                        styles.primaryButton,
+                                        isSubmitting && styles.primaryButtonDisabled,
+                                    ]}
+                                    onPress={handlePrimaryAction}
+                                    disabled={isSubmitting}
+                                    accessibilityRole="button"
+                                >
+                                    <Text style={styles.primaryButtonText}>
+                                        {primaryButtonLabel}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </KeyboardAwareScrollView>
+                    </View>
+                </KeyboardAvoidingView>
+                ) : (
+                    <View style={[styles.overlay, styles.contentWrapper]}>
                         <KeyboardAwareScrollView
+                            ref={scrollViewRef}
                             style={styles.formScroll}
                             contentContainerStyle={contentContainerStyle}
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode="interactive"
-                            enableOnAndroid
-                            extraScrollHeight={spacing.xl * 2}
+                            keyboardDismissMode="on-drag"
+                            enableOnAndroid={true}
+                            enableAutomaticScroll={true}
+                            extraScrollHeight={150}
+                            enableResetScrollToCoords={false}
                         >
                             <View style={styles.headerRow}>
                                 <Text style={styles.pageTitle}>Create Event</Text>
@@ -654,154 +859,154 @@ const CreateEventScreen = () => {
                                 </Pressable>
                             </View>
 
-                        <Pressable
-                            style={styles.coverCard}
-                            onPress={() => setCoverPickerVisible(true)}
-                            accessibilityRole="button"
-                        >
-                            <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
-                            <View style={styles.coverChip}>
-                                <Feather
-                                    name="image"
-                                    size={16}
-                                    color={colors.createChipActiveText}
+                            <Pressable
+                                style={coverCardStyle}
+                                onPress={() => setCoverPickerVisible(true)}
+                                accessibilityRole="button"
+                            >
+                                <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
+                                <View style={styles.coverChip}>
+                                    <Feather
+                                        name="image"
+                                        size={16}
+                                        color={colors.createChipActiveText}
+                                    />
+                                    <Text style={styles.coverChipText}>{selectedCoverLabel}</Text>
+                                </View>
+                            </Pressable>
+
+                            <View style={fieldCardStyle}>
+                                <TextInput
+                                    placeholder="Event Name"
+                                    value={eventName}
+                                    onChangeText={setEventName}
+                                    placeholderTextColor={colors.createTextMuted}
+                                    style={styles.textInput}
                                 />
-                                <Text style={styles.coverChipText}>{selectedCoverLabel}</Text>
+                                <TextInput
+                                    placeholder="Description"
+                                    value={description}
+                                    onChangeText={setDescription}
+                                    placeholderTextColor={colors.createTextMuted}
+                                    style={[styles.textInput]}
+                                    multiline
+                                    numberOfLines={2}
+                                    textAlignVertical="top"
+                                />
                             </View>
-                        </Pressable>
 
-                        <View style={styles.fieldCard}>
-                            <TextInput
-                                placeholder="Event Name"
-                                value={eventName}
-                                onChangeText={setEventName}
-                                placeholderTextColor={colors.createTextMuted}
-                                style={styles.textInput}
-                            />
-                            <TextInput
-                                placeholder="Description"
-                                value={description}
-                                onChangeText={setDescription}
-                                placeholderTextColor={colors.createTextMuted}
-                                style={[styles.textInput]}
-                                multiline
-                                numberOfLines={2}
-                                textAlignVertical="top"
-                            />
-                        </View>
+                            <View style={fieldCardStyle}>
+                                <Pressable
+                                    style={styles.fieldRow}
+                                    onPress={() => setGroupType((current) => nextGroupType(current))}
+                                >
+                                    <Text style={styles.fieldLabel}>Group Type</Text>
+                                    <View style={styles.fieldValuePill}>
+                                        <Text style={styles.fieldValueText}>{groupType}</Text>
+                                    </View>
+                                </Pressable>
+                            </View>
 
-                        <View style={styles.fieldCard}>
-                            <Pressable
-                                style={styles.fieldRow}
-                                onPress={() => setGroupType((current) => nextGroupType(current))}
-                            >
-                                <Text style={styles.fieldLabel}>Group Type</Text>
-                                <View style={styles.fieldValuePill}>
-                                    <Text style={styles.fieldValueText}>{groupType}</Text>
-                                </View>
-                            </Pressable>
-                        </View>
+                            <View style={fieldCardStyle}>
+                                <Pressable
+                                    style={styles.fieldRow}
+                                    onPress={() => setGender((current) => nextGender(current))}
+                                >
+                                    <Text style={styles.fieldLabel}>Gender</Text>
+                                    <View style={styles.fieldValuePill}>
+                                        <Text style={styles.fieldValueText}>{gender}</Text>
+                                    </View>
+                                </Pressable>
 
-                        <View style={styles.fieldCard}>
-                            <Pressable
-                                style={styles.fieldRow}
-                                onPress={() => setGender((current) => nextGender(current))}
-                            >
-                                <Text style={styles.fieldLabel}>Gender</Text>
-                                <View style={styles.fieldValuePill}>
-                                    <Text style={styles.fieldValueText}>{gender}</Text>
-                                </View>
-                            </Pressable>
+                                <Pressable
+                                    style={styles.fieldRow}
+                                    onPress={() => setAgePickerVisible(true)}
+                                >
+                                    <Text style={styles.fieldLabel}>Age</Text>
+                                    <View style={styles.fieldValuePill}>
+                                        <Text style={styles.fieldValueText}>{ageLabel}</Text>
+                                    </View>
+                                </Pressable>
+                            </View>
 
-                            <Pressable
-                                style={styles.fieldRow}
-                                onPress={() => setAgePickerVisible(true)}
-                            >
-                                <Text style={styles.fieldLabel}>Age</Text>
-                                <View style={styles.fieldValuePill}>
-                                    <Text style={styles.fieldValueText}>{ageLabel}</Text>
-                                </View>
-                            </Pressable>
-                        </View>
-
-                        <View style={styles.fieldCard}>
-                            <View style={[styles.fieldRow, styles.dateRow]}>
-                                <Text style={styles.fieldLabel}>Date & Time</Text>
-                                <View style={styles.dateTimeContainer}>
-                                    <Pressable
-                                        style={styles.fieldValuePill}
-                                        onPress={toggleDateChoice}
-                                    >
-                                        <Text style={styles.fieldValueText}>{dateLabel}</Text>
-                                    </Pressable>
-                                    <View style={styles.timeInlineContainer}>
-                                        <TextInput
-                                            placeholder="HH"
-                                            value={hourInput}
-                                            onChangeText={handleHourChange}
-                                            onFocus={() => setIsHourEditing(true)}
-                                            onBlur={handleHourBlur}
-                                            placeholderTextColor={colors.createTextMuted}
-                                            style={styles.timeInputInline}
-                                            maxLength={2}
-                                            keyboardType="number-pad"
-                                        />
-                                        <Text style={styles.timeSeparatorInline}>:</Text>
-                                        <TextInput
-                                            placeholder="MM"
-                                            value={minuteInput}
-                                            onChangeText={handleMinuteChange}
-                                            onFocus={() => setIsMinuteEditing(true)}
-                                            onBlur={handleMinuteBlur}
-                                            placeholderTextColor={colors.createTextMuted}
-                                            style={styles.timeInputInline}
-                                            maxLength={2}
-                                            keyboardType="number-pad"
-                                        />
+                            <View style={fieldCardStyle}>
+                                <View style={[styles.fieldRow, styles.dateRow]}>
+                                    <Text style={styles.fieldLabel}>Date & Time</Text>
+                                    <View style={styles.dateTimeContainer}>
+                                        <Pressable
+                                            style={styles.fieldValuePill}
+                                            onPress={toggleDateChoice}
+                                        >
+                                            <Text style={styles.fieldValueText}>{dateLabel}</Text>
+                                        </Pressable>
+                                        <View style={styles.timeInlineContainer}>
+                                            <TextInput
+                                                placeholder="HH"
+                                                value={hourInput}
+                                                onChangeText={handleHourChange}
+                                                onFocus={() => setIsHourEditing(true)}
+                                                onBlur={handleHourBlur}
+                                                placeholderTextColor={colors.createTextMuted}
+                                                style={styles.timeInputInline}
+                                                maxLength={2}
+                                                keyboardType="number-pad"
+                                            />
+                                            <Text style={styles.timeSeparatorInline}>:</Text>
+                                            <TextInput
+                                                placeholder="MM"
+                                                value={minuteInput}
+                                                onChangeText={handleMinuteChange}
+                                                onFocus={() => setIsMinuteEditing(true)}
+                                                onBlur={handleMinuteBlur}
+                                                placeholderTextColor={colors.createTextMuted}
+                                                style={styles.timeInputInline}
+                                                maxLength={2}
+                                                keyboardType="number-pad"
+                                            />
+                                        </View>
                                     </View>
                                 </View>
                             </View>
-                        </View>
 
-                        <View style={styles.fieldCard}>
-                            <View style={[styles.fieldRow, styles.locationRow]}>
-                                <Text style={styles.fieldLabel}>Location</Text>
-                                <TextInput
-                                    placeholder="Search..."
-                                    value={location}
-                                    onChangeText={setLocation}
-                                    placeholderTextColor={colors.createTextMuted}
-                                    style={[
-                                        styles.textInput,
-                                        styles.compactInput,
-                                        styles.locationInput,
-                                    ]}
-                                />
+                            <View style={fieldCardStyle}>
+                                <View style={[styles.fieldRow, styles.locationRow]}>
+                                    <Text style={styles.fieldLabel}>Location</Text>
+                                    <TextInput
+                                        placeholder="Search..."
+                                        value={location}
+                                        onChangeText={setLocation}
+                                        placeholderTextColor={colors.createTextMuted}
+                                        style={[
+                                            styles.textInput,
+                                            styles.compactInput,
+                                            styles.locationInput,
+                                        ]}
+                                    />
+                                </View>
                             </View>
-                        </View>
 
-                        <View style={styles.footer}>
-                            {submitError ? (
-                                <Text style={styles.errorText}>{submitError}</Text>
-                            ) : null}
+                            <View style={styles.footer}>
+                                {submitError ? (
+                                    <Text style={styles.errorText}>{submitError}</Text>
+                                ) : null}
 
-                            <Pressable
-                                style={[
-                                    styles.primaryButton,
-                                    isSubmitting && styles.primaryButtonDisabled,
-                                ]}
-                                onPress={handlePrimaryAction}
-                                disabled={isSubmitting}
-                                accessibilityRole="button"
-                            >
-                                <Text style={styles.primaryButtonText}>
-                                    {primaryButtonLabel}
-                                </Text>
-                            </Pressable>
-                        </View>
-                    </KeyboardAwareScrollView>
-                </View>
-            </KeyboardAvoidingView>
+                                <Pressable
+                                    style={[
+                                        styles.primaryButton,
+                                        isSubmitting && styles.primaryButtonDisabled,
+                                    ]}
+                                    onPress={handlePrimaryAction}
+                                    disabled={isSubmitting}
+                                    accessibilityRole="button"
+                                >
+                                    <Text style={styles.primaryButtonText}>
+                                        {primaryButtonLabel}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        </KeyboardAwareScrollView>
+                    </View>
+                )}
             </SafeAreaView>
 
             <Modal visible={isCoverPickerVisible} transparent animationType="fade">
@@ -894,7 +1099,6 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingBottom: spacing.lg,
-        gap: spacing.md,
     },
     footer: {
         paddingTop: spacing.md,
@@ -904,7 +1108,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingTop: spacing.lg,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
     },
     pageTitle: {
         fontSize: typography.header,
@@ -923,7 +1128,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.createCardBorder,
         width: "100%",
-        aspectRatio: 16 / 10,
         justifyContent: "flex-end",
         alignItems: "center",
         position: "relative",
