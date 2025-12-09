@@ -1,13 +1,16 @@
 import { Feather } from "@expo/vector-icons";
 import {
+  Dimensions,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
+  LayoutAnimation,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  UIManager,
   View,
   Image,
 } from "react-native";
@@ -24,6 +27,8 @@ import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
+
+const HEADER_HEIGHT = 56;
 
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -44,6 +49,45 @@ const ChatThreadScreen = () => {
   } = useChat();
 
   const [draft, setDraft] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Enable LayoutAnimation on Android
+  useEffect(() => {
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+
+  // Keyboard handling for Android edge-to-edge mode
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      // Use screenY calculation for more accurate height (like EventActionOverlay)
+      const windowHeight = Dimensions.get("window").height;
+      const screenY = e.endCoordinates?.screenY ?? windowHeight;
+      const calculatedHeight = Math.max(0, windowHeight - screenY);
+
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardHeight(calculatedHeight);
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setKeyboardHeight(0);
+    });
+
+    // Handle dimension changes (orientation, screen resize)
+    const dimensionSub = Dimensions.addEventListener("change", () => {
+      // Reset keyboard height on dimension change - keyboard will fire new event if still open
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+      dimensionSub.remove();
+    };
+  }, []);
 
   const activeConversation = useMemo(
     () =>
@@ -129,6 +173,13 @@ const ChatThreadScreen = () => {
   const pendingJoinRequestCount = isConversationHost ? joinRequests.length : 0;
   const canViewJoinRequests =
     isConversationHost && !!activeConversation.eventId;
+
+  // Calculate bottom padding for Android keyboard avoidance
+  // Subtract insets.bottom since SafeAreaView already applies bottom padding
+  const androidKeyboardPadding =
+    Platform.OS === "android" && keyboardHeight > 0
+      ? Math.max(0, keyboardHeight - insets.bottom)
+      : 0;
 
   const handleOpenJoinRequests = () => {
     if (!activeConversation || !activeConversation.eventId || !isConversationHost) {
@@ -261,57 +312,107 @@ const ChatThreadScreen = () => {
           ) : null}
         </View>
       </View>
-      <KeyboardAvoidingView
-        style={styles.threadContainer}
-        behavior={Platform.select({ ios: "padding", android: "height" })}
-        keyboardVerticalOffset={insets.top}
-      >
-        <View style={styles.threadBody}>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <FlatList
-            data={messages}
-            keyExtractor={(message) => message.id}
-            renderItem={renderMessage}
-            ref={messagesListRef}
-            contentContainerStyle={[styles.messagesList, { paddingBottom: spacing.sm }]}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          />
-          <View
-            style={[
-              styles.composerContainer,
-              { paddingBottom: Math.max(insets.bottom, spacing.xs) },
-            ]}
-          >
-            <View style={styles.composerInputWrapper}>
-              <TextInput
-                placeholder={`Message ${activeConversation.displayName}`}
-                value={draft}
-                onChangeText={setDraft}
-                style={styles.composerInput}
-                placeholderTextColor={colors.muted}
-                multiline
-              />
-              <Pressable
-                onPress={handleSend}
-                disabled={isSendDisabled}
-                style={[
-                  styles.sendIconButton,
-                  isSendDisabled && styles.sendIconButtonDisabled,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Send message"
-              >
-                <Feather
-                  name="send"
-                  size={18}
-                  color={isSendDisabled ? colors.muted : colors.buttonText}
+      {Platform.OS === "ios" ? (
+        <KeyboardAvoidingView
+          style={styles.threadContainer}
+          behavior="padding"
+          keyboardVerticalOffset={insets.top + HEADER_HEIGHT}
+        >
+          <View style={styles.threadBody}>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            <FlatList
+              data={messages}
+              keyExtractor={(message) => message.id}
+              renderItem={renderMessage}
+              ref={messagesListRef}
+              contentContainerStyle={[styles.messagesList, { paddingBottom: spacing.sm }]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            />
+            <View
+              style={[
+                styles.composerContainer,
+                { paddingBottom: spacing.xs },
+              ]}
+            >
+              <View style={styles.composerInputWrapper}>
+                <TextInput
+                  placeholder={`Message ${activeConversation.displayName}`}
+                  value={draft}
+                  onChangeText={setDraft}
+                  style={styles.composerInput}
+                  placeholderTextColor={colors.muted}
+                  multiline
                 />
-              </Pressable>
+                <Pressable
+                  onPress={handleSend}
+                  disabled={isSendDisabled}
+                  style={[
+                    styles.sendIconButton,
+                    isSendDisabled && styles.sendIconButtonDisabled,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send message"
+                >
+                  <Feather
+                    name="send"
+                    size={18}
+                    color={isSendDisabled ? colors.muted : colors.buttonText}
+                  />
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={styles.threadContainer}>
+          <View style={[styles.threadBody, { paddingBottom: androidKeyboardPadding }]}>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            <FlatList
+              data={messages}
+              keyExtractor={(message) => message.id}
+              renderItem={renderMessage}
+              ref={messagesListRef}
+              contentContainerStyle={[styles.messagesList, { paddingBottom: spacing.sm }]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            />
+            <View
+              style={[
+                styles.composerContainer,
+                { paddingBottom: spacing.xs },
+              ]}
+            >
+              <View style={styles.composerInputWrapper}>
+                <TextInput
+                  placeholder={`Message ${activeConversation.displayName}`}
+                  value={draft}
+                  onChangeText={setDraft}
+                  style={styles.composerInput}
+                  placeholderTextColor={colors.muted}
+                  multiline
+                />
+                <Pressable
+                  onPress={handleSend}
+                  disabled={isSendDisabled}
+                  style={[
+                    styles.sendIconButton,
+                    isSendDisabled && styles.sendIconButtonDisabled,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send message"
+                >
+                  <Feather
+                    name="send"
+                    size={18}
+                    color={isSendDisabled ? colors.muted : colors.buttonText}
+                  />
+                </Pressable>
+              </View>
             </View>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      )}
     </ScreenContainer>
   );
 };
