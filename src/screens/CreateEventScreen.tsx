@@ -2,19 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     FlatList,
     Image,
-    Keyboard,
+    ScrollView,
     KeyboardAvoidingView,
     Modal,
     Platform,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+    SafeAreaView,
+    useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
     CompositeNavigationProp,
@@ -36,6 +38,7 @@ import {
     DEFAULT_COVER_KEY,
     resolveCoverUri,
 } from "@constants/covers";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const AGE_MIN = 18;
 const AGE_MAX = 60;
@@ -243,7 +246,6 @@ const CreateEventScreen = () => {
     const [isCoverPickerVisible, setCoverPickerVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
-    const [keyboardExtraOffset, setKeyboardExtraOffset] = useState(0);
 
     const resetForm = useCallback(() => {
         setEventName("");
@@ -326,25 +328,6 @@ const CreateEventScreen = () => {
             };
         }, [applyEventToForm, editEvent, editEventId, navigation, resetForm]),
     );
-
-    useEffect(() => {
-        const showEvent =
-            Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-        const hideEvent =
-            Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-        const showSub = Keyboard.addListener(showEvent, () => {
-            setKeyboardExtraOffset(spacing.md);
-        });
-        const hideSub = Keyboard.addListener(hideEvent, () => {
-            setKeyboardExtraOffset(0);
-        });
-
-        return () => {
-            showSub.remove();
-            hideSub.remove();
-        };
-    }, []);
 
     useEffect(() => {
         if (isHourEditing) {
@@ -432,15 +415,10 @@ const CreateEventScreen = () => {
     const contentContainerStyle = useMemo(
         () => [
             styles.content,
-            { paddingBottom: spacing.xl + Math.max(insets.bottom, spacing.md) },
-        ],
-        [insets.bottom],
-    );
-
-    const footerStyle = useMemo(
-        () => [
-            styles.footer,
-            { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.xs },
+            {
+                paddingBottom: spacing.xl + Math.max(insets.bottom, spacing.lg),
+                flexGrow: 1,
+            },
         ],
         [insets.bottom],
     );
@@ -636,15 +614,8 @@ const CreateEventScreen = () => {
 
     const ageLabel = useMemo(() => getAgeLabel(ageRange), [ageRange]);
     const dateLabel = dateChoice === "today" ? "Today" : "Tomorrow";
-    const keyboardVerticalOffset =
-        (Platform.OS === "ios" ? 65 : 1) + keyboardExtraOffset;
-
     return (
-        <KeyboardAvoidingView
-            style={styles.root}
-            behavior="padding"
-            keyboardVerticalOffset={keyboardVerticalOffset}
-        >
+        <View style={styles.root}>
             <LinearGradient
                 colors={[colors.createGradientStart, colors.createGradientEnd]}
                 start={{ x: 0.5, y: 0 }}
@@ -652,29 +623,36 @@ const CreateEventScreen = () => {
                 locations={[0, 1]}
                 style={StyleSheet.absoluteFillObject}
             />
-            <View style={styles.overlay}>
-                <View style={styles.contentWrapper}>
-                    <ScrollView
-                        style={styles.formScroll}
-                        contentContainerStyle={contentContainerStyle}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        keyboardDismissMode="interactive"
-                    >
-                        <View style={styles.headerRow}>
-                            <Text style={styles.pageTitle}>Create Event</Text>
-                            <Pressable
-                                accessibilityRole="button"
-                                onPress={() => navigation.goBack()}
-                                style={styles.dismissButton}
-                            >
-                                <Feather
-                                    name="chevron-down"
-                                    size={24}
-                                    color={colors.createTextPrimary}
-                                />
-                            </Pressable>
-                        </View>
+            <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.overlay}
+                    keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
+                >
+                    <View style={styles.contentWrapper}>
+                        <KeyboardAwareScrollView
+                            style={styles.formScroll}
+                            contentContainerStyle={contentContainerStyle}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            keyboardDismissMode="interactive"
+                            enableOnAndroid
+                            extraScrollHeight={spacing.xl * 2}
+                        >
+                            <View style={styles.headerRow}>
+                                <Text style={styles.pageTitle}>Create Event</Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={() => navigation.goBack()}
+                                    style={styles.dismissButton}
+                                >
+                                    <Feather
+                                        name="chevron-down"
+                                        size={24}
+                                        color={colors.createTextPrimary}
+                                    />
+                                </Pressable>
+                            </View>
 
                         <Pressable
                             style={styles.coverCard}
@@ -801,28 +779,30 @@ const CreateEventScreen = () => {
                                 />
                             </View>
                         </View>
-                    </ScrollView>
-                    <View style={footerStyle}>
-                        {submitError ? (
-                            <Text style={styles.errorText}>{submitError}</Text>
-                        ) : null}
 
-                        <Pressable
-                            style={[
-                                styles.primaryButton,
-                                isSubmitting && styles.primaryButtonDisabled,
-                            ]}
-                            onPress={handlePrimaryAction}
-                            disabled={isSubmitting}
-                            accessibilityRole="button"
-                        >
-                            <Text style={styles.primaryButtonText}>
-                                {primaryButtonLabel}
-                            </Text>
-                        </Pressable>
-                    </View>
+                        <View style={styles.footer}>
+                            {submitError ? (
+                                <Text style={styles.errorText}>{submitError}</Text>
+                            ) : null}
+
+                            <Pressable
+                                style={[
+                                    styles.primaryButton,
+                                    isSubmitting && styles.primaryButtonDisabled,
+                                ]}
+                                onPress={handlePrimaryAction}
+                                disabled={isSubmitting}
+                                accessibilityRole="button"
+                            >
+                                <Text style={styles.primaryButtonText}>
+                                    {primaryButtonLabel}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </KeyboardAwareScrollView>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
+            </SafeAreaView>
 
             <Modal visible={isCoverPickerVisible} transparent animationType="fade">
                 <Pressable
@@ -889,7 +869,7 @@ const CreateEventScreen = () => {
                     </View>
                 </Pressable>
             </Modal>
-        </KeyboardAvoidingView>
+        </View>
     );
 };
 
@@ -897,6 +877,9 @@ const styles = StyleSheet.create({
     root: {
         flex: 1,
         backgroundColor: "transparent",
+    },
+    safeArea: {
+        flex: 1,
     },
     overlay: {
         flex: 1,
