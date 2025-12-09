@@ -1,7 +1,12 @@
 import { memo } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { colors, spacing, typography } from '@theme/index';
+
+const IMAGE_SIZE_RATIO = 0.22;
+const IMAGE_MIN_SIZE = 70;
+const IMAGE_MAX_SIZE = 100;
+const BORDER_RADIUS_RATIO = 0.2;
 
 export interface EventItemProps {
   id: string;
@@ -14,9 +19,17 @@ export interface EventItemProps {
 }
 
 const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: EventItemProps) => {
+  const { width: screenWidth } = useWindowDimensions();
+
+  const imageSize = Math.min(
+    Math.max(screenWidth * IMAGE_SIZE_RATIO, IMAGE_MIN_SIZE),
+    IMAGE_MAX_SIZE
+  );
+  const imageBorderRadius = imageSize * BORDER_RADIUS_RATIO;
+
   return (
     <View style={styles.container}>
-      <View style={styles.imageWrapper}>
+      <View style={[styles.imageWrapper, { width: imageSize, height: imageSize, borderRadius: imageBorderRadius }]}>
         <Image source={{ uri: imageUri }} style={styles.image} />
         {badgeLabel ? (
           <View style={styles.badge}>
@@ -33,8 +46,6 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
   );
 };
 
-const IMAGE_SIZE = 80;
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
@@ -43,9 +54,6 @@ const styles = StyleSheet.create({
     gap: spacing.md
   },
   imageWrapper: {
-    width: IMAGE_SIZE,
-    height: IMAGE_SIZE,
-    borderRadius: 16,
     overflow: 'hidden'
   },
   image: {
@@ -54,12 +62,12 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: spacing.xs,
+    left: spacing.xs,
     backgroundColor: '#FFFFFFDD',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.sm
   },
   badgeText: {
     fontSize: typography.caption,

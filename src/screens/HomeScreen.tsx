@@ -145,9 +145,9 @@ const HomeScreen = () => {
             styles.listContent,
             { paddingBottom: spacing.xl + insets.bottom },
           ]}
-          SectionSeparatorComponent={() => (
-            <View style={styles.sectionSeparator} />
-          )}
+          SectionSeparatorComponent={({ leadingItem }) =>
+            leadingItem ? <View style={styles.sectionSeparator} /> : null
+          }
           ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
           ListFooterComponent={<View style={styles.footerSpacing} />}
           refreshControl={
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.muted,
     marginTop: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: typography.lineHeight,
