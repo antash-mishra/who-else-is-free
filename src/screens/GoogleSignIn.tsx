@@ -16,6 +16,7 @@ import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import { colors, spacing, typography } from "@theme/index";
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
+import ScreenContainer from "@components/ScreenContainer";
 
 const GoogleSignInScreen = () => {
   const navigation =
@@ -92,30 +93,31 @@ const GoogleSignInScreen = () => {
   }, [isNativeAvailable]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Sign in with Google</Text>
-      <Text
-        style={[
-          styles.helper,
-          isNativeAvailable === false && styles.helperError,
-        ]}
-      >
-        {helperText}
-      </Text>
-      <Button
-        title={isSigningIn ? "Signing in..." : "Sign in with Google"}
-        onPress={onGooglePress}
-        disabled={isSigningIn}
-      />
-      {isSigningIn ? <ActivityIndicator color={colors.subText} /> : null}
-    </View>
+    <ScreenContainer>
+      <View style={styles.container}>
+        <Text style={styles.heading}>Sign in with Google</Text>
+        <Text
+          style={[
+            styles.helper,
+            isNativeAvailable === false && styles.helperError,
+          ]}
+        >
+          {helperText}
+        </Text>
+        <Button
+          title={isSigningIn ? "Signing in..." : "Sign in with Google"}
+          onPress={onGooglePress}
+          disabled={isSigningIn}
+        />
+        {isSigningIn ? <ActivityIndicator color={colors.subText} /> : null}
+      </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
     justifyContent: "center",
     gap: spacing.lg,

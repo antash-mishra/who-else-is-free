@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import {
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -22,8 +23,10 @@ import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatConversation } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
+import { useEvents } from "@context/EventsContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import EmptyMessageIllustration from "@assets/empty-message.svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type MessagesNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "Messages">,
@@ -42,6 +45,8 @@ const MessagesScreen = () => {
     refreshConversations,
     isRefreshingConversations,
   } = useChat();
+  const { events } = useEvents();
+  const insets = useSafeAreaInsets();
 
   useFocusEffect(
     useCallback(() => {
@@ -86,6 +91,11 @@ const MessagesScreen = () => {
     const isJoinSystemMessage =
       previewText.toLowerCase().endsWith("joined the chat");
 
+    const eventImageUri =
+      item.eventId != null
+        ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
+        : undefined;
+
     return (
       <Pressable
         onPress={() => handleConversationPress(item.id)}
@@ -95,7 +105,14 @@ const MessagesScreen = () => {
         ]}
       >
         <View style={styles.conversationAvatar}>
-          <Text style={styles.avatarInitial}>{titleLabel.charAt(0)}</Text>
+          {eventImageUri ? (
+            <Image
+              source={{ uri: eventImageUri }}
+              style={styles.conversationAvatarImage}
+            />
+          ) : (
+            <Text style={styles.avatarInitial}>{titleLabel.charAt(0)}</Text>
+          )}
         </View>
         <View style={styles.conversationCopy}>
           <Text style={styles.conversationName} numberOfLines={1}>
@@ -167,6 +184,7 @@ const MessagesScreen = () => {
           keyExtractor={(conversation) => String(conversation.id)}
           renderItem={renderConversation}
           ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
+          contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom }}
           ListEmptyComponent={() => (
             <EmptyState
               title="No conversations yet"
@@ -239,6 +257,11 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  conversationAvatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 22,
   },
   avatarInitial: {
     fontSize: typography.title,

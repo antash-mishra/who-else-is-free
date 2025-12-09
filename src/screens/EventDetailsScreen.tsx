@@ -77,7 +77,7 @@ const EventDetailsScreen = () => {
 
   if (!event) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <View style={styles.fallbackContainer}>
           <Pressable
             accessibilityRole="button"
@@ -268,7 +268,7 @@ const EventDetailsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <StatusBar
         barStyle="light-content" // For white icons/text
         backgroundColor="#FF69B4" // For Android

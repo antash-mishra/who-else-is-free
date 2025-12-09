@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { colors, typography } from '@theme/index';
+import { colors, spacing, typography } from '@theme/index';
 
 export interface EventItemProps {
   id: string;
@@ -33,15 +33,14 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
   );
 };
 
-const CARD_HEIGHT = 80;
 const IMAGE_SIZE = 80;
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: CARD_HEIGHT,
-    gap: 20
+    paddingVertical: spacing.sm,
+    gap: spacing.md
   },
   imageWrapper: {
     width: IMAGE_SIZE,
