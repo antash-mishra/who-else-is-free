@@ -1,10 +1,17 @@
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Platform, StyleSheet } from "react-native";
-import { useMemo } from "react";
-import { BlurView } from "expo-blur";
+import {
+  Animated,
+  TouchableOpacity,
+  Vibration,
+  View,
+  StyleSheet,
+} from "react-native";
+import { useMemo, useRef } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 
 import HomeScreen from "@screens/HomeScreen";
 import CreateEventScreen from "@screens/CreateEventScreen";
@@ -19,9 +26,43 @@ import { colors } from "@theme/colors";
 import GoogleSignIn from "@screens/GoogleSignIn";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const TabBarBackground = () => (
+  <View style={tabBarStyles.backgroundContainer}>
+    <BlurView
+      intensity={80}
+      tint="light"
+      style={StyleSheet.absoluteFill}
+    />
+    {/* Frosted white base with subtle warmth */}
+    <LinearGradient
+      colors={["rgba(255, 255, 255, 0.92)", "rgba(255, 253, 248, 0.88)"]}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 1 }}
+      style={StyleSheet.absoluteFill}
+    />
+    <View style={tabBarStyles.topBorder} />
+  </View>
+);
+
+const tabBarStyles = StyleSheet.create({
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+  topBorder: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "rgba(255, 248, 235, 0.5)",
+  },
+});
 
 type TabIconProps = {
   focused: boolean;
@@ -33,11 +74,89 @@ const TAB_ICON_HEIGHT = 40;
 const TAB_ICON_VIEW_BOX = "0 0 56 42";
 
 const getFillColor = (focused: boolean) =>
-  focused ? colors.tabActive : "none";
+  focused ? colors.activeTabIndicator : "none";
+
+const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
+  const { onPress, style, children, ...rest } = props;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  const triggerWiggle = () => {
+    rotateAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: -1,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 0.8,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: -0.8,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 0.5,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: -0.5,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 0.2,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: 0,
+        duration: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handlePress: typeof onPress = (event) => {
+    Vibration.vibrate(40);
+    triggerWiggle();
+    if (onPress) {
+      onPress(event);
+    }
+  };
+
+  const rotation = rotateAnim.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ["-10deg", "10deg"],
+  });
+
+  return (
+    <TouchableOpacity
+      {...rest}
+      style={style}
+      onPress={handlePress}
+      activeOpacity={1}
+    >
+      <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+        {children}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const EventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
   const fillColor = getFillColor(focused);
+  const innerLineColor = focused ? "#FFFFFF" : strokeColor;
 
   return (
     <Svg
@@ -56,7 +175,7 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
       />
       <Path
         d="M23.9316 27H31.9316"
-        stroke={strokeColor}
+        stroke={innerLineColor}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -191,10 +310,14 @@ const MainTabs = () => {
   const insets = useSafeAreaInsets();
   const tabBarBaseStyle = useMemo(
     () => ({
-      backgroundColor: colors.background,
+      backgroundColor: "transparent",
       height: 50 + insets.bottom,
-      paddingBottom: 12 + insets.bottom,
-      paddingTop: 12,
+      paddingBottom: insets.bottom,
+      paddingTop: 8,
+      position: "absolute" as const,
+      // borderTopWidth: 3.18,
+      // borderTopColor: "#FFFFFF",
+      elevation: 0,
     }),
     [insets.bottom],
   );
@@ -222,21 +345,10 @@ const MainTabs = () => {
           tabBarStyle: hideTabBar
             ? hiddenTabBarStyle
             : tabBarBaseStyle,
-          tabBarBackground: hideTabBar
-            ? undefined
-            : () => (
-                <BlurView
-                  intensity={Platform.select({
-                    ios: 44,
-                    android: 44,
-                    default: 44,
-                  })}
-                  tint={Platform.OS === "ios" ? "light" : "default"}
-                  style={StyleSheet.absoluteFill}
-                />
-              ),
-          tabBarActiveTintColor: colors.tabActive,
+          tabBarBackground: () => <TabBarBackground />,
+          tabBarActiveTintColor: colors.activeTabIndicator,
           tabBarInactiveTintColor: colors.tabInactive,
+          tabBarButton: (props) => <VibratingTabBarButton {...props} />,
         };
       }}
     >

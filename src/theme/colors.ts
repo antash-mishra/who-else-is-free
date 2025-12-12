@@ -14,6 +14,7 @@ export const colors = {
   border: '#E5E7EB',
   tabInactive: 'rgba(0, 0, 0, 0.5)',
   tabActive: '#000000',
+  activeTabIndicator: '#606060',
   buttonBackground: '#2F3036',
   buttonText: '#FFFFFF',
   cardMeta: '#808080',
