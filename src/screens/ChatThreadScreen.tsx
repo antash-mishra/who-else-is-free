@@ -126,7 +126,11 @@ const ChatThreadScreen = () => {
 
   useEffect(() => {
     if (!activeConversationId) {
-      navigation.goBack();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate("Main", { screen: "Messages" });
+      }
     }
   }, [activeConversationId, navigation]);
 
@@ -154,7 +158,11 @@ const ChatThreadScreen = () => {
 
   const handleBack = () => {
     setActiveConversation(null);
-    navigation.goBack();
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("Main", { screen: "Messages" });
+    }
   };
 
   const handleSend = () => {
