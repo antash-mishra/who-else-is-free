@@ -1,6 +1,10 @@
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import {
+  createStackNavigator,
+  StackCardInterpolationProps,
+} from "@react-navigation/stack";
+import { Easing } from "react-native";
 import {
   Animated,
   TouchableOpacity,
@@ -29,7 +33,151 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
+
+// Custom cross-fade transition with subtle scale for depth
+const crossFadeTransition = {
+  cardStyleInterpolator: ({ current, next }: StackCardInterpolationProps) => {
+    return {
+      cardStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 0.5, 0.9, 1],
+          outputRange: [0, 0.25, 0.7, 1],
+        }),
+        transform: [
+          {
+            scale: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.96, 1],
+            }),
+          },
+        ],
+      },
+      overlayStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 0.5],
+        }),
+      },
+    };
+  },
+  transitionSpec: {
+    open: {
+      animation: "timing" as const,
+      config: {
+        duration: 350,
+        easing: Easing.bezier(0.2, 0.9, 0.3, 1),
+      },
+    },
+    close: {
+      animation: "timing" as const,
+      config: {
+        duration: 280,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      },
+    },
+  },
+};
+
+// Smooth slide with cross-fade overlay
+const slideWithFade = {
+  cardStyleInterpolator: ({ current, next, layouts }: StackCardInterpolationProps) => {
+    return {
+      cardStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 0.3, 0.6, 1],
+          outputRange: [0, 0.3, 0.85, 1],
+        }),
+        transform: [
+          {
+            translateX: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [layouts.screen.width * 0.15, 0],
+            }),
+          },
+          {
+            scale: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.97, 1],
+            }),
+          },
+        ],
+      },
+      overlayStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 0.4],
+        }),
+      },
+    };
+  },
+  transitionSpec: {
+    open: {
+      animation: "timing" as const,
+      config: {
+        duration: 380,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      },
+    },
+    close: {
+      animation: "timing" as const,
+      config: {
+        duration: 300,
+        easing: Easing.bezier(0.4, 0, 0.6, 1),
+      },
+    },
+  },
+};
+
+// Modal slide up with elegant fade
+const modalSlideUp = {
+  cardStyleInterpolator: ({ current, layouts }: StackCardInterpolationProps) => {
+    return {
+      cardStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 0.4, 1],
+          outputRange: [0, 0.7, 1],
+        }),
+        transform: [
+          {
+            translateY: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [layouts.screen.height * 0.08, 0],
+            }),
+          },
+          {
+            scale: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.95, 1],
+            }),
+          },
+        ],
+      },
+      overlayStyle: {
+        opacity: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 0.6],
+        }),
+      },
+    };
+  },
+  transitionSpec: {
+    open: {
+      animation: "timing" as const,
+      config: {
+        duration: 400,
+        easing: Easing.bezier(0.16, 1, 0.3, 1),
+      },
+    },
+    close: {
+      animation: "timing" as const,
+      config: {
+        duration: 320,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      },
+    },
+  },
+};
 
 const TabBarBackground = () => (
   <View style={tabBarStyles.backgroundContainer}>
@@ -77,7 +225,7 @@ const getFillColor = (focused: boolean) =>
   focused ? colors.activeTabIndicator : "none";
 
 const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
-  const { onPress, style, children, ...rest } = props;
+  const { onPress, style, children, accessibilityLabel, testID } = props;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   const triggerWiggle = () => {
@@ -126,11 +274,11 @@ const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
     ]).start();
   };
 
-  const handlePress: typeof onPress = (event) => {
+  const handlePress = (e: Parameters<NonNullable<typeof onPress>>[0]) => {
     Vibration.vibrate(40);
     triggerWiggle();
     if (onPress) {
-      onPress(event);
+      onPress(e);
     }
   };
 
@@ -141,10 +289,11 @@ const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
 
   return (
     <TouchableOpacity
-      {...rest}
       style={style}
       onPress={handlePress}
       activeOpacity={1}
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
     >
       <Animated.View style={{ transform: [{ rotate: rotation }] }}>
         {children}
@@ -349,6 +498,8 @@ const MainTabs = () => {
           tabBarActiveTintColor: colors.activeTabIndicator,
           tabBarInactiveTintColor: colors.tabInactive,
           tabBarButton: (props) => <VibratingTabBarButton {...props} />,
+          lazy: false, // Pre-load all tabs for smoother switching
+          freezeOnBlur: true, // Freeze inactive screens to improve performance
         };
       }}
     >
@@ -418,24 +569,56 @@ const AppNavigator = () => {
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         initialRouteName="Main"
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          cardStyle: { backgroundColor: colors.background },
+          cardOverlayEnabled: true,
+          ...slideWithFade,
+        }}
       >
-        <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Login" component={GoogleSignIn} />
+        <Stack.Screen
+          name="Main"
+          component={MainTabs}
+          options={{
+            ...crossFadeTransition,
+          }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={GoogleSignIn}
+          options={{
+            presentation: "transparentModal",
+            gestureEnabled: true,
+            gestureDirection: "vertical",
+            ...modalSlideUp,
+          }}
+        />
         <Stack.Screen
           name="EventDetails"
           component={EventDetailsScreen}
-          options={{ headerShown: false }}
+          options={{
+            gestureEnabled: true,
+            ...slideWithFade,
+          }}
         />
         <Stack.Screen
           name="JoinRequests"
           component={JoinRequestsScreen}
-          options={{ headerShown: false }}
+          options={{
+            presentation: "modal",
+            gestureEnabled: true,
+            gestureDirection: "vertical",
+            ...modalSlideUp,
+          }}
         />
         <Stack.Screen
           name="ChatThread"
           component={ChatThreadScreen}
-          options={{ headerShown: false }}
+          options={{
+            gestureEnabled: true,
+            ...slideWithFade,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
