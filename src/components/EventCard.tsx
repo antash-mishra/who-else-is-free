@@ -1,11 +1,9 @@
 import { memo } from 'react';
-import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '@theme/index';
 
-const IMAGE_SIZE_RATIO = 0.22;
-const IMAGE_MIN_SIZE = 70;
-const IMAGE_MAX_SIZE = 100;
+const IMAGE_SIZE = 66;
 const BORDER_RADIUS_RATIO = 0.2;
 
 export interface EventItemProps {
@@ -19,17 +17,16 @@ export interface EventItemProps {
 }
 
 const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: EventItemProps) => {
-  const { width: screenWidth } = useWindowDimensions();
-
-  const imageSize = Math.min(
-    Math.max(screenWidth * IMAGE_SIZE_RATIO, IMAGE_MIN_SIZE),
-    IMAGE_MAX_SIZE
-  );
-  const imageBorderRadius = imageSize * BORDER_RADIUS_RATIO;
+  const imageBorderRadius = IMAGE_SIZE * BORDER_RADIUS_RATIO;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.imageWrapper, { width: imageSize, height: imageSize, borderRadius: imageBorderRadius }]}>
+      <View
+        style={[
+          styles.imageWrapper,
+          { width: IMAGE_SIZE, height: IMAGE_SIZE, borderRadius: imageBorderRadius }
+        ]}
+      >
         <Image source={{ uri: imageUri }} style={styles.image} />
         {badgeLabel ? (
           <View style={styles.badge}>
@@ -38,9 +35,15 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
         ) : null}
       </View>
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.meta}>{`${location}, ${time}`}</Text>
-        <Text style={styles.audience}>{audience}</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {`${location}, ${time}`}
+        </Text>
+        <Text style={styles.audience} numberOfLines={1}>
+          {audience}
+        </Text>
       </View>
     </View>
   );
@@ -50,7 +53,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    // paddingVertical: spacing.sm,
     gap: spacing.md
   },
   imageWrapper: {
@@ -84,22 +87,21 @@ const styles = StyleSheet.create({
     fontSize: typography.cardTitle,
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: -0.5
   },
   meta: {
     fontSize: 15,
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: -0.5
   },
+  
   audience: {
     fontSize: 15,
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: -0.5
+
   }
 });
 
