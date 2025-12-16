@@ -88,14 +88,14 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing
   },
   meta: {
-    fontSize: typography.cardMeta,
+    fontSize: 15,
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing
   },
   audience: {
-    fontSize: typography.cardMeta,
+    fontSize: 15,
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
     lineHeight: typography.lineHeight,
