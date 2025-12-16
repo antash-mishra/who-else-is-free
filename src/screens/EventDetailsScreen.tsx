@@ -8,9 +8,8 @@ import {
   Pressable,
   StatusBar,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -34,6 +33,7 @@ const readableDateLabel = (label: "Today" | "Tmrw") =>
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
+  const insets = useSafeAreaInsets();
   const { events, deleteUserEvent, markEventRequested, isEventRequested } =
     useEvents();
   const { user, token } = useAuth();
@@ -268,18 +268,32 @@ const EventDetailsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <StatusBar
         barStyle="light-content" // For white icons/text
-        backgroundColor="#FF69B4" // For Android
+        translucent
+        backgroundColor="transparent"
       />
 
       <View style={styles.contentWrapper}>
-        <View style={styles.heroContainer}>
+        <View
+          style={[
+            styles.heroContainer,
+            { height: 320 + insets.top, paddingTop: insets.top + 10 },
+          ]}
+        >
+          <Image
+            source={{ uri: event.imageUri }}
+            style={styles.heroBackgroundImage}
+            resizeMode="cover"
+            blurRadius={28}
+          />
+          <View pointerEvents="none" style={styles.heroOverlayDark} />
+          <View pointerEvents="none" style={styles.heroOverlayLight} />
           <Pressable
             accessibilityRole="button"
             onPress={navigation.goBack}
-            style={styles.backButton}
+            style={[styles.backButton, { top: insets.top + 10 }]}
           >
             <Feather name="chevron-left" size={24} color={colors.buttonText} />
           </Pressable>
@@ -462,7 +476,7 @@ const EventDetailsScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FF69B4",
+    backgroundColor: colors.background,
   },
   contentWrapper: {
     flex: 1,
@@ -470,17 +484,27 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     height: 320,
-    backgroundColor: "#FF69B4", // Your pink/gradient color
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.md,
     paddingTop: 10,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
   },
+  heroBackgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroOverlayDark: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
+  heroOverlayLight: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
   backButton: {
     position: "absolute",
     top: 10,
-    left: 20,
+    left: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -522,13 +546,13 @@ const styles = StyleSheet.create({
   //   resizeMode: 'cover'
   // },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl,
   },
   card: {
     backgroundColor: colors.card,
     borderRadius: 32,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
     gap: spacing.sm,
