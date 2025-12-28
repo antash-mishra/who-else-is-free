@@ -34,6 +34,7 @@ type ConversationEventApi = {
   date_label: string;
   event_date?: string;
   group_type?: string;
+  cover_key?: string;
 };
 
 export type ChatConversation = {
@@ -54,6 +55,7 @@ export type ChatConversation = {
     dateLabel: string;
     eventDate?: string;
     groupType?: string;
+    coverKey?: string;
   };
 };
 
@@ -375,6 +377,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
               dateLabel: conversation.event.date_label,
               eventDate: conversation.event.event_date,
               groupType: conversation.event.group_type,
+              coverKey: conversation.event.cover_key,
             }
           : undefined;
         const memberCount =

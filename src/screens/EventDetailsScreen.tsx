@@ -301,7 +301,7 @@ const EventDetailsScreen = () => {
           {/* Elevated Image Card */}
           <View style={styles.imageCardContainer}>
             <Image
-              source={{ uri: event.imageUri }} // or require('./path/to/image.jpg')
+              source={{ uri: event.imageUri }}
               style={styles.imageCard}
               resizeMode="cover"
             />

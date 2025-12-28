@@ -102,3 +102,27 @@ export const resolveCoverUri = (key?: string | null) => {
 
 export const isCoverKey = (value: string): value is CoverKey =>
   COVER_OPTIONS.some((option) => option.key === value);
+
+// Gradient colors for each cover - medium-to-dark tones for white text readability
+export const COVER_GRADIENTS: Record<CoverKey, [string, string]> = {
+  cover_01: ["#FF6B6B", "#C44569"],    // Sunset Glow - warm coral to rose
+  cover_02: ["#4ECDC4", "#2C7873"],    // Ocean Mist - teal gradient
+  cover_03: ["#F2994A", "#C75B39"],    // Golden Hour - amber to burnt orange
+  cover_04: ["#5C6BC0", "#3949AB"],    // Indigo Nights - indigo gradient
+  cover_05: ["#9B59B6", "#6C3483"],    // Violet Bloom - violet gradient
+  cover_06: ["#E91E9B", "#9B2FAE"],    // Neon Pulse - hot pink to purple
+  cover_07: ["#27AE60", "#1E7B46"],    // Forest Hike - forest greens
+  cover_08: ["#D68910", "#A04000"],    // Amber Trail - amber to rust
+  cover_09: ["#5D6D7E", "#2C3E50"],    // Steel City - steel blue to dark slate
+  cover_10: ["#F39C12", "#D35400"],    // Citrus Pop - orange gradient
+  cover_11: ["#2980B9", "#1A5276"],    // Deep Dive - ocean blue gradient
+  cover_12: ["#E84393", "#B53389"],    // Magenta Bloom - magenta gradient
+};
+
+export const resolveCoverGradient = (key?: CoverKey | null): [string, string] => {
+  const defaultGradient = COVER_GRADIENTS[DEFAULT_COVER_KEY];
+  if (!key) {
+    return defaultGradient;
+  }
+  return COVER_GRADIENTS[key] ?? defaultGradient;
+};

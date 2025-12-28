@@ -114,13 +114,13 @@ CREATE TABLE IF NOT EXISTS conversation_read_state (
 `
 
 const insertEvent = `
-INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
 const updateEvent = `
 UPDATE events
-SET title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key)
+SET title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key), scheduled_at = ?
 WHERE id = ? AND user_id = ?;
 `
 
@@ -198,14 +198,14 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name
 FROM events e
 JOIN users u ON u.id = e.user_id
 ORDER BY e.event_date ASC, e.time ASC, e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name
 FROM events e
 JOIN users u ON u.id = e.user_id
 WHERE e.id = ?
@@ -347,6 +347,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 		return err
 	}
 	if err := r.ensureEventGroupTypeColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureScheduledAtColumn(ctx); err != nil {
 		return err
 	}
 	if _, err := r.db.ExecContext(ctx, createTableConversations); err != nil {
@@ -613,6 +616,57 @@ func (r *EventRepository) ensureJoinRequestMessageColumn(ctx context.Context) er
 	return nil
 }
 
+func (r *EventRepository) ensureScheduledAtColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(events);`)
+	if err != nil {
+		return fmt.Errorf("inspect events table: %w", err)
+	}
+	defer rows.Close()
+
+	hasScheduledAt := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan events schema: %w", err)
+		}
+		if name == "scheduled_at" {
+			hasScheduledAt = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate events schema: %w", err)
+	}
+	if hasScheduledAt {
+		return nil
+	}
+
+	// Add the scheduled_at column
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN scheduled_at TEXT;`); err != nil {
+		return fmt.Errorf("add scheduled_at column: %w", err)
+	}
+
+	// Backfill existing rows by combining event_date + time (assume server timezone for legacy data)
+	// This constructs an ISO 8601 UTC timestamp from existing date/time fields
+	backfillQuery := `
+		UPDATE events
+		SET scheduled_at = datetime(event_date || 'T' || time || ':00', 'utc')
+		WHERE scheduled_at IS NULL AND event_date IS NOT NULL AND time IS NOT NULL AND time != '';
+	`
+	if _, err := r.db.ExecContext(ctx, backfillQuery); err != nil {
+		return fmt.Errorf("backfill scheduled_at: %w", err)
+	}
+
+	return nil
+}
+
 func (r *EventRepository) ensureConversationEventColumn(ctx context.Context) error {
 	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(conversations);`)
 	if err != nil {
@@ -674,6 +728,12 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		params.DateLabel = deriveDateLabel(params.EventDate, time.Now())
 	}
 
+	// Handle scheduled_at - store as nullable string
+	var scheduledAtStr sql.NullString
+	if params.ScheduledAt != "" {
+		scheduledAtStr = sql.NullString{String: params.ScheduledAt, Valid: true}
+	}
+
 	res, err := tx.ExecContext(ctx, insertEvent,
 		params.UserID,
 		params.Title,
@@ -687,6 +747,7 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		params.DateLabel,
 		params.GroupType,
 		coverKey,
+		scheduledAtStr,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -748,6 +809,12 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		params.DateLabel = deriveDateLabel(params.EventDate, time.Now())
 	}
 
+	// Handle scheduled_at - store as nullable string
+	var scheduledAtStr sql.NullString
+	if params.ScheduledAt != "" {
+		scheduledAtStr = sql.NullString{String: params.ScheduledAt, Valid: true}
+	}
+
 	result, err := tx.ExecContext(ctx, updateEvent,
 		params.Title,
 		params.Location,
@@ -760,6 +827,7 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		params.DateLabel,
 		params.GroupType,
 		coverKeyParam,
+		scheduledAtStr,
 		id,
 		userID,
 	)
@@ -812,9 +880,11 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 	defer rows.Close()
 
 	var events []Event
+	now := time.Now()
 
 	for rows.Next() {
 		var evt Event
+		var scheduledAtStr sql.NullString
 		if err := rows.Scan(
 			&evt.ID,
 			&evt.UserID,
@@ -829,11 +899,31 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.DateLabel,
 			&evt.GroupType,
 			&evt.CoverKey,
+			&scheduledAtStr,
 			&evt.CreatedAt,
 			&evt.HostName,
 		); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)
 		}
+
+		// Parse scheduled_at if present
+		if scheduledAtStr.Valid && scheduledAtStr.String != "" {
+			if parsed, err := time.Parse(time.RFC3339, scheduledAtStr.String); err == nil {
+				evt.ScheduledAt = &parsed
+			} else if parsed, err := time.Parse("2006-01-02 15:04:05", scheduledAtStr.String); err == nil {
+				// Handle SQLite datetime format
+				utc := parsed.UTC()
+				evt.ScheduledAt = &utc
+			}
+		}
+
+		// Filter out past events using scheduled_at (UTC comparison)
+		if evt.ScheduledAt != nil {
+			if evt.ScheduledAt.Before(now.UTC()) {
+				continue // Skip past events
+			}
+		}
+
 		events = append(events, evt)
 	}
 
@@ -841,17 +931,20 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 		return nil, fmt.Errorf("iterate events: %w", err)
 	}
 
-	// Do not enforce "upcoming only" semantics on the backend, as that
-	// introduces timezone differences between the server and mobile clients.
-	// The mobile app already filters events to show only future items using
-	// the device's local timezone.
-	now := time.Now()
-
+	// Update date labels based on current time
 	for i := range events {
 		events[i].DateLabel = deriveDateLabel(events[i].EventDate, now)
 	}
 
 	sort.Slice(events, func(i, j int) bool {
+		// Sort by scheduled_at if both have it
+		if events[i].ScheduledAt != nil && events[j].ScheduledAt != nil {
+			if events[i].ScheduledAt.Equal(*events[j].ScheduledAt) {
+				return events[i].CreatedAt.After(events[j].CreatedAt)
+			}
+			return events[i].ScheduledAt.Before(*events[j].ScheduledAt)
+		}
+		// Fall back to legacy sorting
 		if events[i].EventDate == events[j].EventDate {
 			leftMinutes, _ := parseEventTimeLabel(events[i].Time)
 			rightMinutes, _ := parseEventTimeLabel(events[j].Time)
@@ -1102,6 +1195,7 @@ func fetchConversationByEventID(ctx context.Context, q rowQuery, eventID int64) 
 func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Event, error) {
 	row := r.db.QueryRowContext(ctx, selectEventByID, eventID)
 	var evt Event
+	var scheduledAtStr sql.NullString
 	if err := row.Scan(
 		&evt.ID,
 		&evt.UserID,
@@ -1116,6 +1210,7 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.DateLabel,
 		&evt.GroupType,
 		&evt.CoverKey,
+		&scheduledAtStr,
 		&evt.CreatedAt,
 		&evt.HostName,
 	); err != nil {
@@ -1123,6 +1218,17 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 			return nil, ErrEventNotFound
 		}
 		return nil, fmt.Errorf("fetch event: %w", err)
+	}
+
+	// Parse scheduled_at if present
+	if scheduledAtStr.Valid && scheduledAtStr.String != "" {
+		if parsed, err := time.Parse(time.RFC3339, scheduledAtStr.String); err == nil {
+			evt.ScheduledAt = &parsed
+		} else if parsed, err := time.Parse("2006-01-02 15:04:05", scheduledAtStr.String); err == nil {
+			// Handle SQLite datetime format
+			utc := parsed.UTC()
+			evt.ScheduledAt = &utc
+		}
 	}
 
 	now := time.Now()
@@ -1446,6 +1552,7 @@ func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo 
 			EventDate: evt.EventDate,
 			DateLabel: evt.DateLabel,
 			GroupType: evt.GroupType,
+			CoverKey:  evt.CoverKey,
 		}
 	}
 

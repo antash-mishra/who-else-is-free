@@ -65,14 +65,30 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 	}
 
 	now := time.Now()
-	eventDate, normalizedLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+
+	// If scheduled_at is provided, parse it and derive legacy fields
+	if payload.ScheduledAt != "" {
+		scheduledTime, err := parseScheduledAt(payload.ScheduledAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		// Derive legacy fields from scheduled_at for backward compatibility
+		eventDate, timeStr, dateLabel := deriveLegacyFields(scheduledTime, now)
+		payload.EventDate = eventDate
+		payload.Time = timeStr
+		payload.DateLabel = dateLabel
+	} else {
+		// Fall back to legacy validation
+		eventDate, normalizedLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		payload.EventDate = eventDate
+		payload.DateLabel = normalizedLabel
 	}
 
-	payload.EventDate = eventDate
-	payload.DateLabel = normalizedLabel
 	payload.GroupType = strings.TrimSpace(payload.GroupType)
 	if payload.GroupType == "" {
 		payload.GroupType = "Single"
@@ -123,13 +139,30 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	}
 
 	now := time.Now()
-	eventDate, normalizedLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+
+	// If scheduled_at is provided, parse it and derive legacy fields
+	if payload.ScheduledAt != "" {
+		scheduledTime, err := parseScheduledAt(payload.ScheduledAt)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		// Derive legacy fields from scheduled_at for backward compatibility
+		eventDate, timeStr, dateLabel := deriveLegacyFields(scheduledTime, now)
+		payload.EventDate = eventDate
+		payload.Time = timeStr
+		payload.DateLabel = dateLabel
+	} else {
+		// Fall back to legacy validation
+		eventDate, normalizedLabel, _, err := normalizeEventSchedule(payload.EventDate, payload.Time, now)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		payload.EventDate = eventDate
+		payload.DateLabel = normalizedLabel
 	}
-	payload.EventDate = eventDate
-	payload.DateLabel = normalizedLabel
+
 	payload.GroupType = strings.TrimSpace(payload.GroupType)
 	if payload.GroupType == "" {
 		payload.GroupType = "Single"

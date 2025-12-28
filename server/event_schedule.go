@@ -82,3 +82,44 @@ func parseEventTimeLabel(label string) (int, error) {
 
 	return parsed.Hour()*60 + parsed.Minute(), nil
 }
+
+// parseScheduledAt parses an ISO 8601 UTC timestamp string into a time.Time value.
+// Returns an error if the string is empty or not a valid ISO 8601 format.
+func parseScheduledAt(isoString string) (time.Time, error) {
+	trimmed := strings.TrimSpace(isoString)
+	if trimmed == "" {
+		return time.Time{}, fmt.Errorf("scheduled_at is required")
+	}
+
+	// Parse ISO 8601 / RFC 3339 format
+	parsed, err := time.Parse(time.RFC3339, trimmed)
+	if err != nil {
+		// Try without timezone suffix (assume UTC)
+		parsed, err = time.Parse("2006-01-02T15:04:05", trimmed)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("scheduled_at must be a valid ISO 8601 timestamp")
+		}
+		parsed = parsed.UTC()
+	}
+
+	return parsed.UTC(), nil
+}
+
+// deriveLegacyFields extracts event_date, time, and date_label from a scheduled_at
+// timestamp for backward compatibility. The server time (now) is used to determine
+// the date_label (Today/Tmrw).
+func deriveLegacyFields(scheduledAt time.Time, serverNow time.Time) (eventDate, timeStr, dateLabel string) {
+	// Convert to server's local timezone for display purposes
+	local := scheduledAt.In(serverNow.Location())
+
+	eventDate = local.Format("2006-01-02")
+	timeStr = local.Format("15:04")
+	dateLabel = deriveDateLabel(eventDate, serverNow)
+
+	return eventDate, timeStr, dateLabel
+}
+
+// formatScheduledAtUTC formats a time.Time value as an ISO 8601 UTC string.
+func formatScheduledAtUTC(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}

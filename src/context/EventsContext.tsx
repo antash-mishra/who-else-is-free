@@ -32,6 +32,7 @@ export interface UserEvent extends EventItemProps {
   maxAge: number;
   groupType: "Single" | "Group";
   coverKey?: CoverKey | null;
+  scheduledAt?: string; // ISO 8601 UTC timestamp
 }
 
 interface CreateEventInput {
@@ -49,6 +50,7 @@ interface CreateEventInput {
   coverKey: CoverKey;
   userId: number;
   hostName: string;
+  scheduledAt?: string; // ISO 8601 UTC timestamp
 }
 
 interface UpdateEventInput {
@@ -64,6 +66,7 @@ interface UpdateEventInput {
   groupType: "Single" | "Group";
   badgeLabel?: string | null;
   coverKey?: CoverKey | null;
+  scheduledAt?: string; // ISO 8601 UTC timestamp
 }
 
 export interface GuestEventDraft {
@@ -79,6 +82,7 @@ export interface GuestEventDraft {
   groupType: "Single" | "Group";
   badgeLabel?: string;
   coverKey: CoverKey;
+  scheduledAt?: string; // ISO 8601 UTC timestamp
 }
 
 interface EventsContextValue {
@@ -114,6 +118,7 @@ type ApiEvent = {
   user_id: number;
   host_name: string;
   cover_key?: CoverKey | null;
+  scheduled_at?: string; // ISO 8601 UTC timestamp
 };
 
 interface EventMeta {
@@ -170,7 +175,14 @@ const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
   return diffDays === 1 ? "Tmrw" : "Today";
 };
 
-const isUpcomingEvent = (eventDate: string, _timeLabel: string) => {
+const isUpcomingEvent = (eventDate: string, _timeLabel: string, scheduledAt?: string) => {
+  // If scheduled_at is present, use it for precise time comparison
+  if (scheduledAt) {
+    const scheduledTime = new Date(scheduledAt).getTime();
+    return scheduledTime > Date.now();
+  }
+
+  // Fall back to legacy date-only check
   const [year, month, day] = eventDate.split("-").map((part) => Number(part));
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -217,18 +229,37 @@ const mapApiEvent = (
   meta: EventMeta | undefined,
 ): UserEvent => {
   const groupType = event.group_type ?? "Single";
-  const normalizedLabel = deriveDateLabelFromDate(event.event_date);
+
+  // If scheduled_at is present, derive display values from it (in local timezone)
+  let displayTime = event.time;
+  let displayDate = event.event_date;
+  let displayLabel: DateLabel;
+
+  if (event.scheduled_at) {
+    const utcDate = new Date(event.scheduled_at);
+    // Format time in local timezone (24-hour format)
+    displayTime = utcDate.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    // Format date in local timezone (YYYY-MM-DD)
+    displayDate = `${utcDate.getFullYear()}-${String(utcDate.getMonth() + 1).padStart(2, "0")}-${String(utcDate.getDate()).padStart(2, "0")}`;
+    displayLabel = deriveDateLabelFromDate(displayDate);
+  } else {
+    displayLabel = deriveDateLabelFromDate(event.event_date);
+  }
 
   return {
     id: String(event.id),
     title: event.title,
     location: event.location,
-    time: event.time,
+    time: displayTime,
     audience: formatAudience(event.gender, event.min_age, event.max_age),
     imageUri: resolveCoverUri(event.cover_key),
     badgeLabel: groupType === "Group" ? "Group" : meta?.badgeLabel,
-    dateLabel: normalizedLabel,
-    eventDate: event.event_date,
+    dateLabel: displayLabel,
+    eventDate: displayDate,
     description: event.description,
     ownerId: event.user_id,
     hostName: event.host_name,
@@ -237,6 +268,7 @@ const mapApiEvent = (
     maxAge: event.max_age,
     groupType,
     coverKey: event.cover_key ?? null,
+    scheduledAt: event.scheduled_at,
   };
 };
 
@@ -266,7 +298,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       const payload: { data: ApiEvent[] } = await response.json();
       const nextEvents = payload.data
         .map((event) => mapApiEvent(event, metaRef.current[String(event.id)]))
-        .filter((event) => isUpcomingEvent(event.eventDate, event.time))
+        .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
         .sort(sortEventsBySchedule);
       setEvents(nextEvents);
     } catch (err) {
@@ -340,6 +372,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         date_label: event.dateLabel ?? derivedLabel,
         group_type: event.groupType,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
+        ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
       };
 
       const response = await fetch(`${API_BASE_URL}/api/events`, {
@@ -389,13 +422,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         user_id: event.userId,
         host_name: event.hostName,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
+        scheduled_at: event.scheduledAt,
       };
 
       setEvents((prev) => {
         const withoutNew = prev.filter((item) => item.id !== eventId);
         const optimistic = mapApiEvent(optimisticEvent, metaRef.current[eventId]);
         const next = [optimistic, ...withoutNew].filter((item) =>
-          isUpcomingEvent(item.eventDate, item.time),
+          isUpcomingEvent(item.eventDate, item.time, item.scheduledAt),
         );
         next.sort(sortEventsBySchedule);
         return next;
@@ -422,6 +456,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         date_label: event.dateLabel ?? deriveDateLabelFromDate(event.eventDate),
         group_type: event.groupType,
         ...(event.coverKey !== undefined ? { cover_key: event.coverKey } : {}),
+        ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
       };
 
       if (!token) {
@@ -513,6 +548,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           coverKey: pendingGuestEvent.coverKey ?? DEFAULT_COVER_KEY,
           userId: user.id,
           hostName: user.name,
+          scheduledAt: pendingGuestEvent.scheduledAt,
         });
       } catch (err) {
         console.error("Failed to submit queued guest event", err);

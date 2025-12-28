@@ -5,21 +5,22 @@ import "time"
 const defaultCoverKey = "cover_01"
 
 type Event struct {
-	ID          int64     `json:"id"`
-	UserID      int64     `json:"user_id"`
-	Title       string    `json:"title"`
-	Location    string    `json:"location"`
-	Time        string    `json:"time"`
-	EventDate   string    `json:"event_date"`
-	Description string    `json:"description"`
-	Gender      string    `json:"gender"`
-	MinAge      int       `json:"min_age"`
-	MaxAge      int       `json:"max_age"`
-	DateLabel   string    `json:"date_label"`
-	GroupType   string    `json:"group_type"`
-	CoverKey    string    `json:"cover_key"`
-	HostName    string    `json:"host_name"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          int64      `json:"id"`
+	UserID      int64      `json:"user_id"`
+	Title       string     `json:"title"`
+	Location    string     `json:"location"`
+	Time        string     `json:"time"`
+	EventDate   string     `json:"event_date"`
+	Description string     `json:"description"`
+	Gender      string     `json:"gender"`
+	MinAge      int        `json:"min_age"`
+	MaxAge      int        `json:"max_age"`
+	DateLabel   string     `json:"date_label"`
+	GroupType   string     `json:"group_type"`
+	CoverKey    string     `json:"cover_key"`
+	HostName    string     `json:"host_name"`
+	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type User struct {
@@ -85,6 +86,7 @@ type ConversationEventMeta struct {
 	EventDate string `json:"event_date"`
 	DateLabel string `json:"date_label"`
 	GroupType string `json:"group_type"`
+	CoverKey  string `json:"cover_key"`
 }
 
 type MessageSummary struct {
@@ -119,22 +121,24 @@ type CreateEventParams struct {
 	Gender      string `json:"gender" binding:"required,min=1"`
 	MinAge      int    `json:"min_age" binding:"required,gte=0"`
 	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
-	DateLabel   string `json:"date_label"` // accepted for backward compatibility, ignored by server
+	DateLabel   string `json:"date_label"`  // accepted for backward compatibility, ignored by server
 	GroupType   string `json:"group_type" binding:"required,oneof=Single Group"`
 	CoverKey    string `json:"cover_key" binding:"omitempty,min=1"`
+	ScheduledAt string `json:"scheduled_at"` // ISO 8601 UTC timestamp
 	UserID      int64  `json:"-"`
 }
 
 type UpdateEventParams struct {
-	Title       string `json:"title" binding:"required,min=1"`
-	Location    string `json:"location" binding:"required,min=1"`
-	Time        string `json:"time" binding:"required,min=1"`
-	EventDate   string `json:"event_date" binding:"required,min=10"`
-	Description string `json:"description"`
-	Gender      string `json:"gender" binding:"required,min=1"`
-	MinAge      int    `json:"min_age" binding:"required,gte=0"`
-	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
-	DateLabel   string `json:"date_label"` // accepted for backward compatibility, ignored by server
-	GroupType   string `json:"group_type" binding:"required,oneof=Single Group"`
+	Title       string  `json:"title" binding:"required,min=1"`
+	Location    string  `json:"location" binding:"required,min=1"`
+	Time        string  `json:"time" binding:"required,min=1"`
+	EventDate   string  `json:"event_date" binding:"required,min=10"`
+	Description string  `json:"description"`
+	Gender      string  `json:"gender" binding:"required,min=1"`
+	MinAge      int     `json:"min_age" binding:"required,gte=0"`
+	MaxAge      int     `json:"max_age" binding:"required,gte=0"`
+	DateLabel   string  `json:"date_label"`  // accepted for backward compatibility, ignored by server
+	GroupType   string  `json:"group_type" binding:"required,oneof=Single Group"`
 	CoverKey    *string `json:"cover_key" binding:"omitempty,min=1"`
+	ScheduledAt string  `json:"scheduled_at"` // ISO 8601 UTC timestamp
 }

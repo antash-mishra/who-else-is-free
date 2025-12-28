@@ -38,6 +38,7 @@ import {
     CoverKey,
     DEFAULT_COVER_KEY,
     resolveCoverUri,
+    resolveCoverGradient,
 } from "@constants/covers";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -78,6 +79,26 @@ const getDateStringForChoice = (choice: DateOption) => {
     const month = `${base.getMonth() + 1}`.padStart(2, "0");
     const day = `${base.getDate()}`.padStart(2, "0");
     return `${year}-${month}-${day}`;
+};
+
+// Build ISO 8601 UTC timestamp from local date choice and time (HH:MM format)
+const buildScheduledAtUTC = (dateChoice: DateOption, time: string): string => {
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+    if (dateChoice === "tomorrow") {
+        base.setDate(base.getDate() + 1);
+    }
+
+    // Parse time (HH:MM format)
+    const timeParts = time.split(":");
+    const hours = parseInt(timeParts[0], 10) || 0;
+    const minutes = parseInt(timeParts[1], 10) || 0;
+
+    // Set the time in local timezone
+    base.setHours(hours, minutes, 0, 0);
+
+    // Return as ISO 8601 UTC string
+    return base.toISOString();
 };
 
 const getDateChoiceFromEventDate = (eventDate?: string): DateOption => {
@@ -422,6 +443,11 @@ const CreateEventScreen = () => {
         [coverKey],
     );
 
+    const gradientColors = useMemo(
+        () => resolveCoverGradient(coverKey),
+        [coverKey],
+    );
+
     const selectedCoverLabel = useMemo(() => {
         const option = COVER_OPTIONS.find((item) => item.key === coverKey);
         return option?.label ?? "Cover";
@@ -513,6 +539,7 @@ const CreateEventScreen = () => {
             const selectedCover = form.coverKey || DEFAULT_COVER_KEY;
             const eventDate = getDateStringForChoice(form.dateChoice);
             const selectedLabel = form.dateChoice === "today" ? "Today" : "Tmrw";
+            const scheduledAt = buildScheduledAtUTC(form.dateChoice, form.time);
 
             try {
                 if (isEditing && editEventId) {
@@ -531,6 +558,7 @@ const CreateEventScreen = () => {
                         groupType: form.groupType,
                         badgeLabel: form.groupType === "Group" ? "Group" : null,
                         coverKey: selectedCover,
+                        scheduledAt,
                     });
                     navigation.goBack();
                 } else {
@@ -551,6 +579,7 @@ const CreateEventScreen = () => {
                         coverKey: selectedCover,
                         userId: user.id,
                         hostName: user.name,
+                        scheduledAt,
                     });
                     resetForm();
                     navigation.navigate("MyEvents");
@@ -603,6 +632,7 @@ const CreateEventScreen = () => {
             const selectedCover = formState.coverKey || DEFAULT_COVER_KEY;
             const eventDate = getDateStringForChoice(formState.dateChoice);
             const selectedLabel = formState.dateChoice === "today" ? "Today" : "Tmrw";
+            const scheduledAt = buildScheduledAtUTC(formState.dateChoice, formState.time);
 
             const draftPayload: GuestEventDraft = {
                 title: trimmedName || "New event",
@@ -617,6 +647,7 @@ const CreateEventScreen = () => {
                 groupType: formState.groupType,
                 badgeLabel: formState.groupType === "Group" ? "Group" : undefined,
                 coverKey: selectedCover,
+                scheduledAt,
             };
 
             queueGuestEvent(draftPayload);
@@ -642,7 +673,7 @@ const CreateEventScreen = () => {
     return (
         <View style={styles.root}>
             <LinearGradient
-                colors={[colors.createGradientStart, colors.createGradientEnd]}
+                colors={gradientColors}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
                 locations={[0, 1]}
