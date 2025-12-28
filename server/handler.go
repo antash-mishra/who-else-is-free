@@ -222,3 +222,63 @@ func normalizeCoverKey(value string) string {
 	}
 	return trimmed
 }
+
+type reportEventBody struct {
+	Reason string `json:"reason" binding:"required"`
+}
+
+func (h *EventHandler) reportEvent(c *gin.Context) {
+	claims, exists := sessionFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	idStr := c.Param("id")
+	eventID, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	var payload reportEventBody
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	reason := strings.TrimSpace(payload.Reason)
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "reason is required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	// Verify event exists
+	_, err = h.repo.GetEventByID(ctx, eventID)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+
+	report, err := h.repo.CreateEventReport(ctx, eventID, claims.UserID, reason)
+	if err != nil {
+		if errors.Is(err, ErrReportAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "you have already reported this event"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})
+		return
+	}
+
+	// Silently cancel any pending join request for this user/event
+	_ = h.repo.CancelJoinRequest(ctx, eventID, claims.UserID)
+
+	c.JSON(http.StatusCreated, gin.H{"report": report})
+}

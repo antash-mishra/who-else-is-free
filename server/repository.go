@@ -20,6 +20,7 @@ var ErrJoinRequestNotFound = errors.New("join request not found")
 var ErrNotEventHost = errors.New("user is not the event host")
 var ErrCannotRemoveHost = errors.New("event host cannot be removed from the conversation")
 var ErrNotConversationMember = errors.New("user is not a conversation member")
+var ErrReportAlreadyExists = errors.New("report already exists for this event")
 
 type rowQuery interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
@@ -257,6 +258,23 @@ CREATE TABLE IF NOT EXISTS conversation_join_requests (
 );
 `
 
+const createTableEventReports = `
+CREATE TABLE IF NOT EXISTS event_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending','reviewed','dismissed')) DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at DATETIME,
+    reviewed_by INTEGER,
+    UNIQUE(event_id, user_id),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (reviewed_by) REFERENCES users(id)
+);
+`
+
 const selectAllUsers = `
 SELECT id, name
 FROM users;
@@ -312,6 +330,16 @@ FROM conversation_join_requests r
 JOIN users u ON u.id = r.user_id
 WHERE r.user_id = ? AND r.status = 'pending'
 ORDER BY r.created_at DESC;
+`
+
+const cancelJoinRequestByUser = `
+DELETE FROM conversation_join_requests
+WHERE event_id = ? AND user_id = ? AND status = 'pending';
+`
+
+const insertEventReport = `
+INSERT INTO event_reports (event_id, user_id, reason, status)
+VALUES (?, ?, ?, 'pending');
 `
 
 const deleteConversationMember = `
@@ -375,6 +403,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if err := r.ensureJoinRequestMessageColumn(ctx); err != nil {
 		return err
+	}
+	if _, err := r.db.ExecContext(ctx, createTableEventReports); err != nil {
+		return fmt.Errorf("create event_reports table: %w", err)
 	}
 	return nil
 }
@@ -2081,4 +2112,41 @@ func (r *EventRepository) GetUserByID(ctx context.Context, id int64) (*User, err
 		return nil, fmt.Errorf("lookup user by id: %w", err)
 	}
 	return &user, nil
+}
+
+func (r *EventRepository) CancelJoinRequest(ctx context.Context, eventID, userID int64) error {
+	result, err := r.db.ExecContext(ctx, cancelJoinRequestByUser, eventID, userID)
+	if err != nil {
+		return fmt.Errorf("cancel join request: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check cancel rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrJoinRequestNotFound
+	}
+	return nil
+}
+
+func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID int64, reason string) (*EventReport, error) {
+	res, err := r.db.ExecContext(ctx, insertEventReport, eventID, userID, reason)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return nil, ErrReportAlreadyExists
+		}
+		return nil, fmt.Errorf("insert event report: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("fetch event report id: %w", err)
+	}
+	return &EventReport{
+		ID:        id,
+		EventID:   eventID,
+		UserID:    userID,
+		Reason:    reason,
+		Status:    "pending",
+		CreatedAt: time.Now(),
+	}, nil
 }

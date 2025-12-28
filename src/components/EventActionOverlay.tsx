@@ -45,11 +45,30 @@ type ResultOverlayProps = {
   tone?: "default" | "success" | "error";
 };
 
+type PendingRequestOverlayProps = {
+  type: "pendingRequest";
+  onCancelRequest: () => void;
+  onReportEvent: () => void;
+  isCancelling?: boolean;
+};
+
+type ReportOverlayProps = {
+  type: "report";
+  reportMessage: string;
+  onReportMessageChange: (text: string) => void;
+  onSubmitReport: () => void;
+  reportError?: string | null;
+  reportSubmitting?: boolean;
+  reportDisabled?: boolean;
+};
+
 type OverlayVariantProps =
   | InviteOverlayProps
   | ManageOverlayProps
   | ConfirmOverlayProps
-  | ResultOverlayProps;
+  | ResultOverlayProps
+  | PendingRequestOverlayProps
+  | ReportOverlayProps;
 
 type EventActionOverlayProps = {
   isVisible: boolean;
@@ -241,6 +260,88 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     );
   };
 
+  const renderPendingRequestPrompt = () => {
+    if (props.type !== "pendingRequest") return null;
+    const { onCancelRequest, onReportEvent, isCancelling } = props;
+
+    return (
+      <View style={[styles.prompt, promptPositionStyle]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onCancelRequest}
+          disabled={isCancelling}
+          style={({ pressed }) => [
+            styles.manageButton,
+            isCancelling && styles.primaryButtonDisabled,
+            pressed && !isCancelling && styles.manageButtonPressed,
+          ]}
+        >
+          <Text style={styles.manageLabel}>
+            {isCancelling ? "Cancelling…" : "Cancel Request"}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onReportEvent}
+          disabled={isCancelling}
+          style={({ pressed }) => [
+            styles.manageButton,
+            pressed && styles.manageButtonPressed,
+          ]}
+        >
+          <Text style={[styles.manageLabel, styles.deleteLabel]}>
+            Report Event
+          </Text>
+        </Pressable>
+      </View>
+    );
+  };
+
+  const renderReportPrompt = () => {
+    if (props.type !== "report") return null;
+    const {
+      reportMessage,
+      onReportMessageChange,
+      onSubmitReport,
+      reportError,
+      reportSubmitting,
+      reportDisabled,
+    } = props;
+
+    const isDisabled = reportSubmitting || reportDisabled;
+
+    return (
+      <View style={[styles.prompt, promptPositionStyle]}>
+        <TextInput
+          accessibilityLabel="Tell us why you are reporting this event"
+          placeholder="Tell us why you are reporting this event"
+          placeholderTextColor={colors.subText}
+          multiline
+          value={reportMessage}
+          onChangeText={onReportMessageChange}
+          style={styles.inviteInput}
+        />
+        {reportError ? (
+          <Text style={styles.promptError}>{reportError}</Text>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          onPress={onSubmitReport}
+          disabled={isDisabled}
+          style={({ pressed }) => [
+            styles.sendButton,
+            isDisabled && styles.primaryButtonDisabled,
+            pressed && !isDisabled && styles.sendButtonPressed,
+          ]}
+        >
+          <Text style={styles.sendLabel}>
+            {reportSubmitting ? "Submitting…" : "Submit Report"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.overlayContainer} pointerEvents="box-none">
       <Pressable style={styles.overlayBackdrop} onPress={onBackdropPress} />
@@ -248,6 +349,8 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       {type === "manage" && renderManagePrompt()}
       {type === "confirm" && renderConfirmPrompt()}
       {type === "result" && renderResultPrompt()}
+      {type === "pendingRequest" && renderPendingRequestPrompt()}
+      {type === "report" && renderReportPrompt()}
     </View>
   );
 };

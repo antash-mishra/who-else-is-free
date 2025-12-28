@@ -480,6 +480,7 @@ func RegisterChatRoutes(router *gin.RouterGroup, repo *EventRepository, hub *Cha
 	router.POST("/events/:id/chat/requests/:userId/approve", handler.approveJoin)
 	router.POST("/events/:id/chat/requests/:userId/deny", handler.denyJoin)
 	router.DELETE("/events/:id/chat/members/:userId", handler.removeMember)
+	router.DELETE("/events/:id/chat/requests/me", handler.cancelJoinRequest)
 }
 
 type ChatHTTPHandler struct {
@@ -943,6 +944,44 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, joinRequestResponse{Request: view})
+}
+
+// cancelJoinRequest allows a user to withdraw their pending join request.
+//
+// Responses:
+//   - 200 on success
+//   - 401 if the caller has no session
+//   - 400 for invalid event id
+//   - 404 if no pending request exists
+//   - 500 for repository/database failures
+func (h *ChatHTTPHandler) cancelJoinRequest(c *gin.Context) {
+	claims, ok := sessionFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing session"})
+		return
+	}
+
+	eventIDParam := c.Param("id")
+	eventID, err := strconv.ParseInt(eventIDParam, 10, 64)
+	if err != nil || eventID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	err = h.repo.CancelJoinRequest(ctx, eventID, claims.UserID)
+	if err != nil {
+		if errors.Is(err, ErrJoinRequestNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "no pending request found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to cancel request"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "request cancelled"})
 }
 
 // removeMember removes a user from an event's group conversation. Only the
