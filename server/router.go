@@ -30,6 +30,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *
 	protected := api.Group("")
 	protected.Use(sessionMiddleware(signer))
 	eventHandler.RegisterProtectedRoutes(protected)
+	protected.POST("/events/:id/report", eventHandler.reportEvent)
 	RegisterChatRoutes(protected, eventHandler.repo, chatHub)
 
 	api.GET("/ws", chatHub.handleWebSocket)

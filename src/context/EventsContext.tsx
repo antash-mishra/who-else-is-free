@@ -99,6 +99,7 @@ interface EventsContextValue {
   queueGuestEvent: (draft: GuestEventDraft) => void;
   markEventRequested: (eventId: string) => void;
   isEventRequested: (eventId: string) => boolean;
+  unmarkEventRequested: (eventId: string) => void;
 }
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
@@ -352,6 +353,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     (eventId: string) => requestedEventIds.has(eventId),
     [requestedEventIds],
   );
+
+  const unmarkEventRequested = useCallback((eventId: string) => {
+    setRequestedEventIds((prev) => {
+      const next = new Set(prev);
+      next.delete(eventId);
+      return next;
+    });
+  }, []);
 
   const addUserEvent = useCallback(
     async (event: CreateEventInput) => {
@@ -608,6 +617,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       queueGuestEvent,
       markEventRequested,
       isEventRequested,
+      unmarkEventRequested,
     }),
     [
       events,
@@ -623,6 +633,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       queueGuestEvent,
       markEventRequested,
       isEventRequested,
+      unmarkEventRequested,
     ],
   );
 

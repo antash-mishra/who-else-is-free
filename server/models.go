@@ -112,6 +112,17 @@ type JoinRequestView struct {
 	Requester ConversationParticipant `json:"requester"`
 }
 
+type EventReport struct {
+	ID         int64      `json:"id"`
+	EventID    int64      `json:"event_id"`
+	UserID     int64      `json:"user_id"`
+	Reason     string     `json:"reason"`
+	Status     string     `json:"status"`
+	CreatedAt  time.Time  `json:"created_at"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	ReviewedBy *int64     `json:"reviewed_by,omitempty"`
+}
+
 type CreateEventParams struct {
 	Title       string `json:"title" binding:"required,min=1"`
 	Location    string `json:"location" binding:"required,min=1"`
@@ -121,7 +132,7 @@ type CreateEventParams struct {
 	Gender      string `json:"gender" binding:"required,min=1"`
 	MinAge      int    `json:"min_age" binding:"required,gte=0"`
 	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
-	DateLabel   string `json:"date_label"`  // accepted for backward compatibility, ignored by server
+	DateLabel   string `json:"date_label"` // accepted for backward compatibility, ignored by server
 	GroupType   string `json:"group_type" binding:"required,oneof=Single Group"`
 	CoverKey    string `json:"cover_key" binding:"omitempty,min=1"`
 	ScheduledAt string `json:"scheduled_at"` // ISO 8601 UTC timestamp
@@ -137,7 +148,7 @@ type UpdateEventParams struct {
 	Gender      string  `json:"gender" binding:"required,min=1"`
 	MinAge      int     `json:"min_age" binding:"required,gte=0"`
 	MaxAge      int     `json:"max_age" binding:"required,gte=0"`
-	DateLabel   string  `json:"date_label"`  // accepted for backward compatibility, ignored by server
+	DateLabel   string  `json:"date_label"` // accepted for backward compatibility, ignored by server
 	GroupType   string  `json:"group_type" binding:"required,oneof=Single Group"`
 	CoverKey    *string `json:"cover_key" binding:"omitempty,min=1"`
 	ScheduledAt string  `json:"scheduled_at"` // ISO 8601 UTC timestamp

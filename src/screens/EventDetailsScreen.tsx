@@ -34,7 +34,7 @@ const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
   const insets = useSafeAreaInsets();
-  const { events, deleteUserEvent, markEventRequested, isEventRequested } =
+  const { events, deleteUserEvent, markEventRequested, isEventRequested, unmarkEventRequested } =
     useEvents();
   const { user, token } = useAuth();
   const { conversations, setActiveConversation } = useChat();
@@ -74,6 +74,14 @@ const EventDetailsScreen = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteResultVisible, setDeleteResultVisible] = useState(false);
+  const [userIntroMessage, setUserIntroMessage] = useState<string | null>(null);
+  const [showPendingRequestPrompt, setShowPendingRequestPrompt] = useState(false);
+  const [isCancellingRequest, setIsCancellingRequest] = useState(false);
+  const [showReportPrompt, setShowReportPrompt] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportSuccessVisible, setReportSuccessVisible] = useState(false);
 
   if (!event) {
     return (
@@ -122,6 +130,40 @@ const EventDetailsScreen = () => {
     }
   }, [isConversationMember]);
 
+  // Fetch the user's introduction message when they have a pending request
+  useEffect(() => {
+    if (!hasPendingRequest || !token || !event || isOwner) {
+      setUserIntroMessage(null);
+      return;
+    }
+
+    const fetchUserRequest = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        const requests = payload.requests ?? [];
+        const matchingRequest = requests.find(
+          (req: { event_id?: number; eventId?: number }) =>
+            (req.event_id ?? req.eventId) === Number(event.id),
+        );
+        if (matchingRequest?.message) {
+          setUserIntroMessage(matchingRequest.message);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user join request", err);
+      }
+    };
+
+    fetchUserRequest();
+  }, [hasPendingRequest, token, event, isOwner]);
+
   const ctaLabel = isOwner
     ? "Manage Event"
     : hasPendingRequest
@@ -137,7 +179,11 @@ const EventDetailsScreen = () => {
       setShowManagePrompt(true);
       return;
     }
-    if (hasPendingRequest || isConversationMember) {
+    if (hasPendingRequest) {
+      setShowPendingRequestPrompt(true);
+      return;
+    }
+    if (isConversationMember) {
       return;
     }
     setShowInvitePrompt((prev) => !prev);
@@ -267,6 +313,110 @@ const EventDetailsScreen = () => {
     });
   };
 
+  const handleCancelRequest = async () => {
+    if (!event || !token) {
+      return;
+    }
+    if (isCancellingRequest) {
+      return;
+    }
+    setIsCancellingRequest(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/events/${event.id}/chat/requests/me`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Unable to cancel request right now.");
+      }
+      setShowPendingRequestPrompt(false);
+      setHasPendingRequest(false);
+      unmarkEventRequested(event.id);
+      setUserIntroMessage(null);
+    } catch (err) {
+      console.error("Failed to cancel request", err);
+    } finally {
+      setIsCancellingRequest(false);
+    }
+  };
+
+  const handleOpenReportPrompt = () => {
+    setShowPendingRequestPrompt(false);
+    setReportMessage("");
+    setReportError(null);
+    setShowReportPrompt(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!event || !token) {
+      return;
+    }
+    if (isSubmittingReport) {
+      return;
+    }
+    const trimmed = reportMessage.trim();
+    if (!trimmed.length) {
+      setReportError("Please tell us why you are reporting this event.");
+      return;
+    }
+    setReportError(null);
+    setIsSubmittingReport(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/events/${event.id}/report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ reason: trimmed }),
+        },
+      );
+      if (response.status === 409) {
+        setReportError("You have already reported this event.");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to submit report right now.");
+      }
+      setReportMessage("");
+      setShowReportPrompt(false);
+      setReportSuccessVisible(true);
+      // Clear local state for pending request since backend also cancels it
+      setHasPendingRequest(false);
+      unmarkEventRequested(event.id);
+      setUserIntroMessage(null);
+    } catch (err) {
+      console.error("Failed to submit report", err);
+      setReportError(
+        err instanceof Error
+          ? err.message
+          : "Unable to submit report. Please try again.",
+      );
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
+  const handleDismissReportSuccess = () => {
+    setReportSuccessVisible(false);
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: "Main",
+          params: { screen: "Events" },
+        },
+      ],
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <StatusBar
@@ -353,6 +503,14 @@ const EventDetailsScreen = () => {
                 <Text style={styles.description}>{event.description}</Text>
               </>
             )}
+
+            {userIntroMessage ? (
+              <>
+                <View style={styles.divider} />
+                <Text style={styles.sectionHeading}>Introduction</Text>
+                <Text style={styles.introMessageText}>"{userIntroMessage}"</Text>
+              </>
+            ) : null}
           </View>
         </ScrollView>
         {showStandardCTA && (
@@ -374,7 +532,7 @@ const EventDetailsScreen = () => {
               ]}
               disabled={
                 shouldShowInvitePrompt ||
-                (!isOwner && (hasPendingRequest || isConversationMember))
+                (!isOwner && isConversationMember)
               }
             >
               <Text
@@ -387,11 +545,7 @@ const EventDetailsScreen = () => {
                 {ctaLabel}
               </Text>
             </Pressable>
-            {!isOwner && hasPendingRequest ? (
-              <Text style={styles.pendingRequestText}>
-                Request sent. Watch the event chat for the host&apos;s response.
-              </Text>
-            ) : null}
+            
           </View>
         )}
         {showOpenChatCTA ? (
@@ -464,9 +618,47 @@ const EventDetailsScreen = () => {
         onBackdropPress={() => setInviteSuccessVisible(false)}
         type="result"
         title="Request sent"
-        description="We’ll notify you in chat when the host responds."
+        description="We'll notify you in chat when the host responds."
         dismissLabel="Done"
         onDismiss={() => setInviteSuccessVisible(false)}
+        tone="success"
+      />
+      <EventActionOverlay
+        isVisible={showPendingRequestPrompt}
+        onBackdropPress={
+          isCancellingRequest ? undefined : () => setShowPendingRequestPrompt(false)
+        }
+        type="pendingRequest"
+        onCancelRequest={handleCancelRequest}
+        onReportEvent={handleOpenReportPrompt}
+        isCancelling={isCancellingRequest}
+      />
+      <EventActionOverlay
+        isVisible={showReportPrompt}
+        onBackdropPress={
+          isSubmittingReport ? undefined : () => setShowReportPrompt(false)
+        }
+        type="report"
+        reportMessage={reportMessage}
+        onReportMessageChange={(text) => {
+          setReportMessage(text);
+          if (reportError) {
+            setReportError(null);
+          }
+        }}
+        onSubmitReport={handleSubmitReport}
+        reportError={reportError}
+        reportSubmitting={isSubmittingReport}
+        reportDisabled={!reportMessage.trim()}
+      />
+      <EventActionOverlay
+        isVisible={reportSuccessVisible}
+        onBackdropPress={handleDismissReportSuccess}
+        type="result"
+        title="Report submitted"
+        description="Thank you for helping keep our community safe."
+        dismissLabel="Done"
+        onDismiss={handleDismissReportSuccess}
         tone="success"
       />
     </SafeAreaView>
@@ -618,11 +810,13 @@ const styles = StyleSheet.create({
   ctaContainerActive: {
     backgroundColor: "#F5F5F5",
   },
-  pendingRequestText: {
-    marginTop: spacing.sm,
-    fontSize: typography.caption,
+  introMessageText: {
+    fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.subText,
+    fontStyle: "italic",
+    color: colors.text,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing,
   },
   ctaButton: {
     backgroundColor: colors.primary,
