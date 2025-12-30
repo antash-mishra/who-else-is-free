@@ -82,6 +82,12 @@ const EventDetailsScreen = () => {
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccessVisible, setReportSuccessVisible] = useState(false);
+  const [showMenuOverlay, setShowMenuOverlay] = useState(false);
+  const [showViewIntroOverlay, setShowViewIntroOverlay] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [leaveSuccessVisible, setLeaveSuccessVisible] = useState(false);
 
   if (!event) {
     return (
@@ -130,9 +136,10 @@ const EventDetailsScreen = () => {
     }
   }, [isConversationMember]);
 
-  // Fetch the user's introduction message when they have a pending request
+  // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {
-    if (!hasPendingRequest || !token || !event || isOwner) {
+    const shouldFetch = (hasPendingRequest || isConversationMember) && !isOwner;
+    if (!shouldFetch || !token || !event) {
       setUserIntroMessage(null);
       return;
     }
@@ -162,25 +169,21 @@ const EventDetailsScreen = () => {
     };
 
     fetchUserRequest();
-  }, [hasPendingRequest, token, event, isOwner]);
+  }, [hasPendingRequest, isConversationMember, token, event, isOwner]);
 
-  const ctaLabel = isOwner
-    ? "Manage Event"
-    : hasPendingRequest
-      ? "Request Pending"
-      : "Interested";
+  const ctaLabel = hasPendingRequest
+    ? "Request Pending"
+    : "Interested";
 
-  const showStandardCTA = isOwner || (!isOwner && !isConversationMember);
+  // Show standard CTA only for non-owners who haven't joined
+  const showStandardCTA = !isOwner && !isConversationMember;
+  // Show "Go to Chat" for owners (always have conversation) and joined members
   const showOpenChatCTA =
-    !isOwner && isConversationMember && !!eventConversation;
+    (isOwner || isConversationMember) && !!eventConversation;
 
   const handleCtaPress = () => {
-    if (isOwner) {
-      setShowManagePrompt(true);
-      return;
-    }
+    // Pending state: CTA is disabled, actions handled via three-dot menu
     if (hasPendingRequest) {
-      setShowPendingRequestPrompt(true);
       return;
     }
     if (isConversationMember) {
@@ -417,6 +420,120 @@ const EventDetailsScreen = () => {
     });
   };
 
+  const handleLeavePrompt = () => {
+    setShowMenuOverlay(false);
+    setLeaveError(null);
+    setShowLeaveConfirm(true);
+  };
+
+  const handleLeaveEvent = async () => {
+    if (!event || !user || !token) {
+      return;
+    }
+    if (isLeaving) {
+      return;
+    }
+    setLeaveError(null);
+    setIsLeaving(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/events/${event.id}/chat/members/${user.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Unable to leave event right now.");
+      }
+      setShowLeaveConfirm(false);
+      setLeaveSuccessVisible(true);
+    } catch (err) {
+      console.error("Failed to leave event", err);
+      setLeaveError("Unable to leave this event. Please try again.");
+    } finally {
+      setIsLeaving(false);
+    }
+  };
+
+  const handleLeaveCancel = () => {
+    if (isLeaving) {
+      return;
+    }
+    setShowLeaveConfirm(false);
+  };
+
+  const handleDismissLeaveSuccess = () => {
+    setLeaveSuccessVisible(false);
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: "Main",
+          params: { screen: "Events" },
+        },
+      ],
+    });
+  };
+
+  const handleMenuReportEvent = () => {
+    setShowMenuOverlay(false);
+    setReportMessage("");
+    setReportError(null);
+    setShowReportPrompt(true);
+  };
+
+  const handleMenuCancelRequest = () => {
+    setShowMenuOverlay(false);
+    handleCancelRequest();
+  };
+
+  const handleMenuViewIntro = () => {
+    setShowMenuOverlay(false);
+    setShowViewIntroOverlay(true);
+  };
+
+  const handleMenuEdit = () => {
+    setShowMenuOverlay(false);
+    handleEdit();
+  };
+
+  const handleMenuDelete = () => {
+    setShowMenuOverlay(false);
+    handleDeletePrompt();
+  };
+
+  const menuItems = useMemo(() => {
+    if (isOwner) {
+      // Host: Edit Details, Delete Event
+      return [
+        { label: "Edit Details", onPress: handleMenuEdit },
+        { label: "Delete Event", onPress: handleMenuDelete, destructive: true },
+      ];
+    }
+    if (isConversationMember) {
+      // Joined: View Intro Message, Leave Event, Report Event
+      return [
+        { label: "View Intro Message", onPress: handleMenuViewIntro },
+        { label: "Leave Event", onPress: handleLeavePrompt, destructive: true },
+        { label: "Report Event", onPress: handleMenuReportEvent, destructive: true },
+      ];
+    }
+    if (hasPendingRequest) {
+      // Pending: Cancel Request, Report Event
+      return [
+        { label: "Cancel Request", onPress: handleMenuCancelRequest, loading: isCancellingRequest },
+        { label: "Report Event", onPress: handleMenuReportEvent, destructive: true },
+      ];
+    }
+    // Not joined: Report Event
+    return [
+      { label: "Report Event", onPress: handleMenuReportEvent, destructive: true },
+    ];
+  }, [isOwner, isConversationMember, hasPendingRequest, isCancellingRequest]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <StatusBar
@@ -446,6 +563,14 @@ const EventDetailsScreen = () => {
             style={[styles.backButton, { top: insets.top + 10 }]}
           >
             <Feather name="chevron-left" size={24} color={colors.buttonText} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setShowMenuOverlay(true)}
+            style={[styles.menuButton, { top: insets.top + 10 }]}
+          >
+            <Feather name="more-horizontal" size={24} color={colors.buttonText} />
           </Pressable>
 
           {/* Elevated Image Card */}
@@ -525,21 +650,20 @@ const EventDetailsScreen = () => {
               onPress={handleCtaPress}
               style={({ pressed }) => [
                 styles.ctaButton,
-                isOwner && styles.ownerButton,
                 pressed && styles.ctaButtonPressed,
-                (shouldShowInvitePrompt || (hasPendingRequest && !isOwner)) &&
+                (shouldShowInvitePrompt || hasPendingRequest) &&
                   styles.ctaButtonDisabled,
               ]}
               disabled={
                 shouldShowInvitePrompt ||
-                (!isOwner && isConversationMember)
+                hasPendingRequest
               }
             >
               <Text
                 style={[
                   styles.ctaLabel,
-                  isOwner && styles.ownerLabel,
-                  shouldShowInvitePrompt && styles.ctaLabelDisabled,
+                  (shouldShowInvitePrompt || hasPendingRequest) &&
+                    styles.ctaLabelDisabled,
                 ]}
               >
                 {ctaLabel}
@@ -558,7 +682,7 @@ const EventDetailsScreen = () => {
                 pressed && styles.ctaButtonPressed,
               ]}
             >
-              <Text style={styles.ctaLabel}>Open Chat</Text>
+              <Text style={styles.ctaLabel}>Go to Chat</Text>
             </Pressable>
           </View>
         ) : null}
@@ -661,6 +785,43 @@ const EventDetailsScreen = () => {
         onDismiss={handleDismissReportSuccess}
         tone="success"
       />
+      <EventActionOverlay
+        isVisible={showMenuOverlay}
+        onBackdropPress={() => setShowMenuOverlay(false)}
+        type="menu"
+        items={menuItems}
+      />
+      <EventActionOverlay
+        isVisible={showViewIntroOverlay}
+        onBackdropPress={() => setShowViewIntroOverlay(false)}
+        type="viewIntro"
+        introMessage={userIntroMessage ?? ""}
+        onDismiss={() => setShowViewIntroOverlay(false)}
+      />
+      <EventActionOverlay
+        isVisible={showLeaveConfirm}
+        onBackdropPress={isLeaving ? undefined : handleLeaveCancel}
+        type="confirm"
+        title="Leave this event?"
+        description="You'll need to request to join again if you change your mind."
+        confirmLabel="Leave Event"
+        cancelLabel="Stay"
+        confirmTone="destructive"
+        onConfirm={handleLeaveEvent}
+        onCancel={handleLeaveCancel}
+        isConfirmLoading={isLeaving}
+        errorMessage={leaveError}
+      />
+      <EventActionOverlay
+        isVisible={leaveSuccessVisible}
+        onBackdropPress={handleDismissLeaveSuccess}
+        type="result"
+        title="You've left the event"
+        description="You can always request to join again."
+        dismissLabel="Done"
+        onDismiss={handleDismissLeaveSuccess}
+        tone="default"
+      />
     </SafeAreaView>
   );
 };
@@ -697,6 +858,18 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  menuButton: {
+    position: "absolute",
+    top: 10,
+    right: 16,
     width: 40,
     height: 40,
     borderRadius: 20,

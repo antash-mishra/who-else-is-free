@@ -62,13 +62,34 @@ type ReportOverlayProps = {
   reportDisabled?: boolean;
 };
 
+type MenuItemProps = {
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+  loading?: boolean;
+  disabled?: boolean;
+};
+
+type MenuOverlayProps = {
+  type: "menu";
+  items: MenuItemProps[];
+};
+
+type ViewIntroOverlayProps = {
+  type: "viewIntro";
+  introMessage: string;
+  onDismiss: () => void;
+};
+
 type OverlayVariantProps =
   | InviteOverlayProps
   | ManageOverlayProps
   | ConfirmOverlayProps
   | ResultOverlayProps
   | PendingRequestOverlayProps
-  | ReportOverlayProps;
+  | ReportOverlayProps
+  | MenuOverlayProps
+  | ViewIntroOverlayProps;
 
 type EventActionOverlayProps = {
   isVisible: boolean;
@@ -342,6 +363,65 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     );
   };
 
+  const renderMenuPrompt = () => {
+    if (props.type !== "menu") return null;
+    const { items } = props;
+
+    return (
+      <View style={[styles.prompt, promptPositionStyle]}>
+        {items.map((item, index) => {
+          const isDisabled = item.loading || item.disabled;
+          return (
+            <Pressable
+              key={index}
+              accessibilityRole="button"
+              onPress={item.onPress}
+              disabled={isDisabled}
+              style={({ pressed }) => [
+                styles.manageButton,
+                isDisabled && styles.primaryButtonDisabled,
+                pressed && !isDisabled && styles.manageButtonPressed,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.manageLabel,
+                  item.destructive && styles.deleteLabel,
+                ]}
+              >
+                {item.loading ? `${item.label}…` : item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderViewIntroPrompt = () => {
+    if (props.type !== "viewIntro") return null;
+    const { introMessage, onDismiss } = props;
+
+    return (
+      <View style={[styles.prompt, promptPositionStyle]}>
+        <View style={styles.promptHeader}>
+          <Text style={styles.promptTitle}>Your Introduction</Text>
+          <Text style={styles.introMessageText}>"{introMessage}"</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onDismiss}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.primaryButtonPressed,
+          ]}
+        >
+          <Text style={styles.primaryLabel}>Done</Text>
+        </Pressable>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.overlayContainer} pointerEvents="box-none">
       <Pressable style={styles.overlayBackdrop} onPress={onBackdropPress} />
@@ -351,6 +431,8 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       {type === "result" && renderResultPrompt()}
       {type === "pendingRequest" && renderPendingRequestPrompt()}
       {type === "report" && renderReportPrompt()}
+      {type === "menu" && renderMenuPrompt()}
+      {type === "viewIntro" && renderViewIntroPrompt()}
     </View>
   );
 };
