@@ -143,6 +143,14 @@ const styles = StyleSheet.create({
   },
   destructiveLabel: {
     color: colors.buttonText
+  },
+  introMessageText: {
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyRegular,
+    fontStyle: 'italic',
+    color: colors.text,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing
   }
 });
 
