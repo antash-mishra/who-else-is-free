@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
+  LayoutAnimation,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  UIManager,
   View,
   Pressable,
   StatusBar,
 } from "react-native";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
@@ -17,7 +25,7 @@ import { colors, spacing, typography } from "@theme/index";
 import { RootStackParamList } from "@navigation/types";
 import { useEvents, UserEvent } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
-import { useChat } from "@context/ChatContext";
+import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { API_BASE_URL } from "@api/config";
 import EventActionOverlay from "@components/EventActionOverlay";
 
@@ -37,7 +45,14 @@ const EventDetailsScreen = () => {
   const { events, deleteUserEvent, markEventRequested, isEventRequested, unmarkEventRequested } =
     useEvents();
   const { user, token } = useAuth();
-  const { conversations, setActiveConversation } = useChat();
+  const {
+    conversations,
+    setActiveConversation,
+    joinRequestsByConversation,
+    refreshJoinRequests,
+    approveJoinRequest,
+    denyJoinRequest,
+  } = useChat();
 
   const rawEvent = useMemo(
     () => events.find((item) => item.id === route.params.eventId),
@@ -88,6 +103,11 @@ const EventDetailsScreen = () => {
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
   const [leaveSuccessVisible, setLeaveSuccessVisible] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<"requests" | "members">("requests");
+  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(new Set());
+  const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
+  const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
 
   if (!event) {
     return (
@@ -110,6 +130,7 @@ const EventDetailsScreen = () => {
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;
   const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
   const scheduleLine = `${readableDateLabel(event.dateLabel)}, ${event.time}`;
+  const audienceLine = `${event.groupType === "Single" ? "1:1" : "Group"}, ${event.audience}`;
   const eventConversation = useMemo(() => {
     if (!event) {
       return null;
@@ -135,6 +156,26 @@ const EventDetailsScreen = () => {
       setHasPendingRequest(false);
     }
   }, [isConversationMember]);
+
+  // Fetch join requests when host views the screen
+  useEffect(() => {
+    if (isOwner && eventConversation && event) {
+      refreshJoinRequests(eventConversation.id, Number(event.id));
+    }
+  }, [isOwner, eventConversation, event?.id, refreshJoinRequests]);
+
+  // Get pending join requests for this event
+  const pendingRequests = useMemo(() => {
+    if (!eventConversation) return [];
+    const requests = joinRequestsByConversation[eventConversation.id] ?? [];
+    return requests.filter((r) => r.status === "pending");
+  }, [eventConversation, joinRequestsByConversation]);
+
+  // Get confirmed members (excluding host)
+  const confirmedMembers = useMemo(() => {
+    if (!eventConversation || !user) return [];
+    return eventConversation.participants.filter((p) => p.id !== user.id);
+  }, [eventConversation, user]);
 
   // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {
@@ -172,7 +213,7 @@ const EventDetailsScreen = () => {
   }, [hasPendingRequest, isConversationMember, token, event, isOwner]);
 
   const ctaLabel = hasPendingRequest
-    ? "Request Pending"
+    ? "Pending Request"
     : "Interested";
 
   // Show standard CTA only for non-owners who haven't joined
@@ -198,6 +239,69 @@ const EventDetailsScreen = () => {
     }
     setActiveConversation(eventConversation.id);
     (navigation as any).navigate("ChatThread");
+  };
+
+  // Avatar colors for generating fallback avatars
+  const AVATAR_COLORS = ["#4CAF50", "#9C27B0", "#FF9800", "#2196F3", "#E91E63", "#00BCD4", "#8BC34A", "#673AB7"];
+
+  const getAvatarColor = (userId: number): string => {
+    return AVATAR_COLORS[userId % AVATAR_COLORS.length];
+  };
+
+  const renderAvatar = (participant: { id: number; name: string; avatarUrl?: string }, size: number = 40) => {
+    if (participant.avatarUrl) {
+      return (
+        <Image
+          source={{ uri: participant.avatarUrl }}
+          style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+        />
+      );
+    }
+    const initial = participant.name?.charAt(0).toUpperCase() ?? "?";
+    const bgColor = getAvatarColor(participant.id);
+    return (
+      <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor }]}>
+        <Text style={styles.avatarInitial}>{initial}</Text>
+      </View>
+    );
+  };
+
+  const handleAcceptRequest = async (request: ChatJoinRequest) => {
+    if (!eventConversation || !event) return;
+    setAcceptingUserId(request.userId);
+    try {
+      await approveJoinRequest(eventConversation.id, Number(event.id), request.userId);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    } catch (err) {
+      console.error("Failed to accept request", err);
+    } finally {
+      setAcceptingUserId(null);
+    }
+  };
+
+  const handleDeclineRequest = async (request: ChatJoinRequest) => {
+    if (!eventConversation || !event) return;
+    setDecliningUserId(request.userId);
+    try {
+      await denyJoinRequest(eventConversation.id, Number(event.id), request.userId);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    } catch (err) {
+      console.error("Failed to decline request", err);
+    } finally {
+      setDecliningUserId(null);
+    }
+  };
+
+  const toggleRequestExpanded = (requestId: number) => {
+    setExpandedRequestIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(requestId)) {
+        next.delete(requestId);
+      } else {
+        next.add(requestId);
+      }
+      return next;
+    });
   };
 
   const handleSendInvite = async () => {
@@ -597,8 +701,8 @@ const EventDetailsScreen = () => {
               <View style={styles.detailRow}>
                 <Feather
                   name="map-pin"
-                  size={18}
-                  color={colors.subText}
+                  size={16}
+                  color={colors.iconColor}
                   style={styles.detailIcon}
                 />
                 <Text style={styles.detailText}>{event.location}</Text>
@@ -606,8 +710,8 @@ const EventDetailsScreen = () => {
               <View style={styles.detailRow}>
                 <Feather
                   name="clock"
-                  size={18}
-                  color={colors.subText}
+                  size={16}
+                  color={colors.iconColor}
                   style={styles.detailIcon}
                 />
                 <Text style={styles.detailText}>{scheduleLine}</Text>
@@ -615,17 +719,147 @@ const EventDetailsScreen = () => {
               <View style={styles.detailRow}>
                 <Feather
                   name="users"
-                  size={18}
-                  color={colors.subText}
+                  size={16}
+                  color={colors.iconColor}
                   style={styles.detailIcon}
                 />
-                <Text style={styles.detailText}>{event.audience}</Text>
+                <Text style={styles.detailText}>{audienceLine}</Text>
               </View>
             </View>
 
             {!!event.description && (
+              <View>
+                <Text
+                  style={styles.description}
+                  numberOfLines={descriptionExpanded ? undefined : 3}
+                >
+                  {event.description}
+                </Text>
+                {event.description.length > 100 && !descriptionExpanded && (
+                  <Text
+                    style={styles.seeMoreText}
+                    onPress={() => setDescriptionExpanded(true)}
+                  >
+                    ...See more
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Host-only: Separator, Tabs, Requests/Members lists */}
+            {isOwner && (
               <>
-                <Text style={styles.description}>{event.description}</Text>
+                <View style={styles.tabSeparator} />
+
+                <View style={styles.tabContainer}>
+                  <Pressable
+                    style={styles.tabItem}
+                    onPress={() => setActiveTab("requests")}
+                  >
+                    <View style={styles.tabLabelRow}>
+                      <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
+                        Requests
+                      </Text>
+                      <Text style={styles.tabCount}> {pendingRequests.length}</Text>
+                    </View>
+                    {activeTab === "requests" && <View style={styles.tabUnderline} />}
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.tabItem}
+                    onPress={() => setActiveTab("members")}
+                  >
+                    <View style={styles.tabLabelRow}>
+                      <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
+                        Members
+                      </Text>
+                      <Text style={styles.tabCount}> {confirmedMembers.length}</Text>
+                    </View>
+                    {activeTab === "members" && <View style={styles.tabUnderline} />}
+                  </Pressable>
+                </View>
+
+                {/* Requests tab content */}
+                {activeTab === "requests" && (
+                  <View style={styles.listContainer}>
+                    {pendingRequests.length === 0 ? (
+                      <Text style={styles.emptyStateText}>No requests yet</Text>
+                    ) : (
+                      pendingRequests.map((request) => {
+                        const isExpanded = expandedRequestIds.has(request.id);
+                        const isAccepting = acceptingUserId === request.userId;
+                        const isDeclining = decliningUserId === request.userId;
+                        const isLoading = isAccepting || isDeclining;
+
+                        return (
+                          <View key={request.id} style={styles.requestItem}>
+                            {renderAvatar(request.requester)}
+
+                            <View style={styles.requestContent}>
+                              <Text style={styles.requestName}>{request.requester.name}</Text>
+                              <Text
+                                style={styles.requestMessage}
+                                numberOfLines={isExpanded ? undefined : 3}
+                              >
+                                {request.message}
+                              </Text>
+                              {!isExpanded && request.message.length > 100 && (
+                                <Text
+                                  style={styles.seeMoreText}
+                                  onPress={() => toggleRequestExpanded(request.id)}
+                                >
+                                  See more
+                                </Text>
+                              )}
+                            </View>
+
+                            <View style={styles.requestActions}>
+                              <Pressable
+                                style={[styles.actionButton, styles.declineButton]}
+                                onPress={() => handleDeclineRequest(request)}
+                                disabled={isLoading}
+                              >
+                                {isDeclining ? (
+                                  <ActivityIndicator size="small" color={colors.text} />
+                                ) : (
+                                  <Feather name="x" size={18} color={colors.text} />
+                                )}
+                              </Pressable>
+
+                              <Pressable
+                                style={[styles.actionButton, styles.acceptButton]}
+                                onPress={() => handleAcceptRequest(request)}
+                                disabled={isLoading}
+                              >
+                                {isAccepting ? (
+                                  <ActivityIndicator size="small" color={colors.buttonText} />
+                                ) : (
+                                  <Feather name="check" size={18} color={colors.buttonText} />
+                                )}
+                              </Pressable>
+                            </View>
+                          </View>
+                        );
+                      })
+                    )}
+                  </View>
+                )}
+
+                {/* Members tab content */}
+                {activeTab === "members" && (
+                  <View style={styles.listContainer}>
+                    {confirmedMembers.length === 0 ? (
+                      <Text style={styles.emptyStateText}>No members yet</Text>
+                    ) : (
+                      confirmedMembers.map((member) => (
+                        <View key={member.id} style={styles.memberItem}>
+                          {renderAvatar(member)}
+                          <Text style={styles.memberName}>{member.name}</Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                )}
               </>
             )}
 
@@ -679,10 +913,13 @@ const EventDetailsScreen = () => {
               onPress={handleOpenChat}
               style={({ pressed }) => [
                 styles.ctaButton,
+                isOwner && styles.ctaButtonSecondary,
                 pressed && styles.ctaButtonPressed,
               ]}
             >
-              <Text style={styles.ctaLabel}>Go to Chat</Text>
+              <Text style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}>
+                Go to Chat
+              </Text>
             </Pressable>
           </View>
         ) : null}
@@ -918,7 +1155,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 32,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl,
     gap: spacing.sm,
   },
@@ -930,10 +1167,10 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   hostedBy: {
-    fontSize: typography.body,
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.cardMeta,
-    lineHeight: typography.lineHeight,
+    color: colors.iconColor,
+    lineHeight: 20,
     letterSpacing: typography.letterSpacing,
   },
   divider: {
@@ -942,11 +1179,11 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   sectionHeading: {
-    fontSize: typography.caption,
-    fontFamily: typography.fontFamilyRegular,
-    color: "#525252",
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#000000",
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.4,
   },
   detailDiv: {
     flexDirection: "column",
@@ -964,15 +1201,14 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     color: colors.eventDetailRowText,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: typography.detailLetterSpacing,
     flex: 1,
   },
   description: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.text,
-    lineHeight: typography.lineHeight,
+    color: "#494949",
+    lineHeight: 22,
     letterSpacing: typography.letterSpacing,
   },
   ctaContainer: {
@@ -998,7 +1234,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctaButtonDisabled: {
-    backgroundColor: colors.eventDetailButtonBackground,
+    backgroundColor: colors.eventDetailButtonDisabledBackground,
   },
   ctaButtonPressed: {
     opacity: 0.7,
@@ -1011,7 +1247,7 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   ctaLabelDisabled: {
-    color: colors.eventDetailButtonText,
+    color: colors.eventDetailButtonDisabledText,
   },
   ownerButton: {
     backgroundColor: "rgba(0, 0, 0, 0.08)",
@@ -1036,6 +1272,168 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: spacing.lg,
     left: spacing.lg,
+  },
+
+  // Separator bar before tabs (host only)
+  tabSeparator: {
+    height: 8,
+    backgroundColor: "#F4F4F4",
+    marginHorizontal: -spacing.md,
+    marginTop: spacing.md,
+  },
+
+  // Tab container and items
+  tabContainer: {
+    flexDirection: "row",
+    gap: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  tabItem: {
+    alignItems: "flex-start",
+  },
+  tabLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  tabLabel: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.subText,
+    lineHeight: 16,
+    letterSpacing: -0.3,
+  },
+  tabLabelActive: {
+    color: colors.text,
+  },
+  tabCount: {
+    fontSize: 15,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#808080",
+    lineHeight: 15,
+    letterSpacing: -0.3,
+  },
+  tabUnderline: {
+    alignSelf: "stretch",
+    height: 2,
+    backgroundColor: colors.text,
+    marginTop: 4,
+  },
+
+  // List container for requests/members
+  listContainer: {
+    marginTop: spacing.sm,
+  },
+
+  // Request item styles
+  requestItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  requestContent: {
+    flex: 1,
+  },
+  requestName: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.text,
+    lineHeight: 20,
+    letterSpacing: -0.5,
+  },
+  requestMessage: {
+    fontSize: 15,
+    fontFamily: typography.fontFamilyRegular,
+    color: "#707070",
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "flex-start",
+    marginTop: spacing.xs,
+  },
+
+  // Action buttons (accept/decline)
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  declineButton: {
+    backgroundColor: "#E6E6E6",
+  },
+  acceptButton: {
+    backgroundColor: colors.text,
+  },
+
+  // Member item styles
+  memberItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  memberName: {
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.text,
+    lineHeight: typography.lineHeight,
+  },
+
+  // Avatar styles
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  avatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitial: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontFamily: typography.fontFamilySemiBold,
+  },
+
+  // See more text
+  seeMoreText: {
+    fontSize: 15,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#707070",
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+
+  // Empty state text
+  emptyStateText: {
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyRegular,
+    color: colors.subText,
+    textAlign: "center",
+    paddingVertical: spacing.lg,
+  },
+
+  // Secondary CTA button (for host)
+  ctaButtonSecondary: {
+    backgroundColor: "#E6E6E6",
+  },
+  ctaLabelSecondary: {
+    fontSize: 17,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#000000",
+    lineHeight: 24,
+    letterSpacing: -0.5,
+    textAlign: "center",
   },
 });
 
