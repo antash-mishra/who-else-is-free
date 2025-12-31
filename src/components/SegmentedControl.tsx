@@ -25,7 +25,7 @@ const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) =
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            style={styles.tab}
+            style={[styles.tab, isActive && styles.tabActive]}
           >
             <Text style={[styles.label, isActive && styles.labelActive]}>{option.label}</Text>
           </Pressable>
@@ -38,22 +38,31 @@ const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) =
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: spacing.lg
+    gap: 5,
+    marginVertical: spacing.sm,
   },
   tab: {
-    paddingVertical: spacing.xs
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    backgroundColor: 'transparent',
+  },
+  tabActive: {
+    borderColor: 'transparent',
+    backgroundColor: '#E6E6E6',
   },
   label: {
-    fontSize: typography.title,
-    color: colors.tabInactive,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    fontSize: 15,
+    color: '#494949',
+    fontFamily: typography.fontFamilyMedium,
+    lineHeight: 20,
+    letterSpacing: -0.3,
   },
   labelActive: {
-    color: colors.tabActive,
-    fontFamily: typography.fontFamilyBold
-  }
+    color: colors.text,
+    fontFamily: typography.fontFamilyMedium,
+  },
 });
 
 export default memo(SegmentedControl);
