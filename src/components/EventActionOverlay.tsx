@@ -151,8 +151,8 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     return (
       <View style={[styles.prompt, promptPositionStyle]}>
         <TextInput
-          accessibilityLabel="Message to the organizer"
-          placeholder="Message to the organizer"
+          accessibilityLabel="Send an intro about you and why you would like to join."
+          placeholder="Send an intro about you and why you would like to join."
           placeholderTextColor={colors.subText}
           multiline
           value={inviteMessage}
@@ -173,7 +173,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           ]}
         >
           <Text style={styles.sendLabel}>
-            {inviteSubmitting ? "Sending…" : "Send"}
+            {inviteSubmitting ? "Sending…" : "Send Introduction"}
           </Text>
         </Pressable>
       </View>
