@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
-    backgroundColor: colors.background,
+    backgroundColor: "#FFFFFF",
     borderRadius: 24,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
@@ -32,13 +32,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs
   },
   inviteInput: {
-    minHeight: 96,
+    minHeight: 140,
     borderRadius: 20,
-    backgroundColor: '#f1f1f1',
+    backgroundColor: '#F4F4F4',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
+    letterSpacing: typography.letterSpacing,
     color: colors.text,
     textAlignVertical: 'top'
   },
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing
   },
   deleteLabel: {
-    color: '#E73737'
+    color: '#FF383C'
   },
   promptButtons: {
     gap: spacing.sm
