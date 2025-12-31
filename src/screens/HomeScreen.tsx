@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -17,8 +17,11 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
+import SegmentedControl from "@components/SegmentedControl";
 import { colors, spacing, typography } from "@theme/index";
 import { DateLabel, UserEvent, useEvents } from "@context/EventsContext";
+import { useAuth } from "@context/AuthContext";
+import { useChat } from "@context/ChatContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -32,34 +35,27 @@ const sectionOrder: { label: string; value: DateLabel }[] = [
   { label: "Tomorrow", value: "Tmrw" },
 ];
 
-const buildSections = (items: UserEvent[]): EventSection[] => {
+const buildSections = (
+  items: UserEvent[],
+  getBadgeLabel: (event: UserEvent) => string | undefined,
+): EventSection[] => {
   const grouped: Record<DateLabel, EventItemProps[]> = {
     Today: [],
     Tmrw: [],
   };
 
-  items.forEach(
-    ({
+  items.forEach((event) => {
+    const { id, title, location, time, audience, imageUri, dateLabel } = event;
+    grouped[dateLabel].push({
       id,
       title,
       location,
       time,
       audience,
       imageUri,
-      badgeLabel,
-      dateLabel,
-    }) => {
-      grouped[dateLabel].push({
-        id,
-        title,
-        location,
-        time,
-        audience,
-        imageUri,
-        badgeLabel,
-      });
-    },
-  );
+      badgeLabel: getBadgeLabel(event),
+    });
+  });
 
   return sectionOrder
     .map(({ label, value }) => ({
@@ -69,6 +65,13 @@ const buildSections = (items: UserEvent[]): EventSection[] => {
     .filter((section) => section.data.length > 0);
 };
 
+type SortMode = "upcoming" | "newest";
+
+const sortOptions = [
+  { label: "Upcoming", value: "upcoming" },
+  { label: "Newest", value: "newest" },
+];
+
 const HomeScreen = () => {
   type HomeScreenNavigation = CompositeNavigationProp<
     BottomTabNavigationProp<RootTabParamList, "Events">,
@@ -76,14 +79,60 @@ const HomeScreen = () => {
   >;
 
   const navigation = useNavigation<HomeScreenNavigation>();
-  const { events: allEvents, isLoading, error, refreshEvents } = useEvents();
+  const { events: allEvents, isLoading, error, refreshEvents, isEventRequested } = useEvents();
+  const { user } = useAuth();
+  const { conversations } = useChat();
   const insets = useSafeAreaInsets();
-  const allEventSections = useMemo<EventSection[]>(
-    () => buildSections(allEvents),
-    [allEvents],
+  const [sortMode, setSortMode] = useState<SortMode>("upcoming");
+
+  // Set of event IDs user has joined (is a member of conversation but not owner)
+  const joinedEventIds = useMemo(() => {
+    if (!user) return new Set<string>();
+    const ids = new Set<string>();
+    conversations.forEach((conversation) => {
+      if (conversation.eventId && conversation.createdBy !== user.id) {
+        ids.add(String(conversation.eventId));
+      }
+    });
+    return ids;
+  }, [conversations, user]);
+
+  // Compute badge label based on user's relationship to the event
+  const getBadgeLabel = useCallback(
+    (event: UserEvent): string | undefined => {
+      if (!user) return undefined;
+      if (event.ownerId === user.id) return "Hosting";
+      if (joinedEventIds.has(event.id)) return "Joined";
+      if (isEventRequested(event.id)) return "Pending";
+      return undefined;
+    },
+    [user, joinedEventIds, isEventRequested],
   );
 
-  const sections = allEventSections;
+  const sections = useMemo<EventSection[]>(() => {
+    if (sortMode === "newest") {
+      const sorted = [...allEvents].sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      return sorted.length > 0
+        ? [{
+            title: "Newest",
+            data: sorted.map((event) => ({
+              id: event.id,
+              title: event.title,
+              location: event.location,
+              time: event.time,
+              audience: event.audience,
+              imageUri: event.imageUri,
+              badgeLabel: getBadgeLabel(event),
+            })),
+          }]
+        : [];
+    }
+    return buildSections(allEvents, getBadgeLabel);
+  }, [allEvents, sortMode, getBadgeLabel]);
   const showAllEventsLoading = isLoading && sections.length === 0;
   const showAllEventsError = !!error && !isLoading && sections.length === 0;
   const showAllEventsEmpty = !isLoading && sections.length === 0 && !error;
@@ -93,7 +142,7 @@ const HomeScreen = () => {
   }, [refreshEvents]);
 
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
-    <Text style={styles.sectionHeader}>{section.title.toUpperCase()}</Text>
+    <Text style={styles.sectionHeader}>{section.title}</Text>
   );
 
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
@@ -116,7 +165,12 @@ const HomeScreen = () => {
   return (
     <ScreenContainer>
       <View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>All Events</Text>
+        <Text style={styles.headerTitle}>Discover Events</Text>
+        <SegmentedControl
+          options={sortOptions}
+          value={sortMode}
+          onChange={(value) => setSortMode(value as SortMode)}
+        />
       </View>
       {showAllEventsLoading ? (
         <View style={styles.centerContent}>
@@ -131,7 +185,7 @@ const HomeScreen = () => {
         </View>
       ) : showAllEventsEmpty ? (
         <View style={styles.centerContent}>
-          <Text style={styles.emptyAllText}>No events available yet.</Text>
+          <Text style={styles.emptyAllText}>No events yet.</Text>
         </View>
       ) : (
         <SectionList<EventItemProps, EventSection>
@@ -167,6 +221,7 @@ const styles = StyleSheet.create({
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   headerTitle: {
     fontSize: typography.header,
@@ -178,14 +233,14 @@ const styles = StyleSheet.create({
   listContent: {
   },
   sectionHeader: {
-    fontSize: typography.caption,
-    color: colors.muted,
+    fontSize: 16,
+    color: '#000000',
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
+    lineHeight: 20,
+    letterSpacing: -0.4,
   },
   sectionSeparator: {
     height: spacing.md,

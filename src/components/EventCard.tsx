@@ -2,6 +2,9 @@ import { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, typography } from '@theme/index';
+import PendingIcon from '@assets/pending.svg';
+import HostingIcon from '@assets/hosting.svg';
+import JoinedIcon from '@assets/joined.svg';
 
 const IMAGE_SIZE = 66;
 const BORDER_RADIUS_RATIO = 0.2;
@@ -16,8 +19,25 @@ export interface EventItemProps {
   badgeLabel?: string;
 }
 
+const BADGE_ICON_SIZE = 10;
+const VALID_BADGES = ['Pending', 'Hosting', 'Joined'];
+
+const getBadgeIcon = (badgeLabel: string) => {
+  switch (badgeLabel) {
+    case 'Pending':
+      return <PendingIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;
+    case 'Hosting':
+      return <HostingIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;
+    case 'Joined':
+      return <JoinedIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;
+    default:
+      return null;
+  }
+};
+
 const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: EventItemProps) => {
   const imageBorderRadius = IMAGE_SIZE * BORDER_RADIUS_RATIO;
+  const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
 
   return (
     <View style={styles.container}>
@@ -28,8 +48,9 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
         ]}
       >
         <Image source={{ uri: imageUri }} style={styles.image} />
-        {badgeLabel ? (
+        {showBadge ? (
           <View style={styles.badge}>
+            {getBadgeIcon(badgeLabel)}
             <Text style={styles.badgeText}>{badgeLabel}</Text>
           </View>
         ) : null}
@@ -65,19 +86,18 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: spacing.xs,
+    bottom: 4,
     left: spacing.xs,
-    backgroundColor: '#FFFFFFDD',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: spacing.sm
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   badgeText: {
-    fontSize: typography.caption,
-    color: colors.primary,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontFamily: typography.fontFamilyRegular,
+    lineHeight: 12,
+    letterSpacing: -0.3,
   },
   content: {
     flex: 1,

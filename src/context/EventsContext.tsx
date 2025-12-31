@@ -33,6 +33,7 @@ export interface UserEvent extends EventItemProps {
   groupType: "Single" | "Group";
   coverKey?: CoverKey | null;
   scheduledAt?: string; // ISO 8601 UTC timestamp
+  createdAt?: string; // ISO 8601 UTC timestamp
 }
 
 interface CreateEventInput {
@@ -120,6 +121,7 @@ type ApiEvent = {
   host_name: string;
   cover_key?: CoverKey | null;
   scheduled_at?: string; // ISO 8601 UTC timestamp
+  created_at?: string; // ISO 8601 UTC timestamp
 };
 
 interface EventMeta {
@@ -270,6 +272,7 @@ const mapApiEvent = (
     groupType,
     coverKey: event.cover_key ?? null,
     scheduledAt: event.scheduled_at,
+    createdAt: event.created_at,
   };
 };
 
