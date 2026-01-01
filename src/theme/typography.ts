@@ -6,6 +6,7 @@ export const typography = {
   titleLineHeight: 36,
   lineHeight: 24,
   letterSpacing: -0.5,
+  detailLetterSpacing: -0.3,
   header: 24,
   title: 22,
   subtitle: 18,
