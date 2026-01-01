@@ -91,7 +91,7 @@ const CreateEventScreen = () => {
     const scrollViewRef = useRef<KeyboardAwareScrollView>(null);
 
     // Responsive gap for spacing between form elements
-    const responsiveGap = spacing.sm;
+    const responsiveGap = spacing.xs;
 
     const editEventId = route.params?.editEventId;
     const editEvent = editEventId
@@ -615,7 +615,7 @@ const CreateEventScreen = () => {
 
             <View style={styles.fieldCard}>
                 <View style={[styles.fieldRow, styles.dateRow]}>
-                    <Text style={styles.fieldLabel}>Date & Time</Text>
+                    <Text style={styles.fieldLabel}>Date</Text>
                     <View style={styles.dateTimeContainer}>
                         <Pressable
                             style={styles.fieldValuePill}
@@ -650,9 +650,9 @@ const CreateEventScreen = () => {
                         </View>
                     </View>
                 </View>
-            </View>
 
-            <View style={styles.fieldCard}>
+                <View style={styles.fieldDivider} />
+
                 <View style={[styles.fieldRow, styles.locationRow]}>
                     <Text style={styles.fieldLabel}>Location</Text>
                     <TextInput
