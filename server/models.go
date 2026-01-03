@@ -109,18 +109,20 @@ type ConversationJoinRequest struct {
 
 type JoinRequestView struct {
 	ConversationJoinRequest
-	Requester ConversationParticipant `json:"requester"`
+	Requester      ConversationParticipant `json:"requester"`
+	ConversationID *int64                  `json:"conversation_id,omitempty"`
 }
 
 type EventReport struct {
-	ID         int64      `json:"id"`
-	EventID    int64      `json:"event_id"`
-	UserID     int64      `json:"user_id"`
-	Reason     string     `json:"reason"`
-	Status     string     `json:"status"`
-	CreatedAt  time.Time  `json:"created_at"`
-	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
-	ReviewedBy *int64     `json:"reviewed_by,omitempty"`
+	ID             int64      `json:"id"`
+	EventID        int64      `json:"event_id"`
+	UserID         int64      `json:"user_id"`
+	ReportedUserID *int64     `json:"reported_user_id,omitempty"`
+	Reason         string     `json:"reason"`
+	Status         string     `json:"status"`
+	CreatedAt      time.Time  `json:"created_at"`
+	ReviewedAt     *time.Time `json:"reviewed_at,omitempty"`
+	ReviewedBy     *int64     `json:"reviewed_by,omitempty"`
 }
 
 type CreateEventParams struct {

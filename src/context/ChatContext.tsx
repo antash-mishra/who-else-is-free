@@ -78,6 +78,7 @@ export type ChatJoinRequest = {
   status: "pending" | "approved" | "denied";
   createdAt: string;
   requester: ConversationParticipant;
+  conversationId?: number;  // for 1:1 events
 };
 
 interface ChatContextValue {
@@ -105,6 +106,7 @@ interface ChatContextValue {
     eventId: number,
     userId: number,
   ) => Promise<void>;
+  reportMember: (eventId: number, userId: number, reason: string) => Promise<void>;
   isRefreshingConversations: boolean;
 }
 
@@ -230,6 +232,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     const createdAt =
       raw.createdAt ?? raw.created_at ?? new Date().toISOString();
     const requester = raw.requester ?? {};
+    const conversationId = raw.conversationId ?? raw.conversation_id;
     return {
       id: raw.id,
       eventId,
@@ -241,6 +244,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         id: requester.id ?? userId,
         name: requester.name ?? requester.full_name ?? "",
       },
+      conversationId,
     };
   }, []);
 
@@ -548,6 +552,45 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       await performJoinRequestAction(conversationId, eventId, userId, "deny");
     },
     [performJoinRequestAction],
+  );
+
+  const reportMember = useCallback(
+    async (eventId: number, userId: number, reason: string) => {
+      const authToken = tokenRef.current;
+      if (!authToken) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ reason }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to report member");
+      }
+
+      // The backend also denies the join request, so we need to update local state
+      // This is similar to denyJoinRequest behavior
+      // Find the conversationId for this user and remove them from joinRequestsByConversation
+      setJoinRequestsByConversation((prev) => {
+        const updated = { ...prev };
+        for (const [convId, requests] of Object.entries(updated)) {
+          updated[Number(convId)] = requests.filter((req) =>
+            !(req.eventId === eventId && req.userId === userId)
+          );
+        }
+        return updated;
+      });
+    },
+    [],
   );
 
   useEffect(() => {
@@ -997,6 +1040,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       refreshJoinRequests,
       approveJoinRequest,
       denyJoinRequest,
+      reportMember,
       isRefreshingConversations,
     }),
     [
@@ -1012,6 +1056,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       refreshJoinRequests,
       approveJoinRequest,
       denyJoinRequest,
+      reportMember,
       isRefreshingConversations,
     ],
   );

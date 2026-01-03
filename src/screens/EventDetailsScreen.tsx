@@ -108,6 +108,11 @@ const EventDetailsScreen = () => {
   const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(new Set());
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
+  // 1:1 event request menu state
+  const [selectedRequest, setSelectedRequest] = useState<ChatJoinRequest | null>(null);
+  const [showRequestMenu, setShowRequestMenu] = useState(false);
+  const [isDecliningFromMenu, setIsDecliningFromMenu] = useState(false);
+  const [isReportingMember, setIsReportingMember] = useState(false);
 
   if (!event) {
     return (
@@ -127,6 +132,7 @@ const EventDetailsScreen = () => {
   }
 
   const isOwner = user?.id === event.ownerId;
+  const isSingleEvent = event?.groupType === "Single";
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;
   const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
   const scheduleLine = `${readableDateLabel(event.dateLabel)}, ${event.time}`;
@@ -164,12 +170,17 @@ const EventDetailsScreen = () => {
     }
   }, [isOwner, eventConversation, event?.id, refreshJoinRequests]);
 
-  // Get pending join requests for this event
-  const pendingRequests = useMemo(() => {
+  // Get visible join requests for this event
+  // For 1:1 events: show approved requests (auto-approved on join)
+  // For Group events: show pending requests (awaiting host approval)
+  const visibleRequests = useMemo(() => {
     if (!eventConversation) return [];
     const requests = joinRequestsByConversation[eventConversation.id] ?? [];
+    if (isSingleEvent) {
+      return requests.filter((r) => r.status === "approved");
+    }
     return requests.filter((r) => r.status === "pending");
-  }, [eventConversation, joinRequestsByConversation]);
+  }, [eventConversation, joinRequestsByConversation, isSingleEvent]);
 
   // Get confirmed members (excluding host)
   const confirmedMembers = useMemo(() => {
@@ -302,6 +313,89 @@ const EventDetailsScreen = () => {
       }
       return next;
     });
+  };
+
+  // 1:1 event handlers
+  const handleRequesterPress = async (request: ChatJoinRequest) => {
+    if (!request.conversationId || !eventConversation) return;
+    setActiveConversation(request.conversationId);
+    (navigation as any).navigate("ChatThread");
+  };
+
+  const openRequestMenu = (request: ChatJoinRequest) => {
+    setSelectedRequest(request);
+    setShowRequestMenu(true);
+  };
+
+  const handleDeclineFromMenu = async () => {
+    if (!selectedRequest || !eventConversation || !event) return;
+    setIsDecliningFromMenu(true);
+    try {
+      await denyJoinRequest(eventConversation.id, Number(event.id), selectedRequest.userId);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setShowRequestMenu(false);
+      setSelectedRequest(null);
+    } catch (err) {
+      console.error("Failed to decline request from menu", err);
+    } finally {
+      setIsDecliningFromMenu(false);
+    }
+  };
+
+  const handleOpenReportFromMenu = () => {
+    setShowRequestMenu(false);
+    setReportMessage("");
+    setReportError(null);
+    setShowReportPrompt(true);
+  };
+
+  const handleSubmitMemberReport = async () => {
+    if (!event || !token || !selectedRequest) return;
+    if (isReportingMember) return;
+    const trimmed = reportMessage.trim();
+    if (!trimmed.length) {
+      setReportError("Please tell us why you are reporting this member.");
+      return;
+    }
+    setReportError(null);
+    setIsReportingMember(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/events/${event.id}/members/${selectedRequest.userId}/report`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ reason: trimmed }),
+        },
+      );
+      if (response.status === 409) {
+        setReportError("You have already reported this member.");
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Unable to submit report right now.");
+      }
+      setReportMessage("");
+      setShowReportPrompt(false);
+      setSelectedRequest(null);
+      setReportSuccessVisible(true);
+      // Refresh requests since the reported member should be removed
+      if (eventConversation) {
+        refreshJoinRequests(eventConversation.id, Number(event.id));
+      }
+    } catch (err) {
+      console.error("Failed to submit member report", err);
+      setReportError(
+        err instanceof Error
+          ? err.message
+          : "Unable to submit report. Please try again.",
+      );
+    } finally {
+      setIsReportingMember(false);
+    }
   };
 
   const handleSendInvite = async () => {
@@ -751,41 +845,74 @@ const EventDetailsScreen = () => {
               <>
                 <View style={styles.tabSeparator} />
 
+                {/* Tabs header - Requests for all events, Members only for Group */}
                 <View style={styles.tabContainer}>
                   <Pressable
                     style={styles.tabItem}
                     onPress={() => setActiveTab("requests")}
                   >
                     <View style={styles.tabLabelRow}>
-                      <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
+                      <Text style={[styles.tabLabel, (isSingleEvent || activeTab === "requests") && styles.tabLabelActive]}>
                         Requests
                       </Text>
-                      <Text style={styles.tabCount}> {pendingRequests.length}</Text>
+                      <Text style={styles.tabCount}> {visibleRequests.length}</Text>
                     </View>
-                    {activeTab === "requests" && <View style={styles.tabUnderline} />}
+                    {(isSingleEvent || activeTab === "requests") && <View style={styles.tabUnderline} />}
                   </Pressable>
 
-                  <Pressable
-                    style={styles.tabItem}
-                    onPress={() => setActiveTab("members")}
-                  >
-                    <View style={styles.tabLabelRow}>
-                      <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
-                        Members
-                      </Text>
-                      <Text style={styles.tabCount}> {confirmedMembers.length}</Text>
-                    </View>
-                    {activeTab === "members" && <View style={styles.tabUnderline} />}
-                  </Pressable>
+                  {/* Members tab - only for Group events */}
+                  {!isSingleEvent && (
+                    <Pressable
+                      style={styles.tabItem}
+                      onPress={() => setActiveTab("members")}
+                    >
+                      <View style={styles.tabLabelRow}>
+                        <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
+                          Members
+                        </Text>
+                        <Text style={styles.tabCount}> {confirmedMembers.length}</Text>
+                      </View>
+                      {activeTab === "members" && <View style={styles.tabUnderline} />}
+                    </Pressable>
+                  )}
                 </View>
 
-                {/* Requests tab content */}
-                {activeTab === "requests" && (
+                {/* Requests list - always for 1:1, or when requests tab active for Group */}
+                {(isSingleEvent || activeTab === "requests") && (
                   <View style={styles.listContainer}>
-                    {pendingRequests.length === 0 ? (
+                    {visibleRequests.length === 0 ? (
                       <Text style={styles.emptyStateText}>No requests yet</Text>
                     ) : (
-                      pendingRequests.map((request) => {
+                      visibleRequests.map((request) => {
+                        if (isSingleEvent) {
+                          // 1:1 mode: tappable row with 3-dot menu
+                          return (
+                            <Pressable
+                              key={request.id}
+                              onPress={() => handleRequesterPress(request)}
+                              style={styles.requestItem}
+                            >
+                              {renderAvatar(request.requester)}
+                              <View style={styles.requestInfo}>
+                                <Text style={styles.requesterName}>{request.requester.name}</Text>
+                                <Text numberOfLines={1} style={styles.requestMessagePreview}>
+                                  {request.message}
+                                </Text>
+                              </View>
+                              <Pressable
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  openRequestMenu(request);
+                                }}
+                                style={styles.requestMenuButton}
+                              >
+                                <Feather name="more-horizontal" size={24} color="#666" />
+                              </Pressable>
+                            </Pressable>
+                          );
+                        }
+
+                        // Group mode: existing card with Accept/Decline
                         const isExpanded = expandedRequestIds.has(request.id);
                         const isAccepting = acceptingUserId === request.userId;
                         const isDeclining = decliningUserId === request.userId;
@@ -845,8 +972,8 @@ const EventDetailsScreen = () => {
                   </View>
                 )}
 
-                {/* Members tab content */}
-                {activeTab === "members" && (
+                {/* Members tab - only for Group events */}
+                {!isSingleEvent && activeTab === "members" && (
                   <View style={styles.listContainer}>
                     {confirmedMembers.length === 0 ? (
                       <Text style={styles.emptyStateText}>No members yet</Text>
@@ -997,7 +1124,10 @@ const EventDetailsScreen = () => {
       <EventActionOverlay
         isVisible={showReportPrompt}
         onBackdropPress={
-          isSubmittingReport ? undefined : () => setShowReportPrompt(false)
+          (isSubmittingReport || isReportingMember) ? undefined : () => {
+            setShowReportPrompt(false);
+            setSelectedRequest(null);
+          }
         }
         type="report"
         reportMessage={reportMessage}
@@ -1007,9 +1137,9 @@ const EventDetailsScreen = () => {
             setReportError(null);
           }
         }}
-        onSubmitReport={handleSubmitReport}
+        onSubmitReport={selectedRequest ? handleSubmitMemberReport : handleSubmitReport}
         reportError={reportError}
-        reportSubmitting={isSubmittingReport}
+        reportSubmitting={isSubmittingReport || isReportingMember}
         reportDisabled={!reportMessage.trim()}
       />
       <EventActionOverlay
@@ -1058,6 +1188,27 @@ const EventDetailsScreen = () => {
         dismissLabel="Done"
         onDismiss={handleDismissLeaveSuccess}
         tone="default"
+      />
+      {/* 1:1 event request menu */}
+      <EventActionOverlay
+        isVisible={showRequestMenu}
+        onBackdropPress={() => {
+          setShowRequestMenu(false);
+          setSelectedRequest(null);
+        }}
+        type="menu"
+        items={[
+          {
+            label: "Decline request",
+            onPress: handleDeclineFromMenu,
+            loading: isDecliningFromMenu,
+          },
+          {
+            label: "Report Member",
+            onPress: handleOpenReportFromMenu,
+            destructive: true,
+          },
+        ]}
       />
     </SafeAreaView>
   );
@@ -1434,6 +1585,26 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: -0.5,
     textAlign: "center",
+  },
+
+  // 1:1 event request row styles
+  requestInfo: {
+    flex: 1,
+  },
+  requesterName: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.text,
+    lineHeight: 20,
+    letterSpacing: -0.5,
+  },
+  requestMessagePreview: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+  },
+  requestMenuButton: {
+    padding: 8,
   },
 });
 

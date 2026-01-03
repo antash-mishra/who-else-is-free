@@ -475,12 +475,14 @@ func RegisterChatRoutes(router *gin.RouterGroup, repo *EventRepository, hub *Cha
 	router.GET("/conversations/:id/messages", handler.listMessages)
 	router.POST("/conversations", handler.createConversation)
 	router.GET("/events/:id/chat/requests", handler.listJoinRequests)
+	router.GET("/events/:id/conversations", handler.listEventConversations)
 	router.GET("/chat/requests/me", handler.listUserJoinRequests)
 	router.POST("/events/:id/chat/requests", handler.requestJoin)
 	router.POST("/events/:id/chat/requests/:userId/approve", handler.approveJoin)
 	router.POST("/events/:id/chat/requests/:userId/deny", handler.denyJoin)
 	router.DELETE("/events/:id/chat/members/:userId", handler.removeMember)
 	router.DELETE("/events/:id/chat/requests/me", handler.cancelJoinRequest)
+	router.POST("/events/:id/members/:userId/report", handler.reportMember)
 }
 
 type ChatHTTPHandler struct {
@@ -724,9 +726,10 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		return
 	}
 
-	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
+	// Get event to check if it's a 1:1 event
+	event, err := h.repo.GetEventByID(ctx, eventID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "chat conversation missing for event"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
 		return
 	}
 
@@ -736,6 +739,34 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 			ID:   user.ID,
 			Name: user.Name,
 		},
+	}
+
+	// For 1:1 events, request is auto-approved - find the private conversation
+	if event.GroupType == "Single" {
+		// Find the newly created private conversation for this user
+		convo, err := h.repo.findUserConversationForEventPublic(ctx, eventID, claims.UserID)
+		if err == nil && convo != nil {
+			view.ConversationID = &convo.ID
+			// Notify membership (user was auto-added to conversation)
+			h.hub.NotifyMembership(convo.ID, claims.UserID, "added")
+			// Emit join request event to the host's main event conversation
+			mainConvo, _ := h.repo.GetConversationByEventID(ctx, eventID)
+			if mainConvo != nil {
+				h.hub.emitJoinRequestEvent(mainConvo.ID, "created", view)
+			}
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"request":        view,
+			"conversationId": view.ConversationID,
+		})
+		return
+	}
+
+	// For Group events, emit to the main conversation
+	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "chat conversation missing for event"})
+		return
 	}
 
 	h.hub.emitJoinRequestEvent(convo.ID, "created", view)
@@ -1144,4 +1175,162 @@ func (h *ChatHTTPHandler) postJoinAnnouncement(ctx context.Context, conversation
 	}
 	h.hub.emitChatMessage(msg, "")
 	return nil
+}
+
+type listEventConversationsResponse struct {
+	Conversations []ConversationSummary `json:"conversations"`
+}
+
+// listEventConversations returns all conversations linked to an event.
+// Used for 1:1 events to list all host-requester private conversations.
+// Only the event host can call this endpoint.
+//
+// Responses:
+//   - 200 with a list of conversations (each includes unread_count)
+//   - 401 if the caller has no session
+//   - 400 for invalid event id
+//   - 403 if the caller is not the event host
+//   - 404 if the event is not found
+//   - 500 for repository/database failures
+func (h *ChatHTTPHandler) listEventConversations(c *gin.Context) {
+	claims, ok := sessionFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing session"})
+		return
+	}
+
+	eventIDParam := c.Param("id")
+	eventID, err := strconv.ParseInt(eventIDParam, 10, 64)
+	if err != nil || eventID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	event, err := h.repo.GetEventByID(ctx, eventID)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+
+	// Only event host can list all conversations for the event
+	if event.UserID != claims.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the event host can list event conversations"})
+		return
+	}
+
+	conversations, err := h.repo.ListConversationsForEvent(ctx, eventID, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load conversations"})
+		return
+	}
+
+	c.JSON(http.StatusOK, listEventConversationsResponse{Conversations: conversations})
+}
+
+type reportMemberBody struct {
+	Reason string `json:"reason" binding:"required"`
+}
+
+// reportMember allows the event host to report a specific member.
+// This creates a report with reported_user_id set and also denies the join request
+// (which removes the user from the conversation for 1:1 events).
+//
+// Responses:
+//   - 201 with the created report
+//   - 401 if the caller has no session
+//   - 400 for invalid path params or missing reason
+//   - 403 if the caller is not the event host
+//   - 404 if the event is not found
+//   - 500 for repository/database failures
+func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
+	claims, ok := sessionFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing session"})
+		return
+	}
+
+	eventIDParam := c.Param("id")
+	eventID, err := strconv.ParseInt(eventIDParam, 10, 64)
+	if err != nil || eventID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	userIDParam := c.Param("userId")
+	reportedUserID, err := strconv.ParseInt(userIDParam, 10, 64)
+	if err != nil || reportedUserID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	var payload reportMemberBody
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	reason := strings.TrimSpace(payload.Reason)
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "reason is required"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	event, err := h.repo.GetEventByID(ctx, eventID)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+
+	// Only event host can report members
+	if event.UserID != claims.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the event host can report members"})
+		return
+	}
+
+	// Cannot report yourself
+	if reportedUserID == claims.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot report yourself"})
+		return
+	}
+
+	// Create the member report
+	report, err := h.repo.CreateMemberReport(ctx, eventID, claims.UserID, reportedUserID, reason)
+	if err != nil {
+		if errors.Is(err, ErrReportAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "you have already reported this member"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})
+		return
+	}
+
+	// Also deny the join request (which removes user from conversation for 1:1 events)
+	_, denyErr := h.repo.DenyJoinRequest(ctx, eventID, reportedUserID, claims.UserID)
+	if denyErr != nil && !errors.Is(denyErr, ErrJoinRequestNotFound) {
+		log.Printf("failed to deny join request after report: %v", denyErr)
+	}
+
+	// Notify membership removal for 1:1 events
+	if event.GroupType == "Single" {
+		convo, err := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
+		if err == nil && convo != nil {
+			h.hub.NotifyMembership(convo.ID, reportedUserID, "removed")
+		}
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"report": report})
 }

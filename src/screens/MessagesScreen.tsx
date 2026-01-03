@@ -58,9 +58,28 @@ const MessagesScreen = () => {
     }, [refreshConversations, user]),
   );
 
-  const handleConversationPress = (conversationId: number) => {
-    setActiveConversation(conversationId);
-    navigation.navigate("ChatThread");
+  const handleConversationPress = (conversation: ChatConversation) => {
+    const is1to1Host =
+      conversation.event?.groupType === "Single" &&
+      conversation.createdBy === user?.id;
+
+    if (is1to1Host && conversation.eventId) {
+      navigation.navigate("JoinRequests", {
+        conversationId: conversation.id,
+        eventId: conversation.eventId,
+        title: conversation.event?.title ?? conversation.displayName,
+        groupType: "Single",
+        eventDetails: {
+          coverKey: conversation.event?.coverKey,
+          dateLabel: conversation.event?.dateLabel ?? "",
+          location: conversation.event?.location ?? "",
+          time: conversation.event?.time ?? "",
+        },
+      });
+    } else {
+      setActiveConversation(conversation.id);
+      navigation.navigate("ChatThread");
+    }
   };
 
   const renderConversation = ({ item }: { item: ChatConversation }) => {
@@ -98,7 +117,7 @@ const MessagesScreen = () => {
 
     return (
       <Pressable
-        onPress={() => handleConversationPress(item.id)}
+        onPress={() => handleConversationPress(item)}
         style={[
           styles.conversationRow,
           item.id === activeConversationId && styles.conversationRowActive,
