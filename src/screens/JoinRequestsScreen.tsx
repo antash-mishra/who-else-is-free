@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -12,9 +13,13 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { colors, spacing, typography } from "@theme/index";
-import { useChat } from "@context/ChatContext";
+import { useChat, ChatJoinRequest } from "@context/ChatContext";
+import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
+import EventActionOverlay from "@components/EventActionOverlay";
+import { COVER_OPTIONS, CoverKey } from "@constants/covers";
+import { API_BASE_URL } from "@api/config";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
 type JoinRequestsNavigation = NativeStackNavigationProp<
@@ -22,18 +27,52 @@ type JoinRequestsNavigation = NativeStackNavigationProp<
   "JoinRequests"
 >;
 
+const AVATAR_COLORS = [
+  "#4CAF50",
+  "#9C27B0",
+  "#FF9800",
+  "#2196F3",
+  "#E91E63",
+  "#00BCD4",
+  "#8BC34A",
+  "#673AB7",
+];
+
+const getAvatarColor = (userId: number) =>
+  AVATAR_COLORS[userId % AVATAR_COLORS.length];
+
+const getCoverSource = (coverKey?: string) => {
+  const option = COVER_OPTIONS.find((item) => item.key === coverKey);
+  return option?.source ?? COVER_OPTIONS[0].source;
+};
+
 const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
   const route = useRoute<JoinRequestsRoute>();
+  const { token } = useAuth();
   const {
     joinRequestsByConversation,
     refreshJoinRequests,
     approveJoinRequest,
     denyJoinRequest,
+    setActiveConversation,
   } = useChat();
-  const { conversationId, eventId, title } = route.params;
+  const { conversationId, eventId, title, groupType, eventDetails } =
+    route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Mode detection
+  const is1to1Mode = groupType === "Single";
+
+  // State for 1:1 mode menu and report overlays
+  const [selectedRequest, setSelectedRequest] =
+    useState<ChatJoinRequest | null>(null);
+  const [showRequestMenu, setShowRequestMenu] = useState(false);
+  const [showReportOverlay, setShowReportOverlay] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -46,6 +85,7 @@ const JoinRequestsScreen = () => {
     handleRefresh();
   }, [handleRefresh]);
 
+  // Group mode action handler (existing)
   const handleAction = useCallback(
     async (requestId: number, userId: number, action: "approve" | "deny") => {
       try {
@@ -64,84 +104,287 @@ const JoinRequestsScreen = () => {
     [approveJoinRequest, conversationId, denyJoinRequest, eventId],
   );
 
+  // 1:1 mode: handle row tap (auto-approve and navigate to chat)
+  const handleRequesterPress = useCallback(
+    async (request: ChatJoinRequest & { conversationId?: number }) => {
+      if (!request.conversationId) return;
+      setActiveConversation(request.conversationId);
+      navigation.replace("ChatThread");
+    },
+    [navigation, setActiveConversation],
+  );
+
+  // 1:1 mode: handle 3-dot menu press
+  const handleMenuPress = useCallback((request: ChatJoinRequest) => {
+    setSelectedRequest(request);
+    setShowRequestMenu(true);
+  }, []);
+
+  // 1:1 mode: handle decline from menu
+  const handleDeclineFromMenu = useCallback(async () => {
+    if (!selectedRequest) return;
+    setShowRequestMenu(false);
+    try {
+      await denyJoinRequest(conversationId, eventId, selectedRequest.userId);
+    } catch (err) {
+      Alert.alert(
+        "Unable to decline request",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    }
+    setSelectedRequest(null);
+  }, [conversationId, denyJoinRequest, eventId, selectedRequest]);
+
+  // 1:1 mode: handle report from menu
+  const handleReportFromMenu = useCallback(() => {
+    setShowRequestMenu(false);
+    setShowReportOverlay(true);
+  }, []);
+
+  // 1:1 mode: submit report
+  const handleSubmitReport = useCallback(async () => {
+    if (!selectedRequest) return;
+    setIsSubmittingReport(true);
+    setReportError(null);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/events/${eventId}/members/${selectedRequest.userId}/report`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ reason: reportMessage }),
+        },
+      );
+      if (!response.ok) throw new Error("Failed to report");
+      setShowReportOverlay(false);
+      setReportMessage("");
+      setSelectedRequest(null);
+    } catch (err) {
+      setReportError("Failed to submit report. Please try again.");
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  }, [eventId, reportMessage, selectedRequest, token]);
+
+  // Close overlays
+  const handleCloseMenu = useCallback(() => {
+    setShowRequestMenu(false);
+    setSelectedRequest(null);
+  }, []);
+
+  const handleCloseReportOverlay = useCallback(() => {
+    setShowReportOverlay(false);
+    setReportMessage("");
+    setReportError(null);
+  }, []);
+
+  // Group mode empty state
   const listEmpty = useMemo(
     () => (
       <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>No pending requests</Text>
-        <Text style={styles.emptySubtitle}>
-          You&apos;ll see new join requests here when attendees tap Interested.
+        <Text style={styles.emptyTitle}>
+          {is1to1Mode ? "No requests yet" : "No pending requests"}
         </Text>
+        {!is1to1Mode && (
+          <Text style={styles.emptySubtitle}>
+            You&apos;ll see new join requests here when attendees tap
+            Interested.
+          </Text>
+        )}
       </View>
     ),
-    [],
+    [is1to1Mode],
+  );
+
+  // 1:1 mode header
+  const render1to1Header = () => {
+    if (!eventDetails) return null;
+    const coverSource = getCoverSource(eventDetails.coverKey);
+    const subtitle = `${eventDetails.dateLabel}, ${eventDetails.time} at ${eventDetails.location}`;
+
+    return (
+      <View style={styles.header1to1}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Feather name="chevron-left" size={24} color={colors.text} />
+        </Pressable>
+        <Image source={coverSource} style={styles.headerCoverImage} />
+        <View style={styles.headerCopy1to1}>
+          <Text style={styles.headerTitle1to1} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
+        {requests.length > 0 && (
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>{requests.length}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // 1:1 mode request item
+  const render1to1RequestItem = ({
+    item,
+  }: {
+    item: ChatJoinRequest & { conversationId?: number };
+  }) => {
+    const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
+    const avatarColor = getAvatarColor(item.userId);
+    const introMessage = item.message || "No introduction provided";
+
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.requestRow1to1,
+          pressed && styles.requestRowPressed,
+        ]}
+        onPress={() => handleRequesterPress(item)}
+      >
+        <View style={[styles.avatar1to1, { backgroundColor: avatarColor }]}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+        <View style={styles.requestInfo1to1}>
+          <Text style={styles.requesterName1to1}>{item.requester.name}</Text>
+          <Text style={styles.introMessage1to1} numberOfLines={1}>
+            {introMessage}
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => handleMenuPress(item)}
+          style={styles.menuButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Feather name="more-horizontal" size={20} color={colors.subText} />
+        </Pressable>
+      </Pressable>
+    );
+  };
+
+  // Group mode header
+  const renderGroupHeader = () => (
+    <View style={styles.header}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
+        <Feather name="chevron-left" size={24} color={colors.text} />
+      </Pressable>
+      <View style={styles.headerCopy}>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={styles.headerSubtitle}>Join Requests</Text>
+      </View>
+    </View>
+  );
+
+  // Group mode request item
+  const renderGroupRequestItem = ({ item }: { item: ChatJoinRequest }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardName}>{item.requester.name}</Text>
+        <Text style={styles.cardTime}>
+          {new Date(item.createdAt).toLocaleString([], {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      </View>
+      {item.message ? (
+        <Text style={styles.cardMessage}>{item.message}</Text>
+      ) : null}
+      <View style={styles.cardActions}>
+        <Pressable
+          onPress={() => handleAction(item.id, item.userId, "deny")}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.secondaryButtonPressed,
+          ]}
+        >
+          <Text style={styles.secondaryLabel}>Decline</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => handleAction(item.id, item.userId, "approve")}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.primaryButtonPressed,
+          ]}
+        >
+          <Text style={styles.primaryLabel}>Accept</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 
   return (
     <ScreenContainer edges={["top", "bottom"]}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Feather name="chevron-left" size={24} color={colors.text} />
-          </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle}>{title}</Text>
-            <Text style={styles.headerSubtitle}>Join Requests</Text>
-          </View>
-        </View>
+        {is1to1Mode ? render1to1Header() : renderGroupHeader()}
         <FlatList
           data={requests}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardName}>{item.requester.name}</Text>
-                <Text style={styles.cardTime}>
-                  {new Date(item.createdAt).toLocaleString([], {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
-              </View>
-              {item.message ? (
-                <Text style={styles.cardMessage}>{item.message}</Text>
-              ) : null}
-              <View style={styles.cardActions}>
-                <Pressable
-                  onPress={() => handleAction(item.id, item.userId, "deny")}
-                  style={({ pressed }) => [
-                    styles.secondaryButton,
-                    pressed && styles.secondaryButtonPressed,
-                  ]}
-                >
-                  <Text style={styles.secondaryLabel}>Decline</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => handleAction(item.id, item.userId, "approve")}
-                  style={({ pressed }) => [
-                    styles.primaryButton,
-                    pressed && styles.primaryButtonPressed,
-                  ]}
-                >
-                  <Text style={styles.primaryLabel}>Accept</Text>
-                </Pressable>
-              </View>
-            </View>
+          renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
+          ItemSeparatorComponent={() => (
+            <View
+              style={is1to1Mode ? styles.separator1to1 : styles.separator}
+            />
           )}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={
-            requests.length === 0 ? styles.listEmptyContent : styles.listContent
+            requests.length === 0
+              ? styles.listEmptyContent
+              : is1to1Mode
+                ? styles.listContent1to1
+                : styles.listContent
           }
           ListEmptyComponent={listEmpty}
           onRefresh={handleRefresh}
           refreshing={isRefreshing}
         />
       </View>
+
+      {/* 1:1 mode: Request menu overlay */}
+      <EventActionOverlay
+        isVisible={showRequestMenu}
+        onBackdropPress={handleCloseMenu}
+        type="menu"
+        items={[
+          {
+            label: "Decline request",
+            onPress: handleDeclineFromMenu,
+            destructive: false,
+          },
+          {
+            label: "Report Member",
+            onPress: handleReportFromMenu,
+            destructive: true,
+          },
+        ]}
+      />
+
+      {/* 1:1 mode: Report overlay */}
+      <EventActionOverlay
+        isVisible={showReportOverlay}
+        onBackdropPress={handleCloseReportOverlay}
+        type="report"
+        reportMessage={reportMessage}
+        onReportMessageChange={setReportMessage}
+        onSubmitReport={handleSubmitReport}
+        reportError={reportError}
+        reportSubmitting={isSubmittingReport}
+        reportDisabled={!reportMessage.trim()}
+      />
     </ScreenContainer>
   );
 };
@@ -151,8 +394,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // Group mode header styles
   header: {
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.md,
     flexDirection: "row",
@@ -181,19 +424,66 @@ const styles = StyleSheet.create({
     color: colors.subText,
     marginTop: spacing.xs,
   },
+  // 1:1 mode header styles
+  header1to1: {
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  headerCoverImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  headerCopy1to1: {
+    flex: 1,
+  },
+  headerTitle1to1: {
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.text,
+  },
+  headerSubtitle1to1: {
+    fontSize: typography.caption,
+    color: colors.subText,
+    marginTop: 2,
+  },
+  badgeContainer: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.xs,
+  },
+  badgeText: {
+    fontSize: typography.caption,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.buttonText,
+  },
+  // List styles
   listContent: {
-    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  listContent1to1: {
     paddingBottom: spacing.xl,
   },
   listEmptyContent: {
     flexGrow: 1,
-    paddingHorizontal: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
   },
   separator: {
     height: spacing.md,
   },
+  separator1to1: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  // Group mode card styles
   card: {
     borderRadius: 20,
     borderWidth: 1,
@@ -254,10 +544,49 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: colors.buttonText,
   },
+  // 1:1 mode request row styles
+  requestRow1to1: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  requestRowPressed: {
+    backgroundColor: "rgba(0,0,0,0.03)",
+  },
+  avatar1to1: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamilySemiBold,
+    color: "#FFFFFF",
+  },
+  requestInfo1to1: {
+    flex: 1,
+  },
+  requesterName1to1: {
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.text,
+  },
+  introMessage1to1: {
+    fontSize: typography.caption,
+    fontFamily: typography.fontFamilyRegular,
+    color: colors.subText,
+    marginTop: 2,
+  },
+  menuButton: {
+    padding: spacing.xs,
+  },
+  // Empty state styles
   emptyState: {
     alignItems: "center",
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
   },
   emptyTitle: {
     fontFamily: typography.fontFamilySemiBold,

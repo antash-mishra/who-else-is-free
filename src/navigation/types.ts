@@ -16,6 +16,13 @@ export type RootStackParamList = {
     conversationId: number;
     eventId: number;
     title: string;
+    groupType?: "Single" | "Group";
+    eventDetails?: {
+      coverKey?: string;
+      dateLabel: string;
+      location: string;
+      time: string;
+    };
   };
   ChatThread: undefined;
 };

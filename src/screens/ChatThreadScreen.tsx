@@ -197,6 +197,13 @@ const ChatThreadScreen = () => {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
       title: activeConversation.displayName,
+      groupType: activeConversation.event?.groupType as "Single" | "Group" | undefined,
+      eventDetails: activeConversation.event ? {
+        coverKey: activeConversation.event.coverKey,
+        dateLabel: activeConversation.event.dateLabel ?? "",
+        location: activeConversation.event.location ?? "",
+        time: activeConversation.event.time ?? "",
+      } : undefined,
     });
   };
 
