@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     },
     dismissButton: {
         position: "absolute",
-        right: 0,
+        right: -spacing.sm,
         padding: spacing.sm,
     },
     coverCard: {
