@@ -21,6 +21,7 @@ import ChatThreadScreen from "@screens/ChatThreadScreen";
 import ProfileScreen from "@screens/ProfileScreen";
 import LoginScreen from "@screens/LoginScreen";
 import EventDetailsScreen from "@screens/EventDetailsScreen";
+import SplashScreen from "@screens/SplashScreen";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
 import GoogleSignIn from "@screens/GoogleSignIn";
@@ -350,8 +351,8 @@ const MainTabs = () => {
           tabBarActiveTintColor: colors.activeTabIndicator,
           tabBarInactiveTintColor: colors.tabInactive,
           tabBarButton: (props) => <VibratingTabBarButton {...props} />,
-          lazy: false,
-          freezeOnBlur: true,
+          lazy: true,
+          freezeOnBlur: false,
           animation: "fade",
           sceneStyle: { backgroundColor: colors.background },
         };
@@ -422,7 +423,7 @@ const AppNavigator = () => {
   return (
     <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
-        initialRouteName="Main"
+        initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
@@ -431,6 +432,15 @@ const AppNavigator = () => {
           animationDuration: 200,
         }}
       >
+        <Stack.Screen
+          name="Splash"
+          component={SplashScreen}
+          options={{
+            animation: "none",
+            headerShown: false,
+            contentStyle: { backgroundColor: "#050F29" },
+          }}
+        />
         <Stack.Screen
           name="Main"
           component={MainTabs}
