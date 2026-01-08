@@ -8,9 +8,9 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/splash-screen-high-res.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#050F29"
     },
     "ios": {
       "supportsTablet": true,
@@ -33,6 +33,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-splash-screen",
       "expo-font",
       [
         "@react-native-google-signin/google-signin",

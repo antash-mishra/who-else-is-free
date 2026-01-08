@@ -5,12 +5,16 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 
 import AppNavigator from '@navigation/AppNavigator';
 import { colors } from '@theme/colors';
 import { EventsProvider } from '@context/EventsContext';
 import { AuthProvider } from '@context/AuthContext';
 import { ChatProvider } from '@context/ChatContext';
+
+// Prevent native splash from auto-hiding before fonts load
+SplashScreen.preventAutoHideAsync();
 
 const App = () => {
   const [fontsLoaded] = useFonts({
