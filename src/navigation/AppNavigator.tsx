@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { useMemo, useRef } from "react";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, G, Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -283,7 +283,7 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
 
 const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
-  const fillColor = getFillColor(focused);
+  const fillColor = focused ? color : "none";
 
   return (
     <Svg
@@ -292,18 +292,23 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
       viewBox={TAB_ICON_VIEW_BOX}
       fill="none"
     >
-      <Path
-        d="M28.0002 10C30.511 10.0001 32.5677 11.9789 32.6935 14.459L32.7004 14.7002C32.6884 17.2424 30.7088 19.2902 28.1857 19.3877H28.1652C28.0524 19.3775 27.9408 19.377 27.8381 19.3848C25.2516 19.2695 23.3001 17.2212 23.3 14.7002C23.3 12.1085 25.4084 10 28.0002 10Z"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={2}
-      />
-      <Path
-        d="M28.0179 22.9062C30.49 22.9063 32.9032 23.44 34.6879 24.4502C36.1874 25.2991 36.8554 26.314 36.9408 27.2549L36.9506 27.4414C36.9465 28.4318 36.2882 29.5206 34.6849 30.4395C32.8936 31.4607 30.4745 32 28.0004 32C25.5262 32 23.1072 31.4607 21.3158 30.4395L21.3129 30.4385L21.0228 30.2656C19.6265 29.3924 19.0502 28.3744 19.0502 27.4561C19.0503 26.4759 19.7061 25.3717 21.3236 24.4512L21.3246 24.4521C23.125 23.4404 25.5462 22.9062 28.0179 22.9062Z"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={2}
-      />
+      <G transform="translate(14, 7)">
+        <Path
+          d="M5.45648 7.73145C10.3134 17.7381 17.6867 17.7381 22.4267 7.73145L25.5867 9.8381C24.5333 11.4181 21.1825 15.9963 20.1888 18.2655C19.2667 20.3714 18.74 23.0047 18.2134 24.5851C16.6334 25.638 11.3667 25.638 9.78674 24.5851C9.26008 23.0047 9.10273 20.5838 7.94357 18.2655C6.88984 16.1581 3.46678 11.4181 2.41345 9.8381L5.45648 7.73145Z"
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={2}
+          strokeLinejoin="round"
+        />
+        <Circle
+          cx={13.8837}
+          cy={7.37024}
+          r={3.745}
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={2}
+        />
+      </G>
     </Svg>
   );
 };
