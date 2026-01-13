@@ -35,16 +35,18 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const TabBarBackground = () => (
   <View style={tabBarStyles.backgroundContainer}>
     <BlurView
-      intensity={80}
+      intensity={54}
       tint="light"
       style={StyleSheet.absoluteFill}
     />
-    {/* Frosted white base with subtle warmth */}
+    {/* Frosted glass overlay */}
+    <View style={tabBarStyles.frostedOverlay} />
+    {/* Inset shadow simulation */}
     <LinearGradient
-      colors={["rgba(255, 255, 255, 0.92)", "#FBFBFB99"]}
+      colors={["rgba(255, 255, 255, 0.45)", "transparent"]}
       start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={StyleSheet.absoluteFill}
+      end={{ x: 0.5, y: 0.3 }}
+      style={tabBarStyles.insetShadow}
     />
     <View style={tabBarStyles.topBorder} />
   </View>
@@ -55,13 +57,24 @@ const tabBarStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
   },
+  frostedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255, 255, 255, 0.94)",
+  },
+  insetShadow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 8,
+  },
   topBorder: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: "rgba(255, 248, 235, 0.5)",
+    backgroundColor: "#FFFFFF",
   },
 });
 
