@@ -18,14 +18,13 @@ import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ScreenContainer from "@components/ScreenContainer";
-import EmptyState from "@components/EmptyState";
+import ChatEmptyState from "@components/ChatEmptyState";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatConversation } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
-import EmptyMessageIllustration from "@assets/empty-message.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type MessagesNavigation = CompositeNavigationProp<
@@ -176,13 +175,11 @@ const MessagesScreen = () => {
         <View style={styles.headerSpacing}>
           <Text style={styles.headerTitle}>Chat</Text>
         </View>
-        <EmptyState
-          title="No chats to show"
-          description="Log in to see all chats"
+        <ChatEmptyState
+          title="No messages to show"
+          description="Log in or sign up to view conversations from events you have created or joined."
           actionLabel="Login"
           onActionPress={() => navigation.navigate("Login")}
-          illustration={EmptyMessageIllustration}
-          illustrationSize={40}
         />
       </ScreenContainer>
     );
@@ -203,13 +200,11 @@ const MessagesScreen = () => {
           keyExtractor={(conversation) => String(conversation.id)}
           renderItem={renderConversation}
           ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
-          contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom }}
+          contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
           ListEmptyComponent={() => (
-            <EmptyState
-              title="No conversations yet"
-              description="Start a chat and it will show up here."
-              illustration={EmptyMessageIllustration}
-              illustrationSize={32}
+            <ChatEmptyState
+              title="No Messages Yet"
+              description="Once you create an event, or accepted an event request, your chats will appear here."
             />
           )}
           refreshControl={

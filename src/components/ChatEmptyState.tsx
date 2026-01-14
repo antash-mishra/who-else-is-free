@@ -1,30 +1,28 @@
-import { ComponentType, memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SvgProps } from 'react-native-svg';
+import { memo } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import CreateEventIllustration from '@assets/create-event.svg';
 import { colors, spacing, typography } from '@theme/index';
 
-interface EmptyStateProps {
+interface ChatEmptyStateProps {
   title: string;
   description: string;
   actionLabel?: string;
   onActionPress?: () => void;
-  illustration?: ComponentType<SvgProps>;
-  illustrationSize?: number;
 }
 
-const EmptyState = ({
+const ChatEmptyState = ({
   title,
   description,
   actionLabel,
   onActionPress,
-  illustration: Illustration = CreateEventIllustration,
-  illustrationSize = 245
-}: EmptyStateProps) => {
+}: ChatEmptyStateProps) => {
   return (
     <View style={styles.container}>
-      <Illustration width={illustrationSize} height={illustrationSize} />    
+      <Image
+        source={require('@assets/chat_screen_empty_state_default.png')}
+        style={styles.image}
+        resizeMode="contain"
+      />
       <View style={styles.textContainer}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
@@ -43,41 +41,47 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20
+    gap: 20,
+  },
+  image: {
+    width: 245,
+    height: 245,
   },
   textContainer: {
     gap: 10,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 17,
-    color: colors.text,
+    fontSize: 16,
     fontFamily: typography.fontFamilyMedium,
     lineHeight: 20,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: -0.5,
+    color: '#000000',
+    textAlign: 'center',
   },
   description: {
-    fontSize: typography.body,
-    color: '#7C7C7C',
-    textAlign: 'center',
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
     lineHeight: 20,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: -0.5,
+    color: '#707070',
+    textAlign: 'center',
   },
   button: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     backgroundColor: colors.buttonBackground,
-    borderRadius: 24
+    borderRadius: 24,
   },
   buttonText: {
     color: colors.buttonText,
     fontSize: typography.body,
     fontFamily: typography.fontFamilySemiBold,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
-  }
+    letterSpacing: typography.letterSpacing,
+  },
 });
 
-export default memo(EmptyState);
+export default memo(ChatEmptyState);
