@@ -169,7 +169,11 @@ const selectConversationsForUser = `
 SELECT c.id, c.title, c.created_by, c.created_at, c.event_id
 FROM conversations c
 JOIN conversation_members cm ON cm.conversation_id = c.id
+LEFT JOIN events e ON e.id = c.event_id
 WHERE cm.user_id = ?
+  AND (c.event_id IS NULL
+       OR e.scheduled_at IS NULL
+       OR e.scheduled_at > datetime('now', '-1 day'))
 ORDER BY c.created_at DESC;
 `
 
