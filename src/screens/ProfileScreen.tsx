@@ -222,9 +222,12 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: "#F4F4F4",
+    marginHorizontal: -spacing.md,
   },
   scrollContent: {
     flexGrow: 1,
+    paddingHorizontal: spacing.md,
   },
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
