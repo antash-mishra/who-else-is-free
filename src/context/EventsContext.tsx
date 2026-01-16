@@ -277,7 +277,7 @@ const mapApiEvent = (
 };
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
-  const { user, token } = useAuth();
+  const { user, token, refreshSessionSilently } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -319,11 +319,24 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
+      let response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      // Handle 401 by refreshing token and retrying
+      if (response.status === 401) {
+        const refreshedToken = await refreshSessionSilently();
+        if (refreshedToken) {
+          response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
+            headers: {
+              Authorization: `Bearer ${refreshedToken}`,
+            },
+          });
+        }
+      }
+
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
       }
@@ -342,7 +355,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       console.error("Failed to fetch requested events", err);
       setRequestedEventIds(new Set());
     }
-  }, [token, user]);
+  }, [token, user, refreshSessionSilently]);
 
   const markEventRequested = useCallback((eventId: string) => {
     setRequestedEventIds((prev) => {
