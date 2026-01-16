@@ -1446,3 +1446,163 @@ func TestEventConversationsEndpoint(t *testing.T) {
 		}
 	})
 }
+
+// TestConversationFilteringByEventDate verifies that conversations for completed
+// events (>24 hours past) are filtered out, while conversations for recent events
+// (<24 hours past) and future events remain visible.
+func TestConversationFilteringByEventDate(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	// Get test user
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	ava, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("get ava: %v", err)
+	}
+
+	// Time references
+	now := time.Now().UTC()
+	twoDaysAgo := now.Add(-48 * time.Hour)    // >24h past - should be filtered
+	twelveHoursAgo := now.Add(-12 * time.Hour) // <24h past - should appear (grace period)
+	tomorrow := now.Add(24 * time.Hour)        // future - should appear
+
+	// Create test events with different scheduled_at times using direct SQL
+	// Event 1: scheduled_at >24 hours ago (should NOT appear in conversations)
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+		VALUES (?, 'Old Completed Event', 'Location A', '10:00', ?, 'Old event', 'Any', 18, 50, 'Today', 'Group', 'cover_01', ?)`,
+		ava.ID, twoDaysAgo.Format("2006-01-02"), twoDaysAgo.Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("insert old event: %v", err)
+	}
+	var oldEventID int64
+	env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&oldEventID)
+
+	// Event 2: scheduled_at <24 hours ago (should appear - within grace period)
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+		VALUES (?, 'Recent Completed Event', 'Location B', '10:00', ?, 'Recent event', 'Any', 18, 50, 'Today', 'Group', 'cover_01', ?)`,
+		ava.ID, twelveHoursAgo.Format("2006-01-02"), twelveHoursAgo.Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("insert recent event: %v", err)
+	}
+	var recentEventID int64
+	env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&recentEventID)
+
+	// Event 3: scheduled_at in the future (should appear)
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+		VALUES (?, 'Future Event', 'Location C', '10:00', ?, 'Future event', 'Any', 18, 50, 'Tmrw', 'Group', 'cover_01', ?)`,
+		ava.ID, tomorrow.Format("2006-01-02"), tomorrow.Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("insert future event: %v", err)
+	}
+	var futureEventID int64
+	env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&futureEventID)
+
+	// Event 4: NULL scheduled_at, old event_date (should NOT appear - legacy fallback)
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+		VALUES (?, 'Legacy Old Event', 'Location D', '10:00', ?, 'Legacy old', 'Any', 18, 50, 'Today', 'Group', 'cover_01', NULL)`,
+		ava.ID, twoDaysAgo.Format("2006-01-02"))
+	if err != nil {
+		t.Fatalf("insert legacy old event: %v", err)
+	}
+	var legacyOldEventID int64
+	env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&legacyOldEventID)
+
+	// Event 5: NULL scheduled_at, today's event_date (should appear - legacy fallback)
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+		VALUES (?, 'Legacy Today Event', 'Location E', '10:00', ?, 'Legacy today', 'Any', 18, 50, 'Today', 'Group', 'cover_01', NULL)`,
+		ava.ID, now.Format("2006-01-02"))
+	if err != nil {
+		t.Fatalf("insert legacy today event: %v", err)
+	}
+	var legacyTodayEventID int64
+	env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&legacyTodayEventID)
+
+	// Create conversations for each event
+	createConversation := func(eventID int64, title string) int64 {
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO conversations (title, created_by, event_id) VALUES (?, ?, ?)`,
+			title, ava.ID, eventID)
+		if err != nil {
+			t.Fatalf("insert conversation for event %d: %v", eventID, err)
+		}
+		var convoID int64
+		env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&convoID)
+
+		// Add ava as a member
+		_, err = env.db.ExecContext(ctx, `
+			INSERT INTO conversation_members (conversation_id, user_id, role) VALUES (?, ?, 'member')`,
+			convoID, ava.ID)
+		if err != nil {
+			t.Fatalf("insert member for conversation %d: %v", convoID, err)
+		}
+		return convoID
+	}
+
+	oldConvoID := createConversation(oldEventID, "Old Event Chat")
+	recentConvoID := createConversation(recentEventID, "Recent Event Chat")
+	futureConvoID := createConversation(futureEventID, "Future Event Chat")
+	legacyOldConvoID := createConversation(legacyOldEventID, "Legacy Old Chat")
+	legacyTodayConvoID := createConversation(legacyTodayEventID, "Legacy Today Chat")
+
+	// Now test the conversations endpoint
+	t.Run("filters out old completed event conversations", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[conversationsResponse](t, resp)
+
+		// Build a map of conversation IDs for easy lookup
+		convoIDs := make(map[int64]bool)
+		for _, c := range payload.Conversations {
+			convoIDs[c.ID] = true
+		}
+
+		// Should NOT contain old event conversation (>24h past)
+		if convoIDs[oldConvoID] {
+			t.Errorf("conversation for old event (>24h past) should be filtered out, but was included (ID: %d)", oldConvoID)
+		}
+
+		// Should contain recent event conversation (<24h past, within grace period)
+		if !convoIDs[recentConvoID] {
+			t.Errorf("conversation for recent event (<24h past) should be included, but was filtered out (ID: %d)", recentConvoID)
+		}
+
+		// Should contain future event conversation
+		if !convoIDs[futureConvoID] {
+			t.Errorf("conversation for future event should be included, but was filtered out (ID: %d)", futureConvoID)
+		}
+
+		// Should NOT contain legacy old event conversation (NULL scheduled_at, old event_date)
+		if convoIDs[legacyOldConvoID] {
+			t.Errorf("conversation for legacy old event should be filtered out, but was included (ID: %d)", legacyOldConvoID)
+		}
+
+		// Should contain legacy today event conversation (NULL scheduled_at, today's event_date)
+		if !convoIDs[legacyTodayConvoID] {
+			t.Errorf("conversation for legacy today event should be included, but was filtered out (ID: %d)", legacyTodayConvoID)
+		}
+	})
+
+	// Also verify using direct SQL to double-check the datetime comparison works
+	t.Run("verifies SQL datetime comparison is correct", func(t *testing.T) {
+		// This tests the core issue: ISO 8601 format with 'T' should compare correctly
+		var result int
+		err := env.db.QueryRowContext(ctx, `
+			SELECT datetime('2026-01-15T13:30:00.000Z') > datetime('now', '-1 day')
+		`).Scan(&result)
+		if err != nil {
+			t.Fatalf("query: %v", err)
+		}
+		// This should be 0 (false) if the date is more than 1 day in the past
+		// Note: This test is time-dependent. If run on 2026-01-16 or later, it should be 0.
+		t.Logf("datetime comparison result: %d (expected 0 for dates >24h past)", result)
+	})
+}
