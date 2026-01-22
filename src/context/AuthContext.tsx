@@ -12,7 +12,7 @@ import { API_BASE_URL } from "@api/config";
 
 import * as SecureStore from "expo-secure-store";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { GOOGLE_WEB_CLIENT_ID } from "@constants/google";
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
 
 type AuthUser = {
   id: number;
@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         await GoogleSignin.configure({
           webClientId: GOOGLE_WEB_CLIENT_ID,
+          iosClientId: GOOGLE_IOS_CLIENT_ID,
           offlineAccess: true,
         });
       } catch (err) {
