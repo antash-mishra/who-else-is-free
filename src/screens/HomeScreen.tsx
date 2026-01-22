@@ -15,6 +15,7 @@ import {
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import EmptyState from "@components/EmptyState";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
 import SegmentedControl from "@components/SegmentedControl";
@@ -184,9 +185,11 @@ const HomeScreen = () => {
           </Pressable>
         </View>
       ) : showAllEventsEmpty ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.emptyAllText}>No events yet.</Text>
-        </View>
+        <EmptyState
+          title="Nothing Happening Here (Yet!)"
+          description="There are currently no events available. Please check back later for new experiences."
+          imageSource={require('@assets/emptystate_discoverevent.png')}
+        />
       ) : (
         <SectionList<EventItemProps, EventSection>
           sections={sections}
@@ -274,14 +277,6 @@ const styles = StyleSheet.create({
     color: colors.buttonText,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
-  },
-  emptyAllText: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.muted,
-    textAlign: "center",
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
   },
