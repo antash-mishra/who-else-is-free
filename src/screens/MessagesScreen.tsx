@@ -92,22 +92,11 @@ const MessagesScreen = () => {
     const titleLabel = isGroup
       ? (item.event?.title ?? item.title ?? item.displayName)
       : (counterpart?.name ?? item.displayName);
-    const eventMetaParts: string[] = [];
-    if (item.event) {
-      if (item.event.location) {
-        eventMetaParts.push(item.event.location);
-      }
-      eventMetaParts.push(`${item.event.dateLabel} ${item.event.time}`);
-      if (isGroup && counterpart?.name) {
-        eventMetaParts.push(`With ${counterpart.name}`);
-      }
-    } else if (isGroup && counterpart?.name) {
-      eventMetaParts.push(`With ${counterpart.name}`);
-    }
-    const eventDetails = eventMetaParts.join(" • ");
-    const previewText = item.lastMessage?.body ?? "No messages yet";
-    const isJoinSystemMessage =
-      previewText.toLowerCase().endsWith("joined the chat");
+    const lastMessageBody = item.lastMessage?.body ?? "No messages yet";
+    const isOwnMessage = item.lastMessage?.senderId === user?.id;
+    const previewText = item.lastMessage
+      ? `${isOwnMessage ? "You" : (counterpart?.name?.split(" ")[0] ?? "")}: ${lastMessageBody}`
+      : lastMessageBody;
 
     const eventImageUri =
       item.eventId != null
@@ -136,34 +125,9 @@ const MessagesScreen = () => {
           <Text style={styles.conversationName} numberOfLines={1}>
             {titleLabel}
           </Text>
-          {eventDetails ? (
-            <Text style={styles.conversationEvent} numberOfLines={1}>
-              {eventDetails}
-            </Text>
-          ) : null}
-          <Text
-            style={styles.conversationPreview}
-            numberOfLines={isJoinSystemMessage ? 2 : 1}
-          >
+          <Text style={styles.conversationPreview} numberOfLines={1}>
             {previewText}
           </Text>
-        </View>
-        <View style={styles.conversationMeta}>
-          <Text style={styles.conversationTime}>
-            {item.lastMessage
-              ? new Date(item.lastMessage.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : ""}
-          </Text>
-          {item.unreadCount > 0 ? (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>
-                {item.unreadCount > 99 ? "99+" : item.unreadCount}
-              </Text>
-            </View>
-          ) : null}
         </View>
       </Pressable>
     );
@@ -200,7 +164,6 @@ const MessagesScreen = () => {
           data={conversations}
           keyExtractor={(conversation) => String(conversation.id)}
           renderItem={renderConversation}
-          ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
           ListEmptyComponent={() => (
             <EmptyState
@@ -248,16 +211,10 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.accent,
   },
-  listSeparator: {
-    height: spacing.md,
-  },
+
   conversationRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
   },
   conversationRowActive: {
     // borderWidth: 1,
@@ -267,12 +224,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginRight: 12,
   },
   conversationAvatarImage: {
     width: "100%",
@@ -282,43 +236,27 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontSize: typography.title,
     color: colors.text,
-    fontFamily: typography.fontFamilySemiBold,
+    fontFamily: typography.fontFamilyMedium,
   },
   conversationCopy: {
     flex: 1,
     gap: 2,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
   conversationName: {
-    fontSize: typography.subtitle,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: -0.5,
     color: colors.text,
-    fontFamily: typography.fontFamilySemiBold,
-  },
-  conversationEvent: {
-    fontSize: typography.caption,
-    color: colors.muted,
+    fontFamily: typography.fontFamilyMedium,
   },
   conversationPreview: {
-    fontSize: typography.caption,
-    color: colors.cardMeta,
-  },
-  conversationMeta: {
-    alignItems: "flex-end",
-    gap: spacing.xs,
-  },
-  conversationTime: {
-    fontSize: typography.caption,
-    color: colors.cardMeta,
-  },
-  unreadBadge: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-  },
-  unreadBadgeText: {
-    color: colors.buttonText,
-    fontSize: typography.caption,
-    fontFamily: typography.fontFamilySemiBold,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    color: "#707070",
   },
 });
 
