@@ -397,6 +397,11 @@ DELETE FROM conversation_read_state
 WHERE conversation_id = ? AND user_id = ?;
 `
 
+const deleteJoinRequestForEvent = `
+DELETE FROM conversation_join_requests
+WHERE event_id = ? AND user_id = ?;
+`
+
 type EventRepository struct {
 	db *sql.DB
 }
@@ -1761,6 +1766,11 @@ func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID
 	if _, err := tx.ExecContext(ctx, deleteConversationReadState, convo.ID, userID); err != nil {
 		tx.Rollback()
 		return fmt.Errorf("delete conversation read state: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, deleteJoinRequestForEvent, eventID, userID); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("delete join request: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

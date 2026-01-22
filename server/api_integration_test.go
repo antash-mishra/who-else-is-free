@@ -1606,3 +1606,266 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 		t.Logf("datetime comparison result: %d (expected 0 for dates >24h past)", result)
 	})
 }
+
+// TestLeaveEventDeletesJoinRequest verifies that when a user leaves an event,
+// their join request record is deleted from the database. This prevents the
+// "pending" state from persisting after leaving and rejoining an event.
+func TestLeaveEventDeletesJoinRequest(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host (user id 1)
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // joiner (user id 4)
+
+	// Create a 1:1 event
+	var eventID int64
+	t.Run("create 1:1 event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Leave Test Event",
+			Location:    "Test Cafe",
+			Time:        "14:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Testing leave deletes join request",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	// Helper to check if a join request exists in the database (any status)
+	hasJoinRequestInDB := func() bool {
+		var count int
+		err := env.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM conversation_join_requests WHERE event_id = ? AND user_id = 4",
+			eventID).Scan(&count)
+		if err != nil {
+			t.Fatalf("query join request: %v", err)
+		}
+		return count > 0
+	}
+
+	// Noah joins the 1:1 event
+	t.Run("noah joins event", func(t *testing.T) {
+		body := map[string]string{"message": "Can I join?"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		// For 1:1 events, request is auto-approved
+		if payload.Request.Status != "approved" {
+			t.Fatalf("expected approved status, got %s", payload.Request.Status)
+		}
+	})
+
+	// Verify join request exists in DB
+	t.Run("verify join request exists in DB after joining", func(t *testing.T) {
+		if !hasJoinRequestInDB() {
+			t.Fatal("expected join request to exist in database after joining")
+		}
+	})
+
+	// Noah leaves the event
+	t.Run("noah leaves event - first time", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/chat/members/4", eventID), noahToken, nil)
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected 204, got %d", resp.StatusCode)
+		}
+	})
+
+	// Verify join request is deleted from DB after leaving
+	t.Run("verify join request deleted from DB after leaving", func(t *testing.T) {
+		if hasJoinRequestInDB() {
+			t.Fatal("join request should be deleted from database after leaving event")
+		}
+	})
+
+	// Noah rejoins the event
+	t.Run("noah rejoins event", func(t *testing.T) {
+		body := map[string]string{"message": "I'd like to rejoin!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if payload.Request.Status != "approved" {
+			t.Fatalf("expected approved status on rejoin, got %s", payload.Request.Status)
+		}
+	})
+
+	// Verify join request exists in DB again
+	t.Run("verify join request exists in DB after rejoining", func(t *testing.T) {
+		if !hasJoinRequestInDB() {
+			t.Fatal("expected join request to exist in database after rejoining")
+		}
+	})
+
+	// Noah leaves again
+	t.Run("noah leaves event - second time", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/chat/members/4", eventID), noahToken, nil)
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected 204, got %d", resp.StatusCode)
+		}
+	})
+
+	// Verify join request is deleted from DB after second leave (this was the bug)
+	t.Run("verify join request deleted from DB after second leave", func(t *testing.T) {
+		if hasJoinRequestInDB() {
+			t.Fatal("join request should be deleted from database after leaving event the second time - this is the bug being fixed")
+		}
+	})
+
+	// Noah rejoins a third time to verify the cycle works
+	t.Run("noah rejoins event - third time", func(t *testing.T) {
+		body := map[string]string{"message": "Third time's the charm!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if payload.Request.Status != "approved" {
+			t.Fatalf("expected approved status on third rejoin, got %s", payload.Request.Status)
+		}
+	})
+}
+
+// TestLeaveGroupEventDeletesJoinRequest verifies that leaving a Group event
+// also deletes the join request record.
+func TestLeaveGroupEventDeletesJoinRequest(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host (user id 1)
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // joiner (user id 4)
+
+	// Create a Group event
+	var eventID int64
+	t.Run("create Group event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Leave Group Test Event",
+			Location:    "Test Location",
+			Time:        "15:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Testing leave deletes join request for Group events",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	// Helper to check if a join request exists in the database (any status)
+	hasJoinRequestInDB := func() bool {
+		var count int
+		err := env.db.QueryRowContext(ctx,
+			"SELECT COUNT(*) FROM conversation_join_requests WHERE event_id = ? AND user_id = 4",
+			eventID).Scan(&count)
+		if err != nil {
+			t.Fatalf("query join request: %v", err)
+		}
+		return count > 0
+	}
+
+	// Helper to check pending join requests via API
+	hasPendingJoinRequest := func() bool {
+		resp := env.doRequest(t, http.MethodGet, "/api/chat/requests/me", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		var payload struct {
+			Requests []struct {
+				EventID int64 `json:"event_id"`
+			} `json:"requests"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		resp.Body.Close()
+		for _, r := range payload.Requests {
+			if r.EventID == eventID {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Noah sends join request
+	t.Run("noah sends join request", func(t *testing.T) {
+		body := map[string]string{"message": "I'd like to join the group!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		// Group events require approval
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status for Group event, got %s", payload.Request.Status)
+		}
+	})
+
+	// Verify pending request via API
+	t.Run("verify pending request exists via API", func(t *testing.T) {
+		if !hasPendingJoinRequest() {
+			t.Fatal("expected pending request to appear in /api/chat/requests/me")
+		}
+	})
+
+	// Host approves the request
+	t.Run("host approves request", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+	})
+
+	// Verify join request exists in DB (with approved status)
+	t.Run("verify join request exists in DB after approval", func(t *testing.T) {
+		if !hasJoinRequestInDB() {
+			t.Fatal("expected join request to exist in database after approval")
+		}
+	})
+
+	// Noah leaves the event
+	t.Run("noah leaves Group event", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/chat/members/4", eventID), noahToken, nil)
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("expected 204, got %d", resp.StatusCode)
+		}
+	})
+
+	// Verify join request is deleted from DB after leaving
+	t.Run("verify join request deleted from DB after leaving Group event", func(t *testing.T) {
+		if hasJoinRequestInDB() {
+			t.Fatal("join request should be deleted from database after leaving Group event")
+		}
+	})
+
+	// Noah can rejoin with a fresh request
+	t.Run("noah can rejoin with fresh request", func(t *testing.T) {
+		body := map[string]string{"message": "I want to rejoin the group!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d (user should be able to create fresh join request after leaving)", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		// Should be pending again (fresh request)
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status for fresh rejoin request, got %s", payload.Request.Status)
+		}
+	})
+}
