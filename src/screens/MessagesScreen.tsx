@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import {
   FlatList,
   Image,
@@ -52,6 +51,7 @@ const MessagesScreen = () => {
       if (!user) {
         return undefined;
       }
+
       refreshConversations().catch(() => undefined);
       return undefined;
     }, [refreshConversations, user]),
@@ -167,13 +167,15 @@ const MessagesScreen = () => {
           keyExtractor={(conversation) => String(conversation.id)}
           renderItem={renderConversation}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
-          ListEmptyComponent={() => (
-            <EmptyState
-              title="No Messages Yet"
-              description="Once you create an event, or accepted an event request, your chats will appear here."
-              imageSource={require('@assets/emptystate_chat.png')}
-            />
-          )}
+          ListEmptyComponent={
+            !isRefreshingConversations && !isConnecting ? (
+              <EmptyState
+                title="No Messages Yet"
+                description="Once you create an event, or accepted an event request, your chats will appear here."
+                imageSource={require('@assets/emptystate_chat.png')}
+              />
+            ) : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={isRefreshingConversations}
