@@ -4,14 +4,13 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   Animated,
   TouchableOpacity,
-  Vibration,
   View,
   StyleSheet,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useMemo, useRef } from "react";
 import Svg, { Circle, G, Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 
 import HomeScreen from "@screens/HomeScreen";
 import CreateEventScreen from "@screens/CreateEventScreen";
@@ -39,15 +38,9 @@ const TabBarBackground = () => (
       tint="light"
       style={StyleSheet.absoluteFill}
     />
-    {/* Frosted glass overlay */}
+    {/* Fill: #FBFBFB at 60% opacity */}
     <View style={tabBarStyles.frostedOverlay} />
-    {/* Inset shadow simulation */}
-    <LinearGradient
-      colors={["rgba(255, 255, 255, 0.45)", "transparent"]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 0.3 }}
-      style={tabBarStyles.insetShadow}
-    />
+    {/* Stroke on top: 1px solid white */}
     <View style={tabBarStyles.topBorder} />
   </View>
 );
@@ -59,14 +52,7 @@ const tabBarStyles = StyleSheet.create({
   },
   frostedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-  },
-  insetShadow: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 8,
+    backgroundColor: "rgba(251, 251, 251, 0.6)",
   },
   topBorder: {
     position: "absolute",
@@ -92,66 +78,31 @@ const getFillColor = (focused: boolean) =>
 
 const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
   const { onPress, style, children, accessibilityLabel, testID } = props;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const triggerWiggle = () => {
-    rotateAnim.setValue(0);
+  const triggerScale = () => {
+    scaleAnim.setValue(1);
     Animated.sequence([
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue: -1,
-        duration: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
+      Animated.timing(scaleAnim, {
         toValue: 0.8,
-        duration: 40,
+        duration: 67,
         useNativeDriver: true,
       }),
-      Animated.timing(rotateAnim, {
-        toValue: -0.8,
-        duration: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue: 0.5,
-        duration: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue: -0.5,
-        duration: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue: 0.2,
-        duration: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rotateAnim, {
-        toValue: 0,
-        duration: 40,
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 67,
         useNativeDriver: true,
       }),
     ]).start();
   };
 
   const handlePress = (e: Parameters<NonNullable<typeof onPress>>[0]) => {
-    Vibration.vibrate(10);
-    triggerWiggle();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerScale();
     if (onPress) {
       onPress(e);
     }
   };
-
-  const rotation = rotateAnim.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ["-10deg", "10deg"],
-  });
 
   return (
     <TouchableOpacity
@@ -161,7 +112,7 @@ const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
       accessibilityLabel={accessibilityLabel}
       testID={testID}
     >
-      <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         {children}
       </Animated.View>
     </TouchableOpacity>
@@ -184,14 +135,14 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
         d="M16.6316 20.9869V24.1579C16.6316 28.3261 16.6316 30.4101 17.9265 31.7051C19.2214 33 21.3055 33 25.4737 33H30.5263C34.6945 33 36.7786 33 38.0736 31.7051C39.3684 30.4101 39.3684 28.3261 39.3684 24.1579V20.9869C39.3684 18.8631 39.3684 17.8013 38.9189 16.8822C38.4693 15.963 37.6312 15.3111 35.9549 14.0073L33.4285 12.0424C30.8208 10.0141 29.5169 9 28 9C26.4831 9 25.1792 10.0141 22.5715 12.0424L20.0451 14.0073C18.3688 15.3111 17.5307 15.963 17.0811 16.8822C16.6316 17.8013 16.6316 18.8631 16.6316 20.9869Z"
         fill={fillColor}
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.6}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M23.9316 27H31.9316"
         stroke={innerLineColor}
-        strokeWidth={2}
+        strokeWidth={2.6}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -216,7 +167,7 @@ const MyEventsTabIcon = ({ focused, color }: TabIconProps) => {
         r={5}
         fill={fillColor}
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.4}
       />
       <Circle
         cx={21.5}
@@ -224,7 +175,7 @@ const MyEventsTabIcon = ({ focused, color }: TabIconProps) => {
         r={5}
         fill={fillColor}
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.4}
       />
       <Circle
         cx={35.5}
@@ -232,7 +183,7 @@ const MyEventsTabIcon = ({ focused, color }: TabIconProps) => {
         r={5}
         fill={fillColor}
         stroke={strokeColor}
-        strokeWidth={2}
+        strokeWidth={2.4}
       />
     </Svg>
   );
@@ -249,26 +200,20 @@ const CreateTabIcon = ({ focused, color }: TabIconProps) => {
       viewBox={TAB_ICON_VIEW_BOX}
       fill="none"
     >
-      <Path
-        d="M24 21H32"
-        stroke={strokeColor}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M28 17V25"
-        stroke={strokeColor}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M16 21C16 11.118 18.118 9 28 9C37.882 9 40 11.118 40 21C40 30.882 37.882 33 28 33C18.118 33 16 30.882 16 21Z"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={2}
-      />
+      <G transform="translate(14, 7)">
+        <Path
+          d="M12.7002 24.2C19.0515 24.2 24.2002 19.0513 24.2002 12.7C24.2002 6.34874 19.0515 1.20001 12.7002 1.20001C6.34892 1.20001 1.2002 6.34874 1.2002 12.7C1.2002 19.0513 6.34892 24.2 12.7002 24.2Z" 
+          stroke={strokeColor}
+          strokeWidth={2.4}
+          strokeLinecap="round"
+        />
+        <Path
+          d="M17.0098 12.6973H12.6973M12.6973 12.6973H8.38477M12.6973 12.6973V17.0098M12.6973 12.6973L12.6973 8.38477"
+          stroke={strokeColor}
+          strokeWidth={2.4}
+          strokeLinecap="round"
+        />
+      </G>
     </Svg>
   );
 };
@@ -284,12 +229,16 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
       viewBox={TAB_ICON_VIEW_BOX}
       fill="none"
     >
-      <Path
-        d="M28.5 32C34.5751 32 39.5 27.0751 39.5 21C39.5 14.9249 34.5751 10 28.5 10C22.4249 10 17.5 14.9249 17.5 21C17.5 22.7597 17.9132 24.4228 18.6478 25.8977C18.843 26.2897 18.908 26.7377 18.7948 27.1607L18.1397 29.6094C17.8552 30.6723 18.8277 31.6447 19.8907 31.3604L22.3393 30.7052C22.7623 30.592 23.2103 30.657 23.6023 30.8521C25.0772 31.5868 26.7403 32 28.5 32Z"
-        fill={fillColor}
-        stroke={strokeColor}
-        strokeWidth={2}
-      />
+      <G transform="translate(14, 7)">
+        <Path
+          fill-rule="evenodd" 
+          clip-rule="evenodd" 
+          d="M12.2112 1.20001C18.2822 1.19998 23.2231 6.14095 23.2231 12.212C23.2231 18.283 18.2822 23.2239 12.2112 23.2239C11.31 23.2226 10.4132 23.1041 9.54034 22.8846C8.20003 23.7243 6.36449 24.2578 3.92009 24.195C3.74068 24.1903 3.56669 24.1325 3.42021 24.0288C3.27373 23.9251 3.16134 23.7802 3.09732 23.6126C3.03329 23.4449 3.02051 23.262 3.06059 23.087C3.10067 22.9121 3.1918 22.753 3.32243 22.6299C4.41598 21.6005 4.76788 20.8988 4.87234 20.5542C4.88933 20.5008 4.8928 20.4703 4.89974 20.433C2.55565 18.3499 1.20238 15.3611 1.20005 12.2126C1.20001 6.14162 6.14016 1.19998 12.2112 1.20001Z"
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={2.3}
+        />
+      </G>
     </Svg>
   );
 };
@@ -307,16 +256,16 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
     >
       <G transform="translate(14, 7)">
         <Path
-          d="M5.45648 7.73145C10.3134 17.7381 17.6867 17.7381 22.4267 7.73145L25.5867 9.8381C24.5333 11.4181 21.1825 15.9963 20.1888 18.2655C19.2667 20.3714 18.74 23.0047 18.2134 24.5851C16.6334 25.638 11.3667 25.638 9.78674 24.5851C9.26008 23.0047 9.10273 20.5838 7.94357 18.2655C6.88984 16.1581 3.46678 11.4181 2.41345 9.8381L5.45648 7.73145Z"
+          d="M4.26547 5.3869C9.38936 15.9435 17.1679 15.9435 22.1684 5.3869L25.5021 7.60935C24.3909 9.27619 20.8559 14.106 19.8076 16.5C18.8348 18.7216 18.2792 21.4997 17.7235 23.167C16.0567 24.2777 10.5006 24.2777 8.83375 23.167C8.27813 21.4997 8.11214 18.9457 6.88926 16.5C5.77762 14.2767 2.1664 9.27619 1.05518 7.60935L4.26547 5.3869Z"
           fill={fillColor}
           stroke={strokeColor}
-          strokeWidth={2}
+          strokeWidth={2.1}
           strokeLinejoin="round"
         />
         <Circle
-          cx={13.8837}
-          cy={7.37024}
-          r={3.745}
+          cx={13.1557}
+          cy={5.00581}
+          r={3.95085}
           fill={fillColor}
           stroke={strokeColor}
           strokeWidth={2}
