@@ -10,6 +10,8 @@ interface EmptyStateProps {
   description: string;
   actionLabel?: string;
   onActionPress?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryActionPress?: () => void;
   illustration?: ComponentType<SvgProps>;
   illustrationSize?: number;
   imageSource?: ImageSourcePropType;
@@ -21,6 +23,8 @@ const EmptyState = ({
   description,
   actionLabel,
   onActionPress,
+  secondaryActionLabel,
+  onSecondaryActionPress,
   illustration: Illustration = CreateEventIllustration,
   illustrationSize = 245,
   imageSource,
@@ -41,10 +45,19 @@ const EmptyState = ({
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
       </View>
-      {actionLabel ? (
-        <Pressable style={styles.button} onPress={onActionPress}>
-          <Text style={styles.buttonText}>{actionLabel}</Text>
-        </Pressable>
+      {(actionLabel || secondaryActionLabel) ? (
+        <View style={styles.buttonContainer}>
+          {secondaryActionLabel ? (
+            <Pressable style={styles.secondaryButton} onPress={onSecondaryActionPress}>
+              <Text style={styles.secondaryButtonText}>{secondaryActionLabel}</Text>
+            </Pressable>
+          ) : null}
+          {actionLabel ? (
+            <Pressable style={styles.button} onPress={onActionPress}>
+              <Text style={styles.buttonText}>{actionLabel}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -55,7 +68,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 16,
     paddingBottom: '20%'
   },
   textContainer: {
@@ -78,18 +91,41 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: typography.letterSpacing
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10
+  },
   button: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+    width: 173,
+    height: 48,
+    borderRadius: 52,
     backgroundColor: colors.buttonBackground,
-    borderRadius: 24
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   buttonText: {
     color: colors.buttonText,
-    fontSize: typography.body,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    fontFamily: typography.fontFamilyMedium,
+    fontSize: 17,
+    lineHeight: 24,
+    letterSpacing: -0.5,
+    textAlign: 'center'
+  },
+  secondaryButton: {
+    width: 173,
+    height: 48,
+    borderRadius: 52,
+    backgroundColor: '#E6E6E6',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  secondaryButtonText: {
+    color: colors.buttonBackground,
+    fontFamily: typography.fontFamilyMedium,
+    fontSize: 17,
+    lineHeight: 24,
+    letterSpacing: -0.5,
+    textAlign: 'center'
   }
 });
 

@@ -142,8 +142,10 @@ const MessagesScreen = () => {
         <EmptyState
           title="No messages to show"
           description="Log in or sign up to view conversations from events you have created or joined."
-          actionLabel="Login"
+          actionLabel="Log In"
           onActionPress={() => navigation.navigate("Login")}
+          secondaryActionLabel="Sign Up"
+          onSecondaryActionPress={() => navigation.navigate("Login")}
           imageSource={require('@assets/emptystate_chat.png')}
         />
       </ScreenContainer>
