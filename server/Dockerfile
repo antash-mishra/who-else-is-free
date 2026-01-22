@@ -12,7 +12,6 @@ FROM gcr.io/distroless/base-debian12
 
 WORKDIR /app
 COPY --from=builder /app/server /app/server
-COPY event.sqlite /app/event.sqlite
 
 EXPOSE 8080
 
