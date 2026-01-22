@@ -1065,6 +1065,10 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 		return
 	}
 
+	// Find the user's conversation BEFORE removal so we have the ID for WebSocket notification.
+	// This is important for 1:1 events where multiple private conversations can exist.
+	convo, _ := h.repo.findUserConversationForEventPublic(ctx, eventID, userID)
+
 	if err := h.repo.RemoveEventMember(ctx, eventID, userID); err != nil {
 		switch {
 		case errors.Is(err, ErrCannotRemoveHost):
@@ -1079,8 +1083,7 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 		return
 	}
 
-	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
-	if err == nil {
+	if convo != nil {
 		h.hub.NotifyMembership(convo.ID, userID, "removed")
 	}
 

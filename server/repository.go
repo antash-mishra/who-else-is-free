@@ -1737,17 +1737,15 @@ func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID
 		return ErrCannotRemoveHost
 	}
 
-	convo, err := r.GetConversationByEventID(ctx, eventID)
+	// Use findUserConversationForEvent to find the specific conversation where
+	// the user is a member. This is important for 1:1 events where multiple
+	// private conversations can exist per event (one for each joiner).
+	convo, err := r.findUserConversationForEvent(ctx, nil, eventID, userID)
 	if err != nil {
+		if errors.Is(err, ErrConversationNotFound) {
+			return ErrNotConversationMember
+		}
 		return err
-	}
-
-	isMember, err := r.IsConversationMember(ctx, convo.ID, userID)
-	if err != nil {
-		return err
-	}
-	if !isMember {
-		return ErrNotConversationMember
 	}
 
 	tx, err := r.db.BeginTx(ctx, nil)
