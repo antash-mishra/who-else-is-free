@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -215,7 +215,6 @@ const MyEventsScreen = () => {
     // Default: sort by event datetime (upcoming first) with Today/Tomorrow sections
     return buildSections(filteredEvents);
   }, [filteredEvents, sortMode]);
-  const hasEvents = sections.length > 0;
 
   const handleRefresh = useCallback(() => {
     if (selectedFilter === "requested" || selectedFilter === "all") {
@@ -227,16 +226,6 @@ const MyEventsScreen = () => {
     }
     refreshEvents().catch(() => undefined);
   }, [refreshEvents, refreshRequestedEvents, selectedFilter]);
-
-  useEffect(() => {
-    if (selectedFilter !== "requested" && selectedFilter !== "all") {
-      return;
-    }
-    setIsRequestedRefreshing(true);
-    refreshRequestedEvents()
-      .catch(() => undefined)
-      .finally(() => setIsRequestedRefreshing(false));
-  }, [refreshRequestedEvents, selectedFilter]);
 
   const isRefreshing =
     selectedFilter === "requested" || selectedFilter === "all"
@@ -360,38 +349,40 @@ const MyEventsScreen = () => {
           );
         })}
       </ScrollView>
-      {!hasEvents ? (
-        <EmptyState
-          title="You don't have any events"
-          description="Explore what's happening or start something new. All your events will appear here."
-          imageSource={require('@assets/emptystate_myevent.png')}
-        />
-      ) : (
-        <SectionList<EventItemProps, EventSection>
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: spacing.xl + insets.bottom },
-          ]}
-          SectionSeparatorComponent={({ leadingItem }) =>
-            leadingItem ? <View style={styles.sectionSeparator} /> : null
-          }
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          ListFooterComponent={<View style={styles.footerSpacing} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
+      <SectionList<EventItemProps, EventSection>
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
+        stickySectionHeadersEnabled={false}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: spacing.xl + insets.bottom },
+          sections.length === 0 && { flex: 1 },
+        ]}
+        SectionSeparatorComponent={({ leadingItem }) =>
+          leadingItem ? <View style={styles.sectionSeparator} /> : null
+        }
+        ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+        ListFooterComponent={<View style={styles.footerSpacing} />}
+        ListEmptyComponent={
+          !isRefreshing ? (
+            <EmptyState
+              title="You don't have any events"
+              description="Explore what's happening or start something new. All your events will appear here."
+              imageSource={require('@assets/emptystate_myevent.png')}
             />
-          }
-        />
-      )}
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+      />
     </ScreenContainer>
   );
 };

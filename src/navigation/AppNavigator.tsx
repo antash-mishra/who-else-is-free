@@ -318,9 +318,9 @@ const MainTabs = () => {
           tabBarActiveTintColor: colors.activeTabIndicator,
           tabBarInactiveTintColor: colors.tabInactive,
           tabBarButton: (props) => <VibratingTabBarButton {...props} />,
-          lazy: true,
-          freezeOnBlur: true,
-          animation: "fade",
+          lazy: false,
+          animation: "none",
+          detachInactiveScreens: false,
           sceneStyle: { backgroundColor: colors.background },
         };
       }}

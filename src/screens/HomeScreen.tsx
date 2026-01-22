@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -85,6 +85,7 @@ const HomeScreen = () => {
   const { conversations } = useChat();
   const insets = useSafeAreaInsets();
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
+  const hasLoadedOnce = useRef(false);
 
   // Set of event IDs user has joined (is a member of conversation but not owner)
   const joinedEventIds = useMemo(() => {
@@ -134,7 +135,15 @@ const HomeScreen = () => {
     }
     return buildSections(allEvents, getBadgeLabel);
   }, [allEvents, sortMode, getBadgeLabel]);
-  const showAllEventsLoading = isLoading && sections.length === 0;
+
+  // Track if initial load has completed
+  useEffect(() => {
+    if (!isLoading && sections.length > 0) {
+      hasLoadedOnce.current = true;
+    }
+  }, [isLoading, sections.length]);
+
+  const showAllEventsLoading = isLoading && sections.length === 0 && !hasLoadedOnce.current;
   const showAllEventsError = !!error && !isLoading && sections.length === 0;
   const showAllEventsEmpty = !isLoading && sections.length === 0 && !error;
 
