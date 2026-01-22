@@ -18,7 +18,7 @@ import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ScreenContainer from "@components/ScreenContainer";
-import ChatEmptyState from "@components/ChatEmptyState";
+import EmptyState from "@components/EmptyState";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatConversation } from "@context/ChatContext";
@@ -175,11 +175,12 @@ const MessagesScreen = () => {
         <View style={styles.headerSpacing}>
           <Text style={styles.headerTitle}>Chat</Text>
         </View>
-        <ChatEmptyState
+        <EmptyState
           title="No messages to show"
           description="Log in or sign up to view conversations from events you have created or joined."
           actionLabel="Login"
           onActionPress={() => navigation.navigate("Login")}
+          imageSource={require('@assets/emptystate_chat.png')}
         />
       </ScreenContainer>
     );
@@ -202,9 +203,10 @@ const MessagesScreen = () => {
           ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
           ListEmptyComponent={() => (
-            <ChatEmptyState
+            <EmptyState
               title="No Messages Yet"
               description="Once you create an event, or accepted an event request, your chats will appear here."
+              imageSource={require('@assets/emptystate_chat.png')}
             />
           )}
           refreshControl={

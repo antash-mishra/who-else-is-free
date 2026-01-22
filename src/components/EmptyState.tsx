@@ -1,5 +1,5 @@
 import { ComponentType, memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SvgProps } from 'react-native-svg';
 
 import CreateEventIllustration from '@assets/create-event.svg';
@@ -12,6 +12,8 @@ interface EmptyStateProps {
   onActionPress?: () => void;
   illustration?: ComponentType<SvgProps>;
   illustrationSize?: number;
+  imageSource?: ImageSourcePropType;
+  imageSize?: number;
 }
 
 const EmptyState = ({
@@ -20,11 +22,21 @@ const EmptyState = ({
   actionLabel,
   onActionPress,
   illustration: Illustration = CreateEventIllustration,
-  illustrationSize = 245
+  illustrationSize = 245,
+  imageSource,
+  imageSize = 245
 }: EmptyStateProps) => {
   return (
     <View style={styles.container}>
-      <Illustration width={illustrationSize} height={illustrationSize} />    
+      {imageSource ? (
+        <Image
+          source={imageSource}
+          style={{ width: imageSize, height: imageSize }}
+          resizeMode="contain"
+        />
+      ) : (
+        <Illustration width={illustrationSize} height={illustrationSize} />
+      )}    
       <View style={styles.textContainer}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
@@ -43,7 +55,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20
+    gap: 8,
+    paddingBottom: '20%'
   },
   textContainer: {
     gap: 10,

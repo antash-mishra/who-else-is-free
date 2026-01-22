@@ -24,7 +24,6 @@ import { colors, spacing, typography } from "@theme/index";
 import { DateLabel, UserEvent, useEvents } from "@context/EventsContext";
 import { useChat } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
-import EmptyEventsIllustration from "@assets/create-event-empty-icon.svg";
 import UpIcon from "@assets/up.svg";
 import DownIcon from "@assets/down.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -244,35 +243,6 @@ const MyEventsScreen = () => {
       ? isRequestedRefreshing
       : isLoading;
 
-  const emptyStateContent = useMemo(() => {
-    switch (selectedFilter) {
-      case "joined":
-        return {
-          title: "You haven't joined any events yet",
-          description:
-            "Accept an invite or request to join an event to see it here.",
-        };
-      case "requested":
-        return {
-          title: "No pending requests",
-          description:
-            "Tap Interested on an event to send the host a join request.",
-        };
-      case "hosting":
-        return {
-          title: "You haven't created any event yet",
-          description:
-            "Tap the button below to start planning your next experience.",
-        };
-      default:
-        return {
-          title: "No upcoming events",
-          description:
-            "Create an event or join one to see it here.",
-        };
-    }
-  }, [selectedFilter]);
-
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
     <Text style={styles.sectionHeader}>{section.title}</Text>
   );
@@ -329,8 +299,7 @@ const MyEventsScreen = () => {
           description="Log in to create an event"
           actionLabel="Login"
           onActionPress={() => navigation.navigate("Login")}
-          illustration={EmptyEventsIllustration}
-          illustrationSize={40}
+          imageSource={require('@assets/emptystate_myevent.png')}
         />
       </ScreenContainer>
     );
@@ -391,18 +360,9 @@ const MyEventsScreen = () => {
       </ScrollView>
       {!hasEvents ? (
         <EmptyState
-          title={emptyStateContent.title}
-          description={emptyStateContent.description}
-          actionLabel={
-            selectedFilter === "hosting" || selectedFilter === "all"
-              ? "Create an event"
-              : undefined
-          }
-          onActionPress={
-            selectedFilter === "hosting" || selectedFilter === "all"
-              ? () => navigation.navigate("Create", {})
-              : undefined
-          }
+          title="You don't have any events"
+          description="Explore what's happening or start something new. All your events will appear here."
+          imageSource={require('@assets/emptystate_myevent.png')}
         />
       ) : (
         <SectionList<EventItemProps, EventSection>
