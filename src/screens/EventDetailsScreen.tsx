@@ -52,6 +52,7 @@ const EventDetailsScreen = () => {
     refreshJoinRequests,
     approveJoinRequest,
     denyJoinRequest,
+    refreshConversations,
   } = useChat();
 
   const rawEvent = useMemo(
@@ -646,6 +647,7 @@ const EventDetailsScreen = () => {
       if (!response.ok) {
         throw new Error("Unable to leave event right now.");
       }
+      await refreshConversations();
       setShowLeaveConfirm(false);
       setLeaveSuccessVisible(true);
     } catch (err) {
