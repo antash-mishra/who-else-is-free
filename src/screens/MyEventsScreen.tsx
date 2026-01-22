@@ -296,9 +296,11 @@ const MyEventsScreen = () => {
         </View>
         <EmptyState
           title="No events to show"
-          description="Log in to create an event"
-          actionLabel="Login"
+          description="Log in or sign up to view the events you have created or joined."
+          actionLabel="Log In"
           onActionPress={() => navigation.navigate("Login")}
+          secondaryActionLabel="Sign Up"
+          onSecondaryActionPress={() => navigation.navigate("Login")}
           imageSource={require('@assets/emptystate_myevent.png')}
         />
       </ScreenContainer>

@@ -319,7 +319,7 @@ const MainTabs = () => {
           tabBarInactiveTintColor: colors.tabInactive,
           tabBarButton: (props) => <VibratingTabBarButton {...props} />,
           lazy: true,
-          freezeOnBlur: false,
+          freezeOnBlur: true,
           animation: "fade",
           sceneStyle: { backgroundColor: colors.background },
         };

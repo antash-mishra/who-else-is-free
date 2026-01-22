@@ -112,15 +112,17 @@ const ProfileScreen = () => {
 
   if (!user) {
     return (
-      <ScreenContainer edges={["bottom"]}>
+      <ScreenContainer>
         <View style={styles.headerSpacing}>
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
         <EmptyState
           title="No profile to show"
-          description="Login to see the profile"
-          actionLabel="Login"
+          description="Log in or sign up to see your profile"
+          actionLabel="Log In"
           onActionPress={() => navigation.navigate("Login")}
+          secondaryActionLabel="Sign Up"
+          onSecondaryActionPress={() => navigation.navigate("Login")}
           illustration={EmptyProfileIllustration}
           illustrationSize={40}
         />
@@ -232,7 +234,6 @@ const styles = StyleSheet.create({
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.md,
-    paddingHorizontal: spacing.md,
   },
   headerTitle: {
     fontSize: typography.header,
