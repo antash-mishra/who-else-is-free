@@ -98,12 +98,24 @@ func (h *AuthHandler) googleLogin(c *gin.Context) {
 		return
 	}
 
+	userResponse := gin.H{
+		"id":               user.ID,
+		"name":             user.Name,
+		"email":            user.Email,
+		"profile_complete": user.ProfileComplete,
+	}
+	if user.Gender != nil {
+		userResponse["gender"] = *user.Gender
+	}
+	if user.Age != nil {
+		userResponse["age"] = *user.Age
+	}
+	if user.Avatar != nil {
+		userResponse["avatar"] = *user.Avatar
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"user": gin.H{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
-		},
+		"user":       userResponse,
 		"token":      token,
 		"expires_at": claims.ExpiresAt,
 	})

@@ -6,12 +6,14 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { RootStackParamList } from "@navigation/types";
+import { useAuth } from "@context/AuthContext";
 import { typography } from "@theme/index";
 import SplashLogo from "@assets/splash_logo.svg";
 
 const SplashScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const [isReady, setIsReady] = useState(false);
 
@@ -32,22 +34,28 @@ const SplashScreen = () => {
       // Wait 2 seconds
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
+      // Determine destination: if user exists but profile not complete, go to Onboarding
+      let destination: keyof RootStackParamList = "Main";
+      if (user && !user.profileComplete) {
+        destination = "Onboarding";
+      }
+
       // Fade out animation (300ms)
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        // Navigate to Main after fade completes
+        // Navigate to destination after fade completes
         navigation.reset({
           index: 0,
-          routes: [{ name: "Main" }],
+          routes: [{ name: destination }],
         });
       });
     };
 
     runSplashSequence();
-  }, [fadeAnim, navigation, isReady]);
+  }, [fadeAnim, navigation, isReady, user]);
 
   return (
     <Animated.View

@@ -24,11 +24,15 @@ type Event struct {
 }
 
 type User struct {
-	ID        int64     `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Password  string    `json:"-"`
-	CreatedAt time.Time `json:"created_at"`
+	ID              int64     `json:"id"`
+	Name            string    `json:"name"`
+	Email           string    `json:"email"`
+	Password        string    `json:"-"`
+	Gender          *string   `json:"gender,omitempty"`
+	Age             *int      `json:"age,omitempty"`
+	Avatar          *string   `json:"avatar,omitempty"`
+	ProfileComplete bool      `json:"profile_complete"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type Conversation struct {

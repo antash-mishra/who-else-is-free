@@ -21,6 +21,7 @@ import ProfileScreen from "@screens/ProfileScreen";
 import LoginScreen from "@screens/LoginScreen";
 import EventDetailsScreen from "@screens/EventDetailsScreen";
 import SplashScreen from "@screens/SplashScreen";
+import OnboardingScreen from "@screens/OnboardingScreen";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
 import GoogleSignIn from "@screens/GoogleSignIn";
@@ -422,6 +423,14 @@ const AppNavigator = () => {
             presentation: "transparentModal",
             animation: "fade",
             animationDuration: 150,
+          }}
+        />
+        <Stack.Screen
+          name="Onboarding"
+          component={OnboardingScreen}
+          options={{
+            gestureEnabled: false,
+            animation: "fade",
           }}
         />
         <Stack.Screen
