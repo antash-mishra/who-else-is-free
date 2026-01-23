@@ -74,10 +74,10 @@ const GoogleSignInScreen = () => {
         return;
       }
 
-      await signInWithGoogle(result.data.idToken);
+      const user = await signInWithGoogle(result.data.idToken);
       navigation.reset({
         index: 0,
-        routes: [{ name: "Main" }],
+        routes: [{ name: user.profileComplete ? "Main" : "Onboarding" }],
       });
     } catch (error) {
       console.warn("Google sign-in failed", error);

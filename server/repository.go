@@ -305,14 +305,20 @@ FROM users;
 `
 
 const selectUserByEmail = `
-SELECT id, name, email, password, created_at
+SELECT id, name, email, password, gender, age, avatar, profile_complete, created_at
 FROM users
 WHERE email = ?;
 `
 
 const selectUserByID = `
-SELECT id, name, email, password, created_at
+SELECT id, name, email, password, gender, age, avatar, profile_complete, created_at
 FROM users
+WHERE id = ?;
+`
+
+const updateUserProfile = `
+UPDATE users
+SET name = ?, gender = ?, age = ?, avatar = ?, profile_complete = ?
 WHERE id = ?;
 `
 
@@ -460,6 +466,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureReportedUserIDColumn(ctx); err != nil {
 		return err
 	}
+	if err := r.ensureUserProfileColumns(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createEventReportsUniqueIndex); err != nil {
 		return fmt.Errorf("create event_reports unique index: %w", err)
 	}
@@ -474,11 +483,16 @@ func (r *EventRepository) Init(ctx context.Context) error {
 
 func (r *EventRepository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var user User
+	var profileComplete int
 	if err := r.db.QueryRowContext(ctx, selectUserByEmail, email).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.Password,
+		&user.Gender,
+		&user.Age,
+		&user.Avatar,
+		&profileComplete,
 		&user.CreatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -486,6 +500,7 @@ func (r *EventRepository) GetUserByEmail(ctx context.Context, email string) (*Us
 		}
 		return nil, fmt.Errorf("lookup user: %w", err)
 	}
+	user.ProfileComplete = profileComplete == 1
 	return &user, nil
 }
 
@@ -743,6 +758,67 @@ func (r *EventRepository) ensureReportedUserIDColumn(ctx context.Context) error 
 
 	if _, err := r.db.ExecContext(ctx, `ALTER TABLE event_reports ADD COLUMN reported_user_id INTEGER REFERENCES users(id);`); err != nil {
 		return fmt.Errorf("add reported_user_id column: %w", err)
+	}
+	return nil
+}
+
+func (r *EventRepository) ensureUserProfileColumns(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(users);`)
+	if err != nil {
+		return fmt.Errorf("inspect users table: %w", err)
+	}
+	defer rows.Close()
+
+	hasGender := false
+	hasAge := false
+	hasAvatar := false
+	hasProfileComplete := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan users schema: %w", err)
+		}
+		switch name {
+		case "gender":
+			hasGender = true
+		case "age":
+			hasAge = true
+		case "avatar":
+			hasAvatar = true
+		case "profile_complete":
+			hasProfileComplete = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate users schema: %w", err)
+	}
+
+	if !hasGender {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN gender TEXT;`); err != nil {
+			return fmt.Errorf("add gender column: %w", err)
+		}
+	}
+	if !hasAge {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN age INTEGER;`); err != nil {
+			return fmt.Errorf("add age column: %w", err)
+		}
+	}
+	if !hasAvatar {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN avatar TEXT;`); err != nil {
+			return fmt.Errorf("add avatar column: %w", err)
+		}
+	}
+	if !hasProfileComplete {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE users ADD COLUMN profile_complete INTEGER NOT NULL DEFAULT 0;`); err != nil {
+			return fmt.Errorf("add profile_complete column: %w", err)
+		}
 	}
 	return nil
 }
@@ -2465,11 +2541,16 @@ func (r *EventRepository) AuthenticateUser(ctx context.Context, email, password 
 
 func (r *EventRepository) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	var user User
+	var profileComplete int
 	if err := r.db.QueryRowContext(ctx, selectUserByID, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.Password,
+		&user.Gender,
+		&user.Age,
+		&user.Avatar,
+		&profileComplete,
 		&user.CreatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -2477,7 +2558,23 @@ func (r *EventRepository) GetUserByID(ctx context.Context, id int64) (*User, err
 		}
 		return nil, fmt.Errorf("lookup user by id: %w", err)
 	}
+	user.ProfileComplete = profileComplete == 1
 	return &user, nil
+}
+
+type UpdateProfileParams struct {
+	Name   string
+	Gender *string
+	Age    *int
+	Avatar *string
+}
+
+func (r *EventRepository) UpdateUserProfile(ctx context.Context, userID int64, params UpdateProfileParams) (*User, error) {
+	profileComplete := 1
+	if _, err := r.db.ExecContext(ctx, updateUserProfile, params.Name, params.Gender, params.Age, params.Avatar, profileComplete, userID); err != nil {
+		return nil, fmt.Errorf("update user profile: %w", err)
+	}
+	return r.GetUserByID(ctx, userID)
 }
 
 func (r *EventRepository) CancelJoinRequest(ctx context.Context, eventID, userID int64) error {

@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *ChatHub, signer *tokenSigner) *gin.Engine {
+func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, signer *tokenSigner) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -31,6 +31,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, chatHub *
 	protected.Use(sessionMiddleware(signer))
 	eventHandler.RegisterProtectedRoutes(protected)
 	protected.POST("/events/:id/report", eventHandler.reportEvent)
+	protected.PUT("/profile", profileHandler.UpdateProfile)
 	RegisterChatRoutes(protected, eventHandler.repo, chatHub)
 
 	api.GET("/ws", chatHub.handleWebSocket)

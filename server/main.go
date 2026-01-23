@@ -42,9 +42,10 @@ func main() {
 
 	eventHandler := NewEventHandler(repo)
 	authHandler := NewAuthHandler(repo, signer)
+	profileHandler := NewProfileHandler(repo)
 	chatHub := NewChatHub(repo, signer)
 	go chatHub.Run()
-	srv := setupRouter(eventHandler, authHandler, chatHub, signer)
+	srv := setupRouter(eventHandler, authHandler, profileHandler, chatHub, signer)
 
 	if err := srv.Run(); err != nil {
 		log.Fatalf("failed to start server: %v", err)

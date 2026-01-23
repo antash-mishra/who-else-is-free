@@ -9,6 +9,7 @@ export type RootStackParamList = {
       }
     | undefined;
   Main: any;
+  Onboarding: undefined;
   EventDetails: {
     eventId: string;
     origin?: 'Events' | 'MyEvents';

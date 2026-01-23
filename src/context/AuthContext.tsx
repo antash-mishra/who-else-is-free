@@ -18,15 +18,27 @@ type AuthUser = {
   id: number;
   name: string;
   email: string;
+  gender?: "Female" | "Male";
+  age?: number;
+  avatar?: string;
+  profileComplete: boolean;
+};
+
+type ProfileUpdateData = {
+  name: string;
+  gender: "Female" | "Male";
+  age: number;
+  avatar?: string;
 };
 
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isSigningIn: boolean;
-  signInWithGoogle: (idToken: string) => Promise<string>;
+  signInWithGoogle: (idToken: string) => Promise<AuthUser>;
   signOut: () => void;
   refreshSessionSilently: () => Promise<string | null>;
+  updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -114,17 +126,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const payload = (await response.json()) as {
-        user: AuthUser;
+        user: {
+          id: number;
+          name: string;
+          email: string;
+          gender?: "Female" | "Male";
+          age?: number;
+          avatar?: string;
+          profile_complete: boolean;
+        };
         token: string;
       };
-      setUser(payload.user);
+      const authUser: AuthUser = {
+        id: payload.user.id,
+        name: payload.user.name,
+        email: payload.user.email,
+        gender: payload.user.gender,
+        age: payload.user.age,
+        avatar: payload.user.avatar,
+        profileComplete: payload.user.profile_complete,
+      };
+      setUser(authUser);
       setToken(payload.token);
 
       await Promise.all([
         SecureStore.setItemAsync(TOKEN_KEY, payload.token),
-        SecureStore.setItemAsync(USER_KEY, JSON.stringify(payload.user)),
+        SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser)),
       ]);
-      return payload.token;
+      return authUser;
     } catch (error) {
       if (error instanceof Error) {
         throw error;
@@ -144,12 +173,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!idToken) {
         return null;
       }
-      const sessionToken = await signInWithGoogle(idToken);
-      return sessionToken;
+      await signInWithGoogle(idToken);
+      return token;
     } catch (err) {
       return null;
     }
-  }, [signInWithGoogle]);
+  }, [signInWithGoogle, token]);
+
+  const updateProfile = useCallback(
+    async (data: ProfileUpdateData): Promise<AuthUser> => {
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(errorData.error || "Failed to update profile");
+      }
+
+      const payload = (await response.json()) as {
+        user: {
+          id: number;
+          name: string;
+          email: string;
+          gender?: "Female" | "Male";
+          age?: number;
+          avatar?: string;
+          profile_complete: boolean;
+        };
+      };
+      const authUser: AuthUser = {
+        id: payload.user.id,
+        name: payload.user.name,
+        email: payload.user.email,
+        gender: payload.user.gender,
+        age: payload.user.age,
+        avatar: payload.user.avatar,
+        profileComplete: payload.user.profile_complete,
+      };
+      setUser(authUser);
+
+      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser));
+      return authUser;
+    },
+    [token],
+  );
 
   const signOut = useCallback(() => {
     setUser(null);
@@ -166,6 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signInWithGoogle,
       signOut,
       refreshSessionSilently,
+      updateProfile,
     }),
     [
       user,
@@ -174,6 +254,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signInWithGoogle,
       signOut,
       refreshSessionSilently,
+      updateProfile,
     ],
   );
 
