@@ -60,10 +60,11 @@ func setupAPITestEnv(t *testing.T) *apiTestEnv {
 
 	eventHandler := NewEventHandler(repo)
 	authHandler := NewAuthHandler(repo, signer)
+	profileHandler := NewProfileHandler(repo)
 	hub := NewChatHub(repo, signer)
 	go hub.Run()
 
-	router := setupRouter(eventHandler, authHandler, hub, signer)
+	router := setupRouter(eventHandler, authHandler, profileHandler, hub, signer)
 	ts := httptest.NewServer(router)
 
 	t.Cleanup(func() {
@@ -1733,6 +1734,561 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
 		if payload.Request.Status != "approved" {
 			t.Fatalf("expected approved status on third rejoin, got %s", payload.Request.Status)
+		}
+	})
+}
+
+// ============================================================================
+// Profile / Onboarding Tests
+// ============================================================================
+
+type profileResponse struct {
+	User struct {
+		ID              int64   `json:"id"`
+		Name            string  `json:"name"`
+		Email           string  `json:"email"`
+		ProfileComplete bool    `json:"profile_complete"`
+		Gender          string  `json:"gender,omitempty"`
+		Age             int     `json:"age,omitempty"`
+		Avatar          string  `json:"avatar,omitempty"`
+	} `json:"user"`
+}
+
+// TestUpdateProfile tests the profile update endpoint with various inputs
+func TestUpdateProfile(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	t.Run("valid profile update", func(t *testing.T) {
+		// Create a new user for this test to avoid conflicts with other tests
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Test User', 'profile-test@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "profile-test@example.com")
+
+		body := map[string]any{
+			"name":   "Updated Name",
+			"gender": "Female",
+			"age":    25,
+			"avatar": "https://example.com/avatar.png",
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[profileResponse](t, resp)
+		if payload.User.Name != "Updated Name" {
+			t.Fatalf("expected name 'Updated Name', got %s", payload.User.Name)
+		}
+		if payload.User.Gender != "Female" {
+			t.Fatalf("expected gender 'Female', got %s", payload.User.Gender)
+		}
+		if payload.User.Age != 25 {
+			t.Fatalf("expected age 25, got %d", payload.User.Age)
+		}
+		if payload.User.Avatar != "https://example.com/avatar.png" {
+			t.Fatalf("expected avatar URL, got %s", payload.User.Avatar)
+		}
+		if !payload.User.ProfileComplete {
+			t.Fatal("expected profile_complete to be true after update")
+		}
+	})
+
+	t.Run("missing name returns 400", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Missing Name Test', 'missing-name@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "missing-name@example.com")
+
+		body := map[string]any{
+			"gender": "Male",
+			"age":    30,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("invalid gender returns 400", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Invalid Gender Test', 'invalid-gender@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "invalid-gender@example.com")
+
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Other", // Invalid - only Female or Male allowed
+			"age":    25,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("age below 13 returns 400", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Young User Test', 'young-user@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "young-user@example.com")
+
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Male",
+			"age":    12, // Below minimum of 13
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("age above 120 returns 400", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Old User Test', 'old-user@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "old-user@example.com")
+
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Female",
+			"age":    121, // Above maximum of 120
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("empty request body returns 400", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Empty Body Test', 'empty-body@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "empty-body@example.com")
+
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, map[string]any{})
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("request without token returns 401", func(t *testing.T) {
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Male",
+			"age":    25,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", "", body)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("update without avatar field succeeds", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('No Avatar Test', 'no-avatar@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "no-avatar@example.com")
+
+		body := map[string]any{
+			"name":   "No Avatar User",
+			"gender": "Male",
+			"age":    30,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[profileResponse](t, resp)
+		if payload.User.Name != "No Avatar User" {
+			t.Fatalf("expected name 'No Avatar User', got %s", payload.User.Name)
+		}
+		if !payload.User.ProfileComplete {
+			t.Fatal("expected profile_complete to be true")
+		}
+	})
+
+	t.Run("update with null avatar succeeds", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Null Avatar Test', 'null-avatar@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "null-avatar@example.com")
+
+		body := map[string]any{
+			"name":   "Null Avatar User",
+			"gender": "Female",
+			"age":    28,
+			"avatar": nil,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+	})
+}
+
+// TestProfileImmutability tests that gender and age cannot be changed once set
+func TestProfileImmutability(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	t.Run("gender cannot be changed once set", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Gender Change Test', 'gender-change@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "gender-change@example.com")
+
+		// First, set gender to Male
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Male",
+			"age":    25,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("initial profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Try to change gender to Female
+		body["gender"] = "Female"
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 when trying to change gender, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[testErrorResponse](t, resp)
+		if payload.Error != "gender cannot be changed once set" {
+			t.Fatalf("expected 'gender cannot be changed once set' error, got '%s'", payload.Error)
+		}
+	})
+
+	t.Run("age cannot be changed once set", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Age Change Test', 'age-change@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "age-change@example.com")
+
+		// First, set age to 25
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Female",
+			"age":    25,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("initial profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Try to change age to 30
+		body["age"] = 30
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400 when trying to change age, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[testErrorResponse](t, resp)
+		if payload.Error != "age cannot be changed once set" {
+			t.Fatalf("expected 'age cannot be changed once set' error, got '%s'", payload.Error)
+		}
+	})
+
+	t.Run("name can be changed multiple times", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Name Change Test', 'name-change@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "name-change@example.com")
+
+		// Set initial profile
+		body := map[string]any{
+			"name":   "Initial Name",
+			"gender": "Male",
+			"age":    30,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("initial profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Change name
+		body["name"] = "Updated Name"
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 when changing name, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[profileResponse](t, resp)
+		if payload.User.Name != "Updated Name" {
+			t.Fatalf("expected name 'Updated Name', got '%s'", payload.User.Name)
+		}
+
+		// Change name again
+		body["name"] = "Third Name"
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 when changing name again, got %d", resp.StatusCode)
+		}
+
+		payload = decodeJSON[profileResponse](t, resp)
+		if payload.User.Name != "Third Name" {
+			t.Fatalf("expected name 'Third Name', got '%s'", payload.User.Name)
+		}
+	})
+
+	t.Run("avatar can be changed multiple times", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Avatar Change Test', 'avatar-change@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "avatar-change@example.com")
+
+		// Set initial profile with avatar
+		body := map[string]any{
+			"name":   "Avatar User",
+			"gender": "Female",
+			"age":    28,
+			"avatar": "https://example.com/avatar1.png",
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("initial profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Change avatar
+		body["avatar"] = "https://example.com/avatar2.png"
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 when changing avatar, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[profileResponse](t, resp)
+		if payload.User.Avatar != "https://example.com/avatar2.png" {
+			t.Fatalf("expected avatar 'https://example.com/avatar2.png', got '%s'", payload.User.Avatar)
+		}
+	})
+
+	t.Run("same gender value can be submitted", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Same Gender Test', 'same-gender@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "same-gender@example.com")
+
+		// Set initial profile
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Male",
+			"age":    25,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("initial profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Submit same gender value - should succeed
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 when submitting same gender, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("same age value can be submitted", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Same Age Test', 'same-age@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "same-age@example.com")
+
+		// Set initial profile
+		body := map[string]any{
+			"name":   "Test User",
+			"gender": "Female",
+			"age":    30,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("initial profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Submit same age value - should succeed
+		resp = env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 when submitting same age, got %d", resp.StatusCode)
+		}
+	})
+}
+
+// TestGoogleLoginReturnsProfileComplete tests that the Google login response
+// correctly includes the profile_complete field
+func TestGoogleLoginReturnsProfileComplete(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	t.Run("new user has profile_complete false", func(t *testing.T) {
+		// Create a new user without profile completion
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, profile_complete, created_at)
+			VALUES ('New User', 'new-user@example.com', '', 0, datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create new user: %v", err)
+		}
+
+		// Get user and verify profile_complete is false
+		user, err := env.repo.GetUserByEmail(ctx, "new-user@example.com")
+		if err != nil {
+			t.Fatalf("get user: %v", err)
+		}
+		if user.ProfileComplete {
+			t.Fatal("new user should have profile_complete = false")
+		}
+	})
+
+	t.Run("user with completed profile has profile_complete true", func(t *testing.T) {
+		// Create a user with completed profile
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, gender, age, profile_complete, created_at)
+			VALUES ('Complete User', 'complete-user@example.com', '', 'Female', 25, 1, datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create complete user: %v", err)
+		}
+
+		// Get user and verify profile_complete is true
+		user, err := env.repo.GetUserByEmail(ctx, "complete-user@example.com")
+		if err != nil {
+			t.Fatalf("get user: %v", err)
+		}
+		if !user.ProfileComplete {
+			t.Fatal("user with completed profile should have profile_complete = true")
+		}
+	})
+
+	t.Run("profile update sets profile_complete to true", func(t *testing.T) {
+		// Create a new user
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, profile_complete, created_at)
+			VALUES ('Incomplete User', 'incomplete-user@example.com', '', 0, datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create user: %v", err)
+		}
+
+		// Verify initially profile_complete is false
+		user, err := env.repo.GetUserByEmail(ctx, "incomplete-user@example.com")
+		if err != nil {
+			t.Fatalf("get user: %v", err)
+		}
+		if user.ProfileComplete {
+			t.Fatal("user should initially have profile_complete = false")
+		}
+
+		// Update profile
+		token := env.issueTokenForEmail(t, "incomplete-user@example.com")
+		body := map[string]any{
+			"name":   "Updated User",
+			"gender": "Male",
+			"age":    28,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("profile update: expected 200, got %d", resp.StatusCode)
+		}
+
+		// Verify profile_complete is now true
+		payload := decodeJSON[profileResponse](t, resp)
+		if !payload.User.ProfileComplete {
+			t.Fatal("profile_complete should be true after profile update")
+		}
+
+		// Verify in database as well
+		user, err = env.repo.GetUserByEmail(ctx, "incomplete-user@example.com")
+		if err != nil {
+			t.Fatalf("get user after update: %v", err)
+		}
+		if !user.ProfileComplete {
+			t.Fatal("profile_complete should be true in database after update")
 		}
 	})
 }

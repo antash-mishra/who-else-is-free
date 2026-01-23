@@ -23,11 +23,12 @@ type updateProfileRequest struct {
 }
 
 func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	claims, exists := sessionFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
+	userID := claims.UserID
 
 	var req updateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -36,7 +37,7 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	// Fetch current user to check if gender/age are already set
-	existingUser, err := h.repo.GetUserByID(c.Request.Context(), userID.(int64))
+	existingUser, err := h.repo.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		log.Printf("profile update: failed to fetch user %d: %v", userID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user"})
@@ -63,7 +64,7 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 		Avatar: req.Avatar,
 	}
 
-	user, err := h.repo.UpdateUserProfile(c.Request.Context(), userID.(int64), params)
+	user, err := h.repo.UpdateUserProfile(c.Request.Context(), userID, params)
 	if err != nil {
 		log.Printf("profile update: failed to update user %d: %v", userID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})
