@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -9,12 +10,18 @@ import {
   Text,
   View,
 } from "react-native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import {
+  BottomTabNavigationProp,
+  useBottomTabBarHeight,
+} from "@react-navigation/bottom-tabs";
 import {
   useNavigation,
   CompositeNavigationProp,
+  RouteProp,
+  useRoute,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { BlurView } from "expo-blur";
 
 import EmptyState from "@components/EmptyState";
 import EventCard, { EventItemProps } from "@components/EventCard";
@@ -32,6 +39,8 @@ type MyEventsNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "MyEvents">,
   NativeStackNavigationProp<RootStackParamList>
 >;
+
+type MyEventsRoute = RouteProp<RootTabParamList, "MyEvents">;
 
 type EventSection = {
   title: string;
@@ -69,6 +78,7 @@ const buildSections = (items: EventItemProps[]): EventSection[] => {
 
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
+  const route = useRoute<MyEventsRoute>();
   const {
     events,
     userEvents,
@@ -82,7 +92,60 @@ const MyEventsScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState<EventFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
+  const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
+  const badgeTranslateY = useRef(new Animated.Value(40)).current;
+  const badgeOpacity = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+
+  useEffect(() => {
+    if (!route.params?.showEventCreatedBadge) {
+      return;
+    }
+
+    setShowEventCreatedBadge(true);
+    badgeTranslateY.setValue(40);
+    badgeOpacity.setValue(0);
+
+    const animation = Animated.sequence([
+      Animated.parallel([
+        Animated.timing(badgeTranslateY, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(badgeOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(2500),
+      Animated.parallel([
+        Animated.timing(badgeTranslateY, {
+          toValue: 40,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(badgeOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished) {
+        setShowEventCreatedBadge(false);
+        navigation.setParams({ showEventCreatedBadge: false });
+      }
+    });
+
+    return () => {
+      animation.stop();
+    };
+  }, [badgeOpacity, badgeTranslateY, navigation, route.params?.showEventCreatedBadge]);
 
   // Get joined event IDs from conversations
   const joinedEventIds = useMemo(() => {
@@ -298,91 +361,113 @@ const MyEventsScreen = () => {
 
   return (
     <ScreenContainer>
-      <View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>Your Events</Text>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterScrollContent}
-        style={styles.filterScrollView}
-      >
-        {filterOptions.map(({ label, value, count, showIcon }) => {
-          // "Upcoming" (all) is always shown as selected
-          // Other filters are selected only when they match selectedFilter
-          const isSelected = value === "all" || value === selectedFilter;
+      <View style={styles.content}>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Your Events</Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScrollContent}
+          style={styles.filterScrollView}
+        >
+          {filterOptions.map(({ label, value, count, showIcon }) => {
+            // "Upcoming" (all) is always shown as selected
+            // Other filters are selected only when they match selectedFilter
+            const isSelected = value === "all" || value === selectedFilter;
 
-          return (
-            <Pressable
-              key={value}
-              onPress={() => handleFilterPress(value)}
-              style={({ pressed }) => [
-                styles.filterButton,
-                (isSelected || pressed) && styles.filterButtonActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  isSelected && styles.filterButtonTextActive,
+            return (
+              <Pressable
+                key={value}
+                onPress={() => handleFilterPress(value)}
+                style={({ pressed }) => [
+                  styles.filterButton,
+                  (isSelected || pressed) && styles.filterButtonActive,
                 ]}
               >
-                {label}
-              </Text>
-              {showIcon && (
-                <View style={styles.sortIconContainer}>
-                  <DownIcon width={8} height={12} />
-                  <UpIcon width={8} height={12} />
-                </View>
-              )}
-              {count !== undefined && count > 0 && (
                 <Text
                   style={[
-                    styles.filterCountText,
-                    isSelected && styles.filterCountTextActive,
+                    styles.filterButtonText,
+                    isSelected && styles.filterButtonTextActive,
                   ]}
                 >
-                  {count}
+                  {label}
                 </Text>
-              )}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-      <SectionList<EventItemProps, EventSection>
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        renderSectionHeader={renderSectionHeader}
-        stickySectionHeadersEnabled={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: spacing.xl + insets.bottom },
-          sections.length === 0 && { flex: 1 },
-        ]}
-        SectionSeparatorComponent={({ leadingItem }) =>
-          leadingItem ? <View style={styles.sectionSeparator} /> : null
-        }
-        ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-        ListFooterComponent={<View style={styles.footerSpacing} />}
-        ListEmptyComponent={
-          !isRefreshing ? (
-            <EmptyState
-              title="You don't have any events"
-              description="Explore what's happening or start something new. All your events will appear here."
-              imageSource={require('@assets/emptystate_myevent.png')}
+                {showIcon && (
+                  <View style={styles.sortIconContainer}>
+                    <DownIcon width={8} height={12} />
+                    <UpIcon width={8} height={12} />
+                  </View>
+                )}
+                {count !== undefined && count > 0 && (
+                  <Text
+                    style={[
+                      styles.filterCountText,
+                      isSelected && styles.filterCountTextActive,
+                    ]}
+                  >
+                    {count}
+                  </Text>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <SectionList<EventItemProps, EventSection>
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: spacing.xl + insets.bottom },
+            sections.length === 0 && { flex: 1 },
+          ]}
+          SectionSeparatorComponent={({ leadingItem }) =>
+            leadingItem ? <View style={styles.sectionSeparator} /> : null
+          }
+          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+          ListFooterComponent={<View style={styles.footerSpacing} />}
+          ListEmptyComponent={
+            !isRefreshing ? (
+              <EmptyState
+                title="You don't have any events"
+                description="Explore what's happening or start something new. All your events will appear here."
+                imageSource={require('@assets/emptystate_myevent.png')}
+              />
+            ) : null
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
             />
-          ) : null
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      />
+          }
+        />
+        {showEventCreatedBadge && (
+          <Animated.View
+            style={[
+              styles.eventCreatedBadge,
+              {
+                bottom: tabBarHeight + spacing.md,
+                opacity: badgeOpacity,
+                transform: [{ translateY: badgeTranslateY }],
+              },
+            ]}
+          >
+            <BlurView
+              intensity={10}
+              tint="dark"
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.eventCreatedBadgeOverlay} />
+            <Text style={styles.eventCreatedBadgeText}>Event Created</Text>
+          </Animated.View>
+        )}
+      </View>
     </ScreenContainer>
   );
 };
@@ -391,6 +476,9 @@ const styles = StyleSheet.create({
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.md,
+  },
+  content: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: typography.header,
@@ -477,6 +565,32 @@ const styles = StyleSheet.create({
   },
   eventPressablePressed: {
     opacity: 0.85,
+  },
+  eventCreatedBadge: {
+    position: "absolute",
+    alignSelf: "center",
+    minWidth: 112,
+    minHeight: 32,
+    paddingVertical: 10,
+    paddingHorizontal: 11,
+    gap: spacing.xs,
+    borderRadius: 10,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eventCreatedBadgeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#00000099",
+  },
+  eventCreatedBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 14,
+    fontFamily: typography.fontFamilyMedium,
+    letterSpacing: -0.2,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
 });
 

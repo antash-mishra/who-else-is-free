@@ -31,7 +31,7 @@ export type RootStackParamList = {
 
 export type RootTabParamList = {
   Events: undefined;
-  MyEvents: undefined;
+  MyEvents: { showEventCreatedBadge?: boolean } | undefined;
   Create: { editEventId?: string };
   Profile: undefined;
   Messages: undefined;
