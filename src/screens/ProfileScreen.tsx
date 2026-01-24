@@ -1,6 +1,7 @@
 import {
   Alert,
   Dimensions,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -143,7 +144,14 @@ const ProfileScreen = () => {
         >
           <SafeAreaView edges={["top"]} style={styles.headerContent}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{initial}</Text>
+              {user.avatar ? (
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${user.avatar}` }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarInitial}>{initial}</Text>
+              )}
             </View>
             <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
             <Text style={styles.email}>{user?.email ?? ""}</Text>
@@ -263,6 +271,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   avatarInitial: {
     fontSize: 32,
