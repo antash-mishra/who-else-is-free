@@ -49,7 +49,7 @@ const getCoverSource = (coverKey?: string) => {
 const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
   const route = useRoute<JoinRequestsRoute>();
-  const { token } = useAuth();
+  const { token, authFetch } = useAuth();
   const {
     joinRequestsByConversation,
     refreshJoinRequests,
@@ -147,7 +147,7 @@ const JoinRequestsScreen = () => {
     setIsSubmittingReport(true);
     setReportError(null);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${eventId}/members/${selectedRequest.userId}/report`,
         {
           method: "POST",
@@ -167,7 +167,7 @@ const JoinRequestsScreen = () => {
     } finally {
       setIsSubmittingReport(false);
     }
-  }, [eventId, reportMessage, selectedRequest, token]);
+  }, [authFetch, eventId, reportMessage, selectedRequest, token]);
 
   // Close overlays
   const handleCloseMenu = useCallback(() => {

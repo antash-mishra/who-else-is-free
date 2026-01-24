@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { API_BASE_URL } from "@api/config";
+import { resetToLogin } from "@navigation/navigationRef";
 
 import * as SecureStore from "expo-secure-store";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -31,6 +32,13 @@ type ProfileUpdateData = {
   avatar?: string;
 };
 
+export type ApiError = Error & { status?: number };
+
+type AuthFetchOptions = {
+  includeAuth?: boolean;
+  retryOnUnauthorized?: boolean;
+};
+
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
@@ -39,6 +47,12 @@ interface AuthContextValue {
   signOut: () => void;
   refreshSessionSilently: () => Promise<string | null>;
   updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
+  handleSessionExpired: () => void;
+  authFetch: (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+    options?: AuthFetchOptions,
+  ) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -174,11 +188,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
       await signInWithGoogle(idToken);
-      return token;
+      const refreshedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+      return refreshedToken;
     } catch (err) {
       return null;
     }
-  }, [signInWithGoogle, token]);
+  }, [signInWithGoogle]);
+
+  const signOut = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    void SecureStore.deleteItemAsync(TOKEN_KEY);
+    void SecureStore.deleteItemAsync(USER_KEY);
+  }, []);
+
+  const handleSessionExpired = useCallback(() => {
+    signOut();
+    resetToLogin();
+  }, [signOut]);
+
+  const authFetch = useCallback(
+    async (
+      input: RequestInfo | URL,
+      init: RequestInit = {},
+      options: AuthFetchOptions = {},
+    ) => {
+      const includeAuth = options.includeAuth ?? true;
+      const retryOnUnauthorized = options.retryOnUnauthorized ?? true;
+      const baseHeaders = new Headers(init.headers);
+      const hasAuthHeader = baseHeaders.has("Authorization");
+      const hasAuthToken = Boolean(token) || hasAuthHeader;
+
+      const buildInit = (overrideToken?: string) => {
+        const headers = new Headers(baseHeaders);
+        if (includeAuth) {
+          if (overrideToken) {
+            headers.set("Authorization", `Bearer ${overrideToken}`);
+          } else if (!hasAuthHeader && token) {
+            headers.set("Authorization", `Bearer ${token}`);
+          }
+        }
+        return {
+          ...init,
+          headers,
+        };
+      };
+
+      let response = await fetch(input, buildInit());
+      if (
+        response.status === 401 &&
+        includeAuth &&
+        retryOnUnauthorized &&
+        hasAuthToken
+      ) {
+        const refreshedToken = await refreshSessionSilently();
+        if (refreshedToken) {
+          response = await fetch(input, buildInit(refreshedToken));
+        }
+      }
+
+      if (response.status === 401 && includeAuth && hasAuthToken) {
+        handleSessionExpired();
+      }
+
+      return response;
+    },
+    [handleSessionExpired, refreshSessionSilently, token],
+  );
 
   const updateProfile = useCallback(
     async (data: ProfileUpdateData): Promise<AuthUser> => {
@@ -186,11 +262,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+      const response = await authFetch(`${API_BASE_URL}/api/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
@@ -199,7 +274,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const errorData = (await response.json().catch(() => ({}))) as {
           error?: string;
         };
-        throw new Error(errorData.error || "Failed to update profile");
+        const message =
+          errorData.error ||
+          (response.status === 401
+            ? "Session expired. Please sign in again."
+            : "Failed to update profile");
+        const apiError = new Error(message) as ApiError;
+        apiError.status = response.status;
+        throw apiError;
       }
 
       const payload = (await response.json()) as {
@@ -227,15 +309,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser));
       return authUser;
     },
-    [token],
+    [authFetch, token],
   );
-
-  const signOut = useCallback(() => {
-    setUser(null);
-    setToken(null);
-    void SecureStore.deleteItemAsync(TOKEN_KEY);
-    void SecureStore.deleteItemAsync(USER_KEY);
-  }, []);
 
   const value = useMemo(
     () => ({
@@ -246,6 +321,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signOut,
       refreshSessionSilently,
       updateProfile,
+      handleSessionExpired,
+      authFetch,
     }),
     [
       user,
@@ -255,6 +332,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signOut,
       refreshSessionSilently,
       updateProfile,
+      handleSessionExpired,
+      authFetch,
     ],
   );
 

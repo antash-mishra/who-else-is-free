@@ -293,6 +293,7 @@ const ChatThreadScreen = () => {
             onPress={handleBack}
             style={styles.backButton}
             hitSlop={8}
+            testID="chat-back-button"
           >
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>

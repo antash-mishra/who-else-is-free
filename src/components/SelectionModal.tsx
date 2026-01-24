@@ -72,17 +72,28 @@ function SelectionModal<T>({
 
     return (
         <Modal visible={visible} transparent animationType="fade">
-            <Pressable style={styles.backdrop} onPress={handleClose}>
+            <Pressable
+                style={styles.backdrop}
+                onPress={handleClose}
+                testID="selection-modal-backdrop"
+                accessibilityRole="button"
+            >
                 <Animated.View
                     style={[
                         styles.content,
                         { transform: [{ translateY: slideAnim }] },
                     ]}
+                    testID="selection-modal"
                 >
                     <Pressable onPress={(e) => e.stopPropagation()}>
                         <View style={styles.header}>
                             <Text style={styles.title}>{title}</Text>
-                            <Pressable onPress={handleClose} style={styles.closeButton}>
+                            <Pressable
+                                onPress={handleClose}
+                                style={styles.closeButton}
+                                testID="selection-modal-close"
+                                accessibilityRole="button"
+                            >
                                 <Feather name="x" size={18} color="#999999" />
                             </Pressable>
                         </View>
@@ -98,6 +109,7 @@ function SelectionModal<T>({
                                             selected && styles.chipSelected,
                                         ]}
                                         onPress={() => onSelect(option)}
+                                        testID={`option-${getKey(option)}`}
                                     >
                                         <Text
                                             style={[
@@ -112,7 +124,12 @@ function SelectionModal<T>({
                             })}
                         </View>
 
-                        <Pressable style={styles.selectButton} onPress={handleConfirm}>
+                        <Pressable
+                            style={styles.selectButton}
+                            onPress={handleConfirm}
+                            testID="selection-modal-confirm"
+                            accessibilityRole="button"
+                        >
                             <Text style={styles.selectButtonText}>Select</Text>
                         </Pressable>
                     </Pressable>

@@ -173,7 +173,7 @@ type MessagesResponse = {
 };
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-  const { user, token, refreshSessionSilently } = useAuth();
+  const { user, token, refreshSessionSilently, authFetch } = useAuth();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [messagesByConversation, setMessagesByConversation] = useState<
     Record<number, ChatMessage[]>
@@ -276,7 +276,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       try {
-        let response = await fetch(
+        const response = await authFetch(
           `${API_BASE_URL}/api/conversations/${conversationId}/messages?limit=50`,
           {
             headers: {
@@ -285,21 +285,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             },
           },
         );
-        if (response.status === 401) {
-          const refreshedToken = await refreshSessionSilently();
-          if (refreshedToken) {
-            tokenRef.current = refreshedToken;
-            response = await fetch(
-              `${API_BASE_URL}/api/conversations/${conversationId}/messages?limit=50`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${refreshedToken}`,
-                },
-              },
-            );
-          }
-        }
         if (!response.ok) {
           throw new Error("Failed to load messages");
         }
@@ -332,7 +317,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         setError((err as Error).message);
       }
     },
-    [token, refreshSessionSilently],
+    [authFetch, token],
   );
 
   const refreshConversations = useCallback(async () => {
@@ -345,24 +330,12 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsRefreshingConversations(true);
     try {
-      let response = await fetch(`${API_BASE_URL}/api/conversations`, {
+      const response = await authFetch(`${API_BASE_URL}/api/conversations`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${activeToken}`,
         },
       });
-      if (response.status === 401) {
-        const refreshedToken = await refreshSessionSilently();
-        if (refreshedToken) {
-          tokenRef.current = refreshedToken;
-          response = await fetch(`${API_BASE_URL}/api/conversations`, {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${refreshedToken}`,
-            },
-          });
-        }
-      }
       if (!response.ok) {
         throw new Error("Unable to load conversations");
       }
@@ -456,7 +429,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsRefreshingConversations(false);
     }
-  }, [token, user]);
+  }, [authFetch, token, user]);
 
   const refreshJoinRequests = useCallback(
     async (conversationId: number, eventId: number) => {
@@ -465,7 +438,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Not authenticated");
       }
       try {
-        const response = await fetch(
+        const response = await authFetch(
           `${API_BASE_URL}/api/events/${eventId}/chat/requests`,
           {
             headers: {
@@ -489,7 +462,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         throw err;
       }
     },
-    [normalizeJoinRequest],
+    [authFetch, normalizeJoinRequest],
   );
 
   const performJoinRequestAction = useCallback(
@@ -507,7 +480,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         action === "approve"
           ? `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/approve`
           : `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/deny`;
-      const response = await fetch(path, {
+      const response = await authFetch(path, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -532,7 +505,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         };
       });
     },
-    [],
+    [authFetch],
   );
 
   const approveJoinRequest = useCallback(
@@ -561,7 +534,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
         {
           method: "POST",
@@ -590,7 +563,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return updated;
       });
     },
-    [],
+    [authFetch],
   );
 
   useEffect(() => {

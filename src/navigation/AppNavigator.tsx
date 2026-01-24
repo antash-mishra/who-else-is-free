@@ -22,6 +22,7 @@ import LoginScreen from "@screens/LoginScreen";
 import EventDetailsScreen from "@screens/EventDetailsScreen";
 import SplashScreen from "@screens/SplashScreen";
 import OnboardingScreen from "@screens/OnboardingScreen";
+import { navigationRef } from "@navigation/navigationRef";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
 import GoogleSignIn from "@screens/GoogleSignIn";
@@ -389,7 +390,7 @@ const AppNavigator = () => {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{

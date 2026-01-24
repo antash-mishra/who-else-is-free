@@ -19,7 +19,7 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Circle } from "react-native-svg";
 
-import { useAuth } from "@context/AuthContext";
+import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import { typography } from "@theme/index";
 
@@ -163,6 +163,10 @@ const OnboardingScreen = () => {
       });
     } catch (error) {
       console.warn("Profile update failed", error);
+      const status = error instanceof Error ? (error as ApiError).status : undefined;
+      if (status === 401) {
+        return;
+      }
       Alert.alert(
         "Error",
         error instanceof Error ? error.message : "Failed to save profile.",
@@ -207,7 +211,12 @@ const OnboardingScreen = () => {
 
             {/* Avatar and Name */}
             <View style={styles.avatarSection}>
-              <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
+              <TouchableOpacity
+                onPress={pickImage}
+                style={styles.avatarWrapper}
+                testID="avatar-button"
+                accessibilityRole="button"
+              >
                 {avatarBase64 ? (
                   <Image
                     source={{ uri: `data:image/jpeg;base64,${avatarBase64}` }}
@@ -276,6 +285,8 @@ const OnboardingScreen = () => {
               styles.backButton,
               { position: "absolute", top: insets.top, left: 24 },
             ]}
+            testID="back-button"
+            accessibilityRole="button"
           >
             <BackArrowIcon />
           </TouchableOpacity>
@@ -364,6 +375,8 @@ const OnboardingScreen = () => {
               styles.backButton,
               { position: "absolute", top: insets.top, left: 24 },
             ]}
+            testID="back-button"
+            accessibilityRole="button"
           >
             <BackArrowIcon />
           </TouchableOpacity>

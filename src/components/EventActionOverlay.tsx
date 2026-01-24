@@ -171,6 +171,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             isDisabled && styles.primaryButtonDisabled,
             pressed && !isDisabled && styles.sendButtonPressed,
           ]}
+          testID="action-item-invite"
         >
           <Text style={styles.sendLabel}>
             {inviteSubmitting ? "Sending…" : "Send Introduction"}
@@ -193,6 +194,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             styles.manageButton,
             pressed && styles.manageButtonPressed,
           ]}
+          testID="action-item-edit"
         >
           <Text style={styles.manageLabel}>Edit Event</Text>
         </Pressable>
@@ -203,6 +205,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             styles.manageButton,
             pressed && styles.manageButtonPressed,
           ]}
+          testID="action-item-delete"
         >
           <Text style={[styles.manageLabel, styles.deleteLabel]}>
             Delete Event
@@ -267,6 +270,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             tone === "error" && styles.destructiveButton,
             pressed && styles.primaryButtonPressed,
           ]}
+          testID="action-item-dismiss"
         >
           <Text
             style={[
@@ -296,6 +300,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             isCancelling && styles.primaryButtonDisabled,
             pressed && !isCancelling && styles.manageButtonPressed,
           ]}
+          testID="action-item-cancel"
         >
           <Text style={styles.manageLabel}>
             {isCancelling ? "Cancelling…" : "Cancel Request"}
@@ -309,6 +314,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             styles.manageButton,
             pressed && styles.manageButtonPressed,
           ]}
+          testID="action-item-report"
         >
           <Text style={[styles.manageLabel, styles.deleteLabel]}>
             Report Event
@@ -354,6 +360,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             isDisabled && styles.primaryButtonDisabled,
             pressed && !isDisabled && styles.sendButtonPressed,
           ]}
+          testID="action-item-submit-report"
         >
           <Text style={styles.sendLabel}>
             {reportSubmitting ? "Submitting…" : "Submit Report"}
@@ -382,6 +389,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
                 isDisabled && styles.primaryButtonDisabled,
                 pressed && !isDisabled && styles.manageButtonPressed,
               ]}
+              testID={`action-item-menu-${index}`}
             >
               <Text
                 style={[
@@ -415,6 +423,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
           ]}
+          testID="action-item-done"
         >
           <Text style={styles.primaryLabel}>Done</Text>
         </Pressable>
@@ -423,8 +432,12 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   return (
-    <View style={styles.overlayContainer} pointerEvents="box-none">
-      <Pressable style={styles.overlayBackdrop} onPress={onBackdropPress} />
+    <View style={styles.overlayContainer} pointerEvents="box-none" testID="action-menu">
+      <Pressable
+        style={styles.overlayBackdrop}
+        onPress={onBackdropPress}
+        testID="action-backdrop"
+      />
       {type === "invite" && renderInvitePrompt()}
       {type === "manage" && renderManagePrompt()}
       {type === "confirm" && renderConfirmPrompt()}

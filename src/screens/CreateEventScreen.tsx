@@ -687,6 +687,7 @@ const CreateEventScreen = () => {
                     onPress={handlePrimaryAction}
                     disabled={isSubmitting}
                     accessibilityRole="button"
+                    testID="create-event-submit"
                 >
                     <Text style={styles.primaryButtonText}>
                         {primaryButtonLabel}
