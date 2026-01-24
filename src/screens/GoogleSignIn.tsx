@@ -86,6 +86,9 @@ const GoogleSignInScreen = () => {
   }, [isNativeAvailable, navigation, signInWithGoogle]);
 
   const helperText = useMemo(() => {
+    if (isNativeAvailable === null) {
+      return "Checking Google Sign-In availability...";
+    }
     if (isNativeAvailable === false) {
       return "Google Sign-In requires running this app from a custom Expo dev build or a production binary.";
     }

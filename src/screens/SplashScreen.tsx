@@ -59,6 +59,7 @@ const SplashScreen = () => {
 
   return (
     <Animated.View
+      testID="splash-container"
       style={[styles.container, { opacity: fadeAnim }]}
       onLayout={onLayoutRootView}
     >
