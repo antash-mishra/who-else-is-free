@@ -2136,47 +2136,8 @@ func (r *EventRepository) IsConversationMember(ctx context.Context, conversation
 	return true, nil
 }
 
-var seedEvents = []CreateEventParams{
-	{
-		UserID:      1,
-		Title:       "Running Buddy",
-		Location:    "Phoenix Park",
-		Time:        "09:00",
-		Description: "Morning run followed by coffee.",
-		Gender:      "Any",
-		MinAge:      20,
-		MaxAge:      30,
-		DateLabel:   "Today",
-		GroupType:   "Single",
-		CoverKey:    "cover_01",
-	},
-	{
-		UserID:      2,
-		Title:       "Live Music Night",
-		Location:    "Workmans Club",
-		Time:        "20:00",
-		Description: "Indie bands and craft beers.",
-		Gender:      "Female",
-		MinAge:      22,
-		MaxAge:      32,
-		DateLabel:   "Today",
-		GroupType:   "Group",
-		CoverKey:    "cover_02",
-	},
-	{
-		UserID:      2,
-		Title:       "Indie Film Screening",
-		Location:    "Lightbox Cinema",
-		Time:        "21:30",
-		Description: "Private screening of festival favourites.",
-		Gender:      "Any",
-		MinAge:      23,
-		MaxAge:      38,
-		DateLabel:   "Today",
-		GroupType:   "Group",
-		CoverKey:    "cover_05",
-	},
-}
+// Seed events disabled - no longer creating dummy data on startup
+var seedEvents = []CreateEventParams{}
 
 func (r *EventRepository) EnsureSeedData(ctx context.Context) error {
 	if err := r.ensureSeedUsers(ctx); err != nil {

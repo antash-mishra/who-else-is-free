@@ -3,10 +3,19 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 )
 
-const databasePath = "event.sqlite"
+// Use /data for Fly.io volume mount, fallback to local for development
+func getDatabasePath() string {
+	if _, err := os.Stat("/data"); err == nil {
+		return "/data/event.sqlite"
+	}
+	return "event.sqlite"
+}
+
+var databasePath = getDatabasePath()
 
 func main() {
 	database, err := openDB(databasePath)
