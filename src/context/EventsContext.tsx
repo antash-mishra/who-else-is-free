@@ -299,8 +299,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(`Request failed with status ${response.status}`);
       }
 
-      const payload: { data: ApiEvent[] } = await response.json();
-      const nextEvents = payload.data
+      const payload: { data: ApiEvent[] | null } = await response.json();
+      const nextEvents = (payload.data ?? [])
         .map((event) => mapApiEvent(event, metaRef.current[String(event.id)]))
         .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
         .sort(sortEventsBySchedule);
