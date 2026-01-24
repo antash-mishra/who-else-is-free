@@ -435,6 +435,10 @@ const EventDetailsScreen = () => {
         setInviteError("You already have a pending request for this event.");
         return;
       }
+      if (response.status === 401) {
+        navigation.navigate("Login");
+        return;
+      }
       if (!response.ok) {
         throw new Error("Unable to send request right now.");
       }

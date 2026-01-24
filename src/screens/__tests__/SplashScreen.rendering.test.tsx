@@ -23,15 +23,14 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
-// Mock expo-splash-screen
-var mockHideAsync = jest.fn().mockResolvedValue(undefined);
-jest.mock('expo-splash-screen', () => {
-  mockHideAsync = jest.fn().mockResolvedValue(undefined);
-  return {
-    preventAutoHideAsync: jest.fn().mockResolvedValue(undefined),
-    hideAsync: mockHideAsync,
-  };
-});
+// Mock expo-splash-screen - use a wrapper to maintain the reference
+const mockHideAsync = jest.fn().mockResolvedValue(undefined);
+jest.mock('expo-splash-screen', () => ({
+  preventAutoHideAsync: jest.fn().mockResolvedValue(undefined),
+  get hideAsync() {
+    return mockHideAsync;
+  },
+}));
 
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => {
@@ -114,15 +113,16 @@ describe('SplashScreen Rendering', () => {
     it('should call hideAsync after layout', async () => {
       const { getByTestId } = render(<SplashScreen />);
 
-      // Trigger onLayout
-      const container = getByTestId('linear-gradient').parent;
-      if (container) {
-        await act(async () => {
-          container.props.onLayout?.();
-          // Allow the 50ms delay to complete
-          jest.advanceTimersByTime(50);
-        });
-      }
+      // Trigger onLayout via props - start the async handler
+      const container = getByTestId('splash-container');
+      await act(async () => {
+        container.props.onLayout?.();
+      });
+
+      // Advance timer to complete the 50ms delay inside onLayoutRootView
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
 
       await waitFor(() => {
         expect(mockHideAsync).toHaveBeenCalled();
@@ -132,18 +132,22 @@ describe('SplashScreen Rendering', () => {
     it('should only call hideAsync once', async () => {
       const { getByTestId } = render(<SplashScreen />);
 
-      const container = getByTestId('linear-gradient').parent;
-      if (container) {
-        await act(async () => {
-          container.props.onLayout?.();
-          jest.advanceTimersByTime(50);
-        });
+      const container = getByTestId('splash-container');
+      await act(async () => {
+        container.props.onLayout?.();
+      });
 
-        await act(async () => {
-          container.props.onLayout?.();
-          jest.advanceTimersByTime(50);
-        });
-      }
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
+
+      await act(async () => {
+        container.props.onLayout?.();
+      });
+
+      await act(async () => {
+        jest.advanceTimersByTime(50);
+      });
 
       expect(mockHideAsync).toHaveBeenCalledTimes(1);
     });
@@ -156,9 +160,9 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId } = render(<SplashScreen />);
 
       // Trigger onLayout to set isReady
-      const container = getByTestId('linear-gradient').parent;
+      const container = getByTestId('splash-container');
       await act(async () => {
-        container?.props.onLayout?.();
+        container.props.onLayout?.();
         jest.advanceTimersByTime(50);
       });
 
@@ -193,9 +197,9 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId } = render(<SplashScreen />);
 
       // Trigger layout
-      const container = getByTestId('linear-gradient').parent;
+      const container = getByTestId('splash-container');
       await act(async () => {
-        container?.props.onLayout?.();
+        container.props.onLayout?.();
         jest.advanceTimersByTime(50);
       });
 
@@ -230,9 +234,9 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId } = render(<SplashScreen />);
 
       // Trigger layout
-      const container = getByTestId('linear-gradient').parent;
+      const container = getByTestId('splash-container');
       await act(async () => {
-        container?.props.onLayout?.();
+        container.props.onLayout?.();
         jest.advanceTimersByTime(50);
       });
 
@@ -259,7 +263,7 @@ describe('SplashScreen Rendering', () => {
     it('should start with opacity 1', () => {
       const { getByTestId } = render(<SplashScreen />);
 
-      const container = getByTestId('linear-gradient').parent;
+      const container = getByTestId('splash-container');
       // Initial opacity should be 1 (from the fadeAnim ref)
       expect(container).toBeTruthy();
     });
@@ -270,9 +274,9 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId } = render(<SplashScreen />);
 
       // Trigger layout
-      const container = getByTestId('linear-gradient').parent;
+      const container = getByTestId('splash-container');
       await act(async () => {
-        container?.props.onLayout?.();
+        container.props.onLayout?.();
         jest.advanceTimersByTime(50);
       });
 
@@ -303,9 +307,9 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId } = render(<SplashScreen />);
 
       // Trigger layout
-      const container = getByTestId('linear-gradient').parent;
+      const container = getByTestId('splash-container');
       await act(async () => {
-        container?.props.onLayout?.();
+        container.props.onLayout?.();
         jest.advanceTimersByTime(50);
       });
 
