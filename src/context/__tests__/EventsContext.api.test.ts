@@ -368,6 +368,16 @@ describe('EventsContext - API Integration', () => {
   });
 
   describe('Event Filtering', () => {
+    const formatLocalDate = (offsetDays = 0) => {
+      const now = new Date();
+      const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      base.setDate(base.getDate() + offsetDays);
+      const year = base.getFullYear();
+      const month = String(base.getMonth() + 1).padStart(2, '0');
+      const day = String(base.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     it('should filter out past events', () => {
       const isUpcomingEvent = (eventDate: string): boolean => {
         const [year, month, day] = eventDate.split('-').map((part) => Number(part));
@@ -393,25 +403,19 @@ describe('EventsContext - API Integration', () => {
       };
 
       // Today's date
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = formatLocalDate();
       expect(isUpcomingEvent(todayStr)).toBe(true);
 
       // Tomorrow's date
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      const tomorrowStr = formatLocalDate(1);
       expect(isUpcomingEvent(tomorrowStr)).toBe(true);
 
       // Yesterday's date (should be filtered out)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayStr = formatLocalDate(-1);
       expect(isUpcomingEvent(yesterdayStr)).toBe(false);
 
       // Future date (more than 1 day ahead)
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      const nextWeekStr = nextWeek.toISOString().split('T')[0];
+      const nextWeekStr = formatLocalDate(7);
       expect(isUpcomingEvent(nextWeekStr)).toBe(false);
     });
 

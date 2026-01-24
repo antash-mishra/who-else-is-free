@@ -4,6 +4,16 @@
 
 import type { ChatConversation, ChatMessage, ChatJoinRequest } from '@context/ChatContext';
 
+const formatLocalDate = (offsetDays = 0) => {
+  const now = new Date();
+  const base = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  base.setDate(base.getDate() + offsetDays);
+  const year = base.getFullYear();
+  const month = String(base.getMonth() + 1).padStart(2, '0');
+  const day = String(base.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Auth types
 export interface MockAuthUser {
   id: number;
@@ -74,7 +84,7 @@ export const mockEvents: MockUserEvent[] = [
     audience: 'Any gender, 18 to 35 years',
     imageUri: 'https://example.com/coffee.jpg',
     dateLabel: 'Today',
-    eventDate: new Date().toISOString().split('T')[0],
+    eventDate: formatLocalDate(),
     description: 'Casual coffee meetup',
     ownerId: 1,
     hostName: 'Ava Test',
@@ -93,7 +103,7 @@ export const mockEvents: MockUserEvent[] = [
     audience: 'Any gender, 21 to 40 years',
     imageUri: 'https://example.com/hiking.jpg',
     dateLabel: 'Tmrw',
-    eventDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    eventDate: formatLocalDate(1),
     description: 'Morning hike',
     ownerId: 2,
     hostName: 'Liam Test',
@@ -112,7 +122,7 @@ export const mockEvents: MockUserEvent[] = [
     audience: 'Female, 25 to 35 years',
     imageUri: 'https://example.com/dinner.jpg',
     dateLabel: 'Today',
-    eventDate: new Date().toISOString().split('T')[0],
+    eventDate: formatLocalDate(),
     description: 'Nice dinner',
     ownerId: 1,
     hostName: 'Ava Test',
@@ -333,7 +343,7 @@ export const createTodayEvent = (overrides: Partial<MockUserEvent> = {}): MockUs
   audience: 'Any gender, 18 to 50 years',
   imageUri: 'https://example.com/test.jpg',
   dateLabel: 'Today',
-  eventDate: new Date().toISOString().split('T')[0],
+  eventDate: formatLocalDate(),
   ownerId: 1,
   hostName: 'Test Host',
   gender: 'Any',
@@ -347,6 +357,6 @@ export const createTodayEvent = (overrides: Partial<MockUserEvent> = {}): MockUs
 export const createTomorrowEvent = (overrides: Partial<MockUserEvent> = {}): MockUserEvent => ({
   ...createTodayEvent(overrides),
   dateLabel: 'Tmrw',
-  eventDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+  eventDate: formatLocalDate(1),
   ...overrides,
 });
