@@ -138,8 +138,8 @@ WHERE id = ? AND user_id = ?;
 `
 
 const insertUser = `
-INSERT INTO users (name, email, password)
-VALUES (?, ?, ?);
+INSERT INTO users (name, email, password, profile_complete)
+VALUES (?, ?, ?, 0);
 `
 
 const insertConversation = `
@@ -2162,32 +2162,6 @@ var seedEvents = []CreateEventParams{
 		DateLabel:   "Today",
 		GroupType:   "Group",
 		CoverKey:    "cover_02",
-	},
-	{
-		UserID:      3,
-		Title:       "Trail Hike",
-		Location:    "Howth Cliffs",
-		Time:        "10:00",
-		Description: "Scenic hike with lunch after.",
-		Gender:      "Any",
-		MinAge:      18,
-		MaxAge:      40,
-		DateLabel:   "Tmrw",
-		GroupType:   "Group",
-		CoverKey:    "cover_03",
-	},
-	{
-		UserID:      1,
-		Title:       "Community Potluck",
-		Location:    "Docklands Hub",
-		Time:        "19:00",
-		Description: "Bring a dish and meet new neighbours.",
-		Gender:      "Any",
-		MinAge:      21,
-		MaxAge:      45,
-		DateLabel:   "Tmrw",
-		GroupType:   "Group",
-		CoverKey:    "cover_04",
 	},
 	{
 		UserID:      2,
