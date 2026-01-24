@@ -434,7 +434,9 @@ const CreateEventScreen = () => {
                         scheduledAt,
                     });
                     resetForm();
-                    navigation.navigate("MyEvents");
+                    navigation.navigate("MyEvents", {
+                        showEventCreatedBadge: true,
+                    });
                 }
             } catch (err) {
                 console.error("Failed to submit event", err);
