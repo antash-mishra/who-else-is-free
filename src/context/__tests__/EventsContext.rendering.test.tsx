@@ -147,6 +147,7 @@ describe('EventsContext - Rendering Tests', () => {
   describe('Provider initialization', () => {
     it('should render provider with loading state initially', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       render(
         <EventsProvider>
@@ -176,6 +177,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should fetch events on mount', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       render(
         <EventsProvider>
@@ -201,6 +203,7 @@ describe('EventsContext - Rendering Tests', () => {
         resolveFetch = resolve;
       });
       fetchMock.mockImplementationOnce(() => fetchPromise);
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -227,6 +230,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should update events state after successful fetch', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -243,6 +247,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should handle API errors gracefully', async () => {
       fetchMock.mockResponseOnce('', { status: 500 });
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       render(
         <EventsProvider>
@@ -257,6 +262,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should handle network errors', async () => {
       fetchMock.mockRejectOnce(new Error('Network error'));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       render(
         <EventsProvider>
@@ -271,6 +277,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should handle null data from API', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.nullData));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -290,6 +297,7 @@ describe('EventsContext - Rendering Tests', () => {
     it('should add event and return event ID', async () => {
       // Initial fetch
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       // Create event response
       fetchMock.mockResponseOnce(JSON.stringify({ id: 100 }), { status: 201 });
       // Refresh after create
@@ -334,6 +342,7 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let result: unknown;
       render(
@@ -364,6 +373,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should handle API error with custom message', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       fetchMock.mockResponseOnce(
         JSON.stringify({ error: 'Title is required' }),
         { status: 400 }
@@ -399,6 +409,7 @@ describe('EventsContext - Rendering Tests', () => {
   describe('updateUserEvent', () => {
     it('should update event successfully', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       fetchMock.mockResponseOnce('', { status: 200 });
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
 
@@ -438,6 +449,7 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let result: unknown;
       render(
@@ -467,6 +479,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should handle API error on update', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       fetchMock.mockResponseOnce('', { status: 403 });
 
       let result: unknown;
@@ -499,6 +512,7 @@ describe('EventsContext - Rendering Tests', () => {
   describe('deleteUserEvent', () => {
     it('should delete event successfully', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       fetchMock.mockResponseOnce('', { status: 200 });
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
 
@@ -538,6 +552,7 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let result: unknown;
       render(
@@ -567,6 +582,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should handle API error on delete', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       fetchMock.mockResponseOnce('', { status: 404 });
 
       let result: unknown;
@@ -600,6 +616,7 @@ describe('EventsContext - Rendering Tests', () => {
     it('should mark event as requested', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
       fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -629,6 +646,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should unmark event as requested', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [{ event_id: 1 }] }));
       fetchMock.mockResponseOnce(JSON.stringify({ requests: [{ event_id: 1 }] }));
 
       let capturedCtx: EventsContextValue | null = null;
@@ -703,7 +721,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should return empty array when no user', async () => {
       const mockUseAuth = require('../AuthContext').useAuth;
-      mockUseAuth.mockReturnValue({
+      mockUseAuth.mockReturnValueOnce({
         user: null,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
@@ -731,6 +749,9 @@ describe('EventsContext - Rendering Tests', () => {
       fetchMock.mockResponseOnce(JSON.stringify({
         requests: [{ event_id: 2 }],
       }));
+      fetchMock.mockResponseOnce(JSON.stringify({
+        requests: [{ event_id: 2 }],
+      }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -755,6 +776,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should return empty array when no requested events', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
       fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
@@ -787,6 +809,8 @@ describe('EventsContext - Rendering Tests', () => {
       mockRefreshSessionSilently.mockResolvedValueOnce('new-token');
       // Retry with new token succeeds
       fetchMock.mockResponseOnce(JSON.stringify({ requests: [{ event_id: 1 }] }));
+      // Manual refresh after retry
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [{ event_id: 1 }] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -814,6 +838,8 @@ describe('EventsContext - Rendering Tests', () => {
       fetchMock.mockResponseOnce('', { status: 401 });
       // Token refresh fails
       mockRefreshSessionSilently.mockResolvedValueOnce(null);
+      // Manual refresh fallback
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -841,6 +867,8 @@ describe('EventsContext - Rendering Tests', () => {
     it('should queue event for later submission', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
       fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+      fetchMock.mockResponseOnce(JSON.stringify({ id: 999 }), { status: 201 });
+      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -877,6 +905,7 @@ describe('EventsContext - Rendering Tests', () => {
   describe('error state handling', () => {
     it('should set error message on API failure', async () => {
       fetchMock.mockRejectOnce(new Error('Network failure'));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -894,6 +923,7 @@ describe('EventsContext - Rendering Tests', () => {
     it('should clear error on successful refresh', async () => {
       // First fetch fails
       fetchMock.mockRejectOnce(new Error('Network failure'));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
 
       let capturedCtx: EventsContextValue | null = null;
       render(

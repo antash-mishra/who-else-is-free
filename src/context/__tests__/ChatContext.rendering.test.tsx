@@ -3,6 +3,9 @@
  * Tests the ChatProvider with actual component rendering using @testing-library/react-native
  */
 
+// Use real timers for this file - fake timers conflict with async act() + fetch
+jest.useRealTimers();
+
 import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-native';
 import { Text, View, TouchableOpacity } from 'react-native';
@@ -10,6 +13,9 @@ import fetchMock from 'jest-fetch-mock';
 
 import { ChatProvider, useChat, ChatMessage } from '../ChatContext';
 import { mockApiResponses, mockUsers, mockConversations, mockMessages, mockJoinRequests } from '../../__tests__/mocks/mockData';
+
+// Helper to create async delay with real timers
+const tick = (ms = 10) => new Promise<void>((r) => setTimeout(r, ms));
 
 // Mock AuthContext
 const mockUser = mockUsers[0];
@@ -208,7 +214,6 @@ describe('ChatContext Rendering Tests', () => {
   beforeEach(() => {
     fetchMock.resetMocks();
     MockWebSocket.reset();
-    jest.clearAllTimers();
     mockRefreshSessionSilently.mockClear();
   });
 
@@ -227,8 +232,9 @@ describe('ChatContext Rendering Tests', () => {
 
       renderWithProvider();
 
+      // Wait for WebSocket to be created (real timers - use await for async)
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await new Promise((r) => setTimeout(r, 10));
       });
 
       const ws = MockWebSocket.getLatest();
@@ -236,9 +242,9 @@ describe('ChatContext Rendering Tests', () => {
       expect(ws.url).toContain('/api/ws');
       expect(ws.url).toContain('token=');
 
+      // Simulate WebSocket opening
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
       });
 
       await waitFor(() => {
@@ -252,13 +258,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws1 = MockWebSocket.getLatest();
       await act(async () => {
         ws1.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       const initialInstanceCount = MockWebSocket.instances.length;
@@ -266,7 +272,7 @@ describe('ChatContext Rendering Tests', () => {
       // Simulate unexpected close
       await act(async () => {
         ws1.simulateClose();
-        jest.advanceTimersByTime(1500); // Wait for reconnect timeout (1000ms)
+        await tick(1500); // Wait for reconnect timeout (1000ms)
       });
 
       // Should have created a new WebSocket instance for reconnection
@@ -279,14 +285,14 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
 
       await act(async () => {
         ws.simulateError();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -303,13 +309,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider({ onSendMessage });
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Set active conversation
@@ -325,7 +331,7 @@ describe('ChatContext Rendering Tests', () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.messages.success));
 
       await act(async () => {
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Send message
@@ -347,7 +353,7 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       // Do NOT open the WebSocket - leave it in CONNECTING state
@@ -364,7 +370,7 @@ describe('ChatContext Rendering Tests', () => {
       // Send message while WebSocket is not ready
       await act(async () => {
         fireEvent.press(screen.getByTestId('sendMessageBtn'));
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Should show error about connection
@@ -382,7 +388,7 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider({ onRetryMessage });
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
@@ -399,13 +405,13 @@ describe('ChatContext Rendering Tests', () => {
       // Try sending while disconnected to create a failed message
       await act(async () => {
         fireEvent.press(screen.getByTestId('sendMessageBtn'));
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Now open WebSocket
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Find and retry the failed message
@@ -428,13 +434,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Set active conversation
@@ -461,7 +467,7 @@ describe('ChatContext Rendering Tests', () => {
 
       await act(async () => {
         ws.simulateMessage(newMessage);
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Message should appear in the list
@@ -477,13 +483,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Set active conversation
@@ -519,7 +525,7 @@ describe('ChatContext Rendering Tests', () => {
 
       await act(async () => {
         ws.simulateMessage(confirmedMessage);
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // The message should no longer be pending
@@ -537,13 +543,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Simulate join request event
@@ -564,7 +570,7 @@ describe('ChatContext Rendering Tests', () => {
 
       await act(async () => {
         ws.simulateMessage(joinRequestEvent);
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -579,13 +585,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       const initialFetchCount = fetchMock.mock.calls.length;
@@ -600,7 +606,7 @@ describe('ChatContext Rendering Tests', () => {
 
       await act(async () => {
         ws.simulateMessage(membershipEvent);
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Should trigger a refresh of conversations
@@ -618,13 +624,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider({ onApproveRequest });
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Add a join request via WebSocket
@@ -645,7 +651,7 @@ describe('ChatContext Rendering Tests', () => {
 
       await act(async () => {
         ws.simulateMessage(joinRequestEvent);
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -658,7 +664,7 @@ describe('ChatContext Rendering Tests', () => {
       // Approve the request
       await act(async () => {
         fireEvent.press(screen.getByTestId('approve-20'));
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       expect(onApproveRequest).toHaveBeenCalledWith(1, 1, 3);
@@ -676,13 +682,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider({ onDenyRequest });
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Add a join request
@@ -703,7 +709,7 @@ describe('ChatContext Rendering Tests', () => {
 
       await act(async () => {
         ws.simulateMessage(joinRequestEvent);
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -716,7 +722,7 @@ describe('ChatContext Rendering Tests', () => {
       // Deny the request
       await act(async () => {
         fireEvent.press(screen.getByTestId('deny-30'));
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       expect(onDenyRequest).toHaveBeenCalledWith(1, 1, 4);
@@ -735,13 +741,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -761,13 +767,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -817,13 +823,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -841,13 +847,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -862,13 +868,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // refreshSessionSilently should have been called
@@ -885,13 +891,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       await waitFor(() => {
@@ -905,13 +911,13 @@ describe('ChatContext Rendering Tests', () => {
       renderWithProvider();
 
       await act(async () => {
-        jest.advanceTimersByTime(10);
+        await tick(10);
       });
 
       const ws = MockWebSocket.getLatest();
       await act(async () => {
         ws.simulateOpen();
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // Send malformed message - should not crash
@@ -919,7 +925,7 @@ describe('ChatContext Rendering Tests', () => {
         if (ws.onmessage) {
           ws.onmessage(new MessageEvent('message', { data: 'invalid json {' }));
         }
-        jest.advanceTimersByTime(100);
+        await tick(100);
       });
 
       // App should still be functional

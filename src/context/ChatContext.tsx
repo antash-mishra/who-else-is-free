@@ -197,6 +197,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const activeConversationRef = useRef<number | null>(null);
   const userIdRef = useRef<number | null>(null);
   const tokenRef = useRef<string | null>(null);
+  const authFetchRef = useRef(authFetch);
+  const refreshSessionSilentlyRef = useRef(refreshSessionSilently);
 
   useEffect(() => {
     activeConversationRef.current = activeConversationId;
@@ -209,6 +211,33 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     tokenRef.current = token ?? null;
   }, [token]);
+
+  useEffect(() => {
+    authFetchRef.current = authFetch;
+  }, [authFetch]);
+
+  useEffect(() => {
+    refreshSessionSilentlyRef.current = refreshSessionSilently;
+  }, [refreshSessionSilently]);
+
+  const executeAuthedRequest = useCallback(
+    async (request: (authToken: string) => Promise<Response>) => {
+      const activeToken = tokenRef.current;
+      if (!activeToken) {
+        throw new Error("Not authenticated");
+      }
+      let response = await request(activeToken);
+      if (response.status === 401) {
+        const refreshedToken = await refreshSessionSilentlyRef.current?.();
+        if (refreshedToken) {
+          tokenRef.current = refreshedToken;
+          response = await request(refreshedToken);
+        }
+      }
+      return response;
+    },
+    [],
+  );
 
   const mapServerMessage = useCallback(
     (payload: ServerEnvelope["message"]): ChatMessage | null => {
@@ -271,19 +300,21 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (!token) {
         return;
       }
-      const activeToken = tokenRef.current;
-      if (!activeToken) {
+      const fetchClient = authFetchRef.current;
+      if (!fetchClient) {
         return;
       }
       try {
-        const response = await authFetch(
-          `${API_BASE_URL}/api/conversations/${conversationId}/messages?limit=50`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${activeToken}`,
+        const response = await executeAuthedRequest((authToken) =>
+          fetchClient(
+            `${API_BASE_URL}/api/conversations/${conversationId}/messages?limit=50`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
             },
-          },
+          ),
         );
         if (!response.ok) {
           throw new Error("Failed to load messages");
@@ -317,25 +348,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         setError((err as Error).message);
       }
     },
-    [authFetch, token],
+    [executeAuthedRequest, token],
   );
 
   const refreshConversations = useCallback(async () => {
     if (!user || !CHAT_ENABLED || !token) {
       return;
     }
-    const activeToken = tokenRef.current;
-    if (!activeToken) {
+    const fetchClient = authFetchRef.current;
+    if (!fetchClient) {
       return;
     }
     setIsRefreshingConversations(true);
     try {
-      const response = await authFetch(`${API_BASE_URL}/api/conversations`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${activeToken}`,
-        },
-      });
+      const response = await executeAuthedRequest((authToken) =>
+        fetchClient(`${API_BASE_URL}/api/conversations`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        }),
+      );
       if (!response.ok) {
         throw new Error("Unable to load conversations");
       }
@@ -429,22 +462,21 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsRefreshingConversations(false);
     }
-  }, [authFetch, token, user]);
+  }, [executeAuthedRequest, token, user]);
 
   const refreshJoinRequests = useCallback(
     async (conversationId: number, eventId: number) => {
-      const authToken = tokenRef.current;
-      if (!authToken) {
+      const fetchClient = authFetchRef.current;
+      if (!fetchClient) {
         throw new Error("Not authenticated");
       }
       try {
-        const response = await authFetch(
-          `${API_BASE_URL}/api/events/${eventId}/chat/requests`,
-          {
+        const response = await executeAuthedRequest((authToken) =>
+          fetchClient(`${API_BASE_URL}/api/events/${eventId}/chat/requests`, {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
-          },
+          }),
         );
         if (!response.ok) {
           throw new Error("Failed to load join requests");
@@ -462,7 +494,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         throw err;
       }
     },
-    [authFetch, normalizeJoinRequest],
+    [executeAuthedRequest, normalizeJoinRequest],
   );
 
   const performJoinRequestAction = useCallback(
@@ -472,20 +504,22 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       userId: number,
       action: "approve" | "deny",
     ) => {
-      const authToken = tokenRef.current;
-      if (!authToken) {
-        throw new Error("Not authenticated");
-      }
       const path =
         action === "approve"
           ? `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/approve`
           : `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/deny`;
-      const response = await authFetch(path, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      const fetchClient = authFetchRef.current;
+      if (!fetchClient) {
+        throw new Error("Not authenticated");
+      }
+      const response = await executeAuthedRequest((authToken) =>
+        fetchClient(path, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }),
+      );
       if (!response.ok) {
         const message =
           action === "approve"
@@ -505,7 +539,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         };
       });
     },
-    [authFetch],
+    [executeAuthedRequest],
   );
 
   const approveJoinRequest = useCallback(
@@ -529,21 +563,23 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const reportMember = useCallback(
     async (eventId: number, userId: number, reason: string) => {
-      const authToken = tokenRef.current;
-      if (!authToken) {
+      const fetchClient = authFetchRef.current;
+      if (!fetchClient) {
         throw new Error("Not authenticated");
       }
 
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
+      const response = await executeAuthedRequest((authToken) =>
+        fetchClient(
+          `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ reason }),
           },
-          body: JSON.stringify({ reason }),
-        }
+        ),
       );
 
       if (!response.ok) {
@@ -563,7 +599,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return updated;
       });
     },
-    [authFetch],
+    [executeAuthedRequest],
   );
 
   useEffect(() => {
@@ -766,7 +802,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     socket.onerror = async () => {
       setError("Failed to connect to chat.");
       setIsConnecting(false);
-      const refreshedToken = await refreshSessionSilently();
+      const refreshedToken = await refreshSessionSilentlyRef.current?.();
       if (refreshedToken) {
         tokenRef.current = refreshedToken;
       }
@@ -777,7 +813,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       setIsConnecting(false);
       if (!manuallyClosedRef.current && user && token) {
         clearReconnectTimeout();
-        const refreshedToken = await refreshSessionSilently();
+        const refreshedToken = await refreshSessionSilentlyRef.current?.();
         if (refreshedToken) {
           tokenRef.current = refreshedToken;
         }
@@ -800,7 +836,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     handleServerEnvelope,
     refreshConversations,
     refreshMessages,
-    refreshSessionSilently,
     token,
     user,
   ]);
