@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -39,6 +40,10 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 	// Fetch current user to check if gender/age are already set
 	existingUser, err := h.repo.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "session expired, please sign in again"})
+			return
+		}
 		log.Printf("profile update: failed to fetch user %d: %v", userID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch user"})
 		return

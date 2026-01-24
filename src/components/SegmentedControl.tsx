@@ -26,6 +26,7 @@ const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) =
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             style={[styles.tab, isActive && styles.tabActive]}
+            testID={`segment-${option.value}`}
           >
             <Text style={[styles.label, isActive && styles.labelActive]}>{option.label}</Text>
           </Pressable>

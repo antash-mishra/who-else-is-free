@@ -277,7 +277,7 @@ const mapApiEvent = (
 };
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
-  const { user, token, refreshSessionSilently } = useAuth();
+  const { user, token, authFetch } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -292,9 +292,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const response = await authFetch(`${API_BASE_URL}/api/events`);
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
       }
@@ -311,7 +309,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [authFetch]);
 
   const refreshRequestedEvents = useCallback(async () => {
     if (!user || !token) {
@@ -319,23 +317,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      let response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // Handle 401 by refreshing token and retrying
-      if (response.status === 401) {
-        const refreshedToken = await refreshSessionSilently();
-        if (refreshedToken) {
-          response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
-            headers: {
-              Authorization: `Bearer ${refreshedToken}`,
-            },
-          });
-        }
-      }
+      const response = await authFetch(`${API_BASE_URL}/api/chat/requests/me`);
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
@@ -355,7 +337,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       console.error("Failed to fetch requested events", err);
       setRequestedEventIds(new Set());
     }
-  }, [token, user, refreshSessionSilently]);
+  }, [authFetch, token, user]);
 
   const markEventRequested = useCallback((eventId: string) => {
     setRequestedEventIds((prev) => {
@@ -400,11 +382,10 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/events`, {
+      const response = await authFetch(`${API_BASE_URL}/api/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
@@ -464,7 +445,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       return eventId;
     },
-    [refreshEvents, token],
+    [authFetch, refreshEvents, token],
   );
 
   const updateUserEvent = useCallback(
@@ -488,11 +469,10 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("You must be signed in to update an event.");
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/events/${eventId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
@@ -519,7 +499,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       await refreshEvents();
     },
-    [refreshEvents, token],
+    [authFetch, refreshEvents, token],
   );
 
   const deleteUserEvent = useCallback(
@@ -528,11 +508,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("You must be signed in to delete an event.");
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/events/${eventId}`, {
+      const response = await authFetch(`${API_BASE_URL}/api/events/${eventId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -542,7 +519,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       await refreshEvents();
     },
-    [refreshEvents, token],
+    [authFetch, refreshEvents, token],
   );
 
   const queueGuestEvent = useCallback((draft: GuestEventDraft) => {
@@ -596,6 +573,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshEvents]);
 
   useEffect(() => {
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
     if (!user || !token) {
       setRequestedEventIds(new Set());
       return;

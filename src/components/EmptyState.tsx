@@ -31,7 +31,7 @@ const EmptyState = ({
   imageSize = 245
 }: EmptyStateProps) => {
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="empty-state">
       {imageSource ? (
         <Image
           source={imageSource}
@@ -53,7 +53,7 @@ const EmptyState = ({
             </Pressable>
           ) : null}
           {actionLabel ? (
-            <Pressable style={styles.button} onPress={onActionPress}>
+            <Pressable style={styles.button} onPress={onActionPress} testID="empty-state-action">
               <Text style={styles.buttonText}>{actionLabel}</Text>
             </Pressable>
           ) : null}

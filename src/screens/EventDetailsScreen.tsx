@@ -44,7 +44,7 @@ const EventDetailsScreen = () => {
   const insets = useSafeAreaInsets();
   const { events, deleteUserEvent, markEventRequested, isEventRequested, unmarkEventRequested } =
     useEvents();
-  const { user, token } = useAuth();
+  const { user, token, authFetch } = useAuth();
   const {
     conversations,
     setActiveConversation,
@@ -199,7 +199,7 @@ const EventDetailsScreen = () => {
 
     const fetchUserRequest = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/chat/requests/me`, {
+        const response = await authFetch(`${API_BASE_URL}/api/chat/requests/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -222,7 +222,7 @@ const EventDetailsScreen = () => {
     };
 
     fetchUserRequest();
-  }, [hasPendingRequest, isConversationMember, token, event, isOwner]);
+  }, [authFetch, hasPendingRequest, isConversationMember, token, event, isOwner]);
 
   const ctaLabel = hasPendingRequest
     ? "Pending Request"
@@ -361,7 +361,7 @@ const EventDetailsScreen = () => {
     setReportError(null);
     setIsReportingMember(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/members/${selectedRequest.userId}/report`,
         {
           method: "POST",
@@ -418,7 +418,7 @@ const EventDetailsScreen = () => {
     setInviteError(null);
     setIsSendingInvite(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/requests`,
         {
           method: "POST",
@@ -429,10 +429,6 @@ const EventDetailsScreen = () => {
           body: JSON.stringify({ message: trimmed }),
         },
       );
-      if (response.status === 401) {
-        navigation.navigate("Login");
-        return;
-      }
       if (response.status === 409) {
         setHasPendingRequest(true);
         markEventRequested(event.id);
@@ -524,7 +520,7 @@ const EventDetailsScreen = () => {
     }
     setIsCancellingRequest(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/requests/me`,
         {
           method: "DELETE",
@@ -569,7 +565,7 @@ const EventDetailsScreen = () => {
     setReportError(null);
     setIsSubmittingReport(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/report`,
         {
           method: "POST",
@@ -635,7 +631,7 @@ const EventDetailsScreen = () => {
     setLeaveError(null);
     setIsLeaving(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/members/${user.id}`,
         {
           method: "DELETE",

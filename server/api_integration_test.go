@@ -2425,3 +2425,317 @@ func TestLeaveGroupEventDeletesJoinRequest(t *testing.T) {
 		}
 	})
 }
+
+// ============================================================================
+// Event Update/Delete Tests
+// ============================================================================
+
+// TestUpdateEvent tests the PUT /events/:id endpoint
+func TestUpdateEvent(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // user id 1
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // user id 4
+
+	// Create an event as ava
+	var eventID int64
+	t.Run("setup - create event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Original Event",
+			Location:    "Original Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Original description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	t.Run("owner can update event", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Updated Event Title",
+			Location:    "Updated Location",
+			Time:        "14:00",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Updated description",
+			Gender:      "Female",
+			MinAge:      21,
+			MaxAge:      40,
+			GroupType:   "Group",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[testMessageResponse](t, resp)
+		if payload.Message != "event updated" {
+			t.Fatalf("expected 'event updated', got %s", payload.Message)
+		}
+	})
+
+	t.Run("non-owner cannot update event", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Hacked Event",
+			Location:    "Hacked Location",
+			Time:        "16:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Hacked",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), noahToken, body)
+		// Current implementation returns 500 for non-owner (includes ownership check in error)
+		if resp.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("expected 500, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("update without auth returns 401", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "No Auth Update",
+			Location:    "Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), "", body)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("update with invalid event id returns 400", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Test",
+			Location:    "Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/events/invalid", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("update with min_age > max_age returns 400", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Test",
+			Location:    "Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Description",
+			Gender:      "Any",
+			MinAge:      50,
+			MaxAge:      18, // max < min - should fail
+			GroupType:   "Single",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("update with missing required fields returns 400", func(t *testing.T) {
+		body := map[string]any{
+			"title": "Only Title",
+			// Missing other required fields
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+}
+
+// TestDeleteEvent tests the DELETE /events/:id endpoint
+func TestDeleteEvent(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // user id 1
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // user id 4
+
+	// Create an event as ava for deletion tests
+	var eventID int64
+	t.Run("setup - create event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Event To Delete",
+			Location:    "Delete Location",
+			Time:        "12:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Will be deleted",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	t.Run("non-owner cannot delete event", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d", eventID), noahToken, nil)
+		// Current implementation returns 404 for non-owner (combines not found / not owned)
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("delete without auth returns 401", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d", eventID), "", nil)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("delete with invalid event id returns 400", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, "/api/events/invalid", avaToken, nil)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("owner can delete event", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[testMessageResponse](t, resp)
+		if payload.Message != "event deleted" {
+			t.Fatalf("expected 'event deleted', got %s", payload.Message)
+		}
+	})
+
+	t.Run("delete non-existent event returns 404", func(t *testing.T) {
+		// Try to delete the same event again (already deleted)
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", resp.StatusCode)
+		}
+	})
+}
+
+// TestCreateEventValidation tests validation for the POST /events endpoint
+func TestCreateEventValidation(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+
+	t.Run("create without auth returns 401", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Test Event",
+			Location:    "Test Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", "", body)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("create without title returns 400", func(t *testing.T) {
+		body := map[string]any{
+			"location":   "Location",
+			"time":       "10:00",
+			"event_date": time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			"gender":     "Any",
+			"min_age":    18,
+			"max_age":    50,
+			"group_type": "Single",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("create without location returns 400", func(t *testing.T) {
+		body := map[string]any{
+			"title":      "Event Title",
+			"time":       "10:00",
+			"event_date": time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			"gender":     "Any",
+			"min_age":    18,
+			"max_age":    50,
+			"group_type": "Single",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("create with min_age > max_age returns 400", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Invalid Age Range Event",
+			Location:    "Test Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Test",
+			Gender:      "Any",
+			MinAge:      50,
+			MaxAge:      18, // max < min - should fail
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("create with invalid group_type returns 400", func(t *testing.T) {
+		body := map[string]any{
+			"title":      "Event",
+			"location":   "Location",
+			"time":       "10:00",
+			"event_date": time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			"gender":     "Any",
+			"min_age":    18,
+			"max_age":    50,
+			"group_type": "InvalidType", // Not Single or Group
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("create with empty body returns 400", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, map[string]any{})
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+}

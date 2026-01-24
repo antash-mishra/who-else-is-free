@@ -40,7 +40,7 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="event-card">
       <View
         style={[
           styles.imageWrapper,
@@ -49,7 +49,7 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
       >
         <Image source={{ uri: imageUri }} style={styles.image} />
         {showBadge ? (
-          <View style={styles.badge}>
+          <View style={styles.badge} testID="event-card-badge">
             {getBadgeIcon(badgeLabel)}
             <Text style={styles.badgeText}>{badgeLabel}</Text>
           </View>
