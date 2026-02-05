@@ -1,6 +1,6 @@
 import {
   Alert,
-  Dimensions,
+  Animated,
   Image,
   Pressable,
   ScrollView,
@@ -9,15 +9,13 @@ import {
   View,
 } from "react-native";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   CompositeNavigationProp,
   useNavigation,
 } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 
@@ -111,11 +109,29 @@ const ProfileScreen = () => {
     Alert.alert("Delete Account", "Coming Soon");
   }, []);
 
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 0.97,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePressOut = useCallback(() => {
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
   if (!user) {
     return (
       <ScreenContainer>
         <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>Account</Text>
         </View>
         <EmptyState
           title="No profile to show"
@@ -134,91 +150,87 @@ const ProfileScreen = () => {
   const initial = user?.name?.charAt(0).toUpperCase() ?? "Y";
 
   return (
-    <ScreenContainer edges={["bottom"]}>
-      {/* Profile Header Card with Gradient - positioned to span full width */}
-      <View style={styles.headerCardWrapper}>
-        <LinearGradient
-          colors={["#1B50E3", "#153DAD", "#081944", "#050F29"]}
-          locations={[0, 0.3174, 0.601, 0.726]}
-          style={styles.headerCard}
-        >
-          <SafeAreaView edges={["top"]} style={styles.headerContent}>
-            <View style={styles.avatar}>
-              {user.avatar ? (
-                <Image
-                  source={{ uri: `data:image/jpeg;base64,${user.avatar}` }}
-                  style={styles.avatarImage}
-                />
-              ) : (
-                <Text style={styles.avatarInitial}>{initial}</Text>
-              )}
-            </View>
-            <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
-            <Text style={styles.email}>{user?.email ?? ""}</Text>
-
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{hostedCount}</Text>
-                <Text style={styles.statLabel}>Hosted</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{joinedCount}</Text>
-                <Text style={styles.statLabel}>Joined</Text>
-              </View>
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
+    <ScreenContainer>
+      <View style={styles.headerSpacing}>
+        <Text style={styles.headerTitle}>Account</Text>
       </View>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Profile Header Card with Gradient */}
+        <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
+          <Animated.View style={[styles.headerCard, { transform: [{ scale: scaleAnim }] }]}>
+            <LinearGradient
+              colors={["#1B50E3", "#153DAD", "#081944", "#050F29"]}
+              locations={[0, 0.3174, 0.601, 0.726]}
+              style={styles.headerCardGradient}
+            >
+              <View style={styles.headerContent}>
+                <View style={styles.avatar}>
+                  {user.avatar ? (
+                    <Image
+                      source={{ uri: `data:image/jpeg;base64,${user.avatar}` }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <Text style={styles.avatarInitial}>{initial}</Text>
+                  )}
+                </View>
+                <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
+                <Text style={styles.email}>{user?.email ?? ""}</Text>
+
+                {/* Stats Row */}
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{hostedCount}</Text>
+                    <Text style={styles.statLabel}>Hosted</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{joinedCount}</Text>
+                    <Text style={styles.statLabel}>Joined</Text>
+                  </View>
+                </View>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+        </Pressable>
         {/* Menu Section */}
         <View style={styles.menuSection}>
-          <View style={styles.menuGroup}>
-            <MenuItem
-              icon={<EditProfileIcon width={18} height={18} />}
-              label="Edit Profile"
-              onPress={handleEditProfile}
-            />
-            <MenuItem
-              icon={<PastEventsIcon width={18} height={18} />}
-              label="Past Events"
-              onPress={handlePastEvents}
-            />
-          </View>
-
-          <View style={styles.menuGroup}>
-            <MenuItem
-              icon={<PrivacyPolicyIcon width={12} height={15} />}
-              label="Privacy Policy"
-              onPress={handlePrivacyPolicy}
-            />
-            <MenuItem
-              icon={<HelpIcon width={15} height={15} />}
-              label="Help"
-              onPress={handleHelp}
-            />
-          </View>
-
-          <View style={styles.menuGroup}>
-            <MenuItem
-              icon={<LogoutIcon width={15} height={14} />}
-              label="Logout"
-              onPress={handleSignOut}
-              showChevron={false}
-            />
-            <MenuItem
-              icon={<TrashIcon width={18} height={18} />}
-              label="Delete"
-              onPress={handleDelete}
-              showChevron={false}
-              destructive
-            />
-          </View>
+          <MenuItem
+            icon={<EditProfileIcon width={20} height={20} />}
+            label="Edit Profile"
+            onPress={handleEditProfile}
+          />
+          <MenuItem
+            icon={<PastEventsIcon width={20} height={20} />}
+            label="Past Events"
+            onPress={handlePastEvents}
+          />
+          <MenuItem
+            icon={<PrivacyPolicyIcon width={20} height={20} />}
+            label="Privacy Policy"
+            onPress={handlePrivacyPolicy}
+          />
+          <MenuItem
+            icon={<HelpIcon width={20} height={20} />}
+            label="Help"
+            onPress={handleHelp}
+          />
+          <MenuItem
+            icon={<LogoutIcon width={20} height={20} />}
+            label="Logout"
+            onPress={handleSignOut}
+            showChevron={false}
+          />
+          <MenuItem
+            icon={<TrashIcon width={20} height={20} />}
+            label="Delete"
+            onPress={handleDelete}
+            showChevron={false}
+            destructive
+          />
         </View>
       </ScrollView>
     </ScreenContainer>
@@ -226,13 +238,8 @@ const ProfileScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   scrollView: {
     flex: 1,
-    backgroundColor: "#F4F4F4",
     marginHorizontal: -spacing.md,
   },
   scrollContent: {
@@ -250,17 +257,22 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
   },
-  headerCardWrapper: {
-    width: SCREEN_WIDTH,
-    marginLeft: -spacing.md,
-  },
   headerCard: {
+    borderRadius: 20,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  headerCardGradient: {
+    borderRadius: 20,
   },
   headerContent: {
     alignItems: "center",
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xl + spacing.md,
+    paddingTop: 24,
+    paddingBottom: 24,
     paddingHorizontal: spacing.md,
   },
   avatar: {
@@ -316,22 +328,15 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
   },
   menuSection: {
-    paddingTop: spacing.lg,
-    gap: spacing.md,
-  },
-  menuGroup: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    overflow: "hidden",
+    paddingTop: 12,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: spacing.md + 2,
-    paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E5E5",
+    borderBottomColor: "#E6E6E6",
   },
   menuItemLeft: {
     flexDirection: "row",
