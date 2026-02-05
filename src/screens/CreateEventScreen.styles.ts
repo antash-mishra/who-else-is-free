@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     },
     // "Create Event" text
     pageTitle: {
-        fontSize: typography.header,
+        fontSize: 20,
         fontFamily: typography.fontFamilySemiBold,
         color: colors.card,
         lineHeight: typography.header,
