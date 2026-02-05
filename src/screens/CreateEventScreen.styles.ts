@@ -29,11 +29,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     content: {
-        paddingBottom: spacing.lg,
+        paddingBottom: 0,
     },
     footer: {
         paddingTop: spacing.sm,
-        paddingBottom: spacing.sm,
+        paddingBottom: 32,
         position: "relative",
     },
     spacer: {
@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingTop: spacing.sm,
         paddingBottom: spacing.sm,
+        paddingHorizontal: spacing.lg,
         position: "relative",
     },
     pageTitle: {
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
     },
     dismissButton: {
         position: "absolute",
-        right: -spacing.sm,
+        right: spacing.lg - spacing.sm,
         padding: spacing.sm,
     },
     coverCard: {

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Image,
-    KeyboardAvoidingView,
     Platform,
     Pressable,
     Text,
@@ -9,10 +8,7 @@ import {
     View,
 } from "react-native";
 
-import {
-    SafeAreaView,
-    useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
     CompositeNavigationProp,
@@ -87,7 +83,6 @@ const CreateEventScreen = () => {
     const { addUserEvent, updateUserEvent, events, queueGuestEvent } =
         useEvents();
     const { user } = useAuth();
-    const insets = useSafeAreaInsets();
     const scrollViewRef = useRef<KeyboardAwareScrollView>(null);
 
     // Responsive gap for spacing between form elements
@@ -334,7 +329,7 @@ const CreateEventScreen = () => {
         () => [
             styles.content,
             {
-                paddingBottom: spacing.sm,
+                paddingBottom: 0,
                 flexGrow: 1,
                 gap: responsiveGap,
             },
@@ -525,24 +520,27 @@ const CreateEventScreen = () => {
     const ageLabel = useMemo(() => getAgeLabel(ageRange), [ageRange]);
     const dateLabel = dateChoice === "today" ? "Today" : "Tomorrow";
 
+    // Fixed header component (outside scroll view)
+    const renderHeader = () => (
+        <View style={styles.headerRow}>
+            <Text style={styles.pageTitle}>Create Event</Text>
+            <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.goBack()}
+                style={styles.dismissButton}
+            >
+                <Feather
+                    name="x"
+                    size={24}
+                    color={colors.createTextPrimary}
+                />
+            </Pressable>
+        </View>
+    );
+
     // Shared form content to avoid iOS/Android duplication
     const renderFormContent = () => (
         <>
-            <View style={styles.headerRow}>
-                <Text style={styles.pageTitle}>Create Event</Text>
-                <Pressable
-                    accessibilityRole="button"
-                    onPress={() => navigation.goBack()}
-                    style={styles.dismissButton}
-                >
-                    <Feather
-                        name="x"
-                        size={24}
-                        color={colors.createTextPrimary}
-                    />
-                </Pressable>
-            </View>
-
             <Pressable
                 style={styles.coverCard}
                 onPress={() => setCoverPickerVisible(true)}
@@ -708,47 +706,26 @@ const CreateEventScreen = () => {
                 blurRadius={28}
             />
             <View style={styles.backgroundOverlay} />
-            <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-                {Platform.OS === "ios" ? (
-                    <KeyboardAvoidingView
-                        behavior="padding"
-                        style={styles.overlay}
-                        keyboardVerticalOffset={insets.top}
+            <SafeAreaView style={styles.safeArea} edges={["top"]}>
+                {renderHeader()}
+                <View style={[styles.overlay, styles.contentWrapper]}>
+                    <KeyboardAwareScrollView
+                        ref={scrollViewRef}
+                        style={styles.formScroll}
+                        contentContainerStyle={contentContainerStyle}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                        enableOnAndroid={true}
+                        enableAutomaticScroll={true}
+                        extraScrollHeight={0}
+                        extraHeight={0}
+                        enableResetScrollToCoords={false}
+                        contentInsetAdjustmentBehavior="never"
                     >
-                        <View style={styles.contentWrapper}>
-                            <KeyboardAwareScrollView
-                                ref={scrollViewRef}
-                                style={styles.formScroll}
-                                contentContainerStyle={contentContainerStyle}
-                                showsVerticalScrollIndicator={false}
-                                keyboardShouldPersistTaps="handled"
-                                keyboardDismissMode="interactive"
-                                enableOnAndroid={true}
-                                enableAutomaticScroll={true}
-                                extraScrollHeight={spacing.xl * 2}
-                            >
-                                {renderFormContent()}
-                            </KeyboardAwareScrollView>
-                        </View>
-                    </KeyboardAvoidingView>
-                ) : (
-                    <View style={[styles.overlay, styles.contentWrapper]}>
-                        <KeyboardAwareScrollView
-                            ref={scrollViewRef}
-                            style={styles.formScroll}
-                            contentContainerStyle={contentContainerStyle}
-                            showsVerticalScrollIndicator={false}
-                            keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode="on-drag"
-                            enableOnAndroid={true}
-                            enableAutomaticScroll={true}
-                            extraScrollHeight={30}
-                            enableResetScrollToCoords={false}
-                        >
-                            {renderFormContent()}
-                        </KeyboardAwareScrollView>
-                    </View>
-                )}
+                        {renderFormContent()}
+                    </KeyboardAwareScrollView>
+                </View>
             </SafeAreaView>
 
             {/* Cover Picker Modal */}
