@@ -553,119 +553,132 @@ const CreateEventScreen = () => {
             </Pressable>
 
             <View style={styles.fieldCard}>
-                <TextInput
-                    placeholder="Event Name"
-                    value={eventName}
-                    onChangeText={setEventName}
-                    placeholderTextColor={colors.createTextMuted}
-                    style={styles.textInput}
-                />
-                <View style={styles.fieldDivider} />
-                <TextInput
-                    placeholder="Description"
-                    value={description}
-                    onChangeText={setDescription}
-                    placeholderTextColor={colors.createTextMuted}
-                    style={styles.textInput}
-                    multiline
-                    numberOfLines={2}
-                    textAlignVertical="top"
-                />
+                <View style={styles.fieldCardInner}>
+                    <TextInput
+                        placeholder="Event Name"
+                        value={eventName}
+                        onChangeText={setEventName}
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        cursorColor="#FFFFFF"
+                        selectionColor="#FFFFFF"
+                        style={styles.textInput}
+                    />
+                    <View style={styles.fieldDivider} />
+                    <TextInput
+                        placeholder="Description"
+                        value={description}
+                        onChangeText={setDescription}
+                        placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                        cursorColor="#FFFFFF"
+                        selectionColor="#FFFFFF"
+                        style={[styles.textInput, styles.descriptionInput]}
+                        multiline
+                        textAlignVertical="top"
+                    />
+                </View>
             </View>
 
             <View style={styles.fieldCard}>
-                <Pressable
-                    style={styles.fieldRow}
-                    onPress={openGroupTypePicker}
-                >
-                    <Text style={styles.fieldLabel}>Group Type</Text>
-                    <View style={styles.fieldValuePill}>
-                        <Text style={styles.fieldValueText}>
-                            {groupDisplayLabels[groupType]}
-                        </Text>
-                    </View>
-                </Pressable>
+                <View style={styles.fieldCardInner}>
+                    <Pressable
+                        style={styles.fieldRow}
+                        onPress={openGroupTypePicker}
+                    >
+                        <Text style={styles.fieldLabel}>Group Type</Text>
+                        <View style={styles.fieldValuePill}>
+                            <Text style={styles.fieldValueText}>
+                                {groupDisplayLabels[groupType]}
+                            </Text>
+                        </View>
+                    </Pressable>
+                </View>
             </View>
 
             <View style={styles.fieldCard}>
-                <Pressable
-                    style={styles.fieldRow}
-                    onPress={openGenderPicker}
-                >
-                    <Text style={styles.fieldLabel}>Gender</Text>
-                    <View style={styles.fieldValuePill}>
-                        <Text style={styles.fieldValueText}>
-                            {genderDisplayLabels[gender]}
-                        </Text>
-                    </View>
-                </Pressable>
+                <View style={styles.fieldCardInner}>
+                    <Pressable
+                        style={styles.fieldRow}
+                        onPress={openGenderPicker}
+                    >
+                        <Text style={styles.fieldLabel}>Gender</Text>
+                        <View style={styles.fieldValuePill}>
+                            <Text style={styles.fieldValueText}>
+                                {genderDisplayLabels[gender]}
+                            </Text>
+                        </View>
+                    </Pressable>
 
-                <View style={styles.fieldDivider} />
+                    <View style={styles.fieldDivider} />
 
-                <Pressable
-                    style={styles.fieldRow}
-                    onPress={openAgePicker}
-                >
-                    <Text style={styles.fieldLabel}>Age</Text>
-                    <View style={styles.fieldValuePill}>
-                        <Text style={styles.fieldValueText}>{ageLabel}</Text>
-                    </View>
-                </Pressable>
+                    <Pressable
+                        style={styles.fieldRow}
+                        onPress={openAgePicker}
+                    >
+                        <Text style={styles.fieldLabel}>Age</Text>
+                        <View style={styles.fieldValuePill}>
+                            <Text style={styles.fieldValueText}>{ageLabel}</Text>
+                        </View>
+                    </Pressable>
+                </View>
             </View>
 
             <View style={styles.fieldCard}>
-                <View style={[styles.fieldRow, styles.dateRow]}>
-                    <Text style={styles.fieldLabel}>Date</Text>
-                    <View style={styles.dateTimeContainer}>
-                        <Pressable
-                            style={styles.fieldValuePill}
-                            onPress={toggleDateChoice}
-                        >
-                            <Text style={styles.fieldValueText}>{dateLabel}</Text>
-                        </Pressable>
-                        <View style={styles.timeInlineContainer}>
-                            <TextInput
-                                placeholder="HH"
-                                value={hourInput}
-                                onChangeText={handleHourChange}
-                                onFocus={() => setIsHourEditing(true)}
-                                onBlur={handleHourBlur}
-                                placeholderTextColor={colors.createTextMuted}
-                                style={styles.timeInputInline}
-                                maxLength={2}
-                                keyboardType="number-pad"
-                            />
-                            <Text style={styles.timeSeparatorInline}>:</Text>
-                            <TextInput
-                                placeholder="MM"
-                                value={minuteInput}
-                                onChangeText={handleMinuteChange}
-                                onFocus={() => setIsMinuteEditing(true)}
-                                onBlur={handleMinuteBlur}
-                                placeholderTextColor={colors.createTextMuted}
-                                style={styles.timeInputInline}
-                                maxLength={2}
-                                keyboardType="number-pad"
-                            />
+                <View style={styles.fieldCardInner}>
+                    <View style={[styles.fieldRow, styles.dateRow]}>
+                        <Text style={styles.fieldLabel}>Date</Text>
+                        <View style={styles.dateTimeContainer}>
+                            <Pressable
+                                style={styles.fieldValuePill}
+                                onPress={toggleDateChoice}
+                            >
+                                <Text style={styles.fieldValueText}>{dateLabel}</Text>
+                            </Pressable>
+                            <View style={styles.timeInlineContainer}>
+                                <TextInput
+                                    placeholder="HH"
+                                    value={hourInput}
+                                    onChangeText={handleHourChange}
+                                    onFocus={() => setIsHourEditing(true)}
+                                    onBlur={handleHourBlur}
+                                    placeholderTextColor={colors.createTextMuted}
+                                    style={styles.timeInputInline}
+                                    maxLength={2}
+                                    keyboardType="number-pad"
+                                />
+                                <Text style={styles.timeSeparatorInline}>:</Text>
+                                <TextInput
+                                    placeholder="MM"
+                                    value={minuteInput}
+                                    onChangeText={handleMinuteChange}
+                                    onFocus={() => setIsMinuteEditing(true)}
+                                    onBlur={handleMinuteBlur}
+                                    placeholderTextColor={colors.createTextMuted}
+                                    style={styles.timeInputInline}
+                                    maxLength={2}
+                                    keyboardType="number-pad"
+                                />
+                            </View>
                         </View>
                     </View>
-                </View>
 
-                <View style={styles.fieldDivider} />
+                    <View style={styles.fieldDivider} />
 
-                <View style={[styles.fieldRow, styles.locationRow]}>
-                    <Text style={styles.fieldLabel}>Location</Text>
-                    <TextInput
-                        placeholder="Search..."
-                        value={location}
-                        onChangeText={setLocation}
-                        placeholderTextColor={colors.createTextMuted}
-                        style={[
-                            styles.textInput,
-                            styles.compactInput,
-                            styles.locationInput,
-                        ]}
-                    />
+                    <View style={[styles.fieldRow, styles.locationRow]}>
+                        <Text style={styles.fieldLabel}>Location</Text>
+                        <TextInput
+                            placeholder="Example: Temple Bar"
+                            value={location}
+                            onChangeText={setLocation}
+                            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                            cursorColor="#FFFFFF"
+                            selectionColor="#FFFFFF"
+                            style={[
+                                styles.textInput,
+                                styles.compactInput,
+                                styles.locationInput,
+                            ]}
+                        />
+                    </View>
                 </View>
             </View>
 
