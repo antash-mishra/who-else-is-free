@@ -3,20 +3,66 @@ import { StyleSheet } from "react-native";
 import { colors, spacing, typography } from "@theme/index";
 
 const styles = StyleSheet.create({
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 1. SCREEN SHELL                                            │
+    // │    Outermost layers: root, background image, dark overlay  │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Fullscreen wrapper
     root: {
         flex: 1,
         backgroundColor: "transparent",
     },
-    safeArea: {
-        flex: 1,
-    },
+    // Blurred cover photo behind everything
     backgroundImage: {
         ...StyleSheet.absoluteFillObject,
     },
+    // Semi-transparent dark overlay on top of background image
     backgroundOverlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0, 0, 0, 0.3)",
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
     },
+    // Safe area (respects notch/status bar)
+    safeArea: {
+        flex: 1,
+    },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 2. HEADER — "Create Event" title + ✕ dismiss button        │
+    // │    Fixed at top, outside the scroll view                   │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Row: centers title, positions dismiss button absolutely right
+    headerRow: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
+        paddingHorizontal: spacing.lg,
+        position: "relative",
+    },
+    // "Create Event" text
+    pageTitle: {
+        fontSize: 20,
+        fontFamily: typography.fontFamilySemiBold,
+        color: colors.card,
+        lineHeight: typography.header,
+        letterSpacing: typography.letterSpacing,
+    },
+    // ✕ close button (top-right corner)
+    dismissButton: {
+        position: "absolute",
+        right: spacing.lg - spacing.sm,
+        padding: spacing.sm,
+    },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 3. SCROLLABLE CONTENT AREA                                 │
+    // │    Wraps everything below the header                       │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Horizontal padding for the scroll area
     overlay: {
         flex: 1,
         paddingTop: 0,
@@ -28,44 +74,23 @@ const styles = StyleSheet.create({
     formScroll: {
         flex: 1,
     },
+    // Inner content container of the scroll view
     content: {
         paddingBottom: 0,
     },
-    footer: {
-        paddingTop: spacing.sm,
-        paddingBottom: 32,
-        position: "relative",
-    },
-    spacer: {
-        flexGrow: 1,
-        minHeight: spacing.xs,
-    },
-    headerRow: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingTop: spacing.sm,
-        paddingBottom: spacing.sm,
-        paddingHorizontal: spacing.lg,
-        position: "relative",
-    },
-    pageTitle: {
-        fontSize: typography.header,
-        fontFamily: typography.fontFamilySemiBold,
-        color: colors.card,
-        lineHeight: typography.header,
-        letterSpacing: typography.letterSpacing,
-    },
-    dismissButton: {
-        position: "absolute",
-        right: spacing.lg - spacing.sm,
-        padding: spacing.sm,
-    },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 4. COVER IMAGE CARD                                        │
+    // │    Square card with event cover + upload icon chip          │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Outer card container
     coverCard: {
-        borderRadius: 12,
+        borderRadius: 20,
         overflow: "hidden",
         backgroundColor: colors.createCardBackground,
-        width: "50%",
+        width: 180,
+        height: 180,
         aspectRatio: 1,
         alignSelf: "center",
         justifyContent: "flex-end",
@@ -79,6 +104,7 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
+    // Cover photo (fills the card)
     coverImage: {
         position: "absolute",
         top: 0,
@@ -87,10 +113,11 @@ const styles = StyleSheet.create({
         bottom: 0,
         resizeMode: "cover",
     },
+    // Upload icon badge (bottom-right of cover card)
     coverChip: {
         position: "absolute",
-        bottom: spacing.sm,
-        right: spacing.sm,
+        bottom: 6,
+        right: 6,
         padding: spacing.sm,
         borderRadius: 999,
         backgroundColor: "rgba(0, 0, 0, 0.4)",
@@ -98,13 +125,21 @@ const styles = StyleSheet.create({
         alignItems: "center",
         zIndex: 1,
     },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 5. SHARED: FIELD CARD                                      │
+    // │    Rounded card that wraps each form section                │
+    // │    Used by: Event Name + Description,                      │
+    // │             Group Type,                                     │
+    // │             Gender + Age,                                   │
+    // │             Date + Location                                 │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Outer layer: white 19%
     fieldCard: {
-        // Layered gradient: rgba(255,255,255,0.19) on rgba(0,0,0,0.04)
-        backgroundColor: "rgba(255, 255, 255, 0.19)",
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
         borderRadius: 12,
-        paddingHorizontal: spacing.sm,
-        paddingVertical: spacing.xs,
-        // Border: 1px top, 1px right, 0px bottom, 1px left
+        overflow: "hidden",
         borderTopWidth: 1,
         borderRightWidth: 1,
         borderBottomWidth: 0,
@@ -112,70 +147,126 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255, 255, 255, 0.04)",
         marginBottom: spacing.sm,
     },
+    // Inner layer: black 4% (carries the padding)
+    fieldCardInner: {
+        backgroundColor: "rgba(0, 0, 0, 0.06)",
+        borderRadius: 12,
+        paddingLeft: 10,
+        paddingRight: 6,
+    },
+    // Horizontal line between fields within the same card
+    // (Event Name / Description, Gender / Age, Date / Location)
     fieldDivider: {
         height: 1,
         backgroundColor: "rgba(255, 255, 255, 0.1)",
-        marginVertical: spacing.xs,
-        // Extend to full width by negating parent's horizontal padding
+        // marginVertical: spacing.xs,
         marginHorizontal: -spacing.sm,
     },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 6. EVENT NAME — text input (top of first fieldCard)        │
+    // │    Single-line, "Done" dismisses keyboard                  │
+    // └─────────────────────────────────────────────────────────────┘
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 7. DESCRIPTION — text input (bottom of first fieldCard)    │
+    // │    Multiline, expands vertically as text grows             │
+    // └─────────────────────────────────────────────────────────────┘
+    // Both Event Name and Description share this base style
     textInput: {
-        fontSize: 17,
+        fontSize: 18,
         fontFamily: typography.fontFamilyMedium,
-        color: "rgba(255, 255, 255, 0.78)",
+        color: "rgba(255, 255, 255, 1)",
         letterSpacing: typography.letterSpacing,
-        lineHeight: 17,
-        paddingVertical: 11,
-        minHeight: 32,
+        lineHeight: 22,
+        paddingVertical: 12,
+        paddingRight: 10,
     },
-    compactInput: {
-        backgroundColor: colors.createChipBackground,
-        borderRadius: 8,
-        paddingHorizontal: spacing.md,
-        paddingVertical: 0,
-        height: 36,
-        fontSize: typography.body,
+    // Description-specific overrides (applied on top of textInput)
+    descriptionInput: {
+        fontSize: 17,
+        lineHeight: 20,
+        paddingVertical: 13,
+        minHeight: 46,
+        maxHeight: undefined,
+        paddingRight: 10,
     },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 8. SHARED: FIELD ROW                                       │
+    // │    Horizontal row with label on left + value pill on right  │
+    // │    Used by: Group Type, Gender, Age, Date, Location        │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Row container
     fieldRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 6,
+        height: 46,
     },
+    // Left-side label text ("Group Type", "Gender", "Age", etc.)
     fieldLabel: {
         fontSize: typography.body,
         fontFamily: typography.fontFamilyMedium,
-        color: colors.createTextLabel,
-        lineHeight:  typography.lineHeight,
+        color: "rgba(255, 255, 255, 0.6)",
+        lineHeight: typography.lineHeight,
         letterSpacing: typography.letterSpacing,
     },
+    // Right-side pill showing current value ("Single", "Any", etc.)
     fieldValuePill: {
-        paddingHorizontal: spacing.sm,
-        height: 36,
+        paddingHorizontal: 10,
+        height: 34,
         justifyContent: "center",
         alignItems: "center",
         borderRadius: 8,
-        // Layered gradient effect: rgba(0,0,0,0.04) on rgba(255,255,255,0.24)
         backgroundColor: "rgba(255, 255, 255, 0.24)",
         borderWidth: 1,
         borderColor: "rgba(255, 255, 255, 0.04)",
     },
+    // Text inside the value pill
     fieldValueText: {
-        fontSize:  typography.body,
+        fontSize: typography.body,
         fontFamily: typography.fontFamilyMedium,
-        lineHeight:  typography.lineHeight,
+        lineHeight: typography.lineHeight,
         color: colors.createTextPrimary,
         letterSpacing: typography.letterSpacing,
     },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 9. GROUP TYPE — single fieldRow in its own fieldCard        │
+    // │    Uses: fieldCard > fieldRow + fieldLabel + fieldValuePill │
+    // │    No extra styles needed                                  │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 10. GENDER — top fieldRow in Gender + Age fieldCard         │
+    // │     Uses: fieldRow + fieldLabel + fieldValuePill            │
+    // │     No extra styles needed                                 │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 11. AGE — bottom fieldRow in Gender + Age fieldCard         │
+    // │     Uses: fieldRow + fieldLabel + fieldValuePill            │
+    // │     No extra styles needed                                 │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 12. DATE & TIME — top row of Date + Location fieldCard     │
+    // │     Row: "Date" label + Today/Tomorrow pill + HH:MM input  │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Extra gap between label and date/time controls
     dateRow: {
         gap: spacing.md,
     },
+    // Right side: Today/Tomorrow pill + time input side by side
     dateTimeContainer: {
         flex: 1,
         flexDirection: "row",
         justifyContent: "flex-end",
         gap: spacing.sm,
     },
+    // HH:MM input box container
     timeInlineContainer: {
         flexDirection: "row",
         alignItems: "center",
@@ -188,14 +279,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.createCardBorder,
     },
-    locationRow: {
-        alignItems: "center",
-        gap: spacing.md,
-    },
-    locationInput: {
-        flex: 1,
-        textAlignVertical: "center",
-    },
+    // Individual HH or MM number input
     timeInputInline: {
         width: 32,
         height: 26,
@@ -205,12 +289,65 @@ const styles = StyleSheet.create({
         textAlign: "center",
         padding: 0,
     },
+    // ":" between HH and MM
     timeSeparatorInline: {
         fontSize: typography.body,
         fontFamily: typography.fontFamilyMedium,
         color: colors.createTextPrimary,
         marginHorizontal: spacing.xs,
     },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 13. LOCATION — bottom row of Date + Location fieldCard     │
+    // │     Row: "Location" label + search text input              │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Extra alignment + gap for location row
+    locationRow: {
+        alignItems: "center",
+        gap: spacing.md,
+    },
+    // Location text input (extends textInput + compactInput)
+    locationInput: {
+        flex: 0.7,
+        paddingLeft: 11,
+        paddingRight: 11,
+        lineHeight: 20,
+        paddingTop: 7,
+        paddingBottom: 7,
+        textAlignVertical: "center",
+    },
+    // Compact search-style input (used by Location)
+    compactInput: {
+        backgroundColor: colors.createChipBackground,
+        borderRadius: 8,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 0,
+        height: 36,
+        fontSize: typography.body,
+    },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 14. SPACER — flexible gap pushing footer to bottom         │
+    // └─────────────────────────────────────────────────────────────┘
+
+    spacer: {
+        flexGrow: 1,
+        minHeight: spacing.xs,
+    },
+
+    // ┌─────────────────────────────────────────────────────────────┐
+    // │ 15. FOOTER — error message + "Create Event" button         │
+    // │     Pinned to bottom of scroll content                     │
+    // └─────────────────────────────────────────────────────────────┘
+
+    // Footer wrapper
+    footer: {
+        paddingTop: spacing.sm,
+        paddingBottom: 32,
+        position: "relative",
+    },
+    // Error row (warning icon + text)
     errorContainer: {
         flexDirection: "row",
         alignItems: "center",
@@ -218,6 +355,7 @@ const styles = StyleSheet.create({
         gap: spacing.xs,
         marginBottom: spacing.sm,
     },
+    // Error message text
     errorText: {
         color: "#FF9C9C",
         fontSize: 16,
@@ -225,6 +363,7 @@ const styles = StyleSheet.create({
         lineHeight: 16,
         letterSpacing: -0.5,
     },
+    // "Create Event" / "Update Event" / "Sign Up or Log In" button
     primaryButton: {
         backgroundColor: colors.createButtonBackground,
         borderRadius: 999,
@@ -232,9 +371,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         width: "100%",
     },
+    // Dimmed state while submitting
     primaryButtonDisabled: {
         opacity: 0.7,
     },
+    // Button label text
     primaryButtonText: {
         color: colors.createButtonText,
         fontSize: typography.subtitle,
