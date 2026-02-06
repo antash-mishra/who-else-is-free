@@ -21,6 +21,7 @@ var ErrNotEventHost = errors.New("user is not the event host")
 var ErrCannotRemoveHost = errors.New("event host cannot be removed from the conversation")
 var ErrNotConversationMember = errors.New("user is not a conversation member")
 var ErrReportAlreadyExists = errors.New("report already exists for this event")
+var ErrAppleAccountLinkedToDifferentUser = errors.New("apple account is already linked to a different user")
 
 type rowQuery interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
@@ -34,6 +35,21 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+`
+
+const createTableAppleAccounts = `
+CREATE TABLE IF NOT EXISTS apple_accounts (
+    apple_sub TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    email TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`
+
+const createAppleAccountsUserIDIndex = `
+CREATE INDEX IF NOT EXISTS apple_accounts_user_idx
+ON apple_accounts (user_id);
 `
 
 const createTableEvents = `
@@ -316,6 +332,32 @@ FROM users
 WHERE id = ?;
 `
 
+const selectUserByAppleSubject = `
+SELECT u.id, u.name, u.email, u.password, u.gender, u.age, u.avatar, u.profile_complete, u.created_at
+FROM users u
+JOIN apple_accounts a ON a.user_id = u.id
+WHERE a.apple_sub = ?
+LIMIT 1;
+`
+
+const selectAppleAccountBySubject = `
+SELECT user_id, email
+FROM apple_accounts
+WHERE apple_sub = ?
+LIMIT 1;
+`
+
+const insertAppleAccount = `
+INSERT INTO apple_accounts (apple_sub, user_id, email)
+VALUES (?, ?, ?);
+`
+
+const updateAppleAccountEmailBySubject = `
+UPDATE apple_accounts
+SET email = ?
+WHERE apple_sub = ?;
+`
+
 const updateUserProfile = `
 UPDATE users
 SET name = ?, gender = ?, age = ?, avatar = ?, profile_complete = ?
@@ -421,6 +463,12 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createTableUsers); err != nil {
 		return fmt.Errorf("create users table: %w", err)
 	}
+	if _, err := r.db.ExecContext(ctx, createTableAppleAccounts); err != nil {
+		return fmt.Errorf("create apple_accounts table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createAppleAccountsUserIDIndex); err != nil {
+		return fmt.Errorf("create apple_accounts user index: %w", err)
+	}
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)
 	}
@@ -509,6 +557,68 @@ func (r *EventRepository) CreateUserWithPassword(ctx context.Context, name, emai
 		return nil, fmt.Errorf("insert user: %w", err)
 	}
 	return r.GetUserByEmail(ctx, email)
+}
+
+func (r *EventRepository) GetUserByAppleSubject(ctx context.Context, subject string) (*User, error) {
+	var user User
+	var profileComplete int
+
+	if err := r.db.QueryRowContext(ctx, selectUserByAppleSubject, strings.TrimSpace(subject)).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.Gender,
+		&user.Age,
+		&user.Avatar,
+		&profileComplete,
+		&user.CreatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("lookup user by apple subject: %w", err)
+	}
+
+	user.ProfileComplete = profileComplete == 1
+	return &user, nil
+}
+
+func (r *EventRepository) LinkAppleAccount(ctx context.Context, subject string, userID int64, email string) error {
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		return fmt.Errorf("link apple account: subject is required")
+	}
+
+	trimmedEmail := strings.TrimSpace(email)
+	var existingUserID int64
+	var existingEmail sql.NullString
+
+	err := r.db.QueryRowContext(ctx, selectAppleAccountBySubject, subject).Scan(&existingUserID, &existingEmail)
+	if err == nil {
+		if existingUserID != userID {
+			return ErrAppleAccountLinkedToDifferentUser
+		}
+		if trimmedEmail != "" && (!existingEmail.Valid || existingEmail.String != trimmedEmail) {
+			if _, updateErr := r.db.ExecContext(ctx, updateAppleAccountEmailBySubject, trimmedEmail, subject); updateErr != nil {
+				return fmt.Errorf("update apple account email: %w", updateErr)
+			}
+		}
+		return nil
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("lookup apple account: %w", err)
+	}
+
+	var emailValue any
+	if trimmedEmail != "" {
+		emailValue = trimmedEmail
+	}
+
+	if _, err := r.db.ExecContext(ctx, insertAppleAccount, subject, userID, emailValue); err != nil {
+		return fmt.Errorf("insert apple account: %w", err)
+	}
+	return nil
 }
 
 func (r *EventRepository) ensureEventsUserIDColumn(ctx context.Context) error {
