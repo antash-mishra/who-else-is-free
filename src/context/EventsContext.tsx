@@ -277,7 +277,7 @@ const mapApiEvent = (
 };
 
 export const EventsProvider = ({ children }: { children: ReactNode }) => {
-  const { user, token, authFetch, refreshSessionSilently } = useAuth();
+  const { user, token, authFetch } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -295,34 +295,11 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       return new Set();
     });
   }, []);
-  const tokenRef = useRef<string | null>(null);
   const authFetchRef = useRef(authFetch);
-  const refreshSessionSilentlyRef = useRef(refreshSessionSilently);
-
-  tokenRef.current = token ?? null;
 
   useEffect(() => {
     authFetchRef.current = authFetch;
   }, [authFetch]);
-
-  useEffect(() => {
-    refreshSessionSilentlyRef.current = refreshSessionSilently;
-  }, [refreshSessionSilently]);
-
-  const executeAuthedRequest = useCallback(
-    async (request: (authToken: string | null) => Promise<Response>) => {
-      let response = await request(tokenRef.current);
-      if (response.status === 401 && tokenRef.current) {
-        const refreshedToken = await refreshSessionSilentlyRef.current?.();
-        if (refreshedToken) {
-          tokenRef.current = refreshedToken;
-          response = await request(refreshedToken);
-        }
-      }
-      return response;
-    },
-    [],
-  );
 
   const refreshEvents = useCallback(async () => {
     setIsLoading(true);
@@ -333,15 +310,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const response = await executeAuthedRequest((authToken) =>
-        fetchClient(`${API_BASE_URL}/api/events`, {
-          headers: authToken
-            ? {
-                Authorization: `Bearer ${authToken}`,
-              }
-            : undefined,
-        }),
-      );
+      const response = await fetchClient(`${API_BASE_URL}/api/events`, {
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      });
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
       }
@@ -358,7 +333,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [executeAuthedRequest]);
+  }, [token]);
 
   const refreshRequestedEvents = useCallback(async () => {
     if (!user || !token) {
@@ -371,15 +346,19 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      const response = await executeAuthedRequest((authToken) =>
-        fetchClient(`${API_BASE_URL}/api/chat/requests/me`, {
-          headers: authToken
-            ? {
-                Authorization: `Bearer ${authToken}`,
-              }
-            : undefined,
-        }),
-      );
+      const response = await fetchClient(`${API_BASE_URL}/api/chat/requests/me`, {
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      });
+
+      if (response.status === 401) {
+        // authFetch already attempted refresh; treat remaining 401 as session transition.
+        resetRequestedEventIds();
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
@@ -399,7 +378,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       console.error("Failed to fetch requested events", err);
       resetRequestedEventIds();
     }
-  }, [executeAuthedRequest, resetRequestedEventIds, token, user]);
+  }, [resetRequestedEventIds, token, user]);
 
   const markEventRequested = useCallback((eventId: string) => {
     setRequestedEventIds((prev) => {
@@ -448,16 +427,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
       };
 
-      const response = await executeAuthedRequest((authToken) =>
-        fetchClient(`${API_BASE_URL}/api/events`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        }),
-      );
+      const response = await fetchClient(`${API_BASE_URL}/api/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         let message = `Request failed with status ${response.status}`;
@@ -514,7 +491,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       return eventId;
     },
-    [executeAuthedRequest, refreshEvents, token],
+    [refreshEvents, token],
   );
 
   const updateUserEvent = useCallback(
@@ -543,16 +520,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Unable to update event at this time.");
       }
 
-      const response = await executeAuthedRequest((authToken) =>
-        fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-          },
-          body: JSON.stringify(payload),
-        }),
-      );
+      const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const message = `Request failed with status ${response.status}`;
@@ -576,7 +551,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       await refreshEvents();
     },
-    [executeAuthedRequest, refreshEvents, token],
+    [refreshEvents, token],
   );
 
   const deleteUserEvent = useCallback(
@@ -590,16 +565,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Unable to delete event at this time.");
       }
 
-      const response = await executeAuthedRequest((authToken) =>
-        fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
-          method: "DELETE",
-          headers: authToken
-            ? {
-                Authorization: `Bearer ${authToken}`,
-              }
-            : undefined,
-        }),
-      );
+      const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
+        method: "DELETE",
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      });
 
       if (!response.ok) {
         const message = `Request failed with status ${response.status}`;
@@ -608,7 +581,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       await refreshEvents();
     },
-    [executeAuthedRequest, refreshEvents, token],
+    [refreshEvents, token],
   );
 
   const queueGuestEvent = useCallback((draft: GuestEventDraft) => {

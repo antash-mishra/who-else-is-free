@@ -21,13 +21,14 @@ const tick = (ms = 10) => new Promise<void>((r) => setTimeout(r, ms));
 const mockUser = mockUsers[0];
 const mockToken = 'mock-jwt-token';
 const mockRefreshSessionSilently = jest.fn().mockResolvedValue(null);
+const mockAuthFetch = jest.fn((...args: Parameters<typeof fetch>) => fetch(...args));
 
 jest.mock('@context/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,
     token: mockToken,
     refreshSessionSilently: mockRefreshSessionSilently,
-    authFetch: (...args: Parameters<typeof fetch>) => fetch(...args),
+    authFetch: mockAuthFetch,
   }),
 }));
 
@@ -215,6 +216,8 @@ describe('ChatContext Rendering Tests', () => {
     fetchMock.resetMocks();
     MockWebSocket.reset();
     mockRefreshSessionSilently.mockClear();
+    mockAuthFetch.mockReset();
+    mockAuthFetch.mockImplementation((...args: Parameters<typeof fetch>) => fetch(...args));
   });
 
   describe('WebSocket Connection Lifecycle', () => {
@@ -861,9 +864,17 @@ describe('ChatContext Rendering Tests', () => {
       });
     });
 
-    it('should handle 401 response and attempt token refresh', async () => {
-      fetchMock.mockResponseOnce('', { status: 401 });
-      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.conversations.success));
+    it('should surface auth failures without triggering local token refresh', async () => {
+      mockAuthFetch.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith('/api/conversations')) {
+          return new Response('', { status: 401 });
+        }
+        if (url.includes('/api/conversations/') && url.includes('/messages')) {
+          return new Response(JSON.stringify(mockApiResponses.messages.success), { status: 200 });
+        }
+        return new Response('{}', { status: 200 });
+      });
 
       renderWithProvider();
 
@@ -877,10 +888,11 @@ describe('ChatContext Rendering Tests', () => {
         await tick(100);
       });
 
-      // refreshSessionSilently should have been called
       await waitFor(() => {
-        expect(mockRefreshSessionSilently).toHaveBeenCalled();
+        expect(screen.getByTestId('error')).not.toHaveTextContent('no-error');
       });
+
+      expect(mockRefreshSessionSilently).not.toHaveBeenCalled();
     });
   });
 

@@ -15,13 +15,14 @@ import { mockUsers, mockApiResponses, createTodayEvent } from '../../__tests__/m
 const mockAuthUser = mockUsers[0];
 const mockToken = 'mock-jwt-token';
 const mockRefreshSessionSilently = jest.fn().mockResolvedValue(null);
+const mockAuthFetch = jest.fn((...args: Parameters<typeof fetch>) => fetch(...args));
 
 jest.mock('../AuthContext', () => ({
   useAuth: jest.fn(() => ({
     user: mockAuthUser,
     token: mockToken,
     refreshSessionSilently: mockRefreshSessionSilently,
-    authFetch: (...args: Parameters<typeof fetch>) => fetch(...args),
+    authFetch: mockAuthFetch,
   })),
 }));
 
@@ -141,6 +142,8 @@ describe('EventsContext - Rendering Tests', () => {
   beforeEach(() => {
     fetchMock.resetMocks();
     mockRefreshSessionSilently.mockClear();
+    mockAuthFetch.mockReset();
+    mockAuthFetch.mockImplementation((...args: Parameters<typeof fetch>) => fetch(...args));
     jest.clearAllTimers();
   });
 
@@ -338,7 +341,7 @@ describe('EventsContext - Rendering Tests', () => {
         user: mockAuthUser,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
-        authFetch: (...args: Parameters<typeof fetch>) => fetch(...args),
+        authFetch: mockAuthFetch,
       });
 
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
@@ -445,7 +448,7 @@ describe('EventsContext - Rendering Tests', () => {
         user: mockAuthUser,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
-        authFetch: (...args: Parameters<typeof fetch>) => fetch(...args),
+        authFetch: mockAuthFetch,
       });
 
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
@@ -548,7 +551,7 @@ describe('EventsContext - Rendering Tests', () => {
         user: mockAuthUser,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
-        authFetch: (...args: Parameters<typeof fetch>) => fetch(...args),
+        authFetch: mockAuthFetch,
       });
 
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
@@ -800,17 +803,18 @@ describe('EventsContext - Rendering Tests', () => {
     });
   });
 
-  describe('refreshRequestedEvents with token refresh', () => {
-    it('should retry with refreshed token on 401', async () => {
-      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
-      // First request returns 401
-      fetchMock.mockResponseOnce('', { status: 401 });
-      // Token refresh returns new token
-      mockRefreshSessionSilently.mockResolvedValueOnce('new-token');
-      // Retry with new token succeeds
-      fetchMock.mockResponseOnce(JSON.stringify({ requests: [{ event_id: 1 }] }));
-      // Manual refresh after retry
-      fetchMock.mockResponseOnce(JSON.stringify({ requests: [{ event_id: 1 }] }));
+  describe('refreshRequestedEvents with authFetch', () => {
+    it('should use authFetch result to populate requested events', async () => {
+      mockAuthFetch.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith('/api/events')) {
+          return new Response(JSON.stringify(mockApiResponses.events.success), { status: 200 });
+        }
+        if (url.endsWith('/api/chat/requests/me')) {
+          return new Response(JSON.stringify({ requests: [{ event_id: 1 }] }), { status: 200 });
+        }
+        return new Response('{}', { status: 200 });
+      });
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -828,18 +832,25 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        expect(mockRefreshSessionSilently).toHaveBeenCalled();
+        expect(capturedCtx!.requestedEvents.length).toBe(1);
+        expect(capturedCtx!.requestedEvents[0].id).toBe('1');
       });
     });
 
-    it('should handle failed token refresh gracefully', async () => {
-      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
-      // First request returns 401
-      fetchMock.mockResponseOnce('', { status: 401 });
-      // Token refresh fails
-      mockRefreshSessionSilently.mockResolvedValueOnce(null);
-      // Manual refresh fallback
-      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+    it('should handle 401 without logging requested-events fetch error', async () => {
+      mockAuthFetch.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.endsWith('/api/events')) {
+          return new Response(JSON.stringify(mockApiResponses.events.success), { status: 200 });
+        }
+        if (url.endsWith('/api/chat/requests/me')) {
+          return new Response('', { status: 401 });
+        }
+        return new Response('{}', { status: 200 });
+      });
+
+      const consoleErrorMock = console.error as jest.Mock;
+      consoleErrorMock.mockClear();
 
       let capturedCtx: EventsContextValue | null = null;
       render(
@@ -857,9 +868,13 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        // Should have empty requested events on failure
         expect(capturedCtx!.requestedEvents).toEqual([]);
       });
+
+      const hasRequestedEventsError = consoleErrorMock.mock.calls.some(([message]) =>
+        String(message).includes('Failed to fetch requested events')
+      );
+      expect(hasRequestedEventsError).toBe(false);
     });
   });
 

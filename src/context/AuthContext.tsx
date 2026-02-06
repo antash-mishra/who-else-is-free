@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -64,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
     const configureGoogleSignIn = async () => {
@@ -181,17 +183,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshSessionSilently = useCallback(async (): Promise<
     string | null
   > => {
-    try {
-      const result = await GoogleSignin.signInSilently();
-      const idToken = (result as any)?.idToken ?? result?.data?.idToken;
-      if (!idToken) {
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
+    }
+
+    const refreshPromise = (async (): Promise<string | null> => {
+      try {
+        const result = await GoogleSignin.signInSilently();
+        const idToken = (result as any)?.idToken ?? result?.data?.idToken;
+        if (!idToken) {
+          return null;
+        }
+        await signInWithGoogle(idToken);
+        const refreshedToken = await SecureStore.getItemAsync(TOKEN_KEY);
+        return refreshedToken;
+      } catch (err) {
         return null;
       }
-      await signInWithGoogle(idToken);
-      const refreshedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-      return refreshedToken;
-    } catch (err) {
-      return null;
+    })();
+
+    refreshInFlightRef.current = refreshPromise;
+    try {
+      return await refreshPromise;
+    } finally {
+      if (refreshInFlightRef.current === refreshPromise) {
+        refreshInFlightRef.current = null;
+      }
     }
   }, [signInWithGoogle]);
 
