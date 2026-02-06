@@ -52,6 +52,18 @@ export const mockGoogleSignIn = {
 
 jest.mock('@react-native-google-signin/google-signin', () => mockGoogleSignIn);
 
+// Mock expo-apple-authentication
+export const mockAppleAuthentication = {
+  isAvailableAsync: jest.fn().mockResolvedValue(false),
+  signInAsync: jest.fn(),
+  AppleAuthenticationScope: {
+    FULL_NAME: 'FULL_NAME',
+    EMAIL: 'EMAIL',
+  },
+};
+
+jest.mock('expo-apple-authentication', () => mockAppleAuthentication, { virtual: true });
+
 // Mock expo-haptics
 export const mockHaptics = {
   impactAsync: jest.fn(),
@@ -162,6 +174,8 @@ export const resetAllMocks = () => {
   mockGoogleSignIn.GoogleSignin.signIn.mockClear();
   mockGoogleSignIn.GoogleSignin.signInSilently.mockClear();
   mockGoogleSignIn.GoogleSignin.signOut.mockClear();
+  mockAppleAuthentication.isAvailableAsync.mockClear();
+  mockAppleAuthentication.signInAsync.mockClear();
   mockHaptics.impactAsync.mockClear();
   mockHaptics.notificationAsync.mockClear();
   mockHaptics.selectionAsync.mockClear();

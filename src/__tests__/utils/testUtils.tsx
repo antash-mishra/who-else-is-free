@@ -122,6 +122,7 @@ export const mockAuthValues: MockAuthContextValue = {
   token: 'mock-token',
   isSigningIn: false,
   signInWithGoogle: jest.fn(),
+  signInWithApple: jest.fn(),
   signOut: jest.fn(),
   refreshSessionSilently: jest.fn().mockResolvedValue(null),
   updateProfile: jest.fn(),
@@ -223,6 +224,7 @@ export const resetAllMockValues = () => {
   mockAuthValues.token = 'mock-token';
   mockAuthValues.isSigningIn = false;
   mockAuthValues.signInWithGoogle = jest.fn();
+  mockAuthValues.signInWithApple = jest.fn();
   mockAuthValues.signOut = jest.fn();
   mockAuthValues.refreshSessionSilently = jest.fn().mockResolvedValue(null);
   mockAuthValues.updateProfile = jest.fn();
@@ -291,6 +293,7 @@ interface MockAuthContextValue {
   token: string | null;
   isSigningIn: boolean;
   signInWithGoogle: jest.Mock;
+  signInWithApple: jest.Mock;
   signOut: jest.Mock;
   refreshSessionSilently: jest.Mock;
   updateProfile: jest.Mock;
@@ -303,6 +306,7 @@ const defaultMockAuthContext: MockAuthContextValue = {
   token: 'mock-token',
   isSigningIn: false,
   signInWithGoogle: jest.fn(),
+  signInWithApple: jest.fn(),
   signOut: jest.fn(),
   refreshSessionSilently: jest.fn().mockResolvedValue(null),
   updateProfile: jest.fn(),

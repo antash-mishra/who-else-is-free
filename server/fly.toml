@@ -6,6 +6,7 @@ primary_region = "iad"
 
 [env]
   PORT = "8080"
+  APPLE_OAUTH_AUDIENCES = "com.whoelseisfree.app"
 
 [http_service]
   internal_port = 8080

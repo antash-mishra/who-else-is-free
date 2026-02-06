@@ -16,6 +16,8 @@ import * as SecureStore from "expo-secure-store";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
 
+type AuthProviderName = "google" | "apple";
+
 type AuthUser = {
   id: number;
   name: string;
@@ -45,6 +47,7 @@ interface AuthContextValue {
   token: string | null;
   isSigningIn: boolean;
   signInWithGoogle: (idToken: string) => Promise<AuthUser>;
+  signInWithApple: (idToken: string) => Promise<AuthUser>;
   signOut: () => void;
   refreshSessionSilently: () => Promise<string | null>;
   updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
@@ -60,10 +63,14 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const TOKEN_KEY = "whoelseisfree.authToken";
 const USER_KEY = "whoelseisfree.authUser";
+const AUTH_PROVIDER_KEY = "whoelseisfree.authProvider";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [authProvider, setAuthProvider] = useState<AuthProviderName | null>(
+    null,
+  );
   const [isSigningIn, setIsSigningIn] = useState(false);
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
 
@@ -91,9 +98,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let isActive = true;
     const restoreSession = async () => {
       try {
-        const [storedToken, storedUser] = await Promise.all([
+        const [storedToken, storedUser, storedProvider] = await Promise.all([
           SecureStore.getItemAsync(TOKEN_KEY),
           SecureStore.getItemAsync(USER_KEY),
+          SecureStore.getItemAsync(AUTH_PROVIDER_KEY),
         ]);
 
         if (!isActive) {
@@ -102,6 +110,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (storedToken && storedUser) {
           setToken(storedToken);
+          if (storedProvider === "google" || storedProvider === "apple") {
+            setAuthProvider(storedProvider);
+          } else {
+            // Backward compatibility for existing Google-only sessions.
+            setAuthProvider("google");
+          }
+
           try {
             const parsedUser = JSON.parse(storedUser) as AuthUser;
             setUser(parsedUser);
@@ -122,67 +137,106 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signInWithGoogle = useCallback(async (idToken: string) => {
-    setIsSigningIn(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/google-login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id_token: idToken }),
-      });
+  const signInWithProvider = useCallback(
+    async (
+      provider: AuthProviderName,
+      endpoint: "google-login" | "apple-login",
+      idToken: string,
+      unauthorizedMessage: string,
+    ) => {
+      setIsSigningIn(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/${endpoint}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id_token: idToken }),
+        });
 
-      if (!response.ok) {
-        const message =
-          response.status === 401
-            ? "Unable to sign in with Google."
-            : `Unable to sign in. Server responded with status ${response.status}.`;
-        throw new Error(message);
-      }
+        if (!response.ok) {
+          const message =
+            response.status === 401
+              ? unauthorizedMessage
+              : `Unable to sign in. Server responded with status ${response.status}.`;
+          throw new Error(message);
+        }
 
-      const payload = (await response.json()) as {
-        user: {
-          id: number;
-          name: string;
-          email: string;
-          gender?: "Female" | "Male";
-          age?: number;
-          avatar?: string;
-          profile_complete: boolean;
+        const payload = (await response.json()) as {
+          user: {
+            id: number;
+            name: string;
+            email: string;
+            gender?: "Female" | "Male";
+            age?: number;
+            avatar?: string;
+            profile_complete: boolean;
+          };
+          token: string;
         };
-        token: string;
-      };
-      const authUser: AuthUser = {
-        id: payload.user.id,
-        name: payload.user.name,
-        email: payload.user.email,
-        gender: payload.user.gender,
-        age: payload.user.age,
-        avatar: payload.user.avatar,
-        profileComplete: payload.user.profile_complete,
-      };
-      setUser(authUser);
-      setToken(payload.token);
 
-      await Promise.all([
-        SecureStore.setItemAsync(TOKEN_KEY, payload.token),
-        SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser)),
-      ]);
-      return authUser;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
+        const authUser: AuthUser = {
+          id: payload.user.id,
+          name: payload.user.name,
+          email: payload.user.email,
+          gender: payload.user.gender,
+          age: payload.user.age,
+          avatar: payload.user.avatar,
+          profileComplete: payload.user.profile_complete,
+        };
+
+        setUser(authUser);
+        setToken(payload.token);
+        setAuthProvider(provider);
+
+        await Promise.all([
+          SecureStore.setItemAsync(TOKEN_KEY, payload.token),
+          SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser)),
+          SecureStore.setItemAsync(AUTH_PROVIDER_KEY, provider),
+        ]);
+
+        return authUser;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error("Unable to sign in. Please try again.");
+      } finally {
+        setIsSigningIn(false);
       }
-      throw new Error("Unable to sign in. Please try again.");
-    } finally {
-      setIsSigningIn(false);
-    }
-  }, []);
+    },
+    [],
+  );
+
+  const signInWithGoogle = useCallback(
+    async (idToken: string) =>
+      signInWithProvider(
+        "google",
+        "google-login",
+        idToken,
+        "Unable to sign in with Google.",
+      ),
+    [signInWithProvider],
+  );
+
+  const signInWithApple = useCallback(
+    async (idToken: string) =>
+      signInWithProvider(
+        "apple",
+        "apple-login",
+        idToken,
+        "Unable to sign in with Apple.",
+      ),
+    [signInWithProvider],
+  );
 
   const refreshSessionSilently = useCallback(async (): Promise<
     string | null
   > => {
+    if (authProvider !== "google") {
+      return null;
+    }
+
     if (refreshInFlightRef.current) {
       return refreshInFlightRef.current;
     }
@@ -210,13 +264,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refreshInFlightRef.current = null;
       }
     }
-  }, [signInWithGoogle]);
+  }, [authProvider, signInWithGoogle]);
 
   const signOut = useCallback(() => {
     setUser(null);
     setToken(null);
+    setAuthProvider(null);
     void SecureStore.deleteItemAsync(TOKEN_KEY);
     void SecureStore.deleteItemAsync(USER_KEY);
+    void SecureStore.deleteItemAsync(AUTH_PROVIDER_KEY);
   }, []);
 
   const handleSessionExpired = useCallback(() => {
@@ -335,6 +391,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       token,
       isSigningIn,
       signInWithGoogle,
+      signInWithApple,
       signOut,
       refreshSessionSilently,
       updateProfile,
@@ -346,6 +403,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       token,
       isSigningIn,
       signInWithGoogle,
+      signInWithApple,
       signOut,
       refreshSessionSilently,
       updateProfile,

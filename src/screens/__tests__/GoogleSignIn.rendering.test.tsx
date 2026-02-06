@@ -6,6 +6,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Alert, Platform } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import GoogleSignInScreen from '../GoogleSignIn';
 
 // Mock Alert
@@ -48,6 +49,8 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 const mockConfigure = GoogleSignin.configure as jest.Mock;
 const mockSignIn = GoogleSignin.signIn as jest.Mock;
 const mockHasPlayServices = GoogleSignin.hasPlayServices as jest.Mock;
+const mockAppleIsAvailableAsync = AppleAuthentication.isAvailableAsync as jest.Mock;
+const mockAppleSignInAsync = AppleAuthentication.signInAsync as jest.Mock;
 
 // Mock Google constants
 jest.mock('@constants/google', () => ({
@@ -55,13 +58,22 @@ jest.mock('@constants/google', () => ({
   GOOGLE_IOS_CLIENT_ID: 'mock-ios-client-id',
 }));
 
+var mockAppleSigninDevAllPlatforms = false;
+jest.mock('@constants/featureFlags', () => ({
+  get APPLE_SIGNIN_DEV_ALL_PLATFORMS() {
+    return mockAppleSigninDevAllPlatforms;
+  },
+}));
+
 // Mock AuthContext
 const mockSignInWithGoogle = jest.fn();
+const mockSignInWithApple = jest.fn();
 let mockAuthValue = {
   user: null,
   token: null,
   isSigningIn: false,
   signInWithGoogle: mockSignInWithGoogle,
+  signInWithApple: mockSignInWithApple,
   signOut: jest.fn(),
   refreshSessionSilently: jest.fn(),
   updateProfile: jest.fn(),
@@ -82,11 +94,13 @@ jest.mock('@components/ScreenContainer', () => {
 describe('GoogleSignIn Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAppleSigninDevAllPlatforms = false;
     mockAuthValue = {
       user: null,
       token: null,
       isSigningIn: false,
       signInWithGoogle: mockSignInWithGoogle,
+      signInWithApple: mockSignInWithApple,
       signOut: jest.fn(),
       refreshSessionSilently: jest.fn(),
       updateProfile: jest.fn(),
@@ -104,6 +118,16 @@ describe('GoogleSignIn Rendering', () => {
       name: 'Test User',
       email: 'test@example.com',
       profileComplete: true,
+    });
+    mockSignInWithApple.mockResolvedValue({
+      id: 1,
+      name: 'Test User',
+      email: 'test@example.com',
+      profileComplete: true,
+    });
+    mockAppleIsAvailableAsync.mockResolvedValue(true);
+    mockAppleSignInAsync.mockResolvedValue({
+      identityToken: 'mock-apple-id-token',
     });
   });
 
@@ -128,18 +152,30 @@ describe('GoogleSignIn Rendering', () => {
       const { getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
+    });
+
+    it('should render Apple button on iOS', async () => {
+      const originalPlatform = Platform.OS;
+      Object.defineProperty(Platform, 'OS', { value: 'ios' });
+
+      const { getByTestId } = render(<GoogleSignInScreen />);
+
+      await waitFor(() => {
+        expect(getByTestId('apple-sign-in-button')).toBeTruthy();
+      });
+
+      Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     });
   });
 
   describe('Sign In Button', () => {
     it('should be enabled when not signing in', async () => {
-      const { getByRole } = render(<GoogleSignInScreen />);
+      const { getByTestId } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        // Button component has accessibilityRole="button"
-        const button = getByRole('button');
+        const button = getByTestId('google-sign-in-button');
         expect(button.props.accessibilityState?.disabled).toBeFalsy();
       });
     });
@@ -147,20 +183,20 @@ describe('GoogleSignIn Rendering', () => {
     it('should show "Signing in..." when signing in', async () => {
       mockAuthValue.isSigningIn = true;
 
-      const { getByText } = render(<GoogleSignInScreen />);
+      const { getAllByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Signing in...')).toBeTruthy();
+        expect(getAllByText('Signing in...').length).toBeGreaterThan(0);
       });
     });
 
     it('should be disabled when signing in', async () => {
       mockAuthValue.isSigningIn = true;
 
-      const { getByRole } = render(<GoogleSignInScreen />);
+      const { getByTestId } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        const button = getByRole('button');
+        const button = getByTestId('google-sign-in-button');
         expect(button.props.accessibilityState?.disabled).toBe(true);
       });
     });
@@ -218,10 +254,10 @@ describe('GoogleSignIn Rendering', () => {
     it('should show alert when trying to sign in with unavailable native module', async () => {
       mockConfigure.mockRejectedValueOnce(new Error('Native module not available'));
 
-      const { getByRole } = render(<GoogleSignInScreen />);
+      const { getByTestId } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        const button = getByRole('button');
+        const button = getByTestId('google-sign-in-button');
         fireEvent.press(button);
       });
 
@@ -236,13 +272,13 @@ describe('GoogleSignIn Rendering', () => {
 
   describe('Sign In Flow - Success', () => {
     it('should call signInWithGoogle on successful Google sign in', async () => {
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -259,13 +295,13 @@ describe('GoogleSignIn Rendering', () => {
         profileComplete: true,
       });
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -284,13 +320,13 @@ describe('GoogleSignIn Rendering', () => {
         profileComplete: false,
       });
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -312,13 +348,13 @@ describe('GoogleSignIn Rendering', () => {
     it('should check for Play Services on Android', async () => {
       Object.defineProperty(Platform, 'OS', { value: 'android' });
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -332,13 +368,13 @@ describe('GoogleSignIn Rendering', () => {
       Object.defineProperty(Platform, 'OS', { value: 'ios' });
       mockHasPlayServices.mockClear();
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -347,17 +383,82 @@ describe('GoogleSignIn Rendering', () => {
     });
   });
 
+  describe('Apple Sign-In Visibility and Behavior', () => {
+    const originalPlatform = Platform.OS;
+
+    afterEach(() => {
+      Object.defineProperty(Platform, 'OS', { value: originalPlatform });
+    });
+
+    it('should show Apple button on Android in dev when flag is enabled', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'android' });
+      mockAppleSigninDevAllPlatforms = true;
+
+      const { getByTestId } = render(<GoogleSignInScreen />);
+
+      await waitFor(() => {
+        expect(getByTestId('apple-sign-in-button')).toBeTruthy();
+      });
+    });
+
+    it('should hide Apple button on Android when flag is disabled', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'android' });
+      mockAppleSigninDevAllPlatforms = false;
+
+      const { queryByTestId } = render(<GoogleSignInScreen />);
+
+      await waitFor(() => {
+        expect(queryByTestId('apple-sign-in-button')).toBeNull();
+      });
+    });
+
+    it('should show iOS-only message when pressing Apple button on Android dev', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'android' });
+      mockAppleSigninDevAllPlatforms = true;
+
+      const { getByTestId } = render(<GoogleSignInScreen />);
+
+      await waitFor(() => {
+        fireEvent.press(getByTestId('apple-sign-in-button'));
+      });
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Apple Sign-In (Dev Preview)',
+          'This button is shown in development for UI testing. Apple Sign-In works only on iOS native builds.'
+        );
+      });
+    });
+
+    it('should call signInWithApple on iOS when Apple auth succeeds', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'ios' });
+
+      const { getByTestId, queryByText } = render(<GoogleSignInScreen />);
+
+      await waitFor(() => {
+        expect(queryByText('Apple Sign-In is unavailable on this iOS device/build.')).toBeNull();
+      });
+
+      fireEvent.press(getByTestId('apple-sign-in-button'));
+
+      await waitFor(() => {
+        expect(mockAppleSignInAsync).toHaveBeenCalled();
+        expect(mockSignInWithApple).toHaveBeenCalledWith('mock-apple-id-token');
+      });
+    });
+  });
+
   describe('Error Handling', () => {
     it('should show alert when Google sign in fails', async () => {
       mockSignIn.mockRejectedValueOnce(new Error('Sign in failed'));
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -374,13 +475,13 @@ describe('GoogleSignIn Rendering', () => {
         data: { idToken: null },
       });
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -397,13 +498,13 @@ describe('GoogleSignIn Rendering', () => {
         data: null,
       });
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {
@@ -417,13 +518,13 @@ describe('GoogleSignIn Rendering', () => {
     it('should show alert when backend sign in fails', async () => {
       mockSignInWithGoogle.mockRejectedValueOnce(new Error('Backend error'));
 
-      const { getByRole, getByText } = render(<GoogleSignInScreen />);
+      const { getByTestId, getByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getByText('Connect with your Google account to continue.')).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
       });
 
-      const button = getByRole('button');
+      const button = getByTestId('google-sign-in-button');
       fireEvent.press(button);
 
       await waitFor(() => {

@@ -3,6 +3,8 @@
 This guide shows how to **build and run the iOS app** from  
 `https://github.com/antash-mishra/who-else-is-free` on a real iPhone using **Expo + EAS**.
 
+This guide is specific to the **who-else-is-free** project.
+
 You only need:
 - A computer (macOS / Windows / Linux)
 - An iPhone
@@ -10,6 +12,9 @@ You only need:
 - An Expo account (free) and **Apple Developer account** (for installing builds on device)
 
 There is **one path** below, split into clear **stages**.
+
+If you need Apple Sign-In, use this guide for build/install first, then complete:  
+`docs/APPLE_SIGN_IN_SETUP.md`
 
 ---
 
@@ -86,6 +91,10 @@ From now on, `eas build` will belong to your Expo project and you won’t see th
 ---
 
 ### Stage 4 – Build and install the iOS dev app
+
+Before building, if you plan to test Apple Sign-In:
+- Enable **Sign In with Apple** capability for your App ID in Apple Developer.
+- For the remaining Apple-specific setup, follow `docs/APPLE_SIGN_IN_SETUP.md`.
 
 Now build a **development client** you can install on your iPhone:
 
