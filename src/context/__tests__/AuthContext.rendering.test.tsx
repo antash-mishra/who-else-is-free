@@ -20,7 +20,8 @@ const MOCK_ID_TOKEN = 'mock-google-id-token';
 
 // Test component that consumes the AuthContext
 const TestConsumer = () => {
-  const { user, token, isSigningIn, signInWithGoogle, signOut, updateProfile } = useAuth();
+  const { user, token, isSigningIn, signInWithGoogle, signOut, updateProfile, authFetch } = useAuth();
+  const [authFetchStatus, setAuthFetchStatus] = React.useState('idle');
 
   const handleSignIn = async () => {
     try {
@@ -38,6 +39,19 @@ const TestConsumer = () => {
     }
   };
 
+  const handleConcurrentAuthFetch = async () => {
+    setAuthFetchStatus('pending');
+    try {
+      const [first, second] = await Promise.all([
+        authFetch('http://localhost:8080/api/chat/requests/me'),
+        authFetch('http://localhost:8080/api/conversations'),
+      ]);
+      setAuthFetchStatus(`${first.status}-${second.status}`);
+    } catch {
+      setAuthFetchStatus('error');
+    }
+  };
+
   return (
     <View>
       <Text testID="user-name">{user?.name || 'No User'}</Text>
@@ -45,9 +59,11 @@ const TestConsumer = () => {
       <Text testID="user-profile-complete">{user?.profileComplete ? 'Complete' : 'Incomplete'}</Text>
       <Text testID="token">{token || 'No Token'}</Text>
       <Text testID="is-signing-in">{isSigningIn ? 'Signing In' : 'Not Signing In'}</Text>
+      <Text testID="auth-fetch-status">{authFetchStatus}</Text>
       <Button testID="sign-in-button" title="Sign In" onPress={handleSignIn} />
       <Button testID="sign-out-button" title="Sign Out" onPress={signOut} />
       <Button testID="update-profile-button" title="Update Profile" onPress={handleUpdateProfile} />
+      <Button testID="auth-fetch-button" title="Auth Fetch" onPress={handleConcurrentAuthFetch} />
     </View>
   );
 };
@@ -368,6 +384,54 @@ describe('AuthContext Rendering Tests', () => {
         expect(screen.getByTestId('user-name')).toHaveTextContent('No User');
         expect(screen.getByTestId('is-signing-in')).toHaveTextContent('Not Signing In');
       });
+    });
+  });
+
+  describe('authFetch concurrency', () => {
+    it('should deduplicate silent refresh across concurrent 401 responses', async () => {
+      const storedUser = mockUsers[0];
+      mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
+      mockSecureStore.storage.set(USER_KEY, JSON.stringify(storedUser));
+      mockGoogleSignIn.GoogleSignin.signInSilently.mockResolvedValueOnce({
+        data: { idToken: 'silent-id-token' },
+      });
+
+      fetchMock
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce(JSON.stringify({
+          user: {
+            id: storedUser.id,
+            name: storedUser.name,
+            email: storedUser.email,
+            gender: storedUser.gender,
+            age: storedUser.age,
+            profile_complete: storedUser.profileComplete,
+          },
+          token: 'refreshed-jwt-token',
+        }))
+        .mockResponseOnce('{}', { status: 200 })
+        .mockResponseOnce('{}', { status: 200 });
+
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('auth-fetch-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-fetch-status')).toHaveTextContent('200-200');
+      });
+
+      expect(mockGoogleSignIn.GoogleSignin.signInSilently).toHaveBeenCalledTimes(1);
+      const googleLoginCalls = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/api/google-login')
+      );
+      expect(googleLoginCalls).toHaveLength(1);
     });
   });
 
