@@ -49,12 +49,15 @@ func main() {
 		log.Printf("failed to seed database: %v", err)
 	}
 
+	pushSender := InitPushSender(ctx)
+
 	eventHandler := NewEventHandler(repo)
 	authHandler := NewAuthHandler(repo, signer)
 	profileHandler := NewProfileHandler(repo)
-	chatHub := NewChatHub(repo, signer)
+	pushHandler := NewPushHandler(repo, pushSender)
+	chatHub := NewChatHub(repo, signer, pushSender)
 	go chatHub.Run()
-	srv := setupRouter(eventHandler, authHandler, profileHandler, chatHub, signer)
+	srv := setupRouter(eventHandler, authHandler, profileHandler, chatHub, pushHandler, signer)
 
 	if err := srv.Run(); err != nil {
 		log.Fatalf("failed to start server: %v", err)

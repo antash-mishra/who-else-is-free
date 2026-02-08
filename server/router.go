@@ -2,13 +2,14 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, signer *tokenSigner) *gin.Engine {
+func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, pushHandler *PushHandler, signer *tokenSigner) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -33,6 +34,11 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	protected.POST("/events/:id/report", eventHandler.reportEvent)
 	protected.PUT("/profile", profileHandler.UpdateProfile)
 	RegisterChatRoutes(protected, eventHandler.repo, chatHub)
+	protected.POST("/push-tokens", pushHandler.registerPushToken)
+	protected.DELETE("/push-tokens", pushHandler.deletePushToken)
+	if os.Getenv("PUSH_ENABLED") == "true" {
+		protected.POST("/push-tokens/test", pushHandler.testPush)
+	}
 
 	api.GET("/ws", chatHub.handleWebSocket)
 

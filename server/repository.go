@@ -435,6 +435,59 @@ INSERT INTO event_reports (event_id, user_id, reported_user_id, reason, status)
 VALUES (?, ?, ?, ?, 'pending');
 `
 
+const createTablePushTokens = `
+CREATE TABLE IF NOT EXISTS push_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    platform TEXT NOT NULL CHECK(platform IN ('android','ios')),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`
+
+const createPushTokensUserIndex = `
+CREATE INDEX IF NOT EXISTS push_tokens_user_idx
+ON push_tokens (user_id);
+`
+
+const createPushTokensTokenUniqueIndex = `
+CREATE UNIQUE INDEX IF NOT EXISTS push_tokens_token_unique_idx
+ON push_tokens (token);
+`
+
+const upsertPushToken = `
+INSERT INTO push_tokens (user_id, token, device_id, platform, updated_at)
+VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT(token)
+DO UPDATE SET user_id = excluded.user_id, device_id = excluded.device_id, platform = excluded.platform, updated_at = CURRENT_TIMESTAMP;
+`
+
+const deletePushTokenByValue = `
+DELETE FROM push_tokens
+WHERE user_id = ? AND token = ?;
+`
+
+const selectPushTokensByUserID = `
+SELECT id, user_id, token, device_id, platform, created_at, updated_at
+FROM push_tokens
+WHERE user_id = ?;
+`
+
+const selectPushTokensByUserIDs = `
+SELECT id, user_id, token, device_id, platform, created_at, updated_at
+FROM push_tokens
+WHERE user_id IN (%s);
+`
+
+const selectConversationMemberIDs = `
+SELECT user_id
+FROM conversation_members
+WHERE conversation_id = ?;
+`
+
 const deleteConversationMember = `
 DELETE FROM conversation_members
 WHERE conversation_id = ? AND user_id = ?;
@@ -522,6 +575,15 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createMemberReportsUniqueIndex); err != nil {
 		return fmt.Errorf("create member_reports unique index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTablePushTokens); err != nil {
+		return fmt.Errorf("create push_tokens table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createPushTokensUserIndex); err != nil {
+		return fmt.Errorf("create push_tokens user index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createPushTokensTokenUniqueIndex); err != nil {
+		return fmt.Errorf("create push_tokens token unique index: %w", err)
 	}
 	if err := r.cleanupDuplicateSingleEventConversations(ctx); err != nil {
 		return err
@@ -2688,4 +2750,90 @@ func (r *EventRepository) CreateMemberReport(ctx context.Context, eventID, repor
 // that doesn't require a transaction.
 func (r *EventRepository) findUserConversationForEventPublic(ctx context.Context, eventID, userID int64) (*Conversation, error) {
 	return r.findUserConversationForEvent(ctx, nil, eventID, userID)
+}
+
+// UpsertPushToken inserts or updates a push token for a user/device pair.
+func (r *EventRepository) UpsertPushToken(ctx context.Context, userID int64, token, deviceID, platform string) error {
+	_, err := r.db.ExecContext(ctx, upsertPushToken, userID, token, deviceID, platform)
+	if err != nil {
+		return fmt.Errorf("upsert push token: %w", err)
+	}
+	return nil
+}
+
+// DeletePushToken removes a specific push token for a user.
+func (r *EventRepository) DeletePushToken(ctx context.Context, userID int64, token string) error {
+	result, err := r.db.ExecContext(ctx, deletePushTokenByValue, userID, token)
+	if err != nil {
+		return fmt.Errorf("delete push token: %w", err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return fmt.Errorf("push token not found")
+	}
+	return nil
+}
+
+// ListPushTokensByUser returns all push tokens for a user.
+func (r *EventRepository) ListPushTokensByUser(ctx context.Context, userID int64) ([]PushToken, error) {
+	rows, err := r.db.QueryContext(ctx, selectPushTokensByUserID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list push tokens: %w", err)
+	}
+	defer rows.Close()
+	var tokens []PushToken
+	for rows.Next() {
+		var t PushToken
+		if err := rows.Scan(&t.ID, &t.UserID, &t.Token, &t.DeviceID, &t.Platform, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan push token: %w", err)
+		}
+		tokens = append(tokens, t)
+	}
+	return tokens, rows.Err()
+}
+
+// ListPushTokensByUserIDs returns all push tokens for a set of user IDs.
+func (r *EventRepository) ListPushTokensByUserIDs(ctx context.Context, userIDs []int64) ([]PushToken, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	placeholders := make([]string, len(userIDs))
+	args := make([]any, len(userIDs))
+	for i, id := range userIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	query := fmt.Sprintf(selectPushTokensByUserIDs, strings.Join(placeholders, ","))
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list push tokens by user ids: %w", err)
+	}
+	defer rows.Close()
+	var tokens []PushToken
+	for rows.Next() {
+		var t PushToken
+		if err := rows.Scan(&t.ID, &t.UserID, &t.Token, &t.DeviceID, &t.Platform, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan push token: %w", err)
+		}
+		tokens = append(tokens, t)
+	}
+	return tokens, rows.Err()
+}
+
+// ListConversationMemberIDs returns all user IDs that are members of a conversation.
+func (r *EventRepository) ListConversationMemberIDs(ctx context.Context, conversationID int64) ([]int64, error) {
+	rows, err := r.db.QueryContext(ctx, selectConversationMemberIDs, conversationID)
+	if err != nil {
+		return nil, fmt.Errorf("list conversation member ids: %w", err)
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan member id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }

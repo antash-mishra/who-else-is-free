@@ -21,12 +21,15 @@ import (
 type ChatHub struct {
 	repo          *EventRepository
 	signer        *tokenSigner
+	pushSender    PushSender
 	register      chan *ChatClient                   // fan-in of freshly upgraded sockets
 	unregister    chan *ChatClient                   // fan-in of disconnecting sockets
 	broadcast     chan chatBroadcast                 // queue of conversation payloads to fan back out
 	membership    chan membershipUpdate              // join/leave notifications from the HTTP layer
+	presence      chan presenceUpdate                // presence updates from readPump goroutines
 	subscriptions map[int64]map[*ChatClient]struct{} // conversationID -> live clients in that room
 	clientsByUser map[int64]map[*ChatClient]struct{} // userID -> live sockets for that user
+	activeConvos  map[int64]int64                    // userID -> activeConversationID (for push suppression)
 }
 
 // chatBroadcast represents a message that should be fanned out to listeners.
@@ -39,6 +42,11 @@ type membershipUpdate struct {
 	conversationID int64
 	userID         int64
 	action         string
+}
+
+type presenceUpdate struct {
+	userID               int64
+	activeConversationID int64 // 0 means cleared
 }
 
 type membershipEvent struct {
@@ -117,16 +125,19 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewChatHub(repo *EventRepository, signer *tokenSigner) *ChatHub {
+func NewChatHub(repo *EventRepository, signer *tokenSigner, pushSender PushSender) *ChatHub {
 	return &ChatHub{
 		repo:          repo,
 		signer:        signer,
+		pushSender:    pushSender,
 		register:      make(chan *ChatClient),
 		unregister:    make(chan *ChatClient),
 		broadcast:     make(chan chatBroadcast),
 		membership:    make(chan membershipUpdate, 16),
+		presence:      make(chan presenceUpdate, 16),
 		subscriptions: make(map[int64]map[*ChatClient]struct{}),
 		clientsByUser: make(map[int64]map[*ChatClient]struct{}),
+		activeConvos:  make(map[int64]int64),
 	}
 }
 
@@ -151,6 +162,10 @@ func (h *ChatHub) Run() {
 				log.Printf("chat client close error: %v", err)
 			}
 			h.detachClient(client)
+			// Clear presence if this was the last socket for the user.
+			if _, hasOther := h.clientsByUser[client.userID]; !hasOther {
+				delete(h.activeConvos, client.userID)
+			}
 			for conversationID := range client.subscriptions {
 				if subs, ok := h.subscriptions[conversationID]; ok {
 					delete(subs, client)
@@ -166,6 +181,12 @@ func (h *ChatHub) Run() {
 			// HTTP handlers report membership churn through this channel so the hub
 			// can update live sockets and emit `conversation:membership` events.
 			h.applyMembershipUpdate(update)
+		case p := <-h.presence:
+			if p.activeConversationID == 0 {
+				delete(h.activeConvos, p.userID)
+			} else {
+				h.activeConvos[p.userID] = p.activeConversationID
+			}
 		}
 	}
 }
@@ -250,6 +271,18 @@ func (h *ChatHub) applyMembershipUpdate(update membershipUpdate) {
 		return
 	}
 	h.pushToConversation(update.conversationID, payload)
+}
+
+// shouldSuppressPush returns true if the user has a live socket currently viewing
+// the given conversation, meaning a push notification would be redundant.
+func (h *ChatHub) shouldSuppressPush(userID, conversationID int64) bool {
+	// Check if user has a live socket
+	if _, hasSocket := h.clientsByUser[userID]; !hasSocket {
+		return false
+	}
+	// Check if they're actively viewing this conversation
+	activeConvo, ok := h.activeConvos[userID]
+	return ok && activeConvo == conversationID
 }
 
 func (h *ChatHub) NotifyMembership(conversationID, userID int64, action string) {
@@ -356,6 +389,11 @@ func (c *ChatClient) readPump() {
 			c.handleSend(inbound)
 		case "ping":
 			c.send <- []byte(`{"type":"pong"}`)
+		case "presence:active_conversation":
+			c.hub.presence <- presenceUpdate{
+				userID:               c.userID,
+				activeConversationID: inbound.ConversationID, // 0 means cleared
+			}
 		default:
 			log.Printf("unknown message type: %s", inbound.Type)
 		}
@@ -441,6 +479,23 @@ func (c *ChatClient) handleSend(inbound inboundEnvelope) {
 	}
 
 	c.hub.emitChatMessage(msg, inbound.TempID)
+
+	// Send push notifications to offline/inactive conversation members.
+	senderName := ""
+	eventTitle := ""
+	if sender, err := c.hub.repo.GetUserByID(ctx, c.userID); err == nil {
+		senderName = sender.Name
+	}
+	// Try to resolve the event title for this conversation's push notification title.
+	if convos, err := c.hub.repo.ListConversations(ctx, c.userID); err == nil {
+		for _, conv := range convos {
+			if conv.ID == msg.ConversationID && conv.Event != nil {
+				eventTitle = conv.Event.Title
+				break
+			}
+		}
+	}
+	c.hub.sendPushForChatMessage(msg, senderName, eventTitle)
 }
 
 // allowMessage implements a sliding window limiter to curb rapid sends.
@@ -755,6 +810,23 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 				h.hub.emitJoinRequestEvent(mainConvo.ID, "created", view)
 			}
 		}
+		// Push: notify host about new join request
+		h.hub.sendPushToUser(event.UserID, map[string]string{
+			"type":    "join_request.created",
+			"eventId": strconv.FormatInt(eventID, 10),
+			"title":   event.Title,
+			"body":    fmt.Sprintf("%s wants to join your event", user.Name),
+		})
+		// Push: notify requester they were auto-approved
+		if view.ConversationID != nil {
+			h.hub.sendPushToUser(claims.UserID, map[string]string{
+				"type":           "join_request.approved",
+				"eventId":        strconv.FormatInt(eventID, 10),
+				"conversationId": strconv.FormatInt(*view.ConversationID, 10),
+				"title":          event.Title,
+				"body":           "Your request to join was approved!",
+			})
+		}
 		c.JSON(http.StatusCreated, gin.H{
 			"request":        view,
 			"conversationId": view.ConversationID,
@@ -770,6 +842,15 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 	}
 
 	h.hub.emitJoinRequestEvent(convo.ID, "created", view)
+
+	// Push: notify host about new join request
+	h.hub.sendPushToUser(event.UserID, map[string]string{
+		"type":           "join_request.created",
+		"eventId":        strconv.FormatInt(eventID, 10),
+		"conversationId": strconv.FormatInt(convo.ID, 10),
+		"title":          event.Title,
+		"body":           fmt.Sprintf("%s wants to join your event", user.Name),
+	})
 
 	c.JSON(http.StatusCreated, joinRequestResponse{Request: view})
 }
@@ -908,6 +989,20 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		log.Printf("post join announcement failed: %v", err)
 	}
 
+	// Push: notify the requester they were approved
+	event, _ := h.repo.GetEventByID(ctx, eventID)
+	eventTitle := ""
+	if event != nil {
+		eventTitle = event.Title
+	}
+	h.hub.sendPushToUser(userID, map[string]string{
+		"type":           "join_request.approved",
+		"eventId":        strconv.FormatInt(eventID, 10),
+		"conversationId": strconv.FormatInt(convo.ID, 10),
+		"title":          eventTitle,
+		"body":           "Your request to join was approved!",
+	})
+
 	c.JSON(http.StatusOK, gin.H{
 		"request":        view,
 		"conversationId": convo.ID,
@@ -973,6 +1068,19 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 	if err == nil {
 		h.hub.emitJoinRequestEvent(convo.ID, "denied", view)
 	}
+
+	// Push: notify the requester they were denied
+	event, _ := h.repo.GetEventByID(ctx, eventID)
+	eventTitle := ""
+	if event != nil {
+		eventTitle = event.Title
+	}
+	h.hub.sendPushToUser(userID, map[string]string{
+		"type":    "join_request.denied",
+		"eventId": strconv.FormatInt(eventID, 10),
+		"title":   eventTitle,
+		"body":    "Your request to join was declined",
+	})
 
 	c.JSON(http.StatusOK, joinRequestResponse{Request: view})
 }
@@ -1134,6 +1242,102 @@ func (h *ChatHub) emitJoinRequestEvent(conversationID int64, action string, view
 		return
 	}
 	h.broadcast <- chatBroadcast{conversationID: conversationID, payload: payload}
+}
+
+// sendPushForChatMessage sends push notifications to all conversation members
+// who are not the sender and not actively viewing the conversation.
+func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		memberIDs, err := h.repo.ListConversationMemberIDs(ctx, msg.ConversationID)
+		if err != nil {
+			log.Printf("push: list conversation members failed: %v", err)
+			return
+		}
+
+		var recipientIDs []int64
+		for _, id := range memberIDs {
+			if id == msg.SenderID {
+				continue
+			}
+			if h.shouldSuppressPush(id, msg.ConversationID) {
+				continue
+			}
+			recipientIDs = append(recipientIDs, id)
+		}
+		if len(recipientIDs) == 0 {
+			return
+		}
+
+		tokens, err := h.repo.ListPushTokensByUserIDs(ctx, recipientIDs)
+		if err != nil {
+			log.Printf("push: list push tokens failed: %v", err)
+			return
+		}
+		if len(tokens) == 0 {
+			return
+		}
+
+		title := eventTitle
+		if title == "" {
+			title = senderName
+		}
+		bodyPreview := msg.Body
+		if len(bodyPreview) > 100 {
+			bodyPreview = bodyPreview[:100] + "..."
+		}
+		body := fmt.Sprintf("%s: %s", senderName, bodyPreview)
+
+		var notifications []PushNotification
+		for _, t := range tokens {
+			notifications = append(notifications, PushNotification{
+				Token: t.Token,
+				Data: map[string]string{
+					"type":           "chat.message",
+					"conversationId": strconv.FormatInt(msg.ConversationID, 10),
+					"senderId":       strconv.FormatInt(msg.SenderID, 10),
+					"senderName":     senderName,
+					"title":          title,
+					"body":           body,
+				},
+			})
+		}
+
+		if err := h.pushSender.SendBatch(ctx, notifications); err != nil {
+			log.Printf("push: send batch failed: %v", err)
+		}
+	}()
+}
+
+// sendPushToUser sends a push notification to a specific user's devices.
+func (h *ChatHub) sendPushToUser(userID int64, data map[string]string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		tokens, err := h.repo.ListPushTokensByUser(ctx, userID)
+		if err != nil {
+			log.Printf("push: list push tokens for user %d failed: %v", userID, err)
+			return
+		}
+		if len(tokens) == 0 {
+			return
+		}
+
+		var notifications []PushNotification
+		for _, t := range tokens {
+			notifications = append(notifications, PushNotification{
+				Token: t.Token,
+				Data:  data,
+			})
+		}
+
+		if err := h.pushSender.SendBatch(ctx, notifications); err != nil {
+			log.Printf("push: send to user %d failed: %v", userID, err)
+		}
+	}()
 }
 
 func mapJoinRequestPayload(view JoinRequestView) joinRequestPayload {

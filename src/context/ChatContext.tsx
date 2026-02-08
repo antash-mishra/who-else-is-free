@@ -202,6 +202,19 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     activeConversationRef.current = activeConversationId;
+
+    // Send presence update over WebSocket so the server can suppress pushes
+    // for the conversation the user is currently viewing.
+    if (
+      socketRef.current &&
+      socketRef.current.readyState === WebSocket.OPEN
+    ) {
+      const presencePayload = {
+        type: "presence:active_conversation",
+        conversationId: activeConversationId ?? 0,
+      };
+      socketRef.current.send(JSON.stringify(presencePayload));
+    }
   }, [activeConversationId]);
 
   useEffect(() => {

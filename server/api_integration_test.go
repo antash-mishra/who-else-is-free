@@ -11,11 +11,71 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
+
+// --- Mock push sender for testing ---
+
+type capturedNotification struct {
+	Token string
+	Data  map[string]string
+}
+
+type mockPushSender struct {
+	mu            sync.Mutex
+	notifications []capturedNotification
+}
+
+func (m *mockPushSender) Send(_ context.Context, n PushNotification) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notifications = append(m.notifications, capturedNotification{Token: n.Token, Data: n.Data})
+	return nil
+}
+
+func (m *mockPushSender) SendBatch(_ context.Context, notifications []PushNotification) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, n := range notifications {
+		m.notifications = append(m.notifications, capturedNotification{Token: n.Token, Data: n.Data})
+	}
+	return nil
+}
+
+func (m *mockPushSender) getNotifications() []capturedNotification {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make([]capturedNotification, len(m.notifications))
+	copy(out, m.notifications)
+	return out
+}
+
+func (m *mockPushSender) reset() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notifications = nil
+}
+
+func (m *mockPushSender) waitForNotifications(t *testing.T, count int, timeout time.Duration) []capturedNotification {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		got := m.getNotifications()
+		if len(got) >= count {
+			return got
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	got := m.getNotifications()
+	if len(got) < count {
+		t.Fatalf("timed out waiting for %d notifications, got %d", count, len(got))
+	}
+	return got
+}
 
 type apiTestEnv struct {
 	server   *httptest.Server
@@ -23,9 +83,15 @@ type apiTestEnv struct {
 	signer   *tokenSigner
 	db       *sql.DB
 	wsScheme string
+	hub      *ChatHub
 }
 
 func setupAPITestEnv(t *testing.T) *apiTestEnv {
+	t.Helper()
+	return setupAPITestEnvWithPush(t, NewNoopPushSender())
+}
+
+func setupAPITestEnvWithPush(t *testing.T, pushSender PushSender) *apiTestEnv {
 	t.Helper()
 
 	tmpFile, err := os.CreateTemp("", "who-else-is-free-*.sqlite")
@@ -61,10 +127,11 @@ func setupAPITestEnv(t *testing.T) *apiTestEnv {
 	eventHandler := NewEventHandler(repo)
 	authHandler := NewAuthHandler(repo, signer)
 	profileHandler := NewProfileHandler(repo)
-	hub := NewChatHub(repo, signer)
+	hub := NewChatHub(repo, signer, pushSender)
 	go hub.Run()
+	pushHandler := NewPushHandler(repo, pushSender)
 
-	router := setupRouter(eventHandler, authHandler, profileHandler, hub, signer)
+	router := setupRouter(eventHandler, authHandler, profileHandler, hub, pushHandler, signer)
 	ts := httptest.NewServer(router)
 
 	t.Cleanup(func() {
@@ -89,6 +156,7 @@ func setupAPITestEnv(t *testing.T) *apiTestEnv {
 		signer:   signer,
 		db:       db,
 		wsScheme: wsScheme,
+		hub:      hub,
 	}
 }
 
@@ -2736,6 +2804,730 @@ func TestCreateEventValidation(t *testing.T) {
 		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, map[string]any{})
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+}
+
+// ============================================================================
+// Push Notification Tests
+// ============================================================================
+
+func TestPushTokenCRUD(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+
+	t.Run("register token successfully", func(t *testing.T) {
+		body := map[string]string{
+			"token":     "fcm-token-ava-1",
+			"device_id": "device-ava-1",
+			"platform":  "android",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("register without auth returns 401", func(t *testing.T) {
+		body := map[string]string{
+			"token":     "fcm-token-unauthed",
+			"device_id": "device-1",
+			"platform":  "android",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", "", body)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("register missing token returns 400", func(t *testing.T) {
+		body := map[string]string{
+			"device_id": "device-1",
+			"platform":  "android",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("register empty token returns 400", func(t *testing.T) {
+		body := map[string]string{
+			"token":     "   ",
+			"device_id": "device-1",
+			"platform":  "android",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("register missing device_id returns 400", func(t *testing.T) {
+		body := map[string]string{
+			"token":    "fcm-token-1",
+			"platform": "android",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("register invalid platform returns 400", func(t *testing.T) {
+		body := map[string]string{
+			"token":     "fcm-token-1",
+			"device_id": "device-1",
+			"platform":  "windows",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("register with platform ios succeeds", func(t *testing.T) {
+		body := map[string]string{
+			"token":     "fcm-token-ava-ios",
+			"device_id": "device-ava-ios",
+			"platform":  "ios",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("delete token successfully", func(t *testing.T) {
+		body := map[string]string{"token": "fcm-token-ava-1"}
+		resp := env.doRequest(t, http.MethodDelete, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("delete non-existent token returns 404", func(t *testing.T) {
+		body := map[string]string{"token": "non-existent-token"}
+		resp := env.doRequest(t, http.MethodDelete, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("delete without auth returns 401", func(t *testing.T) {
+		body := map[string]string{"token": "fcm-token-ava-ios"}
+		resp := env.doRequest(t, http.MethodDelete, "/api/push-tokens", "", body)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("delete empty token returns 400", func(t *testing.T) {
+		body := map[string]string{"token": "   "}
+		resp := env.doRequest(t, http.MethodDelete, "/api/push-tokens", avaToken, body)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+}
+
+func TestPushOnChatMessage(t *testing.T) {
+	mock := &mockPushSender{}
+	env := setupAPITestEnvWithPush(t, mock)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // user 1 (host)
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // user 4
+
+	// Register push tokens for both users
+	for _, tc := range []struct {
+		token    string
+		deviceID string
+		authTok  string
+	}{
+		{"fcm-ava-device", "ava-device", avaToken},
+		{"fcm-noah-device", "noah-device", noahToken},
+	} {
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", tc.authTok, map[string]string{
+			"token": tc.token, "device_id": tc.deviceID, "platform": "android",
+		})
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("register push token: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+
+	// Create group event as ava, noah joins, ava approves
+	var groupEventID int64
+	t.Run("setup group event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Push Test Group Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For push test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		groupEventID = payload.ID
+	})
+
+	t.Run("noah requests to join", func(t *testing.T) {
+		body := map[string]string{"message": "Let me in!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", groupEventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("ava approves noah", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", groupEventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	// Wait for any setup-related pushes to settle, then reset
+	time.Sleep(200 * time.Millisecond)
+	mock.reset()
+
+	// Get the conversation ID via event conversations endpoint
+	resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", groupEventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	eventConvos := decodeJSON[eventConversationsResponse](t, resp)
+	if len(eventConvos.Conversations) == 0 {
+		t.Fatal("no conversations found for event")
+	}
+	conversationID := eventConvos.Conversations[0].ID
+
+	t.Run("ava sends message and noah gets push", func(t *testing.T) {
+		// Connect ava's websocket
+		dialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(avaToken)
+		wsConn, _, err := websocket.DefaultDialer.Dial(dialURL, nil)
+		if err != nil {
+			t.Fatalf("ws dial: %v", err)
+		}
+		defer wsConn.Close()
+
+		// Send a chat message
+		sendPayload := map[string]any{
+			"type":           "message:send",
+			"conversationId": conversationID,
+			"body":           "Hello from ava!",
+			"tempId":         fmt.Sprintf("temp-%d", time.Now().UnixNano()),
+		}
+		if err := wsConn.WriteJSON(sendPayload); err != nil {
+			t.Fatalf("ws send: %v", err)
+		}
+
+		// Wait for push notification
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+
+		// Verify noah got the push
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "chat.message" {
+				found = true
+				if n.Data["conversationId"] != fmt.Sprintf("%d", conversationID) {
+					t.Fatalf("expected conversationId %d, got %s", conversationID, n.Data["conversationId"])
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("expected push to noah's device, got: %+v", notifications)
+		}
+
+		// Verify ava (sender) did NOT receive a push
+		for _, n := range notifications {
+			if n.Token == "fcm-ava-device" {
+				t.Fatal("sender (ava) should NOT receive a push notification")
+			}
+		}
+	})
+}
+
+func TestPushOnJoinRequestFlows(t *testing.T) {
+	mock := &mockPushSender{}
+	env := setupAPITestEnvWithPush(t, mock)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // user 1 (host)
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // user 4
+
+	// Register push tokens
+	for _, tc := range []struct {
+		token    string
+		deviceID string
+		authTok  string
+	}{
+		{"fcm-ava-device", "ava-device", avaToken},
+		{"fcm-noah-device", "noah-device", noahToken},
+	} {
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", tc.authTok, map[string]string{
+			"token": tc.token, "device_id": tc.deviceID, "platform": "android",
+		})
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("register push token: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+
+	t.Run("group event join request notifies host", func(t *testing.T) {
+		// Create group event
+		body := CreateEventParams{
+			Title:       "Push Join Group Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For push join test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		mock.reset()
+
+		// Noah requests to join
+		joinBody := map[string]string{"message": "I want to join!"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		// Wait for push to host (ava)
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-ava-device" && n.Data["type"] == "join_request.created" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("expected join_request.created push to host, got: %+v", notifications)
+		}
+	})
+
+	t.Run("group event approve notifies requester", func(t *testing.T) {
+		// Create another group event
+		body := CreateEventParams{
+			Title:       "Push Approve Group Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For push approve test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		// Noah requests to join
+		joinBody := map[string]string{"message": "Approve me!"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		// Wait for join request push then reset (extra sleep to let goroutines settle)
+		mock.waitForNotifications(t, 1, 3*time.Second)
+		time.Sleep(100 * time.Millisecond)
+		mock.reset()
+
+		// Ava approves
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "join_request.approved" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("expected join_request.approved push to requester, got: %+v", notifications)
+		}
+	})
+
+	t.Run("group event deny notifies requester", func(t *testing.T) {
+		// Create another group event
+		body := CreateEventParams{
+			Title:       "Push Deny Group Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For push deny test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		// Noah requests to join
+		joinBody := map[string]string{"message": "Deny me!"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		// Wait for join request push then reset (extra sleep to let goroutines settle)
+		mock.waitForNotifications(t, 1, 3*time.Second)
+		time.Sleep(100 * time.Millisecond)
+		mock.reset()
+
+		// Ava denies
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/deny", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "join_request.denied" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("expected join_request.denied push to requester, got: %+v", notifications)
+		}
+	})
+
+	t.Run("1:1 event join produces two pushes", func(t *testing.T) {
+		// Create 1:1 event
+		body := CreateEventParams{
+			Title:       "Push 1:1 Event",
+			Location:    "Test Cafe",
+			Time:        "14:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For 1:1 push test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		mock.reset()
+
+		// Noah joins (auto-approve for 1:1)
+		joinBody := map[string]string{"message": "Hi there!"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		// Should produce 2 pushes: join_request.created to host + join_request.approved to requester
+		notifications := mock.waitForNotifications(t, 2, 3*time.Second)
+
+		hasCreated, hasApproved := false, false
+		for _, n := range notifications {
+			if n.Token == "fcm-ava-device" && n.Data["type"] == "join_request.created" {
+				hasCreated = true
+			}
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "join_request.approved" {
+				hasApproved = true
+			}
+		}
+		if !hasCreated {
+			t.Fatalf("expected join_request.created push to host for 1:1, got: %+v", notifications)
+		}
+		if !hasApproved {
+			t.Fatalf("expected join_request.approved push to requester for 1:1, got: %+v", notifications)
+		}
+	})
+}
+
+func TestPushPresenceSuppression(t *testing.T) {
+	mock := &mockPushSender{}
+	env := setupAPITestEnvWithPush(t, mock)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // user 1 (host)
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // user 4
+
+	// Register push tokens
+	for _, tc := range []struct {
+		token    string
+		deviceID string
+		authTok  string
+	}{
+		{"fcm-ava-device", "ava-device", avaToken},
+		{"fcm-noah-device", "noah-device", noahToken},
+	} {
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", tc.authTok, map[string]string{
+			"token": tc.token, "device_id": tc.deviceID, "platform": "android",
+		})
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("register push token: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+
+	// Create group event, noah joins & gets approved
+	var conversationID int64
+	t.Run("setup group conversation", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Presence Test Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For presence suppression test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		joinBody := map[string]string{"message": "Join me!"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		// Get the conversation ID via event conversations endpoint (host only)
+		resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		eventConvos := decodeJSON[eventConversationsResponse](t, resp)
+		if len(eventConvos.Conversations) == 0 {
+			t.Fatal("no conversations found for event")
+		}
+		conversationID = eventConvos.Conversations[0].ID
+	})
+
+	// Wait for setup pushes to settle
+	time.Sleep(200 * time.Millisecond)
+
+	t.Run("active conversation suppresses push", func(t *testing.T) {
+		mock.reset()
+
+		// Noah connects WS and sets active conversation
+		noahDialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(noahToken)
+		noahWS, _, err := websocket.DefaultDialer.Dial(noahDialURL, nil)
+		if err != nil {
+			t.Fatalf("noah ws dial: %v", err)
+		}
+		defer noahWS.Close()
+
+		// Set presence to the active conversation
+		if err := noahWS.WriteJSON(map[string]any{
+			"type":           "presence:active_conversation",
+			"conversationId": conversationID,
+		}); err != nil {
+			t.Fatalf("noah set presence: %v", err)
+		}
+
+		// Give the hub a moment to process the presence update
+		time.Sleep(150 * time.Millisecond)
+
+		// Ava sends a message via WS
+		avaDialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(avaToken)
+		avaWS, _, err := websocket.DefaultDialer.Dial(avaDialURL, nil)
+		if err != nil {
+			t.Fatalf("ava ws dial: %v", err)
+		}
+		defer avaWS.Close()
+
+		if err := avaWS.WriteJSON(map[string]any{
+			"type":           "message:send",
+			"conversationId": conversationID,
+			"body":           "suppressed message",
+			"tempId":         fmt.Sprintf("temp-%d", time.Now().UnixNano()),
+		}); err != nil {
+			t.Fatalf("ava ws send: %v", err)
+		}
+
+		// Read ava's echo to confirm the message was processed
+		avaWS.SetReadDeadline(time.Now().Add(2 * time.Second))
+		var echo wsEnvelope
+		if err := avaWS.ReadJSON(&echo); err != nil {
+			t.Fatalf("ava ws read echo: %v", err)
+		}
+
+		// Wait a bit for any push to arrive (there should be none)
+		time.Sleep(500 * time.Millisecond)
+
+		notifications := mock.getNotifications()
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" {
+				t.Fatalf("push should be suppressed when noah is actively viewing the conversation, got: %+v", n)
+			}
+		}
+	})
+
+	t.Run("different active conversation does not suppress push", func(t *testing.T) {
+		mock.reset()
+
+		// Noah connects WS and sets active conversation to a DIFFERENT ID
+		noahDialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(noahToken)
+		noahWS, _, err := websocket.DefaultDialer.Dial(noahDialURL, nil)
+		if err != nil {
+			t.Fatalf("noah ws dial: %v", err)
+		}
+		defer noahWS.Close()
+
+		// Set presence to a different conversation ID (99999 - doesn't exist)
+		if err := noahWS.WriteJSON(map[string]any{
+			"type":           "presence:active_conversation",
+			"conversationId": 99999,
+		}); err != nil {
+			t.Fatalf("noah set presence: %v", err)
+		}
+
+		time.Sleep(150 * time.Millisecond)
+
+		// Ava sends a message
+		avaDialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(avaToken)
+		avaWS, _, err := websocket.DefaultDialer.Dial(avaDialURL, nil)
+		if err != nil {
+			t.Fatalf("ava ws dial: %v", err)
+		}
+		defer avaWS.Close()
+
+		if err := avaWS.WriteJSON(map[string]any{
+			"type":           "message:send",
+			"conversationId": conversationID,
+			"body":           "not suppressed message",
+			"tempId":         fmt.Sprintf("temp-%d", time.Now().UnixNano()),
+		}); err != nil {
+			t.Fatalf("ava ws send: %v", err)
+		}
+
+		// Wait for push to noah
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "chat.message" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("expected push to noah when viewing different conversation, got: %+v", notifications)
+		}
+	})
+
+	t.Run("disconnected user receives push", func(t *testing.T) {
+		mock.reset()
+
+		// Noah connects WS, sets presence, then disconnects
+		noahDialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(noahToken)
+		noahWS, _, err := websocket.DefaultDialer.Dial(noahDialURL, nil)
+		if err != nil {
+			t.Fatalf("noah ws dial: %v", err)
+		}
+
+		// Set active conversation
+		if err := noahWS.WriteJSON(map[string]any{
+			"type":           "presence:active_conversation",
+			"conversationId": conversationID,
+		}); err != nil {
+			t.Fatalf("noah set presence: %v", err)
+		}
+
+		time.Sleep(150 * time.Millisecond)
+
+		// Disconnect noah
+		noahWS.Close()
+
+		// Wait for the hub to process the unregister
+		time.Sleep(200 * time.Millisecond)
+
+		// Ava sends a message
+		avaDialURL := strings.Replace(env.server.URL, "http", env.wsScheme, 1) + "/api/ws?token=" + url.QueryEscape(avaToken)
+		avaWS, _, err := websocket.DefaultDialer.Dial(avaDialURL, nil)
+		if err != nil {
+			t.Fatalf("ava ws dial: %v", err)
+		}
+		defer avaWS.Close()
+
+		if err := avaWS.WriteJSON(map[string]any{
+			"type":           "message:send",
+			"conversationId": conversationID,
+			"body":           "noah is offline",
+			"tempId":         fmt.Sprintf("temp-%d", time.Now().UnixNano()),
+		}); err != nil {
+			t.Fatalf("ava ws send: %v", err)
+		}
+
+		// Wait for push to noah (should arrive since he's disconnected)
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "chat.message" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("expected push to noah after disconnect, got: %+v", notifications)
 		}
 	})
 }
