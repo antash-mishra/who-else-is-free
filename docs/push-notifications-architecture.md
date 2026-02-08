@@ -397,7 +397,7 @@ When a user is online with an active socket viewing the target conversation, pus
 
 ## 9. FCM Payload Format
 
-All pushes use **data-only messages** (no `notification` block in the top-level FCM payload). This gives full control over display, suppression, and routing on the client. The APNs config includes an `alert` so iOS shows the notification in the system tray.
+All pushes include a **data payload** for routing plus platform-specific notification blocks so notifications appear in the system tray on both Android and iOS.
 
 ```json
 {
@@ -410,7 +410,14 @@ All pushes use **data-only messages** (no `notification` block in the top-level 
     "title": "Beach Volleyball",
     "body": "Sam: Hey, anyone coming tomorrow?"
   },
-  "android": { "priority": "high" },
+  "android": {
+    "priority": "high",
+    "notification": {
+      "title": "Beach Volleyball",
+      "body": "Sam: Hey, anyone coming tomorrow?",
+      "sound": "default"
+    }
+  },
   "apns": {
     "headers": { "apns-priority": "10" },
     "payload": {
