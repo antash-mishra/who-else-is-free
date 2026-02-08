@@ -90,7 +90,51 @@ From now on, `eas build` will belong to your Expo project and you won’t see th
 
 ---
 
-### Stage 4 – Build and install the iOS dev app
+### Stage 4 – Add Firebase config for push notifications
+
+Push notifications need a Firebase config file so the app can talk to Firebase Cloud Messaging.
+
+1. Go to https://console.firebase.google.com and open the **weif-1100e** project
+   (ask the project owner for access if you don't have it).
+2. Click the **gear icon** (top left) → **Project settings**.
+3. Scroll down to **Your apps** and find the **iOS** app (`com.whoelseisfree.app`).
+   If there's no iOS app yet, click **Add app** → iOS, enter `com.whoelseisfree.app` as the bundle ID, and register it.
+4. Click the **GoogleService-Info.plist** download button.
+5. Move the downloaded file to the **project root** (same folder as `app.json`):
+   ```bash
+   mv ~/Downloads/GoogleService-Info.plist ~/who-else-is-free/
+   ```
+6. Verify the file is in the right place:
+   ```bash
+   ls ~/who-else-is-free/GoogleService-Info.plist
+   ```
+
+That's it. The `app.json` already references this file, so Expo will include it in the build automatically.
+
+> **Note:** This file is gitignored (it contains Firebase API keys), so each person building the app needs to download their own copy.
+
+#### iOS also needs an APNs key linked to Firebase
+
+Firebase uses Apple's push service (APNs) to deliver notifications to iPhones. This is a one-time setup:
+
+1. Go to https://developer.apple.com/account/resources/authkeys/list
+2. Click the **+** button to create a new key.
+3. Give it a name (e.g. "WEIF Push Key"), check **Apple Push Notifications service (APNs)**, and click **Continue** → **Register**.
+4. **Download the `.p8` file** (you can only download it once — save it somewhere safe).
+5. Note the **Key ID** shown on the page.
+6. Note your **Team ID** — find it at https://developer.apple.com/account under Membership details.
+7. Back in **Firebase Console → Project settings → Cloud Messaging** tab:
+   - Scroll to the iOS app section.
+   - Under **APNs Authentication Key**, click **Upload**.
+   - Upload the `.p8` file, enter the Key ID and Team ID.
+
+This only needs to be done once per Firebase project, not per developer.
+
+---
+
+### Stage 5 – Build and install the iOS dev app
+
+> **Important:** If you skipped Stage 4, push notifications will not work. The app will still build and run, but you won't receive any notifications.
 
 Before building, if you plan to test Apple Sign-In:
 - Enable **Sign In with Apple** capability for your App ID in Apple Developer.
@@ -127,7 +171,7 @@ You should now see the app icon on your home screen.
 
 ---
 
-### Stage 5 – Start the dev server and connect from the app
+### Stage 6 – Start the dev server and connect from the app
 
 The development build expects a Metro bundler/dev server to be running.
 
@@ -157,7 +201,7 @@ If connection is flaky, in the Expo dev tools (browser) try switching the **Conn
 
 ---
 
-### Stage 6 – Next time (short version)
+### Stage 7 – Next time (short version)
 
 After the first setup, you usually only need:
 
