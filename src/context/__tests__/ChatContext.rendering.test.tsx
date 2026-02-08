@@ -342,9 +342,14 @@ describe('ChatContext Rendering Tests', () => {
         fireEvent.press(screen.getByTestId('sendMessageBtn'));
       });
 
-      // Check that ws.send was called
+      // Check that ws.send was called (presence update + message:send)
       expect(ws.send).toHaveBeenCalled();
-      const sentPayload = JSON.parse(ws.send.mock.calls[0][0]);
+      const calls = ws.send.mock.calls;
+      const messageSendCall = calls.find(
+        (c: any[]) => JSON.parse(c[0]).type === 'message:send',
+      );
+      expect(messageSendCall).toBeDefined();
+      const sentPayload = JSON.parse(messageSendCall![0]);
       expect(sentPayload.type).toBe('message:send');
       expect(sentPayload.body).toBe('Test message');
       expect(sentPayload.conversationId).toBe(1);
@@ -509,8 +514,12 @@ describe('ChatContext Rendering Tests', () => {
         fireEvent.press(screen.getByTestId('sendMessageBtn'));
       });
 
-      // Get the tempId from the sent message
-      const sentPayload = JSON.parse(ws.send.mock.calls[0][0]);
+      // Get the tempId from the sent message (skip presence:active_conversation)
+      const calls = ws.send.mock.calls;
+      const messageSendCall = calls.find(
+        (c: any[]) => JSON.parse(c[0]).type === 'message:send',
+      );
+      const sentPayload = JSON.parse(messageSendCall![0]);
       const tempId = sentPayload.tempId;
 
       // Simulate server confirmation with matching tempId

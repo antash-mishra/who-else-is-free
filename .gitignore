@@ -47,3 +47,10 @@ coverage/
 server/.go/
 
 server/*.sqlite
+
+# Firebase service account keys
+*firebase-adminsdk*.json
+
+# Firebase client config (contains API keys)
+google-services.json
+GoogleService-Info.plist

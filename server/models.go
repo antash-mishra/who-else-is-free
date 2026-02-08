@@ -129,6 +129,16 @@ type EventReport struct {
 	ReviewedBy     *int64     `json:"reviewed_by,omitempty"`
 }
 
+type PushToken struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Token     string    `json:"token"`
+	DeviceID  string    `json:"device_id"`
+	Platform  string    `json:"platform"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type CreateEventParams struct {
 	Title       string `json:"title" binding:"required,min=1"`
 	Location    string `json:"location" binding:"required,min=1"`
