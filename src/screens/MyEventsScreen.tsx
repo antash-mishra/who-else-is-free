@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Animated,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,9 +20,9 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { BlurView } from "expo-blur";
 
 import EmptyState from "@components/EmptyState";
+import EventActionBadge from "@components/EventActionBadge";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
@@ -93,8 +92,6 @@ const MyEventsScreen = () => {
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
   const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
-  const badgeTranslateY = useRef(new Animated.Value(40)).current;
-  const badgeOpacity = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -104,48 +101,7 @@ const MyEventsScreen = () => {
     }
 
     setShowEventCreatedBadge(true);
-    badgeTranslateY.setValue(40);
-    badgeOpacity.setValue(0);
-
-    const animation = Animated.sequence([
-      Animated.parallel([
-        Animated.timing(badgeTranslateY, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(badgeOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.delay(2500),
-      Animated.parallel([
-        Animated.timing(badgeTranslateY, {
-          toValue: 40,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(badgeOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]);
-
-    animation.start(({ finished }) => {
-      if (finished) {
-        setShowEventCreatedBadge(false);
-        navigation.setParams({ showEventCreatedBadge: false });
-      }
-    });
-
-    return () => {
-      animation.stop();
-    };
-  }, [badgeOpacity, badgeTranslateY, navigation, route.params?.showEventCreatedBadge]);
+  }, [route.params?.showEventCreatedBadge]);
 
   // Get joined event IDs from conversations
   const joinedEventIds = useMemo(() => {
@@ -439,34 +395,23 @@ const MyEventsScreen = () => {
               />
             ) : null
           }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-            />
-          }
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+          />
+        }
+      />
+        <EventActionBadge
+          visible={showEventCreatedBadge}
+          label="Event Created"
+          bottomOffset={tabBarHeight + spacing.md}
+          onHidden={() => {
+            setShowEventCreatedBadge(false);
+            navigation.setParams({ showEventCreatedBadge: false });
+          }}
         />
-        {showEventCreatedBadge && (
-          <Animated.View
-            style={[
-              styles.eventCreatedBadge,
-              {
-                bottom: tabBarHeight + spacing.md,
-                opacity: badgeOpacity,
-                transform: [{ translateY: badgeTranslateY }],
-              },
-            ]}
-          >
-            <BlurView
-              intensity={10}
-              tint="dark"
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={styles.eventCreatedBadgeOverlay} />
-            <Text style={styles.eventCreatedBadgeText}>Event Created</Text>
-          </Animated.View>
-        )}
       </View>
     </ScreenContainer>
   );
@@ -565,32 +510,6 @@ const styles = StyleSheet.create({
   },
   eventPressablePressed: {
     opacity: 0.85,
-  },
-  eventCreatedBadge: {
-    position: "absolute",
-    alignSelf: "center",
-    minWidth: 112,
-    minHeight: 32,
-    paddingVertical: 10,
-    paddingHorizontal: 11,
-    gap: spacing.xs,
-    borderRadius: 10,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  eventCreatedBadgeOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#00000099",
-  },
-  eventCreatedBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    lineHeight: 14,
-    fontFamily: typography.fontFamilyMedium,
-    letterSpacing: -0.2,
-    includeFontPadding: false,
-    textAlignVertical: "center",
   },
 });
 
