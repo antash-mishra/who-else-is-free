@@ -1,27 +1,33 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
-  KeyboardAvoidingView,
   Platform,
   Alert,
   Image,
   ActivityIndicator,
   useWindowDimensions,
+  Keyboard,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path, Circle } from "react-native-svg";
+import * as Haptics from "expo-haptics";
 
 import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import { typography } from "@theme/index";
+import AvatarPlaceholder from "@assets/avatar.png";
+import CameraIcon from "@assets/camera.svg";
 
 // Lazy import to handle missing native module gracefully
 let ImagePicker: typeof import("expo-image-picker") | null = null;
@@ -32,34 +38,6 @@ try {
 }
 
 type OnboardingStep = 1 | 2 | 3;
-
-// Person icon for avatar placeholder
-const PersonIcon = () => (
-  <Svg width={64} height={64} viewBox="0 0 24 24" fill="none">
-    <Circle cx={12} cy={8} r={4} fill="#FFFFFF" />
-    <Path
-      d="M4 20c0-4 4-6 8-6s8 2 8 6"
-      stroke="#FFFFFF"
-      strokeWidth={2}
-      fill="#FFFFFF"
-    />
-  </Svg>
-);
-
-// Camera icon for the badge
-const CameraIcon = () => (
-  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2v11z"
-      stroke="#6B7280"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <Circle cx={12} cy={13} r={4} stroke="#6B7280" strokeWidth={2} fill="none" />
-  </Svg>
-);
 
 // Back arrow icon
 const BackArrowIcon = () => <Feather name="chevron-left" size={24} color="#000000" />;
@@ -76,8 +54,31 @@ const OnboardingScreen = () => {
   const [nameSelection, setNameSelection] = useState<{start: number; end: number} | undefined>(undefined);
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
   const [gender, setGender] = useState<"Female" | "Male" | null>(null);
-  const [age, setAge] = useState("");
+  const [age, setAge] = useState("30");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Wheel picker
+  const wheelScrollRef = useRef<ScrollView>(null);
+  const hasScrolledToDefault = useRef(false);
+  const ITEM_HEIGHT = 50;
+  const MIN_AGE = 18;
+  const MAX_AGE = 120;
+  const DEFAULT_AGE = 30;
+  const ages = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => i + MIN_AGE); // 18 to 120
+
+  // Scroll to default age (30) only once when entering step 3
+  useEffect(() => {
+    if (step === 3 && !hasScrolledToDefault.current) {
+      hasScrolledToDefault.current = true;
+      const index = DEFAULT_AGE - MIN_AGE;
+      setTimeout(() => {
+        wheelScrollRef.current?.scrollTo({
+          y: index * ITEM_HEIGHT,
+          animated: false,
+        });
+      }, 50);
+    }
+  }, [step]);
 
   const handleNameFocus = useCallback(() => {
     if (name === "") {
@@ -91,6 +92,7 @@ const OnboardingScreen = () => {
   }, []);
 
   const pickImage = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!ImagePicker) {
       Alert.alert(
         "Not Available",
@@ -127,6 +129,7 @@ const OnboardingScreen = () => {
       Alert.alert("Name Required", "Please enter your name.");
       return;
     }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStep(2);
   }, [name]);
 
@@ -135,13 +138,14 @@ const OnboardingScreen = () => {
       Alert.alert("Gender Required", "Please select your gender.");
       return;
     }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setStep(3);
   }, [gender]);
 
   const handleDone = useCallback(async () => {
     const ageNum = parseInt(age, 10);
-    if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
-      Alert.alert("Invalid Age", "Please enter a valid age between 13 and 120.");
+    if (isNaN(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
+      Alert.alert("Invalid Age", `Please enter a valid age between ${MIN_AGE} and ${MAX_AGE}.`);
       return;
     }
 
@@ -149,6 +153,7 @@ const OnboardingScreen = () => {
       return;
     }
 
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsSubmitting(true);
     try {
       await updateProfile({
@@ -177,6 +182,7 @@ const OnboardingScreen = () => {
   }, [age, gender, name, avatarBase64, updateProfile, navigation]);
 
   const handleBack = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === 2) {
       setStep(1);
     } else if (step === 3) {
@@ -187,94 +193,115 @@ const OnboardingScreen = () => {
   const canContinueStep1 = name.trim().length > 0;
   const canContinueStep2 = gender !== null;
   const ageNum = parseInt(age, 10);
-  const canDone = !isNaN(ageNum) && ageNum >= 13 && ageNum <= 120;
+  const canDone = !isNaN(ageNum) && ageNum >= MIN_AGE && ageNum <= MAX_AGE;
   const headerTopOffset = Math.round((screenHeight * 172) / 844);
   const containerTopPadding = insets.top + 16;
   const headerTopMargin = Math.max(0, headerTopOffset - containerTopPadding);
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[styles.container, { paddingTop: insets.top + 16 }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {step === 1 && (
-        <View style={styles.stepContainer}>
-          {/* Main content area */}
-          <View style={styles.mainContent}>
-            {/* Header */}
-            <View style={[styles.headerSection, { marginTop: headerTopMargin }]}>
-              <Text style={styles.title}>Enter personal Information</Text>
-              <Text style={styles.subtitle}>
-                Provide some information about you.
-              </Text>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.stepContainer}>
+            {/* Main content area */}
+            <View style={styles.mainContent}>
+              {/* Header */}
+              <View style={[styles.headerSection, { marginTop: headerTopMargin }]}>
+                <Text style={styles.title}>Enter personal Information</Text>
+                <Text style={styles.subtitle}>
+                  Provide some information about you.
+                </Text>
+              </View>
 
-            {/* Avatar and Name */}
-            <View style={styles.avatarSection}>
-              <TouchableOpacity
-                onPress={pickImage}
-                style={styles.avatarWrapper}
-                testID="avatar-button"
-                accessibilityRole="button"
-              >
-                {avatarBase64 ? (
-                  <Image
-                    source={{ uri: `data:image/jpeg;base64,${avatarBase64}` }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <LinearGradient
-                    colors={["#818CF8", "#6366F1", "#8B5CF6"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.avatarGradient}
+              {/* Avatar and Name */}
+              <View style={styles.avatarSection}>
+                <View style={styles.avatarWrapper}>
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    testID="avatar-button"
+                    accessibilityRole="button"
                   >
-                    <PersonIcon />
-                  </LinearGradient>
-                )}
-                {/* Camera badge */}
-                <View style={styles.cameraBadge}>
-                  <CameraIcon />
+                    {avatarBase64 ? (
+                      <Image
+                        source={{ uri: `data:image/jpeg;base64,${avatarBase64}` }}
+                        style={styles.avatarImage}
+                      />
+                    ) : (
+                      <LinearGradient
+                        colors={["#818CF8", "#6366F1", "#8B5CF6"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.avatarGradient}
+                      >
+                        <Image
+                          source={AvatarPlaceholder}
+                          style={styles.avatarPlaceholderImage}
+                        />
+                      </LinearGradient>
+                    )}
+                    {/* Camera badge */}
+                    <View style={styles.cameraBadge}>
+                      <CameraIcon width={20} height={20}/>
+                    </View>
+                  </TouchableOpacity>
+                  {/* Remove photo button */}
+                  {avatarBase64 && (
+                    <TouchableOpacity
+                      style={styles.removePhotoBadge}
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setAvatarBase64(null);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove photo"
+                    >
+                      <Feather name="x" size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  )}
                 </View>
-              </TouchableOpacity>
 
-              <TextInput
-                style={styles.nameInput}
-                value={name}
-                onChangeText={handleNameChange}
-                onFocus={handleNameFocus}
-                selection={nameSelection}
-                placeholder="Your Name"
-                placeholderTextColor="#9CA3AF"
-                autoCapitalize="words"
-                autoCorrect={false}
-                textAlign="center"
-              />
+                <TextInput
+                  style={styles.nameInput}
+                  value={name}
+                  onChangeText={handleNameChange}
+                  onFocus={handleNameFocus}
+                  onSubmitEditing={Keyboard.dismiss}
+                  selection={nameSelection}
+                  placeholder="Your Name"
+                  placeholderTextColor="#9CA3AF"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  textAlign="center"
+                  returnKeyType="done"
+                />
+              </View>
+            </View>
+
+            {/* Button - Fixed at bottom */}
+            <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  !canContinueStep1 && styles.buttonDisabled,
+                ]}
+                onPress={handleContinueStep1}
+                disabled={!canContinueStep1}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.buttonText,
+                    !canContinueStep1 && styles.buttonTextDisabled,
+                  ]}
+                >
+                  Continue
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Button - Fixed at bottom */}
-          <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                !canContinueStep1 && styles.buttonDisabled,
-              ]}
-              onPress={handleContinueStep1}
-              disabled={!canContinueStep1}
-              activeOpacity={0.8}
-            >
-              <Text
-                style={[
-                  styles.buttonText,
-                  !canContinueStep1 && styles.buttonTextDisabled,
-                ]}
-              >
-                Continue
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </TouchableWithoutFeedback>
       )}
 
       {step === 2 && (
@@ -283,7 +310,7 @@ const OnboardingScreen = () => {
             onPress={handleBack}
             style={[
               styles.backButton,
-              { position: "absolute", top: insets.top, left: 24 },
+              { position: "absolute", top: 0, left: 24 },
             ]}
             testID="back-button"
             accessibilityRole="button"
@@ -310,7 +337,10 @@ const OnboardingScreen = () => {
                     styles.genderButton,
                     gender === "Female" && styles.genderButtonSelected,
                   ]}
-                  onPress={() => setGender("Female")}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setGender("Female");
+                  }}
                   activeOpacity={0.8}
                 >
                   <Text
@@ -327,7 +357,10 @@ const OnboardingScreen = () => {
                     styles.genderButton,
                     gender === "Male" && styles.genderButtonSelected,
                   ]}
-                  onPress={() => setGender("Male")}
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setGender("Male");
+                  }}
                   activeOpacity={0.8}
                 >
                   <Text
@@ -373,7 +406,7 @@ const OnboardingScreen = () => {
             onPress={handleBack}
             style={[
               styles.backButton,
-              { position: "absolute", top: insets.top, left: 24 },
+              { position: "absolute", top: 0, left: 24, zIndex: 10 },
             ]}
             testID="back-button"
             accessibilityRole="button"
@@ -392,18 +425,50 @@ const OnboardingScreen = () => {
               </Text>
             </View>
 
-            {/* Age Input */}
-            <View style={styles.ageSection}>
-              <TextInput
-                style={styles.ageInput}
-                value={age}
-                onChangeText={setAge}
-                placeholder="Enter Age"
-                placeholderTextColor="#00000066"
-                keyboardType="number-pad"
-                maxLength={3}
-                textAlign="center"
-              />
+            {/* Wheel Picker */}
+            <View style={styles.wheelPickerContainer}>
+              <View style={styles.wheelPickerHighlight} />
+              <ScrollView
+                ref={wheelScrollRef}
+                showsVerticalScrollIndicator={false}
+                snapToInterval={ITEM_HEIGHT}
+                decelerationRate="fast"
+                contentContainerStyle={{
+                  paddingVertical: ITEM_HEIGHT * 2,
+                }}
+                onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+                  if (ages[index]) {
+                    void Haptics.selectionAsync();
+                    setAge(String(ages[index]));
+                  }
+                }}
+              >
+                {ages.map((ageVal) => (
+                  <TouchableOpacity
+                    key={ageVal}
+                    style={styles.wheelPickerItem}
+                    onPress={() => {
+                      void Haptics.selectionAsync();
+                      setAge(String(ageVal));
+                      const index = ages.indexOf(ageVal);
+                      wheelScrollRef.current?.scrollTo({
+                        y: index * ITEM_HEIGHT,
+                        animated: true,
+                      });
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.wheelPickerText,
+                        age === String(ageVal) && styles.wheelPickerTextSelected,
+                      ]}
+                    >
+                      {ageVal}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           </View>
 
@@ -434,7 +499,7 @@ const OnboardingScreen = () => {
           </View>
         </View>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -468,25 +533,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#000000",
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: "center",
     lineHeight: 32,
     letterSpacing: -1,
   },
   subtitle: {
-    fontFamily: typography.fontFamilyMedium,
+    fontFamily: typography.fontFamilyRegular,
     fontSize: 16,
     fontWeight: "500",
     color: "#777777",
     lineHeight: 20,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
     textAlign: "center",
   },
-  // Header section with back button
+  // Header section with back button (same as headerSection for alignment)
   headerSectionWithBack: {
     paddingHorizontal: 24,
-    paddingTop: 32,
-    marginBottom: 48,
+    marginBottom: 32,
     alignItems: "center",
   },
   // Avatar section - centered horizontally
@@ -517,30 +581,53 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   avatarGradient: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
   },
   avatarImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarPlaceholderImage: {
+    width: 64,
+    height: 64,
+    resizeMode: "contain",
   },
   cameraBadge: {
     position: "absolute",
     bottom: 4,
-    right: 4,
+    right: -2,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "white",
+    // borderWidth: 2,
+    // borderColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  removePhotoBadge: {
+    position: "absolute",
+    top: 0,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -551,7 +638,8 @@ const styles = StyleSheet.create({
     color: "#000000",
     textAlign: "center",
     paddingVertical: 12,
-    minWidth: 150,
+    minWidth: 200,
+    letterSpacing: -0.5,
   },
   // Age input
   ageInput: {
@@ -575,7 +663,7 @@ const styles = StyleSheet.create({
     width: 116,
     minHeight: 48,
     padding: 13.33,
-    borderRadius: 13.33,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
@@ -620,6 +708,38 @@ const styles = StyleSheet.create({
   },
   buttonTextDisabled: {
     color: "#9CA3AF",
+  },
+  // Wheel picker styles
+  wheelPickerContainer: {
+    height: 250,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 24,
+  },
+  wheelPickerHighlight: {
+    position: "absolute",
+    top: "50%",
+    width: 240,
+    height: 50,
+    marginTop: -25,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 12,
+  },
+  wheelPickerItem: {
+    width: 240,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  wheelPickerText: {
+    fontSize: 24,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#CCCCCC",
+  },
+  wheelPickerTextSelected: {
+    fontSize: 28,
+    fontFamily: typography.fontFamilySemiBold,
+    color: "#000000",
   },
 });
 
