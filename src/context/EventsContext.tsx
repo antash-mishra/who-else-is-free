@@ -631,17 +631,6 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   }, [addUserEvent, pendingGuestEvent, token, user]);
 
   useEffect(() => {
-    if (!token) {
-      setIsLoading(false);
-      setError(null);
-      setEvents((prev) => {
-        if (!prev.length) {
-          return prev;
-        }
-        return [];
-      });
-      return;
-    }
     refreshEvents().catch(() => undefined);
   }, [refreshEvents, token]);
 
