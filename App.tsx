@@ -3,7 +3,7 @@ import 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { StyleSheet } from 'react-native';
+import { Platform, PermissionsAndroid, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -28,12 +28,20 @@ const App = () => {
   });
 
   useEffect(() => {
-    try {
-      const msg = messaging();
-      msg.requestPermission();
-    } catch {
-      // Firebase not available (e.g. Expo Go)
-    }
+    const requestPermission = async () => {
+      try {
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+          await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+          );
+        }
+        const msg = messaging();
+        await msg.requestPermission();
+      } catch {
+        // Firebase not available (e.g. Expo Go)
+      }
+    };
+    requestPermission();
   }, []);
 
   if (!fontsLoaded) {
