@@ -84,6 +84,7 @@ type ConversationParticipant struct {
 
 type ConversationEventMeta struct {
 	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
 	Title     string `json:"title"`
 	Location  string `json:"location"`
 	Time      string `json:"time"`

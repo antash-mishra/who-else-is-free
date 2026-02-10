@@ -28,6 +28,7 @@ type ConversationLastMessage = {
 
 type ConversationEventApi = {
   id: number;
+  user_id: number;
   title: string;
   location: string;
   time: string;
@@ -49,6 +50,7 @@ export type ChatConversation = {
   eventId: number | null;
   event?: {
     id: number;
+    userId: number;
     title: string;
     location: string;
     time: string;
@@ -371,7 +373,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         throw new Error("Unable to load conversations");
       }
       const payload = (await response.json()) as ConversationsResponse;
-      const normalized = payload.conversations.map((conversation) => {
+      setError(null);
+      const normalized = (payload.conversations ?? []).map((conversation) => {
         const participants = conversation.participants ?? [];
         const counterpart = participants.find(
           (participant) => participant.id !== user.id,
@@ -379,6 +382,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         const event = conversation.event
           ? {
               id: conversation.event.id,
+              userId: conversation.event.user_id,
               title: conversation.event.title,
               location: conversation.event.location,
               time: conversation.event.time,

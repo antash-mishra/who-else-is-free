@@ -65,6 +65,7 @@ func (s *fcmPushSender) Send(ctx context.Context, n PushNotification) error {
 				Title: n.Data["title"],
 				Body:  n.Data["body"],
 				Sound: "default",
+				Icon:  "ic_notification",
 			},
 		},
 		APNS: &messaging.APNSConfig{
