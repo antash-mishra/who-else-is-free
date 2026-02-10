@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   useFocusEffect,
   useNavigation,
@@ -57,10 +57,52 @@ const MessagesScreen = () => {
     }, [refreshConversations, user]),
   );
 
+  const displayConversations = useMemo(() => {
+    if (!user) return conversations;
+
+    const singleHostGroups = new Map<number, ChatConversation[]>();
+    const others: ChatConversation[] = [];
+
+    for (const convo of conversations) {
+      const isSingleHost =
+        convo.event?.groupType === "Single" &&
+        convo.event?.userId === user.id &&
+        convo.eventId != null;
+
+      if (isSingleHost) {
+        const group = singleHostGroups.get(convo.eventId!) ?? [];
+        group.push(convo);
+        singleHostGroups.set(convo.eventId!, group);
+      } else {
+        others.push(convo);
+      }
+    }
+
+    const consolidated: ChatConversation[] = [...others];
+    for (const [, group] of singleHostGroups) {
+      // Pick the conversation with the most recent message as representative
+      const representative = group.reduce((best, current) => {
+        const bestTime = best.lastMessage ? Date.parse(best.lastMessage.createdAt) : 0;
+        const currentTime = current.lastMessage ? Date.parse(current.lastMessage.createdAt) : 0;
+        return currentTime > bestTime ? current : best;
+      });
+      consolidated.push(representative);
+    }
+
+    // Sort by most recent message
+    consolidated.sort((a, b) => {
+      const aTime = a.lastMessage ? Date.parse(a.lastMessage.createdAt) : 0;
+      const bTime = b.lastMessage ? Date.parse(b.lastMessage.createdAt) : 0;
+      return bTime - aTime;
+    });
+
+    return consolidated;
+  }, [conversations, user]);
+
   const handleConversationPress = (conversation: ChatConversation) => {
     const is1to1Host =
       conversation.event?.groupType === "Single" &&
-      conversation.createdBy === user?.id;
+      conversation.event?.userId === user?.id;
 
     if (is1to1Host && conversation.eventId) {
       navigation.navigate("JoinRequests", {
@@ -103,6 +145,8 @@ const MessagesScreen = () => {
         ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
         : undefined;
 
+    const hasUnread = (item.unreadCount ?? 0) > 0;
+
     return (
       <Pressable
         onPress={() => handleConversationPress(item)}
@@ -111,6 +155,9 @@ const MessagesScreen = () => {
           item.id === activeConversationId && styles.conversationRowActive,
         ]}
       >
+        <View style={styles.unreadDotSpacer}>
+          {hasUnread && <View style={styles.unreadDot} />}
+        </View>
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
             <Image
@@ -122,10 +169,10 @@ const MessagesScreen = () => {
           )}
         </View>
         <View style={styles.conversationCopy}>
-          <Text style={styles.conversationName} numberOfLines={1}>
+          <Text style={[styles.conversationName, hasUnread && styles.conversationNameUnread]} numberOfLines={1}>
             {titleLabel}
           </Text>
-          <Text style={styles.conversationPreview} numberOfLines={1}>
+          <Text style={[styles.conversationPreview, hasUnread && styles.conversationPreviewUnread]} numberOfLines={1}>
             {previewText}
           </Text>
         </View>
@@ -163,7 +210,7 @@ const MessagesScreen = () => {
           <Text style={styles.helperText}>Connecting to chat…</Text>
         ) : null}
         <FlatList
-          data={conversations}
+          data={displayConversations}
           keyExtractor={(conversation) => String(conversation.id)}
           renderItem={renderConversation}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
@@ -256,11 +303,29 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
   },
+  conversationNameUnread: {
+    fontFamily: typography.fontFamilySemiBold,
+  },
   conversationPreview: {
     fontSize: 15,
     lineHeight: 20,
     letterSpacing: -0.5,
     color: "#707070",
+  },
+  conversationPreviewUnread: {
+    color: colors.text,
+    fontFamily: typography.fontFamilyMedium,
+  },
+  unreadDotSpacer: {
+    width: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#2F81E6",
   },
 });
 

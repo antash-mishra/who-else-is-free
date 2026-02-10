@@ -151,6 +151,7 @@ export const mockConversations: ChatConversation[] = [
     eventId: 1,
     event: {
       id: 1,
+      userId: 1,
       title: 'Coffee Meetup',
       location: 'Central Park',
       time: '10:00',

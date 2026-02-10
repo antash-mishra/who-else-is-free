@@ -76,6 +76,7 @@ interface MockConversation {
   eventId: number | null;
   event?: {
     id: number;
+    userId: number;
     title: string;
     location: string;
     time: string;
@@ -106,6 +107,7 @@ const mockConversations: MockConversation[] = [
     eventId: 1,
     event: {
       id: 1,
+      userId: 1,
       title: 'Coffee Meetup',
       location: 'Central Park',
       time: '10:00',
@@ -151,6 +153,7 @@ const mockConversations: MockConversation[] = [
     eventId: 3,
     event: {
       id: 3,
+      userId: 1,
       title: 'One-on-One Event',
       location: 'Downtown',
       time: '14:00',

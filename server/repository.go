@@ -2186,6 +2186,7 @@ func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo 
 		}
 		eventMeta = &ConversationEventMeta{
 			ID:        evt.ID,
+			UserID:    evt.UserID,
 			Title:     evt.Title,
 			Location:  evt.Location,
 			Time:      evt.Time,
