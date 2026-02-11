@@ -1,12 +1,14 @@
 # Build Commands
-- Frontend (React Native): `npm start` (Expo), `npm run android/ios/web`
-- Backend (Go): `cd server && go run main.go`
+- Frontend (React Native): `npm start` (Expo), `npm run android`, `npm run ios`, `npm run web`
+- Frontend tests: `npm test`
+- Backend (Go): `cd server && go run .`
+- Backend tests: `cd server && go test ./...`
 
 # Architecture
-- **Frontend**: React Native Expo app (TypeScript) in `src/`
-- **Backend**: Go HTTP server in `server/` with SQLite database
-- **API**: RESTful endpoints with WebSocket chat support
-- **State**: React Context for auth/events management
+- **Frontend**: React Native Expo app (TypeScript) in `src/` with root entry in `App.tsx`
+- **Backend**: Go (Gin) HTTP server in `server/` with SQLite database
+- **API**: RESTful endpoints plus WebSocket chat (`/api/ws`)
+- **State**: React Context via `AuthContext`, `EventsContext`, and `ChatContext`
 
 # Code Style Guidelines
 - **Imports**: React → external libs → internal (@ aliases)

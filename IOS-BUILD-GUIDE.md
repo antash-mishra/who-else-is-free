@@ -52,7 +52,7 @@ npm install --legacy-peer-deps
 ```
 
 Wait for this to finish.  
-You should now see files like `app.json`, `eas.json`, `package.json`, and `src/`.
+You should now see files like `app.config.js`, `eas.json`, `package.json`, and `src/`.
 
 ---
 
@@ -65,19 +65,25 @@ The repo is linked to the original author’s Expo/EAS project, so we first re�
    ```bash
    eas login
    ```
-3. Open `app.json` in the project root.
+3. Open `app.config.js` in the project root.
 4. **Keep the existing name and slug**, for example:
-   ```json
-   "name": "who-else-is-free",
-   "slug": "who-else-is-free",
+   ```js
+   name: "who-else-is-free",
+   slug: "who-else-is-free",
    ```
 5. Remove the `extra.eas` block that links to the original project, e.g. delete this part:
-   ```json
-   "extra": {
-     "eas": {
-       "projectId": "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e"
-     }
-   }
+   ```js
+   extra: {
+     eas: {
+       projectId: "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
+     },
+   },
+   ```
+   Also remove the `updates` block that references the same project ID:
+   ```js
+   updates: {
+     url: "https://u.expo.dev/c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
+   },
    ```
 6. Back in the terminal, run:
    ```bash
@@ -100,7 +106,7 @@ Push notifications need a Firebase config file so the app can talk to Firebase C
 3. Scroll down to **Your apps** and find the **iOS** app (`com.whoelseisfree.app`).
    If there's no iOS app yet, click **Add app** → iOS, enter `com.whoelseisfree.app` as the bundle ID, and register it.
 4. Click the **GoogleService-Info.plist** download button.
-5. Move the downloaded file to the **project root** (same folder as `app.json`):
+5. Move the downloaded file to the **project root** (same folder as `app.config.js`):
    ```bash
    mv ~/Downloads/GoogleService-Info.plist ~/who-else-is-free/
    ```
@@ -109,9 +115,17 @@ Push notifications need a Firebase config file so the app can talk to Firebase C
    ls ~/who-else-is-free/GoogleService-Info.plist
    ```
 
-That's it. The `app.json` already references this file, so Expo will include it in the build automatically.
+7. **Upload the plist to EAS as a file secret** so cloud builds can find it.
+   The file is gitignored (it contains Firebase API keys), so it won't be uploaded to EAS automatically. You need to store it as an EAS secret:
+   ```bash
+   eas secret:create --scope project --name GOOGLE_SERVICE_INFO_PLIST --type file --value ./GoogleService-Info.plist
+   ```
+   During cloud builds, EAS sets the `GOOGLE_SERVICE_INFO_PLIST` env var to the path of the secret file. The `app.config.js` picks it up automatically:
+   ```js
+   googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
+   ```
 
-> **Note:** This file is gitignored (it contains Firebase API keys), so each person building the app needs to download their own copy.
+> **Note:** This file is gitignored, so each person building the app needs to download their own copy and upload it as an EAS secret. The local copy in the project root is only used for local builds (`npx expo run:ios`).
 
 #### iOS also needs an APNs key linked to Firebase
 

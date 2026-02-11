@@ -5,7 +5,7 @@ Event discovery and social coordination mobile app.
 ## Tech Stack
 
 **Frontend:** React Native + Expo, TypeScript, React Navigation (bottom tabs + stack)
-**Backend:** Go, SQLite, REST API + WebSocket (chat)
+**Backend:** Go (Gin), SQLite, REST API + WebSocket (chat)
 **Auth:** Google OAuth 2.0
 
 ## Project Structure
@@ -36,12 +36,15 @@ server/               # Go backend
 
 ```bash
 # Frontend
-npx expo start          # Start dev server
-npx expo run:android    # Run on Android
-npx expo run:ios        # Run on iOS
+npm start               # Start Expo dev server
+npm run android         # Run on Android
+npm run ios             # Run on iOS
+npm run web             # Run on web
+npm test                # Run frontend tests
 
 # Backend (from server/)
 go run .                # Start server
+go test ./...           # Run backend tests
 ```
 
 ## Features
@@ -57,5 +60,6 @@ go run .                # Start server
 
 - Events organized by "Today"/"Tomorrow" sections
 - Chat supports message retry on failure
+- WebSocket endpoint is `/api/ws`
 - Guest users can browse events but need auth to create/join
 - iOS/Android require native builds for Google Sign-In
