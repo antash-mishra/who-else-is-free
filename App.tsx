@@ -30,15 +30,47 @@ const App = () => {
   useEffect(() => {
     const requestPermission = async () => {
       try {
+        const msg = messaging();
+
         if (Platform.OS === 'android' && Platform.Version >= 33) {
           await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
           );
         }
-        const msg = messaging();
+
+        if (Platform.OS === 'ios') {
+          if (!msg.isDeviceRegisteredForRemoteMessages) {
+            await msg.registerDeviceForRemoteMessages();
+          }
+
+          const currentStatus = await msg.hasPermission();
+          if (currentStatus === messaging.AuthorizationStatus.NOT_DETERMINED) {
+            const requestedStatus = await msg.requestPermission();
+            const enabled =
+              requestedStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+              requestedStatus === messaging.AuthorizationStatus.PROVISIONAL ||
+              requestedStatus === messaging.AuthorizationStatus.EPHEMERAL;
+            if (!enabled) {
+              console.warn('iOS push permission was not granted', {
+                authStatus: requestedStatus,
+              });
+            }
+          } else if (
+            currentStatus !== messaging.AuthorizationStatus.AUTHORIZED &&
+            currentStatus !== messaging.AuthorizationStatus.PROVISIONAL &&
+            currentStatus !== messaging.AuthorizationStatus.EPHEMERAL
+          ) {
+            console.warn(
+              'iOS push permission already denied/restricted. System prompt will not show again until changed in Settings.',
+              { authStatus: currentStatus }
+            );
+          }
+          return;
+        }
+
         await msg.requestPermission();
-      } catch {
-        // Firebase not available (e.g. Expo Go)
+      } catch (err) {
+        console.warn('Initial push permission request failed', err);
       }
     };
     requestPermission();
