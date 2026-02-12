@@ -1,6 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import {
+  Dimensions,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -45,6 +47,7 @@ const ChatThreadScreen = () => {
   } = useChat();
 
   const [draft, setDraft] = useState("");
+  const [androidKeyboardOffset, setAndroidKeyboardOffset] = useState(0);
 
   const activeConversation = useMemo(
     () =>
@@ -104,6 +107,27 @@ const ChatThreadScreen = () => {
       activeConversation.eventId,
     ).catch(() => undefined);
   }, [activeConversation, isConversationHost, refreshJoinRequests]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return undefined;
+    }
+
+    const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
+      const windowHeight = Dimensions.get("window").height;
+      const screenY = event.endCoordinates?.screenY ?? windowHeight;
+      const keyboardHeight = Math.max(0, windowHeight - screenY);
+      setAndroidKeyboardOffset(keyboardHeight);
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setAndroidKeyboardOffset(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
 
@@ -354,7 +378,10 @@ const ChatThreadScreen = () => {
             <View
               style={[
                 styles.composerContainer,
-                { paddingBottom: spacing.xs },
+                {
+                  paddingBottom:
+                    spacing.xs + Math.max(0, androidKeyboardOffset - insets.bottom),
+                },
               ]}
             >
               <View style={styles.composerInputWrapper}>

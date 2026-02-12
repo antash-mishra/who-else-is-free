@@ -29,24 +29,42 @@ function withNotificationIcon(config) {
 
   // Add manifest meta-data
   config = withAndroidManifest(config, (cfg) => {
+    if (!cfg.modResults.manifest.$["xmlns:tools"]) {
+      cfg.modResults.manifest.$["xmlns:tools"] =
+        "http://schemas.android.com/tools";
+    }
+
     const app = cfg.modResults.manifest.application[0];
     const meta = app["meta-data"] || [];
 
-    const addIfMissing = (name, resource) => {
-      if (!meta.some((m) => m.$["android:name"] === name)) {
-        meta.push({
-          $: { "android:name": name, "android:resource": resource },
-        });
+    const upsertMetaData = (name, resource, extraAttributes = {}) => {
+      const existing = meta.find((m) => m.$["android:name"] === name);
+      if (existing) {
+        existing.$ = {
+          ...existing.$,
+          "android:resource": resource,
+          ...extraAttributes,
+        };
+        return;
       }
+
+      meta.push({
+        $: {
+          "android:name": name,
+          "android:resource": resource,
+          ...extraAttributes,
+        },
+      });
     };
 
-    addIfMissing(
+    upsertMetaData(
       "com.google.firebase.messaging.default_notification_icon",
       "@drawable/ic_notification"
     );
-    addIfMissing(
+    upsertMetaData(
       "com.google.firebase.messaging.default_notification_color",
-      "@color/colorPrimary"
+      "@color/colorPrimary",
+      { "tools:replace": "android:resource" }
     );
 
     app["meta-data"] = meta;

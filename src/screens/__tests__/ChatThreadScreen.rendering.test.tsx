@@ -336,7 +336,7 @@ describe('ChatThreadScreen Rendering', () => {
       Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     });
 
-    it('should not register manual Android keyboard listeners', () => {
+    it('should register Android keyboard listeners for composer offset handling', () => {
       setupMocks();
       Object.defineProperty(Platform, 'OS', { value: 'android' });
 
@@ -345,11 +345,11 @@ describe('ChatThreadScreen Rendering', () => {
       } as never);
       render(<ChatThreadScreen />);
 
-      expect(addListenerSpy).not.toHaveBeenCalledWith(
+      expect(addListenerSpy).toHaveBeenCalledWith(
         'keyboardDidShow',
         expect.any(Function)
       );
-      expect(addListenerSpy).not.toHaveBeenCalledWith(
+      expect(addListenerSpy).toHaveBeenCalledWith(
         'keyboardDidHide',
         expect.any(Function)
       );
@@ -360,6 +360,16 @@ describe('ChatThreadScreen Rendering', () => {
     it('should still render composer on iOS', () => {
       setupMocks();
       Object.defineProperty(Platform, 'OS', { value: 'ios' });
+
+      const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
+
+      expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
+      expect(getByLabelText('Send message')).toBeTruthy();
+    });
+
+    it('should render composer on Android', () => {
+      setupMocks();
+      Object.defineProperty(Platform, 'OS', { value: 'android' });
 
       const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
 
