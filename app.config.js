@@ -49,6 +49,7 @@ export default {
       "expo-secure-store",
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
+      "./plugins/withNotificationIcon",
     ],
     extra: {
       eas: {
