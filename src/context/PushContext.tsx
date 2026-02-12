@@ -177,13 +177,23 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        const authStatus = await msg.requestPermission();
+        if (Platform.OS === "ios" && !msg.isDeviceRegisteredForRemoteMessages) {
+          await msg.registerDeviceForRemoteMessages();
+        }
+
+        let authStatus = await msg.hasPermission();
+        if (authStatus === messaging.AuthorizationStatus.NOT_DETERMINED) {
+          authStatus = await msg.requestPermission();
+        }
         const enabled =
           authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-          authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+          authStatus === messaging.AuthorizationStatus.PROVISIONAL ||
+          authStatus === messaging.AuthorizationStatus.EPHEMERAL;
 
         if (!enabled) {
-          console.warn("Push notification permission denied");
+          console.warn("Push notification permission denied or restricted", {
+            authStatus,
+          });
           return;
         }
 

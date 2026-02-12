@@ -110,9 +110,18 @@ Push notifications need a Firebase config file so the app can talk to Firebase C
    ```bash
    mv ~/Downloads/GoogleService-Info.plist ~/who-else-is-free/
    ```
+   If your downloaded file has a different name (for example `GoogleService-Info (1).plist`), either rename it to `GoogleService-Info.plist` in project root **or** keep it where it is and set:
+   ```bash
+   export GOOGLE_SERVICE_INFO_PLIST="/home/antash/Downloads/GoogleService-Info (1).plist"
+   ```
+   before running iOS builds.
 6. Verify the file is in the right place:
    ```bash
    ls ~/who-else-is-free/GoogleService-Info.plist
+   ```
+   Optional sanity check (should not contain `ios:placeholder`):
+   ```bash
+   grep -A1 "<key>GOOGLE_APP_ID</key>" ~/who-else-is-free/GoogleService-Info.plist
    ```
 
 7. **Upload the plist to EAS as a file secret** so cloud builds can find it.
@@ -126,6 +135,8 @@ Push notifications need a Firebase config file so the app can talk to Firebase C
    ```
 
 > **Note:** This file is gitignored, so each person building the app needs to download their own copy and upload it as an EAS secret. The local copy in the project root is only used for local builds (`npx expo run:ios`).
+>
+> If you use a non-default filename/path locally, keep `GOOGLE_SERVICE_INFO_PLIST` exported in your shell before running `npm run ios` / `npx expo run:ios`.
 
 #### iOS also needs an APNs key linked to Firebase
 
@@ -149,6 +160,8 @@ This only needs to be done once per Firebase project, not per developer.
 ### Stage 5 – Build and install the iOS dev app
 
 > **Important:** If you skipped Stage 4, push notifications will not work. The app will still build and run, but you won't receive any notifications.
+>
+> If the user previously tapped **Don't Allow** for notifications, iOS will not show the permission popup again automatically. You must re-enable notifications from iOS Settings for the app (or reinstall/reset permissions) before retesting first-prompt behavior.
 
 Before building, if you plan to test Apple Sign-In:
 - Enable **Sign In with Apple** capability for your App ID in Apple Developer.

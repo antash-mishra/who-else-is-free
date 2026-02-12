@@ -17,8 +17,12 @@ export default {
       bundleIdentifier: "com.whoelseisfree.app",
       googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
       usesAppleSignIn: true,
+      entitlements: {
+        "aps-environment": "development",
+      },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        UIBackgroundModes: ["remote-notification"],
       },
     },
     android: {
