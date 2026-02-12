@@ -1,20 +1,16 @@
 import { Feather } from "@expo/vector-icons";
 import {
-  Dimensions,
   FlatList,
-  Keyboard,
   KeyboardAvoidingView,
-  LayoutAnimation,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  UIManager,
   View,
   Image,
 } from "react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -49,45 +45,6 @@ const ChatThreadScreen = () => {
   } = useChat();
 
   const [draft, setDraft] = useState("");
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  // Enable LayoutAnimation on Android
-  useEffect(() => {
-    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-      UIManager.setLayoutAnimationEnabledExperimental(true);
-    }
-  }, []);
-
-  // Keyboard handling for Android edge-to-edge mode
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-
-    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-      // Use screenY calculation for more accurate height (like EventActionOverlay)
-      const windowHeight = Dimensions.get("window").height;
-      const screenY = e.endCoordinates?.screenY ?? windowHeight;
-      const calculatedHeight = Math.max(0, windowHeight - screenY);
-
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setKeyboardHeight(calculatedHeight);
-    });
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setKeyboardHeight(0);
-    });
-
-    // Handle dimension changes (orientation, screen resize)
-    const dimensionSub = Dimensions.addEventListener("change", () => {
-      // Reset keyboard height on dimension change - keyboard will fire new event if still open
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-      dimensionSub.remove();
-    };
-  }, []);
 
   const activeConversation = useMemo(
     () =>
@@ -149,12 +106,18 @@ const ChatThreadScreen = () => {
   }, [activeConversation, isConversationHost, refreshJoinRequests]);
 
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
+
+  // Scroll to bottom when new messages arrive (non-inverted list)
+  const prevMessageCount = useRef(messages.length);
   useEffect(() => {
-    if (!messagesListRef.current) {
-      return;
-    }
-    messagesListRef.current.scrollToEnd({ animated: true });
-  }, [activeConversationId, messages.length]);
+    if (messages.length === 0) return;
+    const animated = prevMessageCount.current > 0 && messages.length > prevMessageCount.current;
+    prevMessageCount.current = messages.length;
+    const timer = setTimeout(() => {
+      messagesListRef.current?.scrollToEnd({ animated });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [messages.length]);
 
   const handleBack = () => {
     setActiveConversation(null);
@@ -173,21 +136,14 @@ const ChatThreadScreen = () => {
     setDraft("");
   };
 
-  if (!activeConversation) {
-    return null;
-  }
-
   const isSendDisabled = draft.trim().length === 0;
   const pendingJoinRequestCount = isConversationHost ? joinRequests.length : 0;
   const canViewJoinRequests =
-    isConversationHost && !!activeConversation.eventId;
+    isConversationHost && !!activeConversation?.eventId;
 
-  // Calculate bottom padding for Android keyboard avoidance
-  // Subtract insets.bottom since SafeAreaView already applies bottom padding
-  const androidKeyboardPadding =
-    Platform.OS === "android" && keyboardHeight > 0
-      ? Math.max(0, keyboardHeight - insets.bottom)
-      : 0;
+  if (!activeConversation) {
+    return null;
+  }
 
   const handleOpenJoinRequests = () => {
     if (!activeConversation || !activeConversation.eventId || !isConversationHost) {
@@ -341,7 +297,8 @@ const ChatThreadScreen = () => {
               keyExtractor={(message) => message.id}
               renderItem={renderMessage}
               ref={messagesListRef}
-              contentContainerStyle={[styles.messagesList, { paddingBottom: spacing.sm }]}
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             />
@@ -382,14 +339,15 @@ const ChatThreadScreen = () => {
         </KeyboardAvoidingView>
       ) : (
         <View style={styles.threadContainer}>
-          <View style={[styles.threadBody, { paddingBottom: androidKeyboardPadding }]}>
+          <View style={styles.threadBody}>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <FlatList
               data={messages}
               keyExtractor={(message) => message.id}
               renderItem={renderMessage}
               ref={messagesListRef}
-              contentContainerStyle={[styles.messagesList, { paddingBottom: spacing.sm }]}
+              style={{ flex: 1 }}
+              contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             />
@@ -495,7 +453,9 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     flexGrow: 1,
-    paddingTop: spacing.xs,
+    justifyContent: "flex-end",
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   messageRow: {
     marginBottom: spacing.sm,
@@ -578,6 +538,7 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
+    maxHeight: 100,
     paddingVertical: spacing.xs,
     paddingRight: spacing.sm,
     fontFamily: typography.fontFamilyRegular,

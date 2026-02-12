@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import { Keyboard, Platform } from 'react-native';
 
 import ChatThreadScreen from '../ChatThreadScreen';
 import {
@@ -325,6 +326,45 @@ describe('ChatThreadScreen Rendering', () => {
       const { queryByLabelText } = render(<ChatThreadScreen />);
 
       expect(queryByLabelText('View join requests')).toBeNull();
+    });
+  });
+
+  describe('Platform Keyboard Behavior', () => {
+    const originalPlatform = Platform.OS;
+
+    afterEach(() => {
+      Object.defineProperty(Platform, 'OS', { value: originalPlatform });
+    });
+
+    it('should not register manual Android keyboard listeners', () => {
+      setupMocks();
+      Object.defineProperty(Platform, 'OS', { value: 'android' });
+
+      const addListenerSpy = jest.spyOn(Keyboard, 'addListener').mockReturnValue({
+        remove: jest.fn(),
+      } as never);
+      render(<ChatThreadScreen />);
+
+      expect(addListenerSpy).not.toHaveBeenCalledWith(
+        'keyboardDidShow',
+        expect.any(Function)
+      );
+      expect(addListenerSpy).not.toHaveBeenCalledWith(
+        'keyboardDidHide',
+        expect.any(Function)
+      );
+
+      addListenerSpy.mockRestore();
+    });
+
+    it('should still render composer on iOS', () => {
+      setupMocks();
+      Object.defineProperty(Platform, 'OS', { value: 'ios' });
+
+      const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
+
+      expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
+      expect(getByLabelText('Send message')).toBeTruthy();
     });
   });
 });
