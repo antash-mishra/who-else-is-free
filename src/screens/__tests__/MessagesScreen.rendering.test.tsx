@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import MessagesScreen from '../MessagesScreen';
 
 // Mock navigation
@@ -342,6 +343,20 @@ describe('MessagesScreen Rendering', () => {
       // Coffee Meetup has an event cover image, John Smith and One-on-One show initials
       expect(getAllByText('J')[0]).toBeTruthy(); // John Smith
       expect(getAllByText('O')[0]).toBeTruthy(); // One-on-One Event
+    });
+
+    it('should show unread dot and left spacer only for unread conversations', () => {
+      const { getByTestId, queryByTestId } = render(<MessagesScreen />);
+
+      const unreadSpacer = getByTestId('conversation-unread-dot-spacer-1');
+      const readSpacer = getByTestId('conversation-unread-dot-spacer-2');
+      const unreadSpacerStyle = StyleSheet.flatten(unreadSpacer.props.style);
+      const readSpacerStyle = StyleSheet.flatten(readSpacer.props.style);
+
+      expect(getByTestId('conversation-unread-dot-1')).toBeTruthy();
+      expect(queryByTestId('conversation-unread-dot-2')).toBeNull();
+      expect(unreadSpacerStyle.width).toBe(16);
+      expect(readSpacerStyle.width).toBe(0);
     });
   });
 

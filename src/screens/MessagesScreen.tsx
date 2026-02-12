@@ -155,8 +155,14 @@ const MessagesScreen = () => {
           item.id === activeConversationId && styles.conversationRowActive,
         ]}
       >
-        <View style={styles.unreadDotSpacer}>
-          {hasUnread && <View style={styles.unreadDot} />}
+        <View
+          testID={`conversation-unread-dot-spacer-${item.id}`}
+          style={[
+            styles.unreadDotSpacer,
+            hasUnread ? styles.unreadDotSpacerVisible : styles.unreadDotSpacerHidden,
+          ]}
+        >
+          {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
         </View>
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
@@ -317,9 +323,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
   },
   unreadDotSpacer: {
-    width: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  unreadDotSpacerVisible: {
+    width: 16,
+  },
+  unreadDotSpacerHidden: {
+    width: 0,
   },
   unreadDot: {
     width: 8,
