@@ -20,7 +20,7 @@ var ErrJoinRequestNotFound = errors.New("join request not found")
 var ErrNotEventHost = errors.New("user is not the event host")
 var ErrCannotRemoveHost = errors.New("event host cannot be removed from the conversation")
 var ErrNotConversationMember = errors.New("user is not a conversation member")
-var ErrReportAlreadyExists = errors.New("report already exists for this event")
+var ErrReportAlreadyExists = errors.New("report already exists")
 var ErrAppleAccountLinkedToDifferentUser = errors.New("apple account is already linked to a different user")
 
 type rowQuery interface {
@@ -118,11 +118,8 @@ CREATE INDEX IF NOT EXISTS messages_conversation_created_idx
 ON messages (conversation_id, created_at DESC);
 `
 
-// Unique index for event reports (event_id, user_id) when reported_user_id is NULL
-// and (event_id, user_id, reported_user_id) when reported_user_id is NOT NULL
-const createEventReportsUniqueIndex = `
-CREATE UNIQUE INDEX IF NOT EXISTS event_reports_unique_idx
-ON event_reports (event_id, user_id) WHERE reported_user_id IS NULL;
+const dropEventReportsUniqueIndex = `
+DROP INDEX IF EXISTS event_reports_unique_idx;
 `
 
 const createMemberReportsUniqueIndex = `
@@ -420,6 +417,14 @@ WHERE r.user_id = ? AND r.status = 'pending'
 ORDER BY r.created_at DESC;
 `
 
+const selectPendingOrApprovedJoinRequestsForUser = `
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+FROM conversation_join_requests r
+JOIN users u ON u.id = r.user_id
+WHERE r.user_id = ? AND r.status IN ('pending', 'approved')
+ORDER BY r.created_at DESC;
+`
+
 const cancelJoinRequestByUser = `
 DELETE FROM conversation_join_requests
 WHERE event_id = ? AND user_id = ? AND status = 'pending';
@@ -498,6 +503,11 @@ DELETE FROM conversation_read_state
 WHERE conversation_id = ? AND user_id = ?;
 `
 
+const deleteConversationByID = `
+DELETE FROM conversations
+WHERE id = ?;
+`
+
 const deleteJoinRequestForEvent = `
 DELETE FROM conversation_join_requests
 WHERE event_id = ? AND user_id = ?;
@@ -570,8 +580,8 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureUserProfileColumns(ctx); err != nil {
 		return err
 	}
-	if _, err := r.db.ExecContext(ctx, createEventReportsUniqueIndex); err != nil {
-		return fmt.Errorf("create event_reports unique index: %w", err)
+	if _, err := r.db.ExecContext(ctx, dropEventReportsUniqueIndex); err != nil {
+		return fmt.Errorf("drop event_reports unique index: %w", err)
 	}
 	if _, err := r.db.ExecContext(ctx, createMemberReportsUniqueIndex); err != nil {
 		return fmt.Errorf("create member_reports unique index: %w", err)
@@ -586,6 +596,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 		return fmt.Errorf("create push_tokens token unique index: %w", err)
 	}
 	if err := r.cleanupDuplicateSingleEventConversations(ctx); err != nil {
+		return err
+	}
+	if err := r.cleanupOrphanedSingleEventConversations(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -1118,6 +1131,38 @@ func (r *EventRepository) cleanupDuplicateSingleEventConversations(ctx context.C
 	`
 	if _, err := r.db.ExecContext(ctx, cleanupQuery); err != nil {
 		return fmt.Errorf("cleanup duplicate single event conversations: %w", err)
+	}
+	return nil
+}
+
+// cleanupOrphanedSingleEventConversations removes legacy 1:1 conversations where
+// only the host remains but old messages are still present. These rows can leave
+// stale unread previews in Messages after a requester has already left.
+func (r *EventRepository) cleanupOrphanedSingleEventConversations(ctx context.Context) error {
+	const cleanupQuery = `
+		DELETE FROM conversations
+		WHERE id IN (
+			SELECT c.id
+			FROM conversations c
+			JOIN events e ON e.id = c.event_id
+			WHERE e.group_type = 'Single'
+			AND (
+				SELECT COUNT(*) FROM conversation_members cm
+				WHERE cm.conversation_id = c.id
+			) = 1
+			AND EXISTS (
+				SELECT 1 FROM conversation_members cm
+				WHERE cm.conversation_id = c.id AND cm.user_id = e.user_id
+			)
+			AND EXISTS (
+				SELECT 1 FROM messages m
+				WHERE m.conversation_id = c.id
+				AND m.sender_id != e.user_id
+			)
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, cleanupQuery); err != nil {
+		return fmt.Errorf("cleanup orphaned single event conversations: %w", err)
 	}
 	return nil
 }
@@ -1920,21 +1965,18 @@ func (r *EventRepository) DenyJoinRequest(ctx context.Context, eventID, userID, 
 		return nil, fmt.Errorf("deny join request: %w", err)
 	}
 
-	// For 1:1 events, also remove the requester from their private conversation
+	// For 1:1 events, close the private conversation entirely so stale unread
+	// previews do not remain for the host after the requester is denied.
 	if event.GroupType == "Single" {
-		// Find the conversation where event_id = eventID and userID is a member
 		convo, err := r.findUserConversationForEvent(ctx, tx, eventID, userID)
 		if err == nil && convo != nil {
-			// Remove the member from conversation_members table
-			if _, err := tx.ExecContext(ctx, deleteConversationMember, convo.ID, userID); err != nil {
+			if _, err := tx.ExecContext(ctx, deleteConversationByID, convo.ID); err != nil {
 				tx.Rollback()
-				return nil, fmt.Errorf("remove member from single event conversation: %w", err)
+				return nil, fmt.Errorf("delete single event conversation: %w", err)
 			}
-			// Also remove their read state
-			if _, err := tx.ExecContext(ctx, deleteConversationReadState, convo.ID, userID); err != nil {
-				tx.Rollback()
-				return nil, fmt.Errorf("delete conversation read state: %w", err)
-			}
+		} else if err != nil && !errors.Is(err, ErrConversationNotFound) {
+			tx.Rollback()
+			return nil, fmt.Errorf("find single event conversation: %w", err)
 		}
 	}
 
@@ -2006,14 +2048,23 @@ func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID
 		return fmt.Errorf("begin remove member tx: %w", err)
 	}
 
-	if _, err := tx.ExecContext(ctx, deleteConversationMember, convo.ID, userID); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("delete conversation member: %w", err)
-	}
-
-	if _, err := tx.ExecContext(ctx, deleteConversationReadState, convo.ID, userID); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("delete conversation read state: %w", err)
+	if event.GroupType == "Single" {
+		// In 1:1 events, close the private conversation entirely so the host
+		// no longer sees stale unread or last-message previews after leave.
+		if _, err := tx.ExecContext(ctx, deleteConversationByID, convo.ID); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("delete single event conversation: %w", err)
+		}
+	} else {
+		// Group events keep the shared conversation and only remove this member.
+		if _, err := tx.ExecContext(ctx, deleteConversationMember, convo.ID, userID); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("delete conversation member: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, deleteConversationReadState, convo.ID, userID); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("delete conversation read state: %w", err)
+		}
 	}
 
 	if _, err := tx.ExecContext(ctx, deleteJoinRequestForEvent, eventID, userID); err != nil {
@@ -2108,8 +2159,13 @@ func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64) (
 	return requests, nil
 }
 
-func (r *EventRepository) ListJoinRequestsByUser(ctx context.Context, userID int64) ([]JoinRequestView, error) {
-	rows, err := r.db.QueryContext(ctx, selectPendingJoinRequestsForUser, userID)
+func (r *EventRepository) ListJoinRequestsByUser(ctx context.Context, userID int64, includeApproved bool) ([]JoinRequestView, error) {
+	query := selectPendingJoinRequestsForUser
+	if includeApproved {
+		query = selectPendingOrApprovedJoinRequestsForUser
+	}
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list user join requests: %w", err)
 	}
@@ -2703,9 +2759,6 @@ func (r *EventRepository) CancelJoinRequest(ctx context.Context, eventID, userID
 func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID int64, reason string) (*EventReport, error) {
 	res, err := r.db.ExecContext(ctx, insertEventReport, eventID, userID, reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return nil, ErrReportAlreadyExists
-		}
 		return nil, fmt.Errorf("insert event report: %w", err)
 	}
 	id, err := res.LastInsertId()

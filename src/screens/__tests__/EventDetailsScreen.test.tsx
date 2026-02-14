@@ -232,10 +232,10 @@ describe('EventDetailsScreen', () => {
       expect(response.ok).toBe(true);
     });
 
-    it('should handle duplicate report (409)', async () => {
+    it('should handle failed report request', async () => {
       const eventId = '1';
 
-      fetchMock.mockResponseOnce('', { status: 409 });
+      fetchMock.mockResponseOnce('', { status: 500 });
 
       const response = await fetch(`${BASE_URL}/api/events/${eventId}/report`, {
         method: 'POST',
@@ -247,7 +247,7 @@ describe('EventDetailsScreen', () => {
       });
 
       expect(response.ok).toBe(false);
-      expect(response.status).toBe(409);
+      expect(response.status).toBe(500);
     });
 
     it('should require reason for report', () => {

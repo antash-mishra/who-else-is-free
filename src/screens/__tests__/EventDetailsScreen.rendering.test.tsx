@@ -752,6 +752,8 @@ describe('EventDetailsScreen Rendering Tests', () => {
           expect.objectContaining({ method: 'DELETE' })
         );
       });
+
+      expect(mockEventsState.unmarkEventRequested).toHaveBeenCalledWith(mockNonOwnedEvent.id);
     });
   });
 
@@ -918,8 +920,8 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
     });
 
-    it('handles duplicate report error (409)', async () => {
-      fetchMock.mockResponseOnce('', { status: 409 });
+    it('shows generic report error when submit fails', async () => {
+      fetchMock.mockResponseOnce('', { status: 500 });
 
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
@@ -938,7 +940,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getByTestId('submit-report-button'));
 
       await waitFor(() => {
-        expect(getByTestId('report-error')).toHaveTextContent('You have already reported this event.');
+        expect(getByTestId('report-error')).toHaveTextContent('Unable to submit report right now.');
       }, { timeout: 3000 });
     });
   });

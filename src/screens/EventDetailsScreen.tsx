@@ -199,7 +199,7 @@ const EventDetailsScreen = () => {
 
     const fetchUserRequest = async () => {
       try {
-        const response = await authFetch(`${API_BASE_URL}/api/chat/requests/me`, {
+        const response = await authFetch(`${API_BASE_URL}/api/chat/requests/me?include_approved=1`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -207,7 +207,7 @@ const EventDetailsScreen = () => {
         if (!response.ok) {
           return;
         }
-        const payload = await response.json();
+        const payload = await response.json().catch(() => ({}));
         const requests = payload.requests ?? [];
         const matchingRequest = requests.find(
           (req: { event_id?: number; eventId?: number }) =>
@@ -580,10 +580,6 @@ const EventDetailsScreen = () => {
           body: JSON.stringify({ reason: trimmed }),
         },
       );
-      if (response.status === 409) {
-        setReportError("You have already reported this event.");
-        return;
-      }
       if (!response.ok) {
         throw new Error("Unable to submit report right now.");
       }
@@ -647,7 +643,12 @@ const EventDetailsScreen = () => {
       if (!response.ok) {
         throw new Error("Unable to leave event right now.");
       }
-      await refreshConversations();
+      setHasPendingRequest(false);
+      unmarkEventRequested(event.id);
+      setUserIntroMessage(null);
+      await refreshConversations().catch((err) => {
+        console.error("Failed to refresh conversations after leaving event", err);
+      });
       setShowLeaveConfirm(false);
       setLeaveSuccessVisible(true);
     } catch (err) {

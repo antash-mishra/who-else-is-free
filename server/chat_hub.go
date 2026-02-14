@@ -898,7 +898,9 @@ func (h *ChatHTTPHandler) listJoinRequests(c *gin.Context) {
 	c.JSON(http.StatusOK, joinRequestListResponse{Requests: requests})
 }
 
-// listUserJoinRequests returns all pending join requests created by the current user.
+// listUserJoinRequests returns join requests created by the current user.
+// By default it includes only pending requests.
+// Set `include_approved=1` (or `true`) to include approved requests as well.
 func (h *ChatHTTPHandler) listUserJoinRequests(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -909,7 +911,13 @@ func (h *ChatHTTPHandler) listUserJoinRequests(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
-	requests, err := h.repo.ListJoinRequestsByUser(ctx, claims.UserID)
+	includeApproved := false
+	switch strings.ToLower(strings.TrimSpace(c.Query("include_approved"))) {
+	case "1", "true", "yes":
+		includeApproved = true
+	}
+
+	requests, err := h.repo.ListJoinRequestsByUser(ctx, claims.UserID, includeApproved)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list join requests"})
 		return
