@@ -269,10 +269,6 @@ func (h *EventHandler) reportEvent(c *gin.Context) {
 
 	report, err := h.repo.CreateEventReport(ctx, eventID, claims.UserID, reason)
 	if err != nil {
-		if errors.Is(err, ErrReportAlreadyExists) {
-			c.JSON(http.StatusConflict, gin.H{"error": "you have already reported this event"})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})
 		return
 	}

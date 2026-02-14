@@ -560,19 +560,46 @@ func TestCancelJoinRequest(t *testing.T) {
 func TestReportEvent(t *testing.T) {
 	env := setupAPITestEnv(t)
 
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")       // user id 1
 	noahToken := env.issueTokenForEmail(t, "noah@example.com")     // user id 4
 	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com") // user id 3
+
+	var eventID int64
+	t.Run("create event to report", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Report Event Test",
+			Location:    "Test Location",
+			Time:        "20:00",
+			EventDate:   time.Now().Add(24 * time.Hour).Format("2006-01-02"),
+			Description: "Testing report behavior",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      65,
+			DateLabel:   "Tmrw",
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+		if eventID == 0 {
+			t.Fatal("expected created event id")
+		}
+	})
 
 	// Report an event successfully
 	t.Run("report event successfully", func(t *testing.T) {
 		body := map[string]string{"reason": "This event contains inappropriate content"}
-		resp := env.doRequest(t, http.MethodPost, "/api/events/1/report", noahToken, body)
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[testReportResponse](t, resp)
-		if payload.Report.EventID != 1 {
-			t.Fatalf("expected event_id 1, got %d", payload.Report.EventID)
+		if payload.Report.EventID != eventID {
+			t.Fatalf("expected event_id %d, got %d", eventID, payload.Report.EventID)
 		}
 		if payload.Report.Status != "pending" {
 			t.Fatalf("expected pending status, got %s", payload.Report.Status)
@@ -582,23 +609,29 @@ func TestReportEvent(t *testing.T) {
 		}
 	})
 
-	// Try to report the same event again (should get 409)
-	t.Run("duplicate report returns 409", func(t *testing.T) {
+	// Same user can report the same event again
+	t.Run("duplicate report returns 201", func(t *testing.T) {
 		body := map[string]string{"reason": "Reporting again"}
-		resp := env.doRequest(t, http.MethodPost, "/api/events/1/report", noahToken, body)
-		if resp.StatusCode != http.StatusConflict {
-			t.Fatalf("expected 409, got %d", resp.StatusCode)
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
-		payload := decodeJSON[testErrorResponse](t, resp)
-		if payload.Error != "you have already reported this event" {
-			t.Fatalf("unexpected error: %s", payload.Error)
+		payload := decodeJSON[testReportResponse](t, resp)
+		if payload.Report.EventID != eventID {
+			t.Fatalf("expected event_id %d, got %d", eventID, payload.Report.EventID)
+		}
+		if payload.Report.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", payload.Report.Status)
+		}
+		if payload.Report.Reason != "Reporting again" {
+			t.Fatalf("unexpected reason: %s", payload.Report.Reason)
 		}
 	})
 
 	// Different user can report the same event
 	t.Run("different user can report same event", func(t *testing.T) {
 		body := map[string]string{"reason": "Also reporting this event"}
-		resp := env.doRequest(t, http.MethodPost, "/api/events/1/report", sophiaToken, body)
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), sophiaToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
@@ -607,7 +640,7 @@ func TestReportEvent(t *testing.T) {
 	// Report without reason returns 400
 	t.Run("report without reason returns 400", func(t *testing.T) {
 		body := map[string]string{"reason": ""}
-		resp := env.doRequest(t, http.MethodPost, "/api/events/2/report", noahToken, body)
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, body)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d", resp.StatusCode)
 		}
@@ -616,7 +649,7 @@ func TestReportEvent(t *testing.T) {
 	// Report without auth returns 401
 	t.Run("report without auth returns 401", func(t *testing.T) {
 		body := map[string]string{"reason": "Test reason"}
-		resp := env.doRequest(t, http.MethodPost, "/api/events/1/report", "", body)
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), "", body)
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected 401, got %d", resp.StatusCode)
 		}
@@ -882,6 +915,42 @@ func TestSingleEventJoinRequest(t *testing.T) {
 		}
 		conversationID = *payload.ConversationID
 		t.Logf("Created conversation ID: %d", conversationID)
+	})
+
+	t.Run("default /api/chat/requests/me excludes approved requests", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/chat/requests/me", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[joinRequestsListResponse](t, resp)
+		for _, req := range payload.Requests {
+			if req.EventID == singleEventID {
+				t.Fatalf("did not expect approved 1:1 request for event %d in default list", singleEventID)
+			}
+		}
+	})
+
+	t.Run("include_approved returns intro message for joined 1:1 event", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/chat/requests/me?include_approved=1", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[joinRequestsListResponse](t, resp)
+		found := false
+		for _, req := range payload.Requests {
+			if req.EventID == singleEventID {
+				found = true
+				if req.Status != "approved" {
+					t.Fatalf("expected approved status, got %s", req.Status)
+				}
+				if req.Message != introMessage {
+					t.Fatalf("expected intro message %q, got %q", introMessage, req.Message)
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("expected approved request for event %d when include_approved=1", singleEventID)
+		}
 	})
 
 	// Verify the intro message was inserted as the first message
@@ -1265,6 +1334,19 @@ func TestSingleEventDenyRequest(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("host cannot see conversation after deny", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				t.Fatal("host should NOT see conversation after deny")
+			}
+		}
+	})
 }
 
 // TestReportMember tests the new member report endpoint
@@ -1330,6 +1412,19 @@ func TestReportMember(t *testing.T) {
 		for _, convo := range payload.Conversations {
 			if convo.ID == conversationID {
 				t.Fatal("reported member should NOT see conversation")
+			}
+		}
+	})
+
+	t.Run("host cannot see conversation after report", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				t.Fatal("host should NOT see conversation after report")
 			}
 		}
 	})
@@ -1532,7 +1627,7 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 
 	// Time references
 	now := time.Now().UTC()
-	twoDaysAgo := now.Add(-48 * time.Hour)    // >24h past - should be filtered
+	twoDaysAgo := now.Add(-48 * time.Hour)     // >24h past - should be filtered
 	twelveHoursAgo := now.Add(-12 * time.Hour) // <24h past - should appear (grace period)
 	tomorrow := now.Add(24 * time.Hour)        // future - should appear
 
@@ -1721,6 +1816,23 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		return count > 0
 	}
 
+	hasConversation := func(t *testing.T, token string, conversationID int64) bool {
+		t.Helper()
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", token, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				return true
+			}
+		}
+		return false
+	}
+
+	var firstConversationID int64
+
 	// Noah joins the 1:1 event
 	t.Run("noah joins event", func(t *testing.T) {
 		body := map[string]string{"message": "Can I join?"}
@@ -1733,12 +1845,25 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		if payload.Request.Status != "approved" {
 			t.Fatalf("expected approved status, got %s", payload.Request.Status)
 		}
+		if payload.ConversationID == nil {
+			t.Fatal("expected conversation_id for 1:1 join")
+		}
+		firstConversationID = *payload.ConversationID
 	})
 
 	// Verify join request exists in DB
 	t.Run("verify join request exists in DB after joining", func(t *testing.T) {
 		if !hasJoinRequestInDB() {
 			t.Fatal("expected join request to exist in database after joining")
+		}
+	})
+
+	t.Run("verify first private conversation visible to both users", func(t *testing.T) {
+		if !hasConversation(t, avaToken, firstConversationID) {
+			t.Fatalf("host should see conversation %d before leave", firstConversationID)
+		}
+		if !hasConversation(t, noahToken, firstConversationID) {
+			t.Fatalf("requester should see conversation %d before leave", firstConversationID)
 		}
 	})
 
@@ -1755,7 +1880,15 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		if hasJoinRequestInDB() {
 			t.Fatal("join request should be deleted from database after leaving event")
 		}
+		if hasConversation(t, avaToken, firstConversationID) {
+			t.Fatalf("host should NOT see ended 1:1 conversation %d after leave", firstConversationID)
+		}
+		if hasConversation(t, noahToken, firstConversationID) {
+			t.Fatalf("requester should NOT see ended 1:1 conversation %d after leave", firstConversationID)
+		}
 	})
+
+	var secondConversationID int64
 
 	// Noah rejoins the event
 	t.Run("noah rejoins event", func(t *testing.T) {
@@ -1768,12 +1901,25 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		if payload.Request.Status != "approved" {
 			t.Fatalf("expected approved status on rejoin, got %s", payload.Request.Status)
 		}
+		if payload.ConversationID == nil {
+			t.Fatal("expected conversation_id on rejoin")
+		}
+		secondConversationID = *payload.ConversationID
+		if secondConversationID == firstConversationID {
+			t.Fatalf("expected a new conversation after rejoin, got same id %d", secondConversationID)
+		}
 	})
 
 	// Verify join request exists in DB again
 	t.Run("verify join request exists in DB after rejoining", func(t *testing.T) {
 		if !hasJoinRequestInDB() {
 			t.Fatal("expected join request to exist in database after rejoining")
+		}
+		if !hasConversation(t, avaToken, secondConversationID) {
+			t.Fatalf("host should see new conversation %d after rejoin", secondConversationID)
+		}
+		if !hasConversation(t, noahToken, secondConversationID) {
+			t.Fatalf("requester should see new conversation %d after rejoin", secondConversationID)
 		}
 	})
 
@@ -1790,6 +1936,12 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		if hasJoinRequestInDB() {
 			t.Fatal("join request should be deleted from database after leaving event the second time - this is the bug being fixed")
 		}
+		if hasConversation(t, avaToken, secondConversationID) {
+			t.Fatalf("host should NOT see ended 1:1 conversation %d after second leave", secondConversationID)
+		}
+		if hasConversation(t, noahToken, secondConversationID) {
+			t.Fatalf("requester should NOT see ended 1:1 conversation %d after second leave", secondConversationID)
+		}
 	})
 
 	// Noah rejoins a third time to verify the cycle works
@@ -1803,6 +1955,153 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 		if payload.Request.Status != "approved" {
 			t.Fatalf("expected approved status on third rejoin, got %s", payload.Request.Status)
 		}
+		if payload.ConversationID == nil {
+			t.Fatal("expected conversation_id on third rejoin")
+		}
+	})
+}
+
+func TestCleanupOrphanedSingleEventConversations(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+
+	noah, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("get noah user: %v", err)
+	}
+
+	hasConversation := func(t *testing.T, token string, conversationID int64) bool {
+		t.Helper()
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", token, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				return true
+			}
+		}
+		return false
+	}
+
+	var singleEventID int64
+	var privateConversationID int64
+
+	t.Run("setup single event and private conversation", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Legacy 1:1 Orphan Cleanup",
+			Location:    "Test Cafe",
+			Time:        "11:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Reproduce stale unread after legacy leave",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      60,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		singleEventID = payload.ID
+
+		joinResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests", singleEventID),
+			noahToken,
+			map[string]string{"message": "Legacy intro message"},
+		)
+		if joinResp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", joinResp.StatusCode)
+		}
+		joinPayload := decodeJSON[singleJoinRequestResponse](t, joinResp)
+		if joinPayload.ConversationID == nil {
+			t.Fatal("expected private conversation id for 1:1 join")
+		}
+		privateConversationID = *joinPayload.ConversationID
+	})
+
+	t.Run("simulate legacy orphaned 1:1 state", func(t *testing.T) {
+		// Legacy behavior removed only requester membership, leaving host + intro message.
+		if _, err := env.db.ExecContext(
+			ctx,
+			`DELETE FROM conversation_members WHERE conversation_id = ? AND user_id = ?`,
+			privateConversationID,
+			noah.ID,
+		); err != nil {
+			t.Fatalf("delete requester membership: %v", err)
+		}
+		if _, err := env.db.ExecContext(
+			ctx,
+			`DELETE FROM conversation_join_requests WHERE event_id = ? AND user_id = ?`,
+			singleEventID,
+			noah.ID,
+		); err != nil {
+			t.Fatalf("delete join request: %v", err)
+		}
+	})
+
+	t.Run("host sees stale private conversation before cleanup", func(t *testing.T) {
+		if !hasConversation(t, avaToken, privateConversationID) {
+			t.Fatalf("expected host to still see stale conversation %d before cleanup", privateConversationID)
+		}
+	})
+
+	t.Run("cleanup removes orphaned private conversation", func(t *testing.T) {
+		if err := env.repo.cleanupOrphanedSingleEventConversations(ctx); err != nil {
+			t.Fatalf("cleanup orphaned conversations: %v", err)
+		}
+		if hasConversation(t, avaToken, privateConversationID) {
+			t.Fatalf("host should NOT see orphaned conversation %d after cleanup", privateConversationID)
+		}
+	})
+
+	t.Run("cleanup does not touch group conversation", func(t *testing.T) {
+		groupBody := CreateEventParams{
+			Title:       "Group Cleanup Safety",
+			Location:    "Hall",
+			Time:        "12:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Group should remain untouched",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      60,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, groupBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		groupPayload := decodeJSON[createEventResponse](t, resp)
+
+		groupConvo, err := env.repo.GetConversationByEventID(ctx, groupPayload.ID)
+		if err != nil {
+			t.Fatalf("get group conversation: %v", err)
+		}
+
+		if err := env.repo.cleanupOrphanedSingleEventConversations(ctx); err != nil {
+			t.Fatalf("cleanup orphaned conversations: %v", err)
+		}
+
+		var count int
+		if err := env.db.QueryRowContext(
+			ctx,
+			`SELECT COUNT(1) FROM conversations WHERE id = ?`,
+			groupConvo.ID,
+		).Scan(&count); err != nil {
+			t.Fatalf("count group conversation: %v", err)
+		}
+		if count != 1 {
+			t.Fatalf("expected group conversation %d to remain, count=%d", groupConvo.ID, count)
+		}
 	})
 }
 
@@ -1812,13 +2111,13 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 
 type profileResponse struct {
 	User struct {
-		ID              int64   `json:"id"`
-		Name            string  `json:"name"`
-		Email           string  `json:"email"`
-		ProfileComplete bool    `json:"profile_complete"`
-		Gender          string  `json:"gender,omitempty"`
-		Age             int     `json:"age,omitempty"`
-		Avatar          string  `json:"avatar,omitempty"`
+		ID              int64  `json:"id"`
+		Name            string `json:"name"`
+		Email           string `json:"email"`
+		ProfileComplete bool   `json:"profile_complete"`
+		Gender          string `json:"gender,omitempty"`
+		Age             int    `json:"age,omitempty"`
+		Avatar          string `json:"avatar,omitempty"`
 	} `json:"user"`
 }
 
@@ -2372,6 +2671,7 @@ func TestLeaveGroupEventDeletesJoinRequest(t *testing.T) {
 
 	// Create a Group event
 	var eventID int64
+	var groupConversationID int64
 	t.Run("create Group event", func(t *testing.T) {
 		body := CreateEventParams{
 			Title:       "Leave Group Test Event",
@@ -2391,6 +2691,12 @@ func TestLeaveGroupEventDeletesJoinRequest(t *testing.T) {
 		}
 		payload := decodeJSON[createEventResponse](t, resp)
 		eventID = payload.ID
+
+		convo, err := env.repo.GetConversationByEventID(ctx, eventID)
+		if err != nil {
+			t.Fatalf("get group conversation: %v", err)
+		}
+		groupConversationID = convo.ID
 	})
 
 	// Helper to check if a join request exists in the database (any status)
@@ -2422,6 +2728,21 @@ func TestLeaveGroupEventDeletesJoinRequest(t *testing.T) {
 		resp.Body.Close()
 		for _, r := range payload.Requests {
 			if r.EventID == eventID {
+				return true
+			}
+		}
+		return false
+	}
+
+	hasConversation := func(t *testing.T, token string, conversationID int64) bool {
+		t.Helper()
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", token, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
 				return true
 			}
 		}
@@ -2476,6 +2797,9 @@ func TestLeaveGroupEventDeletesJoinRequest(t *testing.T) {
 	t.Run("verify join request deleted from DB after leaving Group event", func(t *testing.T) {
 		if hasJoinRequestInDB() {
 			t.Fatal("join request should be deleted from database after leaving Group event")
+		}
+		if !hasConversation(t, avaToken, groupConversationID) {
+			t.Fatalf("host should still see group conversation %d after member leaves", groupConversationID)
 		}
 	})
 
