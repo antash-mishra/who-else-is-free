@@ -28,8 +28,8 @@ func main() {
 		}
 	}()
 
-    // Load optional server/.env so local dev can configure secrets easily.
-    loadServerEnv()
+	// Load optional server/.env so local dev can configure secrets easily.
+	loadServerEnv()
 
 	repo := NewEventRepository(database)
 
@@ -50,12 +50,12 @@ func main() {
 	}
 
 	pushSender := InitPushSender(ctx)
+	chatHub := NewChatHub(repo, signer, pushSender)
 
-	eventHandler := NewEventHandler(repo)
+	eventHandler := NewEventHandler(repo, chatHub)
 	authHandler := NewAuthHandler(repo, signer)
 	profileHandler := NewProfileHandler(repo)
 	pushHandler := NewPushHandler(repo, pushSender)
-	chatHub := NewChatHub(repo, signer, pushSender)
 	go chatHub.Run()
 	srv := setupRouter(eventHandler, authHandler, profileHandler, chatHub, pushHandler, signer)
 

@@ -86,6 +86,7 @@ let mockEventsState = {
   events: mockEvents,
   deleteUserEvent: jest.fn(),
   markEventRequested: jest.fn(),
+  markEventReported: jest.fn(),
   isEventRequested: jest.fn(() => false),
   unmarkEventRequested: jest.fn(),
   refreshEvents: jest.fn(),
@@ -282,6 +283,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       events: mockEvents,
       deleteUserEvent: jest.fn().mockResolvedValue(undefined),
       markEventRequested: jest.fn(),
+      markEventReported: jest.fn(),
       isEventRequested: jest.fn(() => false),
       unmarkEventRequested: jest.fn(),
       refreshEvents: jest.fn(),
@@ -918,6 +920,14 @@ describe('EventDetailsScreen Rendering Tests', () => {
           })
         );
       });
+
+      const reportFlowDeleteCall = fetchMock.mock.calls.some(([url, init]) => {
+        return (
+          String(url).includes(`/api/events/${mockNonOwnedEvent.id}/chat/members/${mockUser.id}`) &&
+          init?.method === 'DELETE'
+        );
+      });
+      expect(reportFlowDeleteCall).toBe(false);
     });
 
     it('shows generic report error when submit fails', async () => {

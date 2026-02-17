@@ -18,7 +18,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 }
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { RouteProp, useIsFocused, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { colors, spacing, typography } from "@theme/index";
@@ -41,8 +41,9 @@ const readableDateLabel = (label: "Today" | "Tmrw") =>
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const { events, deleteUserEvent, markEventRequested, isEventRequested, unmarkEventRequested } =
+  const { events, deleteUserEvent, markEventRequested, isEventRequested, unmarkEventRequested, markEventReported } =
     useEvents();
   const { user, token, authFetch } = useAuth();
   const {
@@ -114,6 +115,13 @@ const EventDetailsScreen = () => {
   const [showRequestMenu, setShowRequestMenu] = useState(false);
   const [isDecliningFromMenu, setIsDecliningFromMenu] = useState(false);
   const [isReportingMember, setIsReportingMember] = useState(false);
+  // Group member menu state
+  const [selectedMember, setSelectedMember] = useState<{ id: number; name: string; avatarUrl?: string } | null>(null);
+  const [showMemberMenu, setShowMemberMenu] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeSuccessVisible, setRemoveSuccessVisible] = useState(false);
 
   if (!event) {
     return (
@@ -150,6 +158,7 @@ const EventDetailsScreen = () => {
       (conversation) => conversation.eventId === numericId,
     );
   }, [conversations, event]);
+  const eventConversationId = eventConversation?.id ?? null;
 
   const isConversationMember = useMemo(() => {
     if (!user || !eventConversation) {
@@ -164,12 +173,34 @@ const EventDetailsScreen = () => {
     }
   }, [isConversationMember]);
 
-  // Fetch join requests when host views the screen
+  // Keep host-side requests fresh while viewing details.
   useEffect(() => {
-    if (isOwner && eventConversation && event) {
-      refreshJoinRequests(eventConversation.id, Number(event.id));
+    if (!isFocused || !isOwner || !eventConversationId || !event) {
+      return;
     }
-  }, [isOwner, eventConversation, event?.id, refreshJoinRequests]);
+    const eventId = Number(event.id);
+    if (Number.isNaN(eventId)) {
+      return;
+    }
+    refreshJoinRequests(eventConversationId, eventId).catch(() => undefined);
+    const interval = setInterval(() => {
+      refreshJoinRequests(eventConversationId, eventId).catch(() => undefined);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isFocused, isOwner, eventConversationId, event?.id, refreshJoinRequests]);
+
+  // For 1:1 host view, there is no initial event conversation. Poll lightweight
+  // conversation list while focused so newly joined users appear quickly.
+  useEffect(() => {
+    if (!isFocused || !isOwner || !isSingleEvent || !event || eventConversationId) {
+      return;
+    }
+    refreshConversations().catch(() => undefined);
+    const interval = setInterval(() => {
+      refreshConversations().catch(() => undefined);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isFocused, isOwner, isSingleEvent, event?.id, eventConversationId, refreshConversations]);
 
   // Get visible join requests for this event
   // For 1:1 events: show approved requests (auto-approved on join)
@@ -348,6 +379,69 @@ const EventDetailsScreen = () => {
     setReportMessage("");
     setReportError(null);
     setShowReportPrompt(true);
+  };
+
+  const openMemberMenu = (member: { id: number; name: string; avatarUrl?: string }) => {
+    setSelectedMember(member);
+    setShowMemberMenu(true);
+  };
+
+  const handleRemoveMember = async () => {
+    if (!event || !token || !selectedMember) return;
+    if (isRemovingMember) return;
+    setRemoveError(null);
+    setIsRemovingMember(true);
+    try {
+      const response = await authFetch(
+        `${API_BASE_URL}/api/events/${event.id}/chat/members/${selectedMember.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Unable to remove member right now.");
+      }
+      await refreshConversations().catch((err) => {
+        console.error("Failed to refresh conversations after removing member", err);
+      });
+      setShowRemoveConfirm(false);
+      setRemoveSuccessVisible(true);
+    } catch (err) {
+      console.error("Failed to remove member", err);
+      setRemoveError("Unable to remove this member. Please try again.");
+    } finally {
+      setIsRemovingMember(false);
+    }
+  };
+
+  const handleReportMemberFromMenu = () => {
+    setShowMemberMenu(false);
+    setReportMessage("");
+    setReportError(null);
+    // Set selectedRequest-like context so handleSubmitMemberReport works
+    if (selectedMember) {
+      setSelectedRequest({ userId: selectedMember.id } as ChatJoinRequest);
+    }
+    setShowReportPrompt(true);
+  };
+
+  const handleRemovePromptFromMenu = () => {
+    setShowMemberMenu(false);
+    setRemoveError(null);
+    setShowRemoveConfirm(true);
+  };
+
+  const handleRemoveCancel = () => {
+    if (isRemovingMember) return;
+    setShowRemoveConfirm(false);
+  };
+
+  const handleDismissRemoveSuccess = () => {
+    setRemoveSuccessVisible(false);
+    setSelectedMember(null);
   };
 
   const handleSubmitMemberReport = async () => {
@@ -580,16 +674,32 @@ const EventDetailsScreen = () => {
           body: JSON.stringify({ reason: trimmed }),
         },
       );
+      if (response.status === 409) {
+        setReportError("You have already reported this event.");
+        return;
+      }
       if (!response.ok) {
         throw new Error("Unable to submit report right now.");
       }
       setReportMessage("");
       setShowReportPrompt(false);
-      setReportSuccessVisible(true);
+      markEventReported(event.id);
       // Clear local state for pending request since backend also cancels it
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
+      await refreshConversations().catch((err) => {
+        console.error("Failed to refresh conversations after report", err);
+      });
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: "Main",
+            params: { screen: "Events", params: { showEventReportedBadge: true } },
+          },
+        ],
+      });
     } catch (err) {
       console.error("Failed to submit report", err);
       setReportError(
@@ -985,6 +1095,12 @@ const EventDetailsScreen = () => {
                         <View key={member.id} style={styles.memberItem}>
                           {renderAvatar(member)}
                           <Text style={styles.memberName}>{member.name}</Text>
+                          <Pressable
+                            onPress={() => openMemberMenu(member)}
+                            style={styles.requestMenuButton}
+                          >
+                            <Feather name="more-horizontal" size={24} color="#666" />
+                          </Pressable>
                         </View>
                       ))
                     )}
@@ -1212,6 +1328,50 @@ const EventDetailsScreen = () => {
             destructive: true,
           },
         ]}
+      />
+      {/* Group member menu */}
+      <EventActionOverlay
+        isVisible={showMemberMenu}
+        onBackdropPress={() => {
+          setShowMemberMenu(false);
+          setSelectedMember(null);
+        }}
+        type="menu"
+        items={[
+          {
+            label: "Report Member",
+            onPress: handleReportMemberFromMenu,
+          },
+          {
+            label: "Remove Member",
+            onPress: handleRemovePromptFromMenu,
+            destructive: true,
+          },
+        ]}
+      />
+      <EventActionOverlay
+        isVisible={showRemoveConfirm}
+        onBackdropPress={isRemovingMember ? undefined : handleRemoveCancel}
+        type="confirm"
+        title="Remove this member?"
+        description="They will be removed from the group chat and will need to request to join again."
+        confirmLabel="Remove Member"
+        cancelLabel="Cancel"
+        confirmTone="destructive"
+        onConfirm={handleRemoveMember}
+        onCancel={handleRemoveCancel}
+        isConfirmLoading={isRemovingMember}
+        errorMessage={removeError}
+      />
+      <EventActionOverlay
+        isVisible={removeSuccessVisible}
+        onBackdropPress={handleDismissRemoveSuccess}
+        type="result"
+        title="Member removed"
+        description="They have been removed from the group."
+        dismissLabel="Done"
+        onDismiss={handleDismissRemoveSuccess}
+        tone="default"
       />
     </SafeAreaView>
   );
@@ -1533,6 +1693,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   memberName: {
+    flex: 1,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,

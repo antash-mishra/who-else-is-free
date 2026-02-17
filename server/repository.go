@@ -127,6 +127,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS member_reports_unique_idx
 ON event_reports (event_id, user_id, reported_user_id) WHERE reported_user_id IS NOT NULL;
 `
 
+const createEventReportsEventUserUniqueIndex = `
+CREATE UNIQUE INDEX IF NOT EXISTS event_reports_event_user_unique_idx
+ON event_reports (event_id, user_id) WHERE reported_user_id IS NULL;
+`
+
 const createTableConversationReadState = `
 CREATE TABLE IF NOT EXISTS conversation_read_state (
     conversation_id INTEGER NOT NULL,
@@ -582,6 +587,12 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, dropEventReportsUniqueIndex); err != nil {
 		return fmt.Errorf("drop event_reports unique index: %w", err)
+	}
+	if err := r.cleanupDuplicateEventReports(ctx); err != nil {
+		return err
+	}
+	if _, err := r.db.ExecContext(ctx, createEventReportsEventUserUniqueIndex); err != nil {
+		return fmt.Errorf("create event_reports event/user unique index: %w", err)
 	}
 	if _, err := r.db.ExecContext(ctx, createMemberReportsUniqueIndex); err != nil {
 		return fmt.Errorf("create member_reports unique index: %w", err)
@@ -1163,6 +1174,25 @@ func (r *EventRepository) cleanupOrphanedSingleEventConversations(ctx context.Co
 	`
 	if _, err := r.db.ExecContext(ctx, cleanupQuery); err != nil {
 		return fmt.Errorf("cleanup orphaned single event conversations: %w", err)
+	}
+	return nil
+}
+
+// cleanupDuplicateEventReports keeps the first event-level report per user/event
+// so we can safely enforce uniqueness for future inserts.
+func (r *EventRepository) cleanupDuplicateEventReports(ctx context.Context) error {
+	const dedupeQuery = `
+		DELETE FROM event_reports
+		WHERE reported_user_id IS NULL
+		AND id NOT IN (
+			SELECT MIN(id)
+			FROM event_reports
+			WHERE reported_user_id IS NULL
+			GROUP BY event_id, user_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, dedupeQuery); err != nil {
+		return fmt.Errorf("cleanup duplicate event reports: %w", err)
 	}
 	return nil
 }
@@ -2759,6 +2789,9 @@ func (r *EventRepository) CancelJoinRequest(ctx context.Context, eventID, userID
 func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID int64, reason string) (*EventReport, error) {
 	res, err := r.db.ExecContext(ctx, insertEventReport, eventID, userID, reason)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return nil, ErrReportAlreadyExists
+		}
 		return nil, fmt.Errorf("insert event report: %w", err)
 	}
 	id, err := res.LastInsertId()
