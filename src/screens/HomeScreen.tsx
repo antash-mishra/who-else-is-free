@@ -11,11 +11,18 @@ import {
 } from "react-native";
 import {
   useNavigation,
+  useRoute,
+  useIsFocused,
   CompositeNavigationProp,
+  RouteProp,
 } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import {
+  BottomTabNavigationProp,
+  useBottomTabBarHeight,
+} from "@react-navigation/bottom-tabs";
 import EmptyState from "@components/EmptyState";
+import EventActionBadge from "@components/EventActionBadge";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
 import SegmentedControl from "@components/SegmentedControl";
@@ -80,12 +87,21 @@ const HomeScreen = () => {
   >;
 
   const navigation = useNavigation<HomeScreenNavigation>();
+  const route = useRoute<RouteProp<RootTabParamList, "Events">>();
   const { events: allEvents, isLoading, error, refreshEvents, isEventRequested } = useEvents();
   const { user } = useAuth();
   const { conversations } = useChat();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const hasLoadedOnce = useRef(false);
+  const [showReportedBadge, setShowReportedBadge] = useState(false);
+
+  useEffect(() => {
+    if (!route.params?.showEventReportedBadge) return;
+    setShowReportedBadge(true);
+  }, [route.params?.showEventReportedBadge]);
 
   // Set of event IDs user has joined (is a member of conversation but not owner)
   const joinedEventIds = useMemo(() => {
@@ -151,6 +167,17 @@ const HomeScreen = () => {
     refreshEvents().catch(() => undefined);
   }, [refreshEvents]);
 
+  useEffect(() => {
+    if (!isFocused) {
+      return;
+    }
+    refreshEvents().catch(() => undefined);
+    const interval = setInterval(() => {
+      refreshEvents().catch(() => undefined);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [isFocused, refreshEvents]);
+
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
     <Text style={styles.sectionHeader}>{section.title}</Text>
   );
@@ -173,63 +200,77 @@ const HomeScreen = () => {
   );
 
   return (
-    <ScreenContainer>
-      <View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>Discover Events</Text>
-        <SegmentedControl
-          options={sortOptions}
-          value={sortMode}
-          onChange={(value) => setSortMode(value as SortMode)}
-        />
-      </View>
-      {showAllEventsLoading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
+    <View style={styles.flex}>
+      <ScreenContainer>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Discover Events</Text>
+          <SegmentedControl
+            options={sortOptions}
+            value={sortMode}
+            onChange={(value) => setSortMode(value as SortMode)}
+          />
         </View>
-      ) : showAllEventsError ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={handleRefresh}>
-            <Text style={styles.retryButtonText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : showAllEventsEmpty ? (
-        <EmptyState
-          title="Nothing Happening Here (Yet!)"
-          description="There are currently no events available. Please check back later for new experiences."
-          imageSource={require('@assets/emptystate_discoverevent.png')}
-        />
-      ) : (
-        <SectionList<EventItemProps, EventSection>
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: spacing.xl + insets.bottom },
-          ]}
-          SectionSeparatorComponent={({ leadingItem }) =>
-            leadingItem ? <View style={styles.sectionSeparator} /> : null
-          }
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          ListFooterComponent={<View style={styles.footerSpacing} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={isLoading}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-            />
-          }
-        />
-      )}
-    </ScreenContainer>
+        {showAllEventsLoading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : showAllEventsError ? (
+          <View style={styles.centerContent}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryButton} onPress={handleRefresh}>
+              <Text style={styles.retryButtonText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : showAllEventsEmpty ? (
+          <EmptyState
+            title="Nothing Happening Here (Yet!)"
+            description="There are currently no events available. Please check back later for new experiences."
+            imageSource={require('@assets/emptystate_discoverevent.png')}
+          />
+        ) : (
+          <SectionList<EventItemProps, EventSection>
+            sections={sections}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            renderSectionHeader={renderSectionHeader}
+            stickySectionHeadersEnabled={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: spacing.xl + insets.bottom },
+            ]}
+            SectionSeparatorComponent={({ leadingItem }) =>
+              leadingItem ? <View style={styles.sectionSeparator} /> : null
+            }
+            ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+            ListFooterComponent={<View style={styles.footerSpacing} />}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+              />
+            }
+          />
+        )}
+      </ScreenContainer>
+      <EventActionBadge
+        visible={showReportedBadge}
+        label="Event Reported, Admins are looking into it"
+        bottomOffset={tabBarHeight + spacing.md}
+        onHidden={() => {
+          setShowReportedBadge(false);
+          navigation.setParams({ showEventReportedBadge: false });
+        }}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.sm,

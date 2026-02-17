@@ -407,7 +407,7 @@ const CreateEventScreen = () => {
                         coverKey: selectedCover,
                         scheduledAt,
                     });
-                    navigation.goBack();
+                    rootNavigation?.navigate("EventDetails", { eventId: String(editEventId), origin: "MyEvents" });
                 } else {
                     await addUserEvent({
                         title: trimmedName || "New event",
@@ -449,6 +449,7 @@ const CreateEventScreen = () => {
             isEditing,
             isSubmitting,
             navigation,
+            rootNavigation,
             resetForm,
             updateUserEvent,
             user,
@@ -523,7 +524,7 @@ const CreateEventScreen = () => {
     // Fixed header component (outside scroll view)
     const renderHeader = () => (
         <View style={styles.headerRow}>
-            <Text style={styles.pageTitle}>Create Event</Text>
+            <Text style={styles.pageTitle}>{isEditing ? "Edit Details" : "Create Event"}</Text>
             <Pressable
                 accessibilityRole="button"
                 onPress={() => navigation.goBack()}

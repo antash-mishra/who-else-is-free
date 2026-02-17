@@ -101,6 +101,8 @@ interface EventsContextValue {
   markEventRequested: (eventId: string) => void;
   isEventRequested: (eventId: string) => boolean;
   unmarkEventRequested: (eventId: string) => void;
+  markEventReported: (eventId: string) => void;
+  isEventReported: (eventId: string) => boolean;
 }
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
@@ -287,6 +289,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const resetRequestedEventIds = useCallback(() => {
     setRequestedEventIds((prev) => {
       if (prev.size === 0) {
@@ -400,6 +405,15 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       return next;
     });
   }, []);
+
+  const markEventReported = useCallback((eventId: string) => {
+    setReportedEventIds((prev) => new Set(prev).add(eventId));
+  }, []);
+
+  const isEventReported = useCallback(
+    (eventId: string) => reportedEventIds.has(eventId),
+    [reportedEventIds],
+  );
 
   const addUserEvent = useCallback(
     async (event: CreateEventInput) => {
@@ -642,24 +656,29 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     refreshRequestedEvents().catch(() => undefined);
   }, [refreshRequestedEvents, resetRequestedEventIds, token, user]);
 
+  const visibleEvents = useMemo(() => {
+    if (reportedEventIds.size === 0) return events;
+    return events.filter((event) => !reportedEventIds.has(event.id));
+  }, [events, reportedEventIds]);
+
   const userEvents = useMemo(() => {
     if (!user) {
       return [];
     }
 
-    return events.filter((event) => event.ownerId === user.id);
-  }, [events, user]);
+    return visibleEvents.filter((event) => event.ownerId === user.id);
+  }, [visibleEvents, user]);
 
   const requestedEvents = useMemo(() => {
     if (!requestedEventIds.size) {
       return [];
     }
-    return events.filter((event) => requestedEventIds.has(event.id));
-  }, [events, requestedEventIds]);
+    return visibleEvents.filter((event) => requestedEventIds.has(event.id));
+  }, [visibleEvents, requestedEventIds]);
 
   const value = useMemo(
     () => ({
-      events,
+      events: visibleEvents,
       userEvents,
       requestedEvents,
       isLoading,
@@ -673,9 +692,11 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       markEventRequested,
       isEventRequested,
       unmarkEventRequested,
+      markEventReported,
+      isEventReported,
     }),
     [
-      events,
+      visibleEvents,
       userEvents,
       requestedEvents,
       isLoading,
@@ -689,6 +710,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       markEventRequested,
       isEventRequested,
       unmarkEventRequested,
+      markEventReported,
+      isEventReported,
     ],
   );
 

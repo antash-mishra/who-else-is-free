@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,10 +16,15 @@ const requestTimeout = 5 * time.Second
 
 type EventHandler struct {
 	repo *EventRepository
+	hub  *ChatHub
 }
 
-func NewEventHandler(repo *EventRepository) *EventHandler {
-	return &EventHandler{repo: repo}
+func NewEventHandler(repo *EventRepository, hub ...*ChatHub) *EventHandler {
+	handler := &EventHandler{repo: repo}
+	if len(hub) > 0 {
+		handler.hub = hub[0]
+	}
+	return handler
 }
 
 func (h *EventHandler) RegisterRoutes(group *gin.RouterGroup) {
@@ -269,8 +275,29 @@ func (h *EventHandler) reportEvent(c *gin.Context) {
 
 	report, err := h.repo.CreateEventReport(ctx, eventID, claims.UserID, reason)
 	if err != nil {
+		if errors.Is(err, ErrReportAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "you have already reported this event"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})
 		return
+	}
+
+	convo, convoErr := h.repo.findUserConversationForEventPublic(ctx, eventID, claims.UserID)
+	if convoErr != nil && !errors.Is(convoErr, ErrConversationNotFound) {
+		log.Printf("failed to find reporter conversation for event %d user %d: %v", eventID, claims.UserID, convoErr)
+	}
+
+	// Reporter should be detached from event participation after report submission.
+	removeErr := h.repo.RemoveEventMember(ctx, eventID, claims.UserID)
+	if removeErr != nil &&
+		!errors.Is(removeErr, ErrNotConversationMember) &&
+		!errors.Is(removeErr, ErrCannotRemoveHost) {
+		log.Printf("failed to remove reporter %d from event %d: %v", claims.UserID, eventID, removeErr)
+	}
+
+	if removeErr == nil && convo != nil && h.hub != nil {
+		h.hub.NotifyMembership(convo.ID, claims.UserID, "removed")
 	}
 
 	// Silently cancel any pending join request for this user/event

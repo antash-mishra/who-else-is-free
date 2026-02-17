@@ -804,6 +804,11 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 			view.ConversationID = &convo.ID
 			// Notify membership (user was auto-added to conversation)
 			h.hub.NotifyMembership(convo.ID, claims.UserID, "added")
+			// Host is also a member of this new private conversation and needs a
+			// membership sync so their socket subscribes immediately.
+			if event.UserID != claims.UserID {
+				h.hub.NotifyMembership(convo.ID, event.UserID, "added")
+			}
 			// Emit join request event to the host's main event conversation
 			mainConvo, _ := h.repo.GetConversationByEventID(ctx, eventID)
 			if mainConvo != nil {

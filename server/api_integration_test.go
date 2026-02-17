@@ -124,10 +124,10 @@ func setupAPITestEnvWithPush(t *testing.T, pushSender PushSender) *apiTestEnv {
 		t.Fatalf("new signer: %v", err)
 	}
 
-	eventHandler := NewEventHandler(repo)
+	hub := NewChatHub(repo, signer, pushSender)
+	eventHandler := NewEventHandler(repo, hub)
 	authHandler := NewAuthHandler(repo, signer)
 	profileHandler := NewProfileHandler(repo)
-	hub := NewChatHub(repo, signer, pushSender)
 	go hub.Run()
 	pushHandler := NewPushHandler(repo, pushSender)
 
@@ -242,6 +242,15 @@ type messagesResponse struct {
 		Body      string `json:"body"`
 		CreatedAt string `json:"createdAt"`
 	} `json:"messages"`
+}
+
+func hasInt64(values []int64, target int64) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
 
 type wsEnvelope struct {
@@ -609,23 +618,14 @@ func TestReportEvent(t *testing.T) {
 		}
 	})
 
-	// Same user can report the same event again
-	t.Run("duplicate report returns 201", func(t *testing.T) {
+	// Same user should not be able to report the same event again
+	t.Run("duplicate report returns 409", func(t *testing.T) {
 		body := map[string]string{"reason": "Reporting again"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, body)
-		if resp.StatusCode != http.StatusCreated {
-			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusConflict {
+			t.Fatalf("expected 409, got %d", resp.StatusCode)
 		}
-		payload := decodeJSON[testReportResponse](t, resp)
-		if payload.Report.EventID != eventID {
-			t.Fatalf("expected event_id %d, got %d", eventID, payload.Report.EventID)
-		}
-		if payload.Report.Status != "pending" {
-			t.Fatalf("expected pending status, got %s", payload.Report.Status)
-		}
-		if payload.Report.Reason != "Reporting again" {
-			t.Fatalf("unexpected reason: %s", payload.Report.Reason)
-		}
+		resp.Body.Close()
 	})
 
 	// Different user can report the same event
@@ -810,6 +810,213 @@ func TestCancelAndReportWorkflow(t *testing.T) {
 			t.Fatalf("create new request after cancel: expected 201, got %d", resp.StatusCode)
 		}
 		resp.Body.Close()
+	})
+}
+
+func TestReportEventSingleRemovesReporterFromHostViews(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+
+	var eventID int64
+	t.Run("create single event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Single Report Cleanup",
+			Location:    "Cafe",
+			Time:        "19:00",
+			EventDate:   time.Now().Add(24 * time.Hour).Format("2006-01-02"),
+			Description: "Cleanup test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      60,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	var conversationID int64
+	t.Run("reporter joins single event", func(t *testing.T) {
+		body := map[string]string{"message": "Joining single event"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if payload.ConversationID == nil {
+			t.Fatal("expected conversationId for single-event join")
+		}
+		conversationID = *payload.ConversationID
+	})
+
+	t.Run("host can see request before report", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[joinRequestsListResponse](t, resp)
+		found := false
+		for _, request := range payload.Requests {
+			if request.UserID == 4 {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatal("expected host to see reporter in single-event requests before report")
+		}
+	})
+
+	t.Run("reporter reports event", func(t *testing.T) {
+		body := map[string]string{"reason": "Safety concern"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("reporter no longer sees conversation", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				t.Fatal("reporter should not see single-event conversation after report")
+			}
+		}
+	})
+
+	t.Run("host no longer sees conversation", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				t.Fatal("host should not see single-event conversation after report")
+			}
+		}
+	})
+
+	t.Run("host request list excludes reporter after report", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[joinRequestsListResponse](t, resp)
+		for _, request := range payload.Requests {
+			if request.UserID == 4 {
+				t.Fatal("reporter should not appear in host single-event request list after report")
+			}
+		}
+	})
+}
+
+func TestReportEventGroupRemovesReporterFromMemberList(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+
+	var eventID int64
+	t.Run("create group event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Group Report Cleanup",
+			Location:    "Downtown",
+			Time:        "20:00",
+			EventDate:   time.Now().Add(24 * time.Hour).Format("2006-01-02"),
+			Description: "Group cleanup test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      60,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	t.Run("reporter requests to join", func(t *testing.T) {
+		body := map[string]string{"message": "Please approve me"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("host approves join request", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	var conversationID int64
+	t.Run("host sees reporter in member list before report", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected at least one group conversation")
+		}
+		conversationID = payload.Conversations[0].ID
+		if !hasInt64(payload.Conversations[0].MemberIDs, 4) {
+			t.Fatal("expected reporter to be in group member list before report")
+		}
+	})
+
+	t.Run("reporter reports group event", func(t *testing.T) {
+		body := map[string]string{"reason": "Inappropriate activity"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
+	t.Run("host member list excludes reporter after report", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected group conversation to remain after report")
+		}
+		if hasInt64(payload.Conversations[0].MemberIDs, 4) {
+			t.Fatal("reporter should not be in group member list after report")
+		}
+	})
+
+	t.Run("reporter cannot see group conversation after report", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, convo := range payload.Conversations {
+			if convo.ID == conversationID {
+				t.Fatal("reporter should not see group conversation after report")
+			}
+		}
 	})
 }
 

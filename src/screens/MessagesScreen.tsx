@@ -43,7 +43,7 @@ const MessagesScreen = () => {
     refreshConversations,
     isRefreshingConversations,
   } = useChat();
-  const { events } = useEvents();
+  const { events, isEventReported } = useEvents();
   const insets = useSafeAreaInsets();
 
   useFocusEffect(
@@ -60,10 +60,15 @@ const MessagesScreen = () => {
   const displayConversations = useMemo(() => {
     if (!user) return conversations;
 
+    // Filter out conversations linked to reported events
+    const filtered = conversations.filter(
+      (convo) => !convo.eventId || !isEventReported(String(convo.eventId)),
+    );
+
     const singleHostGroups = new Map<number, ChatConversation[]>();
     const others: ChatConversation[] = [];
 
-    for (const convo of conversations) {
+    for (const convo of filtered) {
       const isSingleHost =
         convo.event?.groupType === "Single" &&
         convo.event?.userId === user.id &&
@@ -97,7 +102,7 @@ const MessagesScreen = () => {
     });
 
     return consolidated;
-  }, [conversations, user]);
+  }, [conversations, user, isEventReported]);
 
   const handleConversationPress = (conversation: ChatConversation) => {
     const is1to1Host =
