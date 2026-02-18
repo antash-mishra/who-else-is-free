@@ -767,6 +767,8 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		switch {
 		case errors.Is(err, ErrEventNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		case errors.Is(err, ErrUsersBlocked):
+			c.JSON(http.StatusForbidden, gin.H{"error": "interaction blocked between users"})
 		case errors.Is(err, ErrAlreadyConversationMember):
 			c.JSON(http.StatusConflict, gin.H{"error": "already a member of this chat"})
 		case errors.Is(err, ErrJoinRequestExists):
@@ -1512,9 +1514,9 @@ type reportMemberBody struct {
 	Reason string `json:"reason" binding:"required"`
 }
 
-// reportMember allows the event host to report a specific member.
-// This creates a report with reported_user_id set and removes the user from the
-// event if they currently have membership.
+// reportMember allows the event host to report and block a specific accepted member.
+// It creates a member report, persists a mutual block between host/member, and
+// removes the member from the current event conversation.
 //
 // Responses:
 //   - 201 with the created report
@@ -1581,32 +1583,36 @@ func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
 		return
 	}
 
-	// Create the member report
-	report, err := h.repo.CreateMemberReport(ctx, eventID, claims.UserID, reportedUserID, reason)
-	if err != nil {
-		if errors.Is(err, ErrReportAlreadyExists) {
-			c.JSON(http.StatusConflict, gin.H{"error": "you have already reported this member"})
+	// Accepted-members only: pending/non-members cannot be report-blocked.
+	convoBeforeRemoval, convoErr := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
+	if convoErr != nil {
+		if errors.Is(convoErr, ErrConversationNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "member is not in accepted state"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify member state"})
 		return
 	}
 
-	// Resolve conversation before removal so we can emit membership updates.
-	convoBeforeRemoval, convoErr := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
-	if convoErr != nil && !errors.Is(convoErr, ErrConversationNotFound) {
-		log.Printf("failed to lookup member conversation before report removal: %v", convoErr)
-		convoBeforeRemoval = nil
+	if err := h.repo.CreateMutualBlock(ctx, claims.UserID, reportedUserID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to block member"})
+		return
 	}
 
-	// Deny any pending join request first so pending users are removed from
-	// request queues even when they do not have active membership yet.
-	_, denyErr := h.repo.DenyJoinRequest(ctx, eventID, reportedUserID, claims.UserID)
-	if denyErr != nil && !errors.Is(denyErr, ErrJoinRequestNotFound) {
-		log.Printf("failed to deny join request after report: %v", denyErr)
+	// Create the member report (idempotent with block semantics).
+	report, err := h.repo.CreateMemberReport(ctx, eventID, claims.UserID, reportedUserID, reason)
+	alreadyReported := false
+	if err != nil {
+		if errors.Is(err, ErrReportAlreadyExists) {
+			alreadyReported = true
+			report = nil
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to submit report"})
+			return
+		}
 	}
 
-	// If the reported user has an active membership, remove it.
+	// Remove active membership from this event so joined state is cleared.
 	removeErr := h.repo.RemoveEventMember(ctx, eventID, reportedUserID)
 	if removeErr != nil && !errors.Is(removeErr, ErrNotConversationMember) && !errors.Is(removeErr, ErrCannotRemoveHost) {
 		log.Printf("failed to remove member after report: %v", removeErr)
@@ -1616,5 +1622,13 @@ func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
 		h.hub.NotifyMembership(convoBeforeRemoval.ID, reportedUserID, "removed")
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"report": report})
+	status := http.StatusCreated
+	if alreadyReported {
+		status = http.StatusOK
+	}
+	c.JSON(status, gin.H{
+		"report":           report,
+		"blocked":          true,
+		"already_reported": alreadyReported,
+	})
 }

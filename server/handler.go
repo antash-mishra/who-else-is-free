@@ -43,7 +43,18 @@ func (h *EventHandler) listEvents(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
-	events, err := h.repo.List(ctx)
+	var viewerUserID int64
+	token := bearerTokenFromHeader(c.GetHeader("Authorization"))
+	if token != "" {
+		signer, signerErr := newTokenSignerFromEnv()
+		if signerErr == nil {
+			if claims, verifyErr := signer.verify(token); verifyErr == nil {
+				viewerUserID = claims.UserID
+			}
+		}
+	}
+
+	events, err := h.repo.ListForViewer(ctx, viewerUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
 		return

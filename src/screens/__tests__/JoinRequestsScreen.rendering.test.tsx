@@ -196,7 +196,7 @@ jest.mock('@components/EventActionOverlay', () => {
     if (type === 'report') {
       return (
         <View testID="action-overlay-report">
-          <Text>Report Member</Text>
+          <Text>Report & Block Member</Text>
           {reportError && <Text testID="report-error">{reportError}</Text>}
           <Pressable testID="submit-report" onPress={onSubmitReport} disabled={reportDisabled}>
             <Text>{reportSubmitting ? 'Submitting...' : 'Submit Report'}</Text>
@@ -518,7 +518,7 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        expect(getByText('Report Member')).toBeTruthy();
+        expect(getByText('Report & Block Member')).toBeTruthy();
         expect(getByText('Remove Member')).toBeTruthy();
       });
     });
@@ -547,7 +547,7 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Report Member'));
+        fireEvent.press(getByText('Report & Block Member'));
       });
 
       await waitFor(() => {
@@ -561,14 +561,14 @@ describe('JoinRequestsScreen Rendering', () => {
       mockRouteParams.groupType = 'Single';
     });
 
-    it('should show report overlay when Report Member is selected', async () => {
+    it('should show report overlay when Report & Block Member is selected', async () => {
       const { getAllByTestId, getByText, getByTestId } = render(<JoinRequestsScreen />);
 
       const menuButtons = getAllByTestId('icon-more-horizontal');
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Report Member'));
+        fireEvent.press(getByText('Report & Block Member'));
       });
 
       await waitFor(() => {
@@ -585,7 +585,7 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Report Member'));
+        fireEvent.press(getByText('Report & Block Member'));
       });
 
       await waitFor(() => {

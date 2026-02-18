@@ -21,6 +21,7 @@ var ErrNotEventHost = errors.New("user is not the event host")
 var ErrCannotRemoveHost = errors.New("event host cannot be removed from the conversation")
 var ErrNotConversationMember = errors.New("user is not a conversation member")
 var ErrReportAlreadyExists = errors.New("report already exists")
+var ErrUsersBlocked = errors.New("users are blocked")
 var ErrAppleAccountLinkedToDifferentUser = errors.New("apple account is already linked to a different user")
 
 type rowQuery interface {
@@ -130,6 +131,23 @@ ON event_reports (event_id, user_id, reported_user_id) WHERE reported_user_id IS
 const createEventReportsEventUserUniqueIndex = `
 CREATE UNIQUE INDEX IF NOT EXISTS event_reports_event_user_unique_idx
 ON event_reports (event_id, user_id) WHERE reported_user_id IS NULL;
+`
+
+const createTableUserBlocks = `
+CREATE TABLE IF NOT EXISTS user_blocks (
+    blocker_user_id INTEGER NOT NULL,
+    blocked_user_id INTEGER NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (blocker_user_id, blocked_user_id),
+    FOREIGN KEY (blocker_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (blocked_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CHECK (blocker_user_id != blocked_user_id)
+);
+`
+
+const createUserBlocksBlockedIndex = `
+CREATE INDEX IF NOT EXISTS user_blocks_blocked_idx
+ON user_blocks (blocked_user_id);
 `
 
 const createTableConversationReadState = `
@@ -444,6 +462,24 @@ INSERT INTO event_reports (event_id, user_id, reported_user_id, reason, status)
 VALUES (?, ?, ?, ?, 'pending');
 `
 
+const insertUserBlock = `
+INSERT OR IGNORE INTO user_blocks (blocker_user_id, blocked_user_id)
+VALUES (?, ?);
+`
+
+const selectBlockedUserIDsForUser = `
+SELECT blocked_user_id
+FROM user_blocks
+WHERE blocker_user_id = ?;
+`
+
+const selectUserBlockRelationship = `
+SELECT 1
+FROM user_blocks
+WHERE blocker_user_id = ? AND blocked_user_id = ?
+LIMIT 1;
+`
+
 const createTablePushTokens = `
 CREATE TABLE IF NOT EXISTS push_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -608,6 +644,15 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createMemberReportsUniqueIndex); err != nil {
 		return fmt.Errorf("create member_reports unique index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableUserBlocks); err != nil {
+		return fmt.Errorf("create user_blocks table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createUserBlocksBlockedIndex); err != nil {
+		return fmt.Errorf("create user_blocks blocked index: %w", err)
+	}
+	if err := r.backfillUserBlocksFromMemberReports(ctx); err != nil {
+		return err
 	}
 	if _, err := r.db.ExecContext(ctx, createTablePushTokens); err != nil {
 		return fmt.Errorf("create push_tokens table: %w", err)
@@ -1209,6 +1254,23 @@ func (r *EventRepository) cleanupDuplicateEventReports(ctx context.Context) erro
 	return nil
 }
 
+func (r *EventRepository) backfillUserBlocksFromMemberReports(ctx context.Context) error {
+	const backfillQuery = `
+		INSERT OR IGNORE INTO user_blocks (blocker_user_id, blocked_user_id)
+		SELECT user_id, reported_user_id
+		FROM event_reports
+		WHERE reported_user_id IS NOT NULL
+		UNION
+		SELECT reported_user_id, user_id
+		FROM event_reports
+		WHERE reported_user_id IS NOT NULL;
+	`
+	if _, err := r.db.ExecContext(ctx, backfillQuery); err != nil {
+		return fmt.Errorf("backfill user blocks from member reports: %w", err)
+	}
+	return nil
+}
+
 func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) (int64, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -1460,6 +1522,40 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 	})
 
 	return events, nil
+}
+
+// ListForViewer returns visible events for a specific viewer, excluding events
+// hosted by users this viewer has blocked.
+func (r *EventRepository) ListForViewer(ctx context.Context, viewerUserID int64) ([]Event, error) {
+	events, err := r.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if viewerUserID <= 0 {
+		return events, nil
+	}
+
+	blockedIDs, err := r.ListBlockedUserIDs(ctx, viewerUserID)
+	if err != nil {
+		return nil, err
+	}
+	if len(blockedIDs) == 0 {
+		return events, nil
+	}
+
+	blockedSet := make(map[int64]struct{}, len(blockedIDs))
+	for _, id := range blockedIDs {
+		blockedSet[id] = struct{}{}
+	}
+
+	filtered := make([]Event, 0, len(events))
+	for _, evt := range events {
+		if _, blocked := blockedSet[evt.UserID]; blocked {
+			continue
+		}
+		filtered = append(filtered, evt)
+	}
+	return filtered, nil
 }
 
 // CreateConversation creates a new conversation and ensures the creator is a member.
@@ -1808,6 +1904,13 @@ func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID
 	}
 	if event.UserID == userID {
 		return nil, ErrAlreadyConversationMember
+	}
+	blocked, err := r.AreUsersBlocked(ctx, event.UserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if blocked {
+		return nil, ErrUsersBlocked
 	}
 
 	// For Group events, check if user is already a member of the main conversation
@@ -2844,6 +2947,92 @@ func (r *EventRepository) CreateMemberReport(ctx context.Context, eventID, repor
 		Status:         "pending",
 		CreatedAt:      time.Now(),
 	}, nil
+}
+
+// CreateMutualBlock stores a bidirectional block relation between two users.
+// The operation is idempotent.
+func (r *EventRepository) CreateMutualBlock(ctx context.Context, userA, userB int64) error {
+	if userA <= 0 || userB <= 0 {
+		return fmt.Errorf("create mutual block: invalid user ids")
+	}
+	if userA == userB {
+		return nil
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin mutual block tx: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, insertUserBlock, userA, userB); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("insert block %d->%d: %w", userA, userB, err)
+	}
+	if _, err := tx.ExecContext(ctx, insertUserBlock, userB, userA); err != nil {
+		tx.Rollback()
+		return fmt.Errorf("insert block %d->%d: %w", userB, userA, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit mutual block: %w", err)
+	}
+	return nil
+}
+
+// ListBlockedUserIDs returns all users blocked by blockerUserID.
+func (r *EventRepository) ListBlockedUserIDs(ctx context.Context, blockerUserID int64) ([]int64, error) {
+	rows, err := r.db.QueryContext(ctx, selectBlockedUserIDsForUser, blockerUserID)
+	if err != nil {
+		return nil, fmt.Errorf("list blocked users: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan blocked user id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate blocked users: %w", err)
+	}
+	return ids, nil
+}
+
+// IsUserBlocked reports whether blockerUserID blocks blockedUserID.
+func (r *EventRepository) IsUserBlocked(ctx context.Context, blockerUserID, blockedUserID int64) (bool, error) {
+	var exists int
+	err := r.db.QueryRowContext(ctx, selectUserBlockRelationship, blockerUserID, blockedUserID).Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("check block relationship: %w", err)
+	}
+	return true, nil
+}
+
+// AreUsersBlocked reports whether either user has blocked the other.
+func (r *EventRepository) AreUsersBlocked(ctx context.Context, userA, userB int64) (bool, error) {
+	if userA <= 0 || userB <= 0 || userA == userB {
+		return false, nil
+	}
+
+	aBlocksB, err := r.IsUserBlocked(ctx, userA, userB)
+	if err != nil {
+		return false, err
+	}
+	if aBlocksB {
+		return true, nil
+	}
+
+	bBlocksA, err := r.IsUserBlocked(ctx, userB, userA)
+	if err != nil {
+		return false, err
+	}
+	return bBlocksA, nil
 }
 
 // findUserConversationForEventPublic is a public wrapper around findUserConversationForEvent
