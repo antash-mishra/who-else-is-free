@@ -542,6 +542,7 @@ func RegisterChatRoutes(router *gin.RouterGroup, repo *EventRepository, hub *Cha
 	router.DELETE("/events/:id/chat/members/:userId", handler.removeMember)
 	router.DELETE("/events/:id/chat/requests/me", handler.cancelJoinRequest)
 	router.POST("/events/:id/members/:userId/report", handler.reportMember)
+	router.DELETE("/events/:id/members/:userId/block", handler.unblockMember)
 }
 
 type ChatHTTPHandler struct {
@@ -1516,7 +1517,7 @@ type reportMemberBody struct {
 
 // reportMember allows the event host to report and block a specific accepted member.
 // It creates a member report, persists a mutual block between host/member, and
-// removes the member from the current event conversation.
+// removes the member from all host-owned event conversations they are part of.
 //
 // Responses:
 //   - 201 with the created report
@@ -1584,7 +1585,7 @@ func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
 	}
 
 	// Accepted-members only: pending/non-members cannot be report-blocked.
-	convoBeforeRemoval, convoErr := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
+	_, convoErr := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
 	if convoErr != nil {
 		if errors.Is(convoErr, ErrConversationNotFound) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "member is not in accepted state"})
@@ -1612,15 +1613,60 @@ func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
 		}
 	}
 
-	// Remove active membership from this event so joined state is cleared.
-	removeErr := h.repo.RemoveEventMember(ctx, eventID, reportedUserID)
-	if removeErr != nil && !errors.Is(removeErr, ErrNotConversationMember) && !errors.Is(removeErr, ErrCannotRemoveHost) {
-		log.Printf("failed to remove member after report: %v", removeErr)
+	// Remove memberships in both directions:
+	// 1) reported user from all reporter-hosted events
+	// 2) reporter from all reported-user-hosted events
+	removeMembershipAcrossHostEvents := func(hostUserID, memberUserID, mustIncludeEventID int64) {
+		hostEventIDs, hostEventErr := h.repo.ListHostEventIDsForMember(ctx, hostUserID, memberUserID)
+		if hostEventErr != nil {
+			log.Printf(
+				"failed to list host events for host %d member %d: %v",
+				hostUserID,
+				memberUserID,
+				hostEventErr,
+			)
+		}
+		eventIDSet := make(map[int64]struct{}, len(hostEventIDs)+1)
+		for _, memberEventID := range hostEventIDs {
+			if memberEventID > 0 {
+				eventIDSet[memberEventID] = struct{}{}
+			}
+		}
+		if mustIncludeEventID > 0 {
+			eventIDSet[mustIncludeEventID] = struct{}{}
+		}
+
+		for memberEventID := range eventIDSet {
+			memberConvo, err := h.repo.findUserConversationForEventPublic(ctx, memberEventID, memberUserID)
+			if err != nil && !errors.Is(err, ErrConversationNotFound) {
+				log.Printf(
+					"failed to find member conversation for event %d user %d: %v",
+					memberEventID,
+					memberUserID,
+					err,
+				)
+			}
+
+			removeErr := h.repo.RemoveEventMember(ctx, memberEventID, memberUserID)
+			if removeErr != nil &&
+				!errors.Is(removeErr, ErrNotConversationMember) &&
+				!errors.Is(removeErr, ErrCannotRemoveHost) {
+				log.Printf(
+					"failed to remove member %d from event %d after report: %v",
+					memberUserID,
+					memberEventID,
+					removeErr,
+				)
+			}
+
+			if memberConvo != nil {
+				h.hub.NotifyMembership(memberConvo.ID, memberUserID, "removed")
+			}
+		}
 	}
 
-	if convoBeforeRemoval != nil {
-		h.hub.NotifyMembership(convoBeforeRemoval.ID, reportedUserID, "removed")
-	}
+	removeMembershipAcrossHostEvents(claims.UserID, reportedUserID, eventID)
+	removeMembershipAcrossHostEvents(reportedUserID, claims.UserID, 0)
 
 	status := http.StatusCreated
 	if alreadyReported {
@@ -1630,5 +1676,82 @@ func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
 		"report":           report,
 		"blocked":          true,
 		"already_reported": alreadyReported,
+	})
+}
+
+// unblockMember allows the event host to undo a prior report-block relation
+// with a member for testing and recovery workflows.
+//
+// Responses:
+//   - 200 with unblock state details
+//   - 401 if the caller has no session
+//   - 400 for invalid path params or self target
+//   - 403 if the caller is not the event host
+//   - 404 if the event is missing or no host-member report relation exists
+//   - 500 for repository/database failures
+func (h *ChatHTTPHandler) unblockMember(c *gin.Context) {
+	claims, ok := sessionFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing session"})
+		return
+	}
+
+	eventIDParam := c.Param("id")
+	eventID, err := strconv.ParseInt(eventIDParam, 10, 64)
+	if err != nil || eventID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	userIDParam := c.Param("userId")
+	targetUserID, err := strconv.ParseInt(userIDParam, 10, 64)
+	if err != nil || targetUserID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+	if targetUserID == claims.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot unblock yourself"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	event, err := h.repo.GetEventByID(ctx, eventID)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+
+	if event.UserID != claims.UserID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the event host can unblock members"})
+		return
+	}
+
+	hasMemberReport, err := h.repo.HasMemberReport(ctx, eventID, claims.UserID, targetUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify report relationship"})
+		return
+	}
+	if !hasMemberReport {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no report-block relationship found for this member"})
+		return
+	}
+
+	deletedAny, err := h.repo.DeleteMutualBlock(ctx, claims.UserID, targetUserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unblock member"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"unblocked":         true,
+		"already_unblocked": !deletedAny,
+		"event_id":          eventID,
+		"user_id":           targetUserID,
 	})
 }

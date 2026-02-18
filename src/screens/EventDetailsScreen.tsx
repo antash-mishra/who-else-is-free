@@ -118,7 +118,6 @@ const EventDetailsScreen = () => {
   const [reportMessage, setReportMessage] = useState("");
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [reportSuccessVisible, setReportSuccessVisible] = useState(false);
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showViewIntroOverlay, setShowViewIntroOverlay] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -147,6 +146,8 @@ const EventDetailsScreen = () => {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removedMemberBadgeLabel, setRemovedMemberBadgeLabel] =
+    useState<string | null>(null);
+  const [reportedMemberBadgeLabel, setReportedMemberBadgeLabel] =
     useState<string | null>(null);
   const [disableHostRequestPolling, setDisableHostRequestPolling] =
     useState(false);
@@ -658,10 +659,27 @@ const EventDetailsScreen = () => {
       if (!response.ok) {
         throw new Error("Unable to submit report right now.");
       }
+      const reportTargetName = (
+        selectedMember?.name ??
+        selectedRequest.requester?.name ??
+        pendingRequests.find((request) => request.userId === selectedRequest.userId)
+          ?.requester?.name ??
+        acceptedRequests.find((request) => request.userId === selectedRequest.userId)
+          ?.requester?.name ??
+        confirmedMembers.find((member) => member.id === selectedRequest.userId)
+          ?.name ??
+        ""
+      ).trim();
+      const firstName = reportTargetName.split(/\s+/)[0] ?? "";
       setReportMessage("");
       setShowReportPrompt(false);
       setSelectedRequest(null);
-      setReportSuccessVisible(true);
+      setSelectedMember(null);
+      setReportedMemberBadgeLabel(
+        firstName.length > 0
+          ? `${firstName} reported and blocked`
+          : "Member reported and blocked",
+      );
       // Refresh requests since the reported member should be removed
       if (hostRequestStoreKey != null && eventNumericId != null) {
         refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
@@ -900,19 +918,6 @@ const EventDetailsScreen = () => {
     } finally {
       setIsSubmittingReport(false);
     }
-  };
-
-  const handleDismissReportSuccess = () => {
-    setReportSuccessVisible(false);
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: "Main",
-          params: { screen: "Events" },
-        },
-      ],
-    });
   };
 
   const handleLeavePrompt = () => {
@@ -1546,16 +1551,6 @@ const EventDetailsScreen = () => {
         reportDisabled={!reportMessage.trim()}
       />
       <EventActionOverlay
-        isVisible={reportSuccessVisible}
-        onBackdropPress={handleDismissReportSuccess}
-        type="result"
-        title="Report submitted"
-        description="Thank you for helping keep our community safe."
-        dismissLabel="Done"
-        onDismiss={handleDismissReportSuccess}
-        tone="success"
-      />
-      <EventActionOverlay
         isVisible={showMenuOverlay}
         onBackdropPress={() => setShowMenuOverlay(false)}
         type="menu"
@@ -1651,6 +1646,14 @@ const EventDetailsScreen = () => {
         bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setRemovedMemberBadgeLabel(null);
+        }}
+      />
+      <EventActionBadge
+        visible={reportedMemberBadgeLabel != null}
+        label={reportedMemberBadgeLabel ?? ""}
+        bottomOffset={spacing.lg + insets.bottom}
+        onHidden={() => {
+          setReportedMemberBadgeLabel(null);
         }}
       />
     </SafeAreaView>
