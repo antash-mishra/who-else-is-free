@@ -465,7 +465,7 @@ const JoinRequestsScreen = () => {
         type="menu"
         items={[
           {
-            label: "Report Member",
+            label: "Report & Block Member",
             onPress: handleReportFromMenu,
           },
           {

@@ -1648,6 +1648,13 @@ func TestReportMember(t *testing.T) {
 	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host
 	noahToken := env.issueTokenForEmail(t, "noah@example.com") // requester to be reported
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+
 	// Create 1:1 event
 	var eventID int64
 	t.Run("create 1:1 event", func(t *testing.T) {
@@ -1669,6 +1676,28 @@ func TestReportMember(t *testing.T) {
 		}
 		payload := decodeJSON[createEventResponse](t, resp)
 		eventID = payload.ID
+	})
+
+	var noahEventID int64
+	t.Run("noah creates event for visibility checks", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Noah Visibility Event",
+			Location:    "Noah Place",
+			Time:        "18:00",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Noah hosted event",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		noahEventID = payload.ID
 	})
 
 	// Noah joins and host approves so member report exercises removal flow.
@@ -1731,6 +1760,56 @@ func TestReportMember(t *testing.T) {
 		}
 	})
 
+	t.Run("mutual block hides each other's events", func(t *testing.T) {
+		hostEventsResp := env.doRequest(t, http.MethodGet, "/api/events", avaToken, nil)
+		if hostEventsResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", hostEventsResp.StatusCode)
+		}
+		hostEvents := decodeJSON[eventsResponse](t, hostEventsResp)
+		for _, evt := range hostEvents.Data {
+			if evt.ID == noahEventID || evt.UserID == noahUser.ID {
+				t.Fatalf("host should not see blocked user's events; found event %+v", evt)
+			}
+		}
+
+		noahEventsResp := env.doRequest(t, http.MethodGet, "/api/events", noahToken, nil)
+		if noahEventsResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", noahEventsResp.StatusCode)
+		}
+		noahEvents := decodeJSON[eventsResponse](t, noahEventsResp)
+		for _, evt := range noahEvents.Data {
+			if evt.ID == eventID || evt.UserID == 1 {
+				t.Fatalf("blocked user should not see host events; found event %+v", evt)
+			}
+		}
+	})
+
+	t.Run("blocked member cannot create new join request", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Ava Post Block Event",
+			Location:    "Ava Place",
+			Time:        "20:00",
+			EventDate:   time.Now().Add(96 * time.Hour).Format("2006-01-02"),
+			Description: "Host event after block",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		createResp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if createResp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", createResp.StatusCode)
+		}
+		postBlockEventID := decodeJSON[createEventResponse](t, createResp).ID
+
+		joinBody := map[string]string{"message": "Can I still join?"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", postBlockEventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403 for blocked users, got %d", resp.StatusCode)
+		}
+	})
+
 	// Cannot report without reason
 	t.Run("report without reason returns 400", func(t *testing.T) {
 		body := map[string]string{"reason": ""}
@@ -1740,14 +1819,12 @@ func TestReportMember(t *testing.T) {
 		}
 	})
 
-	// Reporting non-existent member still creates a report (user ID is stored but may not exist)
-	// This is acceptable behavior - the report is created with the given user ID
-	t.Run("report non-existent member creates report", func(t *testing.T) {
+	// Only accepted members can be report-blocked.
+	t.Run("report non-accepted member returns 400", func(t *testing.T) {
 		body := map[string]string{"reason": "Test"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/members/99999/report", eventID), avaToken, body)
-		// Either 201 (report created) or 404 (not found) is acceptable depending on implementation
-		if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNotFound {
-			t.Fatalf("expected 201 or 404, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
 		}
 		resp.Body.Close()
 	})
