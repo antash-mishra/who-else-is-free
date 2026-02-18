@@ -4186,6 +4186,202 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 	})
 }
 
+func TestPushOnEventDeletionAndMemberRemoval(t *testing.T) {
+	mock := &mockPushSender{}
+	env := setupAPITestEnvWithPush(t, mock)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // user 1 (host)
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // user 4
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	noahID := noahUser.ID
+
+	// Register push tokens
+	for _, tc := range []struct {
+		token    string
+		deviceID string
+		authTok  string
+	}{
+		{"fcm-ava-device", "ava-device", avaToken},
+		{"fcm-noah-device", "noah-device", noahToken},
+	} {
+		resp := env.doRequest(t, http.MethodPost, "/api/push-tokens", tc.authTok, map[string]string{
+			"token": tc.token, "device_id": tc.deviceID, "platform": "android",
+		})
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("register push token: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	}
+
+	createAndApproveEvent := func(t *testing.T, groupType, title string) int64 {
+		t.Helper()
+		body := CreateEventParams{
+			Title:       title,
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "For push lifecycle test",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   groupType,
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("create event: expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		joinBody := map[string]string{"message": "please accept"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("join request: expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		resp = env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, noahID),
+			avaToken,
+			nil,
+		)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("approve join request: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		// Clear setup notifications so each scenario asserts only the target push.
+		time.Sleep(150 * time.Millisecond)
+		mock.reset()
+		return eventID
+	}
+
+	t.Run("deleting group event notifies approved member", func(t *testing.T) {
+		eventID := createAndApproveEvent(t, "Group", "Delete Group Push")
+
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("delete event: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "event.deleted" {
+				found = true
+				if n.Data["eventId"] != fmt.Sprintf("%d", eventID) {
+					t.Fatalf("expected eventId %d, got %s", eventID, n.Data["eventId"])
+				}
+			}
+			if n.Token == "fcm-ava-device" {
+				t.Fatalf("host should not get event.deleted push, got: %+v", n)
+			}
+		}
+		if !found {
+			t.Fatalf("expected event.deleted push to noah, got: %+v", notifications)
+		}
+	})
+
+	t.Run("deleting 1:1 event notifies approved member", func(t *testing.T) {
+		eventID := createAndApproveEvent(t, "Single", "Delete 1:1 Push")
+
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("delete event: expected 200, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "event.deleted" {
+				found = true
+				if n.Data["eventId"] != fmt.Sprintf("%d", eventID) {
+					t.Fatalf("expected eventId %d, got %s", eventID, n.Data["eventId"])
+				}
+			}
+			if n.Token == "fcm-ava-device" {
+				t.Fatalf("host should not get event.deleted push, got: %+v", n)
+			}
+		}
+		if !found {
+			t.Fatalf("expected event.deleted push to noah for 1:1 event, got: %+v", notifications)
+		}
+	})
+
+	t.Run("host removing member sends event.member_removed push", func(t *testing.T) {
+		eventID := createAndApproveEvent(t, "Group", "Host Remove Push")
+
+		resp := env.doRequest(
+			t,
+			http.MethodDelete,
+			fmt.Sprintf("/api/events/%d/chat/members/%d", eventID, noahID),
+			avaToken,
+			nil,
+		)
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("remove member: expected 204, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
+		found := false
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "event.member_removed" {
+				found = true
+				if n.Data["eventId"] != fmt.Sprintf("%d", eventID) {
+					t.Fatalf("expected eventId %d, got %s", eventID, n.Data["eventId"])
+				}
+				if n.Data["removedUserId"] != fmt.Sprintf("%d", noahID) {
+					t.Fatalf("expected removedUserId %d, got %s", noahID, n.Data["removedUserId"])
+				}
+				if n.Data["removedByUserId"] == "" {
+					t.Fatalf("expected removedByUserId to be present, got empty payload: %+v", n.Data)
+				}
+			}
+			if n.Token == "fcm-ava-device" {
+				t.Fatalf("host should not get event.member_removed push, got: %+v", n)
+			}
+		}
+		if !found {
+			t.Fatalf("expected event.member_removed push to noah, got: %+v", notifications)
+		}
+	})
+
+	t.Run("self leave does not send event.member_removed push", func(t *testing.T) {
+		eventID := createAndApproveEvent(t, "Group", "Self Leave No Push")
+
+		resp := env.doRequest(
+			t,
+			http.MethodDelete,
+			fmt.Sprintf("/api/events/%d/chat/members/%d", eventID, noahID),
+			noahToken,
+			nil,
+		)
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("leave event: expected 204, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		time.Sleep(400 * time.Millisecond)
+		notifications := mock.getNotifications()
+		for _, n := range notifications {
+			if n.Token == "fcm-noah-device" && n.Data["type"] == "event.member_removed" {
+				t.Fatalf("did not expect event.member_removed push on self-leave, got: %+v", notifications)
+			}
+		}
+	})
+}
+
 func TestPushPresenceSuppression(t *testing.T) {
 	mock := &mockPushSender{}
 	env := setupAPITestEnvWithPush(t, mock)
