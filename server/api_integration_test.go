@@ -244,6 +244,13 @@ type messagesResponse struct {
 	} `json:"messages"`
 }
 
+type unblockMemberResponse struct {
+	Unblocked        bool  `json:"unblocked"`
+	AlreadyUnblocked bool  `json:"already_unblocked"`
+	EventID          int64 `json:"event_id"`
+	UserID           int64 `json:"user_id"`
+}
+
 func hasInt64(values []int64, target int64) bool {
 	for _, value := range values {
 		if value == target {
@@ -1654,6 +1661,10 @@ func TestReportMember(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load noah user: %v", err)
 	}
+	avaUser, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("failed to load ava user: %v", err)
+	}
 
 	// Create 1:1 event
 	var eventID int64
@@ -1702,6 +1713,10 @@ func TestReportMember(t *testing.T) {
 
 	// Noah joins and host approves so member report exercises removal flow.
 	var conversationID int64
+	var noahHostedConversationID int64
+	var secondaryEventID int64
+	var secondaryConversationID int64
+	var postBlockEventID int64
 	t.Run("noah joins event", func(t *testing.T) {
 		body := map[string]string{"message": "Let me join please"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
@@ -1724,6 +1739,88 @@ func TestReportMember(t *testing.T) {
 		conversationID = *approvePayload.ConversationID
 	})
 
+	t.Run("ava joins noah-hosted event and gets approved", func(t *testing.T) {
+		body := map[string]string{"message": "Joining noah's event"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", noahEventID), avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", noahEventID, avaUser.ID),
+			noahToken,
+			nil,
+		)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
+		}
+		approveResp.Body.Close()
+
+		conversationsResp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", noahEventID), noahToken, nil)
+		if conversationsResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", conversationsResp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, conversationsResp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected at least one conversation for noah-hosted event")
+		}
+		noahHostedConversationID = payload.Conversations[0].ID
+		if !hasInt64(payload.Conversations[0].MemberIDs, avaUser.ID) {
+			t.Fatal("expected ava to be a member in noah-hosted event before report")
+		}
+	})
+
+	t.Run("create secondary host event where member is also joined", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Ava Secondary Event",
+			Location:    "Secondary Location",
+			Time:        "17:30",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Second host event for cross-event report-block cleanup",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		secondaryEventID = decodeJSON[createEventResponse](t, resp).ID
+	})
+
+	t.Run("noah joins and is accepted in secondary host event", func(t *testing.T) {
+		joinBody := map[string]string{"message": "Joining secondary event"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", secondaryEventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", secondaryEventID, noahUser.ID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
+		}
+		approveResp.Body.Close()
+
+		conversationsResp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", secondaryEventID), avaToken, nil)
+		if conversationsResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", conversationsResp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, conversationsResp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected at least one conversation for secondary event")
+		}
+		secondaryConversationID = payload.Conversations[0].ID
+		if !hasInt64(payload.Conversations[0].MemberIDs, noahUser.ID) {
+			t.Fatal("expected noah to be a member in secondary event before report")
+		}
+	})
+
 	// Host reports Noah
 	t.Run("host reports member", func(t *testing.T) {
 		body := map[string]string{"reason": "Inappropriate behavior"}
@@ -1744,6 +1841,9 @@ func TestReportMember(t *testing.T) {
 			if convo.ID == conversationID {
 				t.Fatal("reported member should NOT see conversation")
 			}
+			if convo.ID == secondaryConversationID {
+				t.Fatal("reported member should NOT see secondary host event conversation")
+			}
 		}
 	})
 
@@ -1757,6 +1857,37 @@ func TestReportMember(t *testing.T) {
 			if convo.ID == conversationID {
 				t.Fatal("host should NOT see conversation after report")
 			}
+			if convo.ID == noahHostedConversationID {
+				t.Fatal("host should NOT remain in blocked user's hosted event conversation after report")
+			}
+		}
+	})
+
+	t.Run("blocked user's hosted event member list excludes host", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", noahEventID), noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected noah-hosted conversation to remain for noah")
+		}
+		if hasInt64(payload.Conversations[0].MemberIDs, avaUser.ID) {
+			t.Fatal("host should be removed from blocked user's hosted event")
+		}
+	})
+
+	t.Run("host member list excludes blocked user in secondary host event", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", secondaryEventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected secondary event conversation to remain for host")
+		}
+		if hasInt64(payload.Conversations[0].MemberIDs, noahUser.ID) {
+			t.Fatal("blocked user should be removed from secondary event member list")
 		}
 	})
 
@@ -1801,13 +1932,87 @@ func TestReportMember(t *testing.T) {
 		if createResp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", createResp.StatusCode)
 		}
-		postBlockEventID := decodeJSON[createEventResponse](t, createResp).ID
+		postBlockEventID = decodeJSON[createEventResponse](t, createResp).ID
 
 		joinBody := map[string]string{"message": "Can I still join?"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", postBlockEventID), noahToken, joinBody)
 		if resp.StatusCode != http.StatusForbidden {
 			t.Fatalf("expected 403 for blocked users, got %d", resp.StatusCode)
 		}
+	})
+
+	t.Run("host unblocks member", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/members/%d/block", eventID, noahUser.ID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[unblockMemberResponse](t, resp)
+		if !payload.Unblocked {
+			t.Fatal("expected unblocked=true")
+		}
+		if payload.AlreadyUnblocked {
+			t.Fatal("expected already_unblocked=false on first unblock")
+		}
+		if payload.EventID != eventID {
+			t.Fatalf("expected event_id %d, got %d", eventID, payload.EventID)
+		}
+		if payload.UserID != noahUser.ID {
+			t.Fatalf("expected user_id %d, got %d", noahUser.ID, payload.UserID)
+		}
+	})
+
+	t.Run("idempotent unblock returns already_unblocked", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/members/%d/block", eventID, noahUser.ID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[unblockMemberResponse](t, resp)
+		if !payload.AlreadyUnblocked {
+			t.Fatal("expected already_unblocked=true on second unblock")
+		}
+	})
+
+	t.Run("unblock restores mutual event visibility", func(t *testing.T) {
+		hostEventsResp := env.doRequest(t, http.MethodGet, "/api/events", avaToken, nil)
+		if hostEventsResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", hostEventsResp.StatusCode)
+		}
+		hostEvents := decodeJSON[eventsResponse](t, hostEventsResp)
+		foundNoahEvent := false
+		for _, evt := range hostEvents.Data {
+			if evt.ID == noahEventID {
+				foundNoahEvent = true
+				break
+			}
+		}
+		if !foundNoahEvent {
+			t.Fatalf("expected host to see unblocked user's event %d", noahEventID)
+		}
+
+		noahEventsResp := env.doRequest(t, http.MethodGet, "/api/events", noahToken, nil)
+		if noahEventsResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", noahEventsResp.StatusCode)
+		}
+		noahEvents := decodeJSON[eventsResponse](t, noahEventsResp)
+		foundHostEvent := false
+		for _, evt := range noahEvents.Data {
+			if evt.ID == eventID {
+				foundHostEvent = true
+				break
+			}
+		}
+		if !foundHostEvent {
+			t.Fatalf("expected unblocked user to see host event %d", eventID)
+		}
+	})
+
+	t.Run("unblocked member can create join request again", func(t *testing.T) {
+		joinBody := map[string]string{"message": "Can I join now?"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", postBlockEventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201 after unblock, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
 	})
 
 	// Cannot report without reason
@@ -1829,6 +2034,14 @@ func TestReportMember(t *testing.T) {
 		resp.Body.Close()
 	})
 
+	t.Run("cannot unblock member without host report relation", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/members/99999/block", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
+	})
+
 	// Non-host cannot report
 	t.Run("non-host cannot report member", func(t *testing.T) {
 		sophiaToken := env.issueTokenForEmail(t, "sophia@example.com")
@@ -1837,6 +2050,15 @@ func TestReportMember(t *testing.T) {
 		if resp.StatusCode != http.StatusForbidden {
 			t.Fatalf("expected 403, got %d", resp.StatusCode)
 		}
+	})
+
+	t.Run("non-host cannot unblock member", func(t *testing.T) {
+		sophiaToken := env.issueTokenForEmail(t, "sophia@example.com")
+		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/members/%d/block", eventID, noahUser.ID), sophiaToken, nil)
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", resp.StatusCode)
+		}
+		resp.Body.Close()
 	})
 }
 

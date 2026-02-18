@@ -467,6 +467,11 @@ INSERT OR IGNORE INTO user_blocks (blocker_user_id, blocked_user_id)
 VALUES (?, ?);
 `
 
+const deleteUserBlock = `
+DELETE FROM user_blocks
+WHERE blocker_user_id = ? AND blocked_user_id = ?;
+`
+
 const selectBlockedUserIDsForUser = `
 SELECT blocked_user_id
 FROM user_blocks
@@ -478,6 +483,22 @@ SELECT 1
 FROM user_blocks
 WHERE blocker_user_id = ? AND blocked_user_id = ?
 LIMIT 1;
+`
+
+const selectMemberReportRelationship = `
+SELECT 1
+FROM event_reports
+WHERE event_id = ? AND user_id = ? AND reported_user_id = ?
+LIMIT 1;
+`
+
+const selectHostEventIDsForMember = `
+SELECT DISTINCT c.event_id
+FROM conversations c
+JOIN events e ON e.id = c.event_id
+JOIN conversation_members cm ON cm.conversation_id = c.id
+WHERE e.user_id = ? AND cm.user_id = ? AND c.event_id IS NOT NULL
+ORDER BY c.event_id ASC;
 `
 
 const createTablePushTokens = `
@@ -2977,6 +2998,101 @@ func (r *EventRepository) CreateMutualBlock(ctx context.Context, userA, userB in
 		return fmt.Errorf("commit mutual block: %w", err)
 	}
 	return nil
+}
+
+// DeleteMutualBlock removes both user->user block rows and reports whether
+// either direction existed before deletion.
+func (r *EventRepository) DeleteMutualBlock(ctx context.Context, userA, userB int64) (bool, error) {
+	if userA <= 0 || userB <= 0 {
+		return false, fmt.Errorf("delete mutual block: invalid user ids")
+	}
+	if userA == userB {
+		return false, nil
+	}
+
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("begin delete mutual block tx: %w", err)
+	}
+
+	deletedAny := false
+
+	resA, err := tx.ExecContext(ctx, deleteUserBlock, userA, userB)
+	if err != nil {
+		tx.Rollback()
+		return false, fmt.Errorf("delete block %d->%d: %w", userA, userB, err)
+	}
+	rowsA, err := resA.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return false, fmt.Errorf("rows affected for delete block %d->%d: %w", userA, userB, err)
+	}
+	if rowsA > 0 {
+		deletedAny = true
+	}
+
+	resB, err := tx.ExecContext(ctx, deleteUserBlock, userB, userA)
+	if err != nil {
+		tx.Rollback()
+		return false, fmt.Errorf("delete block %d->%d: %w", userB, userA, err)
+	}
+	rowsB, err := resB.RowsAffected()
+	if err != nil {
+		tx.Rollback()
+		return false, fmt.Errorf("rows affected for delete block %d->%d: %w", userB, userA, err)
+	}
+	if rowsB > 0 {
+		deletedAny = true
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("commit delete mutual block: %w", err)
+	}
+
+	return deletedAny, nil
+}
+
+// HasMemberReport returns whether a host previously submitted a member report
+// for the target user within the given event.
+func (r *EventRepository) HasMemberReport(ctx context.Context, eventID, hostUserID, memberUserID int64) (bool, error) {
+	var exists int
+	err := r.db.QueryRowContext(
+		ctx,
+		selectMemberReportRelationship,
+		eventID,
+		hostUserID,
+		memberUserID,
+	).Scan(&exists)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("check member report relationship: %w", err)
+	}
+	return true, nil
+}
+
+// ListHostEventIDsForMember returns event IDs owned by hostUserID where
+// memberUserID is currently an accepted participant (conversation member).
+func (r *EventRepository) ListHostEventIDsForMember(ctx context.Context, hostUserID, memberUserID int64) ([]int64, error) {
+	rows, err := r.db.QueryContext(ctx, selectHostEventIDsForMember, hostUserID, memberUserID)
+	if err != nil {
+		return nil, fmt.Errorf("list host event ids for member: %w", err)
+	}
+	defer rows.Close()
+
+	eventIDs := make([]int64, 0)
+	for rows.Next() {
+		var eventID int64
+		if err := rows.Scan(&eventID); err != nil {
+			return nil, fmt.Errorf("scan host event id for member: %w", err)
+		}
+		eventIDs = append(eventIDs, eventID)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate host event ids for member: %w", err)
+	}
+	return eventIDs, nil
 }
 
 // ListBlockedUserIDs returns all users blocked by blockerUserID.
