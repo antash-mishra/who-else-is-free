@@ -405,12 +405,11 @@ WHERE r.event_id = ? AND r.status = 'pending'
 ORDER BY r.created_at ASC;
 `
 
-// For 1:1 events, we also show approved requests (they are auto-approved)
-const selectApprovedJoinRequestsForEvent = `
+const selectPendingOrApprovedJoinRequestsForEvent = `
 SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
 FROM conversation_join_requests r
 JOIN users u ON u.id = r.user_id
-WHERE r.event_id = ? AND r.status = 'approved'
+WHERE r.event_id = ? AND r.status IN ('pending', 'approved')
 ORDER BY r.created_at ASC;
 `
 
@@ -1814,6 +1813,18 @@ func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID
 		}
 	}
 
+	// For 1:1 events, ensure the user does not already have an active private
+	// conversation for this event before creating another request.
+	if event.GroupType == "Single" {
+		convo, err := r.findUserConversationForEvent(ctx, nil, eventID, userID)
+		if err == nil && convo != nil {
+			return nil, ErrAlreadyConversationMember
+		}
+		if err != nil && !errors.Is(err, ErrConversationNotFound) {
+			return nil, err
+		}
+	}
+
 	// Check for existing pending request
 	if _, err := scanJoinRequest(r.db.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID)); err == nil {
 		return nil, ErrJoinRequestExists
@@ -1821,12 +1832,7 @@ func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID
 		return nil, fmt.Errorf("check pending join request: %w", err)
 	}
 
-	// For 1:1 (Single) events, create a private conversation and auto-approve
-	if event.GroupType == "Single" {
-		return r.createSingleEventJoinRequest(ctx, event, userID, message)
-	}
-
-	// For Group events, create a pending request (existing behavior)
+	// Create a pending join request for both Group and 1:1 events.
 	res, err := r.db.ExecContext(ctx, insertJoinRequest, eventID, userID, message)
 	if err != nil {
 		return nil, fmt.Errorf("insert join request: %w", err)
@@ -1838,13 +1844,25 @@ func (r *EventRepository) CreateJoinRequest(ctx context.Context, eventID, userID
 	return fetchJoinRequestByID(ctx, r.db, id)
 }
 
-// createSingleEventJoinRequest handles join requests for 1:1 events by creating
-// a new private conversation between host and requester, inserting the intro message,
-// and auto-approving the request.
-func (r *EventRepository) createSingleEventJoinRequest(ctx context.Context, event *Event, userID int64, message string) (*ConversationJoinRequest, error) {
+func (r *EventRepository) approveSingleJoinRequest(ctx context.Context, event *Event, userID, approverID int64) (*ConversationJoinRequest, error) {
+	if convo, err := r.findUserConversationForEvent(ctx, nil, event.ID, userID); err == nil && convo != nil {
+		return nil, ErrAlreadyConversationMember
+	} else if err != nil && !errors.Is(err, ErrConversationNotFound) {
+		return nil, err
+	}
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("begin single join request tx: %w", err)
+		return nil, fmt.Errorf("begin approve single join tx: %w", err)
+	}
+
+	req, err := scanJoinRequest(tx.QueryRowContext(ctx, selectPendingJoinRequest, event.ID, userID))
+	if err != nil {
+		tx.Rollback()
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrJoinRequestNotFound
+		}
+		return nil, fmt.Errorf("fetch pending single join request: %w", err)
 	}
 
 	// Create a new conversation linked to this event (title = event title)
@@ -1854,58 +1872,49 @@ func (r *EventRepository) createSingleEventJoinRequest(ctx context.Context, even
 	convoRes, err := tx.ExecContext(ctx, insertConversation, nullableTitle, event.UserID, nullableEventID)
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("insert single event conversation: %w", err)
+		return nil, fmt.Errorf("insert approved single conversation: %w", err)
 	}
 
 	convoID, err := convoRes.LastInsertId()
 	if err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("fetch single event conversation id: %w", err)
+		return nil, fmt.Errorf("fetch approved single conversation id: %w", err)
 	}
 
 	// Add host as "owner"
 	if _, err := tx.ExecContext(ctx, insertConversationMember, convoID, event.UserID, "owner"); err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("insert single event conversation owner: %w", err)
+		return nil, fmt.Errorf("insert approved single conversation owner: %w", err)
 	}
 
 	// Add requester as "member"
 	if _, err := tx.ExecContext(ctx, insertConversationMember, convoID, userID, "member"); err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("insert single event conversation member: %w", err)
+		return nil, fmt.Errorf("insert approved single conversation member: %w", err)
 	}
 
-	// Insert the intro message as first message from requester
-	var msg Message
-	var attachmentOut sql.NullString
-	row := tx.QueryRowContext(ctx, insertMessage, convoID, userID, message, sql.NullString{}, "sent")
-	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("insert single event intro message: %w", err)
+	trimmedMessage := strings.TrimSpace(req.Message)
+	if trimmedMessage != "" {
+		// Persist the request intro as the first message in the approved private chat.
+		var msg Message
+		var attachmentOut sql.NullString
+		row := tx.QueryRowContext(ctx, insertMessage, convoID, userID, trimmedMessage, sql.NullString{}, "sent")
+		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("insert approved single intro message: %w", err)
+		}
 	}
 
-	// Create join request with status "approved" immediately
-	const insertApprovedJoinRequest = `
-		INSERT INTO conversation_join_requests (event_id, user_id, message, status, decided_at, decided_by)
-		VALUES (?, ?, ?, 'approved', CURRENT_TIMESTAMP, ?);
-	`
-	reqRes, err := tx.ExecContext(ctx, insertApprovedJoinRequest, event.ID, userID, message, event.UserID)
-	if err != nil {
+	if _, err := tx.ExecContext(ctx, updateJoinRequestStatus, "approved", approverID, req.ID); err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("insert approved join request: %w", err)
-	}
-
-	reqID, err := reqRes.LastInsertId()
-	if err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("fetch join request id: %w", err)
+		return nil, fmt.Errorf("approve single join request: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit single join request: %w", err)
+		return nil, fmt.Errorf("commit approve single join: %w", err)
 	}
 
-	return fetchJoinRequestByID(ctx, r.db, reqID)
+	return fetchJoinRequestByID(ctx, r.db, req.ID)
 }
 
 func (r *EventRepository) ApproveJoinRequest(ctx context.Context, eventID, userID, approverID int64) (*ConversationJoinRequest, error) {
@@ -1915,6 +1924,10 @@ func (r *EventRepository) ApproveJoinRequest(ctx context.Context, eventID, userI
 	}
 	if event.UserID != approverID {
 		return nil, ErrNotEventHost
+	}
+
+	if event.GroupType == "Single" {
+		return r.approveSingleJoinRequest(ctx, event, userID, approverID)
 	}
 
 	convo, err := r.GetConversationByEventID(ctx, eventID)
@@ -1953,6 +1966,18 @@ func (r *EventRepository) ApproveJoinRequest(ctx context.Context, eventID, userI
 		return nil, fmt.Errorf("add conversation member: %w", err)
 	}
 
+	trimmedMessage := strings.TrimSpace(req.Message)
+	if trimmedMessage != "" {
+		// Persist requester intro into the group chat when approval happens.
+		var msg Message
+		var attachmentOut sql.NullString
+		row := tx.QueryRowContext(ctx, insertMessage, convo.ID, userID, trimmedMessage, sql.NullString{}, "sent")
+		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("insert approved group intro message: %w", err)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit join approval: %w", err)
 	}
@@ -1974,14 +1999,7 @@ func (r *EventRepository) DenyJoinRequest(ctx context.Context, eventID, userID, 
 		return nil, fmt.Errorf("begin deny join tx: %w", err)
 	}
 
-	// For 1:1 events, find approved requests; for Group events, find pending requests
-	var req *ConversationJoinRequest
-	if event.GroupType == "Single" {
-		// For 1:1 events, requests are auto-approved, so look for approved status
-		req, err = scanJoinRequest(tx.QueryRowContext(ctx, selectApprovedJoinRequest, eventID, userID))
-	} else {
-		req, err = scanJoinRequest(tx.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID))
-	}
+	req, err := scanJoinRequest(tx.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID))
 	if err != nil {
 		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
@@ -1993,21 +2011,6 @@ func (r *EventRepository) DenyJoinRequest(ctx context.Context, eventID, userID, 
 	if _, err := tx.ExecContext(ctx, updateJoinRequestStatus, "denied", approverID, req.ID); err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("deny join request: %w", err)
-	}
-
-	// For 1:1 events, close the private conversation entirely so stale unread
-	// previews do not remain for the host after the requester is denied.
-	if event.GroupType == "Single" {
-		convo, err := r.findUserConversationForEvent(ctx, tx, eventID, userID)
-		if err == nil && convo != nil {
-			if _, err := tx.ExecContext(ctx, deleteConversationByID, convo.ID); err != nil {
-				tx.Rollback()
-				return nil, fmt.Errorf("delete single event conversation: %w", err)
-			}
-		} else if err != nil && !errors.Is(err, ErrConversationNotFound) {
-			tx.Rollback()
-			return nil, fmt.Errorf("find single event conversation: %w", err)
-		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -2025,6 +2028,7 @@ func (r *EventRepository) findUserConversationForEvent(ctx context.Context, tx *
 		FROM conversations c
 		JOIN conversation_members cm ON cm.conversation_id = c.id
 		WHERE c.event_id = ? AND cm.user_id = ?
+		ORDER BY c.created_at DESC, c.id DESC
 		LIMIT 1;
 	`
 	var convo Conversation
@@ -2109,22 +2113,15 @@ func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID
 	return nil
 }
 
-func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64) ([]JoinRequestView, error) {
-	// First, get the event to check its type
+func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64, includeApproved bool) ([]JoinRequestView, error) {
 	event, err := r.GetEventByID(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Choose the right query based on event type
-	var query string
-	isSingleEvent := event.GroupType == "Single"
-	if isSingleEvent {
-		// For 1:1 events, list approved requests (they are auto-approved)
-		query = selectApprovedJoinRequestsForEvent
-	} else {
-		// For Group events, list pending requests
-		query = selectPendingJoinRequestsForEvent
+	query := selectPendingJoinRequestsForEvent
+	if includeApproved {
+		query = selectPendingOrApprovedJoinRequestsForEvent
 	}
 
 	rows, err := r.db.QueryContext(ctx, query, eventID)
@@ -2175,10 +2172,13 @@ func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64) (
 		return nil, fmt.Errorf("iterate join requests: %w", err)
 	}
 
-	// For 1:1 events, populate the conversation IDs after closing rows
+	// Populate conversation IDs for approved 1:1 requests after closing rows
 	// (SQLite single-connection doesn't support nested queries while rows are open)
-	if isSingleEvent {
+	if event.GroupType == "Single" {
 		for i := range requests {
+			if requests[i].Status != "approved" {
+				continue
+			}
 			convo, err := r.findUserConversationForEvent(ctx, nil, eventID, requests[i].UserID)
 			if err == nil && convo != nil {
 				requests[i].ConversationID = &convo.ID

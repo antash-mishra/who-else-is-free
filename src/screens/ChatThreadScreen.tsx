@@ -70,6 +70,21 @@ const ChatThreadScreen = () => {
     return resolveCoverUri(match.coverKey ?? null);
   }, [activeConversation, events]);
 
+  const activeEvent = useMemo(() => {
+    if (!activeConversation?.eventId) {
+      return null;
+    }
+    return (
+      events.find((eventItem) => Number(eventItem.id) === activeConversation.eventId) ??
+      null
+    );
+  }, [activeConversation, events]);
+
+  const activeEventGroupType = useMemo(
+    () => activeConversation?.event?.groupType ?? activeEvent?.groupType ?? null,
+    [activeConversation, activeEvent],
+  );
+
   const joinRequests = useMemo(() => {
     if (!activeConversationId) {
       return [];
@@ -98,15 +113,19 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost
+      !isConversationHost ||
+      activeEventGroupType !== "Single"
     ) {
       return;
     }
     refreshJoinRequests(
       activeConversation.id,
       activeConversation.eventId,
+      {
+        includeApproved: true,
+      },
     ).catch(() => undefined);
-  }, [activeConversation, isConversationHost, refreshJoinRequests]);
+  }, [activeConversation, activeEventGroupType, isConversationHost, refreshJoinRequests]);
 
   useEffect(() => {
     if (Platform.OS !== "android") {
@@ -161,29 +180,47 @@ const ChatThreadScreen = () => {
   };
 
   const isSendDisabled = draft.trim().length === 0;
-  const pendingJoinRequestCount = isConversationHost ? joinRequests.length : 0;
+  const approvedJoinRequestCount = isConversationHost
+    ? joinRequests.filter((request) => request.status === "approved").length
+    : 0;
   const canViewJoinRequests =
-    isConversationHost && !!activeConversation?.eventId;
+    isConversationHost &&
+    !!activeConversation?.eventId &&
+    activeEventGroupType === "Single";
 
   if (!activeConversation) {
     return null;
   }
 
   const handleOpenJoinRequests = () => {
-    if (!activeConversation || !activeConversation.eventId || !isConversationHost) {
+    if (
+      !activeConversation ||
+      !activeConversation.eventId ||
+      !isConversationHost ||
+      activeEventGroupType !== "Single"
+    ) {
       return;
     }
     navigation.navigate("JoinRequests", {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
-      title: activeConversation.displayName,
-      groupType: activeConversation.event?.groupType as "Single" | "Group" | undefined,
-      eventDetails: activeConversation.event ? {
-        coverKey: activeConversation.event.coverKey,
-        dateLabel: activeConversation.event.dateLabel ?? "",
-        location: activeConversation.event.location ?? "",
-        time: activeConversation.event.time ?? "",
-      } : undefined,
+      title: activeConversation.event?.title ?? activeConversation.displayName,
+      groupType: "Single",
+      eventDetails: activeConversation.event
+        ? {
+            coverKey: activeConversation.event.coverKey,
+            dateLabel: activeConversation.event.dateLabel ?? "",
+            location: activeConversation.event.location ?? "",
+            time: activeConversation.event.time ?? "",
+          }
+        : activeEvent
+          ? {
+              coverKey: activeEvent.coverKey ?? undefined,
+              dateLabel: activeEvent.dateLabel,
+              location: activeEvent.location,
+              time: activeEvent.time,
+            }
+          : undefined,
     });
   };
 
@@ -293,7 +330,7 @@ const ChatThreadScreen = () => {
               <Text style={styles.threadSubtitle}>Connecting…</Text>
             ) : null}
           </View>
-          {canViewJoinRequests && pendingJoinRequestCount > 0 ? (
+          {canViewJoinRequests && approvedJoinRequestCount > 0 ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View join requests"
@@ -301,7 +338,9 @@ const ChatThreadScreen = () => {
             >
               <View style={styles.joinBadge}>
                 <Text style={styles.joinBadgeText}>
-                  {pendingJoinRequestCount > 99 ? "99+" : pendingJoinRequestCount}
+                  {approvedJoinRequestCount > 99
+                    ? "99+"
+                    : approvedJoinRequestCount}
                 </Text>
               </View>
             </Pressable>

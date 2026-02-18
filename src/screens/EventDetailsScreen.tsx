@@ -90,7 +90,6 @@ const EventDetailsScreen = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteResultVisible, setDeleteResultVisible] = useState(false);
   const [userIntroMessage, setUserIntroMessage] = useState<string | null>(null);
   const [showPendingRequestPrompt, setShowPendingRequestPrompt] = useState(false);
   const [isCancellingRequest, setIsCancellingRequest] = useState(false);
@@ -106,14 +105,11 @@ const EventDetailsScreen = () => {
   const [leaveError, setLeaveError] = useState<string | null>(null);
   const [leaveSuccessVisible, setLeaveSuccessVisible] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<"requests" | "members">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "accepted" | "members">("requests");
   const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(new Set());
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
-  // 1:1 event request menu state
   const [selectedRequest, setSelectedRequest] = useState<ChatJoinRequest | null>(null);
-  const [showRequestMenu, setShowRequestMenu] = useState(false);
-  const [isDecliningFromMenu, setIsDecliningFromMenu] = useState(false);
   const [isReportingMember, setIsReportingMember] = useState(false);
   // Group member menu state
   const [selectedMember, setSelectedMember] = useState<{ id: number; name: string; avatarUrl?: string } | null>(null);
@@ -122,6 +118,12 @@ const EventDetailsScreen = () => {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removeSuccessVisible, setRemoveSuccessVisible] = useState(false);
+  const [disableHostRequestPolling, setDisableHostRequestPolling] =
+    useState(false);
+
+  useEffect(() => {
+    setDisableHostRequestPolling(false);
+  }, [route.params.eventId]);
 
   if (!event) {
     return (
@@ -146,19 +148,29 @@ const EventDetailsScreen = () => {
   const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
   const scheduleLine = `${readableDateLabel(event.dateLabel)}, ${event.time}`;
   const audienceLine = `${event.groupType === "Single" ? "1:1" : "Group"}, ${event.audience}`;
+  const eventNumericId = useMemo(() => {
+    const parsed = Number(event.id);
+    return Number.isNaN(parsed) ? null : parsed;
+  }, [event.id]);
   const eventConversation = useMemo(() => {
-    if (!event) {
-      return null;
-    }
-    const numericId = Number(event.id);
-    if (Number.isNaN(numericId)) {
+    if (eventNumericId == null) {
       return null;
     }
     return conversations.find(
-      (conversation) => conversation.eventId === numericId,
+      (conversation) => conversation.eventId === eventNumericId,
     );
-  }, [conversations, event]);
+  }, [conversations, eventNumericId]);
   const eventConversationId = eventConversation?.id ?? null;
+  const requestStoreKey = useMemo(() => {
+    if (eventNumericId == null) {
+      return null;
+    }
+    if (eventConversationId != null) {
+      return eventConversationId;
+    }
+    // For 1:1 host flows, pending requests may exist before any conversation exists.
+    return isSingleEvent ? -eventNumericId : null;
+  }, [eventConversationId, eventNumericId, isSingleEvent]);
 
   const isConversationMember = useMemo(() => {
     if (!user || !eventConversation) {
@@ -175,44 +187,75 @@ const EventDetailsScreen = () => {
 
   // Keep host-side requests fresh while viewing details.
   useEffect(() => {
-    if (!isFocused || !isOwner || !eventConversationId || !event) {
+    if (
+      !isFocused ||
+      !rawEvent ||
+      !isOwner ||
+      !event ||
+      requestStoreKey == null ||
+      eventNumericId == null ||
+      disableHostRequestPolling
+    ) {
       return;
     }
-    const eventId = Number(event.id);
-    if (Number.isNaN(eventId)) {
-      return;
-    }
-    refreshJoinRequests(eventConversationId, eventId).catch(() => undefined);
+
+    const refreshHostRequests = () => {
+      refreshJoinRequests(requestStoreKey, eventNumericId, {
+        includeApproved: isSingleEvent,
+      }).catch((err: unknown) => {
+        const status =
+          typeof err === "object" &&
+          err !== null &&
+          "status" in err &&
+          typeof (err as { status?: unknown }).status === "number"
+            ? ((err as { status?: number }).status ?? undefined)
+            : undefined;
+        if (status === 404) {
+          setDisableHostRequestPolling(true);
+        }
+      });
+    };
+
+    refreshHostRequests();
     const interval = setInterval(() => {
-      refreshJoinRequests(eventConversationId, eventId).catch(() => undefined);
+      refreshHostRequests();
     }, 5000);
     return () => clearInterval(interval);
-  }, [isFocused, isOwner, eventConversationId, event?.id, refreshJoinRequests]);
+  }, [
+    isFocused,
+    rawEvent,
+    isOwner,
+    event,
+    requestStoreKey,
+    eventNumericId,
+    refreshJoinRequests,
+    isSingleEvent,
+    disableHostRequestPolling,
+  ]);
 
-  // For 1:1 host view, there is no initial event conversation. Poll lightweight
-  // conversation list while focused so newly joined users appear quickly.
   useEffect(() => {
-    if (!isFocused || !isOwner || !isSingleEvent || !event || eventConversationId) {
-      return;
+    if (isSingleEvent && activeTab === "members") {
+      setActiveTab("requests");
     }
-    refreshConversations().catch(() => undefined);
-    const interval = setInterval(() => {
-      refreshConversations().catch(() => undefined);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [isFocused, isOwner, isSingleEvent, event?.id, eventConversationId, refreshConversations]);
+    if (!isSingleEvent && activeTab === "accepted") {
+      setActiveTab("requests");
+    }
+  }, [activeTab, isSingleEvent]);
 
-  // Get visible join requests for this event
-  // For 1:1 events: show approved requests (auto-approved on join)
-  // For Group events: show pending requests (awaiting host approval)
-  const visibleRequests = useMemo(() => {
-    if (!eventConversation) return [];
-    const requests = joinRequestsByConversation[eventConversation.id] ?? [];
-    if (isSingleEvent) {
-      return requests.filter((r) => r.status === "approved");
+  const hostRequests = useMemo(() => {
+    if (requestStoreKey == null) {
+      return [];
     }
-    return requests.filter((r) => r.status === "pending");
-  }, [eventConversation, joinRequestsByConversation, isSingleEvent]);
+    return joinRequestsByConversation[requestStoreKey] ?? [];
+  }, [joinRequestsByConversation, requestStoreKey]);
+  const pendingRequests = useMemo(
+    () => hostRequests.filter((request) => request.status === "pending"),
+    [hostRequests],
+  );
+  const acceptedRequests = useMemo(
+    () => hostRequests.filter((request) => request.status === "approved"),
+    [hostRequests],
+  );
 
   // Get confirmed members (excluding host)
   const confirmedMembers = useMemo(() => {
@@ -277,6 +320,22 @@ const EventDetailsScreen = () => {
   };
 
   const handleOpenChat = () => {
+    if (isOwner && isSingleEvent && eventNumericId != null && requestStoreKey != null) {
+      (navigation as any).navigate("JoinRequests", {
+        conversationId: requestStoreKey,
+        eventId: eventNumericId,
+        title: event.title,
+        groupType: "Single",
+        eventDetails: {
+          coverKey: event.coverKey ?? undefined,
+          dateLabel: event.dateLabel,
+          location: event.location,
+          time: event.time,
+        },
+      });
+      return;
+    }
+
     if (!eventConversation) {
       return;
     }
@@ -310,10 +369,16 @@ const EventDetailsScreen = () => {
   };
 
   const handleAcceptRequest = async (request: ChatJoinRequest) => {
-    if (!eventConversation || !event) return;
+    if (!event || requestStoreKey == null || eventNumericId == null) return;
     setAcceptingUserId(request.userId);
     try {
-      await approveJoinRequest(eventConversation.id, Number(event.id), request.userId);
+      await approveJoinRequest(requestStoreKey, eventNumericId, request.userId);
+      await refreshJoinRequests(requestStoreKey, eventNumericId, {
+        includeApproved: isSingleEvent,
+      });
+      await refreshConversations().catch((err) => {
+        console.error("Failed to refresh conversations after approving request", err);
+      });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (err) {
       console.error("Failed to accept request", err);
@@ -323,10 +388,13 @@ const EventDetailsScreen = () => {
   };
 
   const handleDeclineRequest = async (request: ChatJoinRequest) => {
-    if (!eventConversation || !event) return;
+    if (!event || requestStoreKey == null || eventNumericId == null) return;
     setDecliningUserId(request.userId);
     try {
-      await denyJoinRequest(eventConversation.id, Number(event.id), request.userId);
+      await denyJoinRequest(requestStoreKey, eventNumericId, request.userId);
+      await refreshJoinRequests(requestStoreKey, eventNumericId, {
+        includeApproved: isSingleEvent,
+      });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (err) {
       console.error("Failed to decline request", err);
@@ -347,38 +415,10 @@ const EventDetailsScreen = () => {
     });
   };
 
-  // 1:1 event handlers
   const handleRequesterPress = async (request: ChatJoinRequest) => {
-    if (!request.conversationId || !eventConversation) return;
+    if (!request.conversationId) return;
     setActiveConversation(request.conversationId);
     (navigation as any).navigate("ChatThread");
-  };
-
-  const openRequestMenu = (request: ChatJoinRequest) => {
-    setSelectedRequest(request);
-    setShowRequestMenu(true);
-  };
-
-  const handleDeclineFromMenu = async () => {
-    if (!selectedRequest || !eventConversation || !event) return;
-    setIsDecliningFromMenu(true);
-    try {
-      await denyJoinRequest(eventConversation.id, Number(event.id), selectedRequest.userId);
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-      setShowRequestMenu(false);
-      setSelectedRequest(null);
-    } catch (err) {
-      console.error("Failed to decline request from menu", err);
-    } finally {
-      setIsDecliningFromMenu(false);
-    }
-  };
-
-  const handleOpenReportFromMenu = () => {
-    setShowRequestMenu(false);
-    setReportMessage("");
-    setReportError(null);
-    setShowReportPrompt(true);
   };
 
   const openMemberMenu = (member: { id: number; name: string; avatarUrl?: string }) => {
@@ -407,6 +447,13 @@ const EventDetailsScreen = () => {
       await refreshConversations().catch((err) => {
         console.error("Failed to refresh conversations after removing member", err);
       });
+      if (requestStoreKey != null && eventNumericId != null) {
+        await refreshJoinRequests(requestStoreKey, eventNumericId, {
+          includeApproved: isSingleEvent,
+        }).catch((err) => {
+          console.error("Failed to refresh join requests after removing member", err);
+        });
+      }
       setShowRemoveConfirm(false);
       setRemoveSuccessVisible(true);
     } catch (err) {
@@ -478,8 +525,10 @@ const EventDetailsScreen = () => {
       setSelectedRequest(null);
       setReportSuccessVisible(true);
       // Refresh requests since the reported member should be removed
-      if (eventConversation) {
-        refreshJoinRequests(eventConversation.id, Number(event.id));
+      if (requestStoreKey != null && eventNumericId != null) {
+        refreshJoinRequests(requestStoreKey, eventNumericId, {
+          includeApproved: isSingleEvent,
+        });
       }
     } catch (err) {
       console.error("Failed to submit member report", err);
@@ -576,10 +625,23 @@ const EventDetailsScreen = () => {
     }
     setDeleteError(null);
     setIsDeleting(true);
+    setDisableHostRequestPolling(true);
     try {
       await deleteUserEvent(event.id);
       setShowDeleteConfirm(false);
-      setDeleteResultVisible(true);
+      const targetTab = origin === "MyEvents" ? "MyEvents" : "Events";
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: "Main",
+            params: {
+              screen: targetTab,
+              params: { showEventDeletedBadge: true },
+            },
+          },
+        ],
+      });
     } catch (err) {
       console.error("Failed to delete event", err);
       setDeleteError("Unable to delete this event. Please try again.");
@@ -593,20 +655,6 @@ const EventDetailsScreen = () => {
       return;
     }
     setShowDeleteConfirm(false);
-  };
-
-  const handleDismissDeleteResult = () => {
-    setDeleteResultVisible(false);
-    const targetTab = origin === "MyEvents" ? "MyEvents" : "Events";
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: "Main",
-          params: { screen: targetTab },
-        },
-      ],
-    });
   };
 
   const handleCancelRequest = async () => {
@@ -958,23 +1006,37 @@ const EventDetailsScreen = () => {
               <>
                 <View style={styles.tabSeparator} />
 
-                {/* Tabs header - Requests for all events, Members only for Group */}
+                {/* Tabs header */}
                 <View style={styles.tabContainer}>
                   <Pressable
                     style={styles.tabItem}
                     onPress={() => setActiveTab("requests")}
                   >
                     <View style={styles.tabLabelRow}>
-                      <Text style={[styles.tabLabel, (isSingleEvent || activeTab === "requests") && styles.tabLabelActive]}>
+                      <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
                         Requests
                       </Text>
-                      <Text style={styles.tabCount}> {visibleRequests.length}</Text>
+                      <Text style={styles.tabCount}> {pendingRequests.length}</Text>
                     </View>
-                    {(isSingleEvent || activeTab === "requests") && <View style={styles.tabUnderline} />}
+                    {activeTab === "requests" && <View style={styles.tabUnderline} />}
                   </Pressable>
 
-                  {/* Members tab - only for Group events */}
-                  {!isSingleEvent && (
+                  {isSingleEvent && (
+                    <Pressable
+                      style={styles.tabItem}
+                      onPress={() => setActiveTab("accepted")}
+                    >
+                      <View style={styles.tabLabelRow}>
+                        <Text style={[styles.tabLabel, activeTab === "accepted" && styles.tabLabelActive]}>
+                          Accepted
+                        </Text>
+                        <Text style={styles.tabCount}> {acceptedRequests.length}</Text>
+                      </View>
+                      {activeTab === "accepted" && <View style={styles.tabUnderline} />}
+                    </Pressable>
+                  )}
+
+                  {activeTab !== "accepted" && !isSingleEvent && (
                     <Pressable
                       style={styles.tabItem}
                       onPress={() => setActiveTab("members")}
@@ -990,42 +1052,13 @@ const EventDetailsScreen = () => {
                   )}
                 </View>
 
-                {/* Requests list - always for 1:1, or when requests tab active for Group */}
-                {(isSingleEvent || activeTab === "requests") && (
+                {/* Requests list */}
+                {activeTab === "requests" && (
                   <View style={styles.listContainer}>
-                    {visibleRequests.length === 0 ? (
+                    {pendingRequests.length === 0 ? (
                       <Text style={styles.emptyStateText}>No requests yet</Text>
                     ) : (
-                      visibleRequests.map((request) => {
-                        if (isSingleEvent) {
-                          // 1:1 mode: tappable row with 3-dot menu
-                          return (
-                            <Pressable
-                              key={request.id}
-                              onPress={() => handleRequesterPress(request)}
-                              style={styles.requestItem}
-                            >
-                              {renderAvatar(request.requester)}
-                              <View style={styles.requestInfo}>
-                                <Text style={styles.requesterName}>{request.requester.name}</Text>
-                                <Text numberOfLines={1} style={styles.requestMessagePreview}>
-                                  {request.message}
-                                </Text>
-                              </View>
-                              <Pressable
-                                onPress={(e) => {
-                                  e.stopPropagation();
-                                  openRequestMenu(request);
-                                }}
-                                style={styles.requestMenuButton}
-                              >
-                                <Feather name="more-horizontal" size={24} color="#666" />
-                              </Pressable>
-                            </Pressable>
-                          );
-                        }
-
-                        // Group mode: existing card with Accept/Decline
+                      pendingRequests.map((request) => {
                         const isExpanded = expandedRequestIds.has(request.id);
                         const isAccepting = acceptingUserId === request.userId;
                         const isDeclining = decliningUserId === request.userId;
@@ -1085,7 +1118,40 @@ const EventDetailsScreen = () => {
                   </View>
                 )}
 
-                {/* Members tab - only for Group events */}
+                {isSingleEvent && activeTab === "accepted" && (
+                  <View style={styles.listContainer}>
+                    {acceptedRequests.length === 0 ? (
+                      <Text style={styles.emptyStateText}>No accepted members yet</Text>
+                    ) : (
+                      acceptedRequests.map((request) => (
+                        <Pressable
+                          key={request.id}
+                          onPress={() => handleRequesterPress(request)}
+                          style={styles.requestItem}
+                        >
+                          {renderAvatar(request.requester)}
+                          <View style={styles.requestInfo}>
+                            <Text style={styles.requesterName}>{request.requester.name}</Text>
+                            <Text numberOfLines={1} style={styles.requestMessagePreview}>
+                              {request.message}
+                            </Text>
+                          </View>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              openMemberMenu(request.requester);
+                            }}
+                            style={styles.requestMenuButton}
+                          >
+                            <Feather name="more-horizontal" size={24} color="#666" />
+                          </Pressable>
+                        </Pressable>
+                      ))
+                    )}
+                  </View>
+                )}
+
+                {/* Members tab - Group only */}
                 {!isSingleEvent && activeTab === "members" && (
                   <View style={styles.listContainer}>
                     {confirmedMembers.length === 0 ? (
@@ -1211,16 +1277,6 @@ const EventDetailsScreen = () => {
         errorMessage={deleteError}
       />
       <EventActionOverlay
-        isVisible={deleteResultVisible}
-        onBackdropPress={handleDismissDeleteResult}
-        type="result"
-        title="Event removed"
-        description="We've cleared the event from the list."
-        dismissLabel="Done"
-        onDismiss={handleDismissDeleteResult}
-        tone="default"
-      />
-      <EventActionOverlay
         isVisible={inviteSuccessVisible}
         onBackdropPress={() => setInviteSuccessVisible(false)}
         type="result"
@@ -1308,28 +1364,7 @@ const EventDetailsScreen = () => {
         onDismiss={handleDismissLeaveSuccess}
         tone="default"
       />
-      {/* 1:1 event request menu */}
-      <EventActionOverlay
-        isVisible={showRequestMenu}
-        onBackdropPress={() => {
-          setShowRequestMenu(false);
-          setSelectedRequest(null);
-        }}
-        type="menu"
-        items={[
-          {
-            label: "Decline request",
-            onPress: handleDeclineFromMenu,
-            loading: isDecliningFromMenu,
-          },
-          {
-            label: "Report Member",
-            onPress: handleOpenReportFromMenu,
-            destructive: true,
-          },
-        ]}
-      />
-      {/* Group member menu */}
+      {/* Member menu */}
       <EventActionOverlay
         isVisible={showMemberMenu}
         onBackdropPress={() => {
@@ -1354,7 +1389,11 @@ const EventDetailsScreen = () => {
         onBackdropPress={isRemovingMember ? undefined : handleRemoveCancel}
         type="confirm"
         title="Remove this member?"
-        description="They will be removed from the group chat and will need to request to join again."
+        description={
+          isSingleEvent
+            ? "They will be removed from this event and private chat."
+            : "They will be removed from the group chat and will need to request to join again."
+        }
         confirmLabel="Remove Member"
         cancelLabel="Cancel"
         confirmTone="destructive"
@@ -1368,7 +1407,7 @@ const EventDetailsScreen = () => {
         onBackdropPress={handleDismissRemoveSuccess}
         type="result"
         title="Member removed"
-        description="They have been removed from the group."
+        description="They have been removed from the event."
         dismissLabel="Done"
         onDismiss={handleDismissRemoveSuccess}
         tone="default"

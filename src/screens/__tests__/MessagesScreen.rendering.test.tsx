@@ -208,6 +208,7 @@ const mockEvents = [
     groupType: 'Group',
   },
 ];
+const mockIsEventReported = jest.fn().mockReturnValue(false);
 
 jest.mock('@context/EventsContext', () => ({
   useEvents: () => ({
@@ -225,6 +226,8 @@ jest.mock('@context/EventsContext', () => ({
     markEventRequested: jest.fn(),
     isEventRequested: jest.fn(),
     unmarkEventRequested: jest.fn(),
+    markEventReported: jest.fn(),
+    isEventReported: mockIsEventReported,
   }),
 }));
 
@@ -273,6 +276,7 @@ jest.mock('@components/EmptyState', () => {
 describe('MessagesScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsEventReported.mockReturnValue(false);
     mockAuthValue = {
       user: mockUser,
       token: 'mock-token',
@@ -313,6 +317,14 @@ describe('MessagesScreen Rendering', () => {
       expect(getByText('Coffee Meetup')).toBeTruthy();
       expect(getByText('John Smith')).toBeTruthy();
       expect(getByText('One-on-One Event')).toBeTruthy();
+    });
+
+    it('should hide conversations for reported events', () => {
+      mockIsEventReported.mockImplementation((eventId: string) => eventId === '1');
+      const { queryByText, getByText } = render(<MessagesScreen />);
+
+      expect(queryByText('Coffee Meetup')).toBeNull();
+      expect(getByText('John Smith')).toBeTruthy();
     });
 
     it('should render last message preview for each conversation', () => {

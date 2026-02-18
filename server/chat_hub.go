@@ -718,15 +718,15 @@ func (h *ChatHTTPHandler) listMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, listMessagesResponse{Messages: payloads})
 }
 
-// requestJoin creates a pending request for the current user to join an event's
-// group conversation. The event must exist and have a chat conversation. If the
-// user is already a member or a request is pending, a conflict is returned.
+// requestJoin creates a pending request for the current user to join an event.
+// For Group events, the request is emitted to the event conversation.
+// For 1:1 events, no private conversation is created until the host approves.
 //
 // Responses:
 //   - 201 with the created join request
 //   - 401 if the caller has no session
 //   - 400 for invalid event id
-//   - 404 if the event or its conversation is missing
+//   - 404 if the event is missing
 //   - 409 if a request already exists or the user is already a member
 //   - 500 for repository/database failures
 func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
@@ -796,72 +796,40 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		},
 	}
 
-	// For 1:1 events, request is auto-approved - find the private conversation
-	if event.GroupType == "Single" {
-		// Find the newly created private conversation for this user
-		convo, err := h.repo.findUserConversationForEventPublic(ctx, eventID, claims.UserID)
-		if err == nil && convo != nil {
-			view.ConversationID = &convo.ID
-			// Notify membership (user was auto-added to conversation)
-			h.hub.NotifyMembership(convo.ID, claims.UserID, "added")
-			// Host is also a member of this new private conversation and needs a
-			// membership sync so their socket subscribes immediately.
-			if event.UserID != claims.UserID {
-				h.hub.NotifyMembership(convo.ID, event.UserID, "added")
-			}
-			// Emit join request event to the host's main event conversation
-			mainConvo, _ := h.repo.GetConversationByEventID(ctx, eventID)
-			if mainConvo != nil {
-				h.hub.emitJoinRequestEvent(mainConvo.ID, "created", view)
-			}
+	if event.GroupType == "Group" {
+		// For Group events, emit to the main conversation.
+		convo, err := h.repo.GetConversationByEventID(ctx, eventID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "chat conversation missing for event"})
+			return
 		}
-		// Push: notify host about new join request
+		h.hub.emitJoinRequestEvent(convo.ID, "created", view)
+
+		// Push: notify host about new join request (includes conversation context).
+		h.hub.sendPushToUser(event.UserID, map[string]string{
+			"type":           "join_request.created",
+			"eventId":        strconv.FormatInt(eventID, 10),
+			"conversationId": strconv.FormatInt(convo.ID, 10),
+			"title":          event.Title,
+			"body":           fmt.Sprintf("%s wants to join your event", user.Name),
+		})
+	} else {
+		// For 1:1 events, the request remains pending until host approval.
 		h.hub.sendPushToUser(event.UserID, map[string]string{
 			"type":    "join_request.created",
 			"eventId": strconv.FormatInt(eventID, 10),
 			"title":   event.Title,
 			"body":    fmt.Sprintf("%s wants to join your event", user.Name),
 		})
-		// Push: notify requester they were auto-approved
-		if view.ConversationID != nil {
-			h.hub.sendPushToUser(claims.UserID, map[string]string{
-				"type":           "join_request.approved",
-				"eventId":        strconv.FormatInt(eventID, 10),
-				"conversationId": strconv.FormatInt(*view.ConversationID, 10),
-				"title":          event.Title,
-				"body":           "Your request to join was approved!",
-			})
-		}
-		c.JSON(http.StatusCreated, gin.H{
-			"request":        view,
-			"conversationId": view.ConversationID,
-		})
-		return
 	}
-
-	// For Group events, emit to the main conversation
-	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "chat conversation missing for event"})
-		return
-	}
-
-	h.hub.emitJoinRequestEvent(convo.ID, "created", view)
-
-	// Push: notify host about new join request
-	h.hub.sendPushToUser(event.UserID, map[string]string{
-		"type":           "join_request.created",
-		"eventId":        strconv.FormatInt(eventID, 10),
-		"conversationId": strconv.FormatInt(convo.ID, 10),
-		"title":          event.Title,
-		"body":           fmt.Sprintf("%s wants to join your event", user.Name),
-	})
 
 	c.JSON(http.StatusCreated, joinRequestResponse{Request: view})
 }
 
-// listJoinRequests returns all pending join requests for the specified event.
-// Only the event host may view the pending queue.
+// listJoinRequests returns join requests for the specified event.
+// Only the event host may view this list.
+// By default it returns pending requests only.
+// Set `include_approved=1` (or `true`) to include approved requests too.
 func (h *ChatHTTPHandler) listJoinRequests(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
 	if !ok {
@@ -894,7 +862,13 @@ func (h *ChatHTTPHandler) listJoinRequests(c *gin.Context) {
 		return
 	}
 
-	requests, err := h.repo.ListJoinRequests(ctx, eventID)
+	includeApproved := false
+	switch strings.ToLower(strings.TrimSpace(c.Query("include_approved"))) {
+	case "1", "true", "yes":
+		includeApproved = true
+	}
+
+	requests, err := h.repo.ListJoinRequests(ctx, eventID, includeApproved)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list join requests"})
 		return
@@ -932,8 +906,8 @@ func (h *ChatHTTPHandler) listUserJoinRequests(c *gin.Context) {
 }
 
 // approveJoin allows the event host to approve a user's pending join request.
-// On success, the user is added to the event's conversation and the hub is
-// notified so any active sockets for that user start receiving events.
+// For Group events, the user is added to the shared event conversation.
+// For 1:1 events, a private host/requester conversation is created.
 //
 // Responses:
 //   - 200 with the approved request and `conversationId`
@@ -984,7 +958,18 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		return
 	}
 
-	convo, err := h.repo.GetConversationByEventID(ctx, eventID)
+	event, err := h.repo.GetEventByID(ctx, eventID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+
+	var convo *Conversation
+	if event.GroupType == "Single" {
+		convo, err = h.repo.findUserConversationForEventPublic(ctx, eventID, userID)
+	} else {
+		convo, err = h.repo.GetConversationByEventID(ctx, eventID)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load conversation"})
 		return
@@ -997,22 +982,27 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 	}
 
 	h.hub.NotifyMembership(convo.ID, userID, "added")
-	h.hub.emitJoinRequestEvent(convo.ID, "approved", view)
+	if event.GroupType == "Single" && event.UserID != userID {
+		// The host is already a member in DB; emit membership so host sockets
+		// subscribe immediately to the newly created private conversation.
+		h.hub.NotifyMembership(convo.ID, event.UserID, "added")
+	}
+	if err := h.emitApprovedIntroMessage(ctx, convo.ID, userID, req.Message); err != nil {
+		log.Printf("emit approved intro message failed: %v", err)
+	}
+	if event.GroupType == "Group" {
+		h.hub.emitJoinRequestEvent(convo.ID, "approved", view)
+	}
 	if err := h.postJoinAnnouncement(ctx, convo.ID, view); err != nil {
 		log.Printf("post join announcement failed: %v", err)
 	}
 
 	// Push: notify the requester they were approved
-	event, _ := h.repo.GetEventByID(ctx, eventID)
-	eventTitle := ""
-	if event != nil {
-		eventTitle = event.Title
-	}
 	h.hub.sendPushToUser(userID, map[string]string{
 		"type":           "join_request.approved",
 		"eventId":        strconv.FormatInt(eventID, 10),
 		"conversationId": strconv.FormatInt(convo.ID, 10),
-		"title":          eventTitle,
+		"title":          event.Title,
 		"body":           "Your request to join was approved!",
 	})
 
@@ -1397,6 +1387,31 @@ func (h *ChatHTTPHandler) postJoinAnnouncement(ctx context.Context, conversation
 	return nil
 }
 
+func (h *ChatHTTPHandler) emitApprovedIntroMessage(ctx context.Context, conversationID, senderID int64, intro string) error {
+	trimmed := strings.TrimSpace(intro)
+	if trimmed == "" {
+		return nil
+	}
+
+	// Intro text is persisted during approval; emit the latest persisted row so
+	// connected clients see it immediately without a manual refresh.
+	messages, err := h.repo.ListMessages(ctx, conversationID, 1, 0)
+	if err != nil {
+		return err
+	}
+	if len(messages) == 0 {
+		return nil
+	}
+
+	latest := messages[0]
+	if latest.SenderID != senderID || strings.TrimSpace(latest.Body) != trimmed {
+		return nil
+	}
+
+	h.hub.emitChatMessage(&latest, "")
+	return nil
+}
+
 type listEventConversationsResponse struct {
 	Conversations []ConversationSummary `json:"conversations"`
 }
@@ -1459,8 +1474,8 @@ type reportMemberBody struct {
 }
 
 // reportMember allows the event host to report a specific member.
-// This creates a report with reported_user_id set and also denies the join request
-// (which removes the user from the conversation for 1:1 events).
+// This creates a report with reported_user_id set and removes the user from the
+// event if they currently have membership.
 //
 // Responses:
 //   - 201 with the created report
@@ -1538,18 +1553,28 @@ func (h *ChatHTTPHandler) reportMember(c *gin.Context) {
 		return
 	}
 
-	// Also deny the join request (which removes user from conversation for 1:1 events)
+	// Resolve conversation before removal so we can emit membership updates.
+	convoBeforeRemoval, convoErr := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
+	if convoErr != nil && !errors.Is(convoErr, ErrConversationNotFound) {
+		log.Printf("failed to lookup member conversation before report removal: %v", convoErr)
+		convoBeforeRemoval = nil
+	}
+
+	// Deny any pending join request first so pending users are removed from
+	// request queues even when they do not have active membership yet.
 	_, denyErr := h.repo.DenyJoinRequest(ctx, eventID, reportedUserID, claims.UserID)
 	if denyErr != nil && !errors.Is(denyErr, ErrJoinRequestNotFound) {
 		log.Printf("failed to deny join request after report: %v", denyErr)
 	}
 
-	// Notify membership removal for 1:1 events
-	if event.GroupType == "Single" {
-		convo, err := h.repo.findUserConversationForEventPublic(ctx, eventID, reportedUserID)
-		if err == nil && convo != nil {
-			h.hub.NotifyMembership(convo.ID, reportedUserID, "removed")
-		}
+	// If the reported user has an active membership, remove it.
+	removeErr := h.repo.RemoveEventMember(ctx, eventID, reportedUserID)
+	if removeErr != nil && !errors.Is(removeErr, ErrNotConversationMember) && !errors.Is(removeErr, ErrCannotRemoveHost) {
+		log.Printf("failed to remove member after report: %v", removeErr)
+	}
+
+	if convoBeforeRemoval != nil {
+		h.hub.NotifyMembership(convoBeforeRemoval.ID, reportedUserID, "removed")
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"report": report})

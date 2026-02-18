@@ -75,7 +75,7 @@ const mockJoinRequests: Array<{
   eventId: number;
   userId: number;
   message: string;
-  status: "pending";
+  status: "pending" | "approved";
   createdAt: string;
   requester: { id: number; name: string };
   conversationId?: number;
@@ -85,7 +85,7 @@ const mockJoinRequests: Array<{
     eventId: 1,
     userId: 2,
     message: 'I would love to join this coffee meetup!',
-    status: 'pending' as const,
+    status: 'approved' as const,
     createdAt: new Date().toISOString(),
     requester: { id: 2, name: 'Jane Doe' },
     conversationId: 10,
@@ -95,7 +95,7 @@ const mockJoinRequests: Array<{
     eventId: 1,
     userId: 3,
     message: 'Sounds fun!',
-    status: 'pending' as const,
+    status: 'approved' as const,
     createdAt: new Date(Date.now() - 3600000).toISOString(),
     requester: { id: 3, name: 'John Smith' },
     conversationId: 11,
@@ -429,8 +429,8 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should render request count badge in 1:1 mode', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
-      // Badge shows count of requests
-      expect(getByText('3')).toBeTruthy();
+      // Badge shows count of approved users only
+      expect(getByText('2')).toBeTruthy();
     });
 
     it('should not render badge when no requests in 1:1 mode', () => {
@@ -450,10 +450,11 @@ describe('JoinRequestsScreen Rendering', () => {
     });
 
     it('should render requester names', () => {
-      const { getByText } = render(<JoinRequestsScreen />);
+      const { getByText, queryByText } = render(<JoinRequestsScreen />);
 
       expect(getByText('Jane Doe')).toBeTruthy();
       expect(getByText('John Smith')).toBeTruthy();
+      expect(queryByText('Alice Brown')).toBeNull();
     });
 
     it('should render intro message for each request', () => {
@@ -462,25 +463,18 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(getByText('I would love to join this coffee meetup!')).toBeTruthy();
     });
 
-    it('should show "No introduction provided" for empty messages', () => {
-      const { getByText } = render(<JoinRequestsScreen />);
-
-      expect(getByText('No introduction provided')).toBeTruthy();
-    });
-
     it('should render avatar with initial', () => {
       const { getAllByText } = render(<JoinRequestsScreen />);
 
       // First letter of each requester name
       expect(getAllByText('J')[0]).toBeTruthy(); // Jane Doe
-      expect(getAllByText('A')[0]).toBeTruthy(); // Alice Brown
     });
 
     it('should render menu button (more-horizontal icon)', () => {
       const { getAllByTestId } = render(<JoinRequestsScreen />);
 
       const menuIcons = getAllByTestId('icon-more-horizontal');
-      expect(menuIcons.length).toBe(3); // One for each request
+      expect(menuIcons.length).toBe(2); // Only approved requests show menu
     });
   });
 
@@ -517,15 +511,15 @@ describe('JoinRequestsScreen Rendering', () => {
       });
     });
 
-    it('should show Decline and Report options in menu', async () => {
+    it('should show Report and Remove options in menu', async () => {
       const { getAllByTestId, getByText } = render(<JoinRequestsScreen />);
 
       const menuButtons = getAllByTestId('icon-more-horizontal');
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        expect(getByText('Decline request')).toBeTruthy();
         expect(getByText('Report Member')).toBeTruthy();
+        expect(getByText('Remove Member')).toBeTruthy();
       });
     });
 
@@ -546,18 +540,18 @@ describe('JoinRequestsScreen Rendering', () => {
       });
     });
 
-    it('should call denyJoinRequest when Decline is selected from menu', async () => {
+    it('should not call denyJoinRequest from approved member menu actions', async () => {
       const { getAllByTestId, getByText } = render(<JoinRequestsScreen />);
 
       const menuButtons = getAllByTestId('icon-more-horizontal');
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Decline request'));
+        fireEvent.press(getByText('Report Member'));
       });
 
       await waitFor(() => {
-        expect(mockDenyJoinRequest).toHaveBeenCalledWith(1, 1, 2);
+        expect(mockDenyJoinRequest).not.toHaveBeenCalled();
       });
     });
   });
@@ -616,7 +610,7 @@ describe('JoinRequestsScreen Rendering', () => {
 
       const { getByText, queryByText } = render(<JoinRequestsScreen />);
 
-      expect(getByText('No requests yet')).toBeTruthy();
+      expect(getByText('No accepted users yet')).toBeTruthy();
       // 1:1 mode does not show the attendees explanation
       expect(
         queryByText("You'll see new join requests here when attendees tap Interested.")
@@ -629,7 +623,7 @@ describe('JoinRequestsScreen Rendering', () => {
       render(<JoinRequestsScreen />);
 
       await waitFor(() => {
-        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1);
+        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1, { includeApproved: false });
       });
     });
   });
@@ -646,7 +640,6 @@ describe('JoinRequestsScreen Rendering', () => {
 
       // Avatar initials should be visible
       expect(getAllByText('J')[0]).toBeTruthy();
-      expect(getAllByText('A')[0]).toBeTruthy();
     });
   });
 

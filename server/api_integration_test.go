@@ -849,14 +849,22 @@ func TestReportEventSingleRemovesReporterFromHostViews(t *testing.T) {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversationId for single-event join")
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status before approval, got %s", payload.Request.Status)
 		}
-		conversationID = *payload.ConversationID
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving request, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversationId after approval")
+		}
+		conversationID = *approvePayload.ConversationID
 	})
 
 	t.Run("host can see request before report", func(t *testing.T) {
-		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests?include_approved=1", eventID), avaToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
@@ -1066,8 +1074,8 @@ type joinRequestsListResponse struct {
 	} `json:"requests"`
 }
 
-// TestSingleEventJoinRequest tests that joining a 1:1 (Single) event
-// creates a conversation immediately with the intro message
+// TestSingleEventJoinRequest tests that joining a 1:1 (Single) event creates a
+// pending request first, and the conversation is only created after host approval.
 func TestSingleEventJoinRequest(t *testing.T) {
 	env := setupAPITestEnv(t)
 
@@ -1100,10 +1108,9 @@ func TestSingleEventJoinRequest(t *testing.T) {
 		}
 	})
 
-	// Noah joins the 1:1 event - should auto-approve and create conversation
-	var conversationID int64
+	// Noah joins the 1:1 event - should stay pending until host approval.
 	introMessage := "Hi! I'd love to grab coffee with you. I'm new to the area."
-	t.Run("join 1:1 event creates conversation immediately", func(t *testing.T) {
+	t.Run("join 1:1 event creates pending request", func(t *testing.T) {
 		body := map[string]string{"message": introMessage}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", singleEventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
@@ -1111,33 +1118,50 @@ func TestSingleEventJoinRequest(t *testing.T) {
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
 
-		// For 1:1 events, status should be "approved" immediately
-		if payload.Request.Status != "approved" {
-			t.Fatalf("expected approved status for 1:1 event, got %s", payload.Request.Status)
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status for 1:1 event, got %s", payload.Request.Status)
 		}
 
-		// Should have a conversation ID
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id in response for 1:1 event")
+		// Conversation should not exist yet.
+		if payload.ConversationID != nil {
+			t.Fatalf("expected no conversation_id before approval, got %d", *payload.ConversationID)
 		}
-		conversationID = *payload.ConversationID
-		t.Logf("Created conversation ID: %d", conversationID)
 	})
 
-	t.Run("default /api/chat/requests/me excludes approved requests", func(t *testing.T) {
+	t.Run("default /api/chat/requests/me includes pending request", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/chat/requests/me", noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[joinRequestsListResponse](t, resp)
+		found := false
 		for _, req := range payload.Requests {
 			if req.EventID == singleEventID {
-				t.Fatalf("did not expect approved 1:1 request for event %d in default list", singleEventID)
+				found = true
+				if req.Status != "pending" {
+					t.Fatalf("expected pending status before approval, got %s", req.Status)
+				}
 			}
+		}
+		if !found {
+			t.Fatalf("expected pending request for event %d", singleEventID)
 		}
 	})
 
-	t.Run("include_approved returns intro message for joined 1:1 event", func(t *testing.T) {
+	var conversationID int64
+	t.Run("host approves request and creates private conversation", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", singleEventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if payload.ConversationID == nil {
+			t.Fatal("expected conversation_id after approval")
+		}
+		conversationID = *payload.ConversationID
+	})
+
+	t.Run("include_approved returns intro message for approved 1:1 event", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/chat/requests/me?include_approved=1", noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -1253,34 +1277,58 @@ func TestSingleEventMultipleRequesters(t *testing.T) {
 		singleEventID = payload.ID
 	})
 
-	// First requester joins
+	// First requester joins, then host approves.
 	var convo1ID int64
-	t.Run("first requester joins", func(t *testing.T) {
+	t.Run("first requester joins and is approved", func(t *testing.T) {
 		body := map[string]string{"message": "Hi from Noah!"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", singleEventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id")
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", payload.Request.Status)
 		}
-		convo1ID = *payload.ConversationID
+		if payload.ConversationID != nil {
+			t.Fatalf("expected no conversation_id before approval, got %d", *payload.ConversationID)
+		}
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", singleEventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversation_id after approval")
+		}
+		convo1ID = *approvePayload.ConversationID
 	})
 
-	// Second requester joins - should get DIFFERENT conversation
+	// Second requester joins and is approved - should get DIFFERENT conversation.
 	var convo2ID int64
-	t.Run("second requester joins gets separate conversation", func(t *testing.T) {
+	t.Run("second requester joins and gets separate approved conversation", func(t *testing.T) {
 		body := map[string]string{"message": "Hi from Sophia!"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", singleEventID), sophiaToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id")
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", payload.Request.Status)
 		}
-		convo2ID = *payload.ConversationID
+		if payload.ConversationID != nil {
+			t.Fatalf("expected no conversation_id before approval, got %d", *payload.ConversationID)
+		}
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/5/approve", singleEventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversation_id after approval")
+		}
+		convo2ID = *approvePayload.ConversationID
 
 		// Verify it's a DIFFERENT conversation
 		if convo1ID == convo2ID {
@@ -1453,6 +1501,35 @@ func TestGroupEventJoinRequest(t *testing.T) {
 			t.Fatal("approved requester should see at least one conversation")
 		}
 	})
+
+	t.Run("group approval persists intro message in chat history", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", groupEventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected group event conversation")
+		}
+
+		conversationID := payload.Conversations[0].ID
+		resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+
+		messages := decodeJSON[messagesResponse](t, resp)
+		found := false
+		for _, msg := range messages.Messages {
+			if msg.Body == "I'd love to join the hike!" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected intro message to be visible in group chat history, messages: %+v", messages.Messages)
+		}
+	})
 }
 
 // TestSingleEventDenyRequest tests declining a request for a 1:1 event
@@ -1486,8 +1563,7 @@ func TestSingleEventDenyRequest(t *testing.T) {
 		eventID = payload.ID
 	})
 
-	// Noah joins
-	var conversationID int64
+	// Noah joins (pending only)
 	t.Run("noah joins 1:1 event", func(t *testing.T) {
 		body := map[string]string{"message": "Can I join?"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
@@ -1495,28 +1571,22 @@ func TestSingleEventDenyRequest(t *testing.T) {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id")
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", payload.Request.Status)
 		}
-		conversationID = *payload.ConversationID
+		if payload.ConversationID != nil {
+			t.Fatalf("expected no conversation_id before approval, got %d", *payload.ConversationID)
+		}
 	})
 
-	// Verify Noah can see the conversation
-	t.Run("noah can see conversation before deny", func(t *testing.T) {
-		resp := env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
+	t.Run("host has no event conversations before approval", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
-		payload := decodeJSON[conversationsResponse](t, resp)
-		found := false
-		for _, convo := range payload.Conversations {
-			if convo.ID == conversationID {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatal("noah should see conversation before deny")
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) != 0 {
+			t.Fatalf("expected no conversations before approval, got %d", len(payload.Conversations))
 		}
 	})
 
@@ -1528,30 +1598,27 @@ func TestSingleEventDenyRequest(t *testing.T) {
 		}
 	})
 
-	// Noah should no longer see the conversation (removed from members)
-	t.Run("noah cannot see conversation after deny", func(t *testing.T) {
+	t.Run("host request list excludes denied requester", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[joinRequestsListResponse](t, resp)
+		for _, req := range payload.Requests {
+			if req.UserID == 4 {
+				t.Fatal("denied requester should not remain in pending request list")
+			}
+		}
+	})
+
+	t.Run("requester still has no conversations after deny", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[conversationsResponse](t, resp)
-		for _, convo := range payload.Conversations {
-			if convo.ID == conversationID {
-				t.Fatal("noah should NOT see conversation after deny")
-			}
-		}
-	})
-
-	t.Run("host cannot see conversation after deny", func(t *testing.T) {
-		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
-		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected 200, got %d", resp.StatusCode)
-		}
-		payload := decodeJSON[conversationsResponse](t, resp)
-		for _, convo := range payload.Conversations {
-			if convo.ID == conversationID {
-				t.Fatal("host should NOT see conversation after deny")
-			}
+		if len(payload.Conversations) != 0 {
+			t.Fatalf("expected requester to have no conversations, got %d", len(payload.Conversations))
 		}
 	})
 }
@@ -1586,7 +1653,7 @@ func TestReportMember(t *testing.T) {
 		eventID = payload.ID
 	})
 
-	// Noah joins
+	// Noah joins and host approves so member report exercises removal flow.
 	var conversationID int64
 	t.Run("noah joins event", func(t *testing.T) {
 		body := map[string]string{"message": "Let me join please"}
@@ -1595,9 +1662,19 @@ func TestReportMember(t *testing.T) {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.ConversationID != nil {
-			conversationID = *payload.ConversationID
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status before approval, got %s", payload.Request.Status)
 		}
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversation_id after approval")
+		}
+		conversationID = *approvePayload.ConversationID
 	})
 
 	// Host reports Noah
@@ -1700,12 +1777,16 @@ func TestJoinRequestsListWithConversationID(t *testing.T) {
 		eventID = payload.ID
 	})
 
-	// Two users join
+	// Two users join (pending)
 	t.Run("users join event", func(t *testing.T) {
 		body := map[string]string{"message": "Noah here"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		noahJoin := decodeJSON[singleJoinRequestResponse](t, resp)
+		if noahJoin.Request.Status != "pending" {
+			t.Fatalf("expected pending status for Noah, got %s", noahJoin.Request.Status)
 		}
 
 		body = map[string]string{"message": "Sophia here"}
@@ -1713,23 +1794,42 @@ func TestJoinRequestsListWithConversationID(t *testing.T) {
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
+		sophiaJoin := decodeJSON[singleJoinRequestResponse](t, resp)
+		if sophiaJoin.Request.Status != "pending" {
+			t.Fatalf("expected pending status for Sophia, got %s", sophiaJoin.Request.Status)
+		}
 	})
 
-	// Host lists requests - should have conversation_id for each
-	t.Run("host lists requests with conversation_id", func(t *testing.T) {
-		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+	// Host approves both pending requests.
+	t.Run("host approves both requests", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving Noah, got %d", resp.StatusCode)
+		}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/5/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving Sophia, got %d", resp.StatusCode)
+		}
+	})
+
+	// Host lists requests with include_approved - each approved request has conversation_id.
+	t.Run("host lists approved requests with conversation_id", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests?include_approved=1", eventID), avaToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[joinRequestsListResponse](t, resp)
 
-		// Should have 2 requests
+		// Should include at least the two approved requests
 		if len(payload.Requests) < 2 {
 			t.Fatalf("expected at least 2 requests, got %d", len(payload.Requests))
 		}
 
-		// Each should have a conversation_id (since it's a 1:1 event)
+		// Approved requests should have conversation IDs in 1:1 mode.
 		for _, req := range payload.Requests {
+			if req.Status != "approved" {
+				continue
+			}
 			if req.ConversationID == nil {
 				t.Fatalf("expected conversation_id for 1:1 event request, user %d has none", req.UserID)
 			}
@@ -1768,12 +1868,21 @@ func TestEventConversationsEndpoint(t *testing.T) {
 		eventID = payload.ID
 	})
 
-	// User joins
+	// User joins and host approves.
 	t.Run("user joins event", func(t *testing.T) {
 		body := map[string]string{"message": "Hello!"}
 		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		joinPayload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if joinPayload.Request.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", joinPayload.Request.Status)
+		}
+
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving request, got %d", resp.StatusCode)
 		}
 	})
 
@@ -2048,14 +2157,19 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		// For 1:1 events, request is auto-approved
-		if payload.Request.Status != "approved" {
-			t.Fatalf("expected approved status, got %s", payload.Request.Status)
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status before approval, got %s", payload.Request.Status)
 		}
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id for 1:1 join")
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving request, got %d", approveResp.StatusCode)
 		}
-		firstConversationID = *payload.ConversationID
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversation_id after approval")
+		}
+		firstConversationID = *approvePayload.ConversationID
 	})
 
 	// Verify join request exists in DB
@@ -2105,13 +2219,19 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.Request.Status != "approved" {
-			t.Fatalf("expected approved status on rejoin, got %s", payload.Request.Status)
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status on rejoin before approval, got %s", payload.Request.Status)
 		}
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id on rejoin")
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving rejoin request, got %d", approveResp.StatusCode)
 		}
-		secondConversationID = *payload.ConversationID
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversation_id on rejoin approval")
+		}
+		secondConversationID = *approvePayload.ConversationID
 		if secondConversationID == firstConversationID {
 			t.Fatalf("expected a new conversation after rejoin, got same id %d", secondConversationID)
 		}
@@ -2159,11 +2279,17 @@ func TestLeaveEventDeletesJoinRequest(t *testing.T) {
 			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[singleJoinRequestResponse](t, resp)
-		if payload.Request.Status != "approved" {
-			t.Fatalf("expected approved status on third rejoin, got %s", payload.Request.Status)
+		if payload.Request.Status != "pending" {
+			t.Fatalf("expected pending status on third rejoin before approval, got %s", payload.Request.Status)
 		}
-		if payload.ConversationID == nil {
-			t.Fatal("expected conversation_id on third rejoin")
+
+		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving third rejoin request, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversation_id on third rejoin approval")
 		}
 	})
 }
@@ -2229,10 +2355,25 @@ func TestCleanupOrphanedSingleEventConversations(t *testing.T) {
 			t.Fatalf("expected 201, got %d", joinResp.StatusCode)
 		}
 		joinPayload := decodeJSON[singleJoinRequestResponse](t, joinResp)
-		if joinPayload.ConversationID == nil {
-			t.Fatal("expected private conversation id for 1:1 join")
+		if joinPayload.Request.Status != "pending" {
+			t.Fatalf("expected pending status before approval, got %s", joinPayload.Request.Status)
 		}
-		privateConversationID = *joinPayload.ConversationID
+
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/4/approve", singleEventID),
+			avaToken,
+			nil,
+		)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving request, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected private conversation id after approval")
+		}
+		privateConversationID = *approvePayload.ConversationID
 	})
 
 	t.Run("simulate legacy orphaned 1:1 state", func(t *testing.T) {
@@ -3773,7 +3914,7 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 		}
 	})
 
-	t.Run("1:1 event join produces two pushes", func(t *testing.T) {
+	t.Run("1:1 event join produces host created push", func(t *testing.T) {
 		// Create 1:1 event
 		body := CreateEventParams{
 			Title:       "Push 1:1 Event",
@@ -3795,7 +3936,7 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 
 		mock.reset()
 
-		// Noah joins (auto-approve for 1:1)
+		// Noah joins (request remains pending for 1:1 until host approval)
 		joinBody := map[string]string{"message": "Hi there!"}
 		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, joinBody)
 		if resp.StatusCode != http.StatusCreated {
@@ -3803,8 +3944,7 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 		}
 		resp.Body.Close()
 
-		// Should produce 2 pushes: join_request.created to host + join_request.approved to requester
-		notifications := mock.waitForNotifications(t, 2, 3*time.Second)
+		notifications := mock.waitForNotifications(t, 1, 3*time.Second)
 
 		hasCreated, hasApproved := false, false
 		for _, n := range notifications {
@@ -3818,8 +3958,8 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 		if !hasCreated {
 			t.Fatalf("expected join_request.created push to host for 1:1, got: %+v", notifications)
 		}
-		if !hasApproved {
-			t.Fatalf("expected join_request.approved push to requester for 1:1, got: %+v", notifications)
+		if hasApproved {
+			t.Fatalf("did not expect join_request.approved push before host approval, got: %+v", notifications)
 		}
 	})
 }
