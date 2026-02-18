@@ -409,6 +409,12 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText('Go to Chat')).toBeTruthy();
     });
 
+    it('does not show going row for host', () => {
+      const { queryByTestId } = render(<EventDetailsScreen />);
+
+      expect(queryByTestId('going-row')).toBeNull();
+    });
+
     it('shows "Event details updated" badge when route param is set', () => {
       const routeSpy = jest
         .spyOn(require('@react-navigation/native'), 'useRoute')
@@ -581,6 +587,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText('Interested')).toBeTruthy();
     });
 
+    it('shows going row for guest viewers', () => {
+      const { getByTestId } = render(<EventDetailsScreen />);
+
+      expect(getByTestId('going-row')).toBeTruthy();
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 Going');
+    });
+
     it('redirects to login when guest tries to join', async () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
@@ -625,6 +638,47 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(getByText('Interested')).toBeTruthy();
+    });
+
+    it('shows going row for non-joined viewers', () => {
+      const { getByTestId } = render(<EventDetailsScreen />);
+
+      expect(getByTestId('going-row')).toBeTruthy();
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 Going');
+    });
+
+    it('shows fallback host going state when conversation is missing', () => {
+      mockChatState.conversations = [];
+      const { getByTestId } = render(<EventDetailsScreen />);
+
+      expect(getByTestId('going-row')).toBeTruthy();
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 Going');
+      expect(getByTestId('going-avatar-0')).toBeTruthy();
+    });
+
+    it('shows going row for non-host 1:1 events', () => {
+      mockEventsState.events = [mockSingleEvent];
+      mockChatState.conversations = [
+        {
+          ...mockConversations[0],
+          eventId: Number(mockSingleEvent.id),
+          memberIds: [mockSingleEvent.ownerId, mockUser.id],
+          participants: [
+            { id: mockSingleEvent.ownerId, name: mockSingleEvent.hostName },
+            { id: mockUser.id, name: mockUser.name },
+          ],
+        },
+      ];
+      const routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute(mockSingleEvent.id));
+
+      const { getByTestId } = render(<EventDetailsScreen />);
+
+      expect(getByTestId('going-row')).toBeTruthy();
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 Going');
+
+      routeSpy.mockRestore();
     });
 
     it('opens invite prompt when Interested is pressed', async () => {
@@ -719,6 +773,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(getByText('Go to Chat')).toBeTruthy();
+    });
+
+    it('shows going row for joined members', () => {
+      const { getByTestId } = render(<EventDetailsScreen />);
+
+      expect(getByTestId('going-row')).toBeTruthy();
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 Going');
     });
 
     it('does not show "Interested" button for members', () => {

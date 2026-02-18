@@ -145,10 +145,12 @@ const EventDetailsScreen = () => {
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
-  const [removedMemberBadgeLabel, setRemovedMemberBadgeLabel] =
-    useState<string | null>(null);
-  const [reportedMemberBadgeLabel, setReportedMemberBadgeLabel] =
-    useState<string | null>(null);
+  const [removedMemberBadgeLabel, setRemovedMemberBadgeLabel] = useState<
+    string | null
+  >(null);
+  const [reportedMemberBadgeLabel, setReportedMemberBadgeLabel] = useState<
+    string | null
+  >(null);
   const [disableHostRequestPolling, setDisableHostRequestPolling] =
     useState(false);
   const [showEventUpdatedBadge, setShowEventUpdatedBadge] = useState(false);
@@ -230,6 +232,29 @@ const EventDetailsScreen = () => {
     }
     return eventConversation.memberIds.includes(user.id);
   }, [eventConversation, user]);
+  const fallbackHostParticipant = useMemo(
+    () => ({
+      id: event.ownerId,
+      name: event.hostName,
+    }),
+    [event.ownerId, event.hostName],
+  );
+  const goingParticipants = useMemo(() => {
+    if (eventConversation?.participants?.length) {
+      return eventConversation.participants;
+    }
+    return [fallbackHostParticipant];
+  }, [eventConversation, fallbackHostParticipant]);
+  const goingCount = useMemo(() => {
+    if (!eventConversation) {
+      return 1;
+    }
+    const memberCount =
+      eventConversation.memberIds?.length ??
+      eventConversation.participants?.length ??
+      0;
+    return memberCount > 0 ? memberCount : 1;
+  }, [eventConversation]);
 
   useEffect(() => {
     if (isConversationMember) {
@@ -310,7 +335,8 @@ const EventDetailsScreen = () => {
       return primary;
     }
 
-    const fallback = joinRequestsByConversation[eventScopedRequestStoreKey] ?? [];
+    const fallback =
+      joinRequestsByConversation[eventScopedRequestStoreKey] ?? [];
     if (fallback.length === 0) {
       return primary;
     }
@@ -461,6 +487,7 @@ const EventDetailsScreen = () => {
   const renderAvatar = (
     participant: { id: number; name: string; avatarUrl?: string },
     size: number = 40,
+    compact: boolean = false,
   ) => {
     if (participant.avatarUrl) {
       return (
@@ -487,7 +514,11 @@ const EventDetailsScreen = () => {
           },
         ]}
       >
-        <Text style={styles.avatarInitial}>{initial}</Text>
+        <Text
+          style={[styles.avatarInitial, compact && styles.avatarInitialCompact]}
+        >
+          {initial}
+        </Text>
       </View>
     );
   };
@@ -496,7 +527,11 @@ const EventDetailsScreen = () => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
     setAcceptingUserId(request.userId);
     try {
-      await approveJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
+      await approveJoinRequest(
+        hostRequestStoreKey,
+        eventNumericId,
+        request.userId,
+      );
       await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
@@ -518,7 +553,11 @@ const EventDetailsScreen = () => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
     setDecliningUserId(request.userId);
     try {
-      await denyJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
+      await denyJoinRequest(
+        hostRequestStoreKey,
+        eventNumericId,
+        request.userId,
+      );
       await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
@@ -596,9 +635,7 @@ const EventDetailsScreen = () => {
       setSelectedMember(null);
       const firstName = removedMemberName.trim().split(/\s+/)[0] ?? "";
       setRemovedMemberBadgeLabel(
-        firstName.length > 0
-          ? `${firstName} removed`
-          : "Member removed",
+        firstName.length > 0 ? `${firstName} removed` : "Member removed",
       );
     } catch (err) {
       console.error("Failed to remove member", err);
@@ -662,10 +699,12 @@ const EventDetailsScreen = () => {
       const reportTargetName = (
         selectedMember?.name ??
         selectedRequest.requester?.name ??
-        pendingRequests.find((request) => request.userId === selectedRequest.userId)
-          ?.requester?.name ??
-        acceptedRequests.find((request) => request.userId === selectedRequest.userId)
-          ?.requester?.name ??
+        pendingRequests.find(
+          (request) => request.userId === selectedRequest.userId,
+        )?.requester?.name ??
+        acceptedRequests.find(
+          (request) => request.userId === selectedRequest.userId,
+        )?.requester?.name ??
         confirmedMembers.find((member) => member.id === selectedRequest.userId)
           ?.name ??
         ""
@@ -1116,6 +1155,27 @@ const EventDetailsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.title}>{event.title}</Text>
             <Text style={styles.hostedBy}>{hostLine}</Text>
+            {!isOwner && (
+              <View style={styles.goingRow} testID="going-row">
+                <View style={styles.goingAvatarStack}>
+                  {goingParticipants.slice(0, 2).map((participant, index) => (
+                    <View
+                      key={`${participant.id}-${index}`}
+                      style={[
+                        styles.goingAvatarItem,
+                        index > 0 && styles.goingAvatarOverlap,
+                      ]}
+                      testID={`going-avatar-${index}`}
+                    >
+                      {renderAvatar(participant, 24, true)}
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.goingLabel} testID="going-count-label">
+                  {`${goingCount} Going`}
+                </Text>
+              </View>
+            )}
 
             <View style={styles.divider} />
 
@@ -1770,6 +1830,28 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: typography.letterSpacing,
   },
+  goingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  goingAvatarStack: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  goingAvatarItem: {
+    borderRadius: 999,
+  },
+  goingAvatarOverlap: {
+    marginLeft: -9,
+  },
+  goingLabel: {
+    fontSize: 15,
+    fontFamily: typography.fontFamilyRegular,
+    color: "#707070",
+    lineHeight: 20,
+    letterSpacing: -0.5,
+  },
   divider: {
     height: 1,
     backgroundColor: colors.border,
@@ -2000,6 +2082,13 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontFamily: typography.fontFamilySemiBold,
+    lineHeight: 16,
+    textAlign: "center",
+    includeFontPadding: false,
+  },
+  avatarInitialCompact: {
+    fontSize: 11,
+    lineHeight: 11,
   },
 
   // See more text
