@@ -163,6 +163,8 @@ export const mockEventsValues: MockEventsContextValue = {
   markEventRequested: jest.fn(),
   isEventRequested: jest.fn().mockReturnValue(false),
   unmarkEventRequested: jest.fn(),
+  markEventReported: jest.fn(),
+  isEventReported: jest.fn().mockReturnValue(false),
 };
 
 export const setupEventsContextMock = () => ({
@@ -244,6 +246,8 @@ export const resetAllMockValues = () => {
   mockEventsValues.markEventRequested = jest.fn();
   mockEventsValues.isEventRequested = jest.fn().mockReturnValue(false);
   mockEventsValues.unmarkEventRequested = jest.fn();
+  mockEventsValues.markEventReported = jest.fn();
+  mockEventsValues.isEventReported = jest.fn().mockReturnValue(false);
 
   // Reset Chat
   mockChatValues.conversations = mockConversations;
@@ -343,6 +347,8 @@ interface MockEventsContextValue {
   markEventRequested: jest.Mock;
   isEventRequested: jest.Mock;
   unmarkEventRequested: jest.Mock;
+  markEventReported: jest.Mock;
+  isEventReported: jest.Mock;
 }
 
 const defaultMockEventsContext: MockEventsContextValue = {
@@ -360,6 +366,8 @@ const defaultMockEventsContext: MockEventsContextValue = {
   markEventRequested: jest.fn(),
   isEventRequested: jest.fn().mockReturnValue(false),
   unmarkEventRequested: jest.fn(),
+  markEventReported: jest.fn(),
+  isEventReported: jest.fn().mockReturnValue(false),
 };
 
 export const MockEventsContext = React.createContext<MockEventsContextValue | undefined>(undefined);

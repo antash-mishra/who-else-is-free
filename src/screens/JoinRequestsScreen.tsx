@@ -18,7 +18,7 @@ import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
 import EventActionOverlay from "@components/EventActionOverlay";
-import { COVER_OPTIONS, CoverKey } from "@constants/covers";
+import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
@@ -49,13 +49,14 @@ const getCoverSource = (coverKey?: string) => {
 const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
   const route = useRoute<JoinRequestsRoute>();
-  const { token, authFetch } = useAuth();
+  const { token, authFetch, user } = useAuth();
   const {
     joinRequestsByConversation,
     refreshJoinRequests,
     approveJoinRequest,
     denyJoinRequest,
     setActiveConversation,
+    conversations,
   } = useChat();
   const { conversationId, eventId, title, groupType, eventDetails } =
     route.params;
@@ -73,27 +74,32 @@ const JoinRequestsScreen = () => {
   const [reportMessage, setReportMessage] = useState("");
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    refreshJoinRequests(conversationId, eventId)
+    refreshJoinRequests(conversationId, eventId, {
+      includeApproved: is1to1Mode,
+    })
       .catch(() => undefined)
       .finally(() => setIsRefreshing(false));
-  }, [conversationId, eventId, refreshJoinRequests]);
+  }, [conversationId, eventId, refreshJoinRequests, is1to1Mode]);
 
   useEffect(() => {
     handleRefresh();
   }, [handleRefresh]);
 
-  // Group mode action handler (existing)
   const handleAction = useCallback(
-    async (requestId: number, userId: number, action: "approve" | "deny") => {
+    async (_requestId: number, userId: number, action: "approve" | "deny") => {
       try {
         if (action === "approve") {
           await approveJoinRequest(conversationId, eventId, userId);
         } else {
           await denyJoinRequest(conversationId, eventId, userId);
         }
+        await refreshJoinRequests(conversationId, eventId, {
+          includeApproved: is1to1Mode,
+        });
       } catch (err) {
         Alert.alert(
           "Unable to update request",
@@ -101,13 +107,19 @@ const JoinRequestsScreen = () => {
         );
       }
     },
-    [approveJoinRequest, conversationId, denyJoinRequest, eventId],
+    [
+      approveJoinRequest,
+      conversationId,
+      denyJoinRequest,
+      eventId,
+      is1to1Mode,
+      refreshJoinRequests,
+    ],
   );
 
-  // 1:1 mode: handle row tap (auto-approve and navigate to chat)
   const handleRequesterPress = useCallback(
     async (request: ChatJoinRequest & { conversationId?: number }) => {
-      if (!request.conversationId) return;
+      if (request.status !== "approved" || !request.conversationId) return;
       setActiveConversation(request.conversationId);
       navigation.replace("ChatThread");
     },
@@ -120,28 +132,51 @@ const JoinRequestsScreen = () => {
     setShowRequestMenu(true);
   }, []);
 
-  // 1:1 mode: handle decline from menu
-  const handleDeclineFromMenu = useCallback(async () => {
-    if (!selectedRequest) return;
-    setShowRequestMenu(false);
-    try {
-      await denyJoinRequest(conversationId, eventId, selectedRequest.userId);
-    } catch (err) {
-      Alert.alert(
-        "Unable to decline request",
-        err instanceof Error ? err.message : "Please try again.",
-      );
-    }
-    setSelectedRequest(null);
-  }, [conversationId, denyJoinRequest, eventId, selectedRequest]);
-
-  // 1:1 mode: handle report from menu
   const handleReportFromMenu = useCallback(() => {
     setShowRequestMenu(false);
     setShowReportOverlay(true);
   }, []);
 
-  // 1:1 mode: submit report
+  const handleRemoveFromMenu = useCallback(async () => {
+    if (!selectedRequest || isRemovingMember) return;
+    setIsRemovingMember(true);
+    setShowRequestMenu(false);
+    try {
+      const response = await authFetch(
+        `${API_BASE_URL}/api/events/${eventId}/chat/members/${selectedRequest.userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Unable to remove member.");
+      }
+      await refreshJoinRequests(conversationId, eventId, {
+        includeApproved: is1to1Mode,
+      });
+    } catch (err) {
+      Alert.alert(
+        "Unable to remove member",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    } finally {
+      setSelectedRequest(null);
+      setIsRemovingMember(false);
+    }
+  }, [
+    authFetch,
+    conversationId,
+    eventId,
+    is1to1Mode,
+    isRemovingMember,
+    refreshJoinRequests,
+    selectedRequest,
+    token,
+  ]);
+
   const handleSubmitReport = useCallback(async () => {
     if (!selectedRequest) return;
     setIsSubmittingReport(true);
@@ -161,13 +196,25 @@ const JoinRequestsScreen = () => {
       if (!response.ok) throw new Error("Failed to report");
       setShowReportOverlay(false);
       setReportMessage("");
+      await refreshJoinRequests(conversationId, eventId, {
+        includeApproved: is1to1Mode,
+      });
       setSelectedRequest(null);
     } catch (err) {
       setReportError("Failed to submit report. Please try again.");
     } finally {
       setIsSubmittingReport(false);
     }
-  }, [authFetch, eventId, reportMessage, selectedRequest, token]);
+  }, [
+    authFetch,
+    conversationId,
+    eventId,
+    is1to1Mode,
+    refreshJoinRequests,
+    reportMessage,
+    selectedRequest,
+    token,
+  ]);
 
   // Close overlays
   const handleCloseMenu = useCallback(() => {
@@ -186,7 +233,7 @@ const JoinRequestsScreen = () => {
     () => (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>
-          {is1to1Mode ? "No requests yet" : "No pending requests"}
+          {is1to1Mode ? "No accepted users yet" : "No pending requests"}
         </Text>
         {!is1to1Mode && (
           <Text style={styles.emptySubtitle}>
@@ -198,6 +245,63 @@ const JoinRequestsScreen = () => {
     ),
     [is1to1Mode],
   );
+
+  const conversationById = useMemo(
+    () => new Map(conversations.map((conversation) => [conversation.id, conversation])),
+    [conversations],
+  );
+
+  const getApprovedPreview = useCallback(
+    (request: ChatJoinRequest & { conversationId?: number }) => {
+      const conversation = request.conversationId
+        ? conversationById.get(request.conversationId)
+        : undefined;
+      const lastMessage = conversation?.lastMessage;
+      if (!lastMessage) {
+        const intro = request.message.trim();
+        return intro.length > 0 ? intro : "No messages yet";
+      }
+
+      if (lastMessage.senderId === user?.id) {
+        return `You: ${lastMessage.body}`;
+      }
+
+      const senderFirstName =
+        conversation?.participants
+          .find((participant) => participant.id === lastMessage.senderId)
+          ?.name?.split(" ")[0] ??
+        request.requester.name.split(" ")[0] ??
+        "";
+
+      return `${senderFirstName}: ${lastMessage.body}`;
+    },
+    [conversationById, user?.id],
+  );
+
+  const displayRequests = useMemo(() => {
+    if (!is1to1Mode) {
+      return requests;
+    }
+    return requests
+      .filter((request) => request.status === "approved")
+      .sort((a, b) => {
+        const aConvo = a.conversationId
+          ? conversationById.get(a.conversationId)
+          : undefined;
+        const bConvo = b.conversationId
+          ? conversationById.get(b.conversationId)
+          : undefined;
+        const rawATime = aConvo?.lastMessage
+          ? Date.parse(aConvo.lastMessage.createdAt)
+          : Date.parse(a.createdAt);
+        const rawBTime = bConvo?.lastMessage
+          ? Date.parse(bConvo.lastMessage.createdAt)
+          : Date.parse(b.createdAt);
+        const aTime = Number.isNaN(rawATime) ? 0 : rawATime;
+        const bTime = Number.isNaN(rawBTime) ? 0 : rawBTime;
+        return bTime - aTime;
+      });
+  }, [conversationById, is1to1Mode, requests]);
 
   // 1:1 mode header
   const render1to1Header = () => {
@@ -223,9 +327,9 @@ const JoinRequestsScreen = () => {
             {subtitle}
           </Text>
         </View>
-        {requests.length > 0 && (
+        {displayRequests.length > 0 && (
           <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{requests.length}</Text>
+            <Text style={styles.badgeText}>{displayRequests.length}</Text>
           </View>
         )}
       </View>
@@ -240,7 +344,7 @@ const JoinRequestsScreen = () => {
   }) => {
     const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
     const avatarColor = getAvatarColor(item.userId);
-    const introMessage = item.message || "No introduction provided";
+    const previewText = getApprovedPreview(item);
 
     return (
       <Pressable
@@ -256,7 +360,7 @@ const JoinRequestsScreen = () => {
         <View style={styles.requestInfo1to1}>
           <Text style={styles.requesterName1to1}>{item.requester.name}</Text>
           <Text style={styles.introMessage1to1} numberOfLines={1}>
-            {introMessage}
+            {previewText}
           </Text>
         </View>
         <Pressable
@@ -333,7 +437,7 @@ const JoinRequestsScreen = () => {
       <View style={styles.container}>
         {is1to1Mode ? render1to1Header() : renderGroupHeader()}
         <FlatList
-          data={requests}
+          data={displayRequests}
           keyExtractor={(item) => String(item.id)}
           renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
           ItemSeparatorComponent={() => (
@@ -342,7 +446,7 @@ const JoinRequestsScreen = () => {
             />
           )}
           contentContainerStyle={
-            requests.length === 0
+            displayRequests.length === 0
               ? styles.listEmptyContent
               : is1to1Mode
                 ? styles.listContent1to1
@@ -361,13 +465,13 @@ const JoinRequestsScreen = () => {
         type="menu"
         items={[
           {
-            label: "Decline request",
-            onPress: handleDeclineFromMenu,
-            destructive: false,
-          },
-          {
             label: "Report Member",
             onPress: handleReportFromMenu,
+          },
+          {
+            label: "Remove Member",
+            onPress: handleRemoveFromMenu,
+            loading: isRemovingMember,
             destructive: true,
           },
         ]}
@@ -578,6 +682,11 @@ const styles = StyleSheet.create({
   },
   requestInfo1to1: {
     flex: 1,
+  },
+  pendingHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   requesterName1to1: {
     fontSize: 16,

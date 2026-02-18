@@ -299,12 +299,27 @@ describe('ChatThreadScreen Rendering', () => {
   });
 
   describe('Join Request Badge', () => {
-    it('should display join request badge for host with pending requests', () => {
+    it('should display join request badge for host in 1:1 events with approved users', () => {
+      const singleHostConversation = {
+        ...mockConversations[0],
+        id: 99,
+        eventId: 2,
+        event: {
+          id: 2,
+          userId: 1,
+          title: 'Hiking Adventure',
+          location: 'Mountain Trail',
+          time: '08:00',
+          dateLabel: 'Tmrw',
+          groupType: 'Single',
+        },
+      };
       setupMocks({
         chatOverrides: {
-          activeConversationId: 1,
+          activeConversationId: 99,
+          conversations: [singleHostConversation],
           joinRequestsByConversation: {
-            1: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } }],
+            99: [{ id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } }],
           },
         },
       });
@@ -313,13 +328,42 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('1')).toBeTruthy();
     });
 
-    it('should not display join request badge when user is not host', () => {
+    it('should not display join request badge for group events', () => {
       setupMocks({
-        authOverrides: { user: mockUsers[1] }, // User id: 2, not the host
         chatOverrides: {
           activeConversationId: 1,
           joinRequestsByConversation: {
-            1: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } }],
+            1: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } }],
+          },
+        },
+      });
+      const { queryByLabelText } = render(<ChatThreadScreen />);
+
+      expect(queryByLabelText('View join requests')).toBeNull();
+    });
+
+    it('should not display join request badge when user is not host', () => {
+      const singleHostConversation = {
+        ...mockConversations[0],
+        id: 99,
+        eventId: 2,
+        event: {
+          id: 2,
+          userId: 1,
+          title: 'Hiking Adventure',
+          location: 'Mountain Trail',
+          time: '08:00',
+          dateLabel: 'Tmrw',
+          groupType: 'Single',
+        },
+      };
+      setupMocks({
+        authOverrides: { user: mockUsers[1] }, // User id: 2, not the host
+        chatOverrides: {
+          activeConversationId: 99,
+          conversations: [singleHostConversation],
+          joinRequestsByConversation: {
+            99: [{ id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } }],
           },
         },
       });
