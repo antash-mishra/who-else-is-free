@@ -1207,6 +1207,24 @@ func TestSingleEventJoinRequest(t *testing.T) {
 		}
 	})
 
+	t.Run("host can also see intro message in the same conversation", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", conversationID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		messages := decodeJSON[messagesResponse](t, resp)
+		found := false
+		for _, msg := range messages.Messages {
+			if msg.Body == introMessage {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("host could not find intro message %q in conversation %d", introMessage, conversationID)
+		}
+	})
+
 	// Both host and requester should see the conversation
 	t.Run("host can see the 1:1 conversation", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
@@ -3303,6 +3321,210 @@ func TestUpdateEvent(t *testing.T) {
 		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+}
+
+func TestUpdateEventPublishesChatUpdateForGroupEvent(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com") // user id 1
+
+	var eventID int64
+	t.Run("create group event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Group Update Test",
+			Location:    "Original Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Original description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID = decodeJSON[createEventResponse](t, resp).ID
+	})
+
+	t.Run("no update system message before edit", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected at least one conversation")
+		}
+		for _, convo := range payload.Conversations {
+			if convo.LastMessage != nil && convo.LastMessage.Body == "Updated Event Detail" {
+				t.Fatalf("did not expect 'Updated Event Detail' before edit in conversation %d", convo.ID)
+			}
+		}
+	})
+
+	t.Run("edit event", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Group Update Test (Edited)",
+			Location:    "Edited Location",
+			Time:        "12:00",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Edited description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("group conversation gets Updated Event Detail message", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) == 0 {
+			t.Fatal("expected at least one conversation")
+		}
+		for _, convo := range payload.Conversations {
+			if convo.LastMessage == nil {
+				t.Fatalf("expected last_message for conversation %d", convo.ID)
+			}
+			if convo.LastMessage.Body != "Updated Event Detail" {
+				t.Fatalf("expected last_message body 'Updated Event Detail', got %q", convo.LastMessage.Body)
+			}
+			if convo.LastMessage.SenderID != 1 {
+				t.Fatalf("expected sender_id 1, got %d", convo.LastMessage.SenderID)
+			}
+		}
+	})
+}
+
+func TestUpdateEventPublishesChatUpdateForApprovedSingleConversations(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")       // host user id 1
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")     // requester
+	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com") // requester
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	sophiaUser, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("failed to load sophia user: %v", err)
+	}
+
+	var eventID int64
+	t.Run("create single event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Single Update Test",
+			Location:    "Original Location",
+			Time:        "18:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Original description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID = decodeJSON[createEventResponse](t, resp).ID
+	})
+
+	for _, joiner := range []struct {
+		token  string
+		userID int64
+	}{
+		{token: noahToken, userID: noahUser.ID},
+		{token: sophiaToken, userID: sophiaUser.ID},
+	} {
+		t.Run(fmt.Sprintf("approve join request for user %d", joiner.userID), func(t *testing.T) {
+			joinBody := map[string]string{"message": "I'd like to join!"}
+			resp := env.doRequest(
+				t,
+				http.MethodPost,
+				fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+				joiner.token,
+				joinBody,
+			)
+			if resp.StatusCode != http.StatusCreated {
+				t.Fatalf("expected 201, got %d", resp.StatusCode)
+			}
+
+			resp = env.doRequest(
+				t,
+				http.MethodPost,
+				fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, joiner.userID),
+				avaToken,
+				nil,
+			)
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected 200, got %d", resp.StatusCode)
+			}
+		})
+	}
+
+	t.Run("edit event", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Single Update Test (Edited)",
+			Location:    "Edited Location",
+			Time:        "20:00",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Edited description",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("every approved private conversation receives Updated Event Detail message", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventConversationsResponse](t, resp)
+		if len(payload.Conversations) < 2 {
+			t.Fatalf("expected at least 2 approved conversations, got %d", len(payload.Conversations))
+		}
+
+		for _, convo := range payload.Conversations {
+			messagesResp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/conversations/%d/messages", convo.ID), avaToken, nil)
+			if messagesResp.StatusCode != http.StatusOK {
+				t.Fatalf("expected 200 for messages, got %d (conversation %d)", messagesResp.StatusCode, convo.ID)
+			}
+			messages := decodeJSON[messagesResponse](t, messagesResp)
+
+			found := false
+			for _, message := range messages.Messages {
+				if message.Body == "Updated Event Detail" {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("expected 'Updated Event Detail' message in conversation %d", convo.ID)
+			}
 		}
 	})
 }

@@ -13,12 +13,23 @@ import {
   StatusBar,
 } from "react-native";
 
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { RouteProp, useIsFocused, useNavigation, useRoute } from "@react-navigation/native";
+import {
+  RouteProp,
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { colors, spacing, typography } from "@theme/index";
@@ -27,6 +38,7 @@ import { useEvents, UserEvent } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { API_BASE_URL } from "@api/config";
+import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 
 type EventDetailsRoute = RouteProp<RootStackParamList, "EventDetails">;
@@ -43,8 +55,14 @@ const EventDetailsScreen = () => {
   const route = useRoute<EventDetailsRoute>();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const { events, deleteUserEvent, markEventRequested, isEventRequested, unmarkEventRequested, markEventReported } =
-    useEvents();
+  const {
+    events,
+    deleteUserEvent,
+    markEventRequested,
+    isEventRequested,
+    unmarkEventRequested,
+    markEventReported,
+  } = useEvents();
   const { user, token, authFetch } = useAuth();
   const {
     conversations,
@@ -91,7 +109,8 @@ const EventDetailsScreen = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userIntroMessage, setUserIntroMessage] = useState<string | null>(null);
-  const [showPendingRequestPrompt, setShowPendingRequestPrompt] = useState(false);
+  const [showPendingRequestPrompt, setShowPendingRequestPrompt] =
+    useState(false);
   const [isCancellingRequest, setIsCancellingRequest] = useState(false);
   const [showReportPrompt, setShowReportPrompt] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
@@ -105,14 +124,23 @@ const EventDetailsScreen = () => {
   const [leaveError, setLeaveError] = useState<string | null>(null);
   const [leaveSuccessVisible, setLeaveSuccessVisible] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<"requests" | "accepted" | "members">("requests");
-  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState<
+    "requests" | "accepted" | "members"
+  >("requests");
+  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<ChatJoinRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<ChatJoinRequest | null>(null);
   const [isReportingMember, setIsReportingMember] = useState(false);
   // Group member menu state
-  const [selectedMember, setSelectedMember] = useState<{ id: number; name: string; avatarUrl?: string } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<{
+    id: number;
+    name: string;
+    avatarUrl?: string;
+  } | null>(null);
   const [showMemberMenu, setShowMemberMenu] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -120,10 +148,18 @@ const EventDetailsScreen = () => {
   const [removeSuccessVisible, setRemoveSuccessVisible] = useState(false);
   const [disableHostRequestPolling, setDisableHostRequestPolling] =
     useState(false);
+  const [showEventUpdatedBadge, setShowEventUpdatedBadge] = useState(false);
 
   useEffect(() => {
     setDisableHostRequestPolling(false);
   }, [route.params.eventId]);
+
+  useEffect(() => {
+    if (!route.params?.showEventUpdatedBadge) {
+      return;
+    }
+    setShowEventUpdatedBadge(true);
+  }, [route.params?.showEventUpdatedBadge]);
 
   if (!event) {
     return (
@@ -273,11 +309,14 @@ const EventDetailsScreen = () => {
 
     const fetchUserRequest = async () => {
       try {
-        const response = await authFetch(`${API_BASE_URL}/api/chat/requests/me?include_approved=1`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await authFetch(
+          `${API_BASE_URL}/api/chat/requests/me?include_approved=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        });
+        );
         if (!response.ok) {
           return;
         }
@@ -296,17 +335,25 @@ const EventDetailsScreen = () => {
     };
 
     fetchUserRequest();
-  }, [authFetch, hasPendingRequest, isConversationMember, token, event, isOwner]);
+  }, [
+    authFetch,
+    hasPendingRequest,
+    isConversationMember,
+    token,
+    event,
+    isOwner,
+  ]);
 
-  const ctaLabel = hasPendingRequest
-    ? "Pending Request"
-    : "Interested";
+  const ctaLabel = hasPendingRequest ? "Pending Request" : "Interested";
 
   // Show standard CTA only for non-owners who haven't joined
   const showStandardCTA = !isOwner && !isConversationMember;
-  // Show "Go to Chat" for owners (always have conversation) and joined members
-  const showOpenChatCTA =
-    (isOwner || isConversationMember) && !!eventConversation;
+  // Show "Go to Chat" for:
+  // - 1:1 hosts (opens accepted users list even before private chats exist)
+  // - hosts/members with an existing conversation
+  const showOpenChatCTA = isOwner
+    ? isSingleEvent || !!eventConversation
+    : isConversationMember && !!eventConversation;
 
   const handleCtaPress = () => {
     // Pending state: CTA is disabled, actions handled via three-dot menu
@@ -320,7 +367,12 @@ const EventDetailsScreen = () => {
   };
 
   const handleOpenChat = () => {
-    if (isOwner && isSingleEvent && eventNumericId != null && requestStoreKey != null) {
+    if (
+      isOwner &&
+      isSingleEvent &&
+      eventNumericId != null &&
+      requestStoreKey != null
+    ) {
       (navigation as any).navigate("JoinRequests", {
         conversationId: requestStoreKey,
         eventId: eventNumericId,
@@ -344,25 +396,50 @@ const EventDetailsScreen = () => {
   };
 
   // Avatar colors for generating fallback avatars
-  const AVATAR_COLORS = ["#4CAF50", "#9C27B0", "#FF9800", "#2196F3", "#E91E63", "#00BCD4", "#8BC34A", "#673AB7"];
+  const AVATAR_COLORS = [
+    "#4CAF50",
+    "#9C27B0",
+    "#FF9800",
+    "#2196F3",
+    "#E91E63",
+    "#00BCD4",
+    "#8BC34A",
+    "#673AB7",
+  ];
 
   const getAvatarColor = (userId: number): string => {
     return AVATAR_COLORS[userId % AVATAR_COLORS.length];
   };
 
-  const renderAvatar = (participant: { id: number; name: string; avatarUrl?: string }, size: number = 40) => {
+  const renderAvatar = (
+    participant: { id: number; name: string; avatarUrl?: string },
+    size: number = 40,
+  ) => {
     if (participant.avatarUrl) {
       return (
         <Image
           source={{ uri: participant.avatarUrl }}
-          style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+          style={[
+            styles.avatar,
+            { width: size, height: size, borderRadius: size / 2 },
+          ]}
         />
       );
     }
     const initial = participant.name?.charAt(0).toUpperCase() ?? "?";
     const bgColor = getAvatarColor(participant.id);
     return (
-      <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor }]}>
+      <View
+        style={[
+          styles.avatarFallback,
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: bgColor,
+          },
+        ]}
+      >
         <Text style={styles.avatarInitial}>{initial}</Text>
       </View>
     );
@@ -377,7 +454,10 @@ const EventDetailsScreen = () => {
         includeApproved: isSingleEvent,
       });
       await refreshConversations().catch((err) => {
-        console.error("Failed to refresh conversations after approving request", err);
+        console.error(
+          "Failed to refresh conversations after approving request",
+          err,
+        );
       });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (err) {
@@ -421,7 +501,11 @@ const EventDetailsScreen = () => {
     (navigation as any).navigate("ChatThread");
   };
 
-  const openMemberMenu = (member: { id: number; name: string; avatarUrl?: string }) => {
+  const openMemberMenu = (member: {
+    id: number;
+    name: string;
+    avatarUrl?: string;
+  }) => {
     setSelectedMember(member);
     setShowMemberMenu(true);
   };
@@ -445,13 +529,19 @@ const EventDetailsScreen = () => {
         throw new Error("Unable to remove member right now.");
       }
       await refreshConversations().catch((err) => {
-        console.error("Failed to refresh conversations after removing member", err);
+        console.error(
+          "Failed to refresh conversations after removing member",
+          err,
+        );
       });
       if (requestStoreKey != null && eventNumericId != null) {
         await refreshJoinRequests(requestStoreKey, eventNumericId, {
           includeApproved: isSingleEvent,
         }).catch((err) => {
-          console.error("Failed to refresh join requests after removing member", err);
+          console.error(
+            "Failed to refresh join requests after removing member",
+            err,
+          );
         });
       }
       setShowRemoveConfirm(false);
@@ -744,7 +834,10 @@ const EventDetailsScreen = () => {
         routes: [
           {
             name: "Main",
-            params: { screen: "Events", params: { showEventReportedBadge: true } },
+            params: {
+              screen: "Events",
+              params: { showEventReportedBadge: true },
+            },
           },
         ],
       });
@@ -805,7 +898,10 @@ const EventDetailsScreen = () => {
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
       await refreshConversations().catch((err) => {
-        console.error("Failed to refresh conversations after leaving event", err);
+        console.error(
+          "Failed to refresh conversations after leaving event",
+          err,
+        );
       });
       setShowLeaveConfirm(false);
       setLeaveSuccessVisible(true);
@@ -877,19 +973,35 @@ const EventDetailsScreen = () => {
       return [
         { label: "View Intro Message", onPress: handleMenuViewIntro },
         { label: "Leave Event", onPress: handleLeavePrompt, destructive: true },
-        { label: "Report Event", onPress: handleMenuReportEvent, destructive: true },
+        {
+          label: "Report Event",
+          onPress: handleMenuReportEvent,
+          destructive: true,
+        },
       ];
     }
     if (hasPendingRequest) {
       // Pending: Cancel Request, Report Event
       return [
-        { label: "Cancel Request", onPress: handleMenuCancelRequest, loading: isCancellingRequest },
-        { label: "Report Event", onPress: handleMenuReportEvent, destructive: true },
+        {
+          label: "Cancel Request",
+          onPress: handleMenuCancelRequest,
+          loading: isCancellingRequest,
+        },
+        {
+          label: "Report Event",
+          onPress: handleMenuReportEvent,
+          destructive: true,
+        },
       ];
     }
     // Not joined: Report Event
     return [
-      { label: "Report Event", onPress: handleMenuReportEvent, destructive: true },
+      {
+        label: "Report Event",
+        onPress: handleMenuReportEvent,
+        destructive: true,
+      },
     ];
   }, [isOwner, isConversationMember, hasPendingRequest, isCancellingRequest]);
 
@@ -929,7 +1041,11 @@ const EventDetailsScreen = () => {
             onPress={() => setShowMenuOverlay(true)}
             style={[styles.menuButton, { top: insets.top + 10 }]}
           >
-            <Feather name="more-horizontal" size={24} color={colors.buttonText} />
+            <Feather
+              name="more-horizontal"
+              size={24}
+              color={colors.buttonText}
+            />
           </Pressable>
 
           {/* Elevated Image Card */}
@@ -1013,12 +1129,22 @@ const EventDetailsScreen = () => {
                     onPress={() => setActiveTab("requests")}
                   >
                     <View style={styles.tabLabelRow}>
-                      <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
+                      <Text
+                        style={[
+                          styles.tabLabel,
+                          activeTab === "requests" && styles.tabLabelActive,
+                        ]}
+                      >
                         Requests
                       </Text>
-                      <Text style={styles.tabCount}> {pendingRequests.length}</Text>
+                      <Text style={styles.tabCount}>
+                        {" "}
+                        {pendingRequests.length}
+                      </Text>
                     </View>
-                    {activeTab === "requests" && <View style={styles.tabUnderline} />}
+                    {activeTab === "requests" && (
+                      <View style={styles.tabUnderline} />
+                    )}
                   </Pressable>
 
                   {isSingleEvent && (
@@ -1027,12 +1153,22 @@ const EventDetailsScreen = () => {
                       onPress={() => setActiveTab("accepted")}
                     >
                       <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, activeTab === "accepted" && styles.tabLabelActive]}>
+                        <Text
+                          style={[
+                            styles.tabLabel,
+                            activeTab === "accepted" && styles.tabLabelActive,
+                          ]}
+                        >
                           Accepted
                         </Text>
-                        <Text style={styles.tabCount}> {acceptedRequests.length}</Text>
+                        <Text style={styles.tabCount}>
+                          {" "}
+                          {acceptedRequests.length}
+                        </Text>
                       </View>
-                      {activeTab === "accepted" && <View style={styles.tabUnderline} />}
+                      {activeTab === "accepted" && (
+                        <View style={styles.tabUnderline} />
+                      )}
                     </Pressable>
                   )}
 
@@ -1042,12 +1178,22 @@ const EventDetailsScreen = () => {
                       onPress={() => setActiveTab("members")}
                     >
                       <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
+                        <Text
+                          style={[
+                            styles.tabLabel,
+                            activeTab === "members" && styles.tabLabelActive,
+                          ]}
+                        >
                           Members
                         </Text>
-                        <Text style={styles.tabCount}> {confirmedMembers.length}</Text>
+                        <Text style={styles.tabCount}>
+                          {" "}
+                          {confirmedMembers.length}
+                        </Text>
                       </View>
-                      {activeTab === "members" && <View style={styles.tabUnderline} />}
+                      {activeTab === "members" && (
+                        <View style={styles.tabUnderline} />
+                      )}
                     </Pressable>
                   )}
                 </View>
@@ -1069,7 +1215,9 @@ const EventDetailsScreen = () => {
                             {renderAvatar(request.requester)}
 
                             <View style={styles.requestContent}>
-                              <Text style={styles.requestName}>{request.requester.name}</Text>
+                              <Text style={styles.requestName}>
+                                {request.requester.name}
+                              </Text>
                               <Text
                                 style={styles.requestMessage}
                                 numberOfLines={isExpanded ? undefined : 3}
@@ -1079,7 +1227,9 @@ const EventDetailsScreen = () => {
                               {!isExpanded && request.message.length > 100 && (
                                 <Text
                                   style={styles.seeMoreText}
-                                  onPress={() => toggleRequestExpanded(request.id)}
+                                  onPress={() =>
+                                    toggleRequestExpanded(request.id)
+                                  }
                                 >
                                   See more
                                 </Text>
@@ -1088,26 +1238,46 @@ const EventDetailsScreen = () => {
 
                             <View style={styles.requestActions}>
                               <Pressable
-                                style={[styles.actionButton, styles.declineButton]}
+                                style={[
+                                  styles.actionButton,
+                                  styles.declineButton,
+                                ]}
                                 onPress={() => handleDeclineRequest(request)}
                                 disabled={isLoading}
                               >
                                 {isDeclining ? (
-                                  <ActivityIndicator size="small" color={colors.text} />
+                                  <ActivityIndicator
+                                    size="small"
+                                    color={colors.text}
+                                  />
                                 ) : (
-                                  <Feather name="x" size={18} color={colors.text} />
+                                  <Feather
+                                    name="x"
+                                    size={18}
+                                    color={colors.text}
+                                  />
                                 )}
                               </Pressable>
 
                               <Pressable
-                                style={[styles.actionButton, styles.acceptButton]}
+                                style={[
+                                  styles.actionButton,
+                                  styles.acceptButton,
+                                ]}
                                 onPress={() => handleAcceptRequest(request)}
                                 disabled={isLoading}
                               >
                                 {isAccepting ? (
-                                  <ActivityIndicator size="small" color={colors.buttonText} />
+                                  <ActivityIndicator
+                                    size="small"
+                                    color={colors.buttonText}
+                                  />
                                 ) : (
-                                  <Feather name="check" size={18} color={colors.buttonText} />
+                                  <Feather
+                                    name="check"
+                                    size={18}
+                                    color={colors.buttonText}
+                                  />
                                 )}
                               </Pressable>
                             </View>
@@ -1121,7 +1291,9 @@ const EventDetailsScreen = () => {
                 {isSingleEvent && activeTab === "accepted" && (
                   <View style={styles.listContainer}>
                     {acceptedRequests.length === 0 ? (
-                      <Text style={styles.emptyStateText}>No accepted members yet</Text>
+                      <Text style={styles.emptyStateText}>
+                        No accepted members yet
+                      </Text>
                     ) : (
                       acceptedRequests.map((request) => (
                         <Pressable
@@ -1131,8 +1303,13 @@ const EventDetailsScreen = () => {
                         >
                           {renderAvatar(request.requester)}
                           <View style={styles.requestInfo}>
-                            <Text style={styles.requesterName}>{request.requester.name}</Text>
-                            <Text numberOfLines={1} style={styles.requestMessagePreview}>
+                            <Text style={styles.requesterName}>
+                              {request.requester.name}
+                            </Text>
+                            <Text
+                              numberOfLines={1}
+                              style={styles.requestMessagePreview}
+                            >
                               {request.message}
                             </Text>
                           </View>
@@ -1143,7 +1320,11 @@ const EventDetailsScreen = () => {
                             }}
                             style={styles.requestMenuButton}
                           >
-                            <Feather name="more-horizontal" size={24} color="#666" />
+                            <Feather
+                              name="more-horizontal"
+                              size={24}
+                              color="#666"
+                            />
                           </Pressable>
                         </Pressable>
                       ))
@@ -1165,7 +1346,11 @@ const EventDetailsScreen = () => {
                             onPress={() => openMemberMenu(member)}
                             style={styles.requestMenuButton}
                           >
-                            <Feather name="more-horizontal" size={24} color="#666" />
+                            <Feather
+                              name="more-horizontal"
+                              size={24}
+                              color="#666"
+                            />
                           </Pressable>
                         </View>
                       ))
@@ -1179,7 +1364,9 @@ const EventDetailsScreen = () => {
               <>
                 <View style={styles.divider} />
                 <Text style={styles.sectionHeading}>Introduction</Text>
-                <Text style={styles.introMessageText}>"{userIntroMessage}"</Text>
+                <Text style={styles.introMessageText}>
+                  "{userIntroMessage}"
+                </Text>
               </>
             ) : null}
           </View>
@@ -1200,10 +1387,7 @@ const EventDetailsScreen = () => {
                 (shouldShowInvitePrompt || hasPendingRequest) &&
                   styles.ctaButtonDisabled,
               ]}
-              disabled={
-                shouldShowInvitePrompt ||
-                hasPendingRequest
-              }
+              disabled={shouldShowInvitePrompt || hasPendingRequest}
             >
               <Text
                 style={[
@@ -1215,7 +1399,6 @@ const EventDetailsScreen = () => {
                 {ctaLabel}
               </Text>
             </Pressable>
-            
           </View>
         )}
         {showOpenChatCTA ? (
@@ -1229,7 +1412,9 @@ const EventDetailsScreen = () => {
                 pressed && styles.ctaButtonPressed,
               ]}
             >
-              <Text style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}>
+              <Text
+                style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}
+              >
                 Go to Chat
               </Text>
             </Pressable>
@@ -1289,7 +1474,9 @@ const EventDetailsScreen = () => {
       <EventActionOverlay
         isVisible={showPendingRequestPrompt}
         onBackdropPress={
-          isCancellingRequest ? undefined : () => setShowPendingRequestPrompt(false)
+          isCancellingRequest
+            ? undefined
+            : () => setShowPendingRequestPrompt(false)
         }
         type="pendingRequest"
         onCancelRequest={handleCancelRequest}
@@ -1299,10 +1486,12 @@ const EventDetailsScreen = () => {
       <EventActionOverlay
         isVisible={showReportPrompt}
         onBackdropPress={
-          (isSubmittingReport || isReportingMember) ? undefined : () => {
-            setShowReportPrompt(false);
-            setSelectedRequest(null);
-          }
+          isSubmittingReport || isReportingMember
+            ? undefined
+            : () => {
+                setShowReportPrompt(false);
+                setSelectedRequest(null);
+              }
         }
         type="report"
         reportMessage={reportMessage}
@@ -1312,7 +1501,9 @@ const EventDetailsScreen = () => {
             setReportError(null);
           }
         }}
-        onSubmitReport={selectedRequest ? handleSubmitMemberReport : handleSubmitReport}
+        onSubmitReport={
+          selectedRequest ? handleSubmitMemberReport : handleSubmitReport
+        }
         reportError={reportError}
         reportSubmitting={isSubmittingReport || isReportingMember}
         reportDisabled={!reportMessage.trim()}
@@ -1411,6 +1602,15 @@ const EventDetailsScreen = () => {
         dismissLabel="Done"
         onDismiss={handleDismissRemoveSuccess}
         tone="default"
+      />
+      <EventActionBadge
+        visible={showEventUpdatedBadge}
+        label="Event details updated"
+        bottomOffset={spacing.lg + insets.bottom}
+        onHidden={() => {
+          setShowEventUpdatedBadge(false);
+          navigation.setParams({ showEventUpdatedBadge: false });
+        }}
       />
     </SafeAreaView>
   );

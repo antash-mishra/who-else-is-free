@@ -367,12 +367,18 @@ describe('CreateEventScreen Rendering', () => {
       });
     });
 
-    it('should navigate back after successful update', async () => {
+    it('should navigate to EventDetails with update badge after successful update', async () => {
       const { getByText } = render(<CreateEventScreen />);
 
       fireEvent.press(getByText('Update Event'));
 
-      await waitFor(() => expect(mockNavigation.goBack).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(mockRootNavigate).toHaveBeenCalledWith('EventDetails', {
+          eventId: existingEvent.id,
+          origin: 'MyEvents',
+          showEventUpdatedBadge: true,
+        })
+      );
     });
 
     it('should show "Updating..." while submitting', async () => {

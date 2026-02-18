@@ -13,6 +13,7 @@ import (
 )
 
 const requestTimeout = 5 * time.Second
+const updatedEventDetailMessage = "Updated Event Detail"
 
 type EventHandler struct {
 	repo *EventRepository
@@ -187,7 +188,50 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 		return
 	}
 
+	h.emitEventUpdateChatMessages(ctx, id, claims.UserID)
+
 	c.JSON(http.StatusOK, gin.H{"message": "event updated"})
+}
+
+func (h *EventHandler) emitEventUpdateChatMessages(ctx context.Context, eventID, hostUserID int64) {
+	if h.hub == nil {
+		return
+	}
+
+	conversations, err := h.repo.ListConversationsForEvent(ctx, eventID, hostUserID)
+	if err != nil {
+		log.Printf("failed to list conversations for event update message (event %d): %v", eventID, err)
+		return
+	}
+
+	seenConversationIDs := make(map[int64]struct{}, len(conversations))
+	for _, conversation := range conversations {
+		if conversation.ID == 0 {
+			continue
+		}
+		if _, seen := seenConversationIDs[conversation.ID]; seen {
+			continue
+		}
+		seenConversationIDs[conversation.ID] = struct{}{}
+
+		message, err := h.repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversation.ID,
+			SenderID:       hostUserID,
+			Body:           updatedEventDetailMessage,
+			DeliveryStatus: "sent",
+		})
+		if err != nil {
+			log.Printf(
+				"failed to create event update message for event %d conversation %d: %v",
+				eventID,
+				conversation.ID,
+				err,
+			)
+			continue
+		}
+
+		h.hub.emitChatMessage(message, "")
+	}
 }
 
 func (h *EventHandler) deleteEvent(c *gin.Context) {

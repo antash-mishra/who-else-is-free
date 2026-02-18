@@ -227,8 +227,9 @@ const ChatThreadScreen = () => {
   const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
     const lowerBody = item.body.toLowerCase();
     const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
+    const isEventUpdateSystemMessage = lowerBody === "updated event detail";
 
-    if (isJoinSystemMessage) {
+    if (isJoinSystemMessage || isEventUpdateSystemMessage) {
       return (
         <View style={styles.systemMessageRow}>
           <Text style={styles.systemMessageText}>{item.body}</Text>
