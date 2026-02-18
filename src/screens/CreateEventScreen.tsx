@@ -407,7 +407,11 @@ const CreateEventScreen = () => {
                         coverKey: selectedCover,
                         scheduledAt,
                     });
-                    rootNavigation?.navigate("EventDetails", { eventId: String(editEventId), origin: "MyEvents" });
+                    rootNavigation?.navigate("EventDetails", {
+                        eventId: String(editEventId),
+                        origin: "MyEvents",
+                        showEventUpdatedBadge: true,
+                    });
                 } else {
                     await addUserEvent({
                         title: trimmedName || "New event",

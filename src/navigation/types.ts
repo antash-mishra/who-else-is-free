@@ -13,6 +13,7 @@ export type RootStackParamList = {
   EventDetails: {
     eventId: string;
     origin?: 'Events' | 'MyEvents';
+    showEventUpdatedBadge?: boolean;
   };
   JoinRequests: {
     conversationId: number;
@@ -30,8 +31,14 @@ export type RootStackParamList = {
 };
 
 export type RootTabParamList = {
-  Events: { showEventReportedBadge?: boolean } | undefined;
-  MyEvents: { showEventCreatedBadge?: boolean } | undefined;
+  Events: {
+    showEventReportedBadge?: boolean;
+    showEventDeletedBadge?: boolean;
+  } | undefined;
+  MyEvents: {
+    showEventCreatedBadge?: boolean;
+    showEventDeletedBadge?: boolean;
+  } | undefined;
   Create: { editEventId?: string };
   Profile: undefined;
   Messages: undefined;

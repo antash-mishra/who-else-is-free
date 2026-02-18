@@ -55,10 +55,14 @@ const mockNavigation = {
 };
 
 // Mock route with event ID
-const createMockRoute = (eventId: string, origin?: string) => ({
+const createMockRoute = (
+  eventId: string,
+  origin?: string,
+  showEventUpdatedBadge?: boolean
+) => ({
   key: 'EventDetails-test',
   name: 'EventDetails' as const,
-  params: { eventId, origin },
+  params: { eventId, origin, showEventUpdatedBadge },
 });
 
 // Default mock values for contexts
@@ -257,6 +261,20 @@ jest.mock('@components/EventActionOverlay', () => {
   };
 });
 
+jest.mock('@components/EventActionBadge', () => {
+  const React = require('react');
+  const { View, Text } = require('react-native');
+
+  return function MockEventActionBadge(props: any) {
+    if (!props.visible) return null;
+    return (
+      <View testID="event-action-badge">
+        <Text>{props.label}</Text>
+      </View>
+    );
+  };
+});
+
 // Import screen after mocks are set up
 import EventDetailsScreen from '../EventDetailsScreen';
 
@@ -389,6 +407,17 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(getByText('Go to Chat')).toBeTruthy();
+    });
+
+    it('shows "Event details updated" badge when route param is set', () => {
+      const routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute('1', 'MyEvents', true));
+
+      const { getByText } = render(<EventDetailsScreen />);
+      expect(getByText('Event details updated')).toBeTruthy();
+
+      routeSpy.mockRestore();
     });
 
     it('opens chat when "Go to Chat" is pressed', () => {
@@ -1049,15 +1078,20 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
       fireEvent.press(getByTestId('confirm-button'));
 
-      // After delete, result overlay should show
       await waitFor(() => {
-        expect(getByTestId('result-overlay')).toBeTruthy();
-      }, { timeout: 3000 });
-
-      // Dismiss result
-      fireEvent.press(getByTestId('dismiss-button'));
-
-      expect(mockReset).toHaveBeenCalled();
+        expect(mockReset).toHaveBeenCalledWith({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              params: {
+                screen: 'Events',
+                params: { showEventDeletedBadge: true },
+              },
+            },
+          ],
+        });
+      });
     });
   });
 
@@ -1221,11 +1255,30 @@ describe('EventDetailsScreen Rendering Tests', () => {
       routeSpy.mockRestore();
     });
 
-    it('shows only Requests tab for 1:1 events (no Members tab)', () => {
+    it('shows Requests and Accepted tabs for 1:1 events (no Members tab)', () => {
       const { getByText, queryByText } = render(<EventDetailsScreen />);
 
       expect(getByText('Requests')).toBeTruthy();
-      // Members tab should not be visible for 1:1 events
+      expect(getByText('Accepted')).toBeTruthy();
+      expect(queryByText('Members')).toBeNull();
+    });
+
+    it('opens JoinRequests when 1:1 host taps "Go to Chat" without existing conversations', () => {
+      mockChatState.conversations = [];
+
+      const { getByText } = render(<EventDetailsScreen />);
+
+      fireEvent.press(getByText('Go to Chat'));
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        'JoinRequests',
+        expect.objectContaining({
+          conversationId: -2,
+          eventId: 2,
+          title: mockSingleEvent.title,
+          groupType: 'Single',
+        }),
+      );
     });
   });
 

@@ -805,6 +805,54 @@ describe('ChatContext Rendering Tests', () => {
       expect(screen.getByTestId('activeConversationId')).toHaveTextContent('1');
     });
 
+    it('refetches messages when returning to an already-cached conversation', async () => {
+      fetchMock.mockResponse((req) => {
+        const url = req.url;
+        if (url.includes('/api/conversations/') && url.includes('/messages')) {
+          return Promise.resolve(JSON.stringify(mockApiResponses.messages.success));
+        }
+        return Promise.resolve(JSON.stringify(mockApiResponses.conversations.success));
+      });
+
+      renderWithProvider();
+
+      await act(async () => {
+        await tick(10);
+      });
+
+      const ws = MockWebSocket.getLatest();
+      await act(async () => {
+        ws.simulateOpen();
+        await tick(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('conversationCount')).toHaveTextContent('2');
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-1'));
+        await tick(50);
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-2'));
+        await tick(50);
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-1'));
+        await tick(50);
+      });
+
+      const conversationOneMessageFetches = fetchMock.mock.calls.filter(
+        ([request]) =>
+          typeof request === 'string' &&
+          request.includes('/api/conversations/1/messages?limit=50'),
+      );
+      expect(conversationOneMessageFetches.length).toBeGreaterThanOrEqual(2);
+    });
+
     it('should sort conversations by last message activity', async () => {
       const now = new Date();
       const oldTime = new Date(now.getTime() - 3600000);

@@ -97,6 +97,9 @@ interface ChatContextValue {
   refreshJoinRequests: (
     conversationId: number,
     eventId: number,
+    options?: {
+      includeApproved?: boolean;
+    },
   ) => Promise<void>;
   approveJoinRequest: (
     conversationId: number,
@@ -468,7 +471,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [token, user]);
 
   const refreshJoinRequests = useCallback(
-    async (conversationId: number, eventId: number) => {
+    async (
+      conversationId: number,
+      eventId: number,
+      options?: {
+        includeApproved?: boolean;
+      },
+    ) => {
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
         throw new Error("Not authenticated");
@@ -477,17 +486,31 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (!activeToken) {
         throw new Error("Not authenticated");
       }
+      const includeApproved = options?.includeApproved === true;
+      const query = includeApproved ? "?include_approved=1" : "";
       try {
         const response = await fetchClient(
-          `${API_BASE_URL}/api/events/${eventId}/chat/requests`,
+          `${API_BASE_URL}/api/events/${eventId}/chat/requests${query}`,
           {
             headers: {
               Authorization: `Bearer ${activeToken}`,
             },
           },
         );
+        if (response.status === 404) {
+          // Event may have been deleted while polling host requests; treat as empty.
+          setJoinRequestsByConversation((prev) => ({
+            ...prev,
+            [conversationId]: [],
+          }));
+          return;
+        }
         if (!response.ok) {
-          throw new Error("Failed to load join requests");
+          const error = new Error("Failed to load join requests") as Error & {
+            status?: number;
+          };
+          error.status = response.status;
+          throw error;
         }
         const payload = (await response.json().catch(() => ({}))) as {
           requests?: any[];
@@ -626,10 +649,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     const conversationId = activeConversationId;
-    if (conversationId != null && !messagesByConversation[conversationId]) {
+    if (conversationId != null) {
       refreshMessages(conversationId).catch(() => undefined);
     }
-  }, [activeConversationId, messagesByConversation, refreshMessages, user]);
+  }, [activeConversationId, refreshMessages, token, user]);
 
   const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {

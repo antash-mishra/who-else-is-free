@@ -141,6 +141,22 @@ describe('ChatThreadScreen Rendering', () => {
 
       expect(getByText('John joined the chat')).toBeTruthy();
     });
+
+    it('should render system messages for event detail updates', () => {
+      const systemMessage = {
+        id: 'sys-2',
+        conversationId: 1,
+        senderId: 1,
+        body: 'Updated Event Detail',
+        createdAt: new Date().toISOString(),
+      };
+      setupMocks({
+        chatOverrides: { messages: [systemMessage] },
+      });
+      const { getByText } = render(<ChatThreadScreen />);
+
+      expect(getByText('Updated Event Detail')).toBeTruthy();
+    });
   });
 
   describe('Send Message Input', () => {
