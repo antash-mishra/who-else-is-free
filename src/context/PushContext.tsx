@@ -16,6 +16,7 @@ import * as SecureStore from "expo-secure-store";
 import { API_BASE_URL } from "@api/config";
 import { useAuth } from "@context/AuthContext";
 import { useChat } from "@context/ChatContext";
+import { handleNotificationTap, PushData } from "@context/pushRouting";
 import { navigationRef } from "@navigation/navigationRef";
 
 const DEVICE_ID_KEY = "whoelseisfree.pushDeviceId";
@@ -84,69 +85,6 @@ const getMessaging = (): ReturnType<typeof messaging> | null => {
     return messaging();
   } catch {
     return null;
-  }
-};
-
-type PushData = {
-  type?: string;
-  conversationId?: string;
-  eventId?: string;
-  title?: string;
-  body?: string;
-  senderName?: string;
-  senderId?: string;
-};
-
-const handleNotificationTap = (
-  data: PushData,
-  setActiveConversation: (id: number | null) => void,
-) => {
-  if (!navigationRef.isReady()) {
-    return;
-  }
-
-  switch (data.type) {
-    case "chat.message": {
-      const conversationId = data.conversationId
-        ? Number(data.conversationId)
-        : null;
-      if (conversationId) {
-        setActiveConversation(conversationId);
-        (navigationRef as any).navigate("ChatThread");
-      }
-      break;
-    }
-    case "join_request.created": {
-      const conversationId = data.conversationId
-        ? Number(data.conversationId)
-        : undefined;
-      const eventId = data.eventId ? Number(data.eventId) : undefined;
-      const title = data.title ?? "";
-      if (conversationId && eventId) {
-        (navigationRef as any).navigate("JoinRequests", {
-          conversationId,
-          eventId,
-          title,
-        });
-      }
-      break;
-    }
-    case "join_request.approved": {
-      const conversationId = data.conversationId
-        ? Number(data.conversationId)
-        : null;
-      if (conversationId) {
-        setActiveConversation(conversationId);
-        (navigationRef as any).navigate("ChatThread");
-      }
-      break;
-    }
-    case "join_request.denied": {
-      (navigationRef as any).navigate("Main", {
-        screen: "Messages",
-      });
-      break;
-    }
   }
 };
 
@@ -257,6 +195,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             handleNotificationTap(
               remoteMessage.data as PushData,
               setActiveConversation,
+              navigationRef as any,
             );
           }, 1000);
         }
@@ -269,6 +208,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           handleNotificationTap(
             remoteMessage.data as PushData,
             setActiveConversation,
+            navigationRef as any,
           );
         }
       },

@@ -497,6 +497,14 @@ FROM conversation_members
 WHERE conversation_id = ?;
 `
 
+const selectEventConversationMembers = `
+SELECT cm.conversation_id, cm.user_id
+FROM conversations c
+JOIN conversation_members cm ON cm.conversation_id = c.id
+WHERE c.event_id = ?
+ORDER BY cm.conversation_id ASC, cm.user_id ASC;
+`
+
 const deleteConversationMember = `
 DELETE FROM conversation_members
 WHERE conversation_id = ? AND user_id = ?;
@@ -519,6 +527,11 @@ WHERE event_id = ? AND user_id = ?;
 
 type EventRepository struct {
 	db *sql.DB
+}
+
+type EventConversationMember struct {
+	ConversationID int64
+	UserID         int64
 }
 
 func NewEventRepository(db *sql.DB) *EventRepository {
@@ -2923,4 +2936,29 @@ func (r *EventRepository) ListConversationMemberIDs(ctx context.Context, convers
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// ListEventConversationMembers returns conversation-member pairs for every
+// conversation linked to an event. This captures approved participants for both
+// group events (single shared conversation) and 1:1 events (private per-user
+// conversations).
+func (r *EventRepository) ListEventConversationMembers(ctx context.Context, eventID int64) ([]EventConversationMember, error) {
+	rows, err := r.db.QueryContext(ctx, selectEventConversationMembers, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("list event conversation members: %w", err)
+	}
+	defer rows.Close()
+
+	var members []EventConversationMember
+	for rows.Next() {
+		var member EventConversationMember
+		if err := rows.Scan(&member.ConversationID, &member.UserID); err != nil {
+			return nil, fmt.Errorf("scan event conversation member: %w", err)
+		}
+		members = append(members, member)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate event conversation members: %w", err)
+	}
+	return members, nil
 }

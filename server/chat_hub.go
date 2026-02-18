@@ -227,6 +227,18 @@ func (h *ChatHub) pushToConversation(conversationID int64, payload []byte) {
 }
 
 func (h *ChatHub) applyMembershipUpdate(update membershipUpdate) {
+	event := membershipEvent{
+		Type:           "conversation:membership",
+		ConversationID: update.conversationID,
+		UserID:         update.userID,
+		Action:         update.action,
+	}
+	payload, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("marshal membership event failed: %v", err)
+		return
+	}
+
 	switch update.action {
 	case "added":
 		// Ensure the conversation has a subscriber set, then mirror the new
@@ -240,7 +252,12 @@ func (h *ChatHub) applyMembershipUpdate(update membershipUpdate) {
 				h.subscriptions[update.conversationID][client] = struct{}{}
 			}
 		}
+		h.pushToConversation(update.conversationID, payload)
 	case "removed":
+		// Broadcast first so removed clients receive the membership event
+		// before being detached from the conversation.
+		h.pushToConversation(update.conversationID, payload)
+
 		// Remove the conversation from each socket owned by the departing user
 		// and drop any room set that becomes empty.
 		if clients, ok := h.clientsByUser[update.userID]; ok {
@@ -258,19 +275,6 @@ func (h *ChatHub) applyMembershipUpdate(update membershipUpdate) {
 		log.Printf("unknown membership action: %s", update.action)
 		return
 	}
-
-	event := membershipEvent{
-		Type:           "conversation:membership",
-		ConversationID: update.conversationID,
-		UserID:         update.userID,
-		Action:         update.action,
-	}
-	payload, err := json.Marshal(event)
-	if err != nil {
-		log.Printf("marshal membership event failed: %v", err)
-		return
-	}
-	h.pushToConversation(update.conversationID, payload)
 }
 
 // shouldSuppressPush returns true if the user has a live socket currently viewing
@@ -1197,6 +1201,16 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 	if convo != nil {
 		h.hub.NotifyMembership(convo.ID, userID, "removed")
 	}
+	if h.hub != nil && claims.UserID == event.UserID && userID != claims.UserID {
+		h.hub.sendPushToUser(userID, map[string]string{
+			"type":            "event.member_removed",
+			"eventId":         strconv.FormatInt(eventID, 10),
+			"title":           event.Title,
+			"body":            "The host removed you from this event.",
+			"removedUserId":   strconv.FormatInt(userID, 10),
+			"removedByUserId": strconv.FormatInt(claims.UserID, 10),
+		})
+	}
 
 	c.Status(http.StatusNoContent)
 }
@@ -1316,13 +1330,38 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 
 // sendPushToUser sends a push notification to a specific user's devices.
 func (h *ChatHub) sendPushToUser(userID int64, data map[string]string) {
+	h.sendPushToUsers([]int64{userID}, data)
+}
+
+// sendPushToUsers sends the same push payload to multiple users.
+func (h *ChatHub) sendPushToUsers(userIDs []int64, data map[string]string) {
+	if len(userIDs) == 0 {
+		return
+	}
+
+	unique := make([]int64, 0, len(userIDs))
+	seen := make(map[int64]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		if userID <= 0 {
+			continue
+		}
+		if _, ok := seen[userID]; ok {
+			continue
+		}
+		seen[userID] = struct{}{}
+		unique = append(unique, userID)
+	}
+	if len(unique) == 0 {
+		return
+	}
+
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		tokens, err := h.repo.ListPushTokensByUser(ctx, userID)
+		tokens, err := h.repo.ListPushTokensByUserIDs(ctx, unique)
 		if err != nil {
-			log.Printf("push: list push tokens for user %d failed: %v", userID, err)
+			log.Printf("push: list push tokens for users %v failed: %v", unique, err)
 			return
 		}
 		if len(tokens) == 0 {
@@ -1338,7 +1377,7 @@ func (h *ChatHub) sendPushToUser(userID int64, data map[string]string) {
 		}
 
 		if err := h.pushSender.SendBatch(ctx, notifications); err != nil {
-			log.Printf("push: send to user %d failed: %v", userID, err)
+			log.Printf("push: send to users %v failed: %v", unique, err)
 		}
 	}()
 }

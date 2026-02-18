@@ -14,6 +14,7 @@ import (
 
 const requestTimeout = 5 * time.Second
 const updatedEventDetailMessage = "Updated Event Detail"
+const eventDeletedPushBody = "The host deleted this event."
 
 type EventHandler struct {
 	repo *EventRepository
@@ -252,6 +253,40 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
+	event, err := h.repo.GetEventByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found or not owned by user"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		}
+		return
+	}
+	if event.UserID != claims.UserID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found or not owned by user"})
+		return
+	}
+
+	members, membersErr := h.repo.ListEventConversationMembers(ctx, id)
+	if membersErr != nil {
+		log.Printf("failed to list event members for deletion notification (event %d): %v", id, membersErr)
+	}
+
+	affectedMembers := make([]EventConversationMember, 0, len(members))
+	recipientIDs := make([]int64, 0, len(members))
+	seenRecipients := make(map[int64]struct{}, len(members))
+	for _, member := range members {
+		if member.UserID == claims.UserID {
+			continue
+		}
+		affectedMembers = append(affectedMembers, member)
+		if _, seen := seenRecipients[member.UserID]; seen {
+			continue
+		}
+		seenRecipients[member.UserID] = struct{}{}
+		recipientIDs = append(recipientIDs, member.UserID)
+	}
+
 	err = h.repo.Delete(ctx, id, claims.UserID)
 	if err != nil {
 		if errors.Is(err, ErrEventNotFound) {
@@ -260,6 +295,20 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete event"})
 		}
 		return
+	}
+
+	if h.hub != nil {
+		for _, member := range affectedMembers {
+			h.hub.NotifyMembership(member.ConversationID, member.UserID, "removed")
+		}
+		if len(recipientIDs) > 0 {
+			h.hub.sendPushToUsers(recipientIDs, map[string]string{
+				"type":    "event.deleted",
+				"eventId": strconv.FormatInt(id, 10),
+				"title":   event.Title,
+				"body":    eventDeletedPushBody,
+			})
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "event deleted"})
