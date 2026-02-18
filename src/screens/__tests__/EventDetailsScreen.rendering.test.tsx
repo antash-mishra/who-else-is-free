@@ -545,6 +545,20 @@ describe('EventDetailsScreen Rendering Tests', () => {
         expect(getByText(mockPendingJoinRequest.message)).toBeTruthy();
       });
     });
+
+    it('displays pending group requests from event-scoped key when conversation is not loaded', async () => {
+      mockChatState.conversations = [];
+      mockChatState.joinRequestsByConversation = {
+        [-Number(mockOwnedEvent.id)]: [mockPendingJoinRequest],
+      };
+
+      const { getByText } = render(<EventDetailsScreen />);
+
+      await waitFor(() => {
+        expect(getByText(mockPendingJoinRequest.requester.name)).toBeTruthy();
+        expect(getByText(mockPendingJoinRequest.message)).toBeTruthy();
+      });
+    });
   });
 
   describe('Guest View (Not Logged In)', () => {
@@ -666,6 +680,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
           })
         );
       });
+
     });
 
     it('shows error when join request message is empty', async () => {
@@ -785,6 +800,18 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
 
       expect(mockEventsState.unmarkEventRequested).toHaveBeenCalledWith(mockNonOwnedEvent.id);
+      expect(mockReset).toHaveBeenCalledWith({
+        index: 0,
+        routes: [
+          {
+            name: 'Main',
+            params: {
+              screen: 'Events',
+              params: { showEventLeftBadge: true },
+            },
+          },
+        ],
+      });
     });
   });
 
@@ -845,6 +872,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
           expect.objectContaining({ method: 'DELETE' })
         );
       });
+
     });
   });
 

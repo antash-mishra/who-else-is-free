@@ -4,6 +4,10 @@ import { BlurView } from "expo-blur";
 
 import { spacing, typography } from "@theme/index";
 
+const BADGE_ANIMATION_MS = 200;
+const BADGE_VISIBLE_TOTAL_MS = 2000;
+const BADGE_HOLD_MS = BADGE_VISIBLE_TOTAL_MS - BADGE_ANIMATION_MS * 2;
+
 type EventActionBadgeProps = {
   visible: boolean;
   label: string;
@@ -20,9 +24,21 @@ const EventActionBadge = ({
   const translateY = useRef(new Animated.Value(40)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const [isRendered, setIsRendered] = useState(false);
+  const onHiddenRef = useRef<EventActionBadgeProps["onHidden"]>(onHidden);
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
+    onHiddenRef.current = onHidden;
+  }, [onHidden]);
+
+  useEffect(() => {
+    animationRef.current?.stop();
+    animationRef.current = null;
+
     if (!visible) {
+      setIsRendered(false);
+      translateY.setValue(40);
+      opacity.setValue(0);
       return;
     }
 
@@ -34,41 +50,43 @@ const EventActionBadge = ({
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 0,
-          duration: 200,
+          duration: BADGE_ANIMATION_MS,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
           toValue: 1,
-          duration: 200,
+          duration: BADGE_ANIMATION_MS,
           useNativeDriver: true,
         }),
       ]),
-      Animated.delay(2500),
+      Animated.delay(BADGE_HOLD_MS),
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 40,
-          duration: 200,
+          duration: BADGE_ANIMATION_MS,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
           toValue: 0,
-          duration: 200,
+          duration: BADGE_ANIMATION_MS,
           useNativeDriver: true,
         }),
       ]),
     ]);
+    animationRef.current = animation;
 
     animation.start(({ finished }) => {
       if (finished) {
         setIsRendered(false);
-        onHidden?.();
+        onHiddenRef.current?.();
       }
     });
 
     return () => {
-      animation.stop();
+      animationRef.current?.stop();
+      animationRef.current = null;
     };
-  }, [onHidden, opacity, translateY, visible]);
+  }, [opacity, translateY, visible]);
 
   if (!isRendered) {
     return null;

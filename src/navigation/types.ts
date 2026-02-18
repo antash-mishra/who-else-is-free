@@ -34,6 +34,7 @@ export type RootTabParamList = {
   Events: {
     showEventReportedBadge?: boolean;
     showEventDeletedBadge?: boolean;
+    showEventLeftBadge?: boolean;
   } | undefined;
   MyEvents: {
     showEventCreatedBadge?: boolean;

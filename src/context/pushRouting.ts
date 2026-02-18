@@ -22,7 +22,9 @@ export const handleNotificationTap = (
     return;
   }
 
-  switch (data.type) {
+  const normalizedType = (data.type ?? "").trim().toLowerCase();
+
+  switch (normalizedType) {
     case "chat.message": {
       const conversationId = data.conversationId
         ? Number(data.conversationId)
@@ -70,7 +72,9 @@ export const handleNotificationTap = (
       break;
     }
     case "event.deleted":
-    case "event.member_removed": {
+    case "event_deleted":
+    case "event.member_removed":
+    case "event.member.removed": {
       navigator.navigate("Main", {
         screen: "Events",
       });

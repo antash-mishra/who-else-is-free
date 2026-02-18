@@ -519,6 +519,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         setJoinRequestsByConversation((prev) => ({
           ...prev,
           [conversationId]: normalized,
+          [-eventId]: normalized,
         }));
       } catch (err) {
         console.error("Failed to load join requests", err);
@@ -561,14 +562,25 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(message);
       }
       setJoinRequestsByConversation((prev) => {
-        const existing = prev[conversationId];
-        if (!existing) {
+        const eventScopedKey = -eventId;
+        const existingByConversation = prev[conversationId] ?? [];
+        const existingByEvent = prev[eventScopedKey] ?? [];
+        const nextByConversation = existingByConversation.filter(
+          (item) => item.userId !== userId,
+        );
+        const nextByEvent = existingByEvent.filter(
+          (item) => item.userId !== userId,
+        );
+        if (
+          existingByConversation.length === nextByConversation.length &&
+          existingByEvent.length === nextByEvent.length
+        ) {
           return prev;
         }
-        const next = existing.filter((item) => item.userId !== userId);
         return {
           ...prev,
-          [conversationId]: next,
+          [conversationId]: nextByConversation,
+          [eventScopedKey]: nextByEvent,
         };
       });
     },
@@ -732,30 +744,60 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
         setJoinRequestsByConversation((prev) => {
           const normalized = normalizeJoinRequest(request);
+          const eventScopedKey =
+            normalized.eventId > 0 ? -normalized.eventId : null;
           const existing = prev[conversationId] ?? [];
+          const eventScopedExisting =
+            eventScopedKey != null ? (prev[eventScopedKey] ?? []) : [];
+
+          const upsertByID = (
+            items: ChatJoinRequest[],
+            nextItem: ChatJoinRequest,
+          ): ChatJoinRequest[] => {
+            const filtered = items.filter((item) => item.id !== nextItem.id);
+            return [...filtered, nextItem];
+          };
+
+          const removeByID = (
+            items: ChatJoinRequest[],
+            targetID: number,
+          ): ChatJoinRequest[] => items.filter((item) => item.id !== targetID);
+
           if (action === "created") {
-            const filtered = existing.filter(
-              (item) => item.id !== normalized.id,
-            );
-            return {
+            const nextByConversation = upsertByID(existing, normalized);
+            const next = {
               ...prev,
-              [conversationId]: [...filtered, normalized],
+              [conversationId]: nextByConversation,
+            };
+            if (eventScopedKey != null) {
+              next[eventScopedKey] = upsertByID(eventScopedExisting, normalized);
+            }
+            return {
+              ...next,
             };
           }
           if (action === "approved" || action === "denied") {
-            if (!existing.length) {
+            const nextByConversation = removeByID(existing, normalized.id);
+            const conversationChanged =
+              nextByConversation.length !== existing.length;
+            const nextByEvent =
+              eventScopedKey != null
+                ? removeByID(eventScopedExisting, normalized.id)
+                : [];
+            const eventChanged =
+              eventScopedKey != null &&
+              nextByEvent.length !== eventScopedExisting.length;
+            if (!conversationChanged && !eventChanged) {
               return prev;
             }
-            const filtered = existing.filter(
-              (item) => item.id !== normalized.id,
-            );
-            if (filtered.length === existing.length) {
-              return prev;
-            }
-            return {
+            const next: Record<number, ChatJoinRequest[]> = {
               ...prev,
-              [conversationId]: filtered,
+              [conversationId]: nextByConversation,
             };
+            if (eventScopedKey != null) {
+              next[eventScopedKey] = nextByEvent;
+            }
+            return next;
           }
           return prev;
         });
