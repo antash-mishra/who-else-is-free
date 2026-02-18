@@ -103,7 +103,9 @@ const EventDetailsScreen = () => {
     }
     setHasPendingRequest(isEventRequested(eventSnapshot.id));
   }, [eventSnapshot, isEventRequested]);
-  const [inviteSuccessVisible, setInviteSuccessVisible] = useState(false);
+  const [showRequestSentBadge, setShowRequestSentBadge] = useState(false);
+  const [showRequestCancelledBadge, setShowRequestCancelledBadge] =
+    useState(false);
   const [showManagePrompt, setShowManagePrompt] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -122,7 +124,6 @@ const EventDetailsScreen = () => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
-  const [leaveSuccessVisible, setLeaveSuccessVisible] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "requests" | "accepted" | "members"
@@ -145,7 +146,8 @@ const EventDetailsScreen = () => {
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
-  const [removeSuccessVisible, setRemoveSuccessVisible] = useState(false);
+  const [removedMemberBadgeLabel, setRemovedMemberBadgeLabel] =
+    useState<string | null>(null);
   const [disableHostRequestPolling, setDisableHostRequestPolling] =
     useState(false);
   const [showEventUpdatedBadge, setShowEventUpdatedBadge] = useState(false);
@@ -207,6 +209,19 @@ const EventDetailsScreen = () => {
     // For 1:1 host flows, pending requests may exist before any conversation exists.
     return isSingleEvent ? -eventNumericId : null;
   }, [eventConversationId, eventNumericId, isSingleEvent]);
+  const eventScopedRequestStoreKey = useMemo(() => {
+    if (eventNumericId == null) {
+      return null;
+    }
+    // Event-scoped cache key used as a stable fallback for host request state.
+    return -eventNumericId;
+  }, [eventNumericId]);
+  const hostRequestStoreKey = useMemo(() => {
+    if (!isOwner) {
+      return requestStoreKey;
+    }
+    return requestStoreKey ?? eventScopedRequestStoreKey;
+  }, [isOwner, requestStoreKey, eventScopedRequestStoreKey]);
 
   const isConversationMember = useMemo(() => {
     if (!user || !eventConversation) {
@@ -228,7 +243,7 @@ const EventDetailsScreen = () => {
       !rawEvent ||
       !isOwner ||
       !event ||
-      requestStoreKey == null ||
+      hostRequestStoreKey == null ||
       eventNumericId == null ||
       disableHostRequestPolling
     ) {
@@ -236,7 +251,10 @@ const EventDetailsScreen = () => {
     }
 
     const refreshHostRequests = () => {
-      refreshJoinRequests(requestStoreKey, eventNumericId, {
+      refreshConversations().catch((err) => {
+        console.error("Failed to refresh conversations for host details", err);
+      });
+      refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       }).catch((err: unknown) => {
         const status =
@@ -262,9 +280,10 @@ const EventDetailsScreen = () => {
     rawEvent,
     isOwner,
     event,
-    requestStoreKey,
+    hostRequestStoreKey,
     eventNumericId,
     refreshJoinRequests,
+    refreshConversations,
     isSingleEvent,
     disableHostRequestPolling,
   ]);
@@ -279,11 +298,38 @@ const EventDetailsScreen = () => {
   }, [activeTab, isSingleEvent]);
 
   const hostRequests = useMemo(() => {
-    if (requestStoreKey == null) {
+    if (hostRequestStoreKey == null) {
       return [];
     }
-    return joinRequestsByConversation[requestStoreKey] ?? [];
-  }, [joinRequestsByConversation, requestStoreKey]);
+    const primary = joinRequestsByConversation[hostRequestStoreKey] ?? [];
+    if (
+      eventScopedRequestStoreKey == null ||
+      eventScopedRequestStoreKey === hostRequestStoreKey
+    ) {
+      return primary;
+    }
+
+    const fallback = joinRequestsByConversation[eventScopedRequestStoreKey] ?? [];
+    if (fallback.length === 0) {
+      return primary;
+    }
+    if (primary.length === 0) {
+      return fallback;
+    }
+
+    const merged = new Map<number, ChatJoinRequest>();
+    for (const item of fallback) {
+      merged.set(item.id, item);
+    }
+    for (const item of primary) {
+      merged.set(item.id, item);
+    }
+    return Array.from(merged.values());
+  }, [
+    joinRequestsByConversation,
+    hostRequestStoreKey,
+    eventScopedRequestStoreKey,
+  ]);
   const pendingRequests = useMemo(
     () => hostRequests.filter((request) => request.status === "pending"),
     [hostRequests],
@@ -446,11 +492,11 @@ const EventDetailsScreen = () => {
   };
 
   const handleAcceptRequest = async (request: ChatJoinRequest) => {
-    if (!event || requestStoreKey == null || eventNumericId == null) return;
+    if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
     setAcceptingUserId(request.userId);
     try {
-      await approveJoinRequest(requestStoreKey, eventNumericId, request.userId);
-      await refreshJoinRequests(requestStoreKey, eventNumericId, {
+      await approveJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
+      await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
       await refreshConversations().catch((err) => {
@@ -468,11 +514,11 @@ const EventDetailsScreen = () => {
   };
 
   const handleDeclineRequest = async (request: ChatJoinRequest) => {
-    if (!event || requestStoreKey == null || eventNumericId == null) return;
+    if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
     setDecliningUserId(request.userId);
     try {
-      await denyJoinRequest(requestStoreKey, eventNumericId, request.userId);
-      await refreshJoinRequests(requestStoreKey, eventNumericId, {
+      await denyJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
+      await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -513,6 +559,7 @@ const EventDetailsScreen = () => {
   const handleRemoveMember = async () => {
     if (!event || !token || !selectedMember) return;
     if (isRemovingMember) return;
+    const removedMemberName = selectedMember.name;
     setRemoveError(null);
     setIsRemovingMember(true);
     try {
@@ -534,8 +581,8 @@ const EventDetailsScreen = () => {
           err,
         );
       });
-      if (requestStoreKey != null && eventNumericId != null) {
-        await refreshJoinRequests(requestStoreKey, eventNumericId, {
+      if (hostRequestStoreKey != null && eventNumericId != null) {
+        await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
           includeApproved: isSingleEvent,
         }).catch((err) => {
           console.error(
@@ -545,7 +592,13 @@ const EventDetailsScreen = () => {
         });
       }
       setShowRemoveConfirm(false);
-      setRemoveSuccessVisible(true);
+      setSelectedMember(null);
+      const firstName = removedMemberName.trim().split(/\s+/)[0] ?? "";
+      setRemovedMemberBadgeLabel(
+        firstName.length > 0
+          ? `${firstName} removed`
+          : "Member removed",
+      );
     } catch (err) {
       console.error("Failed to remove member", err);
       setRemoveError("Unable to remove this member. Please try again.");
@@ -574,11 +627,6 @@ const EventDetailsScreen = () => {
   const handleRemoveCancel = () => {
     if (isRemovingMember) return;
     setShowRemoveConfirm(false);
-  };
-
-  const handleDismissRemoveSuccess = () => {
-    setRemoveSuccessVisible(false);
-    setSelectedMember(null);
   };
 
   const handleSubmitMemberReport = async () => {
@@ -615,8 +663,8 @@ const EventDetailsScreen = () => {
       setSelectedRequest(null);
       setReportSuccessVisible(true);
       // Refresh requests since the reported member should be removed
-      if (requestStoreKey != null && eventNumericId != null) {
-        refreshJoinRequests(requestStoreKey, eventNumericId, {
+      if (hostRequestStoreKey != null && eventNumericId != null) {
+        refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
           includeApproved: isSingleEvent,
         });
       }
@@ -679,7 +727,7 @@ const EventDetailsScreen = () => {
       setShowInvitePrompt(false);
       setHasPendingRequest(true);
       markEventRequested(event.id);
-      setInviteSuccessVisible(true);
+      setShowRequestSentBadge(true);
     } catch (err) {
       console.error("Failed to send invite", err);
       setInviteError(
@@ -772,6 +820,7 @@ const EventDetailsScreen = () => {
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
+      setShowRequestCancelledBadge(true);
     } catch (err) {
       console.error("Failed to cancel request", err);
     } finally {
@@ -904,7 +953,18 @@ const EventDetailsScreen = () => {
         );
       });
       setShowLeaveConfirm(false);
-      setLeaveSuccessVisible(true);
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: "Main",
+            params: {
+              screen: "Events",
+              params: { showEventLeftBadge: true },
+            },
+          },
+        ],
+      });
     } catch (err) {
       console.error("Failed to leave event", err);
       setLeaveError("Unable to leave this event. Please try again.");
@@ -918,19 +978,6 @@ const EventDetailsScreen = () => {
       return;
     }
     setShowLeaveConfirm(false);
-  };
-
-  const handleDismissLeaveSuccess = () => {
-    setLeaveSuccessVisible(false);
-    navigation.reset({
-      index: 0,
-      routes: [
-        {
-          name: "Main",
-          params: { screen: "Events" },
-        },
-      ],
-    });
   };
 
   const handleMenuReportEvent = () => {
@@ -1462,16 +1509,6 @@ const EventDetailsScreen = () => {
         errorMessage={deleteError}
       />
       <EventActionOverlay
-        isVisible={inviteSuccessVisible}
-        onBackdropPress={() => setInviteSuccessVisible(false)}
-        type="result"
-        title="Request sent"
-        description="We'll notify you in chat when the host responds."
-        dismissLabel="Done"
-        onDismiss={() => setInviteSuccessVisible(false)}
-        tone="success"
-      />
-      <EventActionOverlay
         isVisible={showPendingRequestPrompt}
         onBackdropPress={
           isCancellingRequest
@@ -1545,16 +1582,6 @@ const EventDetailsScreen = () => {
         isConfirmLoading={isLeaving}
         errorMessage={leaveError}
       />
-      <EventActionOverlay
-        isVisible={leaveSuccessVisible}
-        onBackdropPress={handleDismissLeaveSuccess}
-        type="result"
-        title="You've left the event"
-        description="You can always request to join again."
-        dismissLabel="Done"
-        onDismiss={handleDismissLeaveSuccess}
-        tone="default"
-      />
       {/* Member menu */}
       <EventActionOverlay
         isVisible={showMemberMenu}
@@ -1593,16 +1620,6 @@ const EventDetailsScreen = () => {
         isConfirmLoading={isRemovingMember}
         errorMessage={removeError}
       />
-      <EventActionOverlay
-        isVisible={removeSuccessVisible}
-        onBackdropPress={handleDismissRemoveSuccess}
-        type="result"
-        title="Member removed"
-        description="They have been removed from the event."
-        dismissLabel="Done"
-        onDismiss={handleDismissRemoveSuccess}
-        tone="default"
-      />
       <EventActionBadge
         visible={showEventUpdatedBadge}
         label="Event details updated"
@@ -1610,6 +1627,30 @@ const EventDetailsScreen = () => {
         onHidden={() => {
           setShowEventUpdatedBadge(false);
           navigation.setParams({ showEventUpdatedBadge: false });
+        }}
+      />
+      <EventActionBadge
+        visible={showRequestSentBadge}
+        label="Requested to join"
+        bottomOffset={spacing.lg + insets.bottom}
+        onHidden={() => {
+          setShowRequestSentBadge(false);
+        }}
+      />
+      <EventActionBadge
+        visible={showRequestCancelledBadge}
+        label="Requested to join cancelled"
+        bottomOffset={spacing.lg + insets.bottom}
+        onHidden={() => {
+          setShowRequestCancelledBadge(false);
+        }}
+      />
+      <EventActionBadge
+        visible={removedMemberBadgeLabel != null}
+        label={removedMemberBadgeLabel ?? ""}
+        bottomOffset={spacing.lg + insets.bottom}
+        onHidden={() => {
+          setRemovedMemberBadgeLabel(null);
         }}
       />
     </SafeAreaView>

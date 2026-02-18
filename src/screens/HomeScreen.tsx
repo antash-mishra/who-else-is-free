@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
+  ScrollView,
   SectionList,
   SectionListRenderItemInfo,
   StyleSheet,
@@ -88,7 +89,14 @@ const HomeScreen = () => {
 
   const navigation = useNavigation<HomeScreenNavigation>();
   const route = useRoute<RouteProp<RootTabParamList, "Events">>();
-  const { events: allEvents, isLoading, error, refreshEvents, isEventRequested } = useEvents();
+  const {
+    events: allEvents,
+    isLoading,
+    error,
+    refreshEvents,
+    refreshRequestedEvents,
+    isEventRequested,
+  } = useEvents();
   const { user } = useAuth();
   const { conversations } = useChat();
   const isFocused = useIsFocused();
@@ -97,11 +105,23 @@ const HomeScreen = () => {
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const hasLoadedOnce = useRef(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
+  const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
+  const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
 
   useEffect(() => {
     if (!route.params?.showEventReportedBadge) return;
     setShowReportedBadge(true);
   }, [route.params?.showEventReportedBadge]);
+
+  useEffect(() => {
+    if (!route.params?.showEventDeletedBadge) return;
+    setShowEventDeletedBadge(true);
+  }, [route.params?.showEventDeletedBadge]);
+
+  useEffect(() => {
+    if (!route.params?.showEventLeftBadge) return;
+    setShowEventLeftBadge(true);
+  }, [route.params?.showEventLeftBadge]);
 
   // Set of event IDs user has joined (is a member of conversation but not owner)
   const joinedEventIds = useMemo(() => {
@@ -164,19 +184,20 @@ const HomeScreen = () => {
   const showAllEventsEmpty = !isLoading && sections.length === 0 && !error;
 
   const handleRefresh = useCallback(() => {
-    refreshEvents().catch(() => undefined);
-  }, [refreshEvents]);
+    Promise.all([refreshEvents(), refreshRequestedEvents()]).catch(
+      () => undefined,
+    );
+  }, [refreshEvents, refreshRequestedEvents]);
 
   useEffect(() => {
     if (!isFocused) {
       return;
     }
-    refreshEvents().catch(() => undefined);
-    const interval = setInterval(() => {
-      refreshEvents().catch(() => undefined);
-    }, 7000);
-    return () => clearInterval(interval);
-  }, [isFocused, refreshEvents]);
+    Promise.all([refreshEvents(), refreshRequestedEvents()]).catch(
+      () => undefined,
+    );
+    return;
+  }, [isFocused, refreshEvents, refreshRequestedEvents]);
 
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
     <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -222,11 +243,23 @@ const HomeScreen = () => {
             </Pressable>
           </View>
         ) : showAllEventsEmpty ? (
-          <EmptyState
-            title="Nothing Happening Here (Yet!)"
-            description="There are currently no events available. Please check back later for new experiences."
-            imageSource={require('@assets/emptystate_discoverevent.png')}
-          />
+          <ScrollView
+            contentContainerStyle={styles.centerContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            <EmptyState
+              title="Nothing Happening Here (Yet!)"
+              description="There are currently no events available. Please check back later for new experiences."
+              imageSource={require('@assets/emptystate_discoverevent.png')}
+            />
+          </ScrollView>
         ) : (
           <SectionList<EventItemProps, EventSection>
             sections={sections}
@@ -261,6 +294,24 @@ const HomeScreen = () => {
         onHidden={() => {
           setShowReportedBadge(false);
           navigation.setParams({ showEventReportedBadge: false });
+        }}
+      />
+      <EventActionBadge
+        visible={showEventDeletedBadge}
+        label="Event Deleted"
+        bottomOffset={tabBarHeight + spacing.md}
+        onHidden={() => {
+          setShowEventDeletedBadge(false);
+          navigation.setParams({ showEventDeletedBadge: false });
+        }}
+      />
+      <EventActionBadge
+        visible={showEventLeftBadge}
+        label="Event left"
+        bottomOffset={tabBarHeight + spacing.md}
+        onHidden={() => {
+          setShowEventLeftBadge(false);
+          navigation.setParams({ showEventLeftBadge: false });
         }}
       />
     </View>

@@ -92,6 +92,7 @@ const MyEventsScreen = () => {
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
   const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
+  const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -102,6 +103,13 @@ const MyEventsScreen = () => {
 
     setShowEventCreatedBadge(true);
   }, [route.params?.showEventCreatedBadge]);
+
+  useEffect(() => {
+    if (!route.params?.showEventDeletedBadge) {
+      return;
+    }
+    setShowEventDeletedBadge(true);
+  }, [route.params?.showEventDeletedBadge]);
 
   // Get joined event IDs from conversations
   const joinedEventIds = useMemo(() => {
@@ -410,6 +418,15 @@ const MyEventsScreen = () => {
           onHidden={() => {
             setShowEventCreatedBadge(false);
             navigation.setParams({ showEventCreatedBadge: false });
+          }}
+        />
+        <EventActionBadge
+          visible={showEventDeletedBadge}
+          label="Event Deleted"
+          bottomOffset={tabBarHeight + spacing.md}
+          onHidden={() => {
+            setShowEventDeletedBadge(false);
+            navigation.setParams({ showEventDeletedBadge: false });
           }}
         />
       </View>

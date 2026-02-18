@@ -20,6 +20,7 @@ let mockEventsValue = {
   isLoading: false,
   error: null as string | null,
   refreshEvents: jest.fn().mockResolvedValue(undefined),
+  refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
   isEventRequested: jest.fn().mockReturnValue(false),
 };
 let mockChatValue = { conversations: mockConversations };
@@ -56,6 +57,7 @@ describe('HomeScreen Rendering', () => {
       isLoading: false,
       error: null,
       refreshEvents: jest.fn().mockResolvedValue(undefined),
+      refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
       isEventRequested: jest.fn().mockReturnValue(false),
     };
     mockChatValue = { conversations: mockConversations };

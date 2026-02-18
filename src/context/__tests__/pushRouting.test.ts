@@ -32,6 +32,32 @@ describe("pushRouting", () => {
     });
   });
 
+  it("routes event_deleted taps to Events tab", () => {
+    const navigator = createNavigator();
+    const setActiveConversation = jest.fn();
+    const data: PushData = { type: "event_deleted", eventId: "123" };
+
+    handleNotificationTap(data, setActiveConversation, navigator);
+
+    expect(setActiveConversation).not.toHaveBeenCalled();
+    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
+      screen: "Events",
+    });
+  });
+
+  it("routes mixed-case event.deleted taps to Events tab", () => {
+    const navigator = createNavigator();
+    const setActiveConversation = jest.fn();
+    const data: PushData = { type: " Event.Deleted ", eventId: "123" };
+
+    handleNotificationTap(data, setActiveConversation, navigator);
+
+    expect(setActiveConversation).not.toHaveBeenCalled();
+    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
+      screen: "Events",
+    });
+  });
+
   it("keeps existing join_request.denied routing intact", () => {
     const navigator = createNavigator();
     const setActiveConversation = jest.fn();

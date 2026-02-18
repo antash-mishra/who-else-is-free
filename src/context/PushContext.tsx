@@ -184,20 +184,33 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const msg = getMessaging();
     if (!msg) return;
+    let isCancelled = false;
+
+    const routeFromPushTap = (data: PushData, attempt = 0) => {
+      if (isCancelled) {
+        return;
+      }
+      if (navigationRef.isReady()) {
+        handleNotificationTap(data, setActiveConversation, navigationRef as any);
+        return;
+      }
+      if (attempt >= 20) {
+        return;
+      }
+      setTimeout(() => {
+        if (isCancelled) {
+          return;
+        }
+        routeFromPushTap(data, attempt + 1);
+      }, 150);
+    };
 
     // App opened from quit state via notification
     msg
       .getInitialNotification()
       .then((remoteMessage) => {
         if (remoteMessage?.data) {
-          // Small delay to ensure navigation is ready
-          setTimeout(() => {
-            handleNotificationTap(
-              remoteMessage.data as PushData,
-              setActiveConversation,
-              navigationRef as any,
-            );
-          }, 1000);
+          routeFromPushTap(remoteMessage.data as PushData);
         }
       });
 
@@ -205,16 +218,15 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribeOpened = msg.onNotificationOpenedApp(
       (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         if (remoteMessage.data) {
-          handleNotificationTap(
-            remoteMessage.data as PushData,
-            setActiveConversation,
-            navigationRef as any,
-          );
+          routeFromPushTap(remoteMessage.data as PushData);
         }
       },
     );
 
-    return unsubscribeOpened;
+    return () => {
+      isCancelled = true;
+      unsubscribeOpened();
+    };
   }, [setActiveConversation]);
 
   // Foreground message handling (silent for MVP - just update unread counts)
