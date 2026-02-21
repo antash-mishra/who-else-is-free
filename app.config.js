@@ -40,6 +40,7 @@ export default {
       favicon: "./assets/favicon.png",
     },
     plugins: [
+      "./plugins/withModularHeaders",
       "expo-splash-screen",
       "expo-font",
       [
