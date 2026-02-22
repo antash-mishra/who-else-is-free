@@ -1,13 +1,14 @@
 import { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { colors, spacing, typography } from '@theme/index';
 import PendingIcon from '@assets/pending.svg';
 import HostingIcon from '@assets/hosting.svg';
 import JoinedIcon from '@assets/joined.svg';
 
-const IMAGE_SIZE = 66;
-const BORDER_RADIUS_RATIO = 0.2;
+const IMAGE_SIZE = 68;
+const IMAGE_BORDER_RADIUS = 8;
 
 export interface EventItemProps {
   id: string;
@@ -36,23 +37,24 @@ const getBadgeIcon = (badgeLabel: string) => {
 };
 
 const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: EventItemProps) => {
-  const imageBorderRadius = IMAGE_SIZE * BORDER_RADIUS_RATIO;
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
 
   return (
     <View style={styles.container} testID="event-card">
-      <View
-        style={[
-          styles.imageWrapper,
-          { width: IMAGE_SIZE, height: IMAGE_SIZE, borderRadius: imageBorderRadius }
-        ]}
-      >
+      <View style={styles.imageWrapper}>
         <Image source={{ uri: imageUri }} style={styles.image} />
         {showBadge ? (
-          <View style={styles.badge} testID="event-card-badge">
-            {getBadgeIcon(badgeLabel)}
-            <Text style={styles.badgeText}>{badgeLabel}</Text>
-          </View>
+          <>
+            <LinearGradient
+              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.8)']}
+              locations={[0, 0.56, 1]}
+              style={styles.gradient}
+            />
+            <View style={styles.badge} testID="event-card-badge">
+              {getBadgeIcon(badgeLabel)}
+              <Text style={styles.badgeText}>{badgeLabel}</Text>
+            </View>
+          </>
         ) : null}
       </View>
       <View style={styles.content}>
@@ -78,11 +80,21 @@ const styles = StyleSheet.create({
     gap: spacing.md
   },
   imageWrapper: {
-    overflow: 'hidden'
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    borderRadius: IMAGE_BORDER_RADIUS,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%'
+  },
+  gradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 44,
   },
   badge: {
     position: 'absolute',

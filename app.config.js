@@ -40,6 +40,7 @@ export default {
       favicon: "./assets/favicon.png",
     },
     plugins: [
+      "./plugins/withModularHeaders",
       "expo-splash-screen",
       "expo-font",
       [
@@ -57,14 +58,14 @@ export default {
     ],
     extra: {
       eas: {
-        projectId: "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
+        projectId: "ba8d8a05-086b-483c-93e2-6fc54ffe9f2e",
       },
     },
     runtimeVersion: {
       policy: "appVersion",
     },
     updates: {
-      url: "https://u.expo.dev/c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
+      url: "https://u.expo.dev/ba8d8a05-086b-483c-93e2-6fc54ffe9f2e",
     },
   },
 };
