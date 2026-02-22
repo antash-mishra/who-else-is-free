@@ -221,72 +221,72 @@ const HomeScreen = () => {
   );
 
   return (
-    <View style={styles.flex}>
-      <ScreenContainer>
-        <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Discover Events</Text>
-          <SegmentedControl
-            options={sortOptions}
-            value={sortMode}
-            onChange={(value) => setSortMode(value as SortMode)}
-          />
+    <ScreenContainer>
+<View style={styles.headerSpacing}>
+        <Text style={styles.headerTitle}>Discover Events</Text>
+      </View>
+      <View style={styles.filtersRow}>
+        <SegmentedControl
+          options={sortOptions}
+          value={sortMode}
+          onChange={(value) => setSortMode(value as SortMode)}
+        />
+      </View>
+      {showAllEventsLoading ? (
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-        {showAllEventsLoading ? (
-          <View style={styles.centerContent}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        ) : showAllEventsError ? (
-          <View style={styles.centerContent}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={handleRefresh}>
-              <Text style={styles.retryButtonText}>Try again</Text>
-            </Pressable>
-          </View>
-        ) : showAllEventsEmpty ? (
-          <ScrollView
-            contentContainerStyle={styles.centerContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={isLoading}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-              />
-            }
-            showsVerticalScrollIndicator={false}
-          >
-            <EmptyState
-              title="Nothing Happening Here (Yet!)"
-              description="There are currently no events available. Please check back later for new experiences."
-              imageSource={require('@assets/emptystate_discoverevent.png')}
+      ) : showAllEventsError ? (
+        <View style={styles.centerContent}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={handleRefresh}>
+            <Text style={styles.retryButtonText}>Try again</Text>
+          </Pressable>
+        </View>
+      ) : showAllEventsEmpty ? (
+        <ScrollView
+          contentContainerStyle={styles.centerContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
             />
-          </ScrollView>
-        ) : (
-          <SectionList<EventItemProps, EventSection>
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            renderSectionHeader={renderSectionHeader}
-            stickySectionHeadersEnabled={false}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: spacing.xl + insets.bottom },
-            ]}
-            SectionSeparatorComponent={({ leadingItem }) =>
-              leadingItem ? <View style={styles.sectionSeparator} /> : null
-            }
-            ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-            ListFooterComponent={<View style={styles.footerSpacing} />}
-            refreshControl={
-              <RefreshControl
-                refreshing={isLoading}
-                onRefresh={handleRefresh}
-                tintColor={colors.primary}
-              />
-            }
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          <EmptyState
+            title="Nothing Happening Here (Yet!)"
+            description="There are currently no events available. Please check back later for new experiences."
+            imageSource={require('@assets/emptystate_discoverevent.png')}
           />
-        )}
-      </ScreenContainer>
+        </ScrollView>
+      ) : (
+        <SectionList<EventItemProps, EventSection>
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: spacing.xl + insets.bottom },
+          ]}
+          SectionSeparatorComponent={({ leadingItem }) =>
+            leadingItem ? <View style={styles.sectionSeparator} /> : null
+          }
+          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+          ListFooterComponent={<View style={styles.footerSpacing} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={handleRefresh}
+              tintColor={colors.primary}
+            />
+          }
+        />
+      )}
       <EventActionBadge
         visible={showReportedBadge}
         label="Event Reported, Admins are looking into it"
@@ -314,18 +314,17 @@ const HomeScreen = () => {
           navigation.setParams({ showEventLeftBadge: false });
         }}
       />
-    </View>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
+  filtersRow: {
+    marginBottom: spacing.md,
   },
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.sm,
-    gap: spacing.sm,
+    paddingBottom: 24,
   },
   headerTitle: {
     fontSize: typography.header,
@@ -339,18 +338,18 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 16,
     color: '#000000',
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    marginTop: 0,
+    marginBottom: 14,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: 20,
     letterSpacing: -0.4,
   },
   sectionSeparator: {
-    height: spacing.md,
+    height: 28,
   },
   itemSeparator: {
-    height: spacing.md,
+    height: 14,
   },
   footerSpacing: {
     height: spacing.xl,

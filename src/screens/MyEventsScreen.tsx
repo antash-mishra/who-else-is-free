@@ -325,7 +325,7 @@ const MyEventsScreen = () => {
 
   return (
     <ScreenContainer>
-      <View style={styles.content}>
+<View style={styles.content}>
         <View style={styles.headerSpacing}>
           <Text style={styles.headerTitle}>Your Events</Text>
         </View>
@@ -437,7 +437,7 @@ const MyEventsScreen = () => {
 const styles = StyleSheet.create({
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
+    paddingBottom: 24,
   },
   content: {
     flex: 1,
@@ -506,18 +506,18 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 16,
     color: "#000000",
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    marginTop: 0,
+    marginBottom: 14,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: 20,
     letterSpacing: -0.4,
   },
   sectionSeparator: {
-    height: spacing.md,
+    height: 28,
   },
   itemSeparator: {
-    height: spacing.md,
+    height: 14,
   },
   footerSpacing: {
     height: spacing.xl,
