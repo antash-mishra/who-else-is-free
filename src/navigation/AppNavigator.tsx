@@ -446,9 +446,8 @@ const AppNavigator = () => {
           name="JoinRequests"
           component={JoinRequestsScreen}
           options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 250,
+            animation: "fade_from_bottom",
+            animationDuration: 200,
           }}
         />
         <Stack.Screen

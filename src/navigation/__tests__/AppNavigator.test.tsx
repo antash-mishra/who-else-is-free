@@ -305,16 +305,16 @@ describe('AppNavigator', () => {
     });
   });
 
-  describe('JoinRequests Screen Modal', () => {
-    it('should present JoinRequests as modal', () => {
-      const options = { presentation: 'modal' };
-      expect(options.presentation).toBe('modal');
+  describe('JoinRequests Screen Full Page', () => {
+    it('should NOT present JoinRequests as modal', () => {
+      const options = { animation: 'fade_from_bottom', animationDuration: 200 };
+      expect(options).not.toHaveProperty('presentation');
     });
 
-    it('should use slide_from_bottom animation', () => {
-      const options = { animation: 'slide_from_bottom', animationDuration: 250 };
-      expect(options.animation).toBe('slide_from_bottom');
-      expect(options.animationDuration).toBe(250);
+    it('should use fade_from_bottom animation consistent with other full-page screens', () => {
+      const options = { animation: 'fade_from_bottom', animationDuration: 200 };
+      expect(options.animation).toBe('fade_from_bottom');
+      expect(options.animationDuration).toBe(200);
     });
   });
 
