@@ -1411,14 +1411,12 @@ const EventDetailsScreen = () => {
                         <Pressable
                           key={request.id}
                           onPress={() => handleRequesterPress(request)}
-                          style={styles.requestItem}
+                          style={styles.memberItem}
                         >
                           {renderAvatar(request.requester)}
-                          <View style={styles.requestInfo}>
-                            <Text style={styles.requesterName}>
-                              {request.requester.name}
-                            </Text>
-                          </View>
+                          <Text style={styles.memberName}>
+                            {request.requester.name}
+                          </Text>
                           <Pressable
                             onPress={(e) => {
                               e.stopPropagation();
