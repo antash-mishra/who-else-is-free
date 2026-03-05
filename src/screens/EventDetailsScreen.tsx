@@ -1418,12 +1418,6 @@ const EventDetailsScreen = () => {
                             <Text style={styles.requesterName}>
                               {request.requester.name}
                             </Text>
-                            <Text
-                              numberOfLines={1}
-                              style={styles.requestMessagePreview}
-                            >
-                              {request.message}
-                            </Text>
                           </View>
                           <Pressable
                             onPress={(e) => {
