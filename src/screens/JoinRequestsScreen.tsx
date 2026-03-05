@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   // Group mode header styles
   header: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   },
   // 1:1 mode header styles
   header1to1: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
