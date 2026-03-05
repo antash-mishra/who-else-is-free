@@ -18,6 +18,7 @@ import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
 import EventActionOverlay from "@components/EventActionOverlay";
+import EventInfoOverlay from "@components/EventInfoOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
 
@@ -62,6 +63,7 @@ const JoinRequestsScreen = () => {
     route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showEventDetails, setShowEventDetails] = useState(false);
 
   // Mode detection
   const is1to1Mode = groupType === "Single";
@@ -318,15 +320,23 @@ const JoinRequestsScreen = () => {
         >
           <Feather name="chevron-left" size={24} color={colors.text} />
         </Pressable>
-        <Image source={coverSource} style={styles.headerCoverImage} />
-        <View style={styles.headerCopy1to1}>
-          <Text style={styles.headerTitle1to1} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View event details"
+          onPress={() => setShowEventDetails(true)}
+          style={styles.headerEventInfoPressable}
+          testID="join-requests-event-info-button"
+        >
+          <Image source={coverSource} style={styles.headerCoverImage} />
+          <View style={styles.headerCopy1to1}>
+            <Text style={styles.headerTitle1to1} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </View>
+        </Pressable>
         {displayRequests.length > 0 && (
           <View style={styles.badgeContainer}>
             <Text style={styles.badgeText}>{displayRequests.length}</Text>
@@ -385,10 +395,16 @@ const JoinRequestsScreen = () => {
       >
         <Feather name="chevron-left" size={24} color={colors.text} />
       </Pressable>
-      <View style={styles.headerCopy}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View event details"
+        onPress={() => setShowEventDetails(true)}
+        style={styles.headerCopy}
+        testID="join-requests-group-event-info-button"
+      >
         <Text style={styles.headerTitle}>{title}</Text>
         <Text style={styles.headerSubtitle}>Join Requests</Text>
-      </View>
+      </Pressable>
     </View>
   );
 
@@ -457,6 +473,17 @@ const JoinRequestsScreen = () => {
           refreshing={isRefreshing}
         />
       </View>
+
+      <EventInfoOverlay
+        isVisible={showEventDetails}
+        onClose={() => setShowEventDetails(false)}
+        title={title}
+        coverKey={eventDetails?.coverKey}
+        dateLabel={eventDetails?.dateLabel}
+        time={eventDetails?.time}
+        location={eventDetails?.location}
+        groupType={groupType}
+      />
 
       {/* 1:1 mode: Request menu overlay */}
       <EventActionOverlay
@@ -534,6 +561,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
+    gap: spacing.sm,
+  },
+  headerEventInfoPressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
     gap: spacing.sm,
   },
   headerCoverImage: {

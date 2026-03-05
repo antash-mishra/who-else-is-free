@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
+import EventInfoOverlay from "@components/EventInfoOverlay";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatMessage } from "@context/ChatContext";
@@ -48,6 +49,7 @@ const ChatThreadScreen = () => {
 
   const [draft, setDraft] = useState("");
   const [androidKeyboardOffset, setAndroidKeyboardOffset] = useState(0);
+  const [showEventDetails, setShowEventDetails] = useState(false);
 
   const activeConversation = useMemo(
     () =>
@@ -315,7 +317,13 @@ const ChatThreadScreen = () => {
           >
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>
-          <View style={styles.threadHeaderCopy}>
+          <Pressable
+            style={styles.threadHeaderCopy}
+            onPress={() => setShowEventDetails(true)}
+            accessibilityRole="button"
+            accessibilityLabel="View event details"
+            testID="chat-event-info-button"
+          >
             <View style={styles.threadTitleRow}>
               {eventCoverUri ? (
                 <Image
@@ -330,7 +338,7 @@ const ChatThreadScreen = () => {
             {isConnecting ? (
               <Text style={styles.threadSubtitle}>Connecting…</Text>
             ) : null}
-          </View>
+          </Pressable>
           {canViewJoinRequests && approvedJoinRequestCount > 0 ? (
             <Pressable
               accessibilityRole="button"
@@ -454,6 +462,20 @@ const ChatThreadScreen = () => {
           </View>
         </View>
       )}
+      <EventInfoOverlay
+        isVisible={showEventDetails}
+        onClose={() => setShowEventDetails(false)}
+        title={activeEvent?.title ?? activeConversation.displayName}
+        imageUri={activeEvent?.imageUri}
+        coverKey={activeConversation.event?.coverKey ?? activeEvent?.coverKey ?? undefined}
+        hostName={activeEvent?.hostName}
+        dateLabel={activeConversation.event?.dateLabel ?? activeEvent?.dateLabel}
+        time={activeConversation.event?.time ?? activeEvent?.time}
+        location={activeConversation.event?.location ?? activeEvent?.location}
+        description={activeEvent?.description}
+        audience={activeEvent?.audience}
+        groupType={activeEvent?.groupType}
+      />
     </ScreenContainer>
   );
 };
