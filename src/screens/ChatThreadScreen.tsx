@@ -99,6 +99,19 @@ const ChatThreadScreen = () => {
     return user.id === activeConversation.createdBy;
   }, [activeConversation, user]);
 
+  const isGroupConversation = useMemo(() => {
+    if (!activeConversation) return false;
+    const memberCount =
+      activeConversation.memberIds?.length ??
+      activeConversation.participants?.length ??
+      0;
+    return (
+      !!activeConversation.eventId ||
+      memberCount > 2 ||
+      (!!activeConversation.title && memberCount > 1)
+    );
+  }, [activeConversation]);
+
   useEffect(() => {
     if (!activeConversationId) {
       if (navigation.canGoBack()) {
@@ -224,6 +237,17 @@ const ChatThreadScreen = () => {
     });
   };
 
+  const getAvatarColor = (id: number) => {
+    const hue = (id * 47) % 360;
+    return `hsl(${hue}, 55%, 45%)`;
+  };
+
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
   const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
     const lowerBody = item.body.toLowerCase();
     const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
@@ -241,8 +265,7 @@ const ChatThreadScreen = () => {
     const participant = activeConversation.participants?.find(
       (p) => p.id === item.senderId,
     );
-    const avatarLabel =
-      participant?.name ?? activeConversation.displayName ?? "";
+    const senderName = participant?.name ?? activeConversation.displayName ?? "";
 
     const bubble = (
       <View
@@ -290,6 +313,8 @@ const ChatThreadScreen = () => {
       bubble
     );
 
+    const showAvatar = !isOwn && isGroupConversation;
+
     return (
       <View
         style={[
@@ -297,7 +322,22 @@ const ChatThreadScreen = () => {
           isOwn ? styles.messageRowOwn : styles.messageRowOther,
         ]}
       >
-        <View style={styles.messageBubbleContainer}>{bubbleContent}</View>
+        {showAvatar ? (
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: getAvatarColor(item.senderId) },
+            ]}
+          >
+            <Text style={styles.avatarText}>{getInitials(senderName)}</Text>
+          </View>
+        ) : null}
+        <View style={styles.messageBubbleContainer}>
+          {showAvatar && senderName ? (
+            <Text style={styles.senderName}>{senderName}</Text>
+          ) : null}
+          {bubbleContent}
+        </View>
       </View>
     );
   };
@@ -526,15 +566,38 @@ const styles = StyleSheet.create({
   },
   messageRow: {
     marginBottom: spacing.sm,
-  },
-  messageRowOwn: {
+    flexDirection: "row",
     alignItems: "flex-end",
   },
+  messageRowOwn: {
+    justifyContent: "flex-end",
+  },
   messageRowOther: {
-    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   messageBubbleContainer: {
-    maxWidth: "80%",
+    maxWidth: "75%",
+  },
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
+  avatarText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontFamily: typography.fontFamilySemiBold,
+  },
+  senderName: {
+    fontSize: typography.caption,
+    color: colors.subText,
+    fontFamily: typography.fontFamilySemiBold,
+    marginBottom: 2,
+    marginLeft: spacing.xs,
   },
   messageBubble: {
     paddingHorizontal: spacing.md,
