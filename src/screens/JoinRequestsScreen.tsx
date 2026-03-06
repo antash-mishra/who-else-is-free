@@ -18,7 +18,6 @@ import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
 import EventActionOverlay from "@components/EventActionOverlay";
-import EventInfoOverlay from "@components/EventInfoOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
 
@@ -63,7 +62,6 @@ const JoinRequestsScreen = () => {
     route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showEventDetails, setShowEventDetails] = useState(false);
 
   // Mode detection
   const is1to1Mode = groupType === "Single";
@@ -323,8 +321,11 @@ const JoinRequestsScreen = () => {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="View event details"
-          onPress={() => setShowEventDetails(true)}
-          style={styles.headerEventInfoPressable}
+          onPress={() => navigation.navigate("EventDetailsOverlay", {
+            eventId: String(eventId),
+            readOnly: true,
+          })}
+          style={({ pressed }) => [styles.headerEventInfoPressable, pressed && { opacity: 0.7 }]}
           testID="join-requests-event-info-button"
         >
           <Image source={coverSource} style={styles.headerCoverImage} />
@@ -398,8 +399,11 @@ const JoinRequestsScreen = () => {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="View event details"
-        onPress={() => setShowEventDetails(true)}
-        style={styles.headerCopy}
+        onPress={() => navigation.navigate("EventDetailsOverlay", {
+          eventId: String(eventId),
+          readOnly: true,
+        })}
+        style={({ pressed }) => [styles.headerCopy, pressed && { opacity: 0.7 }]}
         testID="join-requests-group-event-info-button"
       >
         <Text style={styles.headerTitle}>{title}</Text>
@@ -473,17 +477,6 @@ const JoinRequestsScreen = () => {
           refreshing={isRefreshing}
         />
       </View>
-
-      <EventInfoOverlay
-        isVisible={showEventDetails}
-        onClose={() => setShowEventDetails(false)}
-        title={title}
-        coverKey={eventDetails?.coverKey}
-        dateLabel={eventDetails?.dateLabel}
-        time={eventDetails?.time}
-        location={eventDetails?.location}
-        groupType={groupType}
-      />
 
       {/* 1:1 mode: Request menu overlay */}
       <EventActionOverlay

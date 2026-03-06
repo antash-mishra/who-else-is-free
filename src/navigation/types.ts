@@ -14,6 +14,11 @@ export type RootStackParamList = {
     eventId: string;
     origin?: 'Events' | 'MyEvents';
     showEventUpdatedBadge?: boolean;
+    readOnly?: boolean;
+  };
+  EventDetailsOverlay: {
+    eventId: string;
+    readOnly: true;
   };
   JoinRequests: {
     conversationId: number;

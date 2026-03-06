@@ -41,10 +41,10 @@ import { API_BASE_URL } from "@api/config";
 import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 
-type EventDetailsRoute = RouteProp<RootStackParamList, "EventDetails">;
+type EventDetailsRoute = RouteProp<RootStackParamList, "EventDetails" | "EventDetailsOverlay">;
 type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
-  "EventDetails"
+  "EventDetails" | "EventDetailsOverlay"
 >;
 
 const readableDateLabel = (label: "Today" | "Tmrw") =>
@@ -53,6 +53,7 @@ const readableDateLabel = (label: "Today" | "Tmrw") =>
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
+  const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const {
@@ -87,7 +88,7 @@ const EventDetailsScreen = () => {
     }
   }, [rawEvent]);
   const event = eventSnapshot;
-  const origin = route.params.origin ?? "Events";
+  const origin = (route.params as { origin?: string }).origin ?? "Events";
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
@@ -159,12 +160,13 @@ const EventDetailsScreen = () => {
     setDisableHostRequestPolling(false);
   }, [route.params.eventId]);
 
+  const showEventUpdatedBadgeParam = (route.params as { showEventUpdatedBadge?: boolean }).showEventUpdatedBadge;
   useEffect(() => {
-    if (!route.params?.showEventUpdatedBadge) {
+    if (!showEventUpdatedBadgeParam) {
       return;
     }
     setShowEventUpdatedBadge(true);
-  }, [route.params?.showEventUpdatedBadge]);
+  }, [showEventUpdatedBadgeParam]);
 
   if (!event) {
     return (
@@ -271,7 +273,8 @@ const EventDetailsScreen = () => {
       !event ||
       hostRequestStoreKey == null ||
       eventNumericId == null ||
-      disableHostRequestPolling
+      disableHostRequestPolling ||
+      readOnly
     ) {
       return;
     }
@@ -312,6 +315,7 @@ const EventDetailsScreen = () => {
     refreshConversations,
     isSingleEvent,
     disableHostRequestPolling,
+    readOnly,
   ]);
 
   useEffect(() => {
@@ -374,7 +378,7 @@ const EventDetailsScreen = () => {
 
   // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {
-    const shouldFetch = (hasPendingRequest || isConversationMember) && !isOwner;
+    const shouldFetch = (hasPendingRequest || isConversationMember) && !isOwner && !readOnly;
     if (!shouldFetch || !token || !event) {
       setUserIntroMessage(null);
       return;
@@ -1096,8 +1100,8 @@ const EventDetailsScreen = () => {
     ];
   }, [isOwner, isConversationMember, hasPendingRequest, isCancellingRequest]);
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+  const screenContent = (
+    <>
       <StatusBar
         barStyle="light-content" // For white icons/text
         translucent
@@ -1108,7 +1112,9 @@ const EventDetailsScreen = () => {
         <View
           style={[
             styles.heroContainer,
-            { height: 320 + insets.top, paddingTop: insets.top + 10 },
+            readOnly
+              ? { paddingTop: 12, paddingBottom: 16 }
+              : { height: 320 + insets.top, paddingTop: insets.top + 10 },
           ]}
         >
           <Image
@@ -1119,25 +1125,44 @@ const EventDetailsScreen = () => {
           />
           <View pointerEvents="none" style={styles.heroOverlayDark} />
           <View pointerEvents="none" style={styles.heroOverlayLight} />
-          <Pressable
-            accessibilityRole="button"
-            onPress={navigation.goBack}
-            style={[styles.backButton, { top: insets.top + 10 }]}
-          >
-            <Feather name="chevron-left" size={24} color={colors.buttonText} />
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setShowMenuOverlay(true)}
-            style={[styles.menuButton, { top: insets.top + 10 }]}
-          >
-            <Feather
-              name="more-horizontal"
-              size={24}
-              color={colors.buttonText}
-            />
-          </Pressable>
+          {readOnly ? (
+            <>
+              <View style={styles.overlayHeaderRow}>
+                <Text style={styles.overlayHeaderTitle} numberOfLines={1}>
+                  {event.title}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={navigation.goBack}
+                  hitSlop={12}
+                  style={styles.overlayCloseButton}
+                >
+                  <Feather name="x" size={24} color={colors.buttonText} />
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                onPress={navigation.goBack}
+                style={[styles.backButton, { top: insets.top + 10 }]}
+              >
+                <Feather name="chevron-left" size={24} color={colors.buttonText} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setShowMenuOverlay(true)}
+                style={[styles.menuButton, { top: insets.top + 10 }]}
+              >
+                <Feather
+                  name="more-horizontal"
+                  size={24}
+                  color={colors.buttonText}
+                />
+              </Pressable>
+            </>
+          )}
 
           {/* Elevated Image Card */}
           <View style={styles.imageCardContainer}>
@@ -1155,7 +1180,7 @@ const EventDetailsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.title}>{event.title}</Text>
             <Text style={styles.hostedBy}>{hostLine}</Text>
-            {!isOwner && (
+            {!isOwner && !readOnly && (
               <View style={styles.goingRow} testID="going-row">
                 <View style={styles.goingAvatarStack}>
                   {goingParticipants.slice(0, 2).map((participant, index) => (
@@ -1230,7 +1255,7 @@ const EventDetailsScreen = () => {
             )}
 
             {/* Host-only: Separator, Tabs, Requests/Members lists */}
-            {isOwner && (
+            {isOwner && !readOnly && (
               <>
                 <View style={styles.tabSeparator} />
 
@@ -1464,7 +1489,7 @@ const EventDetailsScreen = () => {
               </>
             )}
 
-            {userIntroMessage ? (
+            {userIntroMessage && !readOnly ? (
               <>
                 <View style={styles.divider} />
                 <Text style={styles.sectionHeading}>Introduction</Text>
@@ -1475,7 +1500,7 @@ const EventDetailsScreen = () => {
             ) : null}
           </View>
         </ScrollView>
-        {showStandardCTA && (
+        {showStandardCTA && !readOnly && (
           <View
             style={[
               styles.ctaContainer,
@@ -1505,7 +1530,7 @@ const EventDetailsScreen = () => {
             </Pressable>
           </View>
         )}
-        {showOpenChatCTA ? (
+        {showOpenChatCTA && !readOnly ? (
           <View style={styles.ctaContainer}>
             <Pressable
               accessibilityRole="button"
@@ -1708,6 +1733,23 @@ const EventDetailsScreen = () => {
           setReportedMemberBadgeLabel(null);
         }}
       />
+    </>
+  );
+
+  if (readOnly) {
+    return (
+      <View style={styles.overlayWrapper}>
+        <Pressable style={styles.overlayDismissZone} onPress={navigation.goBack} />
+        <View style={styles.overlayContentContainer}>
+          {screenContent}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+      {screenContent}
     </SafeAreaView>
   );
 };
@@ -1739,6 +1781,42 @@ const styles = StyleSheet.create({
   heroOverlayLight: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  overlayWrapper: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+  },
+  overlayDismissZone: {
+    height: "10%",
+  },
+  overlayContentContainer: {
+    flex: 1,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: "hidden",
+    backgroundColor: colors.background,
+  },
+  overlayHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    zIndex: 10,
+  },
+  overlayHeaderTitle: {
+    flex: 1,
+    fontSize: typography.subtitle,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.buttonText,
+    textAlign: "center",
+    marginRight: -40,
+  },
+  overlayCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   backButton: {
     position: "absolute",

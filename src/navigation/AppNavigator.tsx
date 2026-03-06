@@ -451,6 +451,16 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
+          name="EventDetailsOverlay"
+          component={EventDetailsScreen}
+          options={{
+            presentation: "containedTransparentModal",
+            animation: "fade",
+            animationDuration: 200,
+            contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+        <Stack.Screen
           name="ChatThread"
           component={ChatThreadScreen}
           options={{

@@ -18,7 +18,6 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
-import EventInfoOverlay from "@components/EventInfoOverlay";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatMessage } from "@context/ChatContext";
@@ -49,7 +48,6 @@ const ChatThreadScreen = () => {
 
   const [draft, setDraft] = useState("");
   const [androidKeyboardOffset, setAndroidKeyboardOffset] = useState(0);
-  const [showEventDetails, setShowEventDetails] = useState(false);
 
   const activeConversation = useMemo(
     () =>
@@ -318,8 +316,15 @@ const ChatThreadScreen = () => {
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>
           <Pressable
-            style={styles.threadHeaderCopy}
-            onPress={() => setShowEventDetails(true)}
+            style={({ pressed }) => [styles.threadHeaderCopy, pressed && { opacity: 0.7 }]}
+            onPress={() => {
+              if (activeConversation?.eventId) {
+                navigation.navigate("EventDetailsOverlay", {
+                  eventId: String(activeConversation.eventId),
+                  readOnly: true,
+                });
+              }
+            }}
             accessibilityRole="button"
             accessibilityLabel="View event details"
             testID="chat-event-info-button"
@@ -462,20 +467,6 @@ const ChatThreadScreen = () => {
           </View>
         </View>
       )}
-      <EventInfoOverlay
-        isVisible={showEventDetails}
-        onClose={() => setShowEventDetails(false)}
-        title={activeEvent?.title ?? activeConversation.displayName}
-        imageUri={activeEvent?.imageUri}
-        coverKey={activeConversation.event?.coverKey ?? activeEvent?.coverKey ?? undefined}
-        hostName={activeEvent?.hostName}
-        dateLabel={activeConversation.event?.dateLabel ?? activeEvent?.dateLabel}
-        time={activeConversation.event?.time ?? activeEvent?.time}
-        location={activeConversation.event?.location ?? activeEvent?.location}
-        description={activeEvent?.description}
-        audience={activeEvent?.audience}
-        groupType={activeEvent?.groupType}
-      />
     </ScreenContainer>
   );
 };
