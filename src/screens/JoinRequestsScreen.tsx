@@ -318,15 +318,26 @@ const JoinRequestsScreen = () => {
         >
           <Feather name="chevron-left" size={24} color={colors.text} />
         </Pressable>
-        <Image source={coverSource} style={styles.headerCoverImage} />
-        <View style={styles.headerCopy1to1}>
-          <Text style={styles.headerTitle1to1} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View event details"
+          onPress={() => navigation.navigate("EventDetailsOverlay", {
+            eventId: String(eventId),
+            readOnly: true,
+          })}
+          style={({ pressed }) => [styles.headerEventInfoPressable, pressed && { opacity: 0.7 }]}
+          testID="join-requests-event-info-button"
+        >
+          <Image source={coverSource} style={styles.headerCoverImage} />
+          <View style={styles.headerCopy1to1}>
+            <Text style={styles.headerTitle1to1} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </View>
+        </Pressable>
         {displayRequests.length > 0 && (
           <View style={styles.badgeContainer}>
             <Text style={styles.badgeText}>{displayRequests.length}</Text>
@@ -385,10 +396,19 @@ const JoinRequestsScreen = () => {
       >
         <Feather name="chevron-left" size={24} color={colors.text} />
       </Pressable>
-      <View style={styles.headerCopy}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View event details"
+        onPress={() => navigation.navigate("EventDetailsOverlay", {
+          eventId: String(eventId),
+          readOnly: true,
+        })}
+        style={({ pressed }) => [styles.headerCopy, pressed && { opacity: 0.7 }]}
+        testID="join-requests-group-event-info-button"
+      >
         <Text style={styles.headerTitle}>{title}</Text>
         <Text style={styles.headerSubtitle}>Join Requests</Text>
-      </View>
+      </Pressable>
     </View>
   );
 
@@ -534,6 +554,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
+    gap: spacing.sm,
+  },
+  headerEventInfoPressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
     gap: spacing.sm,
   },
   headerCoverImage: {
