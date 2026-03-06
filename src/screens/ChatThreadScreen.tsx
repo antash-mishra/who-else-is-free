@@ -315,7 +315,20 @@ const ChatThreadScreen = () => {
           >
             <Feather name="chevron-left" size={24} color={colors.text} />
           </Pressable>
-          <View style={styles.threadHeaderCopy}>
+          <Pressable
+            style={({ pressed }) => [styles.threadHeaderCopy, pressed && { opacity: 0.7 }]}
+            onPress={() => {
+              if (activeConversation?.eventId) {
+                navigation.navigate("EventDetailsOverlay", {
+                  eventId: String(activeConversation.eventId),
+                  readOnly: true,
+                });
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="View event details"
+            testID="chat-event-info-button"
+          >
             <View style={styles.threadTitleRow}>
               {eventCoverUri ? (
                 <Image
@@ -330,7 +343,7 @@ const ChatThreadScreen = () => {
             {isConnecting ? (
               <Text style={styles.threadSubtitle}>Connecting…</Text>
             ) : null}
-          </View>
+          </Pressable>
           {canViewJoinRequests && approvedJoinRequestCount > 0 ? (
             <Pressable
               accessibilityRole="button"
