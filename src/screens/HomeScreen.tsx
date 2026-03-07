@@ -104,6 +104,7 @@ const HomeScreen = () => {
   const tabBarHeight = useBottomTabBarHeight();
   const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const hasLoadedOnce = useRef(false);
+  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
@@ -183,21 +184,25 @@ const HomeScreen = () => {
   const showAllEventsError = !!error && !isLoading && sections.length === 0;
   const showAllEventsEmpty = !isLoading && sections.length === 0 && !error;
 
+  const refreshAll = useCallback(
+    async () => Promise.all([refreshEvents(), refreshRequestedEvents()]),
+    [refreshEvents, refreshRequestedEvents],
+  );
+
   const handleRefresh = useCallback(() => {
-    Promise.all([refreshEvents(), refreshRequestedEvents()]).catch(
-      () => undefined,
-    );
-  }, [refreshEvents, refreshRequestedEvents]);
+    setIsPullRefreshing(true);
+    refreshAll()
+      .catch(() => undefined)
+      .finally(() => setIsPullRefreshing(false));
+  }, [refreshAll]);
 
   useEffect(() => {
     if (!isFocused) {
       return;
     }
-    Promise.all([refreshEvents(), refreshRequestedEvents()]).catch(
-      () => undefined,
-    );
+    refreshAll().catch(() => undefined);
     return;
-  }, [isFocused, refreshEvents, refreshRequestedEvents]);
+  }, [isFocused, refreshAll]);
 
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
     <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -248,7 +253,7 @@ const HomeScreen = () => {
           contentContainerStyle={styles.centerContent}
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
+              refreshing={isPullRefreshing}
               onRefresh={handleRefresh}
               tintColor={colors.primary}
             />
@@ -280,7 +285,7 @@ const HomeScreen = () => {
           ListFooterComponent={<View style={styles.footerSpacing} />}
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
+              refreshing={isPullRefreshing}
               onRefresh={handleRefresh}
               tintColor={colors.primary}
             />
