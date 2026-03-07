@@ -242,9 +242,13 @@ const ChatThreadScreen = () => {
     const avatarColor = `hsl(${(item.senderId * 47) % 360}, 55%, 45%)`;
 
     const prevMessage = index > 0 ? messages[index - 1] : null;
+    const prevIsSystem = prevMessage
+      ? prevMessage.body.toLowerCase().endsWith("joined the chat") ||
+        prevMessage.body.toLowerCase() === "updated event detail"
+      : false;
     const isFirstInRun =
-      !prevMessage || prevMessage.senderId !== item.senderId;
-    const showAvatar = !isOwn && isGroupConversation;
+      !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
+    const showAvatar = !isOwn;
     const showName = showAvatar && isFirstInRun;
 
     const timeText = item.pending
