@@ -113,8 +113,7 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost ||
-      activeEventGroupType !== "Single"
+      !isConversationHost
     ) {
       return;
     }
@@ -122,7 +121,7 @@ const ChatThreadScreen = () => {
       activeConversation.id,
       activeConversation.eventId,
       {
-        includeApproved: true,
+        includeApproved: activeEventGroupType === "Single",
       },
     ).catch(() => undefined);
   }, [activeConversation, activeEventGroupType, isConversationHost, refreshJoinRequests]);
@@ -180,13 +179,12 @@ const ChatThreadScreen = () => {
   };
 
   const isSendDisabled = draft.trim().length === 0;
-  const approvedJoinRequestCount = isConversationHost
-    ? joinRequests.filter((request) => request.status === "approved").length
+  const pendingJoinRequestCount = isConversationHost
+    ? joinRequests.filter((request) => request.status === "pending").length
     : 0;
   const canViewJoinRequests =
     isConversationHost &&
-    !!activeConversation?.eventId &&
-    activeEventGroupType === "Single";
+    !!activeConversation?.eventId;
 
   if (!activeConversation) {
     return null;
@@ -196,31 +194,13 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost ||
-      activeEventGroupType !== "Single"
+      !isConversationHost
     ) {
       return;
     }
-    navigation.navigate("JoinRequests", {
+    navigation.navigate("PendingRequests", {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
-      title: activeConversation.event?.title ?? activeConversation.displayName,
-      groupType: "Single",
-      eventDetails: activeConversation.event
-        ? {
-            coverKey: activeConversation.event.coverKey,
-            dateLabel: activeConversation.event.dateLabel ?? "",
-            location: activeConversation.event.location ?? "",
-            time: activeConversation.event.time ?? "",
-          }
-        : activeEvent
-          ? {
-              coverKey: activeEvent.coverKey ?? undefined,
-              dateLabel: activeEvent.dateLabel,
-              location: activeEvent.location,
-              time: activeEvent.time,
-            }
-          : undefined,
     });
   };
 
@@ -344,19 +324,23 @@ const ChatThreadScreen = () => {
               <Text style={styles.threadSubtitle}>Connecting…</Text>
             ) : null}
           </Pressable>
-          {canViewJoinRequests && approvedJoinRequestCount > 0 ? (
+          {canViewJoinRequests ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View join requests"
               onPress={handleOpenJoinRequests}
+              style={styles.joinIconButton}
             >
-              <View style={styles.joinBadge}>
-                <Text style={styles.joinBadgeText}>
-                  {approvedJoinRequestCount > 99
-                    ? "99+"
-                    : approvedJoinRequestCount}
-                </Text>
-              </View>
+              <Feather name="users" size={20} color={colors.text} />
+              {pendingJoinRequestCount > 0 ? (
+                <View style={styles.joinCountBadge}>
+                  <Text style={styles.joinCountBadgeText}>
+                    {pendingJoinRequestCount > 99
+                      ? "99+"
+                      : pendingJoinRequestCount}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
           ) : null}
         </View>
@@ -510,16 +494,27 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     color: colors.muted,
   },
-  joinBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 16,
+  joinIconButton: {
     marginLeft: spacing.sm,
+    padding: spacing.xs,
   },
-  joinBadgeText: {
-    color: colors.buttonText,
+  joinCountBadge: {
+    position: "absolute",
+    top: 0,
+    right: -2,
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  joinCountBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
     fontFamily: typography.fontFamilySemiBold,
+    lineHeight: 12,
   },
   errorText: {
     fontSize: typography.caption,
