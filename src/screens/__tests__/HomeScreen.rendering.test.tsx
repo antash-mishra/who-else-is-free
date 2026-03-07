@@ -28,6 +28,13 @@ let mockChatValue = { conversations: mockConversations };
 jest.mock('@context/AuthContext', () => ({ useAuth: () => mockAuthValue }));
 jest.mock('@context/EventsContext', () => ({ useEvents: () => mockEventsValue }));
 jest.mock('@context/ChatContext', () => ({ useChat: () => mockChatValue }));
+jest.mock('@react-navigation/bottom-tabs', () => {
+  const actual = jest.requireActual('@react-navigation/bottom-tabs');
+  return {
+    ...actual,
+    useBottomTabBarHeight: () => 0,
+  };
+});
 
 jest.mock('@components/EmptyState', () => {
   const { View, Text } = require('react-native');
@@ -169,11 +176,11 @@ describe('HomeScreen Rendering', () => {
       expect(mockEventsValue.refreshEvents).toHaveBeenCalled();
     });
 
-    it('shows refreshing state during refresh', () => {
+    it('does not tie pull-refresh spinner to background loading', () => {
       mockEventsValue.isLoading = true;
       const { UNSAFE_getByType } = render(<HomeScreen />);
       const { SectionList } = require('react-native');
-      expect(UNSAFE_getByType(SectionList).props.refreshControl.props.refreshing).toBe(true);
+      expect(UNSAFE_getByType(SectionList).props.refreshControl.props.refreshing).toBe(false);
     });
   });
 

@@ -130,6 +130,22 @@ interface EventMeta {
   badgeLabel?: string;
 }
 
+const REFRESH_TIMEOUT_MS = 10_000;
+
+const createRequestTimeout = (timeoutMs: number) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  return {
+    signal: controller.signal,
+    clear: () => clearTimeout(timeoutId),
+  };
+};
+
+const isAbortError = (err: unknown) =>
+  err instanceof Error && err.name === "AbortError";
+
 const formatAudience = (gender: string, minAge: number, maxAge: number) => {
   const genderLabel = gender.toLowerCase() === "any" ? "Any gender" : gender;
   return `${genderLabel}, ${minAge} to ${maxAge} years`;
@@ -292,6 +308,8 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const eventsRequestIdRef = useRef(0);
+  const requestedEventsRequestIdRef = useRef(0);
   const resetRequestedEventIds = useCallback(() => {
     setRequestedEventIds((prev) => {
       if (prev.size === 0) {
@@ -307,13 +325,18 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   }, [authFetch]);
 
   const refreshEvents = useCallback(async () => {
+    const requestId = eventsRequestIdRef.current + 1;
+    eventsRequestIdRef.current = requestId;
     setIsLoading(true);
     setError(null);
     const fetchClient = authFetchRef.current;
     if (!fetchClient) {
-      setIsLoading(false);
+      if (requestId === eventsRequestIdRef.current) {
+        setIsLoading(false);
+      }
       return;
     }
+    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
       const response = await fetchClient(`${API_BASE_URL}/api/events`, {
         headers: token
@@ -321,6 +344,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
               Authorization: `Bearer ${token}`,
             }
           : undefined,
+        signal: timeout.signal,
       });
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
@@ -331,16 +355,31 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         .map((event) => mapApiEvent(event, metaRef.current[String(event.id)]))
         .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
         .sort(sortEventsBySchedule);
+      if (requestId !== eventsRequestIdRef.current) {
+        return;
+      }
       setEvents(nextEvents);
     } catch (err) {
+      if (requestId !== eventsRequestIdRef.current) {
+        return;
+      }
       console.error("Failed to fetch events", err);
-      setError("Unable to load events. Pull to refresh.");
+      if (isAbortError(err)) {
+        setError("Unable to load events. Request timed out.");
+      } else {
+        setError("Unable to load events. Pull to refresh.");
+      }
     } finally {
-      setIsLoading(false);
+      timeout.clear();
+      if (requestId === eventsRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [token]);
 
   const refreshRequestedEvents = useCallback(async () => {
+    const requestId = requestedEventsRequestIdRef.current + 1;
+    requestedEventsRequestIdRef.current = requestId;
     if (!user || !token) {
       resetRequestedEventIds();
       return;
@@ -350,6 +389,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       resetRequestedEventIds();
       return;
     }
+    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
       const response = await fetchClient(`${API_BASE_URL}/api/chat/requests/me`, {
         headers: token
@@ -357,10 +397,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
               Authorization: `Bearer ${token}`,
             }
           : undefined,
+        signal: timeout.signal,
       });
 
       if (response.status === 401) {
         // authFetch already attempted refresh; treat remaining 401 as session transition.
+        if (requestId !== requestedEventsRequestIdRef.current) {
+          return;
+        }
         resetRequestedEventIds();
         return;
       }
@@ -378,10 +422,18 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           ids.add(String(idValue));
         }
       });
+      if (requestId !== requestedEventsRequestIdRef.current) {
+        return;
+      }
       setRequestedEventIds(ids);
     } catch (err) {
+      if (requestId !== requestedEventsRequestIdRef.current) {
+        return;
+      }
       console.error("Failed to fetch requested events", err);
       resetRequestedEventIds();
+    } finally {
+      timeout.clear();
     }
   }, [resetRequestedEventIds, token, user]);
 

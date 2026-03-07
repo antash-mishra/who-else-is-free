@@ -76,19 +76,29 @@ const JoinRequestsScreen = () => {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
-  const handleRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    refreshJoinRequests(conversationId, eventId, {
-      includeApproved: is1to1Mode,
-    })
-      .catch(() => undefined)
-      .finally(() => setIsRefreshing(false));
+  const loadRequests = useCallback(async (showRefreshing: boolean) => {
+    if (showRefreshing) {
+      setIsRefreshing(true);
+    }
+    try {
+      await refreshJoinRequests(conversationId, eventId, {
+        includeApproved: is1to1Mode,
+      });
+    } finally {
+      if (showRefreshing) {
+        setIsRefreshing(false);
+      }
+    }
   }, [conversationId, eventId, refreshJoinRequests, is1to1Mode]);
+
+  const handleRefresh = useCallback(() => {
+    loadRequests(true).catch(() => undefined);
+  }, [loadRequests]);
 
   useFocusEffect(
     useCallback(() => {
-      handleRefresh();
-    }, [handleRefresh]),
+      loadRequests(false).catch(() => undefined);
+    }, [loadRequests]),
   );
 
   const handleAction = useCallback(
