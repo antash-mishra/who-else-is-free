@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
@@ -17,6 +16,7 @@ import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
+import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
@@ -76,18 +76,30 @@ const JoinRequestsScreen = () => {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
-  const handleRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    refreshJoinRequests(conversationId, eventId, {
-      includeApproved: is1to1Mode,
-    })
-      .catch(() => undefined)
-      .finally(() => setIsRefreshing(false));
+  const loadRequests = useCallback(async (showRefreshing: boolean) => {
+    if (showRefreshing) {
+      setIsRefreshing(true);
+    }
+    try {
+      await refreshJoinRequests(conversationId, eventId, {
+        includeApproved: is1to1Mode,
+      });
+    } finally {
+      if (showRefreshing) {
+        setIsRefreshing(false);
+      }
+    }
   }, [conversationId, eventId, refreshJoinRequests, is1to1Mode]);
 
-  useEffect(() => {
-    handleRefresh();
-  }, [handleRefresh]);
+  const handleRefresh = useCallback(() => {
+    loadRequests(true).catch(() => undefined);
+  }, [loadRequests]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadRequests(false).catch(() => undefined);
+    }, [loadRequests]),
+  );
 
   const handleAction = useCallback(
     async (_requestId: number, userId: number, action: "approve" | "deny") => {
@@ -228,12 +240,13 @@ const JoinRequestsScreen = () => {
     setReportError(null);
   }, []);
 
-  // Group mode empty state
   const listEmpty = useMemo(
     () => (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>
-          {is1to1Mode ? "No accepted users yet" : "No pending requests"}
+          {is1to1Mode
+            ? "No accepted users yet"
+            : "No pending requests"}
         </Text>
         {!is1to1Mode && (
           <Text style={styles.emptySubtitle}>
@@ -303,36 +316,51 @@ const JoinRequestsScreen = () => {
       });
   }, [conversationById, is1to1Mode, requests]);
 
+  const pendingRequests = useMemo(
+    () => requests.filter((request) => request.status === "pending"),
+    [requests],
+  );
+
   // 1:1 mode header
   const render1to1Header = () => {
     if (!eventDetails) return null;
-    const coverSource = getCoverSource(eventDetails.coverKey);
-    const subtitle = `${eventDetails.dateLabel}, ${eventDetails.time} at ${eventDetails.location}`;
 
     return (
-      <View style={styles.header1to1}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Feather name="chevron-left" size={24} color={colors.text} />
-        </Pressable>
-        <Image source={coverSource} style={styles.headerCoverImage} />
-        <View style={styles.headerCopy1to1}>
-          <Text style={styles.headerTitle1to1} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        </View>
-        {displayRequests.length > 0 && (
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{displayRequests.length}</Text>
-          </View>
-        )}
-      </View>
+      <ChatEventHeader
+        onBack={() => navigation.goBack()}
+        title={title}
+        subtitle={`${eventDetails.dateLabel}, ${eventDetails.time} at ${eventDetails.location}`}
+        coverSource={getCoverSource(eventDetails.coverKey)}
+        onTitlePress={() =>
+          navigation.navigate("EventDetailsOverlay", {
+            eventId: String(eventId),
+            readOnly: true,
+          })
+        }
+        rightElement={
+          pendingRequests.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View pending requests"
+              onPress={() =>
+                navigation.navigate("PendingRequests", {
+                  conversationId,
+                  eventId,
+                })
+              }
+              style={styles.joinIconButton}
+            >
+              <Feather name="users" size={20} color={colors.text} />
+              <View style={styles.joinCountBadge}>
+                <Text style={styles.joinCountBadgeText}>
+                  {pendingRequests.length}
+                </Text>
+              </View>
+            </Pressable>
+          ) : undefined
+        }
+        testID="join-requests-event-info-button"
+      />
     );
   };
 
@@ -377,19 +405,18 @@ const JoinRequestsScreen = () => {
 
   // Group mode header
   const renderGroupHeader = () => (
-    <View style={styles.header}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <Feather name="chevron-left" size={24} color={colors.text} />
-      </Pressable>
-      <View style={styles.headerCopy}>
-        <Text style={styles.headerTitle}>{title}</Text>
-        <Text style={styles.headerSubtitle}>Join Requests</Text>
-      </View>
-    </View>
+    <ChatEventHeader
+      onBack={() => navigation.goBack()}
+      title={title}
+      subtitle="Join Requests"
+      onTitlePress={() =>
+        navigation.navigate("EventDetailsOverlay", {
+          eventId: String(eventId),
+          readOnly: true,
+        })
+      }
+      testID="join-requests-group-event-info-button"
+    />
   );
 
   // Group mode request item
@@ -439,7 +466,11 @@ const JoinRequestsScreen = () => {
         <FlatList
           data={displayRequests}
           keyExtractor={(item) => String(item.id)}
-          renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
+          renderItem={
+            is1to1Mode
+              ? render1to1RequestItem
+              : renderGroupRequestItem
+          }
           ItemSeparatorComponent={() => (
             <View
               style={is1to1Mode ? styles.separator1to1 : styles.separator}
@@ -498,85 +529,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  // Group mode header styles
-  header: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
+  joinIconButton: {
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilySemiBold,
-    color: colors.text,
-  },
-  headerSubtitle: {
-    fontSize: typography.body,
-    color: colors.subText,
-    marginTop: spacing.xs,
-  },
-  // 1:1 mode header styles
-  header1to1: {
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  headerCoverImage: {
-    width: 40,
-    height: 40,
+  joinCountBadge: {
+    position: "absolute",
+    top: 0,
+    right: -2,
+    backgroundColor: colors.accent,
     borderRadius: 8,
-  },
-  headerCopy1to1: {
-    flex: 1,
-  },
-  headerTitle1to1: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
-    lineHeight: 20,
-    letterSpacing: -0.5,
-    color: "#000000",
-  },
-  headerSubtitle1to1: {
-    fontSize: 14,
-    fontFamily: typography.fontFamilyRegular,
-    fontWeight: "400",
-    lineHeight: 20,
-    letterSpacing: -0.5,
-    color: "#707070",
-    marginTop: 2,
-  },
-  badgeContainer: {
-    backgroundColor: "#E6E6E6",
-    borderRadius: 24,
-    minWidth: 24,
-    height: 24,
+    minWidth: 16,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: 3,
   },
-  badgeText: {
-    fontSize: 15,
+  joinCountBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
     fontFamily: typography.fontFamilySemiBold,
-    fontWeight: "600",
-    lineHeight: 20,
-    textAlign: "center",
-    color: "#494949",
+    lineHeight: 12,
   },
   // List styles
   listContent: {

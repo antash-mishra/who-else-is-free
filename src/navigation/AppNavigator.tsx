@@ -27,6 +27,7 @@ import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
 import GoogleSignIn from "@screens/GoogleSignIn";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
+import PendingRequestsScreen from "@screens/PendingRequestsScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
@@ -446,9 +447,26 @@ const AppNavigator = () => {
           name="JoinRequests"
           component={JoinRequestsScreen}
           options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 250,
+            animation: "fade_from_bottom",
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen
+          name="PendingRequests"
+          component={PendingRequestsScreen}
+          options={{
+            animation: "fade_from_bottom",
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen
+          name="EventDetailsOverlay"
+          component={EventDetailsScreen}
+          options={{
+            presentation: "containedTransparentModal",
+            animation: "fade",
+            animationDuration: 200,
+            contentStyle: { backgroundColor: "transparent" },
           }}
         />
         <Stack.Screen

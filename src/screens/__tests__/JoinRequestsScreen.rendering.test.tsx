@@ -31,6 +31,7 @@ const mockRouteParams = {
 
 jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native');
+  const React = require('react');
   return {
     ...actualNav,
     useNavigation: () => ({
@@ -44,6 +45,9 @@ jest.mock('@react-navigation/native', () => {
       name: 'JoinRequests',
       params: mockRouteParams,
     }),
+    useFocusEffect: (cb: () => void) => {
+      React.useEffect(() => { cb(); }, [cb]);
+    },
   };
 });
 
@@ -426,21 +430,23 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(getByText('Today, 10:00 at Central Park')).toBeTruthy();
     });
 
-    it('should render request count badge in 1:1 mode', () => {
-      const { getByText } = render(<JoinRequestsScreen />);
+    it('should render pending requests icon with count badge in 1:1 mode', () => {
+      const { getByText, getByTestId } = render(<JoinRequestsScreen />);
 
-      // Badge shows count of approved users only
-      expect(getByText('2')).toBeTruthy();
+      // Users icon + badge with pending count
+      expect(getByTestId('icon-users')).toBeTruthy();
+      expect(getByText('1')).toBeTruthy();
     });
 
-    it('should not render badge when no requests in 1:1 mode', () => {
-      mockChatValue.joinRequestsByConversation = { 1: [] };
+    it('should not render pending requests icon when no pending requests in 1:1 mode', () => {
+      // All requests are approved, no pending
+      mockChatValue.joinRequestsByConversation = {
+        1: [mockJoinRequests[0], mockJoinRequests[1]],
+      };
 
-      const { queryByText } = render(<JoinRequestsScreen />);
+      const { queryByTestId } = render(<JoinRequestsScreen />);
 
-      // No badge should be rendered
-      const badge = queryByText('0');
-      expect(badge).toBeNull();
+      expect(queryByTestId('icon-users')).toBeNull();
     });
   });
 
@@ -611,7 +617,6 @@ describe('JoinRequestsScreen Rendering', () => {
       const { getByText, queryByText } = render(<JoinRequestsScreen />);
 
       expect(getByText('No accepted users yet')).toBeTruthy();
-      // 1:1 mode does not show the attendees explanation
       expect(
         queryByText("You'll see new join requests here when attendees tap Interested.")
       ).toBeNull();
@@ -665,6 +670,59 @@ describe('JoinRequestsScreen Rendering', () => {
       await waitFor(() => {
         expect(mockSetActiveConversation).not.toHaveBeenCalled();
         expect(mockReplace).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('1:1 Mode - Only Pending Requests (no accepted users)', () => {
+    const onlyPendingRequests = [
+      {
+        id: 10,
+        eventId: 1,
+        userId: 5,
+        message: 'Would love to join!',
+        status: 'pending' as const,
+        createdAt: new Date().toISOString(),
+        requester: { id: 5, name: 'Pending User 1' },
+      },
+      {
+        id: 11,
+        eventId: 1,
+        userId: 6,
+        message: 'Interested!',
+        status: 'pending' as const,
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        requester: { id: 6, name: 'Pending User 2' },
+      },
+    ];
+
+    beforeEach(() => {
+      mockRouteParams.groupType = 'Single';
+      mockChatValue.joinRequestsByConversation = { 1: onlyPendingRequests };
+    });
+
+    it('should show pending count badge when there are only pending requests', () => {
+      const { getByText, getByTestId } = render(<JoinRequestsScreen />);
+
+      // Users icon + badge with pending count
+      expect(getByTestId('icon-users')).toBeTruthy();
+      expect(getByText('2')).toBeTruthy();
+    });
+
+    it('should show empty accepted state by default', () => {
+      const { getByText } = render(<JoinRequestsScreen />);
+
+      expect(getByText('No accepted users yet')).toBeTruthy();
+    });
+
+    it('should navigate to PendingRequests when badge icon is pressed', () => {
+      const { getByLabelText } = render(<JoinRequestsScreen />);
+
+      fireEvent.press(getByLabelText('View pending requests'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('PendingRequests', {
+        conversationId: 1,
+        eventId: 1,
       });
     });
   });

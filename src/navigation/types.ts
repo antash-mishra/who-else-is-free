@@ -14,6 +14,11 @@ export type RootStackParamList = {
     eventId: string;
     origin?: 'Events' | 'MyEvents';
     showEventUpdatedBadge?: boolean;
+    readOnly?: boolean;
+  };
+  EventDetailsOverlay: {
+    eventId: string;
+    readOnly: true;
   };
   JoinRequests: {
     conversationId: number;
@@ -26,6 +31,10 @@ export type RootStackParamList = {
       location: string;
       time: string;
     };
+  };
+  PendingRequests: {
+    conversationId: number;
+    eventId: number;
   };
   ChatThread: undefined;
 };

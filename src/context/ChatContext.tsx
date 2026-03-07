@@ -118,6 +118,21 @@ interface ChatContextValue {
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 const WS_PATH = "/api/ws";
+const REFRESH_TIMEOUT_MS = 10_000;
+
+const createRequestTimeout = (timeoutMs: number) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  return {
+    signal: controller.signal,
+    clear: () => clearTimeout(timeoutId),
+  };
+};
+
+const isAbortError = (err: unknown) =>
+  err instanceof Error && err.name === "AbortError";
 
 const sortConversationsByActivity = (items: ChatConversation[]) => {
   return [...items].sort((a, b) => {
@@ -204,6 +219,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const tokenRef = useRef<string | null>(null);
   const authFetchRef = useRef(authFetch);
   const refreshSessionSilentlyRef = useRef(refreshSessionSilently);
+  const conversationsRefreshRequestIdRef = useRef(0);
+  const joinRequestsRefreshRequestIdRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     activeConversationRef.current = activeConversationId;
@@ -364,18 +381,25 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     if (!activeToken) {
       return;
     }
+    const requestId = conversationsRefreshRequestIdRef.current + 1;
+    conversationsRefreshRequestIdRef.current = requestId;
     setIsRefreshingConversations(true);
+    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
       const response = await fetchClient(`${API_BASE_URL}/api/conversations`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${activeToken}`,
         },
+        signal: timeout.signal,
       });
       if (!response.ok) {
         throw new Error("Unable to load conversations");
       }
       const payload = (await response.json()) as ConversationsResponse;
+      if (requestId !== conversationsRefreshRequestIdRef.current) {
+        return;
+      }
       setError(null);
       const normalized = (payload.conversations ?? []).map((conversation) => {
         const participants = conversation.participants ?? [];
@@ -463,10 +487,20 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         setActiveConversationId(null);
       }
     } catch (err) {
+      if (requestId !== conversationsRefreshRequestIdRef.current) {
+        return;
+      }
       console.error("Failed to load conversations", err);
-      setError((err as Error).message);
+      if (isAbortError(err)) {
+        setError("Unable to load conversations");
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
-      setIsRefreshingConversations(false);
+      timeout.clear();
+      if (requestId === conversationsRefreshRequestIdRef.current) {
+        setIsRefreshingConversations(false);
+      }
     }
   }, [token, user]);
 
@@ -488,6 +522,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       }
       const includeApproved = options?.includeApproved === true;
       const query = includeApproved ? "?include_approved=1" : "";
+      const requestId = (joinRequestsRefreshRequestIdRef.current[eventId] ?? 0) + 1;
+      joinRequestsRefreshRequestIdRef.current[eventId] = requestId;
+      const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
       try {
         const response = await fetchClient(
           `${API_BASE_URL}/api/events/${eventId}/chat/requests${query}`,
@@ -495,10 +532,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             headers: {
               Authorization: `Bearer ${activeToken}`,
             },
+            signal: timeout.signal,
           },
         );
         if (response.status === 404) {
           // Event may have been deleted while polling host requests; treat as empty.
+          if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
+            return;
+          }
           setJoinRequestsByConversation((prev) => ({
             ...prev,
             [conversationId]: [],
@@ -516,14 +557,22 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           requests?: any[];
         };
         const normalized = (payload.requests ?? []).map(normalizeJoinRequest);
+        if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
+          return;
+        }
         setJoinRequestsByConversation((prev) => ({
           ...prev,
           [conversationId]: normalized,
           [-eventId]: normalized,
         }));
       } catch (err) {
+        if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
+          return;
+        }
         console.error("Failed to load join requests", err);
         throw err;
+      } finally {
+        timeout.clear();
       }
     },
     [normalizeJoinRequest],
@@ -731,6 +780,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
                 }
               : conversation,
           );
+
+          // If sender is not in participants, refresh to get updated list
+          if (message.senderId !== currentUserId) {
+            const convo = prev.find((c) => c.id === message.conversationId);
+            if (convo && !convo.participants?.some((p) => p.id === message.senderId)) {
+              refreshConversations().catch(() => undefined);
+            }
+          }
+
           return sortConversationsByActivity(updated);
         });
         return;

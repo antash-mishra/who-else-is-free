@@ -208,8 +208,8 @@ JOIN conversation_members cm ON cm.conversation_id = c.id
 LEFT JOIN events e ON e.id = c.event_id
 WHERE cm.user_id = ?
   AND (c.event_id IS NULL
-       OR datetime(e.scheduled_at) > datetime('now', '-1 day')
-       OR (e.scheduled_at IS NULL AND e.event_date >= date('now', '-1 day')))
+       OR datetime(e.scheduled_at) > datetime('now')
+       OR (e.scheduled_at IS NULL AND e.event_date >= date('now')))
 ORDER BY c.created_at DESC;
 `
 
@@ -225,6 +225,17 @@ FROM conversation_members cm
 JOIN users u ON u.id = cm.user_id
 WHERE cm.conversation_id = ?
 ORDER BY cm.joined_at ASC;
+`
+
+const selectFormerMessageSenders = `
+SELECT DISTINCT m.sender_id, u.name
+FROM messages m
+JOIN users u ON u.id = m.sender_id
+WHERE m.conversation_id = ?
+  AND m.sender_id NOT IN (
+    SELECT user_id FROM conversation_members WHERE conversation_id = ?
+  )
+ORDER BY m.sender_id ASC;
 `
 
 const selectMessagesForConversation = `
@@ -485,6 +496,11 @@ WHERE blocker_user_id = ? AND blocked_user_id = ?
 LIMIT 1;
 `
 
+const deleteMemberReportByEventAndUsers = `
+DELETE FROM event_reports
+WHERE event_id = ? AND user_id = ? AND reported_user_id = ?;
+`
+
 const selectMemberReportRelationship = `
 SELECT 1
 FROM event_reports
@@ -649,6 +665,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 		return fmt.Errorf("create event_reports table: %w", err)
 	}
 	if err := r.ensureReportedUserIDColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.cleanupOrphanedEventReferences(ctx); err != nil {
 		return err
 	}
 	if err := r.ensureUserProfileColumns(ctx); err != nil {
@@ -1253,6 +1272,49 @@ func (r *EventRepository) cleanupOrphanedSingleEventConversations(ctx context.Co
 	if _, err := r.db.ExecContext(ctx, cleanupQuery); err != nil {
 		return fmt.Errorf("cleanup orphaned single event conversations: %w", err)
 	}
+	return nil
+}
+
+// cleanupOrphanedEventReferences removes legacy rows that still point to
+// deleted events from periods where foreign key enforcement was not active.
+func (r *EventRepository) cleanupOrphanedEventReferences(ctx context.Context) error {
+	const deleteOrphanedConversations = `
+		DELETE FROM conversations
+		WHERE event_id IS NOT NULL
+		AND NOT EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = conversations.event_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, deleteOrphanedConversations); err != nil {
+		return fmt.Errorf("cleanup orphaned conversations: %w", err)
+	}
+
+	const deleteOrphanedJoinRequests = `
+		DELETE FROM conversation_join_requests
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = conversation_join_requests.event_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, deleteOrphanedJoinRequests); err != nil {
+		return fmt.Errorf("cleanup orphaned join requests: %w", err)
+	}
+
+	const deleteOrphanedEventReports = `
+		DELETE FROM event_reports
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = event_reports.event_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, deleteOrphanedEventReports); err != nil {
+		return fmt.Errorf("cleanup orphaned event reports: %w", err)
+	}
+
 	return nil
 }
 
@@ -2103,18 +2165,6 @@ func (r *EventRepository) ApproveJoinRequest(ctx context.Context, eventID, userI
 		return nil, fmt.Errorf("add conversation member: %w", err)
 	}
 
-	trimmedMessage := strings.TrimSpace(req.Message)
-	if trimmedMessage != "" {
-		// Persist requester intro into the group chat when approval happens.
-		var msg Message
-		var attachmentOut sql.NullString
-		row := tx.QueryRowContext(ctx, insertMessage, convo.ID, userID, trimmedMessage, sql.NullString{}, "sent")
-		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("insert approved group intro message: %w", err)
-		}
-	}
-
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit join approval: %w", err)
 	}
@@ -2453,6 +2503,23 @@ func (r *EventRepository) fetchConversationParticipants(ctx context.Context, con
 	}
 	if err := rows.Err(); err != nil {
 		return nil, nil, fmt.Errorf("iterate conversation participants: %w", err)
+	}
+
+	// Append former message senders to participants only (not memberIDs)
+	rows2, err := r.db.QueryContext(ctx, selectFormerMessageSenders, conversationID, conversationID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("list former message senders: %w", err)
+	}
+	defer rows2.Close()
+	for rows2.Next() {
+		var p ConversationParticipant
+		if err := rows2.Scan(&p.ID, &p.Name); err != nil {
+			return nil, nil, fmt.Errorf("scan former message sender: %w", err)
+		}
+		participants = append(participants, p)
+	}
+	if err := rows2.Err(); err != nil {
+		return nil, nil, fmt.Errorf("iterate former message senders: %w", err)
 	}
 
 	return participants, memberIDs, nil
@@ -3070,6 +3137,14 @@ func (r *EventRepository) HasMemberReport(ctx context.Context, eventID, hostUser
 		return false, fmt.Errorf("check member report relationship: %w", err)
 	}
 	return true, nil
+}
+
+func (r *EventRepository) DeleteMemberReport(ctx context.Context, eventID, reporterUserID, reportedUserID int64) error {
+	_, err := r.db.ExecContext(ctx, deleteMemberReportByEventAndUsers, eventID, reporterUserID, reportedUserID)
+	if err != nil {
+		return fmt.Errorf("delete member report: %w", err)
+	}
+	return nil
 }
 
 // ListHostEventIDsForMember returns event IDs owned by hostUserID where

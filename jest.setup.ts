@@ -174,6 +174,28 @@ jest.mock('@ptomasroos/react-native-multi-slider', () => {
   };
 });
 
+// Mock expo-blur
+jest.mock('expo-blur', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  return {
+    __esModule: true,
+    BlurView: ({ children, ...props }: any) => React.createElement(View, props, children),
+  };
+});
+
+// Mock expo-linear-gradient
+jest.mock('expo-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  return {
+    __esModule: true,
+    LinearGradient: ({ children, ...props }: any) => React.createElement(View, props, children),
+  };
+});
+
 // Mock react-native-keyboard-aware-scroll-view
 jest.mock('react-native-keyboard-aware-scroll-view', () => {
   const React = require('react');

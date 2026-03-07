@@ -40,10 +40,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: 5,
-    marginVertical: spacing.sm,
   },
   tab: {
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E6E6E6',

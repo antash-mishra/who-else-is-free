@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
   View,
-  Image,
 } from "react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
+import ChatEventHeader from "@components/ChatEventHeader";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatMessage } from "@context/ChatContext";
@@ -27,6 +27,14 @@ import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
 
 const HEADER_HEIGHT = 56;
+
+const formatDDMMM = (eventDate: string): string => {
+  const [y, m, d] = eventDate.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-US", { month: "short" });
+  return `${day} ${month}`;
+};
 
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -85,6 +93,31 @@ const ChatThreadScreen = () => {
     [activeConversation, activeEvent],
   );
 
+  const headerTitle = useMemo(() => {
+    if (activeEventGroupType === "Single" && activeConversation && user) {
+      const otherUser = activeConversation.participants?.find(
+        (p) => p.id !== user.id,
+      );
+      if (otherUser?.name) return otherUser.name;
+    }
+    return activeConversation?.displayName ?? "";
+  }, [activeConversation, activeEventGroupType, user]);
+
+  const headerSubtitle = useMemo(() => {
+    if (isConnecting) return "Connecting\u2026";
+    if (activeEventGroupType === "Single" && activeEvent) {
+      const title = activeEvent.title;
+      const datePart = activeEvent.eventDate
+        ? formatDDMMM(activeEvent.eventDate)
+        : activeEvent.dateLabel;
+      return datePart ? `${title}, ${datePart}` : title;
+    }
+    if (activeEvent?.dateLabel && activeEvent?.time && activeEvent?.location) {
+      return `${activeEvent.dateLabel}, ${activeEvent.time} at ${activeEvent.location}`;
+    }
+    return undefined;
+  }, [isConnecting, activeEvent, activeEventGroupType]);
+
   const joinRequests = useMemo(() => {
     if (!activeConversationId) {
       return [];
@@ -98,6 +131,15 @@ const ChatThreadScreen = () => {
     }
     return user.id === activeConversation.createdBy;
   }, [activeConversation, user]);
+
+  const isGroupConversation = useMemo(() => {
+    if (!activeConversation) return false;
+    return (
+      activeConversation.memberIds.length > 2 ||
+      !!activeConversation.title ||
+      !!activeConversation.eventId
+    );
+  }, [activeConversation]);
 
   useEffect(() => {
     if (!activeConversationId) {
@@ -113,8 +155,7 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost ||
-      activeEventGroupType !== "Single"
+      !isConversationHost
     ) {
       return;
     }
@@ -122,7 +163,7 @@ const ChatThreadScreen = () => {
       activeConversation.id,
       activeConversation.eventId,
       {
-        includeApproved: true,
+        includeApproved: activeEventGroupType === "Single",
       },
     ).catch(() => undefined);
   }, [activeConversation, activeEventGroupType, isConversationHost, refreshJoinRequests]);
@@ -180,13 +221,12 @@ const ChatThreadScreen = () => {
   };
 
   const isSendDisabled = draft.trim().length === 0;
-  const approvedJoinRequestCount = isConversationHost
-    ? joinRequests.filter((request) => request.status === "approved").length
+  const pendingJoinRequestCount = isConversationHost
+    ? joinRequests.filter((request) => request.status === "pending").length
     : 0;
   const canViewJoinRequests =
     isConversationHost &&
-    !!activeConversation?.eventId &&
-    activeEventGroupType === "Single";
+    !!activeConversation?.eventId;
 
   if (!activeConversation) {
     return null;
@@ -196,35 +236,17 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost ||
-      activeEventGroupType !== "Single"
+      !isConversationHost
     ) {
       return;
     }
-    navigation.navigate("JoinRequests", {
+    navigation.navigate("PendingRequests", {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
-      title: activeConversation.event?.title ?? activeConversation.displayName,
-      groupType: "Single",
-      eventDetails: activeConversation.event
-        ? {
-            coverKey: activeConversation.event.coverKey,
-            dateLabel: activeConversation.event.dateLabel ?? "",
-            location: activeConversation.event.location ?? "",
-            time: activeConversation.event.time ?? "",
-          }
-        : activeEvent
-          ? {
-              coverKey: activeEvent.coverKey ?? undefined,
-              dateLabel: activeEvent.dateLabel,
-              location: activeEvent.location,
-              time: activeEvent.time,
-            }
-          : undefined,
     });
   };
 
-  const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
+  const renderMessage = ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
     const lowerBody = item.body.toLowerCase();
     const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
     const isEventUpdateSystemMessage = lowerBody === "updated event detail";
@@ -241,8 +263,35 @@ const ChatThreadScreen = () => {
     const participant = activeConversation.participants?.find(
       (p) => p.id === item.senderId,
     );
-    const avatarLabel =
-      participant?.name ?? activeConversation.displayName ?? "";
+    const senderName = participant?.name ?? "";
+    const firstName = senderName.split(" ")[0] || "";
+    const initials =
+      senderName
+        .split(" ")
+        .map((w: string) => w[0] ?? "")
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "?";
+    const avatarColor = `hsl(${(item.senderId * 47) % 360}, 55%, 45%)`;
+
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const prevIsSystem = prevMessage
+      ? prevMessage.body.toLowerCase().endsWith("joined the chat") ||
+        prevMessage.body.toLowerCase() === "updated event detail"
+      : false;
+    const isFirstInRun =
+      !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
+    const showAvatar = !isOwn;
+    const showName = showAvatar && isFirstInRun;
+
+    const timeText = item.pending
+      ? "Sending…"
+      : item.failed
+        ? "Failed. Tap to retry."
+        : new Date(item.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
 
     const bubble = (
       <View
@@ -252,6 +301,9 @@ const ChatThreadScreen = () => {
           item.failed ? styles.messageBubbleFailed : undefined,
         ]}
       >
+        {showName && firstName ? (
+          <Text style={styles.senderName}>{firstName}</Text>
+        ) : null}
         <Text
           style={[
             styles.messageText,
@@ -270,14 +322,7 @@ const ChatThreadScreen = () => {
                 : styles.messageMetaOther,
           ]}
         >
-          {item.pending
-            ? "Sending…"
-            : item.failed
-              ? "Failed. Tap to retry."
-              : new Date(item.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+          {timeText}
         </Text>
       </View>
     );
@@ -297,57 +342,60 @@ const ChatThreadScreen = () => {
           isOwn ? styles.messageRowOwn : styles.messageRowOther,
         ]}
       >
-        <View style={styles.messageBubbleContainer}>{bubbleContent}</View>
+        {showAvatar ? (
+          isFirstInRun ? (
+            <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+          ) : (
+            <View style={styles.avatarSpacer} />
+          )
+        ) : null}
+        <View style={styles.messageBubbleContainer}>
+          {bubbleContent}
+        </View>
       </View>
     );
   };
 
   return (
     <ScreenContainer>
-      <View style={styles.headerSpacing}>
-        <View style={styles.threadHeader}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleBack}
-            style={styles.backButton}
-            hitSlop={8}
-            testID="chat-back-button"
-          >
-            <Feather name="chevron-left" size={24} color={colors.text} />
-          </Pressable>
-          <View style={styles.threadHeaderCopy}>
-            <View style={styles.threadTitleRow}>
-              {eventCoverUri ? (
-                <Image
-                  source={{ uri: eventCoverUri }}
-                  style={styles.threadTitleCover}
-                />
-              ) : null}
-              <Text style={styles.threadTitle} numberOfLines={1}>
-                {activeConversation.displayName}
-              </Text>
-            </View>
-            {isConnecting ? (
-              <Text style={styles.threadSubtitle}>Connecting…</Text>
-            ) : null}
-          </View>
-          {canViewJoinRequests && approvedJoinRequestCount > 0 ? (
+      <ChatEventHeader
+        onBack={handleBack}
+        title={headerTitle}
+        subtitle={headerSubtitle}
+        coverUri={eventCoverUri}
+        onTitlePress={() => {
+          if (activeConversation?.eventId) {
+            navigation.navigate("EventDetailsOverlay", {
+              eventId: String(activeConversation.eventId),
+              readOnly: true,
+            });
+          }
+        }}
+        rightElement={
+          canViewJoinRequests ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View join requests"
               onPress={handleOpenJoinRequests}
+              style={styles.joinIconButton}
             >
-              <View style={styles.joinBadge}>
-                <Text style={styles.joinBadgeText}>
-                  {approvedJoinRequestCount > 99
-                    ? "99+"
-                    : approvedJoinRequestCount}
-                </Text>
-              </View>
+              <Feather name="users" size={20} color={colors.text} />
+              {pendingJoinRequestCount > 0 ? (
+                <View style={styles.joinCountBadge}>
+                  <Text style={styles.joinCountBadgeText}>
+                    {pendingJoinRequestCount > 99
+                      ? "99+"
+                      : pendingJoinRequestCount}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
-          ) : null}
-        </View>
-      </View>
+          ) : undefined
+        }
+        testID="chat-event-info-button"
+      />
       {Platform.OS === "ios" ? (
         <KeyboardAvoidingView
           style={styles.threadContainer}
@@ -459,54 +507,27 @@ const ChatThreadScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  headerSpacing: {
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
+  joinIconButton: {
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
   },
-  threadHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
+  joinCountBadge: {
+    position: "absolute",
+    top: 0,
+    right: -2,
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacing.sm,
+    paddingHorizontal: 3,
   },
-  threadHeaderCopy: {
-    flex: 1,
-  },
-  threadTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  threadTitleCover: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  threadTitle: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilyBold,
-    color: colors.text,
-  },
-  threadSubtitle: {
-    fontSize: typography.caption,
-    color: colors.muted,
-  },
-  joinBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 16,
-    marginLeft: spacing.sm,
-  },
-  joinBadgeText: {
-    color: colors.buttonText,
+  joinCountBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
     fontFamily: typography.fontFamilySemiBold,
+    lineHeight: 12,
   },
   errorText: {
     fontSize: typography.caption,
@@ -526,20 +547,52 @@ const styles = StyleSheet.create({
   },
   messageRow: {
     marginBottom: spacing.sm,
-  },
-  messageRowOwn: {
+    flexDirection: "row",
     alignItems: "flex-end",
   },
+  messageRowOwn: {
+    justifyContent: "flex-end",
+  },
   messageRowOther: {
-    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   messageBubbleContainer: {
-    maxWidth: "80%",
+    maxWidth: "75%",
+  },
+  avatarCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
+  avatarInitials: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontFamily: typography.fontFamilySemiBold,
+  },
+  avatarSpacer: {
+    width: 30,
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
+  senderName: {
+    fontSize: 17,
+    fontFamily: typography.fontFamilyMedium,
+    fontWeight: "500",
+    lineHeight: 22,
+    letterSpacing: -0.5,
+    color: "#000000",
+    marginBottom: 2,
   },
   messageBubble: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderRadius: 12,
   },
   messageBubbleOwn: {
     alignSelf: "flex-end",
@@ -547,15 +600,17 @@ const styles = StyleSheet.create({
   },
   messageBubbleOther: {
     alignSelf: "flex-start",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: "#F4F4F4",
   },
   messageBubbleFailed: {
     borderColor: colors.accent,
   },
   messageText: {
+    fontSize: 17,
     fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 22,
+    letterSpacing: -0.5,
   },
   messageTextOwn: {
     color: colors.buttonText,
@@ -565,7 +620,12 @@ const styles = StyleSheet.create({
   },
   messageMeta: {
     marginTop: 4,
-    fontSize: typography.caption,
+    fontSize: 11,
+    fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 11,
+    letterSpacing: -0.3,
+    textAlign: "right",
   },
   messageMetaOwn: {
     color: colors.buttonText,
