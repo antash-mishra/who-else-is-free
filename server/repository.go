@@ -208,8 +208,8 @@ JOIN conversation_members cm ON cm.conversation_id = c.id
 LEFT JOIN events e ON e.id = c.event_id
 WHERE cm.user_id = ?
   AND (c.event_id IS NULL
-       OR datetime(e.scheduled_at) > datetime('now', '-1 day')
-       OR (e.scheduled_at IS NULL AND e.event_date >= date('now', '-1 day')))
+       OR datetime(e.scheduled_at) > datetime('now')
+       OR (e.scheduled_at IS NULL AND e.event_date >= date('now')))
 ORDER BY c.created_at DESC;
 `
 
