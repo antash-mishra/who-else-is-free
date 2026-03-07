@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   useFocusEffect,
   useNavigation,
@@ -45,6 +45,7 @@ const MessagesScreen = () => {
   } = useChat();
   const { events, isEventReported } = useEvents();
   const insets = useSafeAreaInsets();
+  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,6 +57,13 @@ const MessagesScreen = () => {
       return undefined;
     }, [refreshConversations, user]),
   );
+
+  const handleRefresh = useCallback(() => {
+    setIsPullRefreshing(true);
+    refreshConversations()
+      .catch(() => undefined)
+      .finally(() => setIsPullRefreshing(false));
+  }, [refreshConversations]);
 
   const displayConversations = useMemo(() => {
     if (!user) return conversations;
@@ -236,8 +244,8 @@ const MessagesScreen = () => {
           }
           refreshControl={
             <RefreshControl
-              refreshing={isRefreshingConversations}
-              onRefresh={refreshConversations}
+              refreshing={isPullRefreshing}
+              onRefresh={handleRefresh}
               tintColor={colors.primary}
             />
           }
