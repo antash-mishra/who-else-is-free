@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -17,6 +16,7 @@ import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
+import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
@@ -314,54 +314,43 @@ const JoinRequestsScreen = () => {
   // 1:1 mode header
   const render1to1Header = () => {
     if (!eventDetails) return null;
-    const coverSource = getCoverSource(eventDetails.coverKey);
-    const subtitle = `${eventDetails.dateLabel}, ${eventDetails.time} at ${eventDetails.location}`;
 
     return (
-      <View style={styles.header1to1}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Feather name="chevron-left" size={24} color={colors.text} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="View event details"
-          onPress={() => navigation.navigate("EventDetailsOverlay", {
+      <ChatEventHeader
+        onBack={() => navigation.goBack()}
+        title={title}
+        subtitle={`${eventDetails.dateLabel}, ${eventDetails.time} at ${eventDetails.location}`}
+        coverSource={getCoverSource(eventDetails.coverKey)}
+        onTitlePress={() =>
+          navigation.navigate("EventDetailsOverlay", {
             eventId: String(eventId),
             readOnly: true,
-          })}
-          style={({ pressed }) => [styles.headerEventInfoPressable, pressed && { opacity: 0.7 }]}
-          testID="join-requests-event-info-button"
-        >
-          <Image source={coverSource} style={styles.headerCoverImage} />
-          <View style={styles.headerCopy1to1}>
-            <Text style={styles.headerTitle1to1} numberOfLines={1}>
-              {title}
-            </Text>
-            <Text style={styles.headerSubtitle1to1} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          </View>
-        </Pressable>
-        {pendingRequests.length > 0 && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="View pending requests"
-            onPress={() => navigation.navigate("PendingRequests", { conversationId, eventId })}
-            style={styles.joinIconButton}
-          >
-            <Feather name="users" size={20} color={colors.text} />
-            <View style={styles.joinCountBadge}>
-              <Text style={styles.joinCountBadgeText}>
-                {pendingRequests.length}
-              </Text>
-            </View>
-          </Pressable>
-        )}
-      </View>
+          })
+        }
+        rightElement={
+          pendingRequests.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View pending requests"
+              onPress={() =>
+                navigation.navigate("PendingRequests", {
+                  conversationId,
+                  eventId,
+                })
+              }
+              style={styles.joinIconButton}
+            >
+              <Feather name="users" size={20} color={colors.text} />
+              <View style={styles.joinCountBadge}>
+                <Text style={styles.joinCountBadgeText}>
+                  {pendingRequests.length}
+                </Text>
+              </View>
+            </Pressable>
+          ) : undefined
+        }
+        testID="join-requests-event-info-button"
+      />
     );
   };
 
@@ -406,28 +395,18 @@ const JoinRequestsScreen = () => {
 
   // Group mode header
   const renderGroupHeader = () => (
-    <View style={styles.header}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <Feather name="chevron-left" size={24} color={colors.text} />
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="View event details"
-        onPress={() => navigation.navigate("EventDetailsOverlay", {
+    <ChatEventHeader
+      onBack={() => navigation.goBack()}
+      title={title}
+      subtitle="Join Requests"
+      onTitlePress={() =>
+        navigation.navigate("EventDetailsOverlay", {
           eventId: String(eventId),
           readOnly: true,
-        })}
-        style={({ pressed }) => [styles.headerCopy, pressed && { opacity: 0.7 }]}
-        testID="join-requests-group-event-info-button"
-      >
-        <Text style={styles.headerTitle}>{title}</Text>
-        <Text style={styles.headerSubtitle}>Join Requests</Text>
-      </Pressable>
-    </View>
+        })
+      }
+      testID="join-requests-group-event-info-button"
+    />
   );
 
   // Group mode request item
@@ -539,75 +518,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  // Group mode header styles
-  header: {
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilySemiBold,
-    color: colors.text,
-  },
-  headerSubtitle: {
-    fontSize: typography.body,
-    color: colors.subText,
-    marginTop: spacing.xs,
-  },
-  // 1:1 mode header styles
-  header1to1: {
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  headerEventInfoPressable: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-    gap: spacing.sm,
-  },
-  headerCoverImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-  },
-  headerCopy1to1: {
-    flex: 1,
-  },
-  headerTitle1to1: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
-    lineHeight: 20,
-    letterSpacing: -0.5,
-    color: "#000000",
-  },
-  headerSubtitle1to1: {
-    fontSize: 14,
-    fontFamily: typography.fontFamilyRegular,
-    fontWeight: "400",
-    lineHeight: 20,
-    letterSpacing: -0.5,
-    color: "#707070",
-    marginTop: 2,
   },
   joinIconButton: {
     marginLeft: spacing.sm,
