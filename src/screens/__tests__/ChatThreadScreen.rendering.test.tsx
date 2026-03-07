@@ -297,8 +297,8 @@ describe('ChatThreadScreen Rendering', () => {
   describe('Navigation', () => {
     it('should navigate back when back button is pressed', () => {
       setupMocks();
-      const { getByTestId } = render(<ChatThreadScreen />);
-      fireEvent.press(getByTestId('chat-back-button'));
+      const { getByLabelText } = render(<ChatThreadScreen />);
+      fireEvent.press(getByLabelText('Go back'));
 
       expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
     });

@@ -1,0 +1,124 @@
+import { ReactNode } from "react";
+import {
+  Image,
+  ImageSourcePropType,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+
+import { colors, spacing, typography } from "@theme/index";
+
+interface ChatEventHeaderProps {
+  onBack: () => void;
+  title: string;
+  subtitle?: string;
+  coverUri?: string | null;
+  coverSource?: ImageSourcePropType;
+  onTitlePress?: () => void;
+  rightElement?: ReactNode;
+  testID?: string;
+}
+
+const ChatEventHeader = ({
+  onBack,
+  title,
+  subtitle,
+  coverUri,
+  coverSource,
+  onTitlePress,
+  rightElement,
+  testID,
+}: ChatEventHeaderProps) => {
+  const hasCover = coverSource != null || (coverUri != null && coverUri !== "");
+
+  return (
+    <View style={styles.container}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        onPress={onBack}
+        style={styles.backButton}
+        hitSlop={8}
+      >
+        <Feather name="chevron-left" size={24} color={colors.text} />
+      </Pressable>
+      <Pressable
+        style={({ pressed }) => [styles.titlePressable, pressed && { opacity: 0.7 }]}
+        onPress={onTitlePress}
+        accessibilityRole="button"
+        accessibilityLabel="View event details"
+        testID={testID}
+      >
+        {hasCover ? (
+          <Image
+            source={coverSource ?? { uri: coverUri! }}
+            style={styles.coverImage}
+          />
+        ) : null}
+        <View style={styles.textContainer}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
+      {rightElement ?? null}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    paddingTop: spacing.lg - spacing.md,
+    paddingBottom: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  backButton: {
+    paddingRight: spacing.xs,
+    paddingVertical: spacing.xs,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  titlePressable: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: spacing.sm,
+  },
+  coverImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    fontWeight: "500",
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    color: "#000000",
+  },
+  subtitle: {
+    fontSize: 14,
+    fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    color: "#707070",
+    marginTop: 2,
+  },
+});
+
+export default ChatEventHeader;
