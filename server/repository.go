@@ -2119,18 +2119,6 @@ func (r *EventRepository) ApproveJoinRequest(ctx context.Context, eventID, userI
 		return nil, fmt.Errorf("add conversation member: %w", err)
 	}
 
-	trimmedMessage := strings.TrimSpace(req.Message)
-	if trimmedMessage != "" {
-		// Persist requester intro into the group chat when approval happens.
-		var msg Message
-		var attachmentOut sql.NullString
-		row := tx.QueryRowContext(ctx, insertMessage, convo.ID, userID, trimmedMessage, sql.NullString{}, "sent")
-		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("insert approved group intro message: %w", err)
-		}
-	}
-
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit join approval: %w", err)
 	}

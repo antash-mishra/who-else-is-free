@@ -994,8 +994,10 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		// subscribe immediately to the newly created private conversation.
 		h.hub.NotifyMembership(convo.ID, event.UserID, "added")
 	}
-	if err := h.emitApprovedIntroMessage(ctx, convo.ID, userID, req.Message); err != nil {
-		log.Printf("emit approved intro message failed: %v", err)
+	if event.GroupType == "Single" {
+		if err := h.emitApprovedIntroMessage(ctx, convo.ID, userID, req.Message); err != nil {
+			log.Printf("emit approved intro message failed: %v", err)
+		}
 	}
 	if event.GroupType == "Group" {
 		h.hub.emitJoinRequestEvent(convo.ID, "approved", view)

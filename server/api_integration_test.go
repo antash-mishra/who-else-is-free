@@ -1527,7 +1527,7 @@ func TestGroupEventJoinRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("group approval persists intro message in chat history", func(t *testing.T) {
+	t.Run("group approval does NOT insert intro message in chat history", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", groupEventID), avaToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -1544,15 +1544,10 @@ func TestGroupEventJoinRequest(t *testing.T) {
 		}
 
 		messages := decodeJSON[messagesResponse](t, resp)
-		found := false
 		for _, msg := range messages.Messages {
 			if msg.Body == "I'd love to join the hike!" {
-				found = true
-				break
+				t.Fatalf("intro message should NOT appear in group chat history")
 			}
-		}
-		if !found {
-			t.Fatalf("expected intro message to be visible in group chat history, messages: %+v", messages.Messages)
 		}
 	})
 }
