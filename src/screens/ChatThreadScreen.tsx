@@ -99,6 +99,15 @@ const ChatThreadScreen = () => {
     return user.id === activeConversation.createdBy;
   }, [activeConversation, user]);
 
+  const isGroupConversation = useMemo(() => {
+    if (!activeConversation) return false;
+    return (
+      activeConversation.memberIds.length > 2 ||
+      !!activeConversation.title ||
+      !!activeConversation.eventId
+    );
+  }, [activeConversation]);
+
   useEffect(() => {
     if (!activeConversationId) {
       if (navigation.canGoBack()) {
@@ -221,8 +230,14 @@ const ChatThreadScreen = () => {
     const participant = activeConversation.participants?.find(
       (p) => p.id === item.senderId,
     );
-    const avatarLabel =
-      participant?.name ?? activeConversation.displayName ?? "";
+    const senderName = participant?.name ?? "";
+    const initials = senderName
+      .split(" ")
+      .map((w: string) => w[0] ?? "")
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+    const avatarColor = `hsl(${(item.senderId * 47) % 360}, 55%, 45%)`;
 
     const bubble = (
       <View
@@ -270,6 +285,8 @@ const ChatThreadScreen = () => {
       bubble
     );
 
+    const showAvatar = !isOwn && isGroupConversation;
+
     return (
       <View
         style={[
@@ -277,7 +294,17 @@ const ChatThreadScreen = () => {
           isOwn ? styles.messageRowOwn : styles.messageRowOther,
         ]}
       >
-        <View style={styles.messageBubbleContainer}>{bubbleContent}</View>
+        {showAvatar ? (
+          <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarInitials}>{initials}</Text>
+          </View>
+        ) : null}
+        <View style={styles.messageBubbleContainer}>
+          {showAvatar && senderName ? (
+            <Text style={styles.senderName}>{senderName}</Text>
+          ) : null}
+          {bubbleContent}
+        </View>
       </View>
     );
   };
@@ -534,15 +561,38 @@ const styles = StyleSheet.create({
   },
   messageRow: {
     marginBottom: spacing.sm,
-  },
-  messageRowOwn: {
+    flexDirection: "row",
     alignItems: "flex-end",
   },
+  messageRowOwn: {
+    justifyContent: "flex-end",
+  },
   messageRowOther: {
-    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   messageBubbleContainer: {
-    maxWidth: "80%",
+    maxWidth: "75%",
+  },
+  avatarCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
+  avatarInitials: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontFamily: typography.fontFamilySemiBold,
+  },
+  senderName: {
+    fontSize: typography.caption,
+    color: colors.subText,
+    fontFamily: typography.fontFamilySemiBold,
+    marginBottom: 2,
+    marginLeft: spacing.xs,
   },
   messageBubble: {
     paddingHorizontal: spacing.md,
