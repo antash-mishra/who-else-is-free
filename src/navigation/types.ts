@@ -32,6 +32,10 @@ export type RootStackParamList = {
       time: string;
     };
   };
+  PendingRequests: {
+    conversationId: number;
+    eventId: number;
+  };
   ChatThread: undefined;
 };
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
@@ -85,9 +85,11 @@ const JoinRequestsScreen = () => {
       .finally(() => setIsRefreshing(false));
   }, [conversationId, eventId, refreshJoinRequests, is1to1Mode]);
 
-  useEffect(() => {
-    handleRefresh();
-  }, [handleRefresh]);
+  useFocusEffect(
+    useCallback(() => {
+      handleRefresh();
+    }, [handleRefresh]),
+  );
 
   const handleAction = useCallback(
     async (_requestId: number, userId: number, action: "approve" | "deny") => {
@@ -228,12 +230,13 @@ const JoinRequestsScreen = () => {
     setReportError(null);
   }, []);
 
-  // Group mode empty state
   const listEmpty = useMemo(
     () => (
       <View style={styles.emptyState}>
         <Text style={styles.emptyTitle}>
-          {is1to1Mode ? "No accepted users yet" : "No pending requests"}
+          {is1to1Mode
+            ? "No accepted users yet"
+            : "No pending requests"}
         </Text>
         {!is1to1Mode && (
           <Text style={styles.emptySubtitle}>
@@ -303,6 +306,11 @@ const JoinRequestsScreen = () => {
       });
   }, [conversationById, is1to1Mode, requests]);
 
+  const pendingRequests = useMemo(
+    () => requests.filter((request) => request.status === "pending"),
+    [requests],
+  );
+
   // 1:1 mode header
   const render1to1Header = () => {
     if (!eventDetails) return null;
@@ -338,10 +346,20 @@ const JoinRequestsScreen = () => {
             </Text>
           </View>
         </Pressable>
-        {displayRequests.length > 0 && (
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{displayRequests.length}</Text>
-          </View>
+        {pendingRequests.length > 0 && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View pending requests"
+            onPress={() => navigation.navigate("PendingRequests", { conversationId, eventId })}
+            style={styles.joinIconButton}
+          >
+            <Feather name="users" size={20} color={colors.text} />
+            <View style={styles.joinCountBadge}>
+              <Text style={styles.joinCountBadgeText}>
+                {pendingRequests.length}
+              </Text>
+            </View>
+          </Pressable>
         )}
       </View>
     );
@@ -459,7 +477,11 @@ const JoinRequestsScreen = () => {
         <FlatList
           data={displayRequests}
           keyExtractor={(item) => String(item.id)}
-          renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
+          renderItem={
+            is1to1Mode
+              ? render1to1RequestItem
+              : renderGroupRequestItem
+          }
           ItemSeparatorComponent={() => (
             <View
               style={is1to1Mode ? styles.separator1to1 : styles.separator}
@@ -587,22 +609,27 @@ const styles = StyleSheet.create({
     color: "#707070",
     marginTop: 2,
   },
-  badgeContainer: {
-    backgroundColor: "#E6E6E6",
-    borderRadius: 24,
-    minWidth: 24,
-    height: 24,
+  joinIconButton: {
+    marginLeft: spacing.sm,
+    padding: spacing.xs,
+  },
+  joinCountBadge: {
+    position: "absolute",
+    top: 0,
+    right: -2,
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: 3,
   },
-  badgeText: {
-    fontSize: 15,
+  joinCountBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
     fontFamily: typography.fontFamilySemiBold,
-    fontWeight: "600",
-    lineHeight: 20,
-    textAlign: "center",
-    color: "#494949",
+    lineHeight: 12,
   },
   // List styles
   listContent: {

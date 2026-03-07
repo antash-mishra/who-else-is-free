@@ -315,7 +315,7 @@ describe('ChatThreadScreen Rendering', () => {
   });
 
   describe('Join Request Badge', () => {
-    it('should display join request badge for host in 1:1 events with approved users', () => {
+    it('should display join request icon for host with pending count badge', () => {
       const singleHostConversation = {
         ...mockConversations[0],
         id: 99,
@@ -335,16 +335,19 @@ describe('ChatThreadScreen Rendering', () => {
           activeConversationId: 99,
           conversations: [singleHostConversation],
           joinRequestsByConversation: {
-            99: [{ id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } }],
+            99: [
+              { id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } },
+            ],
           },
         },
       });
-      const { getByText } = render(<ChatThreadScreen />);
+      const { getByLabelText, getByText } = render(<ChatThreadScreen />);
 
+      expect(getByLabelText('View join requests')).toBeTruthy();
       expect(getByText('1')).toBeTruthy();
     });
 
-    it('should not display join request badge for group events', () => {
+    it('should display join request icon for group events when host', () => {
       setupMocks({
         chatOverrides: {
           activeConversationId: 1,
@@ -353,9 +356,75 @@ describe('ChatThreadScreen Rendering', () => {
           },
         },
       });
-      const { queryByLabelText } = render(<ChatThreadScreen />);
+      const { getByLabelText } = render(<ChatThreadScreen />);
 
-      expect(queryByLabelText('View join requests')).toBeNull();
+      expect(getByLabelText('View join requests')).toBeTruthy();
+    });
+
+    it('should display join request icon for 1:1 host with only pending requests (no accepted)', () => {
+      const singleHostConversation = {
+        ...mockConversations[0],
+        id: 99,
+        eventId: 2,
+        event: {
+          id: 2,
+          userId: 1,
+          title: 'Hiking Adventure',
+          location: 'Mountain Trail',
+          time: '08:00',
+          dateLabel: 'Tmrw',
+          groupType: 'Single',
+        },
+      };
+      setupMocks({
+        chatOverrides: {
+          activeConversationId: 99,
+          conversations: [singleHostConversation],
+          joinRequestsByConversation: {
+            99: [
+              { id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User A' } },
+              { id: 2, eventId: 2, userId: 4, message: 'Hello', status: 'pending', createdAt: '', requester: { id: 4, name: 'User B' } },
+            ],
+          },
+        },
+      });
+      const { getByLabelText, getByText } = render(<ChatThreadScreen />);
+
+      expect(getByLabelText('View join requests')).toBeTruthy();
+      expect(getByText('2')).toBeTruthy();
+    });
+
+    it('should display join request icon without count when no pending requests', () => {
+      const singleHostConversation = {
+        ...mockConversations[0],
+        id: 99,
+        eventId: 2,
+        event: {
+          id: 2,
+          userId: 1,
+          title: 'Hiking Adventure',
+          location: 'Mountain Trail',
+          time: '08:00',
+          dateLabel: 'Tmrw',
+          groupType: 'Single',
+        },
+      };
+      setupMocks({
+        chatOverrides: {
+          activeConversationId: 99,
+          conversations: [singleHostConversation],
+          joinRequestsByConversation: {
+            99: [
+              { id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } },
+            ],
+          },
+        },
+      });
+      const { getByLabelText, queryByText } = render(<ChatThreadScreen />);
+
+      // Icon shows but no count badge
+      expect(getByLabelText('View join requests')).toBeTruthy();
+      expect(queryByText('1')).toBeNull();
     });
 
     it('should not display join request badge when user is not host', () => {
