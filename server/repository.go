@@ -667,6 +667,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureReportedUserIDColumn(ctx); err != nil {
 		return err
 	}
+	if err := r.cleanupOrphanedEventReferences(ctx); err != nil {
+		return err
+	}
 	if err := r.ensureUserProfileColumns(ctx); err != nil {
 		return err
 	}
@@ -1269,6 +1272,49 @@ func (r *EventRepository) cleanupOrphanedSingleEventConversations(ctx context.Co
 	if _, err := r.db.ExecContext(ctx, cleanupQuery); err != nil {
 		return fmt.Errorf("cleanup orphaned single event conversations: %w", err)
 	}
+	return nil
+}
+
+// cleanupOrphanedEventReferences removes legacy rows that still point to
+// deleted events from periods where foreign key enforcement was not active.
+func (r *EventRepository) cleanupOrphanedEventReferences(ctx context.Context) error {
+	const deleteOrphanedConversations = `
+		DELETE FROM conversations
+		WHERE event_id IS NOT NULL
+		AND NOT EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = conversations.event_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, deleteOrphanedConversations); err != nil {
+		return fmt.Errorf("cleanup orphaned conversations: %w", err)
+	}
+
+	const deleteOrphanedJoinRequests = `
+		DELETE FROM conversation_join_requests
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = conversation_join_requests.event_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, deleteOrphanedJoinRequests); err != nil {
+		return fmt.Errorf("cleanup orphaned join requests: %w", err)
+	}
+
+	const deleteOrphanedEventReports = `
+		DELETE FROM event_reports
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = event_reports.event_id
+		);
+	`
+	if _, err := r.db.ExecContext(ctx, deleteOrphanedEventReports); err != nil {
+		return fmt.Errorf("cleanup orphaned event reports: %w", err)
+	}
+
 	return nil
 }
 
