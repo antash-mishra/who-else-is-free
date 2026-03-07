@@ -227,6 +227,17 @@ WHERE cm.conversation_id = ?
 ORDER BY cm.joined_at ASC;
 `
 
+const selectFormerMessageSenders = `
+SELECT DISTINCT m.sender_id, u.name
+FROM messages m
+JOIN users u ON u.id = m.sender_id
+WHERE m.conversation_id = ?
+  AND m.sender_id NOT IN (
+    SELECT user_id FROM conversation_members WHERE conversation_id = ?
+  )
+ORDER BY m.sender_id ASC;
+`
+
 const selectMessagesForConversation = `
 SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, created_at
 FROM messages
@@ -2453,6 +2464,23 @@ func (r *EventRepository) fetchConversationParticipants(ctx context.Context, con
 	}
 	if err := rows.Err(); err != nil {
 		return nil, nil, fmt.Errorf("iterate conversation participants: %w", err)
+	}
+
+	// Append former message senders to participants only (not memberIDs)
+	rows2, err := r.db.QueryContext(ctx, selectFormerMessageSenders, conversationID, conversationID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("list former message senders: %w", err)
+	}
+	defer rows2.Close()
+	for rows2.Next() {
+		var p ConversationParticipant
+		if err := rows2.Scan(&p.ID, &p.Name); err != nil {
+			return nil, nil, fmt.Errorf("scan former message sender: %w", err)
+		}
+		participants = append(participants, p)
+	}
+	if err := rows2.Err(); err != nil {
+		return nil, nil, fmt.Errorf("iterate former message senders: %w", err)
 	}
 
 	return participants, memberIDs, nil

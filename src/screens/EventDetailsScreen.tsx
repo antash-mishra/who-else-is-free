@@ -243,7 +243,8 @@ const EventDetailsScreen = () => {
   );
   const goingParticipants = useMemo(() => {
     if (eventConversation?.participants?.length) {
-      return eventConversation.participants;
+      const memberSet = new Set(eventConversation.memberIds ?? []);
+      return eventConversation.participants.filter(p => memberSet.has(p.id));
     }
     return [fallbackHostParticipant];
   }, [eventConversation, fallbackHostParticipant]);
@@ -373,7 +374,10 @@ const EventDetailsScreen = () => {
   // Get confirmed members (excluding host)
   const confirmedMembers = useMemo(() => {
     if (!eventConversation || !user) return [];
-    return eventConversation.participants.filter((p) => p.id !== user.id);
+    const memberSet = new Set(eventConversation.memberIds ?? []);
+    return eventConversation.participants.filter(
+      (p) => p.id !== user.id && memberSet.has(p.id)
+    );
   }, [eventConversation, user]);
 
   // Fetch the user's introduction message when they have a pending request or are a member
