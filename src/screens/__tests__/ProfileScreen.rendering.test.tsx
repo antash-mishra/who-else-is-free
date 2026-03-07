@@ -162,15 +162,19 @@ describe('ProfileScreen Rendering', () => {
 
     it('should display joined events count', () => {
       setupMocks({
+        eventsOverrides: {
+          events: [mockEvents[0]],
+          userEvents: [],
+        },
         chatOverrides: {
           conversations: [
             { ...mockConversations[0], eventId: 1, createdBy: 2 }, // Joined event
           ],
         },
       });
-      const { getByText } = render(<ProfileScreen />);
+      const { getAllByText, getByText } = render(<ProfileScreen />);
 
-      expect(getByText('1')).toBeTruthy();
+      expect(getAllByText('1').length).toBe(1);
       expect(getByText('Joined')).toBeTruthy();
     });
   });
@@ -345,7 +349,7 @@ describe('ProfileScreen Rendering', () => {
   describe('Stats Display', () => {
     it('should show zero counts when no events', () => {
       setupMocks({
-        eventsOverrides: { userEvents: [] },
+        eventsOverrides: { events: [], userEvents: [] },
         chatOverrides: { conversations: [] },
       });
       const { getAllByText } = render(<ProfileScreen />);
@@ -355,20 +359,45 @@ describe('ProfileScreen Rendering', () => {
       expect(zeros.length).toBe(2);
     });
 
-    it('should correctly calculate joined count excluding own events', () => {
+    it('should correctly calculate joined count excluding own and duplicate event conversations', () => {
       setupMocks({
         authOverrides: { user: mockUsers[0] }, // id: 1
+        eventsOverrides: {
+          events: [mockEvents[0], mockEvents[1]], // Active event IDs: 1, 2
+          userEvents: [],
+        },
         chatOverrides: {
           conversations: [
             { ...mockConversations[0], eventId: 1, createdBy: 1 }, // Own event - not counted
             { ...mockConversations[1], eventId: 2, createdBy: 2 }, // Joined event - counted
+            { ...mockConversations[1], id: 3, eventId: 2, createdBy: 3 }, // Same event - deduped
+            { ...mockConversations[1], id: 4, eventId: 999, createdBy: 2 }, // Stale event - ignored
           ],
         },
       });
-      const { getByText } = render(<ProfileScreen />);
+      const { getAllByText, getByText } = render(<ProfileScreen />);
 
-      // Should show 1 for joined (only event from user 2)
+      // Should show 1 joined event after own-event filtering + dedupe + stale filtering.
+      expect(getAllByText('1').length).toBe(1);
       expect(getByText('Joined')).toBeTruthy();
+    });
+
+    it('should ignore stale conversation event IDs missing from active events', () => {
+      setupMocks({
+        eventsOverrides: {
+          events: [mockEvents[0]],
+          userEvents: [],
+        },
+        chatOverrides: {
+          conversations: [
+            { ...mockConversations[0], eventId: 999, createdBy: 2 }, // Missing from active events
+          ],
+        },
+      });
+      const { getAllByText } = render(<ProfileScreen />);
+
+      // Hosted and Joined should both remain 0.
+      expect(getAllByText('0').length).toBe(2);
     });
   });
 });

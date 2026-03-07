@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   CompositeNavigationProp,
   useNavigation,
@@ -75,15 +75,41 @@ const MenuItem = ({
 
 const ProfileScreen = () => {
   const { user, signOut } = useAuth();
-  const { userEvents } = useEvents();
+  const { events, userEvents } = useEvents();
   const { conversations } = useChat();
   const navigation = useNavigation<ProfileNavigation>();
 
   // Calculate stats
   const hostedCount = userEvents.length;
-  const joinedCount = conversations.filter(
-    (c) => c.eventId && c.createdBy !== user?.id
-  ).length;
+  const joinedCount = useMemo(() => {
+    if (!user) {
+      return 0;
+    }
+
+    const activeEventIDs = new Set<number>();
+    events.forEach((event) => {
+      const eventID = Number(event.id);
+      if (Number.isInteger(eventID) && eventID > 0) {
+        activeEventIDs.add(eventID);
+      }
+    });
+
+    const joinedEventIDs = new Set<number>();
+    conversations.forEach((conversation) => {
+      if (!conversation.eventId || conversation.eventId <= 0) {
+        return;
+      }
+      if (conversation.createdBy === user.id) {
+        return;
+      }
+      if (!activeEventIDs.has(conversation.eventId)) {
+        return;
+      }
+      joinedEventIDs.add(conversation.eventId);
+    });
+
+    return joinedEventIDs.size;
+  }, [conversations, events, user]);
 
   const handleSignOut = useCallback(() => {
     signOut();
