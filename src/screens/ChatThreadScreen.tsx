@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
   View,
-  Image,
 } from "react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
+import ChatEventHeader from "@components/ChatEventHeader";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatMessage } from "@context/ChatContext";
@@ -27,6 +27,14 @@ import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
 
 const HEADER_HEIGHT = 56;
+
+const formatDDMMM = (eventDate: string): string => {
+  const [y, m, d] = eventDate.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-US", { month: "short" });
+  return `${day} ${month}`;
+};
 
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -84,6 +92,31 @@ const ChatThreadScreen = () => {
     () => activeConversation?.event?.groupType ?? activeEvent?.groupType ?? null,
     [activeConversation, activeEvent],
   );
+
+  const headerTitle = useMemo(() => {
+    if (activeEventGroupType === "Single" && activeConversation && user) {
+      const otherUser = activeConversation.participants?.find(
+        (p) => p.id !== user.id,
+      );
+      if (otherUser?.name) return otherUser.name;
+    }
+    return activeConversation?.displayName ?? "";
+  }, [activeConversation, activeEventGroupType, user]);
+
+  const headerSubtitle = useMemo(() => {
+    if (isConnecting) return "Connecting\u2026";
+    if (activeEventGroupType === "Single" && activeEvent) {
+      const title = activeEvent.title;
+      const datePart = activeEvent.eventDate
+        ? formatDDMMM(activeEvent.eventDate)
+        : activeEvent.dateLabel;
+      return datePart ? `${title}, ${datePart}` : title;
+    }
+    if (activeEvent?.dateLabel && activeEvent?.time && activeEvent?.location) {
+      return `${activeEvent.dateLabel}, ${activeEvent.time} at ${activeEvent.location}`;
+    }
+    return undefined;
+  }, [isConnecting, activeEvent, activeEventGroupType]);
 
   const joinRequests = useMemo(() => {
     if (!activeConversationId) {
@@ -327,47 +360,21 @@ const ChatThreadScreen = () => {
 
   return (
     <ScreenContainer>
-      <View style={styles.headerSpacing}>
-        <View style={styles.threadHeader}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleBack}
-            style={styles.backButton}
-            hitSlop={8}
-            testID="chat-back-button"
-          >
-            <Feather name="chevron-left" size={24} color={colors.text} />
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.threadHeaderCopy, pressed && { opacity: 0.7 }]}
-            onPress={() => {
-              if (activeConversation?.eventId) {
-                navigation.navigate("EventDetailsOverlay", {
-                  eventId: String(activeConversation.eventId),
-                  readOnly: true,
-                });
-              }
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="View event details"
-            testID="chat-event-info-button"
-          >
-            <View style={styles.threadTitleRow}>
-              {eventCoverUri ? (
-                <Image
-                  source={{ uri: eventCoverUri }}
-                  style={styles.threadTitleCover}
-                />
-              ) : null}
-              <Text style={styles.threadTitle} numberOfLines={1}>
-                {activeConversation.displayName}
-              </Text>
-            </View>
-            {isConnecting ? (
-              <Text style={styles.threadSubtitle}>Connecting…</Text>
-            ) : null}
-          </Pressable>
-          {canViewJoinRequests ? (
+      <ChatEventHeader
+        onBack={handleBack}
+        title={headerTitle}
+        subtitle={headerSubtitle}
+        coverUri={eventCoverUri}
+        onTitlePress={() => {
+          if (activeConversation?.eventId) {
+            navigation.navigate("EventDetailsOverlay", {
+              eventId: String(activeConversation.eventId),
+              readOnly: true,
+            });
+          }
+        }}
+        rightElement={
+          canViewJoinRequests ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View join requests"
@@ -385,9 +392,10 @@ const ChatThreadScreen = () => {
                 </View>
               ) : null}
             </Pressable>
-          ) : null}
-        </View>
-      </View>
+          ) : undefined
+        }
+        testID="chat-event-info-button"
+      />
       {Platform.OS === "ios" ? (
         <KeyboardAvoidingView
           style={styles.threadContainer}
@@ -499,44 +507,6 @@ const ChatThreadScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  headerSpacing: {
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
-  },
-  threadHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.sm,
-  },
-  threadHeaderCopy: {
-    flex: 1,
-  },
-  threadTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  threadTitleCover: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  threadTitle: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilyBold,
-    color: colors.text,
-  },
-  threadSubtitle: {
-    fontSize: typography.caption,
-    color: colors.muted,
-  },
   joinIconButton: {
     marginLeft: spacing.sm,
     padding: spacing.xs,
