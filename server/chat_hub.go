@@ -1738,13 +1738,25 @@ func (h *ChatHTTPHandler) unblockMember(c *gin.Context) {
 		return
 	}
 	if !hasMemberReport {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no report-block relationship found for this member"})
-		return
+		hasBlock, err := h.repo.IsUserBlocked(ctx, claims.UserID, targetUserID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check block status"})
+			return
+		}
+		if !hasBlock {
+			c.JSON(http.StatusNotFound, gin.H{"error": "no report-block relationship found for this member"})
+			return
+		}
 	}
 
 	deletedAny, err := h.repo.DeleteMutualBlock(ctx, claims.UserID, targetUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unblock member"})
+		return
+	}
+
+	if err := h.repo.DeleteMemberReport(ctx, eventID, claims.UserID, targetUserID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete member report"})
 		return
 	}
 

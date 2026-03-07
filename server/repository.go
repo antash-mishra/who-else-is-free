@@ -496,6 +496,11 @@ WHERE blocker_user_id = ? AND blocked_user_id = ?
 LIMIT 1;
 `
 
+const deleteMemberReportByEventAndUsers = `
+DELETE FROM event_reports
+WHERE event_id = ? AND user_id = ? AND reported_user_id = ?;
+`
+
 const selectMemberReportRelationship = `
 SELECT 1
 FROM event_reports
@@ -3098,6 +3103,14 @@ func (r *EventRepository) HasMemberReport(ctx context.Context, eventID, hostUser
 		return false, fmt.Errorf("check member report relationship: %w", err)
 	}
 	return true, nil
+}
+
+func (r *EventRepository) DeleteMemberReport(ctx context.Context, eventID, reporterUserID, reportedUserID int64) error {
+	_, err := r.db.ExecContext(ctx, deleteMemberReportByEventAndUsers, eventID, reporterUserID, reportedUserID)
+	if err != nil {
+		return fmt.Errorf("delete member report: %w", err)
+	}
+	return nil
 }
 
 // ListHostEventIDsForMember returns event IDs owned by hostUserID where
