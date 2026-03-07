@@ -213,7 +213,7 @@ const ChatThreadScreen = () => {
     });
   };
 
-  const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
+  const renderMessage = ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
     const lowerBody = item.body.toLowerCase();
     const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
     const isEventUpdateSystemMessage = lowerBody === "updated event detail";
@@ -231,13 +231,30 @@ const ChatThreadScreen = () => {
       (p) => p.id === item.senderId,
     );
     const senderName = participant?.name ?? "";
-    const initials = senderName
-      .split(" ")
-      .map((w: string) => w[0] ?? "")
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+    const firstName = senderName.split(" ")[0] || "";
+    const initials =
+      senderName
+        .split(" ")
+        .map((w: string) => w[0] ?? "")
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "?";
     const avatarColor = `hsl(${(item.senderId * 47) % 360}, 55%, 45%)`;
+
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const isFirstInRun =
+      !prevMessage || prevMessage.senderId !== item.senderId;
+    const showAvatar = !isOwn && isGroupConversation;
+    const showName = showAvatar && isFirstInRun;
+
+    const timeText = item.pending
+      ? "Sending…"
+      : item.failed
+        ? "Failed. Tap to retry."
+        : new Date(item.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
 
     const bubble = (
       <View
@@ -247,6 +264,9 @@ const ChatThreadScreen = () => {
           item.failed ? styles.messageBubbleFailed : undefined,
         ]}
       >
+        {showName && firstName ? (
+          <Text style={styles.senderName}>{firstName}</Text>
+        ) : null}
         <Text
           style={[
             styles.messageText,
@@ -265,14 +285,7 @@ const ChatThreadScreen = () => {
                 : styles.messageMetaOther,
           ]}
         >
-          {item.pending
-            ? "Sending…"
-            : item.failed
-              ? "Failed. Tap to retry."
-              : new Date(item.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+          {timeText}
         </Text>
       </View>
     );
@@ -285,8 +298,6 @@ const ChatThreadScreen = () => {
       bubble
     );
 
-    const showAvatar = !isOwn && isGroupConversation;
-
     return (
       <View
         style={[
@@ -295,14 +306,15 @@ const ChatThreadScreen = () => {
         ]}
       >
         {showAvatar ? (
-          <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
-            <Text style={styles.avatarInitials}>{initials}</Text>
-          </View>
+          isFirstInRun ? (
+            <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+          ) : (
+            <View style={styles.avatarSpacer} />
+          )
         ) : null}
         <View style={styles.messageBubbleContainer}>
-          {showAvatar && senderName ? (
-            <Text style={styles.senderName}>{senderName}</Text>
-          ) : null}
           {bubbleContent}
         </View>
       </View>
@@ -587,17 +599,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: typography.fontFamilySemiBold,
   },
+  avatarSpacer: {
+    width: 30,
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
   senderName: {
-    fontSize: typography.caption,
-    color: colors.subText,
-    fontFamily: typography.fontFamilySemiBold,
+    fontSize: 17,
+    fontFamily: typography.fontFamilyMedium,
+    fontWeight: "500",
+    lineHeight: 22,
+    letterSpacing: -0.5,
+    color: "#000000",
     marginBottom: 2,
-    marginLeft: spacing.xs,
   },
   messageBubble: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderRadius: 12,
   },
   messageBubbleOwn: {
     alignSelf: "flex-end",
@@ -605,15 +626,17 @@ const styles = StyleSheet.create({
   },
   messageBubbleOther: {
     alignSelf: "flex-start",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: "#F4F4F4",
   },
   messageBubbleFailed: {
     borderColor: colors.accent,
   },
   messageText: {
+    fontSize: 17,
     fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 22,
+    letterSpacing: -0.5,
   },
   messageTextOwn: {
     color: colors.buttonText,
@@ -623,7 +646,12 @@ const styles = StyleSheet.create({
   },
   messageMeta: {
     marginTop: 4,
-    fontSize: typography.caption,
+    fontSize: 11,
+    fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 11,
+    letterSpacing: -0.3,
+    textAlign: "right",
   },
   messageMetaOwn: {
     color: colors.buttonText,
