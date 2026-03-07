@@ -2242,8 +2242,8 @@ func TestEventConversationsEndpoint(t *testing.T) {
 }
 
 // TestConversationFilteringByEventDate verifies that conversations for completed
-// events (>24 hours past) are filtered out, while conversations for recent events
-// (<24 hours past) and future events remain visible.
+// events are filtered out immediately, while future events and legacy same-day
+// events remain visible.
 func TestConversationFilteringByEventDate(t *testing.T) {
 	env := setupAPITestEnv(t)
 	ctx := context.Background()
@@ -2257,12 +2257,12 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 
 	// Time references
 	now := time.Now().UTC()
-	twoDaysAgo := now.Add(-48 * time.Hour)     // >24h past - should be filtered
-	twelveHoursAgo := now.Add(-12 * time.Hour) // <24h past - should appear (grace period)
+	twoDaysAgo := now.Add(-48 * time.Hour)     // past - should be filtered
+	twelveHoursAgo := now.Add(-12 * time.Hour) // recently past - should be filtered (no grace period)
 	tomorrow := now.Add(24 * time.Hour)        // future - should appear
 
 	// Create test events with different scheduled_at times using direct SQL
-	// Event 1: scheduled_at >24 hours ago (should NOT appear in conversations)
+	// Event 1: scheduled_at well in the past (should NOT appear in conversations)
 	_, err = env.db.ExecContext(ctx, `
 		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
 		VALUES (?, 'Old Completed Event', 'Location A', '10:00', ?, 'Old event', 'Any', 18, 50, 'Today', 'Group', 'cover_01', ?)`,
@@ -2273,10 +2273,10 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 	var oldEventID int64
 	env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&oldEventID)
 
-	// Event 2: scheduled_at <24 hours ago (should appear - within grace period)
+	// Event 2: scheduled_at recently in the past (should NOT appear)
 	_, err = env.db.ExecContext(ctx, `
 		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
-		VALUES (?, 'Recent Completed Event', 'Location B', '10:00', ?, 'Recent event', 'Any', 18, 50, 'Today', 'Group', 'cover_01', ?)`,
+		VALUES (?, 'Recently Expired Event', 'Location B', '10:00', ?, 'Recent event', 'Any', 18, 50, 'Today', 'Group', 'cover_01', ?)`,
 		ava.ID, twelveHoursAgo.Format("2006-01-02"), twelveHoursAgo.Format(time.RFC3339))
 	if err != nil {
 		t.Fatalf("insert recent event: %v", err)
@@ -2338,11 +2338,31 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 		return convoID
 	}
 
+	createStandaloneConversation := func(title string) int64 {
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO conversations (title, created_by, event_id) VALUES (?, ?, NULL)`,
+			title, ava.ID)
+		if err != nil {
+			t.Fatalf("insert standalone conversation: %v", err)
+		}
+		var convoID int64
+		env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&convoID)
+
+		_, err = env.db.ExecContext(ctx, `
+			INSERT INTO conversation_members (conversation_id, user_id, role) VALUES (?, ?, 'member')`,
+			convoID, ava.ID)
+		if err != nil {
+			t.Fatalf("insert member for standalone conversation %d: %v", convoID, err)
+		}
+		return convoID
+	}
+
 	oldConvoID := createConversation(oldEventID, "Old Event Chat")
 	recentConvoID := createConversation(recentEventID, "Recent Event Chat")
 	futureConvoID := createConversation(futureEventID, "Future Event Chat")
 	legacyOldConvoID := createConversation(legacyOldEventID, "Legacy Old Chat")
 	legacyTodayConvoID := createConversation(legacyTodayEventID, "Legacy Today Chat")
+	standaloneConvoID := createStandaloneConversation("General Chat")
 
 	// Now test the conversations endpoint
 	t.Run("filters out old completed event conversations", func(t *testing.T) {
@@ -2359,14 +2379,14 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 			convoIDs[c.ID] = true
 		}
 
-		// Should NOT contain old event conversation (>24h past)
+		// Should NOT contain old event conversation (past)
 		if convoIDs[oldConvoID] {
-			t.Errorf("conversation for old event (>24h past) should be filtered out, but was included (ID: %d)", oldConvoID)
+			t.Errorf("conversation for old event (past) should be filtered out, but was included (ID: %d)", oldConvoID)
 		}
 
-		// Should contain recent event conversation (<24h past, within grace period)
-		if !convoIDs[recentConvoID] {
-			t.Errorf("conversation for recent event (<24h past) should be included, but was filtered out (ID: %d)", recentConvoID)
+		// Should NOT contain recently expired event conversation (no grace period)
+		if convoIDs[recentConvoID] {
+			t.Errorf("conversation for recently expired event should be filtered out, but was included (ID: %d)", recentConvoID)
 		}
 
 		// Should contain future event conversation
@@ -2383,6 +2403,11 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 		if !convoIDs[legacyTodayConvoID] {
 			t.Errorf("conversation for legacy today event should be included, but was filtered out (ID: %d)", legacyTodayConvoID)
 		}
+
+		// Should contain standalone conversation (NULL event_id)
+		if !convoIDs[standaloneConvoID] {
+			t.Errorf("standalone conversation should be included, but was filtered out (ID: %d)", standaloneConvoID)
+		}
 	})
 
 	// Also verify using direct SQL to double-check the datetime comparison works
@@ -2390,14 +2415,13 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 		// This tests the core issue: ISO 8601 format with 'T' should compare correctly
 		var result int
 		err := env.db.QueryRowContext(ctx, `
-			SELECT datetime('2026-01-15T13:30:00.000Z') > datetime('now', '-1 day')
+			SELECT datetime('2026-01-15T13:30:00.000Z') > datetime('now')
 		`).Scan(&result)
 		if err != nil {
 			t.Fatalf("query: %v", err)
 		}
-		// This should be 0 (false) if the date is more than 1 day in the past
-		// Note: This test is time-dependent. If run on 2026-01-16 or later, it should be 0.
-		t.Logf("datetime comparison result: %d (expected 0 for dates >24h past)", result)
+		// This should be 0 (false) when the date is in the past.
+		t.Logf("datetime comparison result: %d (expected 0 for past dates without grace period)", result)
 	})
 }
 
