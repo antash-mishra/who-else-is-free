@@ -99,6 +99,15 @@ const ChatThreadScreen = () => {
     return user.id === activeConversation.createdBy;
   }, [activeConversation, user]);
 
+  const isGroupConversation = useMemo(() => {
+    if (!activeConversation) return false;
+    return (
+      activeConversation.memberIds.length > 2 ||
+      !!activeConversation.title ||
+      !!activeConversation.eventId
+    );
+  }, [activeConversation]);
+
   useEffect(() => {
     if (!activeConversationId) {
       if (navigation.canGoBack()) {
@@ -204,7 +213,7 @@ const ChatThreadScreen = () => {
     });
   };
 
-  const renderMessage = ({ item }: { item: (typeof messages)[number] }) => {
+  const renderMessage = ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
     const lowerBody = item.body.toLowerCase();
     const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
     const isEventUpdateSystemMessage = lowerBody === "updated event detail";
@@ -221,8 +230,35 @@ const ChatThreadScreen = () => {
     const participant = activeConversation.participants?.find(
       (p) => p.id === item.senderId,
     );
-    const avatarLabel =
-      participant?.name ?? activeConversation.displayName ?? "";
+    const senderName = participant?.name ?? "";
+    const firstName = senderName.split(" ")[0] || "";
+    const initials =
+      senderName
+        .split(" ")
+        .map((w: string) => w[0] ?? "")
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "?";
+    const avatarColor = `hsl(${(item.senderId * 47) % 360}, 55%, 45%)`;
+
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const prevIsSystem = prevMessage
+      ? prevMessage.body.toLowerCase().endsWith("joined the chat") ||
+        prevMessage.body.toLowerCase() === "updated event detail"
+      : false;
+    const isFirstInRun =
+      !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
+    const showAvatar = !isOwn;
+    const showName = showAvatar && isFirstInRun;
+
+    const timeText = item.pending
+      ? "Sending…"
+      : item.failed
+        ? "Failed. Tap to retry."
+        : new Date(item.createdAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
 
     const bubble = (
       <View
@@ -232,6 +268,9 @@ const ChatThreadScreen = () => {
           item.failed ? styles.messageBubbleFailed : undefined,
         ]}
       >
+        {showName && firstName ? (
+          <Text style={styles.senderName}>{firstName}</Text>
+        ) : null}
         <Text
           style={[
             styles.messageText,
@@ -250,14 +289,7 @@ const ChatThreadScreen = () => {
                 : styles.messageMetaOther,
           ]}
         >
-          {item.pending
-            ? "Sending…"
-            : item.failed
-              ? "Failed. Tap to retry."
-              : new Date(item.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+          {timeText}
         </Text>
       </View>
     );
@@ -277,7 +309,18 @@ const ChatThreadScreen = () => {
           isOwn ? styles.messageRowOwn : styles.messageRowOther,
         ]}
       >
-        <View style={styles.messageBubbleContainer}>{bubbleContent}</View>
+        {showAvatar ? (
+          isFirstInRun ? (
+            <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
+              <Text style={styles.avatarInitials}>{initials}</Text>
+            </View>
+          ) : (
+            <View style={styles.avatarSpacer} />
+          )
+        ) : null}
+        <View style={styles.messageBubbleContainer}>
+          {bubbleContent}
+        </View>
       </View>
     );
   };
@@ -534,20 +577,52 @@ const styles = StyleSheet.create({
   },
   messageRow: {
     marginBottom: spacing.sm,
-  },
-  messageRowOwn: {
+    flexDirection: "row",
     alignItems: "flex-end",
   },
+  messageRowOwn: {
+    justifyContent: "flex-end",
+  },
   messageRowOther: {
-    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   messageBubbleContainer: {
-    maxWidth: "80%",
+    maxWidth: "75%",
+  },
+  avatarCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
+  avatarInitials: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontFamily: typography.fontFamilySemiBold,
+  },
+  avatarSpacer: {
+    width: 30,
+    marginRight: spacing.xs,
+    flexShrink: 0,
+  },
+  senderName: {
+    fontSize: 17,
+    fontFamily: typography.fontFamilyMedium,
+    fontWeight: "500",
+    lineHeight: 22,
+    letterSpacing: -0.5,
+    color: "#000000",
+    marginBottom: 2,
   },
   messageBubble: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderRadius: 12,
   },
   messageBubbleOwn: {
     alignSelf: "flex-end",
@@ -555,15 +630,17 @@ const styles = StyleSheet.create({
   },
   messageBubbleOther: {
     alignSelf: "flex-start",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: "#F4F4F4",
   },
   messageBubbleFailed: {
     borderColor: colors.accent,
   },
   messageText: {
+    fontSize: 17,
     fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 22,
+    letterSpacing: -0.5,
   },
   messageTextOwn: {
     color: colors.buttonText,
@@ -573,7 +650,12 @@ const styles = StyleSheet.create({
   },
   messageMeta: {
     marginTop: 4,
-    fontSize: typography.caption,
+    fontSize: 11,
+    fontFamily: typography.fontFamilyRegular,
+    fontWeight: "400",
+    lineHeight: 11,
+    letterSpacing: -0.3,
+    textAlign: "right",
   },
   messageMetaOwn: {
     color: colors.buttonText,
