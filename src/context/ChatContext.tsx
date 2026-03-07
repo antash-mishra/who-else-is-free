@@ -731,6 +731,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
                 }
               : conversation,
           );
+
+          // If sender is not in participants, refresh to get updated list
+          if (message.senderId !== currentUserId) {
+            const convo = prev.find((c) => c.id === message.conversationId);
+            if (convo && !convo.participants?.some((p) => p.id === message.senderId)) {
+              refreshConversations().catch(() => undefined);
+            }
+          }
+
           return sortConversationsByActivity(updated);
         });
         return;

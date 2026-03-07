@@ -1961,15 +1961,12 @@ func TestReportMember(t *testing.T) {
 		}
 	})
 
-	t.Run("idempotent unblock returns already_unblocked", func(t *testing.T) {
+	t.Run("idempotent unblock returns 404 when already fully unblocked", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/members/%d/block", eventID, noahUser.ID), avaToken, nil)
-		if resp.StatusCode != http.StatusOK {
-			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404 (report and block already deleted), got %d", resp.StatusCode)
 		}
-		payload := decodeJSON[unblockMemberResponse](t, resp)
-		if !payload.AlreadyUnblocked {
-			t.Fatal("expected already_unblocked=true on second unblock")
-		}
+		resp.Body.Close()
 	})
 
 	t.Run("unblock restores mutual event visibility", func(t *testing.T) {
