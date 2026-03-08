@@ -3640,6 +3640,61 @@ func TestUpdateEvent(t *testing.T) {
 	})
 }
 
+func TestUpdateSingleToGroupCreatesConversationForJoinRequest(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // requester
+
+	var eventID int64
+	t.Run("create single event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Single To Group",
+			Location:    "Test Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Will be changed to group",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	t.Run("update to group type", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Single To Group",
+			Location:    "Test Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Now a group event",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("join request succeeds after group type change", func(t *testing.T) {
+		body := map[string]any{"message": "I'd like to join!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+	})
+}
+
 func TestUpdateEventPublishesChatUpdateForGroupEvent(t *testing.T) {
 	env := setupAPITestEnv(t)
 

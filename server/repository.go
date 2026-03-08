@@ -1495,6 +1495,38 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		return ErrEventNotFound
 	}
 
+	// If event is now a Group type, ensure a conversation exists
+	if params.GroupType != "Single" {
+		_, convoErr := fetchConversationByEventID(ctx, tx, id)
+		if errors.Is(convoErr, ErrConversationNotFound) {
+			nullableTitle := sql.NullString{
+				String: params.Title,
+				Valid:  len(strings.TrimSpace(params.Title)) > 0,
+			}
+			nullableEventID := sql.NullInt64{Int64: id, Valid: true}
+
+			convoRes, err := tx.ExecContext(ctx, insertConversation, nullableTitle, userID, nullableEventID)
+			if err != nil {
+				tx.Rollback()
+				return fmt.Errorf("insert event conversation on update: %w", err)
+			}
+
+			convoID, err := convoRes.LastInsertId()
+			if err != nil {
+				tx.Rollback()
+				return fmt.Errorf("fetch event conversation id on update: %w", err)
+			}
+
+			if _, err := tx.ExecContext(ctx, insertConversationMember, convoID, userID, "owner"); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("insert event conversation owner on update: %w", err)
+			}
+		} else if convoErr != nil {
+			tx.Rollback()
+			return fmt.Errorf("check event conversation on update: %w", convoErr)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit event update: %w", err)
 	}
