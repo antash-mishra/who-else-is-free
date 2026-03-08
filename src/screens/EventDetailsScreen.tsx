@@ -57,6 +57,7 @@ const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
+  const isOverlay = route.name === "EventDetailsOverlay";
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const {
@@ -384,6 +385,21 @@ const EventDetailsScreen = () => {
       (p) => p.id !== user.id && memberSet.has(p.id),
     );
   }, [eventConversation, user]);
+
+  // Overlay: all members with host sorted to top (for group events)
+  const overlayMembers = useMemo(() => {
+    if (!eventConversation) return [];
+    const memberSet = new Set(eventConversation.memberIds ?? []);
+    const allMembers = eventConversation.participants.filter((p) =>
+      memberSet.has(p.id),
+    );
+    const hostId = event?.ownerId;
+    return [...allMembers].sort((a, b) => {
+      if (a.id === hostId) return -1;
+      if (b.id === hostId) return 1;
+      return 0;
+    });
+  }, [eventConversation, event?.ownerId]);
 
   // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {
@@ -792,7 +808,21 @@ const EventDetailsScreen = () => {
         return;
       }
       if (!response.ok) {
-        throw new Error("Unable to send request right now.");
+        let serverMsg = "";
+        try {
+          const body = await response.json();
+          serverMsg = body?.error || "";
+        } catch {}
+        console.warn(
+          `Join request failed: status=${response.status} error=${serverMsg}`,
+        );
+        if (response.status === 403) {
+          throw new Error("You are unable to join this event.");
+        }
+        if (response.status === 404) {
+          throw new Error("This event is no longer available.");
+        }
+        throw new Error(serverMsg || "Unable to send request right now.");
       }
       setInviteMessage("");
       setShowInvitePrompt(false);
@@ -1274,7 +1304,7 @@ const EventDetailsScreen = () => {
             )}
 
             {/* Host-only: Separator, Tabs, Requests/Members lists */}
-            {isOwner && !readOnly && (
+            {isOwner && !readOnly && !(isOverlay && !isSingleEvent) && (
               <>
                 <View style={styles.tabSeparator} />
 
@@ -1505,6 +1535,51 @@ const EventDetailsScreen = () => {
                     )}
                   </View>
                 )}
+              </>
+            )}
+
+            {/* Overlay: Members tab for group events (all users) */}
+            {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
+              <>
+                <View style={styles.tabSeparator} />
+                <View style={styles.tabContainer}>
+                  <View style={styles.tabItem}>
+                    <View style={styles.tabLabelRow}>
+                      <Text style={[styles.tabLabel, styles.tabLabelActive]}>
+                        Members
+                      </Text>
+                      <Text style={styles.tabCount}>
+                        {" "}
+                        {overlayMembers.length}
+                      </Text>
+                    </View>
+                    <View style={styles.tabUnderline} />
+                  </View>
+                </View>
+                <View style={styles.listContainer}>
+                  {overlayMembers.length === 0 ? (
+                    <Text style={styles.emptyStateText}>No members yet</Text>
+                  ) : (
+                    overlayMembers.map((member) => (
+                      <View key={member.id} style={styles.memberItem}>
+                        {renderAvatar(member)}
+                        <Text style={styles.memberName}>{member.name}</Text>
+                        {isOwner && member.id !== user?.id && (
+                          <Pressable
+                            onPress={() => openMemberMenu(member)}
+                            style={styles.requestMenuButton}
+                          >
+                            <Feather
+                              name="more-horizontal"
+                              size={24}
+                              color="#666"
+                            />
+                          </Pressable>
+                        )}
+                      </View>
+                    ))
+                  )}
+                </View>
               </>
             )}
 
