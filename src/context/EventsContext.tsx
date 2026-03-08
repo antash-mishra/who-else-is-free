@@ -18,6 +18,7 @@ import {
   DEFAULT_COVER_KEY,
   resolveCoverUri,
 } from "@constants/covers";
+import { navigationRef } from "../navigation/navigationRef";
 
 export type DateLabel = "Today" | "Tmrw";
 
@@ -680,6 +681,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           hostName: user.name,
           scheduledAt: pendingGuestEvent.scheduledAt,
         });
+
+        if (navigationRef.isReady()) {
+          (navigationRef as any).navigate("Main", {
+            screen: "MyEvents",
+            params: { showEventCreatedBadge: true },
+          });
+        }
       } catch (err) {
         console.error("Failed to submit queued guest event", err);
       } finally {
