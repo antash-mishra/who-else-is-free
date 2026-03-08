@@ -409,10 +409,10 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText('Go to Chat')).toBeTruthy();
     });
 
-    it('does not show going row for host', () => {
-      const { queryByTestId } = render(<EventDetailsScreen />);
+    it('shows going row for host', () => {
+      const { getByTestId } = render(<EventDetailsScreen />);
 
-      expect(queryByTestId('going-row')).toBeNull();
+      expect(getByTestId('going-row')).toBeTruthy();
     });
 
     it('shows "Event details updated" badge when route param is set', () => {
@@ -656,7 +656,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-avatar-0')).toBeTruthy();
     });
 
-    it('shows going row for non-host 1:1 events', () => {
+    it('shows 1:1 Event label for non-host single events', () => {
       mockEventsState.events = [mockSingleEvent];
       mockChatState.conversations = [
         {
@@ -673,10 +673,10 @@ describe('EventDetailsScreen Rendering Tests', () => {
         .spyOn(require('@react-navigation/native'), 'useRoute')
         .mockReturnValue(createMockRoute(mockSingleEvent.id));
 
-      const { getByTestId } = render(<EventDetailsScreen />);
+      const { getByTestId, queryByTestId } = render(<EventDetailsScreen />);
 
-      expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('2 Going');
+      expect(queryByTestId('going-row')).toBeNull();
+      expect(getByTestId('going-count-label')).toHaveTextContent('1:1 event');
 
       routeSpy.mockRestore();
     });

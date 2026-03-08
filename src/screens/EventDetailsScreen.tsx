@@ -41,7 +41,10 @@ import { API_BASE_URL } from "@api/config";
 import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 
-type EventDetailsRoute = RouteProp<RootStackParamList, "EventDetails" | "EventDetailsOverlay">;
+type EventDetailsRoute = RouteProp<
+  RootStackParamList,
+  "EventDetails" | "EventDetailsOverlay"
+>;
 type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "EventDetails" | "EventDetailsOverlay"
@@ -160,7 +163,9 @@ const EventDetailsScreen = () => {
     setDisableHostRequestPolling(false);
   }, [route.params.eventId]);
 
-  const showEventUpdatedBadgeParam = (route.params as { showEventUpdatedBadge?: boolean }).showEventUpdatedBadge;
+  const showEventUpdatedBadgeParam = (
+    route.params as { showEventUpdatedBadge?: boolean }
+  ).showEventUpdatedBadge;
   useEffect(() => {
     if (!showEventUpdatedBadgeParam) {
       return;
@@ -244,7 +249,7 @@ const EventDetailsScreen = () => {
   const goingParticipants = useMemo(() => {
     if (eventConversation?.participants?.length) {
       const memberSet = new Set(eventConversation.memberIds ?? []);
-      return eventConversation.participants.filter(p => memberSet.has(p.id));
+      return eventConversation.participants.filter((p) => memberSet.has(p.id));
     }
     return [fallbackHostParticipant];
   }, [eventConversation, fallbackHostParticipant]);
@@ -376,13 +381,14 @@ const EventDetailsScreen = () => {
     if (!eventConversation || !user) return [];
     const memberSet = new Set(eventConversation.memberIds ?? []);
     return eventConversation.participants.filter(
-      (p) => p.id !== user.id && memberSet.has(p.id)
+      (p) => p.id !== user.id && memberSet.has(p.id),
     );
   }, [eventConversation, user]);
 
   // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {
-    const shouldFetch = (hasPendingRequest || isConversationMember) && !isOwner && !readOnly;
+    const shouldFetch =
+      (hasPendingRequest || isConversationMember) && !isOwner && !readOnly;
     if (!shouldFetch || !token || !event) {
       setUserIntroMessage(null);
       return;
@@ -1152,7 +1158,11 @@ const EventDetailsScreen = () => {
                 onPress={navigation.goBack}
                 style={[styles.backButton, { top: insets.top + 10 }]}
               >
-                <Feather name="chevron-left" size={24} color={colors.buttonText} />
+                <Feather
+                  name="chevron-left"
+                  size={24}
+                  color={colors.buttonText}
+                />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -1184,10 +1194,15 @@ const EventDetailsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.title}>{event.title}</Text>
             <Text style={styles.hostedBy}>{hostLine}</Text>
-            {!isOwner && !readOnly && (
+            {!readOnly && isSingleEvent && (
+              <Text style={styles.goingLabel} testID="going-count-label">
+                1:1 event
+              </Text>
+            )}
+            {!readOnly && !isSingleEvent && (
               <View style={styles.goingRow} testID="going-row">
                 <View style={styles.goingAvatarStack}>
-                  {goingParticipants.slice(0, 2).map((participant, index) => (
+                  {goingParticipants.slice(0, 4).map((participant, index) => (
                     <View
                       key={`${participant.id}-${index}`}
                       style={[
@@ -1743,10 +1758,11 @@ const EventDetailsScreen = () => {
   if (readOnly) {
     return (
       <View style={styles.overlayWrapper}>
-        <Pressable style={styles.overlayDismissZone} onPress={navigation.goBack} />
-        <View style={styles.overlayContentContainer}>
-          {screenContent}
-        </View>
+        <Pressable
+          style={styles.overlayDismissZone}
+          onPress={navigation.goBack}
+        />
+        <View style={styles.overlayContentContainer}>{screenContent}</View>
       </View>
     );
   }
