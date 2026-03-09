@@ -18,9 +18,10 @@ import {
   DEFAULT_COVER_KEY,
   resolveCoverUri,
 } from "@constants/covers";
+import { getLegacyDateLabel, parseDateKey, toDateKey } from "@utils/dateTime";
 import { navigationRef } from "../navigation/navigationRef";
 
-export type DateLabel = "Today" | "Tmrw";
+export type DateLabel = string;
 
 export interface UserEvent extends EventItemProps {
   dateLabel: DateLabel;
@@ -117,7 +118,7 @@ type ApiEvent = {
   gender: string;
   min_age: number;
   max_age: number;
-  date_label: DateLabel;
+  date_label: string;
   event_date: string;
   group_type?: "Single" | "Group";
   user_id: number;
@@ -178,23 +179,7 @@ const parseTimeToMinutes = (timeLabel: string) => {
 };
 
 const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
-  const [year, month, day] = eventDate.split("-").map((part) => Number(part));
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(day) ||
-    month < 1 ||
-    day < 1
-  ) {
-    return "Today";
-  }
-  const parsed = new Date(year, month - 1, day);
-  const diffDays = Math.floor(
-    (parsed.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  return diffDays === 1 ? "Tmrw" : "Today";
+  return getLegacyDateLabel(eventDate);
 };
 
 const isUpcomingEvent = (eventDate: string, _timeLabel: string, scheduledAt?: string) => {
@@ -205,36 +190,19 @@ const isUpcomingEvent = (eventDate: string, _timeLabel: string, scheduledAt?: st
   }
 
   // Fall back to legacy date-only check
-  const [year, month, day] = eventDate.split("-").map((part) => Number(part));
+  const parsedDate = parseDateKey(eventDate);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(day) ||
-    month < 1 ||
-    day < 1
-  ) {
+  if (!parsedDate) {
     return false;
   }
-  const parsedDate = new Date(year, month - 1, day);
-  const diffDays = Math.floor(
-    (parsedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (Number.isNaN(diffDays)) {
-    return false;
-  }
-  if (diffDays < 0 || diffDays > 1) {
-    return false;
-  }
-  // We intentionally avoid filtering by time-of-day here. The mobile app
-  // already guides users to choose a future time, and relying on the device
-  // timezone avoids discrepancies with the server clock. Treat any event for
-  // today or tomorrow as "upcoming" so it always appears in the list.
-  return true;
+  return parsedDate.getTime() >= today.getTime();
 };
 
 const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
+  if (a.scheduledAt && b.scheduledAt) {
+    return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+  }
   if (a.eventDate === b.eventDate) {
     const timeA = parseTimeToMinutes(a.time) ?? 0;
     const timeB = parseTimeToMinutes(b.time) ?? 0;
@@ -259,15 +227,19 @@ const mapApiEvent = (
 
   if (event.scheduled_at) {
     const utcDate = new Date(event.scheduled_at);
-    // Format time in local timezone (24-hour format)
-    displayTime = utcDate.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    // Format date in local timezone (YYYY-MM-DD)
-    displayDate = `${utcDate.getFullYear()}-${String(utcDate.getMonth() + 1).padStart(2, "0")}-${String(utcDate.getDate()).padStart(2, "0")}`;
-    displayLabel = deriveDateLabelFromDate(displayDate);
+    if (!Number.isNaN(utcDate.getTime())) {
+      // Format time in local timezone (24-hour format)
+      displayTime = utcDate.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      // Format date in local timezone (YYYY-MM-DD)
+      displayDate = toDateKey(utcDate);
+      displayLabel = deriveDateLabelFromDate(displayDate);
+    } else {
+      displayLabel = deriveDateLabelFromDate(event.event_date);
+    }
   } else {
     displayLabel = deriveDateLabelFromDate(event.event_date);
   }

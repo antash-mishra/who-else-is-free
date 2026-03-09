@@ -1,5 +1,7 @@
 import { DateOption } from "@constants/eventOptions";
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 // Base time options for event scheduling
 export const baseTimeOptions = [
     "7:00pm",
@@ -27,11 +29,20 @@ export const timeStringToMinutes = (timeLabel: string): number | null => {
     const minutes = parseInt(match[2], 10);
     const meridiem = match[3];
 
-    if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    if (
+        Number.isNaN(hours) ||
+        Number.isNaN(minutes) ||
+        hours < 0 ||
+        minutes < 0 ||
+        minutes > 59
+    ) {
         return null;
     }
 
     if (meridiem) {
+        if (hours < 1 || hours > 12) {
+            return null;
+        }
         if (meridiem === "pm" && hours !== 12) {
             hours += 12;
         }
@@ -67,7 +78,151 @@ export const parseTimeString = (
 };
 
 /**
+ * Format hour and minute into HH:MM string.
+ */
+export const formatTime = (hour: number, minute: number): string => {
+    const h = Math.max(0, Math.min(23, hour));
+    const m = Math.max(0, Math.min(59, minute));
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+};
+
+export const toDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+export const parseDateKey = (eventDate: string): Date | null => {
+    const [year, month, day] = eventDate
+        .split("-")
+        .map((part) => Number(part));
+    if (
+        Number.isNaN(year) ||
+        Number.isNaN(month) ||
+        Number.isNaN(day) ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > 31
+    ) {
+        return null;
+    }
+
+    const parsed = new Date(year, month - 1, day);
+    if (
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return parsed;
+};
+
+export const combineDateAndTime = (eventDate: string, time: string): Date | null => {
+    const parsedDate = parseDateKey(eventDate);
+    const parsedTime = parseTimeString(time);
+    if (!parsedDate) {
+        return null;
+    }
+
+    const next = new Date(parsedDate);
+    next.setHours(parsedTime.hour, parsedTime.minute, 0, 0);
+    return next;
+};
+
+export const formatAbsoluteDateLabel = (eventDate: string): string => {
+    const parsed = parseDateKey(eventDate);
+    if (!parsed) {
+        return eventDate;
+    }
+
+    const day = `${parsed.getDate()}`.padStart(2, "0");
+    const month = parsed.toLocaleString("en-US", { month: "short" });
+    const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
+    return `${day} ${month}, ${weekday}`;
+};
+
+const getDiffFromToday = (eventDate: string, now: Date = new Date()): number | null => {
+    const parsed = parseDateKey(eventDate);
+    if (!parsed) {
+        return null;
+    }
+
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const eventDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+
+    return Math.floor((eventDay.getTime() - today.getTime()) / ONE_DAY_MS);
+};
+
+export const getSectionDateLabel = (eventDate: string, now: Date = new Date()): string => {
+    const diff = getDiffFromToday(eventDate, now);
+    if (diff === 0) {
+        return "Today";
+    }
+    if (diff === 1) {
+        return "Tomorrow";
+    }
+    return formatAbsoluteDateLabel(eventDate);
+};
+
+export const getLegacyDateLabel = (eventDate: string, now: Date = new Date()): string => {
+    const diff = getDiffFromToday(eventDate, now);
+    if (diff === 0) {
+        return "Today";
+    }
+    if (diff === 1) {
+        return "Tmrw";
+    }
+    return formatAbsoluteDateLabel(eventDate);
+};
+
+const roundToMinuteStep = (date: Date, minuteStep: number): Date => {
+    const next = new Date(date);
+    const remainder = next.getMinutes() % minuteStep;
+    if (remainder !== 0) {
+        next.setMinutes(next.getMinutes() + (minuteStep - remainder));
+    }
+    next.setSeconds(0, 0);
+    return next;
+};
+
+export const getDefaultEventDateTime = (now: Date = new Date()): Date => {
+    const baseline = new Date(now.getTime() + 30 * 60 * 1000);
+    return roundToMinuteStep(baseline, 5);
+};
+
+export const getMaxEventDateTime = (now: Date = new Date(), daysAhead = 30): Date => {
+    const max = new Date(now);
+    max.setDate(max.getDate() + daysAhead);
+    return max;
+};
+
+export const clampDateTime = (value: Date, min: Date, max: Date): Date => {
+    if (value.getTime() < min.getTime()) {
+        return new Date(min);
+    }
+    if (value.getTime() > max.getTime()) {
+        return new Date(max);
+    }
+    return value;
+};
+
+export const isPastDateTimeSelection = (value: Date, now: Date = new Date()): boolean =>
+    value.getTime() <= now.getTime();
+
+export const formatDateTimeValue = (value: Date): string => {
+    const eventDate = toDateKey(value);
+    const datePart = formatAbsoluteDateLabel(eventDate);
+    const timePart = formatTime(value.getHours(), value.getMinutes());
+    return `${datePart} • ${timePart}`;
+};
+
+/**
  * Get YYYY-MM-DD string for "today" or "tomorrow" choice.
+ * @deprecated Prefer using toDateKey on concrete Date objects.
  */
 export const getDateStringForChoice = (choice: DateOption): string => {
     const base = new Date();
@@ -75,14 +230,12 @@ export const getDateStringForChoice = (choice: DateOption): string => {
     if (choice === "tomorrow") {
         base.setDate(base.getDate() + 1);
     }
-    const year = base.getFullYear();
-    const month = `${base.getMonth() + 1}`.padStart(2, "0");
-    const day = `${base.getDate()}`.padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return toDateKey(base);
 };
 
 /**
  * Build ISO 8601 UTC timestamp from local date choice and time (HH:MM format).
+ * @deprecated Prefer using Date#toISOString on concrete Date objects.
  */
 export const buildScheduledAtUTC = (
     dateChoice: DateOption,
@@ -94,47 +247,28 @@ export const buildScheduledAtUTC = (
         base.setDate(base.getDate() + 1);
     }
 
-    // Parse time (HH:MM format)
-    const timeParts = time.split(":");
-    const hours = parseInt(timeParts[0], 10) || 0;
-    const minutes = parseInt(timeParts[1], 10) || 0;
+    const parsedTime = parseTimeString(time);
+    base.setHours(parsedTime.hour, parsedTime.minute, 0, 0);
 
-    // Set the time in local timezone
-    base.setHours(hours, minutes, 0, 0);
-
-    // Return as ISO 8601 UTC string
     return base.toISOString();
 };
 
 /**
  * Determine if an event date string corresponds to "today" or "tomorrow".
+ * @deprecated Kept for backward compatibility with legacy tests.
  */
 export const getDateChoiceFromEventDate = (eventDate?: string): DateOption => {
     if (!eventDate) {
         return "today";
     }
-    const [year, month, day] = eventDate.split("-").map((part) => Number(part));
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (
-        Number.isNaN(year) ||
-        Number.isNaN(month) ||
-        Number.isNaN(day) ||
-        month < 1 ||
-        day < 1
-    ) {
-        return "today";
-    }
-    const parsed = new Date(year, month - 1, day);
-    const diffDays = Math.floor(
-        (parsed.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    return diffDays === 1 ? "tomorrow" : "today";
+    const diff = getDiffFromToday(eventDate);
+    return diff === 1 ? "tomorrow" : "today";
 };
 
 /**
  * Compute the next available time slot for a given date choice.
  * Returns null if no valid time slot is available (e.g., all times have passed for today).
+ * @deprecated Used only by legacy CreateEvent flows.
  */
 export const computeNextAvailableTime = (choice: DateOption): string | null => {
     const now = new Date();
@@ -156,6 +290,7 @@ export const computeNextAvailableTime = (choice: DateOption): string | null => {
 
 /**
  * Check if a time selection is in the past for today's events.
+ * @deprecated Prefer isPastDateTimeSelection with concrete Date values.
  */
 export const isPastTimeSelection = (
     choice: DateOption,
@@ -171,13 +306,4 @@ export const isPastTimeSelection = (
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     return minutes <= nowMinutes;
-};
-
-/**
- * Format hour and minute into HH:MM string.
- */
-export const formatTime = (hour: number, minute: number): string => {
-    const h = Math.max(0, Math.min(23, hour));
-    const m = Math.max(0, Math.min(59, minute));
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };

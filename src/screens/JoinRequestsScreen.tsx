@@ -20,6 +20,7 @@ import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
+import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
 type JoinRequestsNavigation = NativeStackNavigationProp<
@@ -324,12 +325,15 @@ const JoinRequestsScreen = () => {
   // 1:1 mode header
   const render1to1Header = () => {
     if (!eventDetails) return null;
+    const datePart = eventDetails.eventDate
+      ? formatAbsoluteDateLabel(eventDetails.eventDate)
+      : eventDetails.dateLabel;
 
     return (
       <ChatEventHeader
         onBack={() => navigation.goBack()}
         title={title}
-        subtitle={`${eventDetails.dateLabel}, ${eventDetails.time} at ${eventDetails.location}`}
+        subtitle={`${datePart}, ${eventDetails.time} at ${eventDetails.location}`}
         coverSource={getCoverSource(eventDetails.coverKey)}
         onTitlePress={() =>
           navigation.navigate("EventDetailsOverlay", {

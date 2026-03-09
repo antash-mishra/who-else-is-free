@@ -40,6 +40,7 @@ import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { API_BASE_URL } from "@api/config";
 import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
+import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type EventDetailsRoute = RouteProp<
   RootStackParamList,
@@ -49,9 +50,6 @@ type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "EventDetails" | "EventDetailsOverlay"
 >;
-
-const readableDateLabel = (label: "Today" | "Tmrw") =>
-  label === "Today" ? "Today" : "Tomorrow";
 
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
@@ -195,7 +193,10 @@ const EventDetailsScreen = () => {
   const isSingleEvent = event?.groupType === "Single";
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;
   const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
-  const scheduleLine = `${readableDateLabel(event.dateLabel)}, ${event.time}`;
+  const scheduleDateLabel = event.eventDate
+    ? formatAbsoluteDateLabel(event.eventDate)
+    : event.dateLabel;
+  const scheduleLine = `${scheduleDateLabel}, ${event.time}`;
   const audienceLine = `${event.groupType === "Single" ? "1:1" : "Group"}, ${event.audience}`;
   const eventNumericId = useMemo(() => {
     const parsed = Number(event.id);
@@ -484,6 +485,7 @@ const EventDetailsScreen = () => {
         eventDetails: {
           coverKey: event.coverKey ?? undefined,
           dateLabel: event.dateLabel,
+          eventDate: event.eventDate,
           location: event.location,
           time: event.time,
         },

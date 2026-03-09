@@ -155,6 +155,26 @@ jest.mock('@react-native-community/slider', () => {
   };
 });
 
+// Mock @react-native-community/datetimepicker
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const MockDateTimePicker = ({ testID, ...props }: any) =>
+    React.createElement(View, {
+      testID: testID || 'datetime-picker-mock',
+      ...props,
+    });
+
+  return {
+    __esModule: true,
+    default: MockDateTimePicker,
+    DateTimePickerAndroid: {
+      open: jest.fn(),
+    },
+  };
+});
+
 // Mock @ptomasroos/react-native-multi-slider
 jest.mock('@ptomasroos/react-native-multi-slider', () => {
   const React = require('react');
