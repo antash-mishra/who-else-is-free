@@ -458,6 +458,14 @@ const EventDetailsScreen = () => {
   const showOpenChatCTA = isOwner
     ? isSingleEvent || !!eventConversation
     : isConversationMember && !!eventConversation;
+  const shouldPinBottomCTA =
+    !readOnly && !isOwner && (showStandardCTA || showOpenChatCTA);
+  const pageScrollContentStyle = [
+    styles.pageScrollContent,
+    shouldPinBottomCTA
+      ? { paddingBottom: 72 + spacing.lg + insets.bottom }
+      : null,
+  ];
 
   const handleCtaPress = () => {
     // Pending state: CTA is disabled, actions handled via three-dot menu
@@ -1151,78 +1159,80 @@ const EventDetailsScreen = () => {
       />
 
       <View style={styles.contentWrapper}>
-        <View
-          style={[
-            styles.heroContainer,
-            readOnly
-              ? { paddingTop: 12, paddingBottom: 16 }
-              : { height: 320 + insets.top, paddingTop: insets.top + 10 },
-          ]}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          alwaysBounceVertical={false}
+          contentContainerStyle={pageScrollContentStyle}
         >
-          <Image
-            source={{ uri: event.imageUri }}
-            style={styles.heroBackgroundImage}
-            resizeMode="cover"
-            blurRadius={28}
-          />
-          <View pointerEvents="none" style={styles.heroOverlayDark} />
-          <View pointerEvents="none" style={styles.heroOverlayLight} />
-          {readOnly ? (
-            <>
-              <View style={styles.overlayHeaderRow}>
-                <Text style={styles.overlayHeaderTitle} numberOfLines={1}>
-                  {event.title}
-                </Text>
+          <View
+            style={[
+              styles.heroContainer,
+              readOnly
+                ? { paddingTop: 12, paddingBottom: 16 }
+                : { height: 320 + insets.top, paddingTop: insets.top + 10 },
+            ]}
+          >
+            <Image
+              source={{ uri: event.imageUri }}
+              style={styles.heroBackgroundImage}
+              resizeMode="cover"
+              blurRadius={28}
+            />
+            <View pointerEvents="none" style={styles.heroOverlayDark} />
+            <View pointerEvents="none" style={styles.heroOverlayLight} />
+            {readOnly ? (
+              <>
+                <View style={styles.overlayHeaderRow}>
+                  <Text style={styles.overlayHeaderTitle} numberOfLines={1}>
+                    {event.title}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={navigation.goBack}
+                    hitSlop={12}
+                    style={styles.overlayCloseButton}
+                  >
+                    <Feather name="x" size={24} color={colors.buttonText} />
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
                 <Pressable
                   accessibilityRole="button"
                   onPress={navigation.goBack}
-                  hitSlop={12}
-                  style={styles.overlayCloseButton}
+                  style={[styles.backButton, { top: insets.top + 10 }]}
                 >
-                  <Feather name="x" size={24} color={colors.buttonText} />
+                  <Feather
+                    name="chevron-left"
+                    size={24}
+                    color={colors.buttonText}
+                  />
                 </Pressable>
-              </View>
-            </>
-          ) : (
-            <>
-              <Pressable
-                accessibilityRole="button"
-                onPress={navigation.goBack}
-                style={[styles.backButton, { top: insets.top + 10 }]}
-              >
-                <Feather
-                  name="chevron-left"
-                  size={24}
-                  color={colors.buttonText}
-                />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setShowMenuOverlay(true)}
-                style={[styles.menuButton, { top: insets.top + 10 }]}
-              >
-                <Feather
-                  name="more-horizontal"
-                  size={24}
-                  color={colors.buttonText}
-                />
-              </Pressable>
-            </>
-          )}
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowMenuOverlay(true)}
+                  style={[styles.menuButton, { top: insets.top + 10 }]}
+                >
+                  <Feather
+                    name="more-horizontal"
+                    size={24}
+                    color={colors.buttonText}
+                  />
+                </Pressable>
+              </>
+            )}
 
-          {/* Elevated Image Card */}
-          <View style={styles.imageCardContainer}>
-            <Image
-              source={{ uri: event.imageUri }}
-              style={styles.imageCard}
-              resizeMode="cover"
-            />
+            {/* Elevated Image Card */}
+            <View style={styles.imageCardContainer}>
+              <Image
+                source={{ uri: event.imageUri }}
+                style={styles.imageCard}
+                resizeMode="cover"
+              />
+            </View>
           </View>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        > */}
           <View style={styles.card}>
             <Text style={styles.title}>{event.title}</Text>
             <Text style={styles.hostedBy}>{hostLine}</Text>
@@ -1595,54 +1605,107 @@ const EventDetailsScreen = () => {
               </>
             ) : null}
           </View>
-        </ScrollView>
-        {showStandardCTA && !readOnly && (
-          <View
-            style={[
-              styles.ctaContainer,
-              shouldShowInvitePrompt && styles.ctaContainerActive,
-            ]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleCtaPress}
-              style={({ pressed }) => [
-                styles.ctaButton,
-                pressed && styles.ctaButtonPressed,
-                (shouldShowInvitePrompt || hasPendingRequest) &&
-                  styles.ctaButtonDisabled,
+          {!shouldPinBottomCTA && showStandardCTA && !readOnly && (
+            <View
+              style={[
+                styles.ctaContainer,
+                shouldShowInvitePrompt && styles.ctaContainerActive,
               ]}
-              disabled={shouldShowInvitePrompt || hasPendingRequest}
             >
-              <Text
-                style={[
-                  styles.ctaLabel,
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleCtaPress}
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  pressed && styles.ctaButtonPressed,
                   (shouldShowInvitePrompt || hasPendingRequest) &&
-                    styles.ctaLabelDisabled,
+                    styles.ctaButtonDisabled,
+                ]}
+                disabled={shouldShowInvitePrompt || hasPendingRequest}
+              >
+                <Text
+                  style={[
+                    styles.ctaLabel,
+                    (shouldShowInvitePrompt || hasPendingRequest) &&
+                      styles.ctaLabelDisabled,
+                  ]}
+                >
+                  {ctaLabel}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          {!shouldPinBottomCTA && showOpenChatCTA && !readOnly ? (
+            <View style={styles.ctaContainer}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleOpenChat}
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  isOwner && styles.ctaButtonSecondary,
+                  pressed && styles.ctaButtonPressed,
                 ]}
               >
-                {ctaLabel}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-        {showOpenChatCTA && !readOnly ? (
-          <View style={styles.ctaContainer}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={handleOpenChat}
-              style={({ pressed }) => [
-                styles.ctaButton,
-                isOwner && styles.ctaButtonSecondary,
-                pressed && styles.ctaButtonPressed,
+                <Text
+                  style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}
+                >
+                  Go to Chat
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </ScrollView>
+        {shouldPinBottomCTA && showStandardCTA && !readOnly && (
+          <View style={styles.pinnedCtaWrapper}>
+            <View
+              style={[
+                styles.ctaContainer,
+                shouldShowInvitePrompt && styles.ctaContainerActive,
               ]}
             >
-              <Text
-                style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleCtaPress}
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  pressed && styles.ctaButtonPressed,
+                  (shouldShowInvitePrompt || hasPendingRequest) &&
+                    styles.ctaButtonDisabled,
+                ]}
+                disabled={shouldShowInvitePrompt || hasPendingRequest}
               >
-                Go to Chat
-              </Text>
-            </Pressable>
+                <Text
+                  style={[
+                    styles.ctaLabel,
+                    (shouldShowInvitePrompt || hasPendingRequest) &&
+                      styles.ctaLabelDisabled,
+                  ]}
+                >
+                  {ctaLabel}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+        {shouldPinBottomCTA && showOpenChatCTA && !readOnly ? (
+          <View style={styles.pinnedCtaWrapper}>
+            <View style={styles.ctaContainer}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleOpenChat}
+                style={({ pressed }) => [
+                  styles.ctaButton,
+                  isOwner && styles.ctaButtonSecondary,
+                  pressed && styles.ctaButtonPressed,
+                ]}
+              >
+                <Text
+                  style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}
+                >
+                  Go to Chat
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -1971,9 +2034,8 @@ const styles = StyleSheet.create({
   //   height: undefined,
   //   resizeMode: 'cover'
   // },
-  scrollContent: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.xl,
+  pageScrollContent: {
+    paddingBottom: 0,
   },
   card: {
     backgroundColor: colors.card,
@@ -2061,6 +2123,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
     backgroundColor: colors.card,
+  },
+  pinnedCtaWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   ctaContainerActive: {
     backgroundColor: "#F5F5F5",
