@@ -1,26 +1,30 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Modal,
-    Platform,
     Pressable,
+    ScrollView,
     Text,
     View,
 } from "react-native";
 
-import DateTimePicker, {
-    DateTimePickerAndroid,
-    DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import { Feather } from "@expo/vector-icons";
 
 import {
     clampDateTime,
-    formatAbsoluteDateLabel,
     formatDateTimeValue,
-    formatTime,
+    getSectionDateLabel,
     toDateKey,
 } from "@utils/dateTime";
 import styles from "./EventDateTimeModal.styles";
+
+const WHEEL_ITEM_HEIGHT = 44;
+
+const HOURS = Array.from({ length: 24 }, (_value, index) =>
+    String(index).padStart(2, "0"),
+);
+const MINUTES = Array.from({ length: 60 }, (_value, index) =>
+    String(index).padStart(2, "0"),
+);
 
 type EventDateTimeModalProps = {
     visible: boolean;
@@ -38,6 +42,51 @@ const toSafeDate = (value: Date) => {
     return value;
 };
 
+type DateWheelOption = {
+    key: string;
+    label: string;
+    year: number;
+    month: number;
+    day: number;
+};
+
+const buildDateOptions = (minDate: Date, maxDate: Date): DateWheelOption[] => {
+    const start = new Date(
+        minDate.getFullYear(),
+        minDate.getMonth(),
+        minDate.getDate(),
+    );
+    const end = new Date(
+        maxDate.getFullYear(),
+        maxDate.getMonth(),
+        maxDate.getDate(),
+    );
+
+    const options: DateWheelOption[] = [];
+    const cursor = new Date(start);
+    while (cursor.getTime() <= end.getTime()) {
+        const key = toDateKey(cursor);
+        options.push({
+            key,
+            label: getSectionDateLabel(key),
+            year: cursor.getFullYear(),
+            month: cursor.getMonth(),
+            day: cursor.getDate(),
+        });
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return options;
+};
+
+const clampWheelIndex = (offsetY: number, length: number): number => {
+    if (length <= 0) {
+        return 0;
+    }
+    const rounded = Math.round(offsetY / WHEEL_ITEM_HEIGHT);
+    return Math.max(0, Math.min(length - 1, rounded));
+};
+
 const EventDateTimeModal = ({
     visible,
     value,
@@ -49,89 +98,97 @@ const EventDateTimeModal = ({
     const [draftValue, setDraftValue] = useState(() =>
         clampDateTime(toSafeDate(value), minDate, maxDate),
     );
+    const dateWheelRef = useRef<ScrollView>(null);
+    const hourWheelRef = useRef<ScrollView>(null);
+    const minuteWheelRef = useRef<ScrollView>(null);
+
+    const dateOptions = useMemo(
+        () => buildDateOptions(minDate, maxDate),
+        [maxDate, minDate],
+    );
+
+    const selectedDateIndex = useMemo(() => {
+        const selectedKey = toDateKey(draftValue);
+        const index = dateOptions.findIndex((option) => option.key === selectedKey);
+        return index >= 0 ? index : 0;
+    }, [dateOptions, draftValue]);
+
+    const selectedHourIndex = draftValue.getHours();
+    const selectedMinuteIndex = draftValue.getMinutes();
+
+    const scrollWheelToIndex = useCallback(
+        (ref: RefObject<ScrollView | null>, index: number, animated = false) => {
+            ref.current?.scrollTo({
+                y: index * WHEEL_ITEM_HEIGHT,
+                animated,
+            });
+        },
+        [],
+    );
+
+    const syncWheelPositions = useCallback(
+        (date: Date, animated = false) => {
+            const key = toDateKey(date);
+            const dateIndex = dateOptions.findIndex((option) => option.key === key);
+            scrollWheelToIndex(dateWheelRef, dateIndex >= 0 ? dateIndex : 0, animated);
+            scrollWheelToIndex(hourWheelRef, date.getHours(), animated);
+            scrollWheelToIndex(minuteWheelRef, date.getMinutes(), animated);
+        },
+        [dateOptions, scrollWheelToIndex],
+    );
 
     useEffect(() => {
         if (!visible) {
             return;
         }
 
-        setDraftValue(clampDateTime(toSafeDate(value), minDate, maxDate));
-    }, [maxDate, minDate, value, visible]);
+        const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
+        setDraftValue(initialDraft);
+        requestAnimationFrame(() => {
+            syncWheelPositions(initialDraft, false);
+        });
+    }, [maxDate, minDate, syncWheelPositions, value, visible]);
 
-    const applyDatePart = useCallback(
-        (nextDate: Date) => {
-            setDraftValue((previous) => {
-                const merged = new Date(previous);
-                merged.setFullYear(
-                    nextDate.getFullYear(),
-                    nextDate.getMonth(),
-                    nextDate.getDate(),
-                );
-                return clampDateTime(merged, minDate, maxDate);
-            });
-        },
-        [maxDate, minDate],
-    );
-
-    const applyTimePart = useCallback(
-        (nextTime: Date) => {
-            setDraftValue((previous) => {
-                const merged = new Date(previous);
-                merged.setHours(nextTime.getHours(), nextTime.getMinutes(), 0, 0);
-                return clampDateTime(merged, minDate, maxDate);
-            });
-        },
-        [maxDate, minDate],
-    );
-
-    const handleIOSChange = useCallback(
-        (_event: DateTimePickerEvent, selectedDate?: Date) => {
-            if (!selectedDate) {
+    const applyDateIndex = useCallback(
+        (index: number) => {
+            const option = dateOptions[index];
+            if (!option) {
                 return;
             }
 
-            setDraftValue(clampDateTime(selectedDate, minDate, maxDate));
+            setDraftValue((previous) => {
+                const next = new Date(previous);
+                next.setFullYear(option.year, option.month, option.day);
+                next.setSeconds(0, 0);
+                const clamped = clampDateTime(next, minDate, maxDate);
+                return clamped.getTime() === previous.getTime() ? previous : clamped;
+            });
+        },
+        [dateOptions, maxDate, minDate],
+    );
+
+    const applyHourIndex = useCallback(
+        (index: number) => {
+            setDraftValue((previous) => {
+                const next = new Date(previous);
+                next.setHours(index, previous.getMinutes(), 0, 0);
+                const clamped = clampDateTime(next, minDate, maxDate);
+                return clamped.getTime() === previous.getTime() ? previous : clamped;
+            });
         },
         [maxDate, minDate],
     );
 
-    const handleAndroidDateOpen = useCallback(() => {
-        DateTimePickerAndroid.open({
-            value: draftValue,
-            mode: "date",
-            minimumDate: minDate,
-            maximumDate: maxDate,
-            onChange: (event, selectedDate) => {
-                if (event.type !== "set" || !selectedDate) {
-                    return;
-                }
-                applyDatePart(selectedDate);
-            },
-        });
-    }, [applyDatePart, draftValue, maxDate, minDate]);
-
-    const handleAndroidTimeOpen = useCallback(() => {
-        DateTimePickerAndroid.open({
-            value: draftValue,
-            mode: "time",
-            is24Hour: true,
-            onChange: (event, selectedDate) => {
-                if (event.type !== "set" || !selectedDate) {
-                    return;
-                }
-                applyTimePart(selectedDate);
-            },
-        });
-    }, [applyTimePart, draftValue]);
-
-    const androidDateValue = useMemo(() => {
-        const key = toDateKey(draftValue);
-        return formatAbsoluteDateLabel(key);
-    }, [draftValue]);
-
-    const androidTimeValue = useMemo(
-        () => formatTime(draftValue.getHours(), draftValue.getMinutes()),
-        [draftValue],
+    const applyMinuteIndex = useCallback(
+        (index: number) => {
+            setDraftValue((previous) => {
+                const next = new Date(previous);
+                next.setHours(previous.getHours(), index, 0, 0);
+                const clamped = clampDateTime(next, minDate, maxDate);
+                return clamped.getTime() === previous.getTime() ? previous : clamped;
+            });
+        },
+        [maxDate, minDate],
     );
 
     const handleConfirm = useCallback(() => {
@@ -151,7 +208,7 @@ const EventDateTimeModal = ({
                         <View style={styles.header}>
                             <Text style={styles.title}>When is your event?</Text>
                             <Pressable style={styles.closeButton} onPress={onClose}>
-                                <Feather name="x" size={20} color="#FFFFFF" />
+                                <Feather name="x" size={18} color="#999999" />
                             </Pressable>
                         </View>
 
@@ -159,50 +216,158 @@ const EventDateTimeModal = ({
                             {formatDateTimeValue(draftValue)}
                         </Text>
 
-                        {Platform.OS === "ios" ? (
-                            <DateTimePicker
-                                value={draftValue}
-                                mode="datetime"
-                                display="spinner"
-                                textColor="#FFFFFF"
-                                minimumDate={minDate}
-                                maximumDate={maxDate}
-                                minuteInterval={5}
-                                onChange={handleIOSChange}
-                                style={styles.iosPicker}
-                            />
-                        ) : (
-                            <View style={styles.androidActions}>
-                                <View style={styles.androidActionRow}>
-                                    <View>
-                                        <Text style={styles.androidActionLabel}>Date</Text>
-                                        <Text style={styles.androidActionValue}>
-                                            {androidDateValue}
-                                        </Text>
-                                    </View>
-                                    <Pressable
-                                        style={styles.androidActionButton}
-                                        onPress={handleAndroidDateOpen}
+                        <View style={styles.pickerContainer}>
+                            <View style={styles.wheelRow}>
+                                <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
+                                    <ScrollView
+                                        ref={dateWheelRef}
+                                        showsVerticalScrollIndicator={false}
+                                        snapToInterval={WHEEL_ITEM_HEIGHT}
+                                        disableIntervalMomentum
+                                        decelerationRate="fast"
+                                        scrollEventThrottle={16}
+                                        contentContainerStyle={styles.wheelContentContainer}
+                                        onScroll={(event) => {
+                                            const index = clampWheelIndex(
+                                                event.nativeEvent.contentOffset.y,
+                                                dateOptions.length,
+                                            );
+                                            applyDateIndex(index);
+                                        }}
+                                        onMomentumScrollEnd={(event) => {
+                                            const index = clampWheelIndex(
+                                                event.nativeEvent.contentOffset.y,
+                                                dateOptions.length,
+                                            );
+                                            applyDateIndex(index);
+                                            scrollWheelToIndex(dateWheelRef, index, false);
+                                        }}
                                     >
-                                        <Text style={styles.androidActionButtonText}>Change</Text>
-                                    </Pressable>
+                                        {dateOptions.map((option, index) => (
+                                            <Pressable
+                                                key={option.key}
+                                                style={styles.wheelItem}
+                                                onPress={() => {
+                                                    applyDateIndex(index);
+                                                    scrollWheelToIndex(dateWheelRef, index, true);
+                                                }}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.wheelText,
+                                                        styles.dateWheelText,
+                                                        index === selectedDateIndex &&
+                                                            styles.wheelTextSelected,
+                                                    ]}
+                                                >
+                                                    {option.label}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
                                 </View>
-                                <View style={styles.androidActionRow}>
-                                    <View>
-                                        <Text style={styles.androidActionLabel}>Time</Text>
-                                        <Text style={styles.androidActionValue}>
-                                            {androidTimeValue}
-                                        </Text>
-                                    </View>
-                                    <Pressable
-                                        style={styles.androidActionButton}
-                                        onPress={handleAndroidTimeOpen}
+
+                                <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                                    <ScrollView
+                                        ref={hourWheelRef}
+                                        showsVerticalScrollIndicator={false}
+                                        snapToInterval={WHEEL_ITEM_HEIGHT}
+                                        disableIntervalMomentum
+                                        decelerationRate="fast"
+                                        scrollEventThrottle={16}
+                                        contentContainerStyle={styles.wheelContentContainer}
+                                        onScroll={(event) => {
+                                            const index = clampWheelIndex(
+                                                event.nativeEvent.contentOffset.y,
+                                                HOURS.length,
+                                            );
+                                            applyHourIndex(index);
+                                        }}
+                                        onMomentumScrollEnd={(event) => {
+                                            const index = clampWheelIndex(
+                                                event.nativeEvent.contentOffset.y,
+                                                HOURS.length,
+                                            );
+                                            applyHourIndex(index);
+                                            scrollWheelToIndex(hourWheelRef, index, false);
+                                        }}
                                     >
-                                        <Text style={styles.androidActionButtonText}>Change</Text>
-                                    </Pressable>
+                                        {HOURS.map((hour, index) => (
+                                            <Pressable
+                                                key={`hour-${hour}`}
+                                                style={styles.wheelItem}
+                                                onPress={() => {
+                                                    applyHourIndex(index);
+                                                    scrollWheelToIndex(hourWheelRef, index, true);
+                                                }}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.wheelText,
+                                                        index === selectedHourIndex &&
+                                                            styles.wheelTextSelected,
+                                                    ]}
+                                                >
+                                                    {hour}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+
+                                <Text style={styles.timeSeparator}>:</Text>
+
+                                <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                                    <ScrollView
+                                        ref={minuteWheelRef}
+                                        showsVerticalScrollIndicator={false}
+                                        snapToInterval={WHEEL_ITEM_HEIGHT}
+                                        disableIntervalMomentum
+                                        decelerationRate="fast"
+                                        scrollEventThrottle={16}
+                                        contentContainerStyle={styles.wheelContentContainer}
+                                        onScroll={(event) => {
+                                            const index = clampWheelIndex(
+                                                event.nativeEvent.contentOffset.y,
+                                                MINUTES.length,
+                                            );
+                                            applyMinuteIndex(index);
+                                        }}
+                                        onMomentumScrollEnd={(event) => {
+                                            const index = clampWheelIndex(
+                                                event.nativeEvent.contentOffset.y,
+                                                MINUTES.length,
+                                            );
+                                            applyMinuteIndex(index);
+                                            scrollWheelToIndex(minuteWheelRef, index, false);
+                                        }}
+                                    >
+                                        {MINUTES.map((minute, index) => (
+                                            <Pressable
+                                                key={`minute-${minute}`}
+                                                style={styles.wheelItem}
+                                                onPress={() => {
+                                                    applyMinuteIndex(index);
+                                                    scrollWheelToIndex(minuteWheelRef, index, true);
+                                                }}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.wheelText,
+                                                        index === selectedMinuteIndex &&
+                                                            styles.wheelTextSelected,
+                                                    ]}
+                                                >
+                                                    {minute}
+                                                </Text>
+                                            </Pressable>
+                                        ))}
+                                    </ScrollView>
                                 </View>
                             </View>
-                        )}
+
+                            <View pointerEvents="none" style={styles.selectionOverlay} />
+                        </View>
 
                         <Pressable style={styles.confirmButton} onPress={handleConfirm}>
                             <Text style={styles.confirmButtonText}>Update Time</Text>
