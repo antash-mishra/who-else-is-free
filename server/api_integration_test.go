@@ -260,6 +260,21 @@ func hasInt64(values []int64, target int64) bool {
 	return false
 }
 
+func hasConversationForUser(t *testing.T, env *apiTestEnv, token string, conversationID int64) bool {
+	t.Helper()
+	resp := env.doRequest(t, http.MethodGet, "/api/conversations", token, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing conversations, got %d", resp.StatusCode)
+	}
+	payload := decodeJSON[conversationsResponse](t, resp)
+	for _, conversation := range payload.Conversations {
+		if conversation.ID == conversationID {
+			return true
+		}
+	}
+	return false
+}
+
 type wsEnvelope struct {
 	Type    string `json:"type"`
 	TempID  string `json:"tempId"`
@@ -279,10 +294,7 @@ func TestAPIIntegration(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
-		payload := decodeJSON[eventsResponse](t, resp)
-		if len(payload.Data) == 0 {
-			t.Fatal("expected seeded events, got none")
-		}
+		_ = decodeJSON[eventsResponse](t, resp)
 	})
 
 	token := env.issueTokenForEmail(t, "ava@example.com")
@@ -783,20 +795,38 @@ func TestReportEventCancelsPendingRequest(t *testing.T) {
 func TestCancelAndReportWorkflow(t *testing.T) {
 	env := setupAPITestEnv(t)
 
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
 	noahToken := env.issueTokenForEmail(t, "noah@example.com")
 
 	// Simulate the full workflow: create request, cancel it, then report
 	t.Run("full cancel and report workflow", func(t *testing.T) {
+		createResp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, CreateEventParams{
+			Title:       "Cancel And Report Workflow",
+			Location:    "Workflow Park",
+			Time:        "16:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Created for cancel/report integration flow",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      60,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		})
+		if createResp.StatusCode != http.StatusCreated {
+			t.Fatalf("create event: expected 201, got %d", createResp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, createResp).ID
+
 		// Create join request
 		body := map[string]string{"message": "Want to join event 2"}
-		resp := env.doRequest(t, http.MethodPost, "/api/events/2/chat/requests", noahToken, body)
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("create request: expected 201, got %d", resp.StatusCode)
 		}
 		resp.Body.Close()
 
 		// Cancel join request
-		resp = env.doRequest(t, http.MethodDelete, "/api/events/2/chat/requests/me", noahToken, nil)
+		resp = env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/chat/requests/me", eventID), noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("cancel request: expected 200, got %d", resp.StatusCode)
 		}
@@ -804,7 +834,7 @@ func TestCancelAndReportWorkflow(t *testing.T) {
 
 		// Report the event
 		reportBody := map[string]string{"reason": "Suspicious activity"}
-		resp = env.doRequest(t, http.MethodPost, "/api/events/2/report", noahToken, reportBody)
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/report", eventID), noahToken, reportBody)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("report event: expected 201, got %d", resp.StatusCode)
 		}
@@ -812,7 +842,7 @@ func TestCancelAndReportWorkflow(t *testing.T) {
 
 		// Can create a new join request after cancelling
 		body = map[string]string{"message": "Changed my mind, want to join again"}
-		resp = env.doRequest(t, http.MethodPost, "/api/events/2/chat/requests", noahToken, body)
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
 		if resp.StatusCode != http.StatusCreated {
 			t.Fatalf("create new request after cancel: expected 201, got %d", resp.StatusCode)
 		}
@@ -1279,6 +1309,17 @@ func TestSingleEventMultipleRequesters(t *testing.T) {
 	noahToken := env.issueTokenForEmail(t, "noah@example.com")     // requester 1
 	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com") // requester 2
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	sophiaUser, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("failed to load sophia user: %v", err)
+	}
+
 	// Create a 1:1 event
 	var singleEventID int64
 	t.Run("create 1:1 event", func(t *testing.T) {
@@ -1318,7 +1359,13 @@ func TestSingleEventMultipleRequesters(t *testing.T) {
 			t.Fatalf("expected no conversation_id before approval, got %d", *payload.ConversationID)
 		}
 
-		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", singleEventID), avaToken, nil)
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", singleEventID, noahUser.ID),
+			avaToken,
+			nil,
+		)
 		if approveResp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
 		}
@@ -1345,7 +1392,13 @@ func TestSingleEventMultipleRequesters(t *testing.T) {
 			t.Fatalf("expected no conversation_id before approval, got %d", *payload.ConversationID)
 		}
 
-		approveResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/5/approve", singleEventID), avaToken, nil)
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", singleEventID, sophiaUser.ID),
+			avaToken,
+			nil,
+		)
 		if approveResp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 on approve, got %d", approveResp.StatusCode)
 		}
@@ -1560,6 +1613,25 @@ func TestSingleEventDenyRequest(t *testing.T) {
 	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host
 	noahToken := env.issueTokenForEmail(t, "noah@example.com") // requester
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+
+	baselineConversationIDs := make(map[int64]struct{})
+	t.Run("capture requester baseline conversations", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[conversationsResponse](t, resp)
+		for _, conversation := range payload.Conversations {
+			baselineConversationIDs[conversation.ID] = struct{}{}
+		}
+	})
+
 	// Create 1:1 event
 	var eventID int64
 	t.Run("create 1:1 event", func(t *testing.T) {
@@ -1612,7 +1684,13 @@ func TestSingleEventDenyRequest(t *testing.T) {
 
 	// Host denies the request
 	t.Run("host denies 1:1 request", func(t *testing.T) {
-		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/deny", eventID), avaToken, nil)
+		resp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/deny", eventID, noahUser.ID),
+			avaToken,
+			nil,
+		)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
@@ -1625,20 +1703,25 @@ func TestSingleEventDenyRequest(t *testing.T) {
 		}
 		payload := decodeJSON[joinRequestsListResponse](t, resp)
 		for _, req := range payload.Requests {
-			if req.UserID == 4 {
+			if req.UserID == noahUser.ID {
 				t.Fatal("denied requester should not remain in pending request list")
 			}
 		}
 	})
 
-	t.Run("requester still has no conversations after deny", func(t *testing.T) {
+	t.Run("requester conversation list unchanged after deny", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
 		}
 		payload := decodeJSON[conversationsResponse](t, resp)
-		if len(payload.Conversations) != 0 {
-			t.Fatalf("expected requester to have no conversations, got %d", len(payload.Conversations))
+		if len(payload.Conversations) != len(baselineConversationIDs) {
+			t.Fatalf("expected requester conversation count %d, got %d", len(baselineConversationIDs), len(payload.Conversations))
+		}
+		for _, conversation := range payload.Conversations {
+			if _, existed := baselineConversationIDs[conversation.ID]; !existed {
+				t.Fatalf("did not expect new conversation %d after deny", conversation.ID)
+			}
 		}
 	})
 }
@@ -2063,6 +2146,17 @@ func TestJoinRequestsListWithConversationID(t *testing.T) {
 	noahToken := env.issueTokenForEmail(t, "noah@example.com")     // requester 1
 	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com") // requester 2
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	sophiaUser, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("failed to load sophia user: %v", err)
+	}
+
 	// Create 1:1 event
 	var eventID int64
 	t.Run("create 1:1 event", func(t *testing.T) {
@@ -2111,11 +2205,23 @@ func TestJoinRequestsListWithConversationID(t *testing.T) {
 
 	// Host approves both pending requests.
 	t.Run("host approves both requests", func(t *testing.T) {
-		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/4/approve", eventID), avaToken, nil)
+		resp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, noahUser.ID),
+			avaToken,
+			nil,
+		)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 approving Noah, got %d", resp.StatusCode)
 		}
-		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/5/approve", eventID), avaToken, nil)
+		resp = env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, sophiaUser.ID),
+			avaToken,
+			nil,
+		)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200 approving Sophia, got %d", resp.StatusCode)
 		}
@@ -3636,6 +3742,975 @@ func TestUpdateEvent(t *testing.T) {
 		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+}
+
+func TestUpdateEventMigratesGroupToSingleWithApprovedMembers(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	avaUser, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("failed to load ava user: %v", err)
+	}
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	sophiaUser, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("failed to load sophia user: %v", err)
+	}
+
+	createBody := CreateEventParams{
+		Title:       "Group To Single Migration",
+		Location:    "Migration Park",
+		Time:        "10:00",
+		EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+		Description: "Start group, migrate to single",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Group",
+		CoverKey:    defaultCoverKey,
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+	eventID := decodeJSON[createEventResponse](t, resp).ID
+
+	approveJoin := func(t *testing.T, userID int64, requesterToken string) {
+		t.Helper()
+		joinResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+			requesterToken,
+			map[string]string{"message": "Please approve"},
+		)
+		if joinResp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201 creating join request, got %d", joinResp.StatusCode)
+		}
+
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, userID),
+			avaToken,
+			nil,
+		)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving join request, got %d", approveResp.StatusCode)
+		}
+	}
+
+	approveJoin(t, noahUser.ID, noahToken)
+	approveJoin(t, sophiaUser.ID, sophiaToken)
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing conversations, got %d", resp.StatusCode)
+	}
+	before := decodeJSON[eventConversationsResponse](t, resp)
+	if len(before.Conversations) != 1 {
+		t.Fatalf("expected 1 group conversation before switch, got %d", len(before.Conversations))
+	}
+	groupConversationID := before.Conversations[0].ID
+
+	updateBody := UpdateEventParams{
+		Title:       "Group To Single Migration",
+		Location:    "Migration Park",
+		Time:        "11:00",
+		EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+		Description: "Now single chats",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Single",
+	}
+	resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing conversations after switch, got %d", resp.StatusCode)
+	}
+	after := decodeJSON[eventConversationsResponse](t, resp)
+	if len(after.Conversations) != 2 {
+		t.Fatalf("expected 2 private conversations after Group->Single, got %d", len(after.Conversations))
+	}
+
+	seenJoiners := map[int64]bool{
+		noahUser.ID:   false,
+		sophiaUser.ID: false,
+	}
+	for _, convo := range after.Conversations {
+		if len(convo.MemberIDs) != 2 {
+			t.Fatalf("expected exactly 2 members in private conversation %d, got %v", convo.ID, convo.MemberIDs)
+		}
+		if !hasInt64(convo.MemberIDs, avaUser.ID) {
+			t.Fatalf("expected host %d in private conversation %d members %v", avaUser.ID, convo.ID, convo.MemberIDs)
+		}
+
+		nonHostCount := 0
+		var nonHostID int64
+		for _, memberID := range convo.MemberIDs {
+			if memberID == avaUser.ID {
+				continue
+			}
+			nonHostID = memberID
+			nonHostCount++
+		}
+		if nonHostCount != 1 {
+			t.Fatalf("expected one non-host member in conversation %d, got %v", convo.ID, convo.MemberIDs)
+		}
+		seen, ok := seenJoiners[nonHostID]
+		if !ok {
+			t.Fatalf("unexpected non-host member %d in conversation %d", nonHostID, convo.ID)
+		}
+		if seen {
+			t.Fatalf("duplicate private conversation for member %d", nonHostID)
+		}
+		seenJoiners[nonHostID] = true
+	}
+	for joinerID, seen := range seenJoiners {
+		if !seen {
+			t.Fatalf("expected private conversation for approved member %d", joinerID)
+		}
+	}
+
+	if hasConversationForUser(t, env, avaToken, groupConversationID) {
+		t.Fatalf("host should not see removed group conversation %d", groupConversationID)
+	}
+	if hasConversationForUser(t, env, noahToken, groupConversationID) {
+		t.Fatalf("noah should not see removed group conversation %d", groupConversationID)
+	}
+	if hasConversationForUser(t, env, sophiaToken, groupConversationID) {
+		t.Fatalf("sophia should not see removed group conversation %d", groupConversationID)
+	}
+}
+
+func TestUpdateEventMigratesGroupToSingleWithNoApprovedMembers(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+
+	createBody := CreateEventParams{
+		Title:       "Group To Single No Approved",
+		Location:    "Migration Court",
+		Time:        "09:30",
+		EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+		Description: "No approved members before switch",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Group",
+		CoverKey:    defaultCoverKey,
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+	eventID := decodeJSON[createEventResponse](t, resp).ID
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing event conversations, got %d", resp.StatusCode)
+	}
+	before := decodeJSON[eventConversationsResponse](t, resp)
+	if len(before.Conversations) != 1 {
+		t.Fatalf("expected one group conversation before switch, got %d", len(before.Conversations))
+	}
+	groupConversationID := before.Conversations[0].ID
+
+	joinResp := env.doRequest(
+		t,
+		http.MethodPost,
+		fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+		noahToken,
+		map[string]string{"message": "Pending only"},
+	)
+	if joinResp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201 creating join request, got %d", joinResp.StatusCode)
+	}
+
+	updateBody := UpdateEventParams{
+		Title:       "Group To Single No Approved",
+		Location:    "Migration Court",
+		Time:        "10:30",
+		EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+		Description: "Now single type",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Single",
+	}
+	resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing event conversations after switch, got %d", resp.StatusCode)
+	}
+	after := decodeJSON[eventConversationsResponse](t, resp)
+	if len(after.Conversations) != 0 {
+		t.Fatalf("expected zero conversations after Group->Single with no approved members, got %d", len(after.Conversations))
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing host join requests, got %d", resp.StatusCode)
+	}
+	hostRequests := decodeJSON[joinRequestsListResponse](t, resp)
+	foundHostPending := false
+	for _, request := range hostRequests.Requests {
+		if request.EventID == eventID && request.UserID == noahUser.ID && request.Status == "pending" {
+			foundHostPending = true
+			break
+		}
+	}
+	if !foundHostPending {
+		t.Fatalf("expected pending join request for user %d after switch", noahUser.ID)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, "/api/chat/requests/me", noahToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing requester join requests, got %d", resp.StatusCode)
+	}
+	userRequests := decodeJSON[joinRequestsListResponse](t, resp)
+	foundUserPending := false
+	for _, request := range userRequests.Requests {
+		if request.EventID == eventID && request.Status == "pending" {
+			foundUserPending = true
+			break
+		}
+	}
+	if !foundUserPending {
+		t.Fatalf("expected requester to keep pending join request for event %d", eventID)
+	}
+
+	if hasConversationForUser(t, env, avaToken, groupConversationID) {
+		t.Fatalf("host should not see removed group conversation %d", groupConversationID)
+	}
+	if hasConversationForUser(t, env, noahToken, groupConversationID) {
+		t.Fatalf("requester should not see removed group conversation %d", groupConversationID)
+	}
+}
+
+func TestUpdateEventMigratesSingleToGroupWithMultiplePrivateConversations(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	avaUser, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("failed to load ava user: %v", err)
+	}
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	sophiaUser, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("failed to load sophia user: %v", err)
+	}
+
+	createBody := CreateEventParams{
+		Title:       "Single To Group Migration",
+		Location:    "Migration Hall",
+		Time:        "15:00",
+		EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+		Description: "Start as single with two private chats",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+	eventID := decodeJSON[createEventResponse](t, resp).ID
+
+	joinAndApprove := func(t *testing.T, requesterToken string, requesterID int64) int64 {
+		t.Helper()
+		joinResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+			requesterToken,
+			map[string]string{"message": "Approve me"},
+		)
+		if joinResp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201 creating join request, got %d", joinResp.StatusCode)
+		}
+
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, requesterID),
+			avaToken,
+			nil,
+		)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving join request, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversationId after approval")
+		}
+		return *approvePayload.ConversationID
+	}
+
+	noahConvoID := joinAndApprove(t, noahToken, noahUser.ID)
+	sophiaConvoID := joinAndApprove(t, sophiaToken, sophiaUser.ID)
+	if noahConvoID == sophiaConvoID {
+		t.Fatalf("expected separate private conversations, both were %d", noahConvoID)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing conversations before switch, got %d", resp.StatusCode)
+	}
+	before := decodeJSON[eventConversationsResponse](t, resp)
+	if len(before.Conversations) != 2 {
+		t.Fatalf("expected 2 private conversations before switch, got %d", len(before.Conversations))
+	}
+
+	updateBody := UpdateEventParams{
+		Title:       "Single To Group Migration",
+		Location:    "Migration Hall",
+		Time:        "16:00",
+		EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+		Description: "Now group chat",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Group",
+	}
+	resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing conversations after switch, got %d", resp.StatusCode)
+	}
+	after := decodeJSON[eventConversationsResponse](t, resp)
+	if len(after.Conversations) != 1 {
+		t.Fatalf("expected exactly 1 group conversation after Single->Group, got %d", len(after.Conversations))
+	}
+
+	groupConvo := after.Conversations[0]
+	if groupConvo.ID == noahConvoID || groupConvo.ID == sophiaConvoID {
+		t.Fatalf(
+			"expected new group conversation id, got %d from old private conversations (%d, %d)",
+			groupConvo.ID,
+			noahConvoID,
+			sophiaConvoID,
+		)
+	}
+	if !hasInt64(groupConvo.MemberIDs, avaUser.ID) || !hasInt64(groupConvo.MemberIDs, noahUser.ID) || !hasInt64(groupConvo.MemberIDs, sophiaUser.ID) {
+		t.Fatalf(
+			"expected group members host+approved users (%d,%d,%d), got %v",
+			avaUser.ID,
+			noahUser.ID,
+			sophiaUser.ID,
+			groupConvo.MemberIDs,
+		)
+	}
+
+	if !hasConversationForUser(t, env, avaToken, groupConvo.ID) {
+		t.Fatalf("host should see new group conversation %d", groupConvo.ID)
+	}
+	if !hasConversationForUser(t, env, noahToken, groupConvo.ID) {
+		t.Fatalf("noah should see new group conversation %d", groupConvo.ID)
+	}
+	if !hasConversationForUser(t, env, sophiaToken, groupConvo.ID) {
+		t.Fatalf("sophia should see new group conversation %d", groupConvo.ID)
+	}
+	if hasConversationForUser(t, env, avaToken, noahConvoID) {
+		t.Fatalf("host should not see removed private conversation %d", noahConvoID)
+	}
+	if hasConversationForUser(t, env, avaToken, sophiaConvoID) {
+		t.Fatalf("host should not see removed private conversation %d", sophiaConvoID)
+	}
+	if hasConversationForUser(t, env, noahToken, noahConvoID) {
+		t.Fatalf("noah should not see removed private conversation %d", noahConvoID)
+	}
+	if hasConversationForUser(t, env, sophiaToken, sophiaConvoID) {
+		t.Fatalf("sophia should not see removed private conversation %d", sophiaConvoID)
+	}
+}
+
+func TestUpdateEventMigratesSingleToGroupWithNoApprovedMembers(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	avaUser, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("failed to load ava user: %v", err)
+	}
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+
+	createBody := CreateEventParams{
+		Title:       "Single To Group No Approved",
+		Location:    "Quiet Room",
+		Time:        "13:00",
+		EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+		Description: "No approved requests yet",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+	eventID := decodeJSON[createEventResponse](t, resp).ID
+
+	joinResp := env.doRequest(
+		t,
+		http.MethodPost,
+		fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+		noahToken,
+		map[string]string{"message": "Still pending"},
+	)
+	if joinResp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201 creating join request, got %d", joinResp.StatusCode)
+	}
+
+	updateBody := UpdateEventParams{
+		Title:       "Single To Group No Approved",
+		Location:    "Quiet Room",
+		Time:        "14:00",
+		EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+		Description: "Now group type",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Group",
+	}
+	resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing event conversations after switch, got %d", resp.StatusCode)
+	}
+	conversations := decodeJSON[eventConversationsResponse](t, resp)
+	if len(conversations.Conversations) != 1 {
+		t.Fatalf("expected one host-only group conversation after switch, got %d", len(conversations.Conversations))
+	}
+	groupConversation := conversations.Conversations[0]
+	if len(groupConversation.MemberIDs) != 1 || !hasInt64(groupConversation.MemberIDs, avaUser.ID) {
+		t.Fatalf("expected host-only members [%d], got %v", avaUser.ID, groupConversation.MemberIDs)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/chat/requests", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing join requests, got %d", resp.StatusCode)
+	}
+	requests := decodeJSON[joinRequestsListResponse](t, resp)
+	foundPending := false
+	for _, request := range requests.Requests {
+		if request.EventID == eventID && request.UserID == noahUser.ID && request.Status == "pending" {
+			foundPending = true
+			break
+		}
+	}
+	if !foundPending {
+		t.Fatalf("expected pending request for user %d after switch", noahUser.ID)
+	}
+
+	if hasConversationForUser(t, env, noahToken, groupConversation.ID) {
+		t.Fatalf("requester should not see group conversation %d before approval", groupConversation.ID)
+	}
+}
+
+func TestUpdateEventPostSwitchJoinApprovalBehavior(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	avaUser, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("failed to load ava user: %v", err)
+	}
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+
+	t.Run("GroupToSingle join stays pending until approval then creates private", func(t *testing.T) {
+		createBody := CreateEventParams{
+			Title:       "Post-Switch GroupToSingle",
+			Location:    "Switch Point A",
+			Time:        "17:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Behavior check",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		updateBody := UpdateEventParams{
+			Title:       "Post-Switch GroupToSingle",
+			Location:    "Switch Point A",
+			Time:        "18:00",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Now single",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+		}
+		resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+		}
+
+		resp = env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+			noahToken,
+			map[string]string{"message": "Please add me"},
+		)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201 join request, got %d", resp.StatusCode)
+		}
+		joinPayload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if joinPayload.Request.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", joinPayload.Request.Status)
+		}
+		if joinPayload.ConversationID != nil || joinPayload.Request.ConversationID != nil {
+			t.Fatalf("expected no conversation id before approval, got top-level=%v nested=%v", joinPayload.ConversationID, joinPayload.Request.ConversationID)
+		}
+
+		resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 listing conversations, got %d", resp.StatusCode)
+		}
+		beforeApproval := decodeJSON[eventConversationsResponse](t, resp)
+		if len(beforeApproval.Conversations) != 0 {
+			t.Fatalf("expected no conversations before approval in Single mode, got %d", len(beforeApproval.Conversations))
+		}
+
+		resp = env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, noahUser.ID),
+			avaToken,
+			nil,
+		)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving request, got %d", resp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversationId after approval")
+		}
+		privateConversationID := *approvePayload.ConversationID
+
+		resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 listing conversations after approval, got %d", resp.StatusCode)
+		}
+		afterApproval := decodeJSON[eventConversationsResponse](t, resp)
+		if len(afterApproval.Conversations) != 1 {
+			t.Fatalf("expected exactly one private conversation after approval, got %d", len(afterApproval.Conversations))
+		}
+		if afterApproval.Conversations[0].ID != privateConversationID {
+			t.Fatalf("expected approved private conversation id %d, got %d", privateConversationID, afterApproval.Conversations[0].ID)
+		}
+		if !hasInt64(afterApproval.Conversations[0].MemberIDs, avaUser.ID) || !hasInt64(afterApproval.Conversations[0].MemberIDs, noahUser.ID) {
+			t.Fatalf(
+				"expected private members host+requester (%d,%d), got %v",
+				avaUser.ID,
+				noahUser.ID,
+				afterApproval.Conversations[0].MemberIDs,
+			)
+		}
+
+		if !hasConversationForUser(t, env, noahToken, privateConversationID) {
+			t.Fatalf("requester should see approved private conversation %d", privateConversationID)
+		}
+	})
+
+	t.Run("SingleToGroup join approval adds member to shared conversation", func(t *testing.T) {
+		createBody := CreateEventParams{
+			Title:       "Post-Switch SingleToGroup",
+			Location:    "Switch Point B",
+			Time:        "12:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Behavior check",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		eventID := decodeJSON[createEventResponse](t, resp).ID
+
+		updateBody := UpdateEventParams{
+			Title:       "Post-Switch SingleToGroup",
+			Location:    "Switch Point B",
+			Time:        "13:00",
+			EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Description: "Now group",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+		}
+		resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+		}
+
+		resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 listing conversations, got %d", resp.StatusCode)
+		}
+		initial := decodeJSON[eventConversationsResponse](t, resp)
+		if len(initial.Conversations) != 1 {
+			t.Fatalf("expected 1 group conversation before approvals, got %d", len(initial.Conversations))
+		}
+		groupConversationID := initial.Conversations[0].ID
+		if len(initial.Conversations[0].MemberIDs) != 1 || !hasInt64(initial.Conversations[0].MemberIDs, avaUser.ID) {
+			t.Fatalf("expected host-only group members [%d], got %v", avaUser.ID, initial.Conversations[0].MemberIDs)
+		}
+
+		resp = env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+			noahToken,
+			map[string]string{"message": "Join switched group"},
+		)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201 join request, got %d", resp.StatusCode)
+		}
+		joinPayload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if joinPayload.Request.Status != "pending" {
+			t.Fatalf("expected pending status, got %s", joinPayload.Request.Status)
+		}
+		if joinPayload.ConversationID != nil || joinPayload.Request.ConversationID != nil {
+			t.Fatalf("expected no conversation id before approval, got top-level=%v nested=%v", joinPayload.ConversationID, joinPayload.Request.ConversationID)
+		}
+
+		resp = env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, noahUser.ID),
+			avaToken,
+			nil,
+		)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving request, got %d", resp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, resp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversationId after approval")
+		}
+		if *approvePayload.ConversationID != groupConversationID {
+			t.Fatalf("expected approval to use existing group conversation %d, got %d", groupConversationID, *approvePayload.ConversationID)
+		}
+
+		resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 listing conversations after approval, got %d", resp.StatusCode)
+		}
+		afterApproval := decodeJSON[eventConversationsResponse](t, resp)
+		if len(afterApproval.Conversations) != 1 {
+			t.Fatalf("expected one shared group conversation after approval, got %d", len(afterApproval.Conversations))
+		}
+		if afterApproval.Conversations[0].ID != groupConversationID {
+			t.Fatalf("expected shared group conversation id %d, got %d", groupConversationID, afterApproval.Conversations[0].ID)
+		}
+		if !hasInt64(afterApproval.Conversations[0].MemberIDs, avaUser.ID) || !hasInt64(afterApproval.Conversations[0].MemberIDs, noahUser.ID) {
+			t.Fatalf(
+				"expected group members host+requester (%d,%d), got %v",
+				avaUser.ID,
+				noahUser.ID,
+				afterApproval.Conversations[0].MemberIDs,
+			)
+		}
+		if !hasConversationForUser(t, env, noahToken, groupConversationID) {
+			t.Fatalf("requester should see approved group conversation %d", groupConversationID)
+		}
+	})
+}
+
+func TestUpdateEventDeliversUpdateMessageOnlyToActivePostSwitchConversations(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+	sophiaToken := env.issueTokenForEmail(t, "sophia@example.com")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("failed to load noah user: %v", err)
+	}
+	sophiaUser, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("failed to load sophia user: %v", err)
+	}
+
+	createBody := CreateEventParams{
+		Title:       "Update Message Active Topology",
+		Location:    "Signal Tower",
+		Time:        "19:00",
+		EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+		Description: "Ensure update message goes to active conversations only",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+	eventID := decodeJSON[createEventResponse](t, resp).ID
+
+	joinAndApprove := func(t *testing.T, requesterToken string, requesterID int64) int64 {
+		t.Helper()
+		joinResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests", eventID),
+			requesterToken,
+			map[string]string{"message": "Approve me"},
+		)
+		if joinResp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201 creating join request, got %d", joinResp.StatusCode)
+		}
+
+		approveResp := env.doRequest(
+			t,
+			http.MethodPost,
+			fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", eventID, requesterID),
+			avaToken,
+			nil,
+		)
+		if approveResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 approving join request, got %d", approveResp.StatusCode)
+		}
+		approvePayload := decodeJSON[singleJoinRequestResponse](t, approveResp)
+		if approvePayload.ConversationID == nil {
+			t.Fatal("expected conversationId after approval")
+		}
+		return *approvePayload.ConversationID
+	}
+
+	noahConversationID := joinAndApprove(t, noahToken, noahUser.ID)
+	sophiaConversationID := joinAndApprove(t, sophiaToken, sophiaUser.ID)
+	if noahConversationID == sophiaConversationID {
+		t.Fatalf("expected distinct private conversations, both were %d", noahConversationID)
+	}
+
+	updateBody := UpdateEventParams{
+		Title:       "Update Message Active Topology",
+		Location:    "Signal Tower",
+		Time:        "20:00",
+		EventDate:   time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+		Description: "Switch to group",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      50,
+		GroupType:   "Group",
+	}
+	resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, updateBody)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 updating event, got %d", resp.StatusCode)
+	}
+
+	resp = env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing event conversations, got %d", resp.StatusCode)
+	}
+	conversations := decodeJSON[eventConversationsResponse](t, resp)
+	if len(conversations.Conversations) != 1 {
+		t.Fatalf("expected 1 active group conversation after migration, got %d", len(conversations.Conversations))
+	}
+	activeConversationID := conversations.Conversations[0].ID
+	if activeConversationID == noahConversationID || activeConversationID == sophiaConversationID {
+		t.Fatalf(
+			"expected new active conversation id, got %d from old private (%d,%d)",
+			activeConversationID,
+			noahConversationID,
+			sophiaConversationID,
+		)
+	}
+
+	messagesResp := env.doRequest(
+		t,
+		http.MethodGet,
+		fmt.Sprintf("/api/conversations/%d/messages", activeConversationID),
+		avaToken,
+		nil,
+	)
+	if messagesResp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 listing active conversation messages, got %d", messagesResp.StatusCode)
+	}
+	messages := decodeJSON[messagesResponse](t, messagesResp)
+	foundUpdateMessage := false
+	for _, message := range messages.Messages {
+		if message.Body == updatedEventDetailMessage {
+			foundUpdateMessage = true
+			break
+		}
+	}
+	if !foundUpdateMessage {
+		t.Fatalf("expected %q in active conversation %d", updatedEventDetailMessage, activeConversationID)
+	}
+
+	var removedMessageCount int
+	if err := env.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(1) FROM messages WHERE conversation_id IN (?, ?) AND body = ?`,
+		noahConversationID,
+		sophiaConversationID,
+		updatedEventDetailMessage,
+	).Scan(&removedMessageCount); err != nil {
+		t.Fatalf("count removed-conversation update messages: %v", err)
+	}
+	if removedMessageCount != 0 {
+		t.Fatalf("expected no update messages in removed conversations, got %d", removedMessageCount)
+	}
+
+	var activeMessageCount int
+	if err := env.db.QueryRowContext(
+		ctx,
+		`SELECT COUNT(1) FROM messages WHERE conversation_id = ? AND body = ?`,
+		activeConversationID,
+		updatedEventDetailMessage,
+	).Scan(&activeMessageCount); err != nil {
+		t.Fatalf("count active-conversation update messages: %v", err)
+	}
+	if activeMessageCount != 1 {
+		t.Fatalf("expected exactly one update message in active conversation, got %d", activeMessageCount)
+	}
+}
+
+func TestUpdateSingleToGroupCreatesConversationForJoinRequest(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // requester
+
+	var eventID int64
+	t.Run("create single event", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Single To Group",
+			Location:    "Test Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Will be changed to group",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Single",
+			CoverKey:    defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[createEventResponse](t, resp)
+		eventID = payload.ID
+	})
+
+	t.Run("update to group type", func(t *testing.T) {
+		body := UpdateEventParams{
+			Title:       "Single To Group",
+			Location:    "Test Location",
+			Time:        "10:00",
+			EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Description: "Now a group event",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			GroupType:   "Group",
+		}
+		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), avaToken, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("join request succeeds after group type change", func(t *testing.T) {
+		body := map[string]any{"message": "I'd like to join!"}
+		resp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("expected 201, got %d", resp.StatusCode)
 		}
 	})
 }

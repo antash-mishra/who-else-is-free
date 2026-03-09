@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
     Image,
     Platform,
@@ -31,7 +31,6 @@ import {
     AGE_MIN,
     AgeOption,
     ageOptions,
-    DateOption,
     GenderOption,
     genderDisplayLabels,
     genderOptions,
@@ -41,19 +40,20 @@ import {
     groupOptions,
 } from "@constants/eventOptions";
 import {
-    buildScheduledAtUTC,
-    computeNextAvailableTime,
+    combineDateAndTime,
+    formatDateTimeValue,
     formatTime,
-    getDateChoiceFromEventDate,
-    getDateStringForChoice,
-    isPastTimeSelection,
-    parseTimeString,
-    timeStringToMinutes,
+    getDefaultEventDateTime,
+    getLegacyDateLabel,
+    getMaxEventDateTime,
+    isPastDateTimeSelection,
+    toDateKey,
 } from "@utils/dateTime";
 import UploadIcon from "@assets/upload.svg";
 import WarningIcon from "@assets/warning.svg";
 import SelectionModal from "@components/SelectionModal";
 import CoverPickerModal from "@components/CoverPickerModal";
+import EventDateTimeModal from "@components/EventDateTimeModal";
 import styles from "./CreateEventScreen.styles";
 
 type FormState = {
@@ -62,8 +62,7 @@ type FormState = {
     groupType: GroupOption;
     gender: GenderOption;
     ageRange: [number, number];
-    dateChoice: DateOption;
-    time: string;
+    selectedDateTime: Date;
     location: string;
     coverKey: CoverKey;
 };
@@ -74,6 +73,28 @@ type CreateNavigation = CompositeNavigationProp<
 >;
 
 type CreateRoute = RouteProp<RootTabParamList, "Create">;
+
+const EVENT_DATE_WINDOW_DAYS = 30;
+
+const getEventDateTime = (event?: UserEvent | null): Date => {
+    if (!event) {
+        return getDefaultEventDateTime();
+    }
+
+    if (event.scheduledAt) {
+        const parsed = new Date(event.scheduledAt);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed;
+        }
+    }
+
+    const combined = combineDateAndTime(event.eventDate, event.time);
+    if (combined) {
+        return combined;
+    }
+
+    return getDefaultEventDateTime();
+};
 
 const CreateEventScreen = () => {
     const navigation = useNavigation<CreateNavigation>();
@@ -94,13 +115,6 @@ const CreateEventScreen = () => {
         : null;
     const isEditing = !!editEvent;
 
-    const initialDateChoice = getDateChoiceFromEventDate(editEvent?.eventDate);
-    const initialTimeValue =
-        editEvent?.time ||
-        computeNextAvailableTime(initialDateChoice) ||
-        "07:00";
-    const initialParsedTime = parseTimeString(initialTimeValue);
-
     // Form state
     const [eventName, setEventName] = useState(editEvent?.title || "");
     const [description, setDescription] = useState(editEvent?.description || "");
@@ -114,16 +128,9 @@ const CreateEventScreen = () => {
         editEvent?.minAge || AGE_MIN,
         editEvent?.maxAge || AGE_MAX,
     ]);
-    const [dateChoice, setDateChoice] = useState<DateOption>(initialDateChoice);
-    const [time, setTime] = useState(initialTimeValue);
-    const [hourInput, setHourInput] = useState(
-        String(initialParsedTime.hour).padStart(2, "0"),
+    const [selectedDateTime, setSelectedDateTime] = useState<Date>(() =>
+        getEventDateTime(editEvent),
     );
-    const [minuteInput, setMinuteInput] = useState(
-        String(initialParsedTime.minute).padStart(2, "0"),
-    );
-    const [isHourEditing, setIsHourEditing] = useState(false);
-    const [isMinuteEditing, setIsMinuteEditing] = useState(false);
     const [location, setLocation] = useState(editEvent?.location || "");
     const [coverKey, setCoverKey] = useState<CoverKey>(
         editEvent?.coverKey ?? DEFAULT_COVER_KEY,
@@ -134,6 +141,7 @@ const CreateEventScreen = () => {
     const [isGenderPickerVisible, setGenderPickerVisible] = useState(false);
     const [isGroupTypePickerVisible, setGroupTypePickerVisible] = useState(false);
     const [isCoverPickerVisible, setCoverPickerVisible] = useState(false);
+    const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
 
     // Submission state
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,22 +152,28 @@ const CreateEventScreen = () => {
     const [tempGender, setTempGender] = useState<GenderOption>(gender);
     const [tempGroupType, setTempGroupType] = useState<GroupOption>(groupType);
 
+    const pickerMinDate = useMemo(
+        () => new Date(),
+        [isDateTimePickerVisible],
+    );
+
+    const pickerMaxDate = useMemo(
+        () => getMaxEventDateTime(new Date(), EVENT_DATE_WINDOW_DAYS),
+        [isDateTimePickerVisible],
+    );
+
     const resetForm = useCallback(() => {
         setEventName("");
         setDescription("");
         setGroupType("Single");
         setGender("Any");
         setAgeRange([AGE_MIN, AGE_MAX]);
-        setDateChoice("today");
-        const nextTime = computeNextAvailableTime("today") ?? "07:00";
-        const parsed = parseTimeString(nextTime);
-        setTime(nextTime);
-        setHourInput(String(parsed.hour).padStart(2, "0"));
-        setMinuteInput(String(parsed.minute).padStart(2, "0"));
+        setSelectedDateTime(getDefaultEventDateTime());
         setLocation("");
         setCoverKey(DEFAULT_COVER_KEY);
         setAgePickerVisible(false);
         setCoverPickerVisible(false);
+        setDateTimePickerVisible(false);
         setSubmitError(null);
         setIsSubmitting(false);
     }, []);
@@ -170,16 +184,12 @@ const CreateEventScreen = () => {
         setGroupType(current.groupType === "Group" ? "Group" : "Single");
         setGender((current.gender as GenderOption) || "Any");
         setAgeRange([current.minAge ?? AGE_MIN, current.maxAge ?? AGE_MAX]);
-        setDateChoice(getDateChoiceFromEventDate(current.eventDate));
-        const nextTime = current.time || "07:00";
-        const parsed = parseTimeString(nextTime);
-        setTime(nextTime);
-        setHourInput(String(parsed.hour).padStart(2, "0"));
-        setMinuteInput(String(parsed.minute).padStart(2, "0"));
+        setSelectedDateTime(getEventDateTime(current));
         setLocation(current.location || "");
         setCoverKey(current.coverKey ?? DEFAULT_COVER_KEY);
         setAgePickerVisible(false);
         setCoverPickerVisible(false);
+        setDateTimePickerVisible(false);
         setSubmitError(null);
     }, []);
 
@@ -190,21 +200,19 @@ const CreateEventScreen = () => {
             groupType,
             gender,
             ageRange,
-            dateChoice,
-            time,
+            selectedDateTime,
             location,
             coverKey,
         }),
         [
             ageRange,
             coverKey,
-            dateChoice,
             description,
             eventName,
             gender,
             groupType,
             location,
-            time,
+            selectedDateTime,
         ],
     );
 
@@ -225,68 +233,6 @@ const CreateEventScreen = () => {
             };
         }, [applyEventToForm, editEvent, editEventId, navigation, resetForm]),
     );
-
-    useEffect(() => {
-        if (isHourEditing) {
-            return;
-        }
-        const { hour } = parseTimeString(time);
-        setHourInput(String(hour).padStart(2, "0"));
-    }, [isHourEditing, time]);
-
-    useEffect(() => {
-        if (isMinuteEditing) {
-            return;
-        }
-        const { minute } = parseTimeString(time);
-        setMinuteInput(String(minute).padStart(2, "0"));
-    }, [isMinuteEditing, time]);
-
-    const handleHourChange = (value: string) => {
-        const sanitized = value.replace(/[^0-9]/g, "").slice(0, 2);
-        setHourInput(sanitized);
-        if (!sanitized) {
-            return;
-        }
-        const hour = Math.min(23, parseInt(sanitized, 10) || 0);
-        const { minute } = parseTimeString(time);
-        setTime(formatTime(hour, minute));
-    };
-
-    const handleMinuteChange = (value: string) => {
-        const sanitized = value.replace(/[^0-9]/g, "").slice(0, 2);
-        setMinuteInput(sanitized);
-        if (!sanitized) {
-            return;
-        }
-        const minute = Math.min(59, parseInt(sanitized, 10) || 0);
-        const { hour } = parseTimeString(time);
-        setTime(formatTime(hour, minute));
-    };
-
-    const handleHourBlur = () => {
-        setIsHourEditing(false);
-        if (!hourInput) {
-            const { hour } = parseTimeString(time);
-            setHourInput(String(hour).padStart(2, "0"));
-            return;
-        }
-        if (hourInput.length === 1) {
-            setHourInput(hourInput.padStart(2, "0"));
-        }
-    };
-
-    const handleMinuteBlur = () => {
-        setIsMinuteEditing(false);
-        if (!minuteInput) {
-            const { minute } = parseTimeString(time);
-            setMinuteInput(String(minute).padStart(2, "0"));
-            return;
-        }
-        if (minuteInput.length === 1) {
-            setMinuteInput(minuteInput.padStart(2, "0"));
-        }
-    };
 
     // Open modal handlers - set temp to current value
     const openAgePicker = useCallback(() => {
@@ -337,10 +283,6 @@ const CreateEventScreen = () => {
         [responsiveGap],
     );
 
-    const toggleDateChoice = useCallback(() => {
-        setDateChoice((prev) => (prev === "today" ? "tomorrow" : "today"));
-    }, []);
-
     const handleCoverSelect = useCallback((key: CoverKey) => {
         setCoverKey(key);
         setCoverPickerVisible(false);
@@ -361,13 +303,23 @@ const CreateEventScreen = () => {
                 return;
             }
 
-            const timeMinutes = timeStringToMinutes(form.time);
-            if (timeMinutes == null) {
-                setSubmitError("Enter a valid time in HH:MM format.");
+            if (Number.isNaN(form.selectedDateTime.getTime())) {
+                setSubmitError("Choose a valid date and time.");
                 return;
             }
-            if (isPastTimeSelection(form.dateChoice, form.time)) {
-                setSubmitError("Choose a future time for today's events.");
+
+            const now = new Date();
+            const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
+            const normalizedDateTime = new Date(form.selectedDateTime);
+            normalizedDateTime.setSeconds(0, 0);
+
+            if (isPastDateTimeSelection(normalizedDateTime, now)) {
+                setSubmitError("Choose a future date and time.");
+                return;
+            }
+
+            if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
+                setSubmitError("Choose a time within the next 30 days.");
                 return;
             }
 
@@ -384,16 +336,20 @@ const CreateEventScreen = () => {
             const minAge = Math.min(rangeStart, rangeEnd);
             const maxAge = Math.max(rangeStart, rangeEnd);
             const selectedCover = form.coverKey || DEFAULT_COVER_KEY;
-            const eventDate = getDateStringForChoice(form.dateChoice);
-            const selectedLabel = form.dateChoice === "today" ? "Today" : "Tmrw";
-            const scheduledAt = buildScheduledAtUTC(form.dateChoice, form.time);
+            const eventDate = toDateKey(normalizedDateTime);
+            const eventTime = formatTime(
+                normalizedDateTime.getHours(),
+                normalizedDateTime.getMinutes(),
+            );
+            const selectedLabel = getLegacyDateLabel(eventDate);
+            const scheduledAt = normalizedDateTime.toISOString();
 
             try {
                 if (isEditing && editEventId) {
                     await updateUserEvent(editEventId, {
                         title: trimmedName || "New event",
                         location: locationLabel,
-                        time: form.time,
+                        time: eventTime,
                         eventDate,
                         dateLabel: selectedLabel,
                         description: trimmedDescription.length
@@ -416,7 +372,7 @@ const CreateEventScreen = () => {
                     await addUserEvent({
                         title: trimmedName || "New event",
                         location: locationLabel,
-                        time: form.time,
+                        time: eventTime,
                         eventDate,
                         dateLabel: selectedLabel,
                         description: trimmedDescription.length
@@ -453,8 +409,8 @@ const CreateEventScreen = () => {
             isEditing,
             isSubmitting,
             navigation,
-            rootNavigation,
             resetForm,
+            rootNavigation,
             updateUserEvent,
             user,
         ],
@@ -471,8 +427,20 @@ const CreateEventScreen = () => {
             return;
         }
 
-        if (isPastTimeSelection(formState.dateChoice, formState.time)) {
-            setSubmitError("Choose a future time for today's events.");
+        if (Number.isNaN(formState.selectedDateTime.getTime())) {
+            setSubmitError("Choose a valid date and time.");
+            return;
+        }
+
+        const now = new Date();
+        const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
+        if (isPastDateTimeSelection(formState.selectedDateTime, now)) {
+            setSubmitError("Choose a future date and time.");
+            return;
+        }
+
+        if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
+            setSubmitError("Choose a time within the next 30 days.");
             return;
         }
 
@@ -484,14 +452,21 @@ const CreateEventScreen = () => {
             const minAge = Math.min(rangeStart, rangeEnd);
             const maxAge = Math.max(rangeStart, rangeEnd);
             const selectedCover = formState.coverKey || DEFAULT_COVER_KEY;
-            const eventDate = getDateStringForChoice(formState.dateChoice);
-            const selectedLabel = formState.dateChoice === "today" ? "Today" : "Tmrw";
-            const scheduledAt = buildScheduledAtUTC(formState.dateChoice, formState.time);
+            const normalizedDateTime = new Date(formState.selectedDateTime);
+            normalizedDateTime.setSeconds(0, 0);
+
+            const eventDate = toDateKey(normalizedDateTime);
+            const selectedLabel = getLegacyDateLabel(eventDate);
+            const eventTime = formatTime(
+                normalizedDateTime.getHours(),
+                normalizedDateTime.getMinutes(),
+            );
+            const scheduledAt = normalizedDateTime.toISOString();
 
             const draftPayload: GuestEventDraft = {
                 title: trimmedName || "New event",
                 location: locationLabel,
-                time: formState.time,
+                time: eventTime,
                 eventDate,
                 dateLabel: selectedLabel,
                 description: trimmedDescription.length ? trimmedDescription : undefined,
@@ -523,7 +498,10 @@ const CreateEventScreen = () => {
         : "Sign Up or Log In";
 
     const ageLabel = useMemo(() => getAgeLabel(ageRange), [ageRange]);
-    const dateLabel = dateChoice === "today" ? "Today" : "Tomorrow";
+    const dateTimeLabel = useMemo(
+        () => formatDateTimeValue(selectedDateTime),
+        [selectedDateTime],
+    );
 
     // Fixed header component (outside scroll view)
     const renderHeader = () => (
@@ -629,42 +607,20 @@ const CreateEventScreen = () => {
 
             <View style={styles.fieldCard}>
                 <View style={styles.fieldCardInner}>
-                    <View style={[styles.fieldRow, styles.dateRow]}>
-                        <Text style={styles.fieldLabel}>Date</Text>
-                        <View style={styles.dateTimeContainer}>
-                            <Pressable
-                                style={styles.fieldValuePill}
-                                onPress={toggleDateChoice}
+                    <Pressable
+                        style={[styles.fieldRow, styles.dateRow]}
+                        onPress={() => setDateTimePickerVisible(true)}
+                    >
+                        <Text style={styles.fieldLabel}>Date & Time</Text>
+                        <View style={[styles.fieldValuePill, styles.dateTimeValuePill]}>
+                            <Text
+                                style={[styles.fieldValueText, styles.dateTimeValueText]}
+                                numberOfLines={1}
                             >
-                                <Text style={styles.fieldValueText}>{dateLabel}</Text>
-                            </Pressable>
-                            <View style={styles.timeInlineContainer}>
-                                <TextInput
-                                    placeholder="HH"
-                                    value={hourInput}
-                                    onChangeText={handleHourChange}
-                                    onFocus={() => setIsHourEditing(true)}
-                                    onBlur={handleHourBlur}
-                                    placeholderTextColor={colors.createTextMuted}
-                                    style={styles.timeInputInline}
-                                    maxLength={2}
-                                    keyboardType="number-pad"
-                                />
-                                <Text style={styles.timeSeparatorInline}>:</Text>
-                                <TextInput
-                                    placeholder="MM"
-                                    value={minuteInput}
-                                    onChangeText={handleMinuteChange}
-                                    onFocus={() => setIsMinuteEditing(true)}
-                                    onBlur={handleMinuteBlur}
-                                    placeholderTextColor={colors.createTextMuted}
-                                    style={styles.timeInputInline}
-                                    maxLength={2}
-                                    keyboardType="number-pad"
-                                />
-                            </View>
+                                {dateTimeLabel}
+                            </Text>
                         </View>
-                    </View>
+                    </Pressable>
 
                     <View style={styles.fieldDivider} />
 
@@ -693,7 +649,7 @@ const CreateEventScreen = () => {
                 {submitError ? (
                     <View style={styles.errorContainer}>
                         <WarningIcon width={20} height={20} />
-                        <Text style={styles.errorText}>All fields are required</Text>
+                        <Text style={styles.errorText}>{submitError}</Text>
                     </View>
                 ) : null}
 
@@ -745,6 +701,18 @@ const CreateEventScreen = () => {
                     </KeyboardAwareScrollView>
                 </View>
             </SafeAreaView>
+
+            <EventDateTimeModal
+                visible={isDateTimePickerVisible}
+                value={selectedDateTime}
+                minDate={pickerMinDate}
+                maxDate={pickerMaxDate}
+                onClose={() => setDateTimePickerVisible(false)}
+                onConfirm={(value) => {
+                    setSelectedDateTime(value);
+                    setDateTimePickerVisible(false);
+                }}
+            />
 
             {/* Cover Picker Modal */}
             <CoverPickerModal

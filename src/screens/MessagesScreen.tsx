@@ -126,6 +126,7 @@ const MessagesScreen = () => {
         eventDetails: {
           coverKey: conversation.event?.coverKey,
           dateLabel: conversation.event?.dateLabel ?? "",
+          eventDate: conversation.event?.eventDate,
           location: conversation.event?.location ?? "",
           time: conversation.event?.time ?? "",
         },

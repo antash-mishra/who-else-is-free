@@ -28,34 +28,32 @@ import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
 import SegmentedControl from "@components/SegmentedControl";
 import { colors, spacing, typography } from "@theme/index";
-import { DateLabel, UserEvent, useEvents } from "@context/EventsContext";
+import { UserEvent, useEvents } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
 import { useChat } from "@context/ChatContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { getSectionDateLabel } from "@utils/dateTime";
 
 type EventSection = {
   title: string;
   data: EventItemProps[];
 };
 
-const sectionOrder: { label: string; value: DateLabel }[] = [
-  { label: "Today", value: "Today" },
-  { label: "Tomorrow", value: "Tmrw" },
-];
-
 const buildSections = (
   items: UserEvent[],
   getBadgeLabel: (event: UserEvent) => string | undefined,
 ): EventSection[] => {
-  const grouped: Record<DateLabel, EventItemProps[]> = {
-    Today: [],
-    Tmrw: [],
-  };
+  const grouped = new Map<string, EventItemProps[]>();
 
   items.forEach((event) => {
-    const { id, title, location, time, audience, imageUri, dateLabel } = event;
-    grouped[dateLabel].push({
+    const { id, title, location, time, audience, imageUri, eventDate } = event;
+    const dateKey = eventDate || "";
+    if (!dateKey) {
+      return;
+    }
+    const sectionEvents = grouped.get(dateKey) ?? [];
+    sectionEvents.push({
       id,
       title,
       location,
@@ -64,12 +62,14 @@ const buildSections = (
       imageUri,
       badgeLabel: getBadgeLabel(event),
     });
+    grouped.set(dateKey, sectionEvents);
   });
 
-  return sectionOrder
-    .map(({ label, value }) => ({
-      title: label,
-      data: grouped[value],
+  return Array.from(grouped.entries())
+    .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+    .map(([eventDate, data]) => ({
+      title: getSectionDateLabel(eventDate),
+      data,
     }))
     .filter((section) => section.data.length > 0);
 };

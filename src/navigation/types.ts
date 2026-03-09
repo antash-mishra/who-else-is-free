@@ -28,6 +28,7 @@ export type RootStackParamList = {
     eventDetails?: {
       coverKey?: string;
       dateLabel: string;
+      eventDate?: string;
       location: string;
       time: string;
     };

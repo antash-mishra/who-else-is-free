@@ -190,7 +190,7 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
-	err = h.repo.Update(ctx, id, claims.UserID, payload)
+	transition, err := h.repo.Update(ctx, id, claims.UserID, payload)
 	if err != nil {
 		if errors.Is(err, ErrEventNotFound) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "event not found or not owned by user"})
@@ -200,34 +200,43 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 		return
 	}
 
-	h.emitEventUpdateChatMessages(ctx, id, claims.UserID)
+	if h.hub != nil && transition != nil {
+		for _, member := range transition.RemovedMemberships {
+			h.hub.NotifyMembership(member.ConversationID, member.UserID, "removed")
+		}
+		for _, member := range transition.AddedMemberships {
+			h.hub.NotifyMembership(member.ConversationID, member.UserID, "added")
+		}
+	}
+
+	if transition != nil {
+		h.emitEventUpdateChatMessages(ctx, id, claims.UserID, transition.PostMigrationConversationIDs)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "event updated"})
 }
 
-func (h *EventHandler) emitEventUpdateChatMessages(ctx context.Context, eventID, hostUserID int64) {
+func (h *EventHandler) emitEventUpdateChatMessages(ctx context.Context, eventID, hostUserID int64, conversationIDs []int64) {
 	if h.hub == nil {
 		return
 	}
 
-	conversations, err := h.repo.ListConversationsForEvent(ctx, eventID, hostUserID)
-	if err != nil {
-		log.Printf("failed to list conversations for event update message (event %d): %v", eventID, err)
+	if len(conversationIDs) == 0 {
 		return
 	}
 
-	seenConversationIDs := make(map[int64]struct{}, len(conversations))
-	for _, conversation := range conversations {
-		if conversation.ID == 0 {
+	seenConversationIDs := make(map[int64]struct{}, len(conversationIDs))
+	for _, conversationID := range conversationIDs {
+		if conversationID == 0 {
 			continue
 		}
-		if _, seen := seenConversationIDs[conversation.ID]; seen {
+		if _, seen := seenConversationIDs[conversationID]; seen {
 			continue
 		}
-		seenConversationIDs[conversation.ID] = struct{}{}
+		seenConversationIDs[conversationID] = struct{}{}
 
 		message, err := h.repo.CreateMessage(ctx, CreateMessageParams{
-			ConversationID: conversation.ID,
+			ConversationID: conversationID,
 			SenderID:       hostUserID,
 			Body:           updatedEventDetailMessage,
 			DeliveryStatus: "sent",
@@ -236,7 +245,7 @@ func (h *EventHandler) emitEventUpdateChatMessages(ctx context.Context, eventID,
 			log.Printf(
 				"failed to create event update message for event %d conversation %d: %v",
 				eventID,
-				conversation.ID,
+				conversationID,
 				err,
 			)
 			continue
