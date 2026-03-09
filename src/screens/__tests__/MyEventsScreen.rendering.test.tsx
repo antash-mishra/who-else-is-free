@@ -19,6 +19,19 @@ jest.mock('@react-navigation/native', () => {
       navigate: mockNavigate,
       goBack: jest.fn(),
     }),
+    useRoute: () => ({
+      key: 'MyEvents-test',
+      name: 'MyEvents',
+      params: {},
+    }),
+  };
+});
+
+jest.mock('@react-navigation/bottom-tabs', () => {
+  const actual = jest.requireActual('@react-navigation/bottom-tabs');
+  return {
+    ...actual,
+    useBottomTabBarHeight: () => 0,
   };
 });
 

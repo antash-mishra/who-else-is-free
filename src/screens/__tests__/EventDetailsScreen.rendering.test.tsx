@@ -21,6 +21,15 @@ const mockSingleEvent = mockEvents[1]; // Hiking Adventure, ownerId: 2 (Liam), S
 const mockOwnedEvent = { ...mockGroupEvent, ownerId: mockUser.id };
 const mockNonOwnedEvent = { ...mockGroupEvent, ownerId: 999, hostName: 'Other Host' };
 
+const formatAbsoluteDateLabel = (eventDate: string) => {
+  const [year, month, day] = eventDate.split('-').map(Number);
+  const parsed = new Date(year, month - 1, day);
+  const dd = `${parsed.getDate()}`.padStart(2, '0');
+  const monthLabel = parsed.toLocaleString('en-US', { month: 'short' });
+  const weekday = parsed.toLocaleString('en-US', { weekday: 'short' });
+  return `${dd} ${monthLabel}, ${weekday}`;
+};
+
 // Mock conversation for the event
 const mockEventConversation = {
   ...mockConversations[0],
@@ -350,7 +359,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders event time with date label', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const scheduleLine = `Today, ${mockGroupEvent.time}`;
+      const scheduleLine = `${formatAbsoluteDateLabel(mockGroupEvent.eventDate)}, ${mockGroupEvent.time}`;
       expect(getByText(scheduleLine)).toBeTruthy();
     });
 
@@ -1186,20 +1195,30 @@ describe('EventDetailsScreen Rendering Tests', () => {
   });
 
   describe('Date Label Formatting', () => {
-    it('displays "Today" for events with Today dateLabel', () => {
+    it('displays formatted date for today event', () => {
       mockEventsState.events = [{ ...mockGroupEvent, dateLabel: 'Today' as const }];
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText(`Today, ${mockGroupEvent.time}`)).toBeTruthy();
+      expect(
+        getByText(`${formatAbsoluteDateLabel(mockGroupEvent.eventDate)}, ${mockGroupEvent.time}`),
+      ).toBeTruthy();
     });
 
-    it('displays "Tomorrow" for events with Tmrw dateLabel', () => {
-      mockEventsState.events = [{ ...mockGroupEvent, dateLabel: 'Tmrw' as const }];
+    it('displays formatted date for tomorrow event', () => {
+      mockEventsState.events = [
+        {
+          ...mockGroupEvent,
+          dateLabel: 'Tmrw' as const,
+          eventDate: mockSingleEvent.eventDate,
+        },
+      ];
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText(`Tomorrow, ${mockGroupEvent.time}`)).toBeTruthy();
+      expect(
+        getByText(`${formatAbsoluteDateLabel(mockSingleEvent.eventDate)}, ${mockGroupEvent.time}`),
+      ).toBeTruthy();
     });
   });
 

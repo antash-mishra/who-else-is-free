@@ -13,6 +13,7 @@ import { AppState, AppStateStatus } from "react-native";
 
 import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from "@api/config";
 import { useAuth } from "@context/AuthContext";
+import { getLegacyDateLabel } from "@utils/dateTime";
 
 type ConversationParticipant = {
   id: number;
@@ -413,7 +414,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
               title: conversation.event.title,
               location: conversation.event.location,
               time: conversation.event.time,
-              dateLabel: conversation.event.date_label,
+              dateLabel: conversation.event.event_date
+                ? getLegacyDateLabel(conversation.event.event_date)
+                : conversation.event.date_label,
               eventDate: conversation.event.event_date,
               groupType: conversation.event.group_type,
               coverKey: conversation.event.cover_key,

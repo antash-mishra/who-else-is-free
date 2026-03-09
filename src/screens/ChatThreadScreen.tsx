@@ -25,16 +25,9 @@ import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
+import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 const HEADER_HEIGHT = 56;
-
-const formatDDMMM = (eventDate: string): string => {
-  const [y, m, d] = eventDate.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const day = date.getDate();
-  const month = date.toLocaleString("en-US", { month: "short" });
-  return `${day} ${month}`;
-};
 
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -108,12 +101,15 @@ const ChatThreadScreen = () => {
     if (activeEventGroupType === "Single" && activeEvent) {
       const title = activeEvent.title;
       const datePart = activeEvent.eventDate
-        ? formatDDMMM(activeEvent.eventDate)
+        ? formatAbsoluteDateLabel(activeEvent.eventDate)
         : activeEvent.dateLabel;
       return datePart ? `${title}, ${datePart}` : title;
     }
-    if (activeEvent?.dateLabel && activeEvent?.time && activeEvent?.location) {
-      return `${activeEvent.dateLabel}, ${activeEvent.time} at ${activeEvent.location}`;
+    if (activeEvent?.time && activeEvent?.location) {
+      const datePart = activeEvent.eventDate
+        ? formatAbsoluteDateLabel(activeEvent.eventDate)
+        : activeEvent.dateLabel;
+      return `${datePart}, ${activeEvent.time} at ${activeEvent.location}`;
     }
     return undefined;
   }, [isConnecting, activeEvent, activeEventGroupType]);

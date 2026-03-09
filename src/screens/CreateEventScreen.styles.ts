@@ -252,49 +252,20 @@ const styles = StyleSheet.create({
 
     // ┌─────────────────────────────────────────────────────────────┐
     // │ 12. DATE & TIME — top row of Date + Location fieldCard     │
-    // │     Row: "Date" label + Today/Tomorrow pill + HH:MM input  │
+    // │     Row: "Date & Time" label + current date-time pill      │
     // └─────────────────────────────────────────────────────────────┘
 
     // Extra gap between label and date/time controls
     dateRow: {
         gap: spacing.md,
     },
-    // Right side: Today/Tomorrow pill + time input side by side
-    dateTimeContainer: {
-        flex: 1,
-        flexDirection: "row",
-        justifyContent: "flex-end",
-        gap: spacing.sm,
+    dateTimeValuePill: {
+        flexShrink: 1,
+        maxWidth: "72%",
     },
-    // HH:MM input box container
-    timeInlineContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: spacing.xs,
-        paddingHorizontal: spacing.sm,
-        height: 36,
-        borderRadius: 8,
-        backgroundColor: colors.createChipBackground,
-        borderWidth: 1,
-        borderColor: colors.createCardBorder,
-    },
-    // Individual HH or MM number input
-    timeInputInline: {
-        width: 32,
-        height: 26,
-        fontSize: typography.body,
-        fontFamily: typography.fontFamilyMedium,
-        color: colors.createTextPrimary,
-        textAlign: "center",
-        padding: 0,
-    },
-    // ":" between HH and MM
-    timeSeparatorInline: {
-        fontSize: typography.body,
-        fontFamily: typography.fontFamilyMedium,
-        color: colors.createTextPrimary,
-        marginHorizontal: spacing.xs,
+    dateTimeValueText: {
+        fontSize: typography.caption,
+        lineHeight: 18,
     },
 
     // ┌─────────────────────────────────────────────────────────────┐
