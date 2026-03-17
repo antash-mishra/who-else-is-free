@@ -30,6 +30,8 @@ import GoogleSignIn from "@screens/GoogleSignIn";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
 import PendingRequestsScreen from "@screens/PendingRequestsScreen";
 import PastEventsScreen from "@screens/PastEventsScreen";
+import PrivacyPolicyScreen from "@screens/PrivacyPolicyScreen";
+import HelpScreen from "@screens/HelpScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
@@ -489,6 +491,22 @@ const AppNavigator = () => {
         <Stack.Screen
           name="PastEvents"
           component={PastEventsScreen}
+          options={{
+            animation: "fade_from_bottom",
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen
+          name="PrivacyPolicy"
+          component={PrivacyPolicyScreen}
+          options={{
+            animation: "fade_from_bottom",
+            animationDuration: 200,
+          }}
+        />
+        <Stack.Screen
+          name="Help"
+          component={HelpScreen}
           options={{
             animation: "fade_from_bottom",
             animationDuration: 200,
