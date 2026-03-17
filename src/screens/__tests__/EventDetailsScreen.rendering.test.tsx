@@ -488,10 +488,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
         fireEvent.press(editButton);
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('Main', {
-        screen: 'Create',
-        params: { editEventId: mockOwnedEvent.id },
-      });
+      expect(mockNavigate).toHaveBeenCalledWith('CreateEvent', { editEventId: mockOwnedEvent.id });
     });
 
     it('shows delete confirmation when Delete Event is pressed', async () => {
@@ -620,12 +617,12 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const input = getByTestId('invite-message-input');
       fireEvent.changeText(input, 'I want to join!');
 
-      // Press send - should redirect to login since no user
+      // Press send - should show sign-in modal since no user
       const sendButton = getByTestId('send-invite-button');
       fireEvent.press(sendButton);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('Login');
+        expect(getByTestId('bottom-sheet-modal')).toBeTruthy();
       });
     });
   });
@@ -1284,7 +1281,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }, { timeout: 3000 });
     });
 
-    it('handles join request 401 by redirecting to login', async () => {
+    it('handles join request 401 by showing sign-in modal', async () => {
       fetchMock.mockResponseOnce('', { status: 401 });
 
       mockEventsState.events = [mockNonOwnedEvent];
@@ -1305,7 +1302,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('Login');
+        expect(mockNavigate).not.toHaveBeenCalledWith('Login');
       });
     });
 

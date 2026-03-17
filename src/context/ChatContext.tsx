@@ -114,6 +114,7 @@ interface ChatContextValue {
   ) => Promise<void>;
   reportMember: (eventId: number, userId: number, reason: string) => Promise<void>;
   isRefreshingConversations: boolean;
+  hasUnseenMessages: boolean;
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
@@ -467,7 +468,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return normalized.map((item) => {
           const previous = prevMap.get(item.id);
           const lastMessage = item.lastMessage ?? previous?.lastMessage;
-          const unreadCount = item.unreadCount ?? previous?.unreadCount ?? 0;
+          const unreadCount = Math.max(item.unreadCount ?? 0, previous?.unreadCount ?? 0);
           const event = item.event ?? previous?.event;
           const eventId = item.eventId ?? previous?.eventId ?? null;
           return {
@@ -1171,6 +1172,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     return messagesByConversation[activeConversationId] ?? [];
   }, [activeConversationId, messagesByConversation]);
 
+  const hasUnseenMessages = useMemo(
+    () => conversations.some((c) => (c.unreadCount ?? 0) > 0),
+    [conversations],
+  );
+
   const value = useMemo(
     () => ({
       conversations,
@@ -1188,6 +1194,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       denyJoinRequest,
       reportMember,
       isRefreshingConversations,
+      hasUnseenMessages,
     }),
     [
       conversations,
@@ -1204,6 +1211,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       denyJoinRequest,
       reportMember,
       isRefreshingConversations,
+      hasUnseenMessages,
     ],
   );
 

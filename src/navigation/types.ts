@@ -38,6 +38,7 @@ export type RootStackParamList = {
     eventId: number;
   };
   ChatThread: undefined;
+  CreateEvent: { editEventId?: string } | undefined;
 };
 
 export type RootTabParamList = {
