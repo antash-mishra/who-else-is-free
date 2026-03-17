@@ -36,23 +36,7 @@ jest.mock('@components/ScreenContainer', () => {
   return ({ children }: { children: React.ReactNode }) => <View testID="screen-container">{children}</View>;
 });
 
-jest.mock('@components/EmptyState', () => {
-  const { View, Text, Pressable } = require('react-native');
-  return ({ title, description, actionLabel, onActionPress }: any) => (
-    <View testID="empty-state">
-      <Text testID="empty-title">{title}</Text>
-      <Text testID="empty-description">{description}</Text>
-      {actionLabel && (
-        <Pressable testID="empty-action" onPress={onActionPress}>
-          <Text>{actionLabel}</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-});
-
 // Mock SVG icons
-jest.mock('@assets/empty-profile.svg', () => 'EmptyProfileSvg');
 jest.mock('@assets/edit-profile-icon-profile.svg', () => 'EditProfileIconSvg');
 jest.mock('@assets/past-event-icon-profile.svg', () => 'PastEventsIconSvg');
 jest.mock('@assets/privacy-policy-icon-profile.svg', () => 'PrivacyPolicyIconSvg');
@@ -287,44 +271,56 @@ describe('ProfileScreen Rendering', () => {
   });
 
   describe('Guest User State', () => {
-    it('should show empty state when user is not logged in', () => {
+    it('should show guest card when user is not logged in', () => {
       setupMocks({
         authOverrides: { user: null },
       });
-      const { getByTestId, getByText } = render(<ProfileScreen />);
+      const { getByText } = render(<ProfileScreen />);
 
-      expect(getByTestId('empty-state')).toBeTruthy();
       expect(getByText('No profile to show')).toBeTruthy();
+      expect(getByText('Sign in to view your account')).toBeTruthy();
     });
 
-    it('should show login prompt for guest users', () => {
+    it('should display Continue button for guest users', () => {
       setupMocks({
         authOverrides: { user: null },
       });
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Log in or sign up to see your profile')).toBeTruthy();
+      expect(getByText('Continue')).toBeTruthy();
     });
 
-    it('should display Log In button for guest users', () => {
+    it('should open sign-in modal when Continue is pressed', () => {
+      setupMocks({
+        authOverrides: { user: null },
+      });
+      const { getByText, getByTestId } = render(<ProfileScreen />);
+
+      fireEvent.press(getByText('Continue'));
+
+      expect(getByTestId('bottom-sheet-modal')).toBeTruthy();
+    });
+
+    it('should show Privacy Policy and Help menu items for guest users', () => {
       setupMocks({
         authOverrides: { user: null },
       });
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Log In')).toBeTruthy();
+      expect(getByText('Privacy Policy')).toBeTruthy();
+      expect(getByText('Help')).toBeTruthy();
     });
 
-    it('should navigate to Login when Log In is pressed', () => {
+    it('should NOT show Edit Profile, Past Events, Logout, Delete for guest users', () => {
       setupMocks({
         authOverrides: { user: null },
       });
-      const { getByTestId } = render(<ProfileScreen />);
+      const { queryByText } = render(<ProfileScreen />);
 
-      const actionButton = getByTestId('empty-action');
-      fireEvent.press(actionButton);
-
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('Login');
+      expect(queryByText('Edit Profile')).toBeNull();
+      expect(queryByText('Past Events')).toBeNull();
+      expect(queryByText('Logout')).toBeNull();
+      expect(queryByText('Delete')).toBeNull();
     });
   });
 

@@ -134,7 +134,7 @@ const JoinRequestsScreen = () => {
     async (request: ChatJoinRequest & { conversationId?: number }) => {
       if (request.status !== "approved" || !request.conversationId) return;
       setActiveConversation(request.conversationId);
-      navigation.replace("ChatThread");
+      navigation.navigate("ChatThread");
     },
     [navigation, setActiveConversation],
   );
@@ -377,6 +377,10 @@ const JoinRequestsScreen = () => {
     const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
     const avatarColor = getAvatarColor(item.userId);
     const previewText = getApprovedPreview(item);
+    const convo = item.conversationId
+      ? conversationById.get(item.conversationId)
+      : undefined;
+    const hasUnread = (convo?.unreadCount ?? 0) > 0;
 
     return (
       <Pressable
@@ -386,12 +390,13 @@ const JoinRequestsScreen = () => {
         ]}
         onPress={() => handleRequesterPress(item)}
       >
+        {hasUnread && <View style={styles.unreadDot1to1} />}
         <View style={[styles.avatar1to1, { backgroundColor: avatarColor }]}>
           <Text style={styles.avatarText}>{initial}</Text>
         </View>
         <View style={styles.requestInfo1to1}>
-          <Text style={styles.requesterName1to1}>{item.requester.name}</Text>
-          <Text style={styles.introMessage1to1} numberOfLines={1}>
+          <Text style={[styles.requesterName1to1, hasUnread && styles.requesterName1to1Unread]}>{item.requester.name}</Text>
+          <Text style={[styles.introMessage1to1, hasUnread && styles.introMessage1to1Unread]} numberOfLines={1}>
             {previewText}
           </Text>
         </View>
@@ -469,7 +474,9 @@ const JoinRequestsScreen = () => {
         {is1to1Mode ? render1to1Header() : renderGroupHeader()}
         <FlatList
           data={displayRequests}
+          extraData={conversations}
           keyExtractor={(item) => String(item.id)}
+          style={is1to1Mode ? styles.flatList1to1 : undefined}
           renderItem={
             is1to1Mode
               ? render1to1RequestItem
@@ -532,6 +539,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    overflow: "visible",
   },
   joinIconButton: {
     marginLeft: spacing.sm,
@@ -636,10 +644,15 @@ const styles = StyleSheet.create({
     color: colors.buttonText,
   },
   // 1:1 mode request row styles
+  flatList1to1: {
+    marginLeft: -spacing.md,
+  },
   requestRow1to1: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: spacing.md,
+    paddingLeft: spacing.md,
     gap: spacing.sm,
   },
   requestRowPressed: {
@@ -673,6 +686,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     color: "#000000",
   },
+  requesterName1to1Unread: {
+    fontFamily: typography.fontFamilySemiBold,
+  },
   introMessage1to1: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
@@ -681,6 +697,18 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     color: "#707070",
     marginTop: 2,
+  },
+  introMessage1to1Unread: {
+    color: colors.text,
+    fontFamily: typography.fontFamilyMedium,
+  },
+  unreadDot1to1: {
+    position: "absolute",
+    left: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#2F81E6",
   },
   menuButton: {
     padding: spacing.xs,

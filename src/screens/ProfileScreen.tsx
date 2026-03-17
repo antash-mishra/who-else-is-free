@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   CompositeNavigationProp,
   useNavigation,
@@ -19,14 +19,14 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 
-import EmptyState from "@components/EmptyState";
 import ScreenContainer from "@components/ScreenContainer";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { useChat } from "@context/ChatContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
-import EmptyProfileIllustration from "@assets/empty-profile.svg";
+import BottomSheetModal from "@components/BottomSheetModal";
+import SignInButtons from "@components/SignInButtons";
 import EditProfileIcon from "@assets/edit-profile-icon-profile.svg";
 import PastEventsIcon from "@assets/past-event-icon-profile.svg";
 import PrivacyPolicyIcon from "@assets/privacy-policy-icon-profile.svg";
@@ -153,22 +153,48 @@ const ProfileScreen = () => {
     }).start();
   }, [scaleAnim]);
 
+  const [signInVisible, setSignInVisible] = useState(false);
+
   if (!user) {
     return (
       <ScreenContainer>
         <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Account</Text>
+          <Text style={styles.headerTitle}>Profile</Text>
         </View>
-        <EmptyState
-          title="No profile to show"
-          description="Log in or sign up to see your profile"
-          actionLabel="Log In"
-          onActionPress={() => navigation.navigate("Login")}
-          secondaryActionLabel="Sign Up"
-          onSecondaryActionPress={() => navigation.navigate("Login")}
-          illustration={EmptyProfileIllustration}
-          illustrationSize={40}
-        />
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.guestCard}>
+            <View style={styles.guestAvatar} />
+            <Text style={styles.guestTitle}>No profile to show</Text>
+            <Text style={styles.guestDescription}>
+              Sign in to view your account
+            </Text>
+            <Pressable
+              style={styles.guestButton}
+              onPress={() => setSignInVisible(true)}
+            >
+              <Text style={styles.guestButtonText}>Continue</Text>
+            </Pressable>
+          </View>
+          <View style={styles.menuSection}>
+            <MenuItem
+              icon={<PrivacyPolicyIcon width={20} height={20} />}
+              label="Privacy Policy"
+              onPress={handlePrivacyPolicy}
+            />
+            <MenuItem
+              icon={<HelpIcon width={20} height={20} />}
+              label="Help"
+              onPress={handleHelp}
+            />
+          </View>
+        </ScrollView>
+        <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
+          <SignInButtons />
+        </BottomSheetModal>
       </ScreenContainer>
     );
   }
@@ -375,6 +401,51 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: -0.5,
     color: "#000000",
+  },
+  guestCard: {
+    backgroundColor: "#F5F5F5",
+    borderRadius: 20,
+    alignItems: "center",
+    paddingVertical: 24,
+    paddingHorizontal: spacing.md,
+  },
+  guestAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#3345E9",
+    marginBottom: 12,
+  },
+  guestTitle: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.text,
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  guestDescription: {
+    fontSize: 15,
+    fontFamily: typography.fontFamilyRegular,
+    color: "#707070",
+    textAlign: "center",
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    marginBottom: 16,
+  },
+  guestButton: {
+    width: 173,
+    height: 48,
+    borderRadius: 52,
+    backgroundColor: colors.buttonBackground,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guestButtonText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilySemiBold,
+    color: "#FFFFFF",
   },
 });
 

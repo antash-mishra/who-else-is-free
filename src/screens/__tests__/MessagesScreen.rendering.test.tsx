@@ -183,6 +183,7 @@ let mockChatValue = {
   approveJoinRequest: jest.fn(),
   denyJoinRequest: jest.fn(),
   reportMember: jest.fn(),
+  hasUnseenMessages: false,
 };
 
 jest.mock('@context/ChatContext', () => ({
@@ -302,6 +303,7 @@ describe('MessagesScreen Rendering', () => {
       approveJoinRequest: jest.fn(),
       denyJoinRequest: jest.fn(),
       reportMember: jest.fn(),
+      hasUnseenMessages: false,
     };
   });
 
@@ -357,18 +359,15 @@ describe('MessagesScreen Rendering', () => {
       expect(getAllByText('O')[0]).toBeTruthy(); // One-on-One Event
     });
 
-    it('should show unread dot and left spacer only for unread conversations', () => {
+    it('should show unread dot only for unread conversations', () => {
       const { getByTestId, queryByTestId } = render(<MessagesScreen />);
-
-      const unreadSpacer = getByTestId('conversation-unread-dot-spacer-1');
-      const readSpacer = getByTestId('conversation-unread-dot-spacer-2');
-      const unreadSpacerStyle = StyleSheet.flatten(unreadSpacer.props.style);
-      const readSpacerStyle = StyleSheet.flatten(readSpacer.props.style);
 
       expect(getByTestId('conversation-unread-dot-1')).toBeTruthy();
       expect(queryByTestId('conversation-unread-dot-2')).toBeNull();
-      expect(unreadSpacerStyle.width).toBe(16);
-      expect(readSpacerStyle.width).toBe(0);
+
+      const dotStyle = StyleSheet.flatten(getByTestId('conversation-unread-dot-1').props.style);
+      expect(dotStyle.position).toBe('absolute');
+      expect(dotStyle.left).toBe(5);
     });
   });
 
@@ -412,26 +411,16 @@ describe('MessagesScreen Rendering', () => {
 
       expect(getByTestId('empty-state')).toBeTruthy();
       expect(getByText('No messages to show')).toBeTruthy();
-      expect(getByText('Log In')).toBeTruthy();
-      expect(getByText('Sign Up')).toBeTruthy();
+      expect(getByText('Continue')).toBeTruthy();
     });
 
-    it('should navigate to Login when Log In button is pressed', () => {
+    it('should open sign-in modal when Continue button is pressed', () => {
       mockAuthValue.user = null;
 
       const { getByTestId } = render(<MessagesScreen />);
 
       fireEvent.press(getByTestId('empty-state-action'));
-      expect(mockNavigate).toHaveBeenCalledWith('Login');
-    });
-
-    it('should navigate to Login when Sign Up button is pressed', () => {
-      mockAuthValue.user = null;
-
-      const { getByTestId } = render(<MessagesScreen />);
-
-      fireEvent.press(getByTestId('empty-state-secondary-action'));
-      expect(mockNavigate).toHaveBeenCalledWith('Login');
+      expect(getByTestId('bottom-sheet-modal')).toBeTruthy();
     });
   });
 

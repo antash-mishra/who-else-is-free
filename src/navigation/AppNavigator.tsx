@@ -25,6 +25,7 @@ import OnboardingScreen from "@screens/OnboardingScreen";
 import { navigationRef } from "@navigation/navigationRef";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
+import { useChat } from "@context/ChatContext";
 import GoogleSignIn from "@screens/GoogleSignIn";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
 import PendingRequestsScreen from "@screens/PendingRequestsScreen";
@@ -224,25 +225,43 @@ const CreateTabIcon = ({ focused, color }: TabIconProps) => {
 const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
   const fillColor = getFillColor(focused);
+  const { hasUnseenMessages } = useChat();
 
   return (
-    <Svg
-      width={TAB_ICON_WIDTH}
-      height={TAB_ICON_HEIGHT}
-      viewBox={TAB_ICON_VIEW_BOX}
-      fill="none"
-    >
-      <G transform="translate(14, 7)">
-        <Path
-          fill-rule="evenodd" 
-          clip-rule="evenodd" 
-          d="M12.2112 1.20001C18.2822 1.19998 23.2231 6.14095 23.2231 12.212C23.2231 18.283 18.2822 23.2239 12.2112 23.2239C11.31 23.2226 10.4132 23.1041 9.54034 22.8846C8.20003 23.7243 6.36449 24.2578 3.92009 24.195C3.74068 24.1903 3.56669 24.1325 3.42021 24.0288C3.27373 23.9251 3.16134 23.7802 3.09732 23.6126C3.03329 23.4449 3.02051 23.262 3.06059 23.087C3.10067 22.9121 3.1918 22.753 3.32243 22.6299C4.41598 21.6005 4.76788 20.8988 4.87234 20.5542C4.88933 20.5008 4.8928 20.4703 4.89974 20.433C2.55565 18.3499 1.20238 15.3611 1.20005 12.2126C1.20001 6.14162 6.14016 1.19998 12.2112 1.20001Z"
-          fill={fillColor}
-          stroke={strokeColor}
-          strokeWidth={2.3}
+    <View style={{ width: TAB_ICON_WIDTH, height: TAB_ICON_HEIGHT }}>
+      <Svg
+        width={TAB_ICON_WIDTH}
+        height={TAB_ICON_HEIGHT}
+        viewBox={TAB_ICON_VIEW_BOX}
+        fill="none"
+      >
+        <G transform="translate(14, 7)">
+          <Path
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            d="M12.2112 1.20001C18.2822 1.19998 23.2231 6.14095 23.2231 12.212C23.2231 18.283 18.2822 23.2239 12.2112 23.2239C11.31 23.2226 10.4132 23.1041 9.54034 22.8846C8.20003 23.7243 6.36449 24.2578 3.92009 24.195C3.74068 24.1903 3.56669 24.1325 3.42021 24.0288C3.27373 23.9251 3.16134 23.7802 3.09732 23.6126C3.03329 23.4449 3.02051 23.262 3.06059 23.087C3.10067 22.9121 3.1918 22.753 3.32243 22.6299C4.41598 21.6005 4.76788 20.8988 4.87234 20.5542C4.88933 20.5008 4.8928 20.4703 4.89974 20.433C2.55565 18.3499 1.20238 15.3611 1.20005 12.2126C1.20001 6.14162 6.14016 1.19998 12.2112 1.20001Z"
+            fill={fillColor}
+            stroke={strokeColor}
+            strokeWidth={2.3}
+          />
+        </G>
+      </Svg>
+      {hasUnseenMessages && (
+        <View
+          style={{
+            position: "absolute",
+            top: 5,
+            right: 15,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: "#FF1519",
+            borderWidth: 2,
+            borderColor: "#FFFFFF",
+          }}
         />
-      </G>
-    </Svg>
+      )}
+    </View>
   );
 };
 
@@ -293,30 +312,13 @@ const MainTabs = () => {
     }),
     [insets.bottom],
   );
-  const hiddenTabBarStyle = useMemo(
-    () => ({
-      height: 0,
-      paddingTop: 0,
-      paddingBottom: 0,
-      borderTopWidth: 0,
-      opacity: 0,
-      position: "absolute" as const,
-      pointerEvents: "none" as const,
-    }),
-    [],
-  );
-
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => {
-        const hideTabBar = route.name === "Create";
-
+      screenOptions={() => {
         return {
           headerShown: false,
           tabBarShowLabel: false,
-          tabBarStyle: hideTabBar
-            ? hiddenTabBarStyle
-            : tabBarBaseStyle,
+          tabBarStyle: tabBarBaseStyle,
           tabBarBackground: () => <TabBarBackground />,
           tabBarActiveTintColor: colors.activeTabIndicator,
           tabBarInactiveTintColor: colors.tabInactive,
@@ -348,7 +350,13 @@ const MainTabs = () => {
       />
       <Tab.Screen
         name="Create"
-        component={CreateEventScreen}
+        component={View}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            (navigation as any).navigate("CreateEvent");
+          },
+        })}
         options={{
           tabBarIcon: ({ focused, color }) => (
             <CreateTabIcon focused={focused} color={color} />
@@ -467,6 +475,14 @@ const AppNavigator = () => {
             animation: "fade",
             animationDuration: 200,
             contentStyle: { backgroundColor: "transparent" },
+          }}
+        />
+        <Stack.Screen
+          name="CreateEvent"
+          component={CreateEventScreen}
+          options={{
+            animation: "slide_from_bottom",
+            animationDuration: 250,
           }}
         />
         <Stack.Screen
