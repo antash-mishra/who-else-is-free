@@ -291,6 +291,23 @@ SELECT COUNT(1)
 FROM conversations;
 `
 
+const selectUserPastEvents = `
+SELECT DISTINCT e.id, e.user_id, e.title, e.location, e.time, e.event_date,
+       e.description, e.gender, e.min_age, e.max_age, e.date_label,
+       e.group_type, e.cover_key, e.scheduled_at, e.created_at,
+       u.name AS host_name
+FROM events e
+JOIN users u ON u.id = e.user_id
+LEFT JOIN conversations c ON c.event_id = e.id
+LEFT JOIN conversation_members cm ON cm.conversation_id = c.id
+WHERE (e.user_id = ? OR cm.user_id = ?)
+  AND (
+    (e.scheduled_at IS NOT NULL AND datetime(e.scheduled_at) < datetime('now'))
+    OR (e.scheduled_at IS NULL AND e.event_date < date('now'))
+  )
+ORDER BY COALESCE(e.scheduled_at, e.event_date) DESC, e.created_at DESC;
+`
+
 const selectConversationByEventID = `
 SELECT id, title, created_by, created_at, event_id
 FROM conversations
@@ -1830,6 +1847,61 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 		}
 		return events[i].EventDate < events[j].EventDate
 	})
+
+	return events, nil
+}
+
+// ListUserPastEvents returns past events the user created or joined, newest first.
+func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) ([]Event, error) {
+	rows, err := r.db.QueryContext(ctx, selectUserPastEvents, userID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query past events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []Event
+	now := time.Now()
+
+	for rows.Next() {
+		var evt Event
+		var scheduledAtStr sql.NullString
+		if err := rows.Scan(
+			&evt.ID,
+			&evt.UserID,
+			&evt.Title,
+			&evt.Location,
+			&evt.Time,
+			&evt.EventDate,
+			&evt.Description,
+			&evt.Gender,
+			&evt.MinAge,
+			&evt.MaxAge,
+			&evt.DateLabel,
+			&evt.GroupType,
+			&evt.CoverKey,
+			&scheduledAtStr,
+			&evt.CreatedAt,
+			&evt.HostName,
+		); err != nil {
+			return nil, fmt.Errorf("scan past event: %w", err)
+		}
+
+		if scheduledAtStr.Valid && scheduledAtStr.String != "" {
+			if parsed, err := time.Parse(time.RFC3339, scheduledAtStr.String); err == nil {
+				evt.ScheduledAt = &parsed
+			} else if parsed, err := time.Parse("2006-01-02 15:04:05", scheduledAtStr.String); err == nil {
+				utc := parsed.UTC()
+				evt.ScheduledAt = &utc
+			}
+		}
+
+		evt.DateLabel = deriveDateLabel(evt.EventDate, now)
+		events = append(events, evt)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate past events: %w", err)
+	}
 
 	return events, nil
 }

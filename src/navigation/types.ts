@@ -39,6 +39,7 @@ export type RootStackParamList = {
   };
   ChatThread: undefined;
   CreateEvent: { editEventId?: string } | undefined;
+  PastEvents: undefined;
 };
 
 export type RootTabParamList = {

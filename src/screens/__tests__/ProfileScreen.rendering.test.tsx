@@ -227,13 +227,13 @@ describe('ProfileScreen Rendering', () => {
       expect(Alert.alert).toHaveBeenCalledWith('Edit Profile', 'Coming Soon');
     });
 
-    it('should show alert when Past Events is pressed', () => {
+    it('should navigate to PastEvents when Past Events is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
       fireEvent.press(getByText('Past Events'));
 
-      expect(Alert.alert).toHaveBeenCalledWith('Past Events', 'Coming Soon');
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('PastEvents');
     });
 
     it('should show alert when Privacy Policy is pressed', () => {

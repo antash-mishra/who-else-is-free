@@ -37,6 +37,7 @@ func (h *EventHandler) RegisterProtectedRoutes(group *gin.RouterGroup) {
 	group.POST("/events", h.createEvent)
 	group.PUT("/events/:id", h.updateEvent)
 	group.DELETE("/events/:id", h.deleteEvent)
+	group.GET("/events/past", h.listUserPastEvents)
 }
 
 func (h *EventHandler) listEvents(c *gin.Context) {
@@ -57,6 +58,25 @@ func (h *EventHandler) listEvents(c *gin.Context) {
 	events, err := h.repo.ListForViewer(ctx, viewerUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": events})
+}
+
+func (h *EventHandler) listUserPastEvents(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	claims, exists := sessionFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	events, err := h.repo.ListUserPastEvents(ctx, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch past events"})
 		return
 	}
 
