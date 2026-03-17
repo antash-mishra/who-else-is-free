@@ -120,8 +120,8 @@ const ProfileScreen = () => {
   }, []);
 
   const handlePastEvents = useCallback(() => {
-    Alert.alert("Past Events", "Coming Soon");
-  }, []);
+    navigation.navigate("PastEvents");
+  }, [navigation]);
 
   const handlePrivacyPolicy = useCallback(() => {
     Alert.alert("Privacy Policy", "Privacy Policy information will be available here.");
