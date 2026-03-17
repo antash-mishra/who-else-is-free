@@ -37,6 +37,7 @@ jest.mock('@components/ScreenContainer', () => {
 });
 
 // Mock SVG icons
+jest.mock('@assets/camera.svg', () => 'CameraIconSvg');
 jest.mock('@assets/edit-profile-icon-profile.svg', () => 'EditProfileIconSvg');
 jest.mock('@assets/past-event-icon-profile.svg', () => 'PastEventsIconSvg');
 jest.mock('@assets/privacy-policy-icon-profile.svg', () => 'PrivacyPolicyIconSvg');
@@ -218,13 +219,14 @@ describe('ProfileScreen Rendering', () => {
       expect(getByText('Delete')).toBeTruthy();
     });
 
-    it('should show alert when Edit Profile is pressed', () => {
+    it('should open edit profile modal when Edit Profile is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
       fireEvent.press(getByText('Edit Profile'));
 
-      expect(Alert.alert).toHaveBeenCalledWith('Edit Profile', 'Coming Soon');
+      // Modal should now be visible with the Edit Profile title inside it
+      expect(getByText('Save')).toBeTruthy();
     });
 
     it('should navigate to PastEvents when Past Events is pressed', () => {
@@ -236,28 +238,22 @@ describe('ProfileScreen Rendering', () => {
       expect(mockNavigation.navigate).toHaveBeenCalledWith('PastEvents');
     });
 
-    it('should show alert when Privacy Policy is pressed', () => {
+    it('should navigate to PrivacyPolicy when Privacy Policy is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
       fireEvent.press(getByText('Privacy Policy'));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Privacy Policy',
-        'Privacy Policy information will be available here.'
-      );
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('PrivacyPolicy');
     });
 
-    it('should show alert when Help is pressed', () => {
+    it('should navigate to Help when Help is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
       fireEvent.press(getByText('Help'));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Help',
-        'Help & Support information will be available here.'
-      );
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Help');
     });
 
     it('should show alert when Delete is pressed', () => {
