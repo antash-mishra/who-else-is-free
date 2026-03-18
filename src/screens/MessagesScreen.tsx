@@ -238,7 +238,7 @@ const MessagesScreen = () => {
             !isRefreshingConversations && !isConnecting ? (
               <EmptyState
                 title="No Messages Yet"
-                description="Once you create an event, or accepted an event request, your chats will appear here."
+                description={"Messages from your events\nwill appear here"}
                 imageSource={require('@assets/emptystate_chat.png')}
               />
             ) : null

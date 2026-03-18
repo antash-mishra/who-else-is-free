@@ -262,7 +262,7 @@ const HomeScreen = () => {
         >
           <EmptyState
             title="Nothing Happening Here (Yet!)"
-            description="There are currently no events available. Please check back later for new experiences."
+            description={"There are currently no events available.\nPlease check back later."}
             imageSource={require('@assets/emptystate_discoverevent.png')}
           />
         </ScrollView>
