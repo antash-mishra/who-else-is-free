@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
         color: colors.createButtonText,
         fontSize: typography.subtitle,
         fontFamily: typography.fontFamilySemiBold,
-        lineHeight: typography.subtitle,
+        lineHeight: 24,
         letterSpacing: typography.letterSpacing,
     },
 });
