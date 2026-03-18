@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Modal, Pressable } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import styles from "./BottomSheetModal.styles";
 
@@ -13,6 +14,7 @@ const SLIDE_DURATION = 250;
 const SLIDE_DISTANCE = 300;
 
 const BottomSheetModal = ({ visible, onClose, children }: BottomSheetModalProps) => {
+    const insets = useSafeAreaInsets();
     const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
 
     useEffect(() => {
@@ -47,7 +49,7 @@ const BottomSheetModal = ({ visible, onClose, children }: BottomSheetModalProps)
                 <Animated.View
                     style={[
                         styles.content,
-                        { transform: [{ translateY: slideAnim }] },
+                        { marginBottom: Math.max(24, insets.bottom + 8), transform: [{ translateY: slideAnim }] },
                     ]}
                     testID="bottom-sheet-modal"
                 >
