@@ -8,6 +8,8 @@ import {
   View,
 } from "react-native";
 import { useCallback, useMemo, useState } from "react";
+import BottomSheetModal from "@components/BottomSheetModal";
+import SignInButtons from "@components/SignInButtons";
 import {
   useFocusEffect,
   useNavigation,
@@ -49,13 +51,14 @@ const MessagesScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      setActiveConversation(null);
       if (!user) {
         return undefined;
       }
 
       refreshConversations().catch(() => undefined);
       return undefined;
-    }, [refreshConversations, user]),
+    }, [refreshConversations, setActiveConversation, user]),
   );
 
   const handleRefresh = useCallback(() => {
@@ -169,15 +172,7 @@ const MessagesScreen = () => {
           item.id === activeConversationId && styles.conversationRowActive,
         ]}
       >
-        <View
-          testID={`conversation-unread-dot-spacer-${item.id}`}
-          style={[
-            styles.unreadDotSpacer,
-            hasUnread ? styles.unreadDotSpacerVisible : styles.unreadDotSpacerHidden,
-          ]}
-        >
-          {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
-        </View>
+        {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
             <Image
@@ -200,6 +195,8 @@ const MessagesScreen = () => {
     );
   };
 
+  const [signInVisible, setSignInVisible] = useState(false);
+
   if (!user) {
     return (
       <ScreenContainer>
@@ -208,13 +205,14 @@ const MessagesScreen = () => {
         </View>
         <EmptyState
           title="No messages to show"
-          description="Log in or sign up to view conversations from events you have created or joined."
-          actionLabel="Log In"
-          onActionPress={() => navigation.navigate("Login")}
-          secondaryActionLabel="Sign Up"
-          onSecondaryActionPress={() => navigation.navigate("Login")}
+          description={"Sign in to view conversations from\nevents you've created or joined"}
+          actionLabel="Continue"
+          onActionPress={() => setSignInVisible(true)}
           imageSource={require('@assets/emptystate_chat.png')}
         />
+        <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
+          <SignInButtons />
+        </BottomSheetModal>
       </ScreenContainer>
     );
   }
@@ -231,14 +229,16 @@ const MessagesScreen = () => {
         ) : null}
         <FlatList
           data={displayConversations}
+          extraData={displayConversations}
           keyExtractor={(conversation) => String(conversation.id)}
           renderItem={renderConversation}
+          style={styles.flatList}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
           ListEmptyComponent={
             !isRefreshingConversations && !isConnecting ? (
               <EmptyState
                 title="No Messages Yet"
-                description="Once you create an event, or accepted an event request, your chats will appear here."
+                description={"Messages from your events\nwill appear here"}
                 imageSource={require('@assets/emptystate_chat.png')}
               />
             ) : null
@@ -262,6 +262,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     gap: spacing.md,
+    overflow: "visible",
   },
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
@@ -283,9 +284,14 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
 
+  flatList: {
+    marginLeft: -spacing.md,
+  },
   conversationRow: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
+    paddingLeft: spacing.md,
   },
   conversationRowActive: {
     // borderWidth: 1,
@@ -336,20 +342,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
   },
-  unreadDotSpacer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  unreadDotSpacerVisible: {
-    width: 16,
-  },
-  unreadDotSpacerHidden: {
-    width: 0,
-  },
   unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    position: "absolute",
+    left: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: "#2F81E6",
   },
 });

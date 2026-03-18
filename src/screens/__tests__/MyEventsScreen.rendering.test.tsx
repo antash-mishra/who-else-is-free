@@ -97,7 +97,7 @@ describe('MyEventsScreen Rendering', () => {
   describe('Header and Filter Tabs', () => {
     it('renders the header title', () => {
       renderWithNav(<MyEventsScreen />);
-      expect(screen.getByText('Your Events')).toBeTruthy();
+      expect(screen.getByText('My Events')).toBeTruthy();
     });
 
     it('renders all filter buttons', () => {
@@ -211,15 +211,15 @@ describe('MyEventsScreen Rendering', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
       expect(screen.getByText('No events to show')).toBeTruthy();
-      expect(screen.getByText('Log In')).toBeTruthy();
+      expect(screen.getByText('Continue')).toBeTruthy();
     });
 
-    it('navigates to login when Log In pressed', () => {
+    it('opens sign-in modal when Continue pressed', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
-      const loginButton = screen.getByText('Log In');
-      fireEvent.press(loginButton);
-      expect(mockNavigate).toHaveBeenCalledWith('Login');
+      const continueButton = screen.getByText('Continue');
+      fireEvent.press(continueButton);
+      expect(screen.getByTestId('bottom-sheet-modal')).toBeTruthy();
     });
   });
 

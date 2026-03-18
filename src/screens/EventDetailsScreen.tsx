@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Image,
   LayoutAnimation,
   Platform,
@@ -11,6 +12,7 @@ import {
   View,
   Pressable,
   StatusBar,
+  useWindowDimensions,
 } from "react-native";
 
 if (
@@ -40,6 +42,8 @@ import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { API_BASE_URL } from "@api/config";
 import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
+import BottomSheetModal from "@components/BottomSheetModal";
+import SignInButtons from "@components/SignInButtons";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type EventDetailsRoute = RouteProp<
@@ -51,6 +55,40 @@ type EventDetailsNavigation = NativeStackNavigationProp<
   "EventDetails" | "EventDetailsOverlay"
 >;
 
+const OverlayWithSlide = ({
+  onDismiss,
+  children,
+}: {
+  onDismiss: () => void;
+  children: React.ReactNode;
+}) => {
+  const slideAnim = useRef(new Animated.Value(500)).current;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      damping: 20,
+      stiffness: 200,
+      mass: 0.8,
+      useNativeDriver: true,
+    }).start();
+  }, [slideAnim]);
+
+  return (
+    <View style={styles.overlayWrapper}>
+      <Pressable style={styles.overlayDismissZone} onPress={onDismiss} />
+      <Animated.View
+        style={[
+          styles.overlayContentContainer,
+          { transform: [{ translateY: slideAnim }] },
+        ]}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
+};
+
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
@@ -58,6 +96,7 @@ const EventDetailsScreen = () => {
   const isOverlay = route.name === "EventDetailsOverlay";
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const {
     events,
     deleteUserEvent,
@@ -92,6 +131,8 @@ const EventDetailsScreen = () => {
   const event = eventSnapshot;
   const origin = (route.params as { origin?: string }).origin ?? "Events";
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
+  const [signInVisible, setSignInVisible] = useState(false);
+  const [pendingSendAfterSignIn, setPendingSendAfterSignIn] = useState(false);
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [isSendingInvite, setIsSendingInvite] = useState(false);
@@ -106,6 +147,13 @@ const EventDetailsScreen = () => {
     }
     setHasPendingRequest(isEventRequested(eventSnapshot.id));
   }, [eventSnapshot, isEventRequested]);
+
+  useEffect(() => {
+    if (user && signInVisible) {
+      setSignInVisible(false);
+    }
+  }, [user, signInVisible]);
+
   const [showRequestSentBadge, setShowRequestSentBadge] = useState(false);
   const [showRequestCancelledBadge, setShowRequestCancelledBadge] =
     useState(false);
@@ -458,8 +506,7 @@ const EventDetailsScreen = () => {
   const showOpenChatCTA = isOwner
     ? isSingleEvent || !!eventConversation
     : isConversationMember && !!eventConversation;
-  const shouldPinBottomCTA =
-    !readOnly && !isOwner && (showStandardCTA || showOpenChatCTA);
+  const shouldPinBottomCTA = !readOnly && (showStandardCTA || showOpenChatCTA);
   const pageScrollContentStyle = [
     styles.pageScrollContent,
     shouldPinBottomCTA
@@ -782,7 +829,8 @@ const EventDetailsScreen = () => {
       return;
     }
     if (!user || !token) {
-      navigation.navigate("Login");
+      setPendingSendAfterSignIn(true);
+      setSignInVisible(true);
       return;
     }
     if (isSendingInvite) {
@@ -814,7 +862,7 @@ const EventDetailsScreen = () => {
         return;
       }
       if (response.status === 401) {
-        navigation.navigate("Login");
+        setSignInVisible(true);
         return;
       }
       if (!response.ok) {
@@ -851,11 +899,17 @@ const EventDetailsScreen = () => {
     }
   };
 
+  // Auto-send invite after sign-in completes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (user && token && pendingSendAfterSignIn) {
+      setPendingSendAfterSignIn(false);
+      handleSendInvite();
+    }
+  }, [user, token, pendingSendAfterSignIn]);
+
   const handleEdit = () => {
-    (navigation as any).navigate("Main", {
-      screen: "Create",
-      params: { editEventId: event.id },
-    });
+    (navigation as any).navigate("CreateEvent", { editEventId: event.id });
     setShowManagePrompt(false);
   };
 
@@ -1159,6 +1213,41 @@ const EventDetailsScreen = () => {
       />
 
       <View style={styles.contentWrapper}>
+        {!readOnly ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              onPress={navigation.goBack}
+              style={[styles.backButton, { top: insets.top + 10 }]}
+            >
+              <Feather
+                name="chevron-left"
+                size={24}
+                color={colors.buttonText}
+              />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setShowMenuOverlay(true)}
+              style={[styles.menuButton, { top: insets.top + 10 }]}
+            >
+              <Feather
+                name="more-horizontal"
+                size={24}
+                color={colors.buttonText}
+              />
+            </Pressable>
+          </>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            onPress={navigation.goBack}
+            hitSlop={12}
+            style={[styles.overlayCloseButton, styles.overlayCloseButtonFixed]}
+          >
+            <Feather name="x" size={24} color={colors.buttonText} />
+          </Pressable>
+        )}
         <ScrollView
           showsVerticalScrollIndicator={false}
           bounces={false}
@@ -1169,7 +1258,10 @@ const EventDetailsScreen = () => {
             style={[
               styles.heroContainer,
               readOnly
-                ? { paddingTop: 12, paddingBottom: 16 }
+                ? {
+                    paddingTop: screenHeight * 0.065,
+                    paddingBottom: screenHeight * 0.039,
+                  }
                 : { height: 320 + insets.top, paddingTop: insets.top + 10 },
             ]}
           >
@@ -1181,51 +1273,14 @@ const EventDetailsScreen = () => {
             />
             <View pointerEvents="none" style={styles.heroOverlayDark} />
             <View pointerEvents="none" style={styles.heroOverlayLight} />
-            {readOnly ? (
-              <>
-                <View style={styles.overlayHeaderRow}>
-                  <Text style={styles.overlayHeaderTitle} numberOfLines={1}>
-                    {event.title}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={navigation.goBack}
-                    hitSlop={12}
-                    style={styles.overlayCloseButton}
-                  >
-                    <Feather name="x" size={24} color={colors.buttonText} />
-                  </Pressable>
-                </View>
-              </>
-            ) : (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={navigation.goBack}
-                  style={[styles.backButton, { top: insets.top + 10 }]}
-                >
-                  <Feather
-                    name="chevron-left"
-                    size={24}
-                    color={colors.buttonText}
-                  />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setShowMenuOverlay(true)}
-                  style={[styles.menuButton, { top: insets.top + 10 }]}
-                >
-                  <Feather
-                    name="more-horizontal"
-                    size={24}
-                    color={colors.buttonText}
-                  />
-                </Pressable>
-              </>
-            )}
 
             {/* Elevated Image Card */}
-            <View style={styles.imageCardContainer}>
+            <View
+              style={[
+                styles.imageCardContainer,
+                readOnly && styles.imageCardContainerOverlay,
+              ]}
+            >
               <Image
                 source={{ uri: event.imageUri }}
                 style={styles.imageCard}
@@ -1551,49 +1606,53 @@ const EventDetailsScreen = () => {
             )}
 
             {/* Overlay: Members tab for group events (all users) */}
-            {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
-              <>
-                <View style={styles.tabSeparator} />
-                <View style={styles.tabContainer}>
-                  <View style={styles.tabItem}>
-                    <View style={styles.tabLabelRow}>
-                      <Text style={[styles.tabLabel, styles.tabLabelActive]}>
-                        Members
-                      </Text>
-                      <Text style={styles.tabCount}>
-                        {" "}
-                        {overlayMembers.length}
-                      </Text>
-                    </View>
-                    <View style={styles.tabUnderline} />
-                  </View>
-                </View>
-                <View style={styles.listContainer}>
-                  {overlayMembers.length === 0 ? (
-                    <Text style={styles.emptyStateText}>No members yet</Text>
-                  ) : (
-                    overlayMembers.map((member) => (
-                      <View key={member.id} style={styles.memberItem}>
-                        {renderAvatar(member)}
-                        <Text style={styles.memberName}>{member.name}</Text>
-                        {isOwner && member.id !== user?.id && (
-                          <Pressable
-                            onPress={() => openMemberMenu(member)}
-                            style={styles.requestMenuButton}
-                          >
-                            <Feather
-                              name="more-horizontal"
-                              size={24}
-                              color="#666"
-                            />
-                          </Pressable>
-                        )}
+            {!isSingleEvent &&
+              isOverlay &&
+              (isOwner || isConversationMember) && (
+                <>
+                  <View style={styles.tabSeparator} />
+                  <View style={styles.tabContainer}>
+                    <View style={styles.tabItem}>
+                      <View style={styles.tabLabelRow}>
+                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>
+                          Members
+                        </Text>
+                        <Text style={styles.tabCount}>
+                          {" "}
+                          {overlayMembers.length}
+                        </Text>
                       </View>
-                    ))
-                  )}
-                </View>
-              </>
-            )}
+                      <View style={styles.tabUnderline} />
+                    </View>
+                  </View>
+                  <View style={styles.listContainer}>
+                    {overlayMembers.length === 0 ? (
+                      <Text style={styles.emptyStateText}>No members yet</Text>
+                    ) : (
+                      overlayMembers.map((member) => (
+                        <View key={member.id} style={styles.memberItem}>
+                          {renderAvatar(member)}
+                          <Text style={styles.memberName}>{member.name}</Text>
+                          {member.id === user?.id && isOwner ? (
+                            <Text style={styles.hostBadgeText}>Host</Text>
+                          ) : isOwner && member.id !== user?.id ? (
+                            <Pressable
+                              onPress={() => openMemberMenu(member)}
+                              style={styles.requestMenuButton}
+                            >
+                              <Feather
+                                name="more-horizontal"
+                                size={24}
+                                color="#666"
+                              />
+                            </Pressable>
+                          ) : null}
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </>
+              )}
 
             {userIntroMessage && !readOnly ? (
               <>
@@ -1605,55 +1664,6 @@ const EventDetailsScreen = () => {
               </>
             ) : null}
           </View>
-          {!shouldPinBottomCTA && showStandardCTA && !readOnly && (
-            <View
-              style={[
-                styles.ctaContainer,
-                shouldShowInvitePrompt && styles.ctaContainerActive,
-              ]}
-            >
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleCtaPress}
-                style={({ pressed }) => [
-                  styles.ctaButton,
-                  pressed && styles.ctaButtonPressed,
-                  (shouldShowInvitePrompt || hasPendingRequest) &&
-                    styles.ctaButtonDisabled,
-                ]}
-                disabled={shouldShowInvitePrompt || hasPendingRequest}
-              >
-                <Text
-                  style={[
-                    styles.ctaLabel,
-                    (shouldShowInvitePrompt || hasPendingRequest) &&
-                      styles.ctaLabelDisabled,
-                  ]}
-                >
-                  {ctaLabel}
-                </Text>
-              </Pressable>
-            </View>
-          )}
-          {!shouldPinBottomCTA && showOpenChatCTA && !readOnly ? (
-            <View style={styles.ctaContainer}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={handleOpenChat}
-                style={({ pressed }) => [
-                  styles.ctaButton,
-                  isOwner && styles.ctaButtonSecondary,
-                  pressed && styles.ctaButtonPressed,
-                ]}
-              >
-                <Text
-                  style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}
-                >
-                  Go to Chat
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
         </ScrollView>
         {shouldPinBottomCTA && showStandardCTA && !readOnly && (
           <View style={styles.pinnedCtaWrapper}>
@@ -1823,11 +1833,11 @@ const EventDetailsScreen = () => {
         type="menu"
         items={[
           {
-            label: "Report & Block Member",
+            label: `Report & Block ${selectedMember?.name?.split(" ")[0] ?? "Member"}`,
             onPress: handleReportMemberFromMenu,
           },
           {
-            label: "Remove Member",
+            label: `Remove ${selectedMember?.name?.split(" ")[0] ?? "Member"}`,
             onPress: handleRemovePromptFromMenu,
             destructive: true,
           },
@@ -1837,13 +1847,13 @@ const EventDetailsScreen = () => {
         isVisible={showRemoveConfirm}
         onBackdropPress={isRemovingMember ? undefined : handleRemoveCancel}
         type="confirm"
-        title="Remove this member?"
+        title={`Remove ${selectedMember?.name?.split(" ")[0] ?? "this member"}?`}
         description={
           isSingleEvent
             ? "They will be removed from this event and private chat."
             : "They will be removed from the group chat and will need to request to join again."
         }
-        confirmLabel="Remove Member"
+        confirmLabel={`Remove ${selectedMember?.name?.split(" ")[0] ?? "Member"}`}
         cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={handleRemoveMember}
@@ -1892,18 +1902,17 @@ const EventDetailsScreen = () => {
           setReportedMemberBadgeLabel(null);
         }}
       />
+      <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
+        <SignInButtons />
+      </BottomSheetModal>
     </>
   );
 
   if (readOnly) {
     return (
-      <View style={styles.overlayWrapper}>
-        <Pressable
-          style={styles.overlayDismissZone}
-          onPress={navigation.goBack}
-        />
-        <View style={styles.overlayContentContainer}>{screenContent}</View>
-      </View>
+      <OverlayWithSlide onDismiss={navigation.goBack}>
+        {screenContent}
+      </OverlayWithSlide>
     );
   }
 
@@ -1924,7 +1933,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background, // Your original background color
   },
   heroContainer: {
-    height: 320,
     paddingHorizontal: spacing.md,
     paddingTop: 10,
     position: "relative",
@@ -1978,6 +1986,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  overlayCloseButtonFixed: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    zIndex: 10,
+  },
   backButton: {
     position: "absolute",
     top: 10,
@@ -2005,8 +2019,11 @@ const styles = StyleSheet.create({
 
   // Image card container
   imageCardContainer: {
-    width: "60%", // 50% of heroContainer width
+    width: "60%",
     aspectRatio: 1, // Square card
+  },
+  imageCardContainerOverlay: {
+    width: "50%",
   },
 
   // The elevated image card
@@ -2376,6 +2393,15 @@ const styles = StyleSheet.create({
   },
   requestMenuButton: {
     padding: 8,
+  },
+  hostBadgeText: {
+    fontFamily: "Inter",
+    fontWeight: "500",
+    fontSize: 14,
+    lineHeight: 14,
+    letterSpacing: -0.5,
+    color: "#4E4E4E",
+    marginLeft: "auto",
   },
 });
 

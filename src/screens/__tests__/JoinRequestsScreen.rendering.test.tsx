@@ -496,7 +496,7 @@ describe('JoinRequestsScreen Rendering', () => {
 
       await waitFor(() => {
         expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
-        expect(mockReplace).toHaveBeenCalledWith('ChatThread');
+        expect(mockNavigate).toHaveBeenCalledWith('ChatThread');
       });
     });
   });

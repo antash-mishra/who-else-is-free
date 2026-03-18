@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Image,
     Platform,
@@ -11,17 +11,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import {
-    CompositeNavigationProp,
     RouteProp,
     useFocusEffect,
     useNavigation,
     useRoute,
 } from "@react-navigation/native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-import { RootStackParamList, RootTabParamList } from "@navigation/types";
+import { RootStackParamList } from "@navigation/types";
 import { colors, spacing } from "@theme/index";
 import { GuestEventDraft, UserEvent, useEvents } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
@@ -54,6 +52,8 @@ import WarningIcon from "@assets/warning.svg";
 import SelectionModal from "@components/SelectionModal";
 import CoverPickerModal from "@components/CoverPickerModal";
 import EventDateTimeModal from "@components/EventDateTimeModal";
+import BottomSheetModal from "../components/BottomSheetModal";
+import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
 
 type FormState = {
@@ -67,12 +67,9 @@ type FormState = {
     coverKey: CoverKey;
 };
 
-type CreateNavigation = CompositeNavigationProp<
-    BottomTabNavigationProp<RootTabParamList, "Create">,
-    NativeStackNavigationProp<RootStackParamList>
->;
+type CreateNavigation = NativeStackNavigationProp<RootStackParamList, "CreateEvent">;
 
-type CreateRoute = RouteProp<RootTabParamList, "Create">;
+type CreateRoute = RouteProp<RootStackParamList, "CreateEvent">;
 
 const EVENT_DATE_WINDOW_DAYS = 30;
 
@@ -98,8 +95,6 @@ const getEventDateTime = (event?: UserEvent | null): Date => {
 
 const CreateEventScreen = () => {
     const navigation = useNavigation<CreateNavigation>();
-    const rootNavigation =
-        navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
     const route = useRoute<CreateRoute>();
     const { addUserEvent, updateUserEvent, events, queueGuestEvent } =
         useEvents();
@@ -142,6 +137,9 @@ const CreateEventScreen = () => {
     const [isGroupTypePickerVisible, setGroupTypePickerVisible] = useState(false);
     const [isCoverPickerVisible, setCoverPickerVisible] = useState(false);
     const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
+
+    // Sign-in modal state
+    const [signInVisible, setSignInVisible] = useState(false);
 
     // Submission state
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -226,13 +224,17 @@ const CreateEventScreen = () => {
 
             return () => {
                 if (editEventId) {
-                    navigation.setParams({ editEventId: undefined } as Partial<
-                        RootTabParamList["Create"]
-                    >);
+                    navigation.setParams({ editEventId: undefined });
                 }
             };
         }, [applyEventToForm, editEvent, editEventId, navigation, resetForm]),
     );
+
+    useEffect(() => {
+        if (user && signInVisible) {
+            setSignInVisible(false);
+        }
+    }, [user, signInVisible]);
 
     // Open modal handlers - set temp to current value
     const openAgePicker = useCallback(() => {
@@ -363,7 +365,7 @@ const CreateEventScreen = () => {
                         coverKey: selectedCover,
                         scheduledAt,
                     });
-                    rootNavigation?.navigate("EventDetails", {
+                    navigation.navigate("EventDetails", {
                         eventId: String(editEventId),
                         origin: "MyEvents",
                         showEventUpdatedBadge: true,
@@ -389,8 +391,9 @@ const CreateEventScreen = () => {
                         scheduledAt,
                     });
                     resetForm();
-                    navigation.navigate("MyEvents", {
-                        showEventCreatedBadge: true,
+                    (navigation as any).navigate("Main", {
+                        screen: "MyEvents",
+                        params: { showEventCreatedBadge: true },
                     });
                 }
             } catch (err) {
@@ -410,7 +413,6 @@ const CreateEventScreen = () => {
             isSubmitting,
             navigation,
             resetForm,
-            rootNavigation,
             updateUserEvent,
             user,
         ],
@@ -418,6 +420,77 @@ const CreateEventScreen = () => {
 
     const handlePrimaryAction = () => {
         const formState = getCurrentFormState();
+
+        // Guest user flow — always open sign-in modal
+        if (!user) {
+            const hasContent =
+                formState.eventName.trim().length > 0 ||
+                formState.description.trim().length > 0;
+
+            if (hasContent) {
+                // Validate date/time only when there's content to publish
+                if (Number.isNaN(formState.selectedDateTime.getTime())) {
+                    setSubmitError("Choose a valid date and time.");
+                    return;
+                }
+
+                const now = new Date();
+                const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
+                if (isPastDateTimeSelection(formState.selectedDateTime, now)) {
+                    setSubmitError("Choose a future date and time.");
+                    return;
+                }
+
+                if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
+                    setSubmitError("Choose a time within the next 30 days.");
+                    return;
+                }
+
+                // Queue the draft for auto-submit after sign-in
+                const trimmedName = formState.eventName.trim();
+                const trimmedDescription = formState.description.trim();
+                const locationLabel = formState.location.trim() || "To be decided";
+                const [rangeStart, rangeEnd] = formState.ageRange;
+                const minAge = Math.min(rangeStart, rangeEnd);
+                const maxAge = Math.max(rangeStart, rangeEnd);
+                const selectedCover = formState.coverKey || DEFAULT_COVER_KEY;
+                const normalizedDateTime = new Date(formState.selectedDateTime);
+                normalizedDateTime.setSeconds(0, 0);
+
+                const eventDate = toDateKey(normalizedDateTime);
+                const selectedLabel = getLegacyDateLabel(eventDate);
+                const eventTime = formatTime(
+                    normalizedDateTime.getHours(),
+                    normalizedDateTime.getMinutes(),
+                );
+                const scheduledAt = normalizedDateTime.toISOString();
+
+                const draftPayload: GuestEventDraft = {
+                    title: trimmedName || "New event",
+                    location: locationLabel,
+                    time: eventTime,
+                    eventDate,
+                    dateLabel: selectedLabel,
+                    description: trimmedDescription.length ? trimmedDescription : undefined,
+                    gender: formState.gender,
+                    minAge,
+                    maxAge,
+                    groupType: formState.groupType,
+                    badgeLabel: formState.groupType === "Group" ? "Group" : undefined,
+                    coverKey: selectedCover,
+                    scheduledAt,
+                };
+
+                queueGuestEvent(draftPayload);
+            }
+
+            // Always open sign-in modal (no validation blocking for empty fields)
+            setSubmitError(null);
+            setSignInVisible(true);
+            return;
+        }
+
+        // Authenticated user flow — validate and submit
         const hasContent =
             formState.eventName.trim().length > 0 ||
             formState.description.trim().length > 0;
@@ -441,46 +514,6 @@ const CreateEventScreen = () => {
 
         if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
             setSubmitError("Choose a time within the next 30 days.");
-            return;
-        }
-
-        if (!user) {
-            const trimmedName = formState.eventName.trim();
-            const trimmedDescription = formState.description.trim();
-            const locationLabel = formState.location.trim() || "To be decided";
-            const [rangeStart, rangeEnd] = formState.ageRange;
-            const minAge = Math.min(rangeStart, rangeEnd);
-            const maxAge = Math.max(rangeStart, rangeEnd);
-            const selectedCover = formState.coverKey || DEFAULT_COVER_KEY;
-            const normalizedDateTime = new Date(formState.selectedDateTime);
-            normalizedDateTime.setSeconds(0, 0);
-
-            const eventDate = toDateKey(normalizedDateTime);
-            const selectedLabel = getLegacyDateLabel(eventDate);
-            const eventTime = formatTime(
-                normalizedDateTime.getHours(),
-                normalizedDateTime.getMinutes(),
-            );
-            const scheduledAt = normalizedDateTime.toISOString();
-
-            const draftPayload: GuestEventDraft = {
-                title: trimmedName || "New event",
-                location: locationLabel,
-                time: eventTime,
-                eventDate,
-                dateLabel: selectedLabel,
-                description: trimmedDescription.length ? trimmedDescription : undefined,
-                gender: formState.gender,
-                minAge,
-                maxAge,
-                groupType: formState.groupType,
-                badgeLabel: formState.groupType === "Group" ? "Group" : undefined,
-                coverKey: selectedCover,
-                scheduledAt,
-            };
-
-            queueGuestEvent(draftPayload);
-            rootNavigation?.navigate("Login");
             return;
         }
 
@@ -763,6 +796,10 @@ const CreateEventScreen = () => {
                 getKey={(opt) => opt.label}
                 isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
             />
+
+            <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
+                <SignInButtons />
+            </BottomSheetModal>
         </View>
     );
 };

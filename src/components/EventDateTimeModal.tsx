@@ -1,5 +1,7 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+    Animated,
+    Dimensions,
     Modal,
     Pressable,
     ScrollView,
@@ -17,6 +19,8 @@ import {
 } from "@utils/dateTime";
 import styles from "./EventDateTimeModal.styles";
 
+const SLIDE_DURATION = 250;
+const SLIDE_DISTANCE = Dimensions.get('window').height;
 const WHEEL_ITEM_HEIGHT = 44;
 
 const HOURS = Array.from({ length: 24 }, (_value, index) =>
@@ -98,6 +102,7 @@ const EventDateTimeModal = ({
     const [draftValue, setDraftValue] = useState(() =>
         clampDateTime(toSafeDate(value), minDate, maxDate),
     );
+    const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
     const dateWheelRef = useRef<ScrollView>(null);
     const hourWheelRef = useRef<ScrollView>(null);
     const minuteWheelRef = useRef<ScrollView>(null);
@@ -142,12 +147,19 @@ const EventDateTimeModal = ({
             return;
         }
 
+        slideAnim.setValue(SLIDE_DISTANCE);
+        Animated.timing(slideAnim, {
+            toValue: 0,
+            duration: SLIDE_DURATION,
+            useNativeDriver: true,
+        }).start();
+
         const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
         setDraftValue(initialDraft);
         requestAnimationFrame(() => {
             syncWheelPositions(initialDraft, false);
         });
-    }, [maxDate, minDate, syncWheelPositions, value, visible]);
+    }, [maxDate, minDate, slideAnim, syncWheelPositions, value, visible]);
 
     const applyDateIndex = useCallback(
         (index: number) => {
@@ -191,23 +203,42 @@ const EventDateTimeModal = ({
         [maxDate, minDate],
     );
 
+    const slideOut = useCallback(
+        (callback: () => void) => {
+            Animated.timing(slideAnim, {
+                toValue: SLIDE_DISTANCE,
+                duration: SLIDE_DURATION,
+                useNativeDriver: true,
+            }).start(() => {
+                callback();
+            });
+        },
+        [slideAnim],
+    );
+
+    const handleClose = useCallback(() => {
+        slideOut(onClose);
+    }, [onClose, slideOut]);
+
     const handleConfirm = useCallback(() => {
-        onConfirm(draftValue);
-    }, [draftValue, onConfirm]);
+        slideOut(() => onConfirm(draftValue));
+    }, [draftValue, onConfirm, slideOut]);
 
     return (
         <Modal
             visible={visible}
             transparent
             animationType="fade"
-            onRequestClose={onClose}
+            onRequestClose={handleClose}
         >
-            <Pressable style={styles.backdrop} onPress={onClose}>
-                <Pressable onPress={(event) => event.stopPropagation()}>
-                    <View style={styles.container}>
+            <Pressable style={styles.backdrop} onPress={handleClose}>
+                <Animated.View
+                    style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
+                >
+                    <Pressable onPress={(event) => event.stopPropagation()}>
                         <View style={styles.header}>
                             <Text style={styles.title}>When is your event?</Text>
-                            <Pressable style={styles.closeButton} onPress={onClose}>
+                            <Pressable style={styles.closeButton} onPress={handleClose}>
                                 <Feather name="x" size={18} color="#999999" />
                             </Pressable>
                         </View>
@@ -372,8 +403,8 @@ const EventDateTimeModal = ({
                         <Pressable style={styles.confirmButton} onPress={handleConfirm}>
                             <Text style={styles.confirmButtonText}>Update Time</Text>
                         </Pressable>
-                    </View>
-                </Pressable>
+                    </Pressable>
+                </Animated.View>
             </Pressable>
         </Modal>
     );

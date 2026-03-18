@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import BottomSheetModal from "@components/BottomSheetModal";
+import SignInButtons from "@components/SignInButtons";
 import {
   Pressable,
   RefreshControl,
@@ -295,27 +297,30 @@ const MyEventsScreen = () => {
     count?: number;
     showIcon?: boolean;
   }[] = [
-    { label: "Upcoming", value: "all", showIcon: true },
+    { label: sortMode === "upcoming" ? "Upcoming" : "Newest", value: "all", showIcon: true },
     { label: "Hosting", value: "hosting", count: counts.hosting },
     { label: "Joined", value: "joined", count: counts.joined },
     { label: "Requested", value: "requested", count: counts.requested },
   ];
 
+  const [signInVisible, setSignInVisible] = useState(false);
+
   if (!user) {
     return (
       <ScreenContainer>
         <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Your Events</Text>
+          <Text style={styles.headerTitle}>My Events</Text>
         </View>
         <EmptyState
           title="No events to show"
-          description="Log in or sign up to view the events you have created or joined."
-          actionLabel="Log In"
-          onActionPress={() => navigation.navigate("Login")}
-          secondaryActionLabel="Sign Up"
-          onSecondaryActionPress={() => navigation.navigate("Login")}
+          description={"Sign in to see the events you've\ncreated or joined"}
+          actionLabel="Continue"
+          onActionPress={() => setSignInVisible(true)}
           imageSource={require('@assets/emptystate_myevent.png')}
         />
+        <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
+          <SignInButtons />
+        </BottomSheetModal>
       </ScreenContainer>
     );
   }
@@ -324,7 +329,7 @@ const MyEventsScreen = () => {
     <ScreenContainer>
 <View style={styles.content}>
         <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Your Events</Text>
+          <Text style={styles.headerTitle}>My Events</Text>
         </View>
         <ScrollView
           horizontal
@@ -394,8 +399,8 @@ const MyEventsScreen = () => {
           ListEmptyComponent={
             !isRefreshing ? (
               <EmptyState
-                title="You don't have any events"
-                description="Explore what's happening or start something new. All your events will appear here."
+                title="No events yet"
+                description={"Events you create or join\nwill appear here"}
                 imageSource={require('@assets/emptystate_myevent.png')}
               />
             ) : null

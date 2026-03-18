@@ -141,12 +141,13 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('MyEvents', {
-      showEventCreatedBadge: true,
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('Main', {
+      screen: 'MyEvents',
+      params: { showEventCreatedBadge: true },
     });
   });
 
-  it('queues guest draft and redirects to Login', async () => {
+  it('queues guest draft and opens sign-in modal', async () => {
     isGuestMode = true;
     render(<CreateEventScreen />);
 
@@ -164,7 +165,7 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
-    expect(mockRootNavigate).toHaveBeenCalledWith('Login');
+    expect(mockNavigation.navigate).not.toHaveBeenCalledWith('Login');
   });
 
   it('submits update payload in edit mode', async () => {
@@ -186,7 +187,7 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
-    expect(mockRootNavigate).toHaveBeenCalledWith('EventDetails', {
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetails', {
       eventId: mockEvents[0].id,
       origin: 'MyEvents',
       showEventUpdatedBadge: true,
