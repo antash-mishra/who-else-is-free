@@ -399,8 +399,8 @@ const MyEventsScreen = () => {
           ListEmptyComponent={
             !isRefreshing ? (
               <EmptyState
-                title="You don't have any events"
-                description="Explore what's happening or start something new. All your events will appear here."
+                title="No events yet"
+                description={"Events you create or join\nwill appear here"}
                 imageSource={require('@assets/emptystate_myevent.png')}
               />
             ) : null
