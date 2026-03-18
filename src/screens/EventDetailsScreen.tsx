@@ -1833,11 +1833,11 @@ const EventDetailsScreen = () => {
         type="menu"
         items={[
           {
-            label: "Report & Block Member",
+            label: `Report & Block ${selectedMember?.name?.split(" ")[0] ?? "Member"}`,
             onPress: handleReportMemberFromMenu,
           },
           {
-            label: "Remove Member",
+            label: `Remove ${selectedMember?.name?.split(" ")[0] ?? "Member"}`,
             onPress: handleRemovePromptFromMenu,
             destructive: true,
           },
@@ -1847,13 +1847,13 @@ const EventDetailsScreen = () => {
         isVisible={showRemoveConfirm}
         onBackdropPress={isRemovingMember ? undefined : handleRemoveCancel}
         type="confirm"
-        title="Remove this member?"
+        title={`Remove ${selectedMember?.name?.split(" ")[0] ?? "this member"}?`}
         description={
           isSingleEvent
             ? "They will be removed from this event and private chat."
             : "They will be removed from the group chat and will need to request to join again."
         }
-        confirmLabel="Remove Member"
+        confirmLabel={`Remove ${selectedMember?.name?.split(" ")[0] ?? "Member"}`}
         cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={handleRemoveMember}

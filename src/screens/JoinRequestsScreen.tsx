@@ -507,11 +507,11 @@ const JoinRequestsScreen = () => {
         type="menu"
         items={[
           {
-            label: "Report & Block Member",
+            label: `Report & Block ${selectedRequest?.requester?.name?.split(" ")[0] ?? "Member"}`,
             onPress: handleReportFromMenu,
           },
           {
-            label: "Remove Member",
+            label: `Remove ${selectedRequest?.requester?.name?.split(" ")[0] ?? "Member"}`,
             onPress: handleRemoveFromMenu,
             loading: isRemovingMember,
             destructive: true,
