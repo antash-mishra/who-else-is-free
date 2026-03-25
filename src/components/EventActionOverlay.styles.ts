@@ -8,16 +8,35 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center'
   },
+  promptWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: 'box-none' as const,
+  },
   overlayBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)'
+    backgroundColor: 'rgba(0, 0, 0, 0.4)'
+  },
+  menuPrompt: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: '#FFFFFF',
   },
   prompt: {
     position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
+    left: 0,
+    right: 0,
     backgroundColor: "#FFFFFF",
-    borderRadius: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
@@ -36,7 +55,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#F4F4F4',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: typography.letterSpacing,
@@ -67,7 +86,7 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: colors.text,
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center'
   },
   sendButtonPressed: {
@@ -83,7 +102,7 @@ const styles = StyleSheet.create({
   manageButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center'
   },
   manageButtonPressed: {
@@ -104,7 +123,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
@@ -123,7 +142,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: colors.text,
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center'
   },
   primaryButtonPressed: {

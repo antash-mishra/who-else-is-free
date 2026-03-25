@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { BlurView } from "expo-blur";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   Dimensions,
   Keyboard,
+  Modal,
   Platform,
   Pressable,
   Text,
@@ -10,7 +13,6 @@ import {
 } from "react-native";
 
 import { colors, spacing } from "@theme/index";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EventActionConfirm, {
   EventActionConfirmProps,
 } from "./EventActionConfirm";
@@ -96,10 +98,34 @@ type EventActionOverlayProps = {
   onBackdropPress?: () => void;
 } & OverlayVariantProps;
 
+const SLIDE_DURATION = 250;
+const SLIDE_DISTANCE = 300;
+
 const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   const { isVisible, onBackdropPress, type } = props;
-  const insets = useSafeAreaInsets();
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const hasBeenVisible = useRef(false);
+
+  useEffect(() => {
+    if (isVisible) {
+      hasBeenVisible.current = true;
+      setShowOverlay(true);
+      slideAnim.setValue(SLIDE_DISTANCE);
+      backdropAnim.setValue(0);
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 0, duration: SLIDE_DURATION, useNativeDriver: true }),
+        Animated.timing(backdropAnim, { toValue: 1, duration: SLIDE_DURATION, useNativeDriver: true }),
+      ]).start();
+    } else if (hasBeenVisible.current) {
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: SLIDE_DISTANCE, duration: SLIDE_DURATION, useNativeDriver: true }),
+        Animated.timing(backdropAnim, { toValue: 0, duration: SLIDE_DURATION, useNativeDriver: true }),
+      ]).start(() => setShowOverlay(false));
+    }
+  }, [isVisible, slideAnim, backdropAnim]);
 
   useEffect(() => {
     const showEvent =
@@ -125,15 +151,21 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
 
   const promptPositionStyle = useMemo(
     () => ({
-      bottom:
-        keyboardOffset > 0
-          ? keyboardOffset + spacing.lg
-          : Math.max(insets.bottom, spacing.lg) + spacing.md,
+      bottom: keyboardOffset > 0 ? keyboardOffset + spacing.sm : 0,
+      borderBottomLeftRadius: keyboardOffset > 0 ? 24 : 0,
+      borderBottomRightRadius: keyboardOffset > 0 ? 24 : 0,
     }),
-    [insets.bottom, keyboardOffset],
+    [keyboardOffset],
   );
 
-  if (!isVisible) return null;
+  const menuPromptPositionStyle = useMemo(
+    () => ({
+      bottom: keyboardOffset > 0 ? keyboardOffset + spacing.sm : 0,
+      borderBottomLeftRadius: keyboardOffset > 0 ? 28 : 0,
+      borderBottomRightRadius: keyboardOffset > 0 ? 28 : 0,
+    }),
+    [keyboardOffset],
+  );
 
   const renderInvitePrompt = () => {
     if (props.type !== "invite") return null;
@@ -375,7 +407,11 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const { items } = props;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <BlurView
+        intensity={80}
+        tint="systemMaterial"
+        style={[styles.menuPrompt, menuPromptPositionStyle]}
+      >
         {items.map((item, index) => {
           const isDisabled = item.loading || item.disabled;
           return (
@@ -402,7 +438,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             </Pressable>
           );
         })}
-      </View>
+      </BlurView>
     );
   };
 
@@ -432,21 +468,26 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   return (
-    <View style={styles.overlayContainer} pointerEvents="box-none" testID="action-menu">
-      <Pressable
-        style={styles.overlayBackdrop}
-        onPress={onBackdropPress}
-        testID="action-backdrop"
-      />
-      {type === "invite" && renderInvitePrompt()}
-      {type === "manage" && renderManagePrompt()}
-      {type === "confirm" && renderConfirmPrompt()}
-      {type === "result" && renderResultPrompt()}
-      {type === "pendingRequest" && renderPendingRequestPrompt()}
-      {type === "report" && renderReportPrompt()}
-      {type === "menu" && renderMenuPrompt()}
-      {type === "viewIntro" && renderViewIntroPrompt()}
-    </View>
+    <Modal visible={showOverlay} transparent animationType="none">
+      <View style={styles.overlayContainer} pointerEvents="box-none" testID="action-menu">
+        <Animated.View
+          style={[styles.overlayBackdrop, { opacity: backdropAnim }]}
+          pointerEvents="box-none"
+        >
+          <Pressable style={{ flex: 1 }} onPress={onBackdropPress} testID="action-backdrop" />
+        </Animated.View>
+        <Animated.View style={[styles.promptWrapper, { transform: [{ translateY: slideAnim }] }]}>
+          {type === "invite" && renderInvitePrompt()}
+          {type === "manage" && renderManagePrompt()}
+          {type === "confirm" && renderConfirmPrompt()}
+          {type === "result" && renderResultPrompt()}
+          {type === "pendingRequest" && renderPendingRequestPrompt()}
+          {type === "report" && renderReportPrompt()}
+          {type === "menu" && renderMenuPrompt()}
+          {type === "viewIntro" && renderViewIntroPrompt()}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 };
 

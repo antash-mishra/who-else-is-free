@@ -5,17 +5,16 @@ import { colors, spacing } from "@theme/index";
 const styles = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: colors.createOverlay,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
         justifyContent: "flex-end",
-        paddingHorizontal: spacing.lg,
     },
     content: {
         backgroundColor: colors.card,
-        borderRadius: 34,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
         paddingHorizontal: spacing.md,
         paddingTop: spacing.md,
         paddingBottom: spacing.md,
-        marginBottom: spacing.lg,
         shadowColor: "#000000",
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.2,
