@@ -3,49 +3,8 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@theme/index';
 
 const styles = StyleSheet.create({
-  overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    alignItems: 'center'
-  },
-  promptWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    pointerEvents: 'box-none' as const,
-  },
-  overlayBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)'
-  },
-  menuPrompt: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    gap: spacing.sm,
-    backgroundColor: '#FFFFFF',
-  },
   prompt: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-    gap: spacing.md
+    gap: spacing.md,
   },
   promptHeader: {
     gap: spacing.xs
