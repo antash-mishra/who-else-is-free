@@ -3,30 +3,8 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '@theme/index';
 
 const styles = StyleSheet.create({
-  overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    alignItems: 'center'
-  },
-  overlayBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)'
-  },
   prompt: {
-    position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-    gap: spacing.md
+    gap: spacing.md,
   },
   promptHeader: {
     gap: spacing.xs
@@ -36,7 +14,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#F4F4F4',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: typography.letterSpacing,
@@ -67,7 +45,7 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: colors.text,
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center'
   },
   sendButtonPressed: {
@@ -83,7 +61,7 @@ const styles = StyleSheet.create({
   manageButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center'
   },
   manageButtonPressed: {
@@ -104,7 +82,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
@@ -123,7 +101,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: colors.text,
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 4,
     alignItems: 'center'
   },
   primaryButtonPressed: {
