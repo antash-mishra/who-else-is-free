@@ -263,10 +263,7 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         maxWidth: "72%",
     },
-    dateTimeValueText: {
-        fontSize: typography.caption,
-        lineHeight: 18,
-    },
+    dateTimeValueText: {},
 
     // ┌─────────────────────────────────────────────────────────────┐
     // │ 13. LOCATION — bottom row of Date + Location fieldCard     │
