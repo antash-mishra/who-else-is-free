@@ -1,16 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Dimensions,
-  Keyboard,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import React from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
 
-import { colors, spacing } from "@theme/index";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "@theme/index";
+import BottomSheetModal from "./BottomSheetModal";
 import EventActionConfirm, {
   EventActionConfirmProps,
 } from "./EventActionConfirm";
@@ -98,42 +90,6 @@ type EventActionOverlayProps = {
 
 const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   const { isVisible, onBackdropPress, type } = props;
-  const insets = useSafeAreaInsets();
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
-
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const showSub = Keyboard.addListener(showEvent, (event) => {
-      const windowHeight = Dimensions.get("window").height;
-      const screenY = event.endCoordinates?.screenY ?? windowHeight;
-      const keyboardHeight = Math.max(0, windowHeight - screenY);
-      setKeyboardOffset(keyboardHeight);
-    });
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardOffset(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
-  const promptPositionStyle = useMemo(
-    () => ({
-      bottom:
-        keyboardOffset > 0
-          ? keyboardOffset + spacing.lg
-          : Math.max(insets.bottom, spacing.lg) + spacing.md,
-    }),
-    [insets.bottom, keyboardOffset],
-  );
-
-  if (!isVisible) return null;
 
   const renderInvitePrompt = () => {
     if (props.type !== "invite") return null;
@@ -149,7 +105,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const isDisabled = inviteSubmitting || inviteDisabled;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         <TextInput
           accessibilityLabel="Send an intro about you and why you would like to join."
           placeholder="Send an intro about you and why you would like to join."
@@ -186,7 +142,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const { onEdit, onDelete } = props;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         <Pressable
           accessibilityRole="button"
           onPress={onEdit}
@@ -255,7 +211,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     } = props;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         <View style={styles.promptHeader}>
           <Text style={styles.promptTitle}>{title}</Text>
           {description ? (
@@ -290,7 +246,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const { onCancelRequest, onReportEvent, isCancelling } = props;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         <Pressable
           accessibilityRole="button"
           onPress={onCancelRequest}
@@ -338,7 +294,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const isDisabled = reportSubmitting || reportDisabled;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         <TextInput
           accessibilityLabel="Tell us why you are reporting this event"
           placeholder="Tell us why you are reporting this event"
@@ -375,7 +331,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const { items } = props;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         {items.map((item, index) => {
           const isDisabled = item.loading || item.disabled;
           return (
@@ -411,7 +367,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
     const { introMessage, onDismiss } = props;
 
     return (
-      <View style={[styles.prompt, promptPositionStyle]}>
+      <View style={styles.prompt}>
         <View style={styles.promptHeader}>
           <Text style={styles.promptTitle}>Your Introduction</Text>
           <Text style={styles.introMessageText}>"{introMessage}"</Text>
@@ -432,12 +388,10 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   return (
-    <View style={styles.overlayContainer} pointerEvents="box-none" testID="action-menu">
-      <Pressable
-        style={styles.overlayBackdrop}
-        onPress={onBackdropPress}
-        testID="action-backdrop"
-      />
+    <BottomSheetModal
+      visible={isVisible}
+      onClose={onBackdropPress ?? (() => {})}
+    >
       {type === "invite" && renderInvitePrompt()}
       {type === "manage" && renderManagePrompt()}
       {type === "confirm" && renderConfirmPrompt()}
@@ -446,7 +400,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       {type === "report" && renderReportPrompt()}
       {type === "menu" && renderMenuPrompt()}
       {type === "viewIntro" && renderViewIntroPrompt()}
-    </View>
+    </BottomSheetModal>
   );
 };
 

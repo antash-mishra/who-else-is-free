@@ -3,46 +3,6 @@ import { StyleSheet } from "react-native";
 import { colors, spacing, typography } from "@theme/index";
 
 const styles = StyleSheet.create({
-    backdrop: {
-        flex: 1,
-        backgroundColor: colors.createOverlay,
-        justifyContent: "flex-end",
-        paddingHorizontal: spacing.lg,
-    },
-    container: {
-        borderRadius: 34,
-        backgroundColor: colors.card,
-        paddingTop: spacing.md,
-        paddingHorizontal: spacing.md,
-        paddingBottom: spacing.lg,
-        marginBottom: spacing.lg,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
-        elevation: 12,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: spacing.md,
-    },
-    title: {
-        fontSize: 20,
-        fontFamily: typography.fontFamilySemiBold,
-        color: colors.text,
-        lineHeight: 24,
-        letterSpacing: -0.5,
-    },
-    closeButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 80,
-        backgroundColor: "rgba(120, 120, 128, 0.16)",
-        alignItems: "center",
-        justifyContent: "center",
-    },
     selectedValue: {
         fontSize: typography.body,
         fontFamily: typography.fontFamilyMedium,

@@ -1,15 +1,5 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    Animated,
-    Dimensions,
-    Modal,
-    Pressable,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
-
-import { Feather } from "@expo/vector-icons";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import {
     clampDateTime,
@@ -17,10 +7,9 @@ import {
     getSectionDateLabel,
     toDateKey,
 } from "@utils/dateTime";
+import BottomSheetModal from "./BottomSheetModal";
 import styles from "./EventDateTimeModal.styles";
 
-const SLIDE_DURATION = 250;
-const SLIDE_DISTANCE = Dimensions.get('window').height;
 const WHEEL_ITEM_HEIGHT = 44;
 
 const HOURS = Array.from({ length: 24 }, (_value, index) =>
@@ -102,7 +91,6 @@ const EventDateTimeModal = ({
     const [draftValue, setDraftValue] = useState(() =>
         clampDateTime(toSafeDate(value), minDate, maxDate),
     );
-    const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
     const dateWheelRef = useRef<ScrollView>(null);
     const hourWheelRef = useRef<ScrollView>(null);
     const minuteWheelRef = useRef<ScrollView>(null);
@@ -147,19 +135,12 @@ const EventDateTimeModal = ({
             return;
         }
 
-        slideAnim.setValue(SLIDE_DISTANCE);
-        Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: SLIDE_DURATION,
-            useNativeDriver: true,
-        }).start();
-
         const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
         setDraftValue(initialDraft);
         requestAnimationFrame(() => {
             syncWheelPositions(initialDraft, false);
         });
-    }, [maxDate, minDate, slideAnim, syncWheelPositions, value, visible]);
+    }, [maxDate, minDate, syncWheelPositions, value, visible]);
 
     const applyDateIndex = useCallback(
         (index: number) => {
@@ -203,210 +184,169 @@ const EventDateTimeModal = ({
         [maxDate, minDate],
     );
 
-    const slideOut = useCallback(
-        (callback: () => void) => {
-            Animated.timing(slideAnim, {
-                toValue: SLIDE_DISTANCE,
-                duration: SLIDE_DURATION,
-                useNativeDriver: true,
-            }).start(() => {
-                callback();
-            });
-        },
-        [slideAnim],
-    );
-
-    const handleClose = useCallback(() => {
-        slideOut(onClose);
-    }, [onClose, slideOut]);
-
-    const handleConfirm = useCallback(() => {
-        slideOut(() => onConfirm(draftValue));
-    }, [draftValue, onConfirm, slideOut]);
-
     return (
-        <Modal
-            visible={visible}
-            transparent
-            animationType="fade"
-            onRequestClose={handleClose}
-        >
-            <Pressable style={styles.backdrop} onPress={handleClose}>
-                <Animated.View
-                    style={[styles.container, { transform: [{ translateY: slideAnim }] }]}
-                >
-                    <Pressable onPress={(event) => event.stopPropagation()}>
-                        <View style={styles.header}>
-                            <Text style={styles.title}>When is your event?</Text>
-                            <Pressable style={styles.closeButton} onPress={handleClose}>
-                                <Feather name="x" size={18} color="#999999" />
-                            </Pressable>
-                        </View>
+        <BottomSheetModal visible={visible} onClose={onClose} title="When is your event?">
+            <Text style={styles.selectedValue}>
+                {formatDateTimeValue(draftValue)}
+            </Text>
 
-                        <Text style={styles.selectedValue}>
-                            {formatDateTimeValue(draftValue)}
-                        </Text>
-
-                        <View style={styles.pickerContainer}>
-                            <View style={styles.wheelRow}>
-                                <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
-                                    <ScrollView
-                                        ref={dateWheelRef}
-                                        showsVerticalScrollIndicator={false}
-                                        snapToInterval={WHEEL_ITEM_HEIGHT}
-                                        disableIntervalMomentum
-                                        decelerationRate="fast"
-                                        scrollEventThrottle={16}
-                                        contentContainerStyle={styles.wheelContentContainer}
-                                        onScroll={(event) => {
-                                            const index = clampWheelIndex(
-                                                event.nativeEvent.contentOffset.y,
-                                                dateOptions.length,
-                                            );
-                                            applyDateIndex(index);
-                                        }}
-                                        onMomentumScrollEnd={(event) => {
-                                            const index = clampWheelIndex(
-                                                event.nativeEvent.contentOffset.y,
-                                                dateOptions.length,
-                                            );
-                                            applyDateIndex(index);
-                                            scrollWheelToIndex(dateWheelRef, index, false);
-                                        }}
+            <View style={styles.pickerContainer}>
+                <View style={styles.wheelRow}>
+                    <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
+                        <ScrollView
+                            ref={dateWheelRef}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={WHEEL_ITEM_HEIGHT}
+                            disableIntervalMomentum
+                            decelerationRate="fast"
+                            scrollEventThrottle={16}
+                            contentContainerStyle={styles.wheelContentContainer}
+                            onScroll={(event) => {
+                                const index = clampWheelIndex(
+                                    event.nativeEvent.contentOffset.y,
+                                    dateOptions.length,
+                                );
+                                applyDateIndex(index);
+                            }}
+                            onMomentumScrollEnd={(event) => {
+                                const index = clampWheelIndex(
+                                    event.nativeEvent.contentOffset.y,
+                                    dateOptions.length,
+                                );
+                                applyDateIndex(index);
+                                scrollWheelToIndex(dateWheelRef, index, false);
+                            }}
+                        >
+                            {dateOptions.map((option, index) => (
+                                <Pressable
+                                    key={option.key}
+                                    style={styles.wheelItem}
+                                    onPress={() => {
+                                        applyDateIndex(index);
+                                        scrollWheelToIndex(dateWheelRef, index, true);
+                                    }}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.wheelText,
+                                            styles.dateWheelText,
+                                            index === selectedDateIndex &&
+                                                styles.wheelTextSelected,
+                                        ]}
                                     >
-                                        {dateOptions.map((option, index) => (
-                                            <Pressable
-                                                key={option.key}
-                                                style={styles.wheelItem}
-                                                onPress={() => {
-                                                    applyDateIndex(index);
-                                                    scrollWheelToIndex(dateWheelRef, index, true);
-                                                }}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.wheelText,
-                                                        styles.dateWheelText,
-                                                        index === selectedDateIndex &&
-                                                            styles.wheelTextSelected,
-                                                    ]}
-                                                >
-                                                    {option.label}
-                                                </Text>
-                                            </Pressable>
-                                        ))}
-                                    </ScrollView>
-                                </View>
+                                        {option.label}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
 
-                                <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
-                                    <ScrollView
-                                        ref={hourWheelRef}
-                                        showsVerticalScrollIndicator={false}
-                                        snapToInterval={WHEEL_ITEM_HEIGHT}
-                                        disableIntervalMomentum
-                                        decelerationRate="fast"
-                                        scrollEventThrottle={16}
-                                        contentContainerStyle={styles.wheelContentContainer}
-                                        onScroll={(event) => {
-                                            const index = clampWheelIndex(
-                                                event.nativeEvent.contentOffset.y,
-                                                HOURS.length,
-                                            );
-                                            applyHourIndex(index);
-                                        }}
-                                        onMomentumScrollEnd={(event) => {
-                                            const index = clampWheelIndex(
-                                                event.nativeEvent.contentOffset.y,
-                                                HOURS.length,
-                                            );
-                                            applyHourIndex(index);
-                                            scrollWheelToIndex(hourWheelRef, index, false);
-                                        }}
+                    <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                        <ScrollView
+                            ref={hourWheelRef}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={WHEEL_ITEM_HEIGHT}
+                            disableIntervalMomentum
+                            decelerationRate="fast"
+                            scrollEventThrottle={16}
+                            contentContainerStyle={styles.wheelContentContainer}
+                            onScroll={(event) => {
+                                const index = clampWheelIndex(
+                                    event.nativeEvent.contentOffset.y,
+                                    HOURS.length,
+                                );
+                                applyHourIndex(index);
+                            }}
+                            onMomentumScrollEnd={(event) => {
+                                const index = clampWheelIndex(
+                                    event.nativeEvent.contentOffset.y,
+                                    HOURS.length,
+                                );
+                                applyHourIndex(index);
+                                scrollWheelToIndex(hourWheelRef, index, false);
+                            }}
+                        >
+                            {HOURS.map((hour, index) => (
+                                <Pressable
+                                    key={`hour-${hour}`}
+                                    style={styles.wheelItem}
+                                    onPress={() => {
+                                        applyHourIndex(index);
+                                        scrollWheelToIndex(hourWheelRef, index, true);
+                                    }}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.wheelText,
+                                            index === selectedHourIndex &&
+                                                styles.wheelTextSelected,
+                                        ]}
                                     >
-                                        {HOURS.map((hour, index) => (
-                                            <Pressable
-                                                key={`hour-${hour}`}
-                                                style={styles.wheelItem}
-                                                onPress={() => {
-                                                    applyHourIndex(index);
-                                                    scrollWheelToIndex(hourWheelRef, index, true);
-                                                }}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.wheelText,
-                                                        index === selectedHourIndex &&
-                                                            styles.wheelTextSelected,
-                                                    ]}
-                                                >
-                                                    {hour}
-                                                </Text>
-                                            </Pressable>
-                                        ))}
-                                    </ScrollView>
-                                </View>
+                                        {hour}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
 
-                                <Text style={styles.timeSeparator}>:</Text>
+                    <Text style={styles.timeSeparator}>:</Text>
 
-                                <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
-                                    <ScrollView
-                                        ref={minuteWheelRef}
-                                        showsVerticalScrollIndicator={false}
-                                        snapToInterval={WHEEL_ITEM_HEIGHT}
-                                        disableIntervalMomentum
-                                        decelerationRate="fast"
-                                        scrollEventThrottle={16}
-                                        contentContainerStyle={styles.wheelContentContainer}
-                                        onScroll={(event) => {
-                                            const index = clampWheelIndex(
-                                                event.nativeEvent.contentOffset.y,
-                                                MINUTES.length,
-                                            );
-                                            applyMinuteIndex(index);
-                                        }}
-                                        onMomentumScrollEnd={(event) => {
-                                            const index = clampWheelIndex(
-                                                event.nativeEvent.contentOffset.y,
-                                                MINUTES.length,
-                                            );
-                                            applyMinuteIndex(index);
-                                            scrollWheelToIndex(minuteWheelRef, index, false);
-                                        }}
+                    <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                        <ScrollView
+                            ref={minuteWheelRef}
+                            showsVerticalScrollIndicator={false}
+                            snapToInterval={WHEEL_ITEM_HEIGHT}
+                            disableIntervalMomentum
+                            decelerationRate="fast"
+                            scrollEventThrottle={16}
+                            contentContainerStyle={styles.wheelContentContainer}
+                            onScroll={(event) => {
+                                const index = clampWheelIndex(
+                                    event.nativeEvent.contentOffset.y,
+                                    MINUTES.length,
+                                );
+                                applyMinuteIndex(index);
+                            }}
+                            onMomentumScrollEnd={(event) => {
+                                const index = clampWheelIndex(
+                                    event.nativeEvent.contentOffset.y,
+                                    MINUTES.length,
+                                );
+                                applyMinuteIndex(index);
+                                scrollWheelToIndex(minuteWheelRef, index, false);
+                            }}
+                        >
+                            {MINUTES.map((minute, index) => (
+                                <Pressable
+                                    key={`minute-${minute}`}
+                                    style={styles.wheelItem}
+                                    onPress={() => {
+                                        applyMinuteIndex(index);
+                                        scrollWheelToIndex(minuteWheelRef, index, true);
+                                    }}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.wheelText,
+                                            index === selectedMinuteIndex &&
+                                                styles.wheelTextSelected,
+                                        ]}
                                     >
-                                        {MINUTES.map((minute, index) => (
-                                            <Pressable
-                                                key={`minute-${minute}`}
-                                                style={styles.wheelItem}
-                                                onPress={() => {
-                                                    applyMinuteIndex(index);
-                                                    scrollWheelToIndex(minuteWheelRef, index, true);
-                                                }}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.wheelText,
-                                                        index === selectedMinuteIndex &&
-                                                            styles.wheelTextSelected,
-                                                    ]}
-                                                >
-                                                    {minute}
-                                                </Text>
-                                            </Pressable>
-                                        ))}
-                                    </ScrollView>
-                                </View>
-                            </View>
+                                        {minute}
+                                    </Text>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </View>
 
-                            <View pointerEvents="none" style={styles.selectionOverlay} />
-                        </View>
+                <View pointerEvents="none" style={styles.selectionOverlay} />
+            </View>
 
-                        <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-                            <Text style={styles.confirmButtonText}>Update Time</Text>
-                        </Pressable>
-                    </Pressable>
-                </Animated.View>
+            <Pressable style={styles.confirmButton} onPress={() => onConfirm(draftValue)}>
+                <Text style={styles.confirmButtonText}>Update Time</Text>
             </Pressable>
-        </Modal>
+        </BottomSheetModal>
     );
 };
 

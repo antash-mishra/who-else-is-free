@@ -1,6 +1,17 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Modal, Pressable } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useEffect, useRef, useState } from "react";
+import {
+    Animated,
+    Easing,
+    Keyboard,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+
+import { Feather } from "@expo/vector-icons";
 
 import styles from "./BottomSheetModal.styles";
 
@@ -8,58 +19,157 @@ export type BottomSheetModalProps = {
     visible: boolean;
     onClose: () => void;
     children: React.ReactNode;
+    /** Variant A: renders title + × header. Omit for Variant B (content-only). */
+    title?: string;
 };
 
-const SLIDE_DURATION = 250;
-const SLIDE_DISTANCE = 300;
+const SLIDE_DISTANCE = 500;
+// Base bottom padding when keyboard is hidden (matches styles.sheet.paddingBottom)
+const BASE_PADDING_BOTTOM = 24;
 
-const BottomSheetModal = ({ visible, onClose, children }: BottomSheetModalProps) => {
-    const insets = useSafeAreaInsets();
+const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModalProps) => {
     const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
+    const backdropAnim = useRef(new Animated.Value(0)).current;
+    // Controls sheet's paddingBottom — grows to push content above the keyboard
+    // while the sheet itself stays anchored to the screen bottom (hidden behind keyboard)
+    const keyboardPaddingAnim = useRef(new Animated.Value(BASE_PADDING_BOTTOM)).current;
+    const [modalVisible, setModalVisible] = useState(false);
+    const hasBeenVisible = useRef(false);
 
     useEffect(() => {
         if (visible) {
+            hasBeenVisible.current = true;
+            setModalVisible(true);
             slideAnim.setValue(SLIDE_DISTANCE);
-            Animated.timing(slideAnim, {
-                toValue: 0,
-                duration: SLIDE_DURATION,
-                useNativeDriver: true,
-            }).start();
-        }
-    }, [visible, slideAnim]);
+            backdropAnim.setValue(0);
+            keyboardPaddingAnim.setValue(BASE_PADDING_BOTTOM);
 
-    const handleClose = () => {
-        Animated.timing(slideAnim, {
-            toValue: SLIDE_DISTANCE,
-            duration: SLIDE_DURATION,
-            useNativeDriver: true,
-        }).start(() => {
-            onClose();
+            Animated.parallel([
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    tension: 280,
+                    friction: 26,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(backdropAnim, {
+                    toValue: 1,
+                    duration: 320,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else if (hasBeenVisible.current) {
+            Animated.parallel([
+                Animated.timing(slideAnim, {
+                    toValue: SLIDE_DISTANCE,
+                    duration: 260,
+                    easing: Easing.in(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(backdropAnim, {
+                    toValue: 0,
+                    duration: 220,
+                    easing: Easing.in(Easing.ease),
+                    useNativeDriver: true,
+                }),
+            ]).start(() => setModalVisible(false));
+        }
+    }, [visible, slideAnim, backdropAnim, keyboardPaddingAnim]);
+
+    useEffect(() => {
+        const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+        const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+        // Bezier approximation of iOS UIViewAnimationCurveKeyboard:
+        // fast initial velocity, very short settle — matches the system keyboard spring.
+        const IOS_KEYBOARD_CURVE = Easing.bezier(0.36, 0.66, 0.04, 1);
+
+        const showSub = Keyboard.addListener(showEvent, (event) => {
+            Animated.timing(keyboardPaddingAnim, {
+                toValue: event.endCoordinates.height + 16,
+                duration: event.duration || 250,
+                easing: IOS_KEYBOARD_CURVE,
+                useNativeDriver: false,
+            }).start();
         });
-    };
+
+        const hideSub = Keyboard.addListener(hideEvent, (event) => {
+            Animated.timing(keyboardPaddingAnim, {
+                toValue: BASE_PADDING_BOTTOM,
+                duration: (event as any).duration || 250,
+                easing: IOS_KEYBOARD_CURVE,
+                useNativeDriver: false,
+            }).start();
+        });
+
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, [keyboardPaddingAnim]);
 
     return (
-        <Modal visible={visible} transparent animationType="fade">
-            <Pressable
-                style={styles.backdrop}
-                onPress={handleClose}
-                testID="bottom-sheet-backdrop"
-                accessibilityRole="button"
-            >
+        <Modal visible={modalVisible} transparent animationType="none">
+            <View style={fill.container}>
+                {/* Animated dim layer */}
                 <Animated.View
-                    style={[
-                        styles.content,
-                        { marginBottom: Math.max(24, insets.bottom + 8), transform: [{ translateY: slideAnim }] },
-                    ]}
+                    style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropAnim }]}
+                    pointerEvents="none"
+                />
+
+                {/* Tap backdrop to dismiss */}
+                <Pressable
+                    style={fill.tap}
+                    onPress={onClose}
+                    testID="bottom-sheet-backdrop"
+                    accessibilityRole="button"
+                />
+
+                {/*
+                 * Sheet stays pinned to the screen bottom — it does NOT lift above
+                 * the keyboard. Instead its paddingBottom grows so content is pushed
+                 * up above the keyboard. iOS renders the keyboard on top of Modal
+                 * windows, so the sheet's lower portion (and its square corners) is
+                 * hidden behind the keyboard. No corner gap ever visible.
+                 */}
+                {/* Outer: native-driver translateY slide */}
+                <Animated.View
+                    style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
                     testID="bottom-sheet-modal"
                 >
-                    <Pressable onPress={(e) => e.stopPropagation()}>
-                        {children}
-                    </Pressable>
+                    {/* Inner: JS-driver paddingBottom — must be a separate node */}
+                    <Animated.View style={{ paddingBottom: keyboardPaddingAnim }}>
+                        <Pressable onPress={(e) => e.stopPropagation()}>
+                            {title !== undefined && (
+                                <View style={styles.header}>
+                                    <Text style={styles.title}>{title}</Text>
+                                    <Pressable
+                                        onPress={onClose}
+                                        style={styles.closeButton}
+                                        accessibilityRole="button"
+                                        testID="bottom-sheet-close"
+                                    >
+                                        <Feather name="x" size={18} color="#999999" />
+                                    </Pressable>
+                                </View>
+                            )}
+                            {children}
+                        </Pressable>
+                    </Animated.View>
                 </Animated.View>
-            </Pressable>
+            </View>
         </Modal>
     );
 };
+
+const fill = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: "flex-end",
+    },
+    tap: {
+        flex: 1,
+    },
+});
 
 export default BottomSheetModal;
