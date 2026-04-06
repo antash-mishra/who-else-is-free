@@ -18,7 +18,7 @@ import {
   DEFAULT_COVER_KEY,
   resolveCoverUri,
 } from "@constants/covers";
-import { getLegacyDateLabel, parseDateKey, toDateKey } from "@utils/dateTime";
+import { convertTo12Hour, formatTimeAmPm, getLegacyDateLabel, parseDateKey, toDateKey } from "@utils/dateTime";
 import { navigationRef } from "../navigation/navigationRef";
 
 export type DateLabel = string;
@@ -221,19 +221,15 @@ const mapApiEvent = (
   const groupType = event.group_type ?? "Single";
 
   // If scheduled_at is present, derive display values from it (in local timezone)
-  let displayTime = event.time;
+  let displayTime = convertTo12Hour(event.time);
   let displayDate = event.event_date;
   let displayLabel: DateLabel;
 
   if (event.scheduled_at) {
     const utcDate = new Date(event.scheduled_at);
     if (!Number.isNaN(utcDate.getTime())) {
-      // Format time in local timezone (24-hour format)
-      displayTime = utcDate.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
+      // Format time in local timezone (12-hour AM/PM format)
+      displayTime = formatTimeAmPm(utcDate.getHours(), utcDate.getMinutes());
       // Format date in local timezone (YYYY-MM-DD)
       displayDate = toDateKey(utcDate);
       displayLabel = deriveDateLabelFromDate(displayDate);

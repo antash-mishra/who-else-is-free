@@ -78,6 +78,29 @@ export const parseTimeString = (
 };
 
 /**
+ * Format hour and minute into 12-hour AM/PM string (e.g. "7:30 PM").
+ */
+export const formatTimeAmPm = (hour: number, minute: number): string => {
+    const h = Math.max(0, Math.min(23, hour));
+    const m = Math.max(0, Math.min(59, minute));
+    const period = h >= 12 ? "PM" : "AM";
+    const displayHour = h % 12 || 12;
+    return `${displayHour}:${String(m).padStart(2, "0")} ${period}`;
+};
+
+/**
+ * Convert an HH:MM (24-hour) time string to 12-hour AM/PM format (e.g. "7:30 PM").
+ * Returns the original string if it cannot be parsed.
+ */
+export const convertTo12Hour = (timeStr: string): string => {
+    const minutes = timeStringToMinutes(timeStr);
+    if (minutes == null) {
+        return timeStr;
+    }
+    return formatTimeAmPm(Math.floor(minutes / 60), minutes % 60);
+};
+
+/**
  * Format hour and minute into HH:MM string.
  */
 export const formatTime = (hour: number, minute: number): string => {
@@ -142,7 +165,7 @@ export const formatAbsoluteDateLabel = (eventDate: string): string => {
     const day = `${parsed.getDate()}`.padStart(2, "0");
     const month = parsed.toLocaleString("en-US", { month: "short" });
     const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
-    return `${day} ${month}, ${weekday}`;
+    return `${day} ${month} ${weekday}`;
 };
 
 const getDiffFromToday = (eventDate: string, now: Date = new Date()): number | null => {
@@ -216,8 +239,12 @@ export const isPastDateTimeSelection = (value: Date, now: Date = new Date()): bo
 export const formatDateTimeValue = (value: Date): string => {
     const eventDate = toDateKey(value);
     const datePart = formatAbsoluteDateLabel(eventDate);
-    const timePart = formatTime(value.getHours(), value.getMinutes());
-    return `${datePart} • ${timePart}`;
+    const hours = value.getHours();
+    const minutes = value.getMinutes();
+    const period = hours >= 12 ? "PM" : "AM";
+    const h = hours % 12 || 12;
+    const m = String(minutes).padStart(2, "0");
+    return `${datePart}, ${h}:${m} ${period}`;
 };
 
 /**
