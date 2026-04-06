@@ -25,7 +25,7 @@ import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
-import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { convertTo12Hour, formatAbsoluteDateLabel } from "@utils/dateTime";
 
 const HEADER_HEIGHT = 56;
 
@@ -109,7 +109,7 @@ const ChatThreadScreen = () => {
       const datePart = activeEvent.eventDate
         ? formatAbsoluteDateLabel(activeEvent.eventDate)
         : activeEvent.dateLabel;
-      return `${datePart}, ${activeEvent.time} at ${activeEvent.location}`;
+      return `${datePart}, ${convertTo12Hour(activeEvent.time)} at ${activeEvent.location}`;
     }
     return undefined;
   }, [isConnecting, activeEvent, activeEventGroupType]);

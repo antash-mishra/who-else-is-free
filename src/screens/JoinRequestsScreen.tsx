@@ -20,7 +20,7 @@ import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
-import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { convertTo12Hour, formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
 type JoinRequestsNavigation = NativeStackNavigationProp<
@@ -333,7 +333,7 @@ const JoinRequestsScreen = () => {
       <ChatEventHeader
         onBack={() => navigation.goBack()}
         title={title}
-        subtitle={`${datePart}, ${eventDetails.time} at ${eventDetails.location}`}
+        subtitle={`${datePart}, ${convertTo12Hour(eventDetails.time)} at ${eventDetails.location}`}
         coverSource={getCoverSource(eventDetails.coverKey)}
         onTitlePress={() =>
           navigation.navigate("EventDetailsOverlay", {

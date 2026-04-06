@@ -44,7 +44,7 @@ import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
-import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { convertTo12Hour, formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type EventDetailsRoute = RouteProp<
   RootStackParamList,
@@ -244,7 +244,7 @@ const EventDetailsScreen = () => {
   const scheduleDateLabel = event.eventDate
     ? formatAbsoluteDateLabel(event.eventDate)
     : event.dateLabel;
-  const scheduleLine = `${scheduleDateLabel}, ${event.time}`;
+  const scheduleLine = `${scheduleDateLabel}, ${convertTo12Hour(event.time)}`;
   const audienceLine = `${event.groupType === "Single" ? "1:1" : "Group"}, ${event.audience}`;
   const eventNumericId = useMemo(() => {
     const parsed = Number(event.id);
