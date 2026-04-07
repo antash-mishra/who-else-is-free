@@ -1,11 +1,29 @@
-import { useEffect, useState } from "react";
-import { Pressable, Text } from "react-native";
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { clampDateTime } from "@utils/dateTime";
+import {
+    clampDateTime,
+    getSectionDateLabel,
+    isPastDateTimeSelection,
+    toDateKey,
+} from "@utils/dateTime";
 import BottomSheetModal from "./BottomSheetModal";
 import styles from "./EventDateTimeModal.styles";
+
+const WHEEL_ITEM_HEIGHT = 44;
+const WHEEL_HEIGHT = 220; // 5 visible items
+
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1)); // ["1".."12"]
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")); // ["00".."59"]
+const AMPM = ["AM", "PM"];
+
+// Looped arrays: original repeated 3× so user has one buffer copy above and below
+const HOURS_LOOPED = [...HOURS_12, ...HOURS_12, ...HOURS_12];
+const MINUTES_LOOPED = [...MINUTES, ...MINUTES, ...MINUTES];
+const HOUR_LOOP_OFFSET = HOURS_12.length;     // 12 — start index of the middle copy
+const MINUTE_LOOP_OFFSET = MINUTES.length;    // 60 — start index of the middle copy
 
 type EventDateTimeModalProps = {
     visible: boolean;
@@ -23,6 +41,54 @@ const toSafeDate = (value: Date) => {
     return value;
 };
 
+type DateWheelOption = {
+    key: string;
+    label: string;
+    year: number;
+    month: number;
+    day: number;
+};
+
+const buildDateOptions = (minDate: Date, maxDate: Date): DateWheelOption[] => {
+    const start = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+    const end = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+    const options: DateWheelOption[] = [];
+    const cursor = new Date(start);
+    while (cursor.getTime() <= end.getTime()) {
+        const key = toDateKey(cursor);
+        options.push({
+            key,
+            label: getSectionDateLabel(key),
+            year: cursor.getFullYear(),
+            month: cursor.getMonth(),
+            day: cursor.getDate(),
+        });
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return options;
+};
+
+const clampWheelIndex = (offsetY: number, length: number): number => {
+    if (length <= 0) return 0;
+    const rounded = Math.round(offsetY / WHEEL_ITEM_HEIGHT);
+    return Math.max(0, Math.min(length - 1, rounded));
+};
+
+/** Convert 24-hour value to logical 12-hour index (0 = "1", 11 = "12") */
+const hour24ToIndex = (hour24: number): number => {
+    const hour12 = hour24 % 12;
+    return hour12 === 0 ? 11 : hour12 - 1;
+};
+
+/** Convert 12-hour logical index + AM/PM index to 24-hour value */
+const indexToHour24 = (hourIndex: number, amPmIndex: number): number => {
+    const hourLabel = hourIndex + 1; // 1-12
+    if (amPmIndex === 0) {
+        return hourLabel === 12 ? 0 : hourLabel;
+    }
+    return hourLabel === 12 ? 12 : hourLabel + 12;
+};
+
 const EventDateTimeModal = ({
     visible,
     value,
@@ -34,35 +100,297 @@ const EventDateTimeModal = ({
     const [draftValue, setDraftValue] = useState(() =>
         clampDateTime(toSafeDate(value), minDate, maxDate),
     );
+    const [error, setError] = useState<string | null>(null);
 
-    // Sync draft to the incoming value each time the modal opens
+    const dateWheelRef = useRef<ScrollView>(null);
+    const hourWheelRef = useRef<ScrollView>(null);
+    const minuteWheelRef = useRef<ScrollView>(null);
+    const amPmWheelRef = useRef<ScrollView>(null);
+
+    const dateOptions = useMemo(
+        () => buildDateOptions(minDate, maxDate),
+        [minDate, maxDate],
+    );
+
+    const selectedDateIndex = useMemo(() => {
+        const key = toDateKey(draftValue);
+        const index = dateOptions.findIndex((opt) => opt.key === key);
+        return index >= 0 ? index : 0;
+    }, [dateOptions, draftValue]);
+
+    // Logical indices (used for bold highlight — check against looped arrays with modulo)
+    const selectedHourLogical = hour24ToIndex(draftValue.getHours());
+    const selectedMinuteLogical = draftValue.getMinutes();
+    const selectedAmPmIndex = draftValue.getHours() >= 12 ? 1 : 0;
+
+    const scrollWheelToIndex = useCallback(
+        (ref: RefObject<ScrollView | null>, index: number, animated = false) => {
+            ref.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
+        },
+        [],
+    );
+
+    const syncWheelPositions = useCallback(
+        (date: Date, animated = false) => {
+            const key = toDateKey(date);
+            const dateIndex = dateOptions.findIndex((opt) => opt.key === key);
+            // Hours and minutes start in the middle copy
+            const hourScrollIndex = HOUR_LOOP_OFFSET + hour24ToIndex(date.getHours());
+            const minuteScrollIndex = MINUTE_LOOP_OFFSET + date.getMinutes();
+            scrollWheelToIndex(dateWheelRef, dateIndex >= 0 ? dateIndex : 0, animated);
+            scrollWheelToIndex(hourWheelRef, hourScrollIndex, animated);
+            scrollWheelToIndex(minuteWheelRef, minuteScrollIndex, animated);
+            scrollWheelToIndex(amPmWheelRef, date.getHours() >= 12 ? 1 : 0, animated);
+        },
+        [dateOptions, scrollWheelToIndex],
+    );
+
     useEffect(() => {
-        if (visible) {
-            setDraftValue(clampDateTime(toSafeDate(value), minDate, maxDate));
-        }
-    }, [visible, value, minDate, maxDate]);
+        if (!visible) return;
+        const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
+        setDraftValue(initialDraft);
+        setError(null);
+        requestAnimationFrame(() => syncWheelPositions(initialDraft, false));
+    }, [maxDate, minDate, syncWheelPositions, value, visible]);
 
-    const handleChange = (_event: DateTimePickerEvent, date?: Date) => {
-        if (date) {
-            setDraftValue(date);
+    const applyDateIndex = useCallback(
+        (index: number) => {
+            const option = dateOptions[index];
+            if (!option) return;
+            setDraftValue((prev) => {
+                const next = new Date(prev);
+                next.setFullYear(option.year, option.month, option.day);
+                next.setSeconds(0, 0);
+                return next;
+            });
+        },
+        [dateOptions],
+    );
+
+    const applyHourIndex = useCallback(
+        (logicalIndex: number) => {
+            setDraftValue((prev) => {
+                const hour24 = indexToHour24(logicalIndex, prev.getHours() >= 12 ? 1 : 0);
+                const next = new Date(prev);
+                next.setHours(hour24, prev.getMinutes(), 0, 0);
+                return next;
+            });
+        },
+        [],
+    );
+
+    const applyMinuteIndex = useCallback(
+        (logicalIndex: number) => {
+            setDraftValue((prev) => {
+                const next = new Date(prev);
+                next.setHours(prev.getHours(), logicalIndex, 0, 0);
+                return next;
+            });
+        },
+        [],
+    );
+
+    const applyAmPmIndex = useCallback(
+        (index: number) => {
+            setDraftValue((prev) => {
+                const hour12 = prev.getHours() % 12;
+                const hour24 = index === 0 ? hour12 : hour12 + 12;
+                const next = new Date(prev);
+                next.setHours(hour24, prev.getMinutes(), 0, 0);
+                return next;
+            });
+        },
+        [],
+    );
+
+    // Looped scroll handlers: extract logical index, apply, then silently reset to middle copy
+    const handleHourScrollIndex = useCallback(
+        (rawIndex: number) => {
+            const logical = rawIndex % HOURS_12.length;
+            applyHourIndex(logical);
+            const middleIndex = HOUR_LOOP_OFFSET + logical;
+            if (rawIndex !== middleIndex) {
+                scrollWheelToIndex(hourWheelRef, middleIndex, false);
+            }
+        },
+        [applyHourIndex, scrollWheelToIndex],
+    );
+
+    const handleMinuteScrollIndex = useCallback(
+        (rawIndex: number) => {
+            const logical = rawIndex % MINUTES.length;
+            applyMinuteIndex(logical);
+            const middleIndex = MINUTE_LOOP_OFFSET + logical;
+            if (rawIndex !== middleIndex) {
+                scrollWheelToIndex(minuteWheelRef, middleIndex, false);
+            }
+        },
+        [applyMinuteIndex, scrollWheelToIndex],
+    );
+
+    const handleConfirm = useCallback(() => {
+        if (isPastDateTimeSelection(draftValue)) {
+            setError("Please choose a future time.");
+            return;
         }
-    };
+        if (draftValue.getTime() > maxDate.getTime()) {
+            setError("Please choose a time within the next 30 days.");
+            return;
+        }
+        setError(null);
+        onConfirm(draftValue);
+    }, [draftValue, maxDate, onConfirm]);
+
+    const renderWheel = useCallback(
+        <T extends string>(
+            ref: RefObject<ScrollView | null>,
+            items: T[],
+            isSelected: (index: number) => boolean,
+            onScrollIndex: (index: number) => void,
+            keyPrefix: string,
+            // For looped columns: map any raw index to its middle-copy equivalent for press/snap
+            toMiddleIndex?: (rawIndex: number) => number,
+            extraTextStyle?: object,
+        ) => (
+            <ScrollView
+                ref={ref}
+                showsVerticalScrollIndicator={false}
+                snapToInterval={WHEEL_ITEM_HEIGHT}
+                decelerationRate="fast"
+                contentContainerStyle={styles.wheelContentContainer}
+                onScrollEndDrag={(e) => {
+                    const y = e.nativeEvent.targetContentOffset?.y ?? e.nativeEvent.contentOffset.y;
+                    const index = clampWheelIndex(y, items.length);
+                    onScrollIndex(index);
+                }}
+                onMomentumScrollEnd={(e) => {
+                    const index = clampWheelIndex(e.nativeEvent.contentOffset.y, items.length);
+                    if (toMiddleIndex) {
+                        // Looped columns: update state + reset to middle copy
+                        onScrollIndex(index);
+                    } else {
+                        // Non-looped columns: state already set by onScrollEndDrag,
+                        // just confirm visual snap position to avoid conflicts
+                        scrollWheelToIndex(ref, index, false);
+                    }
+                }}
+            >
+                {items.map((item, index) => (
+                    <Pressable
+                        key={`${keyPrefix}-${index}`}
+                        style={styles.wheelItem}
+                        onPress={() => {
+                            // Pressing always navigates to the middle-copy equivalent
+                            const target = toMiddleIndex ? toMiddleIndex(index) : index;
+                            onScrollIndex(target);
+                            scrollWheelToIndex(ref, target, true);
+                        }}
+                    >
+                        <Text
+                            style={[
+                                styles.wheelText,
+                                extraTextStyle,
+                                isSelected(index) && styles.wheelTextSelected,
+                            ]}
+                        >
+                            {item}
+                        </Text>
+                    </Pressable>
+                ))}
+            </ScrollView>
+        ),
+        [scrollWheelToIndex],
+    );
 
     return (
         <BottomSheetModal visible={visible} onClose={onClose} title="When is your event?">
-            <DateTimePicker
-                value={draftValue}
-                mode="datetime"
-                display="spinner"
-                minimumDate={minDate}
-                maximumDate={maxDate}
-                onChange={handleChange}
-            />
-            <Pressable style={styles.confirmButton} onPress={() => onConfirm(draftValue)}>
+            <View style={styles.pickerContainer}>
+                {/* Selection indicator: two thin lines framing the centre row */}
+                <View pointerEvents="none" style={styles.selectionIndicator}>
+                    <View style={styles.selectionLine} />
+                    <View style={styles.selectionSpacer} />
+                    <View style={styles.selectionLine} />
+                </View>
+
+                <View style={styles.wheelRow}>
+                    {/* Date column — bounded, no looping */}
+                    <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
+                        {renderWheel(
+                            dateWheelRef,
+                            dateOptions.map((o) => o.label),
+                            (i) => i === selectedDateIndex,
+                            applyDateIndex,
+                            "date",
+                        )}
+                    </View>
+
+                    {/* Hour column — looped */}
+                    <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                        {renderWheel(
+                            hourWheelRef,
+                            HOURS_LOOPED,
+                            (i) => i % HOURS_12.length === selectedHourLogical,
+                            handleHourScrollIndex,
+                            "hour",
+                            (i) => HOUR_LOOP_OFFSET + (i % HOURS_12.length),
+                        )}
+                    </View>
+
+                    {/* Separator */}
+                    <Text style={styles.timeSeparator}>:</Text>
+
+                    {/* Minute column — looped */}
+                    <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                        {renderWheel(
+                            minuteWheelRef,
+                            MINUTES_LOOPED,
+                            (i) => i % MINUTES.length === selectedMinuteLogical,
+                            handleMinuteScrollIndex,
+                            "minute",
+                            (i) => MINUTE_LOOP_OFFSET + (i % MINUTES.length),
+                        )}
+                    </View>
+
+                    {/* AM/PM column — only 2 items, no looping needed */}
+                    <View style={[styles.wheelColumn, styles.amPmWheelColumn]}>
+                        {renderWheel(
+                            amPmWheelRef,
+                            AMPM,
+                            (i) => i === selectedAmPmIndex,
+                            applyAmPmIndex,
+                            "ampm",
+                        )}
+                    </View>
+                </View>
+
+                {/* Fade gradients — each covers 2 items above/below centre */}
+                <LinearGradient
+                    colors={["rgba(255,255,255,1)", "rgba(255,255,255,0)"]}
+                    style={styles.fadeTop}
+                    pointerEvents="none"
+                />
+                <LinearGradient
+                    colors={["rgba(255,255,255,0)", "rgba(255,255,255,1)"]}
+                    style={styles.fadeBottom}
+                    pointerEvents="none"
+                />
+            </View>
+
+            {error ? <Text style={errorStyle.text}>{error}</Text> : null}
+            <Pressable style={styles.confirmButton} onPress={handleConfirm}>
                 <Text style={styles.confirmButtonText}>Update Time</Text>
             </Pressable>
         </BottomSheetModal>
     );
 };
+
+const errorStyle = StyleSheet.create({
+    text: {
+        textAlign: "center",
+        fontSize: 13,
+        color: "#FF3B30",
+        marginBottom: 8,
+    },
+});
 
 export default EventDateTimeModal;
