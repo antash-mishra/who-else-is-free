@@ -13,7 +13,6 @@
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@ptomasroos/react-native-multi-slider": "^2.2.2",
-    "@react-native-community/datetimepicker": "^8.6.0",
     "@react-native-community/slider": "5.0.1",
     "@react-native-firebase/app": "^23.8.6",
     "@react-native-firebase/messaging": "^23.8.6",
