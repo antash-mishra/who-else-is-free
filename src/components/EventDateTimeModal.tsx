@@ -1,5 +1,12 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+    FlatList,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -14,6 +21,8 @@ import styles from "./EventDateTimeModal.styles";
 
 const WHEEL_ITEM_HEIGHT = 44;
 const WHEEL_HEIGHT = 220; // 5 visible items
+const DRAG_END_SETTLE_DELAY_MS = 16;
+const OPEN_SYNC_DELAY_MS = 32;
 
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1)); // ["1".."12"]
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0")); // ["00".."59"]
@@ -24,6 +33,9 @@ const HOURS_LOOPED = [...HOURS_12, ...HOURS_12, ...HOURS_12];
 const MINUTES_LOOPED = [...MINUTES, ...MINUTES, ...MINUTES];
 const HOUR_LOOP_OFFSET = HOURS_12.length;     // 12 — start index of the middle copy
 const MINUTE_LOOP_OFFSET = MINUTES.length;    // 60 — start index of the middle copy
+const HOUR_SNAP_OFFSETS = HOURS_LOOPED.map((_, index) => index * WHEEL_ITEM_HEIGHT);
+const MINUTE_SNAP_OFFSETS = MINUTES_LOOPED.map((_, index) => index * WHEEL_ITEM_HEIGHT);
+const AMPM_SNAP_OFFSETS = AMPM.map((_, index) => index * WHEEL_ITEM_HEIGHT);
 
 type EventDateTimeModalProps = {
     visible: boolean;
@@ -102,10 +114,13 @@ const EventDateTimeModal = ({
     );
     const [error, setError] = useState<string | null>(null);
 
-    const dateWheelRef = useRef<ScrollView>(null);
-    const hourWheelRef = useRef<ScrollView>(null);
-    const minuteWheelRef = useRef<ScrollView>(null);
-    const amPmWheelRef = useRef<ScrollView>(null);
+    const dateWheelRef = useRef<FlatList<string>>(null);
+    const hourWheelRef = useRef<FlatList<string>>(null);
+    const minuteWheelRef = useRef<FlatList<string>>(null);
+    const amPmWheelRef = useRef<FlatList<string>>(null);
+    const wheelMomentumStateRef = useRef<Record<string, boolean>>({});
+    const wheelDragSettleTimeoutRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
+    const wheelOffsetRef = useRef<Record<string, number>>({});
 
     const dateOptions = useMemo(
         () => buildDateOptions(minDate, maxDate),
@@ -118,14 +133,19 @@ const EventDateTimeModal = ({
         return index >= 0 ? index : 0;
     }, [dateOptions, draftValue]);
 
+    const dateSnapOffsets = useMemo(
+        () => dateOptions.map((_, index) => index * WHEEL_ITEM_HEIGHT),
+        [dateOptions],
+    );
+
     // Logical indices (used for bold highlight — check against looped arrays with modulo)
     const selectedHourLogical = hour24ToIndex(draftValue.getHours());
     const selectedMinuteLogical = draftValue.getMinutes();
     const selectedAmPmIndex = draftValue.getHours() >= 12 ? 1 : 0;
 
     const scrollWheelToIndex = useCallback(
-        (ref: RefObject<ScrollView | null>, index: number, animated = false) => {
-            ref.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
+        (ref: RefObject<FlatList<string> | null>, index: number, animated = false) => {
+            ref.current?.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
         },
         [],
     );
@@ -150,7 +170,13 @@ const EventDateTimeModal = ({
         const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
         setDraftValue(initialDraft);
         setError(null);
-        requestAnimationFrame(() => syncWheelPositions(initialDraft, false));
+        const syncTimeout = setTimeout(() => {
+            requestAnimationFrame(() => syncWheelPositions(initialDraft, false));
+        }, OPEN_SYNC_DELAY_MS);
+
+        return () => {
+            clearTimeout(syncTimeout);
+        };
     }, [maxDate, minDate, syncWheelPositions, value, visible]);
 
     const applyDateIndex = useCallback(
@@ -203,29 +229,22 @@ const EventDateTimeModal = ({
         [],
     );
 
-    // Looped scroll handlers: extract logical index, apply, then silently reset to middle copy
+    // Looped scroll handlers: extract logical index and apply.
+    // Physical centering/reset to middle copy is handled in wheel settle logic.
     const handleHourScrollIndex = useCallback(
         (rawIndex: number) => {
             const logical = rawIndex % HOURS_12.length;
             applyHourIndex(logical);
-            const middleIndex = HOUR_LOOP_OFFSET + logical;
-            if (rawIndex !== middleIndex) {
-                scrollWheelToIndex(hourWheelRef, middleIndex, false);
-            }
         },
-        [applyHourIndex, scrollWheelToIndex],
+        [applyHourIndex],
     );
 
     const handleMinuteScrollIndex = useCallback(
         (rawIndex: number) => {
             const logical = rawIndex % MINUTES.length;
             applyMinuteIndex(logical);
-            const middleIndex = MINUTE_LOOP_OFFSET + logical;
-            if (rawIndex !== middleIndex) {
-                scrollWheelToIndex(minuteWheelRef, middleIndex, false);
-            }
         },
-        [applyMinuteIndex, scrollWheelToIndex],
+        [applyMinuteIndex],
     );
 
     const handleConfirm = useCallback(() => {
@@ -242,63 +261,116 @@ const EventDateTimeModal = ({
     }, [draftValue, maxDate, onConfirm]);
 
     const renderWheel = useCallback(
-        <T extends string>(
-            ref: RefObject<ScrollView | null>,
-            items: T[],
+        (
+            ref: RefObject<FlatList<string> | null>,
+            items: string[],
+            snapOffsets: number[],
             isSelected: (index: number) => boolean,
             onScrollIndex: (index: number) => void,
             keyPrefix: string,
             // For looped columns: map any raw index to its middle-copy equivalent for press/snap
             toMiddleIndex?: (rawIndex: number) => number,
             extraTextStyle?: object,
-        ) => (
-            <ScrollView
-                ref={ref}
-                showsVerticalScrollIndicator={false}
-                snapToInterval={WHEEL_ITEM_HEIGHT}
-                decelerationRate="fast"
-                contentContainerStyle={styles.wheelContentContainer}
-                onScrollEndDrag={(e) => {
-                    const y = e.nativeEvent.targetContentOffset?.y ?? e.nativeEvent.contentOffset.y;
-                    const index = clampWheelIndex(y, items.length);
-                    onScrollIndex(index);
-                }}
-                onMomentumScrollEnd={(e) => {
-                    const index = clampWheelIndex(e.nativeEvent.contentOffset.y, items.length);
-                    if (toMiddleIndex) {
-                        // Looped columns: update state + reset to middle copy
-                        onScrollIndex(index);
-                    } else {
-                        // Non-looped columns: state already set by onScrollEndDrag,
-                        // just confirm visual snap position to avoid conflicts
-                        scrollWheelToIndex(ref, index, false);
-                    }
-                }}
-            >
-                {items.map((item, index) => (
-                    <Pressable
-                        key={`${keyPrefix}-${index}`}
-                        style={styles.wheelItem}
-                        onPress={() => {
-                            // Pressing always navigates to the middle-copy equivalent
-                            const target = toMiddleIndex ? toMiddleIndex(index) : index;
-                            onScrollIndex(target);
-                            scrollWheelToIndex(ref, target, true);
-                        }}
+        ) => {
+            const clearDragSettleTimeout = () => {
+                const timeout = wheelDragSettleTimeoutRef.current[keyPrefix];
+                if (timeout) {
+                    clearTimeout(timeout);
+                    wheelDragSettleTimeoutRef.current[keyPrefix] = null;
+                }
+            };
+
+            const settleWheelAtOffset = (offsetY: number, animateToSnap = false) => {
+                const index = clampWheelIndex(offsetY, items.length);
+                const target = toMiddleIndex ? toMiddleIndex(index) : index;
+                onScrollIndex(index);
+                const targetOffset = target * WHEEL_ITEM_HEIGHT;
+                const needsSnapAlignment = Math.abs(offsetY - targetOffset) > 0.5;
+
+                if (target !== index) {
+                    scrollWheelToIndex(ref, target, false);
+                } else if (needsSnapAlignment) {
+                    scrollWheelToIndex(ref, target, animateToSnap);
+                }
+            };
+
+            const renderWheelItem = ({ item, index }: { item: string; index: number }) => (
+                <Pressable
+                    key={`${keyPrefix}-${index}`}
+                    style={styles.wheelItem}
+                    onPress={() => {
+                        // Pressing always navigates to the middle-copy equivalent
+                        const target = toMiddleIndex ? toMiddleIndex(index) : index;
+                        onScrollIndex(target);
+                        scrollWheelToIndex(ref, target, true);
+                    }}
+                >
+                    <Text
+                        style={[
+                            styles.wheelText,
+                            extraTextStyle,
+                            isSelected(index) && styles.wheelTextSelected,
+                        ]}
                     >
-                        <Text
-                            style={[
-                                styles.wheelText,
-                                extraTextStyle,
-                                isSelected(index) && styles.wheelTextSelected,
-                            ]}
-                        >
-                            {item}
-                        </Text>
-                    </Pressable>
-                ))}
-            </ScrollView>
-        ),
+                        {item}
+                    </Text>
+                </Pressable>
+            );
+
+            return (
+                <FlatList
+                    ref={ref}
+                    data={items}
+                    keyExtractor={(_, index) => `${keyPrefix}-${index}`}
+                    renderItem={renderWheelItem}
+                    getItemLayout={(_, index) => ({
+                        length: WHEEL_ITEM_HEIGHT,
+                        offset: index * WHEEL_ITEM_HEIGHT,
+                        index,
+                    })}
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    windowSize={5}
+                    removeClippedSubviews={Platform.OS === "android"}
+                    showsVerticalScrollIndicator={false}
+                    snapToOffsets={snapOffsets}
+                    decelerationRate={Platform.OS === "android" ? "normal" : "fast"}
+                    contentContainerStyle={styles.wheelContentContainer}
+                    onScroll={(e) => {
+                        wheelOffsetRef.current[keyPrefix] = e.nativeEvent.contentOffset.y;
+                    }}
+                    scrollEventThrottle={16}
+                    onScrollBeginDrag={() => {
+                        clearDragSettleTimeout();
+                        wheelMomentumStateRef.current[keyPrefix] = false;
+                    }}
+                    onMomentumScrollBegin={() => {
+                        clearDragSettleTimeout();
+                        wheelMomentumStateRef.current[keyPrefix] = true;
+                    }}
+                    onScrollEndDrag={(e) => {
+                        const y = e.nativeEvent.targetContentOffset?.y
+                            ?? wheelOffsetRef.current[keyPrefix]
+                            ?? e.nativeEvent.contentOffset.y;
+                        clearDragSettleTimeout();
+                        wheelDragSettleTimeoutRef.current[keyPrefix] = setTimeout(() => {
+                            if (wheelMomentumStateRef.current[keyPrefix]) {
+                                return;
+                            }
+                            settleWheelAtOffset(y, true);
+                            wheelDragSettleTimeoutRef.current[keyPrefix] = null;
+                        }, DRAG_END_SETTLE_DELAY_MS);
+                    }}
+                    onMomentumScrollEnd={(e) => {
+                        wheelMomentumStateRef.current[keyPrefix] = false;
+                        clearDragSettleTimeout();
+                        settleWheelAtOffset(
+                            wheelOffsetRef.current[keyPrefix] ?? e.nativeEvent.contentOffset.y,
+                        );
+                    }}
+                />
+            );
+        },
         [scrollWheelToIndex],
     );
 
@@ -318,6 +390,7 @@ const EventDateTimeModal = ({
                         {renderWheel(
                             dateWheelRef,
                             dateOptions.map((o) => o.label),
+                            dateSnapOffsets,
                             (i) => i === selectedDateIndex,
                             applyDateIndex,
                             "date",
@@ -329,6 +402,7 @@ const EventDateTimeModal = ({
                         {renderWheel(
                             hourWheelRef,
                             HOURS_LOOPED,
+                            HOUR_SNAP_OFFSETS,
                             (i) => i % HOURS_12.length === selectedHourLogical,
                             handleHourScrollIndex,
                             "hour",
@@ -344,6 +418,7 @@ const EventDateTimeModal = ({
                         {renderWheel(
                             minuteWheelRef,
                             MINUTES_LOOPED,
+                            MINUTE_SNAP_OFFSETS,
                             (i) => i % MINUTES.length === selectedMinuteLogical,
                             handleMinuteScrollIndex,
                             "minute",
@@ -356,6 +431,7 @@ const EventDateTimeModal = ({
                         {renderWheel(
                             amPmWheelRef,
                             AMPM,
+                            AMPM_SNAP_OFFSETS,
                             (i) => i === selectedAmPmIndex,
                             applyAmPmIndex,
                             "ampm",
