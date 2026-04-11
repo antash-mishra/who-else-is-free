@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import * as SplashScreenModule from "expo-splash-screen";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -10,52 +10,64 @@ import { useAuth } from "@context/AuthContext";
 import { typography } from "@theme/index";
 import SplashLogo from "@assets/splash_logo.svg";
 
+const FALLBACK_TIMEOUT_MS = 8000;
+
 const SplashScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const [isReady, setIsReady] = useState(false);
+  const didNavigate = useRef(false);
 
-  // Called when the view layout is complete - safe to hide native splash
+  const player = useVideoPlayer(require("../../assets/splash.mp4"), (p) => {
+    p.loop = false;
+    p.muted = true;
+    p.play();
+  });
+
   const onLayoutRootView = useCallback(async () => {
     if (!isReady) {
       setIsReady(true);
-      // Small delay to ensure React splash is fully painted
       await new Promise((resolve) => setTimeout(resolve, 50));
       await SplashScreenModule.hideAsync();
     }
   }, [isReady]);
 
+  const navigateAway = useCallback(() => {
+    if (didNavigate.current) return;
+    didNavigate.current = true;
+
+    let destination: keyof RootStackParamList = "Main";
+    if (user && !user.profileComplete) {
+      destination = "Onboarding";
+    }
+
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: destination }],
+      });
+    });
+  }, [fadeAnim, navigation, user]);
+
   useEffect(() => {
     if (!isReady) return;
 
-    const runSplashSequence = async () => {
-      // Wait 2 seconds
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+    const sub = player.addListener("playToEnd", navigateAway);
 
-      // Determine destination: if user exists but profile not complete, go to Onboarding
-      let destination: keyof RootStackParamList = "Main";
-      if (user && !user.profileComplete) {
-        destination = "Onboarding";
-      }
+    // Fallback: navigate after timeout in case video fails to play or fires no event
+    const timer = setTimeout(navigateAway, FALLBACK_TIMEOUT_MS);
 
-      // Fade out animation (300ms)
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        // Navigate to destination after fade completes
-        navigation.reset({
-          index: 0,
-          routes: [{ name: destination }],
-        });
-      });
+    return () => {
+      sub.remove();
+      clearTimeout(timer);
     };
-
-    runSplashSequence();
-  }, [fadeAnim, navigation, isReady, user]);
+  }, [isReady, player, navigateAway]);
 
   return (
     <Animated.View
@@ -63,16 +75,16 @@ const SplashScreen = () => {
       style={[styles.container, { opacity: fadeAnim }]}
       onLayout={onLayoutRootView}
     >
-      <LinearGradient
-        colors={["#1B50E3", "#153DAD", "#081944", "#050F29"]}
-        locations={[0, 0.3174, 0.601, 0.726]}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
-          <SplashLogo width={184} height={67} />
-          <Text style={styles.tagline}>Who Else Is Free</Text>
-        </View>
-      </LinearGradient>
+      <VideoView
+        player={player}
+        style={styles.video}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={styles.overlay}>
+        <SplashLogo width={184} height={67} />
+        <Text style={styles.tagline}>Who Else Is Free</Text>
+      </View>
     </Animated.View>
   );
 };
@@ -80,18 +92,18 @@ const SplashScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#050F29",
   },
-  gradient: {
-    flex: 1,
+  video: {
+    ...StyleSheet.absoluteFillObject,
   },
-  content: {
+  overlay: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   tagline: {
     fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
     fontSize: 28,
     lineHeight: 28,
     letterSpacing: -0.4,
