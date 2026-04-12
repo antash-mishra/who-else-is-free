@@ -506,17 +506,17 @@ const styles = StyleSheet.create({
   },
   listContent: {},
   sectionHeader: {
-    fontSize: 16,
-    color: "#000000",
+    fontSize: 15,
+    color: "#808080",
     marginTop: 0,
     marginBottom: 14,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: 20,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   sectionSeparator: {
-    height: 28,
+    height: 20,
   },
   itemSeparator: {
     height: 14,
