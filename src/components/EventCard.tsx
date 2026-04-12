@@ -1,14 +1,17 @@
 import { memo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 import { colors, spacing, typography } from '@theme/index';
 import PendingIcon from '@assets/pending.svg';
 import HostingIcon from '@assets/hosting.svg';
 import JoinedIcon from '@assets/joined.svg';
 
-const IMAGE_SIZE = 68;
-const IMAGE_BORDER_RADIUS = 8;
+const IMAGE_SIZE = 80;
+const IMAGE_BORDER_RADIUS = 10;
+const BLUR_H = 38;
 
 export interface EventItemProps {
   id: string;
@@ -42,20 +45,32 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
   return (
     <View style={styles.container} testID="event-card">
       <View style={styles.imageWrapper}>
-        <Image source={{ uri: imageUri }} style={styles.image} />
-        {showBadge ? (
-          <>
-            <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.8)']}
-              locations={[0, 0.56, 1]}
-              style={styles.gradient}
+        <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} />
+        {showBadge && (
+          <MaskedView
+            style={{ width: IMAGE_SIZE, height: BLUR_H }}
+            maskElement={
+              <LinearGradient
+                colors={['transparent', 'black']}
+                locations={[0, 0.7]}
+                style={{ width: IMAGE_SIZE, height: BLUR_H }}
+              />
+            }
+          >
+            <BlurView
+              intensity={28}
+              tint="dark"
+              style={{ width: IMAGE_SIZE, height: BLUR_H }}
             />
-            <View style={styles.badge} testID="event-card-badge">
+            <View
+              testID="event-card-badge"
+              style={{ position: 'absolute', bottom: 6, left: 7, flexDirection: 'row', alignItems: 'center', gap: 3 }}
+            >
               {getBadgeIcon(badgeLabel)}
               <Text style={styles.badgeText}>{badgeLabel}</Text>
             </View>
-          </>
-        ) : null}
+          </MaskedView>
+        )}
       </View>
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={1}>
@@ -76,65 +91,45 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    // paddingVertical: spacing.sm,
-    gap: spacing.md
+    gap: spacing.md,
   },
   imageWrapper: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: IMAGE_BORDER_RADIUS,
     overflow: 'hidden',
-  },
-  image: {
-    width: '100%',
-    height: '100%'
-  },
-  gradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 44,
-  },
-  badge: {
-    position: 'absolute',
-    bottom: 4,
-    left: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#FFFFFF',
-    fontFamily: typography.fontFamilyRegular,
-    lineHeight: 12,
-    letterSpacing: -0.3,
+    fontFamily: typography.fontFamilyMedium,
+    letterSpacing: -0.2,
   },
   content: {
     flex: 1,
-    gap: 1
+    gap: 6,
   },
   title: {
-    fontSize: typography.cardTitle,
+    fontSize: 17,
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
-    letterSpacing: -0.5
+    letterSpacing: -0.5,
+    marginTop: -4,
   },
   meta: {
     fontSize: 15,
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
-    letterSpacing: -0.5
+    letterSpacing: -0.5,
   },
-  
   audience: {
     fontSize: 15,
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
-    letterSpacing: -0.5
-
-  }
+    letterSpacing: -0.5,
+  },
 });
 
 export default memo(EventCard);
