@@ -13,7 +13,7 @@ export const colors = {
   iconColor: '#707070',
   subText: '#808080',
   border: '#E5E7EB',
-  tabInactive: '#A6A6A6',
+  tabInactive: '#A3A3A3',
   tabActive: '#000000',
   activeTabIndicator: '#000000',
   buttonBackground: '#2F3036',
