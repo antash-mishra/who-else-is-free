@@ -21,13 +21,11 @@ const mockRouteParams = {
   eventId: 1,
   title: 'Coffee Meetup',
   groupType: 'Group' as 'Single' | 'Group',
-  eventDetails: {
-    coverKey: 'coffee',
-    dateLabel: 'Today',
-    location: 'Central Park',
-    time: '10:00',
-  },
 };
+
+const today = new Date();
+const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+const todayAbsoluteLabel = `${String(today.getDate()).padStart(2, '0')} ${today.toLocaleString('en-US', { month: 'short' })} ${today.toLocaleString('en-US', { weekday: 'short' })}`;
 
 jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native');
@@ -145,6 +143,32 @@ jest.mock('@context/ChatContext', () => ({
   ChatJoinRequest: {},
 }));
 
+let mockEventsValue = {
+  events: [
+    {
+      id: '1',
+      title: 'Coffee Meetup',
+      location: 'Central Park',
+      time: '10:00 AM',
+      audience: 'Any gender, 18 to 35 years',
+      imageUri: 'https://example.com/coffee.jpg',
+      dateLabel: 'Today',
+      eventDate: todayKey,
+      ownerId: 1,
+      hostName: 'Test User',
+      gender: 'Any',
+      minAge: 18,
+      maxAge: 35,
+      groupType: 'Group' as 'Single' | 'Group',
+      coverKey: 'coffee',
+    },
+  ],
+};
+
+jest.mock('@context/EventsContext', () => ({
+  useEvents: () => mockEventsValue,
+}));
+
 // Mock components
 jest.mock('@components/ScreenContainer', () => {
   const { View } = require('react-native');
@@ -255,6 +279,27 @@ describe('JoinRequestsScreen Rendering', () => {
       sendMessage: jest.fn(),
       retryMessage: jest.fn(),
       reportMember: jest.fn(),
+    };
+    mockEventsValue = {
+      events: [
+        {
+          id: '1',
+          title: 'Coffee Meetup',
+          location: 'Central Park',
+          time: '10:00 AM',
+          audience: 'Any gender, 18 to 35 years',
+          imageUri: 'https://example.com/coffee.jpg',
+          dateLabel: 'Today',
+          eventDate: todayKey,
+          ownerId: 1,
+          hostName: 'Test User',
+          gender: 'Any',
+          minAge: 18,
+          maxAge: 35,
+          groupType: 'Group' as 'Single' | 'Group',
+          coverKey: 'coffee',
+        },
+      ],
     };
   });
 
@@ -414,6 +459,12 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('1:1 Mode - Header Rendering', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [
+        {
+          ...mockEventsValue.events[0],
+          groupType: 'Single',
+        },
+      ];
     });
 
     it('should render event cover image in 1:1 mode', () => {
@@ -427,7 +478,7 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should render event subtitle with details in 1:1 mode', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
-      expect(getByText('Today, 10:00 at Central Park')).toBeTruthy();
+      expect(getByText(`${todayAbsoluteLabel}, 10:00 AM at Central Park`)).toBeTruthy();
     });
 
     it('should render pending requests icon with count badge in 1:1 mode', () => {
@@ -453,6 +504,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('1:1 Mode - Request List Rendering', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should render requester names', () => {
@@ -487,6 +539,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('1:1 Mode - Request Press Navigation', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should navigate to ChatThread when pressing a request row', async () => {
@@ -504,6 +557,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('1:1 Mode - Menu Overlay', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should show menu overlay when 3-dot menu is pressed', async () => {
@@ -524,8 +578,8 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        expect(getByText('Report & Block Member')).toBeTruthy();
-        expect(getByText('Remove Member')).toBeTruthy();
+        expect(getByText('Report & Block Jane')).toBeTruthy();
+        expect(getByText('Remove Jane')).toBeTruthy();
       });
     });
 
@@ -553,7 +607,7 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Report & Block Member'));
+        fireEvent.press(getByText('Report & Block Jane'));
       });
 
       await waitFor(() => {
@@ -565,6 +619,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('1:1 Mode - Report Overlay', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should show report overlay when Report & Block Member is selected', async () => {
@@ -574,7 +629,7 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Report & Block Member'));
+        fireEvent.press(getByText('Report & Block Jane'));
       });
 
       await waitFor(() => {
@@ -591,7 +646,7 @@ describe('JoinRequestsScreen Rendering', () => {
       fireEvent.press(menuButtons[0].parent!);
 
       await waitFor(() => {
-        fireEvent.press(getByText('Report & Block Member'));
+        fireEvent.press(getByText('Report & Block Jane'));
       });
 
       await waitFor(() => {
@@ -609,6 +664,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('1:1 Mode - Empty State', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should show different empty state message for 1:1 mode', () => {
@@ -636,6 +692,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('Avatar Colors', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should generate consistent avatar color based on userId', () => {
@@ -651,6 +708,7 @@ describe('JoinRequestsScreen Rendering', () => {
   describe('Request Without ConversationId', () => {
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
     it('should not navigate when request has no conversationId', async () => {
@@ -698,6 +756,7 @@ describe('JoinRequestsScreen Rendering', () => {
 
     beforeEach(() => {
       mockRouteParams.groupType = 'Single';
+      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
       mockChatValue.joinRequestsByConversation = { 1: onlyPendingRequests };
     });
 

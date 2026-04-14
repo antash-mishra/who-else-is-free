@@ -2757,15 +2757,16 @@ func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo 
 			return ConversationSummary{}, err
 		}
 		eventMeta = &ConversationEventMeta{
-			ID:        evt.ID,
-			UserID:    evt.UserID,
-			Title:     evt.Title,
-			Location:  evt.Location,
-			Time:      evt.Time,
-			EventDate: evt.EventDate,
-			DateLabel: evt.DateLabel,
-			GroupType: evt.GroupType,
-			CoverKey:  evt.CoverKey,
+			ID:          evt.ID,
+			UserID:      evt.UserID,
+			Title:       evt.Title,
+			Location:    evt.Location,
+			Time:        evt.Time,
+			EventDate:   evt.EventDate,
+			DateLabel:   evt.DateLabel,
+			GroupType:   evt.GroupType,
+			CoverKey:    evt.CoverKey,
+			ScheduledAt: evt.ScheduledAt,
 		}
 	}
 

@@ -108,6 +108,31 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('Coffee Meetup Chat')).toBeTruthy();
     });
 
+    it('should render display-ready schedule text without reformatting it again', () => {
+      setupMocks({
+        chatOverrides: {
+          conversations: [
+            {
+              ...mockConversations[0],
+              event: {
+                ...mockConversations[0].event!,
+                time: '7:30 PM',
+                location: 'Central Park',
+                dateLabel: 'Today',
+                eventDate: undefined,
+              },
+            },
+          ],
+        },
+        eventsOverrides: { events: [] },
+      });
+      const { getByText } = render(<ChatThreadScreen />);
+
+      expect(
+        getByText(/7:30 PM at Central Park/),
+      ).toBeTruthy();
+    });
+
     it('should render own messages with appropriate styling', () => {
       setupMocks();
       const { getByText } = render(<ChatThreadScreen />);

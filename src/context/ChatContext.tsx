@@ -13,7 +13,7 @@ import { AppState, AppStateStatus } from "react-native";
 
 import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from "@api/config";
 import { useAuth } from "@context/AuthContext";
-import { getLegacyDateLabel } from "@utils/dateTime";
+import { getScheduleDisplay } from "@utils/dateTime";
 
 type ConversationParticipant = {
   id: number;
@@ -37,6 +37,7 @@ type ConversationEventApi = {
   event_date?: string;
   group_type?: string;
   cover_key?: string;
+  scheduled_at?: string;
 };
 
 export type ChatConversation = {
@@ -59,6 +60,7 @@ export type ChatConversation = {
     eventDate?: string;
     groupType?: string;
     coverKey?: string;
+    scheduledAt?: string;
   };
 };
 
@@ -409,19 +411,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           (participant) => participant.id !== user.id,
         );
         const event = conversation.event
-          ? {
-              id: conversation.event.id,
-              userId: conversation.event.user_id,
-              title: conversation.event.title,
-              location: conversation.event.location,
-              time: conversation.event.time,
-              dateLabel: conversation.event.event_date
-                ? getLegacyDateLabel(conversation.event.event_date)
-                : conversation.event.date_label,
-              eventDate: conversation.event.event_date,
-              groupType: conversation.event.group_type,
-              coverKey: conversation.event.cover_key,
-            }
+          ? (() => {
+              const schedule = getScheduleDisplay({
+                scheduledAt: conversation.event.scheduled_at,
+                eventDate: conversation.event.event_date,
+                time: conversation.event.time,
+                dateLabel: conversation.event.date_label,
+              });
+
+              return {
+                id: conversation.event.id,
+                userId: conversation.event.user_id,
+                title: conversation.event.title,
+                location: conversation.event.location,
+                time: schedule.displayTime,
+                dateLabel: schedule.displayLabel,
+                eventDate: schedule.displayDate,
+                groupType: conversation.event.group_type,
+                coverKey: conversation.event.cover_key,
+                scheduledAt: conversation.event.scheduled_at,
+              };
+            })()
           : undefined;
         const memberCount =
           conversation.member_ids?.length ?? participants.length;

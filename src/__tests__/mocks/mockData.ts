@@ -156,6 +156,10 @@ export const mockConversations: ChatConversation[] = [
       location: 'Central Park',
       time: '10:00',
       dateLabel: 'Today',
+      eventDate: formatLocalDate(),
+      groupType: 'Group',
+      coverKey: 'coffee',
+      scheduledAt: new Date().toISOString(),
     },
   },
   {
@@ -313,10 +317,15 @@ export const mockApiResponses = {
         event: c.event
           ? {
               id: c.event.id,
+              user_id: c.event.userId,
               title: c.event.title,
               location: c.event.location,
               time: c.event.time,
               date_label: c.event.dateLabel,
+              event_date: c.event.eventDate,
+              group_type: c.event.groupType,
+              cover_key: c.event.coverKey,
+              scheduled_at: c.event.scheduledAt,
             }
           : undefined,
       })),

@@ -60,6 +60,21 @@ func normalizeEventSchedule(eventDate string, timeLabel string, now time.Time) (
 	return date.Format("2006-01-02"), dateLabel, minutes, nil
 }
 
+func normalizeScheduledLegacyFields(eventDate string, timeLabel string, dateLabel string, now time.Time) (string, string, string, error) {
+	normalizedDate, derivedLabel, _, err := normalizeEventSchedule(eventDate, timeLabel, now)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	normalizedTime := strings.TrimSpace(timeLabel)
+	normalizedLabel := strings.TrimSpace(dateLabel)
+	if normalizedLabel == "" {
+		normalizedLabel = derivedLabel
+	}
+
+	return normalizedDate, normalizedTime, normalizedLabel, nil
+}
+
 // parseEventTimeLabel supports both 24-hour strings (e.g. "20:30") and the
 // "7:00pm" format used by the client. It returns the minutes since midnight.
 func parseEventTimeLabel(label string) (int, error) {
@@ -68,7 +83,7 @@ func parseEventTimeLabel(label string) (int, error) {
 		return 0, fmt.Errorf("time is required")
 	}
 
-	lower := strings.ToLower(trimmed)
+	lower := strings.ToLower(strings.ReplaceAll(trimmed, " ", ""))
 	var parsed time.Time
 	var err error
 	if strings.Contains(lower, "am") || strings.Contains(lower, "pm") {

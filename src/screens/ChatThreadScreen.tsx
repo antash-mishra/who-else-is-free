@@ -25,7 +25,7 @@ import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
-import { convertTo12Hour, formatAbsoluteDateLabel } from "@utils/dateTime";
+import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 const HEADER_HEIGHT = 56;
 
@@ -58,19 +58,6 @@ const ChatThreadScreen = () => {
     [conversations, activeConversationId],
   );
 
-  const eventCoverUri = useMemo(() => {
-    if (!activeConversation?.eventId) {
-      return null;
-    }
-    const match = events.find(
-      (eventItem) => Number(eventItem.id) === activeConversation.eventId,
-    );
-    if (!match) {
-      return null;
-    }
-    return resolveCoverUri(match.coverKey ?? null);
-  }, [activeConversation, events]);
-
   const activeEvent = useMemo(() => {
     if (!activeConversation?.eventId) {
       return null;
@@ -81,9 +68,24 @@ const ChatThreadScreen = () => {
     );
   }, [activeConversation, events]);
 
-  const activeEventGroupType = useMemo(
-    () => activeConversation?.event?.groupType ?? activeEvent?.groupType ?? null,
+  const eventCoverUri = useMemo(() => {
+    if (activeEvent?.imageUri) {
+      return activeEvent.imageUri;
+    }
+    if (!activeConversation?.event?.coverKey) {
+      return null;
+    }
+    return resolveCoverUri(activeConversation.event.coverKey ?? null);
+  }, [activeConversation, activeEvent]);
+
+  const activeEventDetails = useMemo(
+    () => activeEvent ?? activeConversation?.event ?? null,
     [activeConversation, activeEvent],
+  );
+
+  const activeEventGroupType = useMemo(
+    () => activeEventDetails?.groupType ?? null,
+    [activeEventDetails],
   );
 
   const headerTitle = useMemo(() => {
@@ -98,21 +100,21 @@ const ChatThreadScreen = () => {
 
   const headerSubtitle = useMemo(() => {
     if (isConnecting) return "Connecting\u2026";
-    if (activeEventGroupType === "Single" && activeEvent) {
-      const title = activeEvent.title;
-      const datePart = activeEvent.eventDate
-        ? formatAbsoluteDateLabel(activeEvent.eventDate)
-        : activeEvent.dateLabel;
+    if (activeEventGroupType === "Single" && activeEventDetails) {
+      const title = activeEventDetails.title;
+      const datePart = activeEventDetails.eventDate
+        ? formatAbsoluteDateLabel(activeEventDetails.eventDate)
+        : activeEventDetails.dateLabel;
       return datePart ? `${title}, ${datePart}` : title;
     }
-    if (activeEvent?.time && activeEvent?.location) {
-      const datePart = activeEvent.eventDate
-        ? formatAbsoluteDateLabel(activeEvent.eventDate)
-        : activeEvent.dateLabel;
-      return `${datePart}, ${convertTo12Hour(activeEvent.time)} at ${activeEvent.location}`;
+    if (activeEventDetails?.time && activeEventDetails?.location) {
+      const datePart = activeEventDetails.eventDate
+        ? formatAbsoluteDateLabel(activeEventDetails.eventDate)
+        : activeEventDetails.dateLabel;
+      return `${datePart}, ${activeEventDetails.time} at ${activeEventDetails.location}`;
     }
     return undefined;
-  }, [isConnecting, activeEvent, activeEventGroupType]);
+  }, [isConnecting, activeEventDetails, activeEventGroupType]);
 
   const joinRequests = useMemo(() => {
     if (!activeConversationId) {

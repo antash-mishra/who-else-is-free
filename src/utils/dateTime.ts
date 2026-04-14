@@ -1,6 +1,7 @@
 import { DateOption } from "@constants/eventOptions";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const TIME_STRING_PATTERN = /^(\d{1,2}):(\d{2})(?:\s?(am|pm))?$/i;
 
 // Base time options for event scheduling
 export const baseTimeOptions = [
@@ -18,21 +19,17 @@ export const baseTimeOptions = [
  * Returns null if the format is invalid.
  */
 export const timeStringToMinutes = (timeLabel: string): number | null => {
-    const match = timeLabel
-        .trim()
-        .toLowerCase()
-        .match(/(\d{1,2}):(\d{2})(am|pm)?/);
+    const match = timeLabel.trim().match(TIME_STRING_PATTERN);
     if (!match) {
         return null;
     }
     let hours = parseInt(match[1], 10);
     const minutes = parseInt(match[2], 10);
-    const meridiem = match[3];
+    const meridiem = match[3]?.toLowerCase();
 
     if (
         Number.isNaN(hours) ||
         Number.isNaN(minutes) ||
-        hours < 0 ||
         minutes < 0 ||
         minutes > 59
     ) {
@@ -49,6 +46,8 @@ export const timeStringToMinutes = (timeLabel: string): number | null => {
         if (meridiem === "am" && hours === 12) {
             hours = 0;
         }
+    } else if (hours < 0 || hours > 23) {
+        return null;
     }
 
     return hours * 60 + minutes;
@@ -98,6 +97,53 @@ export const convertTo12Hour = (timeStr: string): string => {
         return timeStr;
     }
     return formatTimeAmPm(Math.floor(minutes / 60), minutes % 60);
+};
+
+export interface ScheduleDisplayInput {
+    scheduledAt?: string | null;
+    eventDate?: string | null;
+    time?: string | null;
+    dateLabel?: string | null;
+}
+
+export interface ScheduleDisplay {
+    displayDate: string;
+    displayTime: string;
+    displayLabel: string;
+}
+
+export const getScheduleDisplay = ({
+    scheduledAt,
+    eventDate,
+    time,
+    dateLabel,
+}: ScheduleDisplayInput): ScheduleDisplay => {
+    const trimmedDate = eventDate?.trim() ?? "";
+    const trimmedTime = time?.trim() ?? "";
+    const trimmedLabel = dateLabel?.trim() ?? "";
+
+    if (scheduledAt) {
+        const scheduledDate = new Date(scheduledAt);
+        if (!Number.isNaN(scheduledDate.getTime())) {
+            const displayDate = toDateKey(scheduledDate);
+            return {
+                displayDate,
+                displayTime: formatTimeAmPm(
+                    scheduledDate.getHours(),
+                    scheduledDate.getMinutes(),
+                ),
+                displayLabel: getLegacyDateLabel(displayDate),
+            };
+        }
+    }
+
+    return {
+        displayDate: trimmedDate,
+        displayTime: convertTo12Hour(trimmedTime),
+        displayLabel: trimmedDate
+            ? getLegacyDateLabel(trimmedDate)
+            : trimmedLabel,
+    };
 };
 
 /**

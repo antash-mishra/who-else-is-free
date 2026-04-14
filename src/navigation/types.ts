@@ -25,13 +25,6 @@ export type RootStackParamList = {
     eventId: number;
     title: string;
     groupType?: "Single" | "Group";
-    eventDetails?: {
-      coverKey?: string;
-      dateLabel: string;
-      eventDate?: string;
-      location: string;
-      time: string;
-    };
   };
   PendingRequests: {
     conversationId: number;
