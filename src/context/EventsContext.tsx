@@ -18,7 +18,12 @@ import {
   DEFAULT_COVER_KEY,
   resolveCoverUri,
 } from "@constants/covers";
-import { convertTo12Hour, formatTimeAmPm, getLegacyDateLabel, parseDateKey, toDateKey } from "@utils/dateTime";
+import {
+  getLegacyDateLabel,
+  getScheduleDisplay,
+  parseDateKey,
+  timeStringToMinutes,
+} from "@utils/dateTime";
 import { navigationRef } from "../navigation/navigationRef";
 
 export type DateLabel = string;
@@ -153,39 +158,21 @@ const formatAudience = (gender: string, minAge: number, maxAge: number) => {
   return `${genderLabel}, ${minAge} to ${maxAge} years`;
 };
 
-const parseTimeToMinutes = (timeLabel: string) => {
-  const match = timeLabel.trim().toLowerCase().match(/(\d{1,2}):(\d{2})(am|pm)?/);
-  if (!match) {
-    return null;
-  }
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const meridiem = match[3];
-
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
-    return null;
-  }
-
-  if (meridiem) {
-    if (meridiem === "pm" && hours !== 12) {
-      hours += 12;
-    }
-    if (meridiem === "am" && hours === 12) {
-      hours = 0;
-    }
-  }
-
-  return hours * 60 + minutes;
-};
-
 const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
   return getLegacyDateLabel(eventDate);
 };
 
+const getScheduledAtMillis = (scheduledAt?: string) => {
+  if (!scheduledAt) {
+    return null;
+  }
+  const parsed = Date.parse(scheduledAt);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 const isUpcomingEvent = (eventDate: string, _timeLabel: string, scheduledAt?: string) => {
-  // If scheduled_at is present, use it for precise time comparison
-  if (scheduledAt) {
-    const scheduledTime = new Date(scheduledAt).getTime();
+  const scheduledTime = getScheduledAtMillis(scheduledAt);
+  if (scheduledTime != null) {
     return scheduledTime > Date.now();
   }
 
@@ -200,12 +187,14 @@ const isUpcomingEvent = (eventDate: string, _timeLabel: string, scheduledAt?: st
 };
 
 const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
-  if (a.scheduledAt && b.scheduledAt) {
-    return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
+  const scheduledTimeA = getScheduledAtMillis(a.scheduledAt);
+  const scheduledTimeB = getScheduledAtMillis(b.scheduledAt);
+  if (scheduledTimeA != null && scheduledTimeB != null) {
+    return scheduledTimeA - scheduledTimeB;
   }
   if (a.eventDate === b.eventDate) {
-    const timeA = parseTimeToMinutes(a.time) ?? 0;
-    const timeB = parseTimeToMinutes(b.time) ?? 0;
+    const timeA = timeStringToMinutes(a.time) ?? 0;
+    const timeB = timeStringToMinutes(b.time) ?? 0;
     if (timeA === timeB) {
       return 0;
     }
@@ -219,37 +208,23 @@ const mapApiEvent = (
   meta: EventMeta | undefined,
 ): UserEvent => {
   const groupType = event.group_type ?? "Single";
-
-  // If scheduled_at is present, derive display values from it (in local timezone)
-  let displayTime = convertTo12Hour(event.time);
-  let displayDate = event.event_date;
-  let displayLabel: DateLabel;
-
-  if (event.scheduled_at) {
-    const utcDate = new Date(event.scheduled_at);
-    if (!Number.isNaN(utcDate.getTime())) {
-      // Format time in local timezone (12-hour AM/PM format)
-      displayTime = formatTimeAmPm(utcDate.getHours(), utcDate.getMinutes());
-      // Format date in local timezone (YYYY-MM-DD)
-      displayDate = toDateKey(utcDate);
-      displayLabel = deriveDateLabelFromDate(displayDate);
-    } else {
-      displayLabel = deriveDateLabelFromDate(event.event_date);
-    }
-  } else {
-    displayLabel = deriveDateLabelFromDate(event.event_date);
-  }
+  const schedule = getScheduleDisplay({
+    scheduledAt: event.scheduled_at,
+    eventDate: event.event_date,
+    time: event.time,
+    dateLabel: event.date_label,
+  });
 
   return {
     id: String(event.id),
     title: event.title,
     location: event.location,
-    time: displayTime,
+    time: schedule.displayTime,
     audience: formatAudience(event.gender, event.min_age, event.max_age),
     imageUri: resolveCoverUri(event.cover_key),
     badgeLabel: groupType === "Group" ? "Group" : meta?.badgeLabel,
-    dateLabel: displayLabel,
-    eventDate: displayDate,
+    dateLabel: schedule.displayLabel,
+    eventDate: schedule.displayDate,
     description: event.description,
     ownerId: event.user_id,
     hostName: event.host_name,

@@ -14,13 +14,14 @@ import { Feather } from "@expo/vector-icons";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
+import { useEvents } from "@context/EventsContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
-import { convertTo12Hour, formatAbsoluteDateLabel } from "@utils/dateTime";
+import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
 type JoinRequestsNavigation = NativeStackNavigationProp<
@@ -51,6 +52,7 @@ const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
   const route = useRoute<JoinRequestsRoute>();
   const { token, authFetch, user } = useAuth();
+  const { events } = useEvents();
   const {
     joinRequestsByConversation,
     refreshJoinRequests,
@@ -59,13 +61,9 @@ const JoinRequestsScreen = () => {
     setActiveConversation,
     conversations,
   } = useChat();
-  const { conversationId, eventId, title, groupType, eventDetails } =
-    route.params;
+  const { conversationId, eventId, title, groupType } = route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Mode detection
-  const is1to1Mode = groupType === "Single";
 
   // State for 1:1 mode menu and report overlays
   const [selectedRequest, setSelectedRequest] =
@@ -76,6 +74,40 @@ const JoinRequestsScreen = () => {
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
+
+  const conversationById = useMemo(
+    () => new Map(conversations.map((conversation) => [conversation.id, conversation])),
+    [conversations],
+  );
+
+  const conversation = useMemo(
+    () => conversationById.get(conversationId),
+    [conversationById, conversationId],
+  );
+
+  const resolvedEvent = useMemo(
+    () => events.find((event) => Number(event.id) === eventId) ?? null,
+    [eventId, events],
+  );
+
+  const conversationEvent = conversation?.event ?? null;
+  const resolvedGroupType =
+    resolvedEvent?.groupType ?? conversationEvent?.groupType ?? groupType;
+  const is1to1Mode = resolvedGroupType === "Single";
+  const resolvedTitle =
+    resolvedEvent?.title ?? conversationEvent?.title ?? title;
+  const resolvedCoverKey =
+    resolvedEvent?.coverKey ?? conversationEvent?.coverKey ?? undefined;
+  const resolvedSchedule = resolvedEvent ?? conversationEvent;
+  const resolvedSubtitle = useMemo(() => {
+    if (!resolvedSchedule?.time || !resolvedSchedule.location) {
+      return undefined;
+    }
+    const datePart = resolvedSchedule.eventDate
+      ? formatAbsoluteDateLabel(resolvedSchedule.eventDate)
+      : resolvedSchedule.dateLabel;
+    return `${datePart}, ${resolvedSchedule.time} at ${resolvedSchedule.location}`;
+  }, [resolvedSchedule]);
 
   const loadRequests = useCallback(async (showRefreshing: boolean) => {
     if (showRefreshing) {
@@ -260,11 +292,6 @@ const JoinRequestsScreen = () => {
     [is1to1Mode],
   );
 
-  const conversationById = useMemo(
-    () => new Map(conversations.map((conversation) => [conversation.id, conversation])),
-    [conversations],
-  );
-
   const getApprovedPreview = useCallback(
     (request: ChatJoinRequest & { conversationId?: number }) => {
       const conversation = request.conversationId
@@ -324,17 +351,12 @@ const JoinRequestsScreen = () => {
 
   // 1:1 mode header
   const render1to1Header = () => {
-    if (!eventDetails) return null;
-    const datePart = eventDetails.eventDate
-      ? formatAbsoluteDateLabel(eventDetails.eventDate)
-      : eventDetails.dateLabel;
-
     return (
       <ChatEventHeader
         onBack={() => navigation.goBack()}
-        title={title}
-        subtitle={`${datePart}, ${convertTo12Hour(eventDetails.time)} at ${eventDetails.location}`}
-        coverSource={getCoverSource(eventDetails.coverKey)}
+        title={resolvedTitle}
+        subtitle={resolvedSubtitle}
+        coverSource={getCoverSource(resolvedCoverKey)}
         onTitlePress={() =>
           navigation.navigate("EventDetailsOverlay", {
             eventId: String(eventId),
@@ -416,7 +438,7 @@ const JoinRequestsScreen = () => {
   const renderGroupHeader = () => (
     <ChatEventHeader
       onBack={() => navigation.goBack()}
-      title={title}
+      title={resolvedTitle}
       subtitle="Join Requests"
       onTitlePress={() =>
         navigation.navigate("EventDetailsOverlay", {

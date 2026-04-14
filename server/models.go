@@ -83,15 +83,16 @@ type ConversationParticipant struct {
 }
 
 type ConversationEventMeta struct {
-	ID        int64  `json:"id"`
-	UserID    int64  `json:"user_id"`
-	Title     string `json:"title"`
-	Location  string `json:"location"`
-	Time      string `json:"time"`
-	EventDate string `json:"event_date"`
-	DateLabel string `json:"date_label"`
-	GroupType string `json:"group_type"`
-	CoverKey  string `json:"cover_key"`
+	ID          int64      `json:"id"`
+	UserID      int64      `json:"user_id"`
+	Title       string     `json:"title"`
+	Location    string     `json:"location"`
+	Time        string     `json:"time"`
+	EventDate   string     `json:"event_date"`
+	DateLabel   string     `json:"date_label"`
+	GroupType   string     `json:"group_type"`
+	CoverKey    string     `json:"cover_key"`
+	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
 }
 
 type MessageSummary struct {

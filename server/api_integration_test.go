@@ -229,7 +229,11 @@ type createEventResponse struct {
 
 type conversationsResponse struct {
 	Conversations []struct {
-		ID          int64 `json:"id"`
+		ID    int64 `json:"id"`
+		Event *struct {
+			ID          int64  `json:"id"`
+			ScheduledAt string `json:"scheduled_at"`
+		} `json:"event"`
 		LastMessage *struct {
 			ID int64 `json:"id"`
 		} `json:"last_message"`
@@ -2493,6 +2497,20 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 		// Should contain future event conversation
 		if !convoIDs[futureConvoID] {
 			t.Errorf("conversation for future event should be included, but was filtered out (ID: %d)", futureConvoID)
+		}
+		for _, convo := range payload.Conversations {
+			if convo.ID == futureConvoID {
+				if convo.Event == nil {
+					t.Fatalf("expected future conversation %d to include event metadata", futureConvoID)
+				}
+				if convo.Event.ScheduledAt != tomorrow.Format(time.RFC3339) {
+					t.Fatalf(
+						"expected future conversation scheduled_at %q, got %q",
+						tomorrow.Format(time.RFC3339),
+						convo.Event.ScheduledAt,
+					)
+				}
+			}
 		}
 
 		// Should NOT contain legacy old event conversation (NULL scheduled_at, old event_date)
@@ -5090,6 +5108,122 @@ func TestCreateEventValidation(t *testing.T) {
 			t.Fatalf("expected 400, got %d", resp.StatusCode)
 		}
 	})
+}
+
+func TestCreateEventScheduledAtPreservesLegacyFields(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+
+	body := CreateEventParams{
+		Title:       "Scheduled Event",
+		Location:    "Test Location",
+		Time:        "00:30",
+		EventDate:   "2026-04-11",
+		Description: "Preserve legacy fields",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      40,
+		DateLabel:   "Tmrw",
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+		ScheduledAt: "2026-04-08T12:34:00-04:00",
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+
+	payload := decodeJSON[createEventResponse](t, resp)
+	evt, err := env.repo.GetEventByID(ctx, payload.ID)
+	if err != nil {
+		t.Fatalf("get created event: %v", err)
+	}
+
+	if evt.EventDate != body.EventDate {
+		t.Fatalf("expected event_date %q, got %q", body.EventDate, evt.EventDate)
+	}
+	if evt.Time != body.Time {
+		t.Fatalf("expected time %q, got %q", body.Time, evt.Time)
+	}
+	if evt.DateLabel != body.DateLabel {
+		t.Fatalf("expected date_label %q, got %q", body.DateLabel, evt.DateLabel)
+	}
+	if evt.ScheduledAt == nil {
+		t.Fatal("expected scheduled_at to be stored")
+	}
+	if got := formatScheduledAtUTC(*evt.ScheduledAt); got != "2026-04-08T16:34:00Z" {
+		t.Fatalf("expected normalized scheduled_at %q, got %q", "2026-04-08T16:34:00Z", got)
+	}
+}
+
+func TestUpdateEventScheduledAtPreservesLegacyFields(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+
+	createBody := CreateEventParams{
+		Title:       "Original Event",
+		Location:    "Original Location",
+		Time:        "18:00",
+		EventDate:   "2026-04-09",
+		Description: "Original description",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      40,
+		DateLabel:   "Today",
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+	}
+
+	createResp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", createResp.StatusCode)
+	}
+
+	created := decodeJSON[createEventResponse](t, createResp)
+	updateBody := UpdateEventParams{
+		Title:       "Updated Event",
+		Location:    "Updated Location",
+		Time:        "03:15",
+		EventDate:   "2026-04-13",
+		Description: "Updated description",
+		Gender:      "Female",
+		MinAge:      21,
+		MaxAge:      38,
+		DateLabel:   "Today",
+		GroupType:   "Group",
+		ScheduledAt: "2026-04-08T21:46:00+02:00",
+	}
+
+	updateResp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", created.ID), avaToken, updateBody)
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", updateResp.StatusCode)
+	}
+
+	evt, err := env.repo.GetEventByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("get updated event: %v", err)
+	}
+
+	if evt.EventDate != updateBody.EventDate {
+		t.Fatalf("expected event_date %q, got %q", updateBody.EventDate, evt.EventDate)
+	}
+	if evt.Time != updateBody.Time {
+		t.Fatalf("expected time %q, got %q", updateBody.Time, evt.Time)
+	}
+	if evt.DateLabel != updateBody.DateLabel {
+		t.Fatalf("expected date_label %q, got %q", updateBody.DateLabel, evt.DateLabel)
+	}
+	if evt.ScheduledAt == nil {
+		t.Fatal("expected scheduled_at to be stored after update")
+	}
+	if got := formatScheduledAtUTC(*evt.ScheduledAt); got != "2026-04-08T19:46:00Z" {
+		t.Fatalf("expected normalized scheduled_at %q, got %q", "2026-04-08T19:46:00Z", got)
+	}
 }
 
 // ============================================================================

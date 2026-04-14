@@ -22,7 +22,11 @@ import { useAuth } from "@context/AuthContext";
 import { API_BASE_URL } from "@api/config";
 import { CoverKey, resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
-import { formatAbsoluteDateLabel, parseDateKey, toDateKey } from "@utils/dateTime";
+import {
+  formatAbsoluteDateLabel,
+  getScheduleDisplay,
+  parseDateKey,
+} from "@utils/dateTime";
 
 type ApiEvent = {
   id: number;
@@ -33,6 +37,7 @@ type ApiEvent = {
   gender: string;
   min_age: number;
   max_age: number;
+  date_label?: string;
   event_date: string;
   group_type?: "Single" | "Group";
   user_id: number;
@@ -110,24 +115,24 @@ const PastEventsScreen = () => {
       }
       const payload: { data: ApiEvent[] | null } = await response.json();
       const mapped = (payload.data ?? []).map((event): PastEventItem => {
-        let displayDate = event.event_date;
-        if (event.scheduled_at) {
-          const utcDate = new Date(event.scheduled_at);
-          if (!Number.isNaN(utcDate.getTime())) {
-            displayDate = toDateKey(utcDate);
-          }
-        }
+        const schedule = getScheduleDisplay({
+          scheduledAt: event.scheduled_at,
+          eventDate: event.event_date,
+          time: event.time,
+          dateLabel: event.date_label,
+        });
+
         return {
           id: String(event.id),
           title: event.title,
           location: event.location,
-          time: event.time,
+          time: schedule.displayTime,
           audience: formatAudience(event.gender, event.min_age, event.max_age),
           imageUri: resolveCoverUri(event.cover_key),
           badgeLabel:
             user && event.user_id === user.id ? "Hosting" : "Joined",
           ownerId: event.user_id,
-          eventDate: displayDate,
+          eventDate: schedule.displayDate,
         };
       });
       setEvents(mapped);

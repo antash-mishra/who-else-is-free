@@ -7,10 +7,15 @@ import {
   timeStringToMinutes,
   formatMinutesToTime,
   buildScheduledAtUTC,
+  convertTo12Hour,
+  formatTimeAmPm,
+  getLegacyDateLabel,
+  getScheduleDisplay,
   isPastTimeSelection,
   parseTimeString,
   formatTime,
   getDateStringForChoice,
+  toDateKey,
 } from '../dateTime';
 
 describe('dateTime utilities', () => {
@@ -53,11 +58,17 @@ describe('dateTime utilities', () => {
       expect(timeStringToMinutes('9:00AM')).toBe(9 * 60);
     });
 
+    it('should handle spaced AM/PM strings', () => {
+      expect(timeStringToMinutes('7:30 PM')).toBe(19 * 60 + 30);
+      expect(timeStringToMinutes('12:00 AM')).toBe(0);
+      expect(timeStringToMinutes('12:00 PM')).toBe(12 * 60);
+    });
+
     it('should return null for invalid formats', () => {
       expect(timeStringToMinutes('')).toBeNull();
       expect(timeStringToMinutes('invalid')).toBeNull();
       expect(timeStringToMinutes('7pm')).toBeNull();
-      expect(timeStringToMinutes('25:00')).not.toBeNull(); // Note: doesn't validate range
+      expect(timeStringToMinutes('25:00')).toBeNull();
     });
   });
 
@@ -146,6 +157,7 @@ describe('dateTime utilities', () => {
     it('should parse valid time strings', () => {
       expect(parseTimeString('14:30')).toEqual({ hour: 14, minute: 30 });
       expect(parseTimeString('7:00pm')).toEqual({ hour: 19, minute: 0 });
+      expect(parseTimeString('7:00 PM')).toEqual({ hour: 19, minute: 0 });
       expect(parseTimeString('12:00am')).toEqual({ hour: 0, minute: 0 });
     });
 
@@ -167,6 +179,55 @@ describe('dateTime utilities', () => {
       expect(formatTime(25, 30)).toBe('23:30');
       expect(formatTime(12, -5)).toBe('12:00');
       expect(formatTime(12, 65)).toBe('12:59');
+    });
+  });
+
+  describe('convertTo12Hour', () => {
+    it('should convert raw 24-hour times to display format', () => {
+      expect(convertTo12Hour('19:30')).toBe('7:30 PM');
+      expect(convertTo12Hour('00:00')).toBe('12:00 AM');
+      expect(convertTo12Hour('12:00')).toBe('12:00 PM');
+    });
+
+    it('should preserve already formatted 12-hour strings', () => {
+      expect(convertTo12Hour('7:30 PM')).toBe('7:30 PM');
+      expect(convertTo12Hour('12:00 AM')).toBe('12:00 AM');
+      expect(convertTo12Hour('12:00 PM')).toBe('12:00 PM');
+    });
+  });
+
+  describe('getScheduleDisplay', () => {
+    it('should derive local display values from scheduledAt when present', () => {
+      const scheduledAt = '2026-04-08T00:30:00.000Z';
+      const localDate = new Date(scheduledAt);
+      const displayDate = toDateKey(localDate);
+
+      expect(
+        getScheduleDisplay({
+          scheduledAt,
+          eventDate: '2026-04-11',
+          time: '00:30',
+          dateLabel: 'Today',
+        }),
+      ).toEqual({
+        displayDate,
+        displayTime: formatTimeAmPm(localDate.getHours(), localDate.getMinutes()),
+        displayLabel: getLegacyDateLabel(displayDate),
+      });
+    });
+
+    it('should keep legacy fallback fields when scheduledAt is missing', () => {
+      expect(
+        getScheduleDisplay({
+          eventDate: '2026-04-08',
+          time: '7:30 PM',
+          dateLabel: 'Today',
+        }),
+      ).toEqual({
+        displayDate: '2026-04-08',
+        displayTime: '7:30 PM',
+        displayLabel: getLegacyDateLabel('2026-04-08'),
+      });
     });
   });
 

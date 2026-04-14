@@ -27,7 +27,7 @@ const formatAbsoluteDateLabel = (eventDate: string) => {
   const dd = `${parsed.getDate()}`.padStart(2, '0');
   const monthLabel = parsed.toLocaleString('en-US', { month: 'short' });
   const weekday = parsed.toLocaleString('en-US', { weekday: 'short' });
-  return `${dd} ${monthLabel}, ${weekday}`;
+  return `${dd} ${monthLabel} ${weekday}`;
 };
 
 // Mock conversation for the event
@@ -361,6 +361,16 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const scheduleLine = `${formatAbsoluteDateLabel(mockGroupEvent.eventDate)}, ${mockGroupEvent.time}`;
       expect(getByText(scheduleLine)).toBeTruthy();
+    });
+
+    it('renders display-ready event times without converting them again', () => {
+      mockEventsState.events = [{ ...mockGroupEvent, time: '7:30 PM' }];
+
+      const { getByText } = render(<EventDetailsScreen />);
+
+      expect(
+        getByText(`${formatAbsoluteDateLabel(mockGroupEvent.eventDate)}, 7:30 PM`),
+      ).toBeTruthy();
     });
 
     it('renders event description when provided', () => {

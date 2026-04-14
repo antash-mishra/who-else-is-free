@@ -105,15 +105,25 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 
 	now := time.Now()
 
-	// If scheduled_at is provided, parse it and derive legacy fields
+	// If scheduled_at is provided, validate it but preserve client legacy fields.
 	if payload.ScheduledAt != "" {
 		scheduledTime, err := parseScheduledAt(payload.ScheduledAt)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		// Derive legacy fields from scheduled_at for backward compatibility
-		eventDate, timeStr, dateLabel := deriveLegacyFields(scheduledTime, now)
+		payload.ScheduledAt = formatScheduledAtUTC(scheduledTime)
+
+		eventDate, timeStr, dateLabel, err := normalizeScheduledLegacyFields(
+			payload.EventDate,
+			payload.Time,
+			payload.DateLabel,
+			now,
+		)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		payload.EventDate = eventDate
 		payload.Time = timeStr
 		payload.DateLabel = dateLabel
@@ -179,15 +189,25 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 
 	now := time.Now()
 
-	// If scheduled_at is provided, parse it and derive legacy fields
+	// If scheduled_at is provided, validate it but preserve client legacy fields.
 	if payload.ScheduledAt != "" {
 		scheduledTime, err := parseScheduledAt(payload.ScheduledAt)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		// Derive legacy fields from scheduled_at for backward compatibility
-		eventDate, timeStr, dateLabel := deriveLegacyFields(scheduledTime, now)
+		payload.ScheduledAt = formatScheduledAtUTC(scheduledTime)
+
+		eventDate, timeStr, dateLabel, err := normalizeScheduledLegacyFields(
+			payload.EventDate,
+			payload.Time,
+			payload.DateLabel,
+			now,
+		)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		payload.EventDate = eventDate
 		payload.Time = timeStr
 		payload.DateLabel = dateLabel
