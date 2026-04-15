@@ -30,12 +30,12 @@ import { useChat } from "@context/ChatContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
-import EditProfileIcon from "@assets/edit-profile-icon-profile.svg";
-import PastEventsIcon from "@assets/past-event-icon-profile.svg";
-import PrivacyPolicyIcon from "@assets/privacy-policy-icon-profile.svg";
-import HelpIcon from "@assets/help-icon-profile.svg";
-import LogoutIcon from "@assets/logout-icon-profile.svg";
-import TrashIcon from "@assets/trash-icon-profile.svg";
+import EditProfileIcon from "@assets/account-icons/edit.svg";
+import PastEventsIcon from "@assets/account-icons/past event.svg";
+import PrivacyPolicyIcon from "@assets/account-icons/privacy.svg";
+import HelpIcon from "@assets/account-icons/help.svg";
+import LogoutIcon from "@assets/account-icons/logout.svg";
+import TrashIcon from "@assets/account-icons/delete.svg";
 import CameraIcon from "@assets/camera.svg";
 import * as Haptics from "expo-haptics";
 
@@ -56,7 +56,6 @@ interface MenuItemProps {
   label: string;
   onPress: () => void;
   showChevron?: boolean;
-  destructive?: boolean;
 }
 
 const MenuItem = ({
@@ -64,10 +63,7 @@ const MenuItem = ({
   label,
   onPress,
   showChevron = true,
-  destructive = false,
 }: MenuItemProps) => {
-  const textColor = destructive ? "#E53935" : "#000000";
-
   return (
     <Pressable
       style={styles.menuItem}
@@ -75,8 +71,10 @@ const MenuItem = ({
       accessibilityRole="button"
     >
       <View style={styles.menuItemLeft}>
-        {icon}
-        <Text style={[styles.menuItemText, { color: textColor }]}>{label}</Text>
+        <View style={styles.menuIconContainer}>
+          {icon}
+        </View>
+        <Text style={styles.menuItemText}>{label}</Text>
       </View>
       {showChevron && (
         <Feather name="chevron-right" size={20} color="#808080" />
@@ -324,11 +322,7 @@ const ProfileScreen = () => {
         {/* Profile Header Card with Gradient */}
         <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
           <Animated.View style={[styles.headerCard, { transform: [{ scale: scaleAnim }] }]}>
-            <LinearGradient
-              colors={["#1B50E3", "#153DAD", "#081944", "#050F29"]}
-              locations={[0, 0.3174, 0.601, 0.726]}
-              style={styles.headerCardGradient}
-            >
+            <View style={styles.headerCardGradient}>
               <View style={styles.headerContent}>
                 <View style={styles.avatar}>
                   {user.avatar ? (
@@ -344,18 +338,19 @@ const ProfileScreen = () => {
                 <Text style={styles.email}>{user?.email ?? ""}</Text>
 
                 {/* Stats Row */}
-                <View style={styles.statsRow}>
+                <View style={styles.statsPill}>
                   <View style={styles.statItem}>
                     <Text style={styles.statNumber}>{hostedCount}</Text>
                     <Text style={styles.statLabel}>Hosted</Text>
                   </View>
+                  <View style={styles.statDivider} />
                   <View style={styles.statItem}>
                     <Text style={styles.statNumber}>{joinedCount}</Text>
                     <Text style={styles.statLabel}>Joined</Text>
                   </View>
                 </View>
               </View>
-            </LinearGradient>
+            </View>
           </Animated.View>
         </Pressable>
         {/* Menu Section */}
@@ -391,7 +386,6 @@ const ProfileScreen = () => {
             label="Delete"
             onPress={handleDelete}
             showChevron={false}
-            destructive
           />
         </View>
       </ScrollView>
@@ -505,73 +499,78 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   headerCard: {
-    borderRadius: 20,
+    borderRadius: 16,
+    borderCurve: "continuous",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
   },
   headerCardGradient: {
-    borderRadius: 20,
+    backgroundColor: "#1B50E3",
   },
   headerContent: {
     alignItems: "center",
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 20,
+    paddingBottom: 20,
     paddingHorizontal: spacing.md,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#9B8AFB",
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
   },
   avatarInitial: {
-    fontSize: 32,
+    fontSize: 28,
     color: "#FFFFFF",
     fontFamily: typography.fontFamilyBold,
   },
   name: {
-    fontSize: 24,
+    fontSize: 20,
     color: "#FFFFFF",
-    fontFamily: typography.fontFamilySemiBold,
-    letterSpacing: -1,
+    fontFamily: typography.fontFamilyMedium,
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.62)",
+    color: "rgba(255, 255, 255, 0.5)",
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.5,
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
-  statsRow: {
+  statsPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xl + spacing.md,
+    gap: spacing.xl,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
   statItem: {
     alignItems: "center",
+    gap: 2,
   },
   statNumber: {
-    fontSize: 16,
+    fontSize: 18,
     color: "#FFFFFF",
-    fontFamily: typography.fontFamilyBold,
+    fontFamily: typography.fontFamilyMedium,
+    letterSpacing: -0.5,
   },
   statLabel: {
-    fontSize: 16,
-    color: "#FFFFFF",
+    fontSize: 14,
+    color: "rgba(255,255,255,0.5)",
     fontFamily: typography.fontFamilyRegular,
   },
   menuSection: {
@@ -581,20 +580,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: spacing.md + 2,
+    paddingVertical: 17,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E6E6E6",
   },
   menuItemLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
+  },
+  menuIconContainer: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   menuItemText: {
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
     color: "#000000",
   },
   guestCard: {
