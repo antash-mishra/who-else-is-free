@@ -31,7 +31,7 @@ export type RootStackParamList = {
     eventId: number;
   };
   ChatThread: undefined;
-  CreateEvent: { editEventId?: string } | undefined;
+  CreateEvent: { editEventId?: string | null } | undefined;
   PastEvents: undefined;
   PrivacyPolicy: undefined;
   Help: undefined;
@@ -47,7 +47,7 @@ export type RootTabParamList = {
     showEventCreatedBadge?: boolean;
     showEventDeletedBadge?: boolean;
   } | undefined;
-  Create: { editEventId?: string };
+  Create: { editEventId?: string | null };
   Profile: undefined;
   Messages: undefined;
 };

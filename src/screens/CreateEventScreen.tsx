@@ -104,7 +104,11 @@ const CreateEventScreen = () => {
     // Responsive gap for spacing between form elements
     const responsiveGap = spacing.xs;
 
-    const editEventId = route.params?.editEventId;
+    const editEventIdParam = route.params?.editEventId;
+    const editEventId =
+        typeof editEventIdParam === "string" && editEventIdParam.trim().length > 0
+            ? editEventIdParam
+            : undefined;
     const editEvent = editEventId
         ? events.find((eventItem) => eventItem.id === editEventId)
         : null;
@@ -221,13 +225,7 @@ const CreateEventScreen = () => {
             } else {
                 resetForm();
             }
-
-            return () => {
-                if (editEventId) {
-                    navigation.setParams({ editEventId: undefined });
-                }
-            };
-        }, [applyEventToForm, editEvent, editEventId, navigation, resetForm]),
+        }, [applyEventToForm, editEvent, editEventId, resetForm]),
     );
 
     useEffect(() => {

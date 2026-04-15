@@ -358,7 +358,7 @@ const MainTabs = () => {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            (navigation as any).navigate("CreateEvent");
+            (navigation as any).navigate("CreateEvent", { editEventId: null });
           },
         })}
         options={{
