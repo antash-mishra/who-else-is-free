@@ -27,6 +27,7 @@ import {
   getScheduleDisplay,
   parseDateKey,
 } from "@utils/dateTime";
+import { formatAudienceLabel } from "@utils/eventDisplay";
 
 type ApiEvent = {
   id: number;
@@ -51,11 +52,6 @@ type PastEventItem = EventItemProps & { ownerId: number; eventDate: string };
 type PastEventSection = {
   title: string;
   data: PastEventItem[];
-};
-
-const formatAudience = (gender: string, minAge: number, maxAge: number) => {
-  const genderLabel = gender.toLowerCase() === "any" ? "Any gender" : gender;
-  return `${genderLabel}, ${minAge} to ${maxAge} years`;
 };
 
 const getPastSectionDateLabel = (eventDate: string): string => {
@@ -127,7 +123,11 @@ const PastEventsScreen = () => {
           title: event.title,
           location: event.location,
           time: schedule.displayTime,
-          audience: formatAudience(event.gender, event.min_age, event.max_age),
+          audience: formatAudienceLabel({
+            gender: event.gender,
+            minAge: event.min_age,
+            maxAge: event.max_age,
+          }),
           imageUri: resolveCoverUri(event.cover_key),
           badgeLabel:
             user && event.user_id === user.id ? "Hosting" : "Joined",

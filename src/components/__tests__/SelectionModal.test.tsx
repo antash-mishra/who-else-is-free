@@ -32,7 +32,7 @@ describe('SelectionModal', () => {
     it('should render when visible is true', () => {
       render(<SelectionModal {...defaultProps} visible={true} />);
 
-      expect(screen.getByTestId('selection-modal')).toBeTruthy();
+      expect(screen.getByTestId('bottom-sheet-modal')).toBeTruthy();
     });
 
     it('should render modal with title when visible', () => {
@@ -192,19 +192,21 @@ describe('SelectionModal', () => {
       const onClose = jest.fn();
       render(<SelectionModal {...defaultProps} onClose={onClose} />);
 
-      fireEvent.press(screen.getByTestId('selection-modal-close'));
+      fireEvent.press(screen.getByTestId('bottom-sheet-close'));
 
       // Run animation timers
       act(() => {
         jest.runAllTimers();
       });
+
+      expect(onClose).toHaveBeenCalled();
     });
 
     it('should call onClose when backdrop is pressed', () => {
       const onClose = jest.fn();
       render(<SelectionModal {...defaultProps} onClose={onClose} />);
 
-      fireEvent.press(screen.getByTestId('selection-modal-backdrop'));
+      fireEvent.press(screen.getByTestId('bottom-sheet-backdrop'));
 
       // Run animation timers
       act(() => {
@@ -218,7 +220,7 @@ describe('SelectionModal', () => {
   describe('With Complex Options', () => {
     it('should work with object options', () => {
       const genderOptions = [
-        { value: 'any', label: 'Any Gender' },
+        { value: 'any', label: 'All Gender' },
         { value: 'male', label: 'Male' },
         { value: 'female', label: 'Female' },
       ] as const;
@@ -244,7 +246,7 @@ describe('SelectionModal', () => {
         />
       );
 
-      expect(screen.getByText('Any Gender')).toBeTruthy();
+      expect(screen.getByText('All Gender')).toBeTruthy();
       expect(screen.getByText('Male')).toBeTruthy();
       expect(screen.getByText('Female')).toBeTruthy();
 
@@ -370,15 +372,6 @@ describe('SelectionModal', () => {
 
       fireEvent.press(screen.getByText('Select'));
 
-      // Animation should be in progress, callback not called yet
-      expect(onConfirm).not.toHaveBeenCalled();
-
-      // Run animation timers
-      act(() => {
-        jest.runAllTimers();
-      });
-
-      // After animation completes, callback should be called
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
   });

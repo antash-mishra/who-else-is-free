@@ -33,12 +33,34 @@ import { useAuth } from "@context/AuthContext";
 import { useChat } from "@context/ChatContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getSectionDateLabel } from "@utils/dateTime";
+import {
+  formatEventCardMetaLine,
+  formatEventListSectionHeaderLabel,
+} from "@utils/eventDisplay";
 
 type EventSection = {
   title: string;
   data: EventItemProps[];
 };
+
+const toEventCardItem = (
+  event: UserEvent,
+  badgeLabel: string | undefined,
+): EventItemProps => ({
+  id: event.id,
+  title: event.title,
+  location: event.location,
+  time: event.time,
+  audience: event.audience,
+  metaLine: formatEventCardMetaLine({
+    groupType: event.groupType,
+    gender: event.gender,
+    minAge: event.minAge,
+    maxAge: event.maxAge,
+  }),
+  imageUri: event.imageUri,
+  badgeLabel,
+});
 
 const buildSections = (
   items: UserEvent[],
@@ -47,28 +69,20 @@ const buildSections = (
   const grouped = new Map<string, EventItemProps[]>();
 
   items.forEach((event) => {
-    const { id, title, location, time, audience, imageUri, eventDate } = event;
+    const { eventDate } = event;
     const dateKey = eventDate || "";
     if (!dateKey) {
       return;
     }
     const sectionEvents = grouped.get(dateKey) ?? [];
-    sectionEvents.push({
-      id,
-      title,
-      location,
-      time,
-      audience,
-      imageUri,
-      badgeLabel: getBadgeLabel(event),
-    });
+    sectionEvents.push(toEventCardItem(event, getBadgeLabel(event)));
     grouped.set(dateKey, sectionEvents);
   });
 
   return Array.from(grouped.entries())
     .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
     .map(([eventDate, data]) => ({
-      title: getSectionDateLabel(eventDate),
+      title: formatEventListSectionHeaderLabel(eventDate),
       data,
     }))
     .filter((section) => section.data.length > 0);
@@ -157,16 +171,8 @@ const HomeScreen = () => {
       });
       return sorted.length > 0
         ? [{
-            title: "Newest",
-            data: sorted.map((event) => ({
-              id: event.id,
-              title: event.title,
-              location: event.location,
-              time: event.time,
-              audience: event.audience,
-              imageUri: event.imageUri,
-              badgeLabel: getBadgeLabel(event),
-            })),
+            title: "Newest Created",
+            data: sorted.map((event) => toEventCardItem(event, getBadgeLabel(event))),
           }]
         : [];
     }

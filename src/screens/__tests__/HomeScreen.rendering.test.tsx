@@ -138,9 +138,39 @@ describe('HomeScreen Rendering', () => {
       expect(getByText('Tomorrow')).toBeTruthy();
     });
 
+    it('renders formatted headers for non-Today/Tomorrow dates', () => {
+      mockEventsValue.events = [
+        createTodayEvent({
+          id: '102',
+          eventDate: '2099-01-15',
+        }),
+      ];
+      const futureDate = new Date(2099, 0, 15);
+      const expectedHeader = `${String(futureDate.getDate()).padStart(2, '0')} ${futureDate.toLocaleString('en-US', { month: 'short' })}, ${futureDate.toLocaleString('en-US', { weekday: 'short' })}`;
+
+      const { getByText } = render(<HomeScreen />);
+      expect(getByText(expectedHeader)).toBeTruthy();
+    });
+
     it('renders correct number of event cards', () => {
       const { getAllByTestId } = render(<HomeScreen />);
       expect(getAllByTestId('event-card').length).toBe(mockEvents.length);
+    });
+
+    it('renders compact third-line card metadata', () => {
+      mockEventsValue.events = [
+        createTodayEvent({
+          id: '103',
+          groupType: 'Group',
+          gender: 'Any',
+          minAge: 30,
+          maxAge: 40,
+        }),
+      ];
+
+      const { getByText, queryByText } = render(<HomeScreen />);
+      expect(getByText('Group, 30-40')).toBeTruthy();
+      expect(queryByText('All Gender, 18 to 50 years')).toBeNull();
     });
   });
 
@@ -156,13 +186,13 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('segment-upcoming').props.accessibilityState.selected).toBe(true);
     });
 
-    it('switches to newest mode and shows Newest section header', () => {
+    it('switches to newest mode and shows Newest Created section header', () => {
       mockEventsValue.events = [createTodayEvent({ id: '100', createdAt: new Date().toISOString() })];
       const { getByTestId, getAllByText, queryByText } = render(<HomeScreen />);
       expect(getAllByText('Today')[0]).toBeTruthy();
       fireEvent.press(getByTestId('segment-newest'));
       expect(getByTestId('segment-newest').props.accessibilityState.selected).toBe(true);
-      expect(getAllByText('Newest')[0]).toBeTruthy();
+      expect(getAllByText('Newest Created')[0]).toBeTruthy();
       expect(queryByText('Today')).toBeNull();
     });
   });

@@ -24,6 +24,7 @@ import {
   parseDateKey,
   timeStringToMinutes,
 } from "@utils/dateTime";
+import { formatAudienceLabel } from "@utils/eventDisplay";
 import { navigationRef } from "../navigation/navigationRef";
 
 export type DateLabel = string;
@@ -153,11 +154,6 @@ const createRequestTimeout = (timeoutMs: number) => {
 const isAbortError = (err: unknown) =>
   err instanceof Error && err.name === "AbortError";
 
-const formatAudience = (gender: string, minAge: number, maxAge: number) => {
-  const genderLabel = gender.toLowerCase() === "any" ? "Any gender" : gender;
-  return `${genderLabel}, ${minAge} to ${maxAge} years`;
-};
-
 const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
   return getLegacyDateLabel(eventDate);
 };
@@ -220,7 +216,11 @@ const mapApiEvent = (
     title: event.title,
     location: event.location,
     time: schedule.displayTime,
-    audience: formatAudience(event.gender, event.min_age, event.max_age),
+    audience: formatAudienceLabel({
+      gender: event.gender,
+      minAge: event.min_age,
+      maxAge: event.max_age,
+    }),
     imageUri: resolveCoverUri(event.cover_key),
     badgeLabel: groupType === "Group" ? "Group" : meta?.badgeLabel,
     dateLabel: schedule.displayLabel,

@@ -382,7 +382,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders audience information correctly for group event', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = `Group, ${mockGroupEvent.audience}`;
+      const audienceLine = 'Group, All Gender, 18 to 35 years';
       expect(getByText(audienceLine)).toBeTruthy();
     });
 
@@ -397,7 +397,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = `1:1, ${mockSingleEvent.audience}`;
+      const audienceLine = '1:1, All Gender, 21 to 40 years';
       expect(getByText(audienceLine)).toBeTruthy();
 
       // Restore the spy to avoid polluting other tests
