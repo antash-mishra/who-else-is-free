@@ -12,7 +12,7 @@ const mockRootNavigate = jest.fn();
 
 let isGuestMode = false;
 let editModeEvents = [...mockEvents];
-let currentRouteParams: { editEventId?: string } = {};
+let currentRouteParams: { editEventId?: string | null } = {};
 let mockIsPastDateTime = false;
 
 jest.mock('@context/AuthContext', () => ({
@@ -149,6 +149,20 @@ describe('CreateEventScreen Rendering', () => {
     });
   });
 
+  it('treats null editEventId as create mode', async () => {
+    currentRouteParams = { editEventId: null };
+    render(<CreateEventScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Create From Null');
+    fireEvent.press(screen.getByTestId('create-event-submit'));
+
+    await waitFor(() => {
+      expect(mockAddUserEvent).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockUpdateUserEvent).not.toHaveBeenCalled();
+  });
+
   it('queues guest draft and opens sign-in modal', async () => {
     isGuestMode = true;
     render(<CreateEventScreen />);
@@ -194,6 +208,15 @@ describe('CreateEventScreen Rendering', () => {
       origin: 'MyEvents',
       showEventUpdatedBadge: true,
     });
+  });
+
+  it('does not dispatch route param cleanup on unmount in edit mode', () => {
+    currentRouteParams = { editEventId: mockEvents[0].id };
+    const { unmount } = render(<CreateEventScreen />);
+
+    unmount();
+
+    expect(mockNavigation.setParams).not.toHaveBeenCalled();
   });
 
   it('blocks past datetime selection', async () => {
