@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import {
     clampDateTime,
-    getSectionDateLabel,
+    getPickerSectionDateLabel,
     isPastDateTimeSelection,
     toDateKey,
 } from "@utils/dateTime";
@@ -70,7 +70,7 @@ const buildDateOptions = (minDate: Date, maxDate: Date): DateWheelOption[] => {
         const key = toDateKey(cursor);
         options.push({
             key,
-            label: getSectionDateLabel(key),
+            label: getPickerSectionDateLabel(key),
             year: cursor.getFullYear(),
             month: cursor.getMonth(),
             day: cursor.getDate(),

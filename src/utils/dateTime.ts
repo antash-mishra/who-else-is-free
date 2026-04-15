@@ -261,6 +261,21 @@ export const formatEventDetailDateLabel = (
     return `${day} ${month} ${weekday}`;
 };
 
+export const getPickerSectionDateLabel = (
+    eventDate: string,
+    now: Date = new Date(),
+    localeTag?: string,
+): string => {
+    const diff = getDiffFromToday(eventDate, now);
+    if (diff === 0) {
+        return "Today";
+    }
+    if (diff === 1) {
+        return "Tomorrow";
+    }
+    return formatEventDetailDateLabel(eventDate, localeTag);
+};
+
 const getDiffFromToday = (eventDate: string, now: Date = new Date()): number | null => {
     const parsed = parseDateKey(eventDate);
     if (!parsed) {
@@ -332,6 +347,20 @@ export const isPastDateTimeSelection = (value: Date, now: Date = new Date()): bo
 export const formatDateTimeValue = (value: Date): string => {
     const eventDate = toDateKey(value);
     const datePart = formatAbsoluteDateLabel(eventDate);
+    const hours = value.getHours();
+    const minutes = value.getMinutes();
+    const period = hours >= 12 ? "PM" : "AM";
+    const h = hours % 12 || 12;
+    const m = String(minutes).padStart(2, "0");
+    return `${datePart}, ${h}:${m} ${period}`;
+};
+
+export const formatPickerDateTimeValue = (
+    value: Date,
+    localeTag?: string,
+): string => {
+    const eventDate = toDateKey(value);
+    const datePart = formatEventDetailDateLabel(eventDate, localeTag);
     const hours = value.getHours();
     const minutes = value.getMinutes();
     const period = hours >= 12 ? "PM" : "AM";

@@ -9,7 +9,9 @@ import {
   buildScheduledAtUTC,
   convertTo12Hour,
   formatEventDetailDateLabel,
+  formatPickerDateTimeValue,
   formatTimeAmPm,
+  getPickerSectionDateLabel,
   getLegacyDateLabel,
   getScheduleDisplay,
   isUSLocale,
@@ -227,6 +229,37 @@ describe('dateTime utilities', () => {
 
     it('falls back to the raw event date when parsing fails', () => {
       expect(formatEventDetailDateLabel('invalid-date', 'en-US')).toBe('invalid-date');
+    });
+  });
+
+  describe('getPickerSectionDateLabel', () => {
+    const now = new Date(2026, 3, 15, 9, 0, 0, 0);
+
+    it('preserves Today and Tomorrow labels', () => {
+      expect(getPickerSectionDateLabel('2026-04-15', now, 'en-US')).toBe('Today');
+      expect(getPickerSectionDateLabel('2026-04-16', now, 'en-IN')).toBe('Tomorrow');
+    });
+
+    it('formats non-relative dates with US ordering', () => {
+      expect(getPickerSectionDateLabel('2026-04-18', now, 'en-US')).toBe('Sat 18 Apr');
+    });
+
+    it('formats non-relative dates with non-US ordering', () => {
+      expect(getPickerSectionDateLabel('2026-04-18', now, 'en-IN')).toBe('18 Apr Sat');
+      expect(getPickerSectionDateLabel('2026-04-18', now, 'en-GB')).toBe('18 Apr Sat');
+    });
+  });
+
+  describe('formatPickerDateTimeValue', () => {
+    const sampleDate = new Date(2026, 3, 18, 19, 5, 0, 0);
+
+    it('formats date-time with US ordering', () => {
+      expect(formatPickerDateTimeValue(sampleDate, 'en-US')).toBe('Sat 18 Apr, 7:05 PM');
+    });
+
+    it('formats date-time with non-US ordering', () => {
+      expect(formatPickerDateTimeValue(sampleDate, 'en-IN')).toBe('18 Apr Sat, 7:05 PM');
+      expect(formatPickerDateTimeValue(sampleDate, 'en-GB')).toBe('18 Apr Sat, 7:05 PM');
     });
   });
 

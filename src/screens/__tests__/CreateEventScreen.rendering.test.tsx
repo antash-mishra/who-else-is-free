@@ -40,6 +40,7 @@ jest.mock('@utils/dateTime', () => ({
   toDateKey: () => '2026-01-24',
   getLegacyDateLabel: () => 'Today',
   formatDateTimeValue: () => '24 Jan, Sat • 14:00',
+  formatPickerDateTimeValue: () => '24 Jan, Sat • 14:00',
   clampDateTime: (value: Date) => value,
   formatTime: (hour: number, minute: number) =>
     `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
