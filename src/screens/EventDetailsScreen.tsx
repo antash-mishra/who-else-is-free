@@ -44,7 +44,7 @@ import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
-import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { formatEventDetailDateLabel } from "@utils/dateTime";
 import { formatEventDetailAudienceLine } from "@utils/eventDisplay";
 
 type EventDetailsRoute = RouteProp<
@@ -243,7 +243,7 @@ const EventDetailsScreen = () => {
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;
   const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
   const scheduleDateLabel = event.eventDate
-    ? formatAbsoluteDateLabel(event.eventDate)
+    ? formatEventDetailDateLabel(event.eventDate)
     : event.dateLabel;
   const scheduleLine = `${scheduleDateLabel}, ${event.time}`;
   const audienceLine = formatEventDetailAudienceLine({

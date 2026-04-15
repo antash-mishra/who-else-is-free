@@ -192,7 +192,7 @@ describe('HomeScreen Rendering', () => {
       expect(getAllByText('Today')[0]).toBeTruthy();
       fireEvent.press(getByTestId('segment-newest'));
       expect(getByTestId('segment-newest').props.accessibilityState.selected).toBe(true);
-      expect(getAllByText('Newest Created')[0]).toBeTruthy();
+      expect(getAllByText('Newest created')[0]).toBeTruthy();
       expect(queryByText('Today')).toBeNull();
     });
   });

@@ -171,7 +171,7 @@ const HomeScreen = () => {
       });
       return sorted.length > 0
         ? [{
-            title: "Newest Created",
+            title: "Newest created",
             data: sorted.map((event) => toEventCardItem(event, getBadgeLabel(event))),
           }]
         : [];
