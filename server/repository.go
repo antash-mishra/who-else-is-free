@@ -1418,9 +1418,10 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 	if strings.TrimSpace(params.GroupType) == "" {
 		params.GroupType = "Single"
 	}
-	if strings.TrimSpace(params.DateLabel) == "" {
-		params.DateLabel = deriveDateLabel(params.EventDate, time.Now())
-	}
+	params.DateLabel = normalizeLegacyDateLabel(
+		params.DateLabel,
+		deriveDateLabel(params.EventDate, time.Now()),
+	)
 
 	// Handle scheduled_at - store as nullable string
 	var scheduledAtStr sql.NullString
@@ -1503,9 +1504,10 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 	if strings.TrimSpace(params.GroupType) == "" {
 		params.GroupType = "Single"
 	}
-	if strings.TrimSpace(params.DateLabel) == "" {
-		params.DateLabel = deriveDateLabel(params.EventDate, time.Now())
-	}
+	params.DateLabel = normalizeLegacyDateLabel(
+		params.DateLabel,
+		deriveDateLabel(params.EventDate, time.Now()),
+	)
 
 	var previousGroupType string
 	if err := tx.QueryRowContext(ctx, selectEventGroupTypeForOwner, id, userID).Scan(&previousGroupType); err != nil {

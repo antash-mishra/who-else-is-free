@@ -3692,9 +3692,9 @@ func TestUpdateEvent(t *testing.T) {
 			GroupType:   "Single",
 		}
 		resp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", eventID), noahToken, body)
-		// Current implementation returns 500 for non-owner (includes ownership check in error)
-		if resp.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("expected 500, got %d", resp.StatusCode)
+		// Non-owner is treated as not-found to avoid leaking event ownership details.
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("expected 404, got %d", resp.StatusCode)
 		}
 	})
 
@@ -5223,6 +5223,101 @@ func TestUpdateEventScheduledAtPreservesLegacyFields(t *testing.T) {
 	}
 	if got := formatScheduledAtUTC(*evt.ScheduledAt); got != "2026-04-08T19:46:00Z" {
 		t.Fatalf("expected normalized scheduled_at %q, got %q", "2026-04-08T19:46:00Z", got)
+	}
+}
+
+func TestCreateEventScheduledAtNormalizesInvalidDateLabel(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+	eventDate := time.Now().Add(72 * time.Hour).Format("2006-01-02")
+	body := CreateEventParams{
+		Title:       "Scheduled Event Invalid Label",
+		Location:    "Test Location",
+		Time:        "19:05",
+		EventDate:   eventDate,
+		Description: "invalid label should not fail",
+		Gender:      "Female",
+		MinAge:      20,
+		MaxAge:      25,
+		DateLabel:   "18 Apr Sat",
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+		ScheduledAt: "2026-04-18T13:35:00.000Z",
+	}
+
+	resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+
+	payload := decodeJSON[createEventResponse](t, resp)
+	evt, err := env.repo.GetEventByID(ctx, payload.ID)
+	if err != nil {
+		t.Fatalf("get created event: %v", err)
+	}
+
+	expectedLabel := deriveDateLabel(body.EventDate, time.Now())
+	if evt.DateLabel != expectedLabel {
+		t.Fatalf("expected normalized date_label %q, got %q", expectedLabel, evt.DateLabel)
+	}
+}
+
+func TestUpdateEventScheduledAtNormalizesInvalidDateLabel(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")
+
+	createBody := CreateEventParams{
+		Title:       "Original Event",
+		Location:    "Original Location",
+		Time:        "18:00",
+		EventDate:   time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+		Description: "Original description",
+		Gender:      "Any",
+		MinAge:      18,
+		MaxAge:      40,
+		DateLabel:   "Today",
+		GroupType:   "Single",
+		CoverKey:    defaultCoverKey,
+	}
+
+	createResp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, createBody)
+	if createResp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", createResp.StatusCode)
+	}
+
+	created := decodeJSON[createEventResponse](t, createResp)
+	updateEventDate := time.Now().Add(72 * time.Hour).Format("2006-01-02")
+	updateBody := UpdateEventParams{
+		Title:       "Updated Event",
+		Location:    "Updated Location",
+		Time:        "19:05",
+		EventDate:   updateEventDate,
+		Description: "Updated description",
+		Gender:      "Female",
+		MinAge:      20,
+		MaxAge:      25,
+		DateLabel:   "18 Apr Sat",
+		GroupType:   "Single",
+		ScheduledAt: "2026-04-18T13:35:00.000Z",
+	}
+
+	updateResp := env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", created.ID), avaToken, updateBody)
+	if updateResp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", updateResp.StatusCode)
+	}
+
+	evt, err := env.repo.GetEventByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("get updated event: %v", err)
+	}
+
+	expectedLabel := deriveDateLabel(updateBody.EventDate, time.Now())
+	if evt.DateLabel != expectedLabel {
+		t.Fatalf("expected normalized date_label %q, got %q", expectedLabel, evt.DateLabel)
 	}
 }
 
