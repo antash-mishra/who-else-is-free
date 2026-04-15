@@ -173,7 +173,7 @@ jest.mock('@react-native-community/datetimepicker', () => {
       open: jest.fn(),
     },
   };
-});
+}, { virtual: true });
 
 // Mock @ptomasroos/react-native-multi-slider
 jest.mock('@ptomasroos/react-native-multi-slider', () => {
@@ -214,6 +214,14 @@ jest.mock('expo-linear-gradient', () => {
     __esModule: true,
     LinearGradient: ({ children, ...props }: any) => React.createElement(View, props, children),
   };
+});
+
+jest.mock('@react-native-masked-view/masked-view', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  return ({ children, ...props }: any) =>
+    React.createElement(View, props, children);
 });
 
 // Mock react-native-keyboard-aware-scroll-view

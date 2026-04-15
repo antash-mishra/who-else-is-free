@@ -19,6 +19,7 @@ export interface EventItemProps {
   location: string;
   time: string;
   audience: string;
+  metaLine?: string;
   imageUri: string;
   badgeLabel?: string;
 }
@@ -39,7 +40,15 @@ const getBadgeIcon = (badgeLabel: string) => {
   }
 };
 
-const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: EventItemProps) => {
+const EventCard = ({
+  title,
+  location,
+  time,
+  audience,
+  metaLine,
+  imageUri,
+  badgeLabel,
+}: EventItemProps) => {
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
 
   return (
@@ -80,7 +89,7 @@ const EventCard = ({ title, location, time, audience, imageUri, badgeLabel }: Ev
           {`${location}, ${time}`}
         </Text>
         <Text style={styles.audience} numberOfLines={1}>
-          {audience}
+          {metaLine ?? audience}
         </Text>
       </View>
     </View>

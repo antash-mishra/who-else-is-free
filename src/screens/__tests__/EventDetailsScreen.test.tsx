@@ -4,6 +4,7 @@
  */
 
 import fetchMock from 'jest-fetch-mock';
+import { formatEventDetailAudienceLine } from '@utils/eventDisplay';
 import { mockEvents, mockUsers, mockConversations } from '../../__tests__/mocks/mockData';
 
 const BASE_URL = 'http://localhost:8080';
@@ -52,13 +53,14 @@ describe('EventDetailsScreen', () => {
 
     it('should format audience line correctly', () => {
       const event = mockEvents[0];
-      const audienceLine = `${event.groupType === 'Single' ? '1:1' : 'Group'}, ${event.audience}`;
+      const audienceLine = formatEventDetailAudienceLine({
+        groupType: event.groupType,
+        gender: event.gender,
+        minAge: event.minAge,
+        maxAge: event.maxAge,
+      });
 
-      if (event.groupType === 'Single') {
-        expect(audienceLine).toContain('1:1');
-      } else {
-        expect(audienceLine).toContain('Group');
-      }
+      expect(audienceLine).toBe('Group, All Gender, 18 to 35 years');
     });
   });
 

@@ -45,6 +45,7 @@ import EventActionOverlay from "@components/EventActionOverlay";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { formatEventDetailAudienceLine } from "@utils/eventDisplay";
 
 type EventDetailsRoute = RouteProp<
   RootStackParamList,
@@ -245,7 +246,12 @@ const EventDetailsScreen = () => {
     ? formatAbsoluteDateLabel(event.eventDate)
     : event.dateLabel;
   const scheduleLine = `${scheduleDateLabel}, ${event.time}`;
-  const audienceLine = `${event.groupType === "Single" ? "1:1" : "Group"}, ${event.audience}`;
+  const audienceLine = formatEventDetailAudienceLine({
+    groupType: event.groupType,
+    gender: event.gender,
+    minAge: event.minAge,
+    maxAge: event.maxAge,
+  });
   const eventNumericId = useMemo(() => {
     const parsed = Number(event.id);
     return Number.isNaN(parsed) ? null : parsed;

@@ -172,6 +172,12 @@ describe('MyEventsScreen Rendering', () => {
       expect(screen.getByText(/Central Park/)).toBeTruthy();
     });
 
+    it('displays compact third-line card metadata', () => {
+      renderWithNav(<MyEventsScreen />);
+      expect(screen.getByText('Group, 18-35')).toBeTruthy();
+      expect(screen.queryByText('All Gender, 18 to 35 years')).toBeNull();
+    });
+
     it('renders section headers for Today events', () => {
       renderWithNav(<MyEventsScreen />);
       expect(screen.getByText('Today')).toBeTruthy();
@@ -204,7 +210,7 @@ describe('MyEventsScreen Rendering', () => {
       mockUseChat.mockReturnValue({ conversations: [] });
       renderWithNav(<MyEventsScreen />);
       expect(screen.getByTestId('empty-state')).toBeTruthy();
-      expect(screen.getByText("You don't have any events")).toBeTruthy();
+      expect(screen.getByText('No events yet')).toBeTruthy();
     });
 
     it('shows login prompt for guest users', () => {
@@ -261,8 +267,7 @@ describe('MyEventsScreen Rendering', () => {
       renderWithNav(<MyEventsScreen />);
       const upcomingButton = screen.getByText('Upcoming');
       fireEvent.press(upcomingButton);
-      // Sort mode toggles, may show "Newest" section
-      expect(upcomingButton).toBeTruthy();
+      expect(screen.getByText('Newest Created')).toBeTruthy();
     });
   });
 

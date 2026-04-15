@@ -15,7 +15,7 @@ describe('EventCard', () => {
     title: 'Coffee Meetup',
     location: 'Central Park',
     time: '10:00',
-    audience: 'Any gender, 18 to 35 years',
+    audience: 'All Gender, 18 to 35 years',
     imageUri: 'https://example.com/coffee.jpg',
   };
 
@@ -41,7 +41,14 @@ describe('EventCard', () => {
     it('should render event audience', () => {
       render(<EventCard {...defaultProps} />);
 
-      expect(screen.getByText('Any gender, 18 to 35 years')).toBeTruthy();
+      expect(screen.getByText('All Gender, 18 to 35 years')).toBeTruthy();
+    });
+
+    it('should render metaLine when provided', () => {
+      render(<EventCard {...defaultProps} metaLine="Group, 30-40" />);
+
+      expect(screen.getByText('Group, 30-40')).toBeTruthy();
+      expect(screen.queryByText(defaultProps.audience)).toBeNull();
     });
 
     it('should render event image', () => {
@@ -130,11 +137,19 @@ describe('EventCard', () => {
     });
 
     it('should truncate audience with numberOfLines', () => {
-      const longAudience = 'Any gender, 18 to 65 years, all experience levels welcome, beginners and experts alike';
+      const longAudience = 'All Gender, 18 to 65 years, all experience levels welcome, beginners and experts alike';
       render(<EventCard {...defaultProps} audience={longAudience} />);
 
       const audienceElement = screen.getByText(longAudience);
       expect(audienceElement.props.numberOfLines).toBe(1);
+    });
+
+    it('should truncate metaLine with numberOfLines', () => {
+      const longMetaLine = '1:1, Female, 30-40, experienced hikers only';
+      render(<EventCard {...defaultProps} metaLine={longMetaLine} />);
+
+      const metaLineElement = screen.getByText(longMetaLine);
+      expect(metaLineElement.props.numberOfLines).toBe(1);
     });
   });
 
@@ -224,7 +239,7 @@ describe('EventCard', () => {
           title="Hiking Adventure"
           location="Mountain Trail"
           time="08:00"
-          audience="Any gender, 21 to 40 years"
+          audience="All Gender, 21 to 40 years"
           imageUri="https://example.com/hiking.jpg"
         />
       );

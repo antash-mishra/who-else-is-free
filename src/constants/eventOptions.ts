@@ -7,7 +7,7 @@ export const groupOptions = ["Single", "Group"] as const;
 export const genderOptions = ["Any", "Male", "Female"] as const;
 
 export const ageOptions = [
-    { label: "All age", min: AGE_MIN, max: AGE_MAX },
+    { label: "All Age", min: AGE_MIN, max: AGE_MAX },
     { label: "20s", min: 18, max: 29 },
     { label: "20-25", min: 20, max: 25 },
     { label: "25-30", min: 25, max: 30 },
@@ -30,7 +30,7 @@ export const groupDisplayLabels: Record<GroupOption, string> = {
 };
 
 export const genderDisplayLabels: Record<GenderOption, string> = {
-    Any: "All gender",
+    Any: "All Gender",
     Male: "Male",
     Female: "Female",
 };
@@ -45,7 +45,7 @@ export const getAgeLabel = (range: [number, number]): string => {
         return match.label;
     }
     if (min === AGE_MIN && max === AGE_MAX) {
-        return "All age";
+        return "All Age";
     }
     return `${min}-${max}`;
 };

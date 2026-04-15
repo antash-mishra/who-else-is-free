@@ -96,6 +96,8 @@ describe('CreateEventScreen Rendering', () => {
     expect(screen.getByPlaceholderText('Example: Temple Bar')).toBeTruthy();
     expect(screen.getByText('Date & Time')).toBeTruthy();
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
+    expect(screen.getByText('All Gender')).toBeTruthy();
+    expect(screen.getByText('All Age')).toBeTruthy();
   });
 
   it('opens datetime modal from Date & Time row', () => {

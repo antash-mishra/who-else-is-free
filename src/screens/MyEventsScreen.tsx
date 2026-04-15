@@ -35,7 +35,10 @@ import { useAuth } from "@context/AuthContext";
 import UpIcon from "@assets/up.svg";
 import DownIcon from "@assets/down.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getSectionDateLabel } from "@utils/dateTime";
+import {
+  formatEventCardMetaLine,
+  formatEventListSectionHeaderLabel,
+} from "@utils/eventDisplay";
 
 type MyEventsNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "MyEvents">,
@@ -68,11 +71,25 @@ const buildSections = (items: EventItemProps[]): EventSection[] => {
   return Array.from(grouped.entries())
     .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
     .map(([eventDate, data]) => ({
-      title: getSectionDateLabel(eventDate),
+      title: formatEventListSectionHeaderLabel(eventDate),
       data,
     }))
     .filter((section) => section.data.length > 0);
 };
+
+const toEventCardItem = (
+  event: UserEvent,
+  badgeLabel: string,
+): EventItemProps => ({
+  ...event,
+  badgeLabel,
+  metaLine: formatEventCardMetaLine({
+    groupType: event.groupType,
+    gender: event.gender,
+    minAge: event.minAge,
+    maxAge: event.maxAge,
+  }),
+});
 
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
@@ -176,8 +193,7 @@ const MyEventsScreen = () => {
 
     // Convert to array with proper badges
     return Array.from(eventMap.values()).map((event) => ({
-      ...event,
-      badgeLabel: getBadgeLabelForEvent(event),
+      ...toEventCardItem(event, getBadgeLabelForEvent(event)),
     }));
   }, [user, userEvents, joinedEvents, requestedEvents, getBadgeLabelForEvent]);
 
@@ -187,20 +203,11 @@ const MyEventsScreen = () => {
       case "all":
         return allEventsWithBadges;
       case "hosting":
-        return userEvents.map((event) => ({
-          ...event,
-          badgeLabel: "Hosting",
-        }));
+        return userEvents.map((event) => toEventCardItem(event, "Hosting"));
       case "joined":
-        return joinedEvents.map((event) => ({
-          ...event,
-          badgeLabel: "Joined",
-        }));
+        return joinedEvents.map((event) => toEventCardItem(event, "Joined"));
       case "requested":
-        return requestedEvents.map((event) => ({
-          ...event,
-          badgeLabel: "Pending",
-        }));
+        return requestedEvents.map((event) => toEventCardItem(event, "Pending"));
       default:
         return allEventsWithBadges;
     }
@@ -235,7 +242,7 @@ const MyEventsScreen = () => {
         return dateB - dateA;
       });
       return sorted.length > 0
-        ? [{ title: "Newest", data: sorted }]
+        ? [{ title: "Newest Created", data: sorted }]
         : [];
     }
     // Default: sort by event datetime (upcoming first) with Today/Tomorrow sections

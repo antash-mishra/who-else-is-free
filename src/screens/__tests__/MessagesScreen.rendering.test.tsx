@@ -197,7 +197,7 @@ const mockEvents = [
     title: 'Coffee Meetup',
     location: 'Central Park',
     time: '10:00',
-    audience: 'Any gender, 18 to 35 years',
+    audience: 'All Gender, 18 to 35 years',
     imageUri: 'https://example.com/coffee.jpg',
     dateLabel: 'Today',
     eventDate: new Date().toISOString().split('T')[0],
