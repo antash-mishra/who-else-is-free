@@ -105,7 +105,7 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 
 	now := time.Now()
 
-	// If scheduled_at is provided, validate it but preserve client legacy fields.
+	// If scheduled_at is provided, validate it and normalize legacy fields.
 	if payload.ScheduledAt != "" {
 		scheduledTime, err := parseScheduledAt(payload.ScheduledAt)
 		if err != nil {
@@ -189,7 +189,7 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 
 	now := time.Now()
 
-	// If scheduled_at is provided, validate it but preserve client legacy fields.
+	// If scheduled_at is provided, validate it and normalize legacy fields.
 	if payload.ScheduledAt != "" {
 		scheduledTime, err := parseScheduledAt(payload.ScheduledAt)
 		if err != nil {
@@ -233,7 +233,7 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	transition, err := h.repo.Update(ctx, id, claims.UserID, payload)
 	if err != nil {
 		if errors.Is(err, ErrEventNotFound) {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "event not found or not owned by user"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found or not owned by user"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update event"})
 		}

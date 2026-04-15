@@ -67,12 +67,20 @@ func normalizeScheduledLegacyFields(eventDate string, timeLabel string, dateLabe
 	}
 
 	normalizedTime := strings.TrimSpace(timeLabel)
-	normalizedLabel := strings.TrimSpace(dateLabel)
-	if normalizedLabel == "" {
-		normalizedLabel = derivedLabel
-	}
+	normalizedLabel := normalizeLegacyDateLabel(dateLabel, derivedLabel)
 
 	return normalizedDate, normalizedTime, normalizedLabel, nil
+}
+
+func normalizeLegacyDateLabel(dateLabel string, derivedLabel string) string {
+	switch strings.ToLower(strings.TrimSpace(dateLabel)) {
+	case "today":
+		return "Today"
+	case "tmrw":
+		return "Tmrw"
+	default:
+		return derivedLabel
+	}
 }
 
 // parseEventTimeLabel supports both 24-hour strings (e.g. "20:30") and the
