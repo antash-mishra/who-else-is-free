@@ -267,7 +267,7 @@ describe('MyEventsScreen Rendering', () => {
       renderWithNav(<MyEventsScreen />);
       const upcomingButton = screen.getByText('Upcoming');
       fireEvent.press(upcomingButton);
-      expect(screen.getByText('Newest Created')).toBeTruthy();
+      expect(screen.getByText('Newest created')).toBeTruthy();
     });
   });
 

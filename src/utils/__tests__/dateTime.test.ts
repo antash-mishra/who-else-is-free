@@ -8,9 +8,11 @@ import {
   formatMinutesToTime,
   buildScheduledAtUTC,
   convertTo12Hour,
+  formatEventDetailDateLabel,
   formatTimeAmPm,
   getLegacyDateLabel,
   getScheduleDisplay,
+  isUSLocale,
   isPastTimeSelection,
   parseTimeString,
   formatTime,
@@ -193,6 +195,38 @@ describe('dateTime utilities', () => {
       expect(convertTo12Hour('7:30 PM')).toBe('7:30 PM');
       expect(convertTo12Hour('12:00 AM')).toBe('12:00 AM');
       expect(convertTo12Hour('12:00 PM')).toBe('12:00 PM');
+    });
+  });
+
+  describe('isUSLocale', () => {
+    it('returns true for locale tags with US region', () => {
+      expect(isUSLocale('en-US')).toBe(true);
+      expect(isUSLocale('es_US')).toBe(true);
+      expect(isUSLocale('en-US-u-ca-gregory')).toBe(true);
+    });
+
+    it('returns false for non-US and regionless locale tags', () => {
+      expect(isUSLocale('en-IN')).toBe(false);
+      expect(isUSLocale('en-IE')).toBe(false);
+      expect(isUSLocale('en')).toBe(false);
+      expect(isUSLocale('')).toBe(false);
+    });
+  });
+
+  describe('formatEventDetailDateLabel', () => {
+    it('formats as weekday-day-month for US locales', () => {
+      expect(formatEventDetailDateLabel('2026-04-18', 'en-US')).toBe('Sat 18 Apr');
+      expect(formatEventDetailDateLabel('2026-04-18', 'es-US')).toBe('Sat 18 Apr');
+    });
+
+    it('formats as day-month-weekday for non-US locales', () => {
+      expect(formatEventDetailDateLabel('2026-04-18', 'en-IN')).toBe('18 Apr Sat');
+      expect(formatEventDetailDateLabel('2026-04-18', 'en-GB')).toBe('18 Apr Sat');
+      expect(formatEventDetailDateLabel('2026-04-18', 'en')).toBe('18 Apr Sat');
+    });
+
+    it('falls back to the raw event date when parsing fails', () => {
+      expect(formatEventDetailDateLabel('invalid-date', 'en-US')).toBe('invalid-date');
     });
   });
 

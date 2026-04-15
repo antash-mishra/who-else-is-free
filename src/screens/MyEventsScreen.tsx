@@ -242,7 +242,7 @@ const MyEventsScreen = () => {
         return dateB - dateA;
       });
       return sorted.length > 0
-        ? [{ title: "Newest Created", data: sorted }]
+        ? [{ title: "Newest created", data: sorted }]
         : [];
     }
     // Default: sort by event datetime (upcoming first) with Today/Tomorrow sections

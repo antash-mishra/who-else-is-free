@@ -214,6 +214,53 @@ export const formatAbsoluteDateLabel = (eventDate: string): string => {
     return `${day} ${month} ${weekday}`;
 };
 
+const getLocaleRegion = (localeTag: string): string | null => {
+    const normalized = localeTag.replace(/_/g, "-");
+    const parts = normalized.split("-");
+    for (const part of parts.slice(1)) {
+        if (/^[a-z]{2}$/i.test(part) || /^\d{3}$/.test(part)) {
+            return part.toUpperCase();
+        }
+    }
+    return null;
+};
+
+const getDeviceLocaleTag = (): string => {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().locale ?? "";
+    } catch {
+        return "";
+    }
+};
+
+export const isUSLocale = (localeTag?: string): boolean => {
+    const effectiveLocale = localeTag ?? getDeviceLocaleTag();
+    if (!effectiveLocale) {
+        return false;
+    }
+    return getLocaleRegion(effectiveLocale) === "US";
+};
+
+export const formatEventDetailDateLabel = (
+    eventDate: string,
+    localeTag?: string,
+): string => {
+    const parsed = parseDateKey(eventDate);
+    if (!parsed) {
+        return eventDate;
+    }
+
+    const day = `${parsed.getDate()}`.padStart(2, "0");
+    const month = parsed.toLocaleString("en-US", { month: "short" });
+    const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
+
+    if (isUSLocale(localeTag)) {
+        return `${weekday} ${day} ${month}`;
+    }
+
+    return `${day} ${month} ${weekday}`;
+};
+
 const getDiffFromToday = (eventDate: string, now: Date = new Date()): number | null => {
     const parsed = parseDateKey(eventDate);
     if (!parsed) {
