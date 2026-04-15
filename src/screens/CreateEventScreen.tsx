@@ -39,7 +39,7 @@ import {
 } from "@constants/eventOptions";
 import {
     combineDateAndTime,
-    formatDateTimeValue,
+    formatPickerDateTimeValue,
     formatTime,
     getDefaultEventDateTime,
     getLegacyDateLabel,
@@ -530,7 +530,7 @@ const CreateEventScreen = () => {
 
     const ageLabel = useMemo(() => getAgeLabel(ageRange), [ageRange]);
     const dateTimeLabel = useMemo(
-        () => formatDateTimeValue(selectedDateTime),
+        () => formatPickerDateTimeValue(selectedDateTime),
         [selectedDateTime],
     );
 
