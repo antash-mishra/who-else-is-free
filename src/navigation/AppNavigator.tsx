@@ -451,8 +451,8 @@ const AppNavigator = () => {
           name="EventDetails"
           component={EventDetailsScreen}
           options={{
-            animation: "fade_from_bottom",
-            animationDuration: 200,
+            animation: "slide_from_right",
+            animationDuration: 350,
           }}
         />
         <Stack.Screen

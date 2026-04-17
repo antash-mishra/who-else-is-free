@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import {
@@ -11,6 +11,11 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import {
   BottomTabNavigationProp,
   useBottomTabBarHeight,
@@ -76,6 +81,24 @@ const buildSections = (items: EventItemProps[]): EventSection[] => {
     }))
     .filter((section) => section.data.length > 0);
 };
+
+const EventCardItem = memo(({ item, onPress }: { item: EventItemProps; onPress: () => void }) => {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => { scale.value = withSpring(0.96, { damping: 40, stiffness: 600, mass: 0.3 }); }}
+      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300, mass: 0.3 }); }}
+    >
+      <Animated.View style={animStyle}>
+        <EventCard {...item} />
+      </Animated.View>
+    </Pressable>
+  );
+});
 
 const toEventCardItem = (
   event: UserEvent,
@@ -270,20 +293,15 @@ const MyEventsScreen = () => {
   );
 
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
-    <Pressable
+    <EventCardItem
+      item={item}
       onPress={() =>
         navigation.navigate("EventDetails", {
           eventId: item.id,
           origin: "MyEvents",
         })
       }
-      style={({ pressed }) => [
-        styles.eventPressable,
-        pressed && styles.eventPressablePressed,
-      ]}
-    >
-      <EventCard {...item} />
-    </Pressable>
+    />
   );
 
   // Handle filter button press
@@ -530,12 +548,6 @@ const styles = StyleSheet.create({
   },
   footerSpacing: {
     height: spacing.xl,
-  },
-  eventPressable: {
-    borderRadius: 20,
-  },
-  eventPressablePressed: {
-    opacity: 0.85,
   },
 });
 
