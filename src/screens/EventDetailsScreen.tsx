@@ -26,6 +26,10 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import LocationIcon from "@assets/EventDetails-icons/location.svg";
+import TimeIcon from "@assets/EventDetails-icons/time.svg";
+import PeopleIcon from "@assets/EventDetails-icons/people.svg";
+import { LinearGradient } from "expo-linear-gradient";
 import {
   RouteProp,
   useIsFocused,
@@ -516,7 +520,7 @@ const EventDetailsScreen = () => {
   const pageScrollContentStyle = [
     styles.pageScrollContent,
     shouldPinBottomCTA
-      ? { paddingBottom: 72 + spacing.lg + insets.bottom }
+      ? { paddingBottom: 70 + insets.bottom }
       : null,
   ];
 
@@ -1317,41 +1321,32 @@ const EventDetailsScreen = () => {
               </View>
             )}
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { marginTop: 12, marginBottom: 12 }]} />
 
             <Text style={styles.sectionHeading}>Details</Text>
             <View style={styles.detailDiv}>
               <View style={styles.detailRow}>
-                <Feather
-                  name="map-pin"
-                  size={16}
-                  color={colors.iconColor}
-                  style={styles.detailIcon}
-                />
+                <View style={styles.detailIconContainer}>
+                  <LocationIcon width={20} height={20} color={colors.iconColor} />
+                </View>
                 <Text style={styles.detailText}>{event.location}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Feather
-                  name="clock"
-                  size={16}
-                  color={colors.iconColor}
-                  style={styles.detailIcon}
-                />
+                <View style={styles.detailIconContainer}>
+                  <TimeIcon width={20} height={20} color={colors.iconColor} />
+                </View>
                 <Text style={styles.detailText}>{scheduleLine}</Text>
               </View>
               <View style={styles.detailRow}>
-                <Feather
-                  name="users"
-                  size={16}
-                  color={colors.iconColor}
-                  style={styles.detailIcon}
-                />
+                <View style={styles.detailIconContainer}>
+                  <PeopleIcon width={20} height={20} color={colors.iconColor} />
+                </View>
                 <Text style={styles.detailText}>{audienceLine}</Text>
               </View>
             </View>
 
             {!!event.description && (
-              <View>
+              <View style={{ marginTop: 6 }}>
                 <Text
                   style={styles.description}
                   numberOfLines={descriptionExpanded ? undefined : 3}
@@ -1372,82 +1367,62 @@ const EventDetailsScreen = () => {
             {/* Host-only: Separator, Tabs, Requests/Members lists */}
             {isOwner && !readOnly && !(isOverlay && !isSingleEvent) && (
               <>
-                <View style={styles.tabSeparator} />
+                {/* Tabs header + divider as one unit to avoid card gap */}
+                <View>
+                  <View style={styles.tabContainer}>
+                    <Pressable
+                      style={styles.tabItem}
+                      hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                      onPress={() => setActiveTab("requests")}
+                    >
+                      <View style={styles.tabLabelRow}>
+                        <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
+                          Requests
+                        </Text>
+                        <Text style={[styles.tabCount, activeTab === "requests" && styles.tabCountActive]}>
+                          {" "}{pendingRequests.length}
+                        </Text>
+                      </View>
+                      {activeTab === "requests" && <View style={styles.tabUnderline} />}
+                    </Pressable>
 
-                {/* Tabs header */}
-                <View style={styles.tabContainer}>
-                  <Pressable
-                    style={styles.tabItem}
-                    onPress={() => setActiveTab("requests")}
-                  >
-                    <View style={styles.tabLabelRow}>
-                      <Text
-                        style={[
-                          styles.tabLabel,
-                          activeTab === "requests" && styles.tabLabelActive,
-                        ]}
+                    {isSingleEvent && (
+                      <Pressable
+                        style={styles.tabItem}
+                        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                        onPress={() => setActiveTab("accepted")}
                       >
-                        Requests
-                      </Text>
-                      <Text style={styles.tabCount}>
-                        {" "}
-                        {pendingRequests.length}
-                      </Text>
-                    </View>
-                    {activeTab === "requests" && (
-                      <View style={styles.tabUnderline} />
+                        <View style={styles.tabLabelRow}>
+                          <Text style={[styles.tabLabel, activeTab === "accepted" && styles.tabLabelActive]}>
+                            Accepted
+                          </Text>
+                          <Text style={[styles.tabCount, activeTab === "accepted" && styles.tabCountActive]}>
+                            {" "}{acceptedRequests.length}
+                          </Text>
+                        </View>
+                        {activeTab === "accepted" && <View style={styles.tabUnderline} />}
+                      </Pressable>
                     )}
-                  </Pressable>
 
-                  {isSingleEvent && (
-                    <Pressable
-                      style={styles.tabItem}
-                      onPress={() => setActiveTab("accepted")}
-                    >
-                      <View style={styles.tabLabelRow}>
-                        <Text
-                          style={[
-                            styles.tabLabel,
-                            activeTab === "accepted" && styles.tabLabelActive,
-                          ]}
-                        >
-                          Accepted
-                        </Text>
-                        <Text style={styles.tabCount}>
-                          {" "}
-                          {acceptedRequests.length}
-                        </Text>
-                      </View>
-                      {activeTab === "accepted" && (
-                        <View style={styles.tabUnderline} />
-                      )}
-                    </Pressable>
-                  )}
-
-                  {activeTab !== "accepted" && !isSingleEvent && (
-                    <Pressable
-                      style={styles.tabItem}
-                      onPress={() => setActiveTab("members")}
-                    >
-                      <View style={styles.tabLabelRow}>
-                        <Text
-                          style={[
-                            styles.tabLabel,
-                            activeTab === "members" && styles.tabLabelActive,
-                          ]}
-                        >
-                          Members
-                        </Text>
-                        <Text style={styles.tabCount}>
-                          {" "}
-                          {confirmedMembers.length}
-                        </Text>
-                      </View>
-                      {activeTab === "members" && (
-                        <View style={styles.tabUnderline} />
-                      )}
-                    </Pressable>
-                  )}
+                    {activeTab !== "accepted" && !isSingleEvent && (
+                      <Pressable
+                        style={styles.tabItem}
+                        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                        onPress={() => setActiveTab("members")}
+                      >
+                        <View style={styles.tabLabelRow}>
+                          <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
+                            Members
+                          </Text>
+                          <Text style={[styles.tabCount, activeTab === "members" && styles.tabCountActive]}>
+                            {" "}{confirmedMembers.length}
+                          </Text>
+                        </View>
+                        {activeTab === "members" && <View style={styles.tabUnderline} />}
+                      </Pressable>
+                    )}
+                  </View>
+                  <View style={[styles.divider, { marginVertical: 0 }]} />
                 </View>
 
                 {/* Requests list */}
@@ -1609,20 +1584,21 @@ const EventDetailsScreen = () => {
               isOverlay &&
               (isOwner || isConversationMember) && (
                 <>
-                  <View style={styles.tabSeparator} />
-                  <View style={styles.tabContainer}>
-                    <View style={styles.tabItem}>
-                      <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>
-                          Members
-                        </Text>
-                        <Text style={styles.tabCount}>
-                          {" "}
-                          {overlayMembers.length}
-                        </Text>
+                  <View>
+                    <View style={styles.tabContainer}>
+                      <View style={styles.tabItem}>
+                        <View style={styles.tabLabelRow}>
+                          <Text style={[styles.tabLabel, styles.tabLabelActive]}>
+                            Members
+                          </Text>
+                          <Text style={styles.tabCount}>
+                            {" "}{overlayMembers.length}
+                          </Text>
+                        </View>
+                        <View style={styles.tabUnderline} />
                       </View>
-                      <View style={styles.tabUnderline} />
                     </View>
+                    <View style={[styles.divider, { marginVertical: 0 }]} />
                   </View>
                   <View style={styles.listContainer}>
                     {overlayMembers.length === 0 ? (
@@ -1666,10 +1642,16 @@ const EventDetailsScreen = () => {
         </ScrollView>
         {shouldPinBottomCTA && showStandardCTA && !readOnly && (
           <View style={styles.pinnedCtaWrapper}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)']}
+              locations={[0, 0.4]}
+              style={StyleSheet.absoluteFill}
+            />
             <View
               style={[
                 styles.ctaContainer,
                 shouldShowInvitePrompt && styles.ctaContainerActive,
+                { paddingBottom: insets.bottom + 4 },
               ]}
             >
               <Pressable
@@ -1698,7 +1680,12 @@ const EventDetailsScreen = () => {
         )}
         {shouldPinBottomCTA && showOpenChatCTA && !readOnly ? (
           <View style={styles.pinnedCtaWrapper}>
-            <View style={styles.ctaContainer}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)']}
+              locations={[0, 0.4]}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 4 }]}>
               <Pressable
                 accessibilityRole="button"
                 onPress={handleOpenChat}
@@ -1916,7 +1903,7 @@ const EventDetailsScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       {screenContent}
     </SafeAreaView>
   );
@@ -2030,6 +2017,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     borderRadius: 20,
+    borderCurve: "continuous",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -2055,10 +2043,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 32,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: 20,
     gap: spacing.sm,
   },
   title: {
@@ -2069,9 +2056,9 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   hostedBy: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.iconColor,
+    color: "#808080",
     lineHeight: 20,
     letterSpacing: typography.letterSpacing,
   },
@@ -2106,45 +2093,51 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     color: "#000000",
-    lineHeight: typography.lineHeight,
-    letterSpacing: -0.4,
+    lineHeight: 20,
+    letterSpacing: -0.3,
   },
   detailDiv: {
     flexDirection: "column",
-    gap: 1, // 1px vertical space between child views
+    paddingTop: 6,
   },
-
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
+    paddingVertical: 4,
+    gap: 6,
   },
-  detailIcon: {
-    marginRight: spacing.sm,
+  detailIconContainer: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   detailText: {
-    fontSize: typography.body,
+    fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.eventDetailRowText,
-    letterSpacing: typography.detailLetterSpacing,
+    color: "#000000",
+    letterSpacing: -0.4,
     flex: 1,
   },
   description: {
-    fontSize: typography.body,
+    fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    color: "#494949",
+    color: "#000000",
     lineHeight: 22,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.4,
   },
   ctaContainer: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.card,
+    paddingTop: spacing.sm,
+    backgroundColor: 'transparent',
   },
   pinnedCtaWrapper: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+    height: 110,
+    justifyContent: "flex-end",
   },
   ctaContainerActive: {
     backgroundColor: "#F5F5F5",
@@ -2160,6 +2153,7 @@ const styles = StyleSheet.create({
   ctaButton: {
     backgroundColor: colors.primary,
     borderRadius: 999,
+    borderCurve: "continuous",
     paddingVertical: spacing.md,
     alignItems: "center",
   },
@@ -2215,8 +2209,8 @@ const styles = StyleSheet.create({
   // Tab container and items
   tabContainer: {
     flexDirection: "row",
-    gap: spacing.lg,
-    paddingTop: spacing.sm,
+    gap: 20,
+    paddingTop: 20,
   },
   tabItem: {
     alignItems: "flex-start",
@@ -2235,6 +2229,9 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: colors.text,
   },
+  tabCountActive: {
+    color: colors.text,
+  },
   tabCount: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
@@ -2246,7 +2243,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     height: 2,
     backgroundColor: colors.text,
-    marginTop: 4,
+    marginTop: 8,
   },
 
   // List container for requests/members
@@ -2269,14 +2266,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   requestMessage: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#707070",
-    lineHeight: 20,
-    letterSpacing: -0.5,
+    color: "#000000",
+    lineHeight: 22,
+    letterSpacing: -0.3,
     marginTop: 2,
   },
   requestActions: {
@@ -2348,7 +2345,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: "#707070",
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
     marginTop: 2,
   },
 
@@ -2359,6 +2356,7 @@ const styles = StyleSheet.create({
     color: colors.subText,
     textAlign: "center",
     paddingVertical: spacing.lg,
+    letterSpacing: -0.3,
   },
 
   // Secondary CTA button (for host)

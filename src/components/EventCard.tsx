@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: IMAGE_BORDER_RADIUS,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     flexDirection: 'column',
     justifyContent: 'flex-end',
