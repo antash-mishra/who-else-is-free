@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +10,11 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import {
   useNavigation,
   useRoute,
@@ -87,6 +92,30 @@ const buildSections = (
     }))
     .filter((section) => section.data.length > 0);
 };
+
+type EventCardItemProps = {
+  item: EventItemProps;
+  onPress: () => void;
+};
+
+const EventCardItem = memo(({ item, onPress }: EventCardItemProps) => {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => { scale.value = withSpring(0.96, { damping: 40, stiffness: 600, mass: 0.3 }); }}
+      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300, mass: 0.3 }); }}
+    >
+      <Animated.View style={animStyle}>
+        <EventCard {...item} />
+      </Animated.View>
+    </Pressable>
+  );
+});
 
 type SortMode = "upcoming" | "newest";
 
@@ -215,20 +244,15 @@ const HomeScreen = () => {
   );
 
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
-    <Pressable
+    <EventCardItem
+      item={item}
       onPress={() =>
         navigation.navigate("EventDetails", {
           eventId: item.id,
           origin: "Events",
         })
       }
-      style={({ pressed }) => [
-        styles.eventPressable,
-        pressed && styles.eventPressablePressed,
-      ]}
-    >
-      <EventCard {...item} />
-    </Pressable>
+    />
   );
 
   return (
@@ -390,12 +414,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
-  },
-  eventPressable: {
-    borderRadius: 20,
-  },
-  eventPressablePressed: {
-    opacity: 0.85,
   },
 });
 
