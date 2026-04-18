@@ -190,7 +190,9 @@ const PendingRequestsScreen = () => {
     <ScreenContainer edges={["top", "bottom"]}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Requests</Text>
+          <Text style={styles.headerTitle}>
+            {pendingRequests.length} {pendingRequests.length === 1 ? "Pending Request" : "Pending Requests"}
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.goBack()}
@@ -204,13 +206,7 @@ const PendingRequestsScreen = () => {
           data={pendingRequests}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
-          ListHeaderComponent={
-            pendingRequests.length > 0 ? (
-              <Text style={styles.sectionHeading}>
-                {pendingRequests.length} {pendingRequests.length === 1 ? "request" : "requests"} pending
-              </Text>
-            ) : null
-          }
+          ListHeaderComponent={null}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={
             pendingRequests.length === 0
@@ -232,7 +228,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.lg - spacing.md,
+    paddingTop: spacing.lg - spacing.md + 12,
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
@@ -241,24 +237,14 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#E6E6E6",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 24,
-    letterSpacing: -0.5,
-    color: "#000000",
-  },
-  sectionHeading: {
     fontSize: 14,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.subText,
     letterSpacing: -0.3,
-    marginBottom: spacing.sm,
+    color: colors.subText,
   },
   listContent: {
     paddingBottom: spacing.xl,
