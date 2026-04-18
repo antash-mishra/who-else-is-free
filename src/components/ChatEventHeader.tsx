@@ -97,7 +97,8 @@ const styles = StyleSheet.create({
   coverImage: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: 20,
+    overflow: "hidden",
   },
   textContainer: {
     flex: 1,

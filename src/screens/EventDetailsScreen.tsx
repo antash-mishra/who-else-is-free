@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Image,
   LayoutAnimation,
   Platform,
@@ -59,40 +58,6 @@ type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "EventDetails" | "EventDetailsOverlay"
 >;
-
-const OverlayWithSlide = ({
-  onDismiss,
-  children,
-}: {
-  onDismiss: () => void;
-  children: React.ReactNode;
-}) => {
-  const slideAnim = useRef(new Animated.Value(500)).current;
-
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      damping: 20,
-      stiffness: 200,
-      mass: 0.8,
-      useNativeDriver: true,
-    }).start();
-  }, [slideAnim]);
-
-  return (
-    <View style={styles.overlayWrapper}>
-      <Pressable style={styles.overlayDismissZone} onPress={onDismiss} />
-      <Animated.View
-        style={[
-          styles.overlayContentContainer,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {children}
-      </Animated.View>
-    </View>
-  );
-};
 
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
@@ -1896,11 +1861,12 @@ const EventDetailsScreen = () => {
 
   if (readOnly) {
     return (
-      <OverlayWithSlide onDismiss={navigation.goBack}>
+      <SafeAreaView style={styles.safeArea} edges={[]}>
         {screenContent}
-      </OverlayWithSlide>
+      </SafeAreaView>
     );
   }
+
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>

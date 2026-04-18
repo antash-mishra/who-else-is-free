@@ -451,44 +451,37 @@ const JoinRequestsScreen = () => {
   );
 
   // Group mode request item
-  const renderGroupRequestItem = ({ item }: { item: ChatJoinRequest }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardName}>{item.requester.name}</Text>
-        <Text style={styles.cardTime}>
-          {new Date(item.createdAt).toLocaleString([], {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Text>
+  const renderGroupRequestItem = ({ item }: { item: ChatJoinRequest }) => {
+    const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
+    const avatarColor = getAvatarColor(item.userId);
+    return (
+      <View style={styles.requestItem}>
+        <View style={[styles.avatarFallback, { backgroundColor: avatarColor }]}>
+          <Text style={styles.avatarInitial}>{initial}</Text>
+        </View>
+        <View style={styles.requestContent}>
+          <Text style={styles.requestName}>{item.requester.name}</Text>
+          {item.message ? (
+            <Text style={styles.requestMessage}>{item.message}</Text>
+          ) : null}
+        </View>
+        <View style={styles.requestActions}>
+          <Pressable
+            onPress={() => handleAction(item.id, item.userId, "deny")}
+            style={styles.declineButton}
+          >
+            <Feather name="x" size={18} color={colors.text} />
+          </Pressable>
+          <Pressable
+            onPress={() => handleAction(item.id, item.userId, "approve")}
+            style={styles.acceptButton}
+          >
+            <Feather name="check" size={18} color={colors.buttonText} />
+          </Pressable>
+        </View>
       </View>
-      {item.message ? (
-        <Text style={styles.cardMessage}>{item.message}</Text>
-      ) : null}
-      <View style={styles.cardActions}>
-        <Pressable
-          onPress={() => handleAction(item.id, item.userId, "deny")}
-          style={({ pressed }) => [
-            styles.secondaryButton,
-            pressed && styles.secondaryButtonPressed,
-          ]}
-        >
-          <Text style={styles.secondaryLabel}>Decline</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => handleAction(item.id, item.userId, "approve")}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.primaryButtonPressed,
-          ]}
-        >
-          <Text style={styles.primaryLabel}>Accept</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <ScreenContainer edges={["top", "bottom"]}>
@@ -598,72 +591,75 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   separator: {
-    height: spacing.md,
+    height: 1,
+    backgroundColor: colors.border,
   },
   separator1to1: {
     height: 1,
     backgroundColor: colors.border,
   },
-  // Group mode card styles
-  card: {
+  // Group mode request item styles
+  requestItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  avatarFallback: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
+    flexShrink: 0,
   },
-  cardName: {
+  avatarInitial: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontFamily: typography.fontFamilySemiBold,
-    color: colors.text,
-    fontSize: typography.subtitle,
+    lineHeight: 16,
+    textAlign: "center",
+    includeFontPadding: false,
   },
-  cardTime: {
-    fontSize: typography.caption,
-    color: colors.subText,
+  requestContent: {
+    flex: 1,
   },
-  cardMessage: {
-    fontSize: typography.body,
+  requestName: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
     color: colors.text,
+    lineHeight: 20,
+    letterSpacing: -0.3,
+  },
+  requestMessage: {
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
+    color: "#000000",
+    lineHeight: 22,
+    letterSpacing: -0.3,
+    marginTop: 2,
   },
-  cardActions: {
+  requestActions: {
     flexDirection: "row",
     gap: spacing.sm,
+    alignItems: "flex-start",
+    marginTop: spacing.xs,
   },
-  secondaryButton: {
-    flex: 1,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
+  declineButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    backgroundColor: "#E6E6E6",
   },
-  secondaryButtonPressed: {
-    backgroundColor: "rgba(0,0,0,0.05)",
-  },
-  secondaryLabel: {
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
+  acceptButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: spacing.sm,
-  },
-  primaryButtonPressed: {
-    opacity: 0.8,
-  },
-  primaryLabel: {
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.buttonText,
+    backgroundColor: colors.text,
   },
   // 1:1 mode request row styles
   flatList1to1: {

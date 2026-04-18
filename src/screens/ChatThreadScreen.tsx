@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import SendIcon from "@assets/chat-icons/send.svg";
 import {
   Dimensions,
   FlatList,
@@ -165,6 +166,16 @@ const ChatThreadScreen = () => {
       },
     ).catch(() => undefined);
   }, [activeConversation, activeEventGroupType, isConversationHost, refreshJoinRequests]);
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return undefined;
+    const showSub = Keyboard.addListener("keyboardDidShow", () => {
+      setTimeout(() => {
+        messagesListRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    });
+    return () => showSub.remove();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== "android") {
@@ -357,7 +368,7 @@ const ChatThreadScreen = () => {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={["top"]}>
       <ChatEventHeader
         onBack={handleBack}
         title={headerTitle}
@@ -372,23 +383,18 @@ const ChatThreadScreen = () => {
           }
         }}
         rightElement={
-          canViewJoinRequests ? (
+          canViewJoinRequests && pendingJoinRequestCount > 0 ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View join requests"
               onPress={handleOpenJoinRequests}
               style={styles.joinIconButton}
             >
-              <Feather name="users" size={20} color={colors.text} />
-              {pendingJoinRequestCount > 0 ? (
-                <View style={styles.joinCountBadge}>
-                  <Text style={styles.joinCountBadgeText}>
-                    {pendingJoinRequestCount > 99
-                      ? "99+"
-                      : pendingJoinRequestCount}
-                  </Text>
-                </View>
-              ) : null}
+              <View style={styles.joinCountBadge}>
+                <Text style={styles.joinCountBadgeText}>
+                  {pendingJoinRequestCount > 99 ? "99+" : pendingJoinRequestCount}
+                </Text>
+              </View>
             </Pressable>
           ) : undefined
         }
@@ -398,7 +404,7 @@ const ChatThreadScreen = () => {
         <KeyboardAvoidingView
           style={styles.threadContainer}
           behavior="padding"
-          keyboardVerticalOffset={insets.top + HEADER_HEIGHT}
+          keyboardVerticalOffset={16}
         >
           <View style={styles.threadBody}>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -415,7 +421,7 @@ const ChatThreadScreen = () => {
             <View
               style={[
                 styles.composerContainer,
-                { paddingBottom: spacing.xs },
+                { paddingBottom: spacing.xs + insets.bottom },
               ]}
             >
               <View style={styles.composerInputWrapper}>
@@ -437,10 +443,10 @@ const ChatThreadScreen = () => {
                   accessibilityRole="button"
                   accessibilityLabel="Send message"
                 >
-                  <Feather
-                    name="send"
-                    size={18}
-                    color={isSendDisabled ? colors.muted : colors.buttonText}
+                  <SendIcon
+                    width={15}
+                    height={16}
+                    color={isSendDisabled ? "#A3A3A3" : colors.buttonText}
                   />
                 </Pressable>
               </View>
@@ -489,10 +495,10 @@ const ChatThreadScreen = () => {
                   accessibilityRole="button"
                   accessibilityLabel="Send message"
                 >
-                  <Feather
-                    name="send"
-                    size={18}
-                    color={isSendDisabled ? colors.muted : colors.buttonText}
+                  <SendIcon
+                    width={15}
+                    height={16}
+                    color={isSendDisabled ? "#A3A3A3" : colors.buttonText}
                   />
                 </Pressable>
               </View>
@@ -510,22 +516,19 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   joinCountBadge: {
-    position: "absolute",
-    top: 0,
-    right: -2,
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    backgroundColor: "#E6E6E6",
+    borderRadius: 999,
+    minWidth: 28,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+    paddingHorizontal: spacing.sm,
   },
   joinCountBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 10,
+    color: colors.text,
+    fontSize: 13,
     fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 12,
+    letterSpacing: -0.3,
   },
   errorText: {
     fontSize: typography.caption,
@@ -590,7 +593,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingLeft: 16,
     paddingRight: 16,
-    borderRadius: 12,
+    borderRadius: 20,
+    borderCurve: "continuous",
   },
   messageBubbleOwn: {
     alignSelf: "flex-end",
@@ -638,13 +642,14 @@ const styles = StyleSheet.create({
   systemMessageRow: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: spacing.sm,
+    marginBottom: 12,
     paddingHorizontal: spacing.lg,
   },
   systemMessageText: {
     fontSize: typography.caption,
     color: colors.subText,
     textAlign: "center",
+    letterSpacing: -0.3,
   },
   composerContainer: {
     backgroundColor: "transparent",
@@ -654,30 +659,32 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
+    backgroundColor: "#F4F4F4",
+    borderRadius: 999,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: spacing.sm,
   },
   composerInput: {
     flex: 1,
     maxHeight: 100,
     paddingVertical: spacing.xs,
+    paddingLeft: 12,
     paddingRight: spacing.sm,
     fontFamily: typography.fontFamilyRegular,
+    fontSize: 16,
+    letterSpacing: -0.3,
   },
   sendIconButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
   },
   sendIconButtonDisabled: {
-    backgroundColor: "transparent",
+    backgroundColor: "#E6E6E6",
   },
 });
 
