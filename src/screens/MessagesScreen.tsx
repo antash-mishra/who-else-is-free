@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useCallback, useMemo, useState } from "react";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import {
@@ -32,6 +33,77 @@ type MessagesNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "Messages">,
   NativeStackNavigationProp<RootStackParamList>
 >;
+
+const ConversationRow = ({
+  item,
+  onPress,
+  activeConversationId,
+  events,
+  userId,
+}: {
+  item: ChatConversation;
+  onPress: (item: ChatConversation) => void;
+  activeConversationId: string | null;
+  events: { id: string; imageUri: string }[];
+  userId?: string;
+}) => {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const { participants = [] } = item;
+  const counterpart =
+    participants.find((p) => p.id !== userId) ?? participants[0];
+  const memberCount = item.memberIds?.length ?? participants.length;
+  const isGroup =
+    memberCount > 2 || !!item.event || (!!item.title && memberCount > 1);
+  const titleLabel = isGroup
+    ? (item.event?.title ?? item.title ?? item.displayName)
+    : (counterpart?.name ?? item.displayName);
+  const lastMessageBody = item.lastMessage?.body ?? "No messages yet";
+  const isOwnMessage = item.lastMessage?.senderId === userId;
+  const previewText = item.lastMessage
+    ? `${isOwnMessage ? "You" : (counterpart?.name?.split(" ")[0] ?? "")}: ${lastMessageBody}`
+    : lastMessageBody;
+  const eventImageUri =
+    item.eventId != null
+      ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
+      : undefined;
+  const hasUnread = (item.unreadCount ?? 0) > 0;
+
+  return (
+    <Pressable
+      onPress={() => onPress(item)}
+      onPressIn={() => { scale.value = withSpring(0.96, { damping: 40, stiffness: 600, mass: 0.3 }); }}
+      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300, mass: 0.3 }); }}
+    >
+      <Animated.View
+        style={[
+          animStyle,
+          styles.conversationRow,
+          item.id === activeConversationId && styles.conversationRowActive,
+        ]}
+      >
+        {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
+        <View style={styles.conversationAvatar}>
+          {eventImageUri ? (
+            <Image source={{ uri: eventImageUri }} style={styles.conversationAvatarImage} />
+          ) : (
+            <Text style={styles.avatarInitial}>{titleLabel.charAt(0)}</Text>
+          )}
+        </View>
+        <View style={styles.conversationCopyInner}>
+          <Text style={[styles.conversationName, hasUnread && styles.conversationNameUnread]} numberOfLines={1}>
+            {titleLabel}
+          </Text>
+          <Text style={[styles.conversationPreview, hasUnread && styles.conversationPreviewUnread]} numberOfLines={1}>
+            {previewText}
+          </Text>
+        </View>
+      </Animated.View>
+      <View style={styles.conversationDivider} />
+    </Pressable>
+  );
+};
 
 const MessagesScreen = () => {
   const navigation = useNavigation<MessagesNavigation>();
@@ -134,58 +206,7 @@ const MessagesScreen = () => {
   };
 
   const renderConversation = ({ item }: { item: ChatConversation }) => {
-    const { participants = [] } = item;
-    const counterpart =
-      participants.find((participant) => participant.id !== user?.id) ??
-      participants[0];
-    const memberCount = item.memberIds?.length ?? participants.length;
-    const isGroup =
-      memberCount > 2 || !!item.event || (!!item.title && memberCount > 1);
-    const titleLabel = isGroup
-      ? (item.event?.title ?? item.title ?? item.displayName)
-      : (counterpart?.name ?? item.displayName);
-    const lastMessageBody = item.lastMessage?.body ?? "No messages yet";
-    const isOwnMessage = item.lastMessage?.senderId === user?.id;
-    const previewText = item.lastMessage
-      ? `${isOwnMessage ? "You" : (counterpart?.name?.split(" ")[0] ?? "")}: ${lastMessageBody}`
-      : lastMessageBody;
-
-    const eventImageUri =
-      item.eventId != null
-        ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
-        : undefined;
-
-    const hasUnread = (item.unreadCount ?? 0) > 0;
-
-    return (
-      <Pressable
-        onPress={() => handleConversationPress(item)}
-        style={[
-          styles.conversationRow,
-          item.id === activeConversationId && styles.conversationRowActive,
-        ]}
-      >
-        {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
-        <View style={styles.conversationAvatar}>
-          {eventImageUri ? (
-            <Image
-              source={{ uri: eventImageUri }}
-              style={styles.conversationAvatarImage}
-            />
-          ) : (
-            <Text style={styles.avatarInitial}>{titleLabel.charAt(0)}</Text>
-          )}
-        </View>
-        <View style={styles.conversationCopy}>
-          <Text style={[styles.conversationName, hasUnread && styles.conversationNameUnread]} numberOfLines={1}>
-            {titleLabel}
-          </Text>
-          <Text style={[styles.conversationPreview, hasUnread && styles.conversationPreviewUnread]} numberOfLines={1}>
-            {previewText}
-          </Text>
-        </View>
-      </Pressable>
-    );
+    return <ConversationRow item={item} onPress={handleConversationPress} activeConversationId={activeConversationId} events={events} userId={user?.id} />;
   };
 
   const [signInVisible, setSignInVisible] = useState(false);
@@ -291,17 +312,18 @@ const styles = StyleSheet.create({
     // borderColor: colors.primary,
   },
   conversationAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+    overflow: "hidden",
   },
   conversationAvatarImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 22,
+    resizeMode: "cover",
   },
   avatarInitial: {
     fontSize: typography.title,
@@ -312,8 +334,16 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+  },
+  conversationCopyInner: {
+    flex: 1,
+    gap: 4,
+    paddingVertical: spacing.md,
+  },
+  conversationDivider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginLeft: spacing.md + 52 + 12,
   },
   conversationName: {
     fontSize: 16,
@@ -322,25 +352,20 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
   },
-  conversationNameUnread: {
-    fontFamily: typography.fontFamilySemiBold,
-  },
+  conversationNameUnread: {},
   conversationPreview: {
     fontSize: 15,
     lineHeight: 20,
     letterSpacing: -0.5,
     color: "#707070",
   },
-  conversationPreviewUnread: {
-    color: colors.text,
-    fontFamily: typography.fontFamilyMedium,
-  },
+  conversationPreviewUnread: {},
   unreadDot: {
     position: "absolute",
     left: 5,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: "#2F81E6",
   },
 });

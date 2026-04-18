@@ -190,21 +190,27 @@ const PendingRequestsScreen = () => {
     <ScreenContainer edges={["top", "bottom"]}>
       <View style={styles.container}>
         <View style={styles.header}>
+          <Text style={styles.headerTitle}>Requests</Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={styles.closeButton}
+            hitSlop={12}
           >
-            <Feather name="chevron-left" size={24} color="#707070" />
+            <Feather name="x" size={20} color={colors.text} />
           </Pressable>
-          <Text style={styles.headerTitle}>
-            Requests ({pendingRequests.length})
-          </Text>
         </View>
         <FlatList
           data={pendingRequests}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
+          ListHeaderComponent={
+            pendingRequests.length > 0 ? (
+              <Text style={styles.sectionHeading}>
+                {pendingRequests.length} {pendingRequests.length === 1 ? "request" : "requests"} pending
+              </Text>
+            ) : null
+          }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={
             pendingRequests.length === 0
@@ -230,21 +236,29 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    justifyContent: "space-between",
   },
-  backButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E6E6E6",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
-    lineHeight: 20,
+    fontSize: 18,
+    fontFamily: typography.fontFamilySemiBold,
+    lineHeight: 24,
     letterSpacing: -0.5,
     color: "#000000",
+  },
+  sectionHeading: {
+    fontSize: 14,
+    fontFamily: typography.fontFamilyRegular,
+    color: colors.subText,
+    letterSpacing: -0.3,
+    marginBottom: spacing.sm,
   },
   listContent: {
     paddingBottom: spacing.xl,
@@ -272,9 +286,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    fontSize: typography.subtitle,
+    fontSize: 16,
     fontFamily: typography.fontFamilySemiBold,
     color: "#FFFFFF",
+    lineHeight: 16,
+    includeFontPadding: false,
   },
   requestContent: {
     flex: 1,
@@ -284,22 +300,22 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   requestMessage: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#707070",
-    lineHeight: 20,
-    letterSpacing: -0.5,
+    color: "#000000",
+    lineHeight: 22,
+    letterSpacing: -0.3,
     marginTop: 2,
   },
   seeMoreText: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
     color: "#707070",
-    lineHeight: 20,
-    letterSpacing: -0.5,
+    lineHeight: 22,
+    letterSpacing: -0.3,
     marginTop: 2,
   },
   requestActions: {
