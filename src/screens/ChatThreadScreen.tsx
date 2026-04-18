@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   joinCountBadgeText: {
     color: colors.text,
     fontSize: 13,
-    fontFamily: typography.fontFamilySemiBold,
+    fontFamily: typography.fontFamilyMedium,
     letterSpacing: -0.3,
   },
   errorText: {

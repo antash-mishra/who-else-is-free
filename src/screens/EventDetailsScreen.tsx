@@ -1396,14 +1396,15 @@ const EventDetailsScreen = () => {
                     {pendingRequests.length === 0 ? (
                       <Text style={styles.emptyStateText}>No requests yet</Text>
                     ) : (
-                      pendingRequests.map((request) => {
+                      pendingRequests.map((request, index) => {
                         const isExpanded = expandedRequestIds.has(request.id);
                         const isAccepting = acceptingUserId === request.userId;
                         const isDeclining = decliningUserId === request.userId;
                         const isLoading = isAccepting || isDeclining;
 
                         return (
-                          <View key={request.id} style={styles.requestItem}>
+                          <View key={request.id}>
+                          <View style={styles.requestItem}>
                             {renderAvatar(request.requester)}
 
                             <View style={styles.requestContent}>
@@ -1473,6 +1474,10 @@ const EventDetailsScreen = () => {
                                 )}
                               </Pressable>
                             </View>
+                          </View>
+                          {index < pendingRequests.length - 1 && (
+                            <View style={styles.requestSeparator} />
+                          )}
                           </View>
                         );
                       })
@@ -2215,14 +2220,21 @@ const styles = StyleSheet.create({
   // List container for requests/members
   listContainer: {
     marginTop: spacing.sm,
+    paddingTop: spacing.sm,
   },
 
   // Request item styles
   requestItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: spacing.sm,
     gap: spacing.sm,
+  },
+  requestSeparator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: 48, // avatar (40) + gap (8)
+    marginTop: spacing.sm + 6,
+    marginBottom: spacing.sm + 6,
   },
   requestContent: {
     flex: 1,
