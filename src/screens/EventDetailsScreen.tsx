@@ -1820,7 +1820,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={showEventUpdatedBadge}
         label="Event details updated"
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setShowEventUpdatedBadge(false);
           navigation.setParams({ showEventUpdatedBadge: false });
@@ -1829,7 +1828,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={showRequestSentBadge}
         label="Requested to join"
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setShowRequestSentBadge(false);
         }}
@@ -1837,7 +1835,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={showRequestCancelledBadge}
         label="Requested to join cancelled"
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setShowRequestCancelledBadge(false);
         }}
@@ -1845,7 +1842,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={removedMemberBadgeLabel != null}
         label={removedMemberBadgeLabel ?? ""}
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setRemovedMemberBadgeLabel(null);
         }}
@@ -1853,7 +1849,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={reportedMemberBadgeLabel != null}
         label={reportedMemberBadgeLabel ?? ""}
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setReportedMemberBadgeLabel(null);
         }}
