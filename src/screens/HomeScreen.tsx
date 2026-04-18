@@ -25,7 +25,6 @@ import {
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   BottomTabNavigationProp,
-  useBottomTabBarHeight,
 } from "@react-navigation/bottom-tabs";
 import EmptyState from "@components/EmptyState";
 import EventActionBadge from "@components/EventActionBadge";
@@ -144,8 +143,7 @@ const HomeScreen = () => {
   const { conversations } = useChat();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
-  const [sortMode, setSortMode] = useState<SortMode>("upcoming");
+const [sortMode, setSortMode] = useState<SortMode>("upcoming");
   const hasLoadedOnce = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
@@ -325,7 +323,6 @@ const HomeScreen = () => {
       <EventActionBadge
         visible={showReportedBadge}
         label="Event Reported, Admins are looking into it"
-        bottomOffset={tabBarHeight + spacing.md}
         onHidden={() => {
           setShowReportedBadge(false);
           navigation.setParams({ showEventReportedBadge: false });
@@ -334,7 +331,6 @@ const HomeScreen = () => {
       <EventActionBadge
         visible={showEventDeletedBadge}
         label="Event Deleted"
-        bottomOffset={tabBarHeight + spacing.md}
         onHidden={() => {
           setShowEventDeletedBadge(false);
           navigation.setParams({ showEventDeletedBadge: false });
@@ -343,7 +339,6 @@ const HomeScreen = () => {
       <EventActionBadge
         visible={showEventLeftBadge}
         label="Event left"
-        bottomOffset={tabBarHeight + spacing.md}
         onHidden={() => {
           setShowEventLeftBadge(false);
           navigation.setParams({ showEventLeftBadge: false });
