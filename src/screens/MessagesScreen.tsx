@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md + 52 + 12,
   },
   conversationName: {
-    fontSize: 16,
+    fontSize: 17,
     lineHeight: 20,
     letterSpacing: -0.5,
     color: colors.text,
