@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Image,
   LayoutAnimation,
   Platform,
@@ -59,40 +58,6 @@ type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "EventDetails" | "EventDetailsOverlay"
 >;
-
-const OverlayWithSlide = ({
-  onDismiss,
-  children,
-}: {
-  onDismiss: () => void;
-  children: React.ReactNode;
-}) => {
-  const slideAnim = useRef(new Animated.Value(500)).current;
-
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: 0,
-      damping: 20,
-      stiffness: 200,
-      mass: 0.8,
-      useNativeDriver: true,
-    }).start();
-  }, [slideAnim]);
-
-  return (
-    <View style={styles.overlayWrapper}>
-      <Pressable style={styles.overlayDismissZone} onPress={onDismiss} />
-      <Animated.View
-        style={[
-          styles.overlayContentContainer,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {children}
-      </Animated.View>
-    </View>
-  );
-};
 
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
@@ -1431,14 +1396,15 @@ const EventDetailsScreen = () => {
                     {pendingRequests.length === 0 ? (
                       <Text style={styles.emptyStateText}>No requests yet</Text>
                     ) : (
-                      pendingRequests.map((request) => {
+                      pendingRequests.map((request, index) => {
                         const isExpanded = expandedRequestIds.has(request.id);
                         const isAccepting = acceptingUserId === request.userId;
                         const isDeclining = decliningUserId === request.userId;
                         const isLoading = isAccepting || isDeclining;
 
                         return (
-                          <View key={request.id} style={styles.requestItem}>
+                          <View key={request.id}>
+                          <View style={styles.requestItem}>
                             {renderAvatar(request.requester)}
 
                             <View style={styles.requestContent}>
@@ -1508,6 +1474,10 @@ const EventDetailsScreen = () => {
                                 )}
                               </Pressable>
                             </View>
+                          </View>
+                          {index < pendingRequests.length - 1 && (
+                            <View style={styles.requestSeparator} />
+                          )}
                           </View>
                         );
                       })
@@ -1850,7 +1820,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={showEventUpdatedBadge}
         label="Event details updated"
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setShowEventUpdatedBadge(false);
           navigation.setParams({ showEventUpdatedBadge: false });
@@ -1859,7 +1828,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={showRequestSentBadge}
         label="Requested to join"
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setShowRequestSentBadge(false);
         }}
@@ -1867,7 +1835,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={showRequestCancelledBadge}
         label="Requested to join cancelled"
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setShowRequestCancelledBadge(false);
         }}
@@ -1875,7 +1842,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={removedMemberBadgeLabel != null}
         label={removedMemberBadgeLabel ?? ""}
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setRemovedMemberBadgeLabel(null);
         }}
@@ -1883,7 +1849,6 @@ const EventDetailsScreen = () => {
       <EventActionBadge
         visible={reportedMemberBadgeLabel != null}
         label={reportedMemberBadgeLabel ?? ""}
-        bottomOffset={spacing.lg + insets.bottom}
         onHidden={() => {
           setReportedMemberBadgeLabel(null);
         }}
@@ -1896,11 +1861,12 @@ const EventDetailsScreen = () => {
 
   if (readOnly) {
     return (
-      <OverlayWithSlide onDismiss={navigation.goBack}>
+      <SafeAreaView style={styles.safeArea} edges={[]}>
         {screenContent}
-      </OverlayWithSlide>
+      </SafeAreaView>
     );
   }
+
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
@@ -2249,14 +2215,21 @@ const styles = StyleSheet.create({
   // List container for requests/members
   listContainer: {
     marginTop: spacing.sm,
+    paddingTop: spacing.sm,
   },
 
   // Request item styles
   requestItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: spacing.sm,
     gap: spacing.sm,
+  },
+  requestSeparator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: 48, // avatar (40) + gap (8)
+    marginTop: spacing.sm + 6,
+    marginBottom: spacing.sm + 6,
   },
   requestContent: {
     flex: 1,
