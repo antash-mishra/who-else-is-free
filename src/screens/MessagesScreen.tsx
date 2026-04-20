@@ -1,12 +1,12 @@
 import {
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { useCallback, useMemo, useState } from "react";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import BottomSheetModal from "@components/BottomSheetModal";
@@ -86,7 +86,7 @@ const ConversationRow = ({
         {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
-            <Image source={{ uri: eventImageUri }} style={styles.conversationAvatarImage} />
+            <Image source={{ uri: eventImageUri }} style={styles.conversationAvatarImage} contentFit="cover" transition={150} />
           ) : (
             <Text style={styles.avatarInitial}>{titleLabel.charAt(0)}</Text>
           )}

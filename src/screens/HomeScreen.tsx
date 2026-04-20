@@ -15,6 +15,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
+import PagerView from "react-native-pager-view";
 import {
   useNavigation,
   useRoute,
@@ -26,6 +27,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   BottomTabNavigationProp,
 } from "@react-navigation/bottom-tabs";
+
 import EmptyState from "@components/EmptyState";
 import EventActionBadge from "@components/EventActionBadge";
 import EventCard, { EventItemProps } from "@components/EventCard";
@@ -116,8 +118,6 @@ const EventCardItem = memo(({ item, onPress }: EventCardItemProps) => {
   );
 });
 
-type SortMode = "upcoming" | "newest";
-
 const sortOptions = [
   { label: "Upcoming", value: "upcoming" },
   { label: "Newest", value: "newest" },
@@ -143,7 +143,9 @@ const HomeScreen = () => {
   const { conversations } = useChat();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-const [sortMode, setSortMode] = useState<SortMode>("upcoming");
+  const pagerRef = useRef<PagerView>(null);
+  const [selectedPage, setSelectedPage] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
   const hasLoadedOnce = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
@@ -189,33 +191,32 @@ const [sortMode, setSortMode] = useState<SortMode>("upcoming");
     [user, joinedEventIds, isEventRequested],
   );
 
-  const sections = useMemo<EventSection[]>(() => {
-    if (sortMode === "newest") {
-      const sorted = [...allEvents].sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateB - dateA;
-      });
-      return sorted.length > 0
-        ? [{
-            title: "Newest created",
-            data: sorted.map((event) => toEventCardItem(event, getBadgeLabel(event))),
-          }]
-        : [];
-    }
-    return buildSections(allEvents, getBadgeLabel);
-  }, [allEvents, sortMode, getBadgeLabel]);
+  const upcomingSections = useMemo<EventSection[]>(
+    () => buildSections(allEvents, getBadgeLabel),
+    [allEvents, getBadgeLabel],
+  );
+
+  const newestSections = useMemo<EventSection[]>(() => {
+    const sorted = [...allEvents].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+    return sorted.length > 0
+      ? [{ title: "Newest created", data: sorted.map((e) => toEventCardItem(e, getBadgeLabel(e))) }]
+      : [];
+  }, [allEvents, getBadgeLabel]);
 
   // Track if initial load has completed
   useEffect(() => {
-    if (!isLoading && sections.length > 0) {
+    if (!isLoading && allEvents.length > 0) {
       hasLoadedOnce.current = true;
     }
-  }, [isLoading, sections.length]);
+  }, [isLoading, allEvents.length]);
 
-  const showAllEventsLoading = isLoading && sections.length === 0 && !hasLoadedOnce.current;
-  const showAllEventsError = !!error && !isLoading && sections.length === 0;
-  const showAllEventsEmpty = !isLoading && sections.length === 0 && !error;
+  const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce.current;
+  const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
+  const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
 
   const refreshAll = useCallback(
     async () => Promise.all([refreshEvents(), refreshRequestedEvents()]),
@@ -255,71 +256,85 @@ const [sortMode, setSortMode] = useState<SortMode>("upcoming");
 
   return (
     <ScreenContainer>
-<View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>Discover Events</Text>
-      </View>
-      <View style={styles.filtersRow}>
-        <SegmentedControl
-          options={sortOptions}
-          value={sortMode}
-          onChange={(value) => setSortMode(value as SortMode)}
-        />
-      </View>
-      {showAllEventsLoading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : showAllEventsError ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={handleRefresh}>
-            <Text style={styles.retryButtonText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : showAllEventsEmpty ? (
-        <ScrollView
-          contentContainerStyle={styles.centerContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isPullRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-            />
-          }
-          showsVerticalScrollIndicator={false}
+      <View style={styles.content}>
+        {showAllEventsLoading ? (
+          <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : showAllEventsError ? (
+          <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryButton} onPress={handleRefresh}>
+              <Text style={styles.retryButtonText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <PagerView
+            ref={pagerRef}
+            style={styles.pager}
+            initialPage={0}
+            onPageSelected={(e) => setSelectedPage(e.nativeEvent.position)}
+            onPageScroll={(e) => {
+              const { position, offset } = e.nativeEvent;
+              if (offset > 0.5) setSelectedPage(position + 1);
+              else setSelectedPage(position);
+            }}
+          >
+            <View key="upcoming" style={{ flex: 1 }}>
+              <SectionList<EventItemProps, EventSection>
+                sections={upcomingSections}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                renderSectionHeader={renderSectionHeader}
+                stickySectionHeadersEnabled={false}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom }, upcomingSections.length === 0 && { flex: 1 }]}
+                SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
+                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                ListFooterComponent={<View style={styles.footerSpacing} />}
+                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available.\nPlease check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+              />
+            </View>
+            <View key="newest" style={{ flex: 1 }}>
+              <SectionList<EventItemProps, EventSection>
+                sections={newestSections}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                renderSectionHeader={renderSectionHeader}
+                stickySectionHeadersEnabled={false}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom }, newestSections.length === 0 && { flex: 1 }]}
+                SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
+                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                ListFooterComponent={<View style={styles.footerSpacing} />}
+                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available.\nPlease check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
+                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+              />
+            </View>
+          </PagerView>
+        )}
+        {/* Floating header */}
+        <View
+          style={styles.floatingHeader}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
-          <EmptyState
-            title="Nothing Happening Here (Yet!)"
-            description={"There are currently no events available.\nPlease check back later."}
-            imageSource={require('@assets/emptystate_discoverevent.png')}
-          />
-        </ScrollView>
-      ) : (
-        <SectionList<EventItemProps, EventSection>
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: spacing.xl + insets.bottom },
-          ]}
-          SectionSeparatorComponent={({ leadingItem }) =>
-            leadingItem ? <View style={styles.sectionSeparator} /> : null
-          }
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          ListFooterComponent={<View style={styles.footerSpacing} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={isPullRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
+          <View style={styles.headerSpacing}>
+            <Text style={styles.headerTitle}>Discover Events</Text>
+          </View>
+          <View style={styles.filtersRow}>
+            <SegmentedControl
+              options={sortOptions}
+              value={sortOptions[selectedPage].value}
+              onChange={(value) => {
+                const index = sortOptions.findIndex((o) => o.value === value);
+                setSelectedPage(index);
+                pagerRef.current?.setPage(index);
+              }}
             />
-          }
-        />
-      )}
+          </View>
+        </View>
+      </View>
       <EventActionBadge
         visible={showReportedBadge}
         label="Event Reported, Admins are looking into it"
@@ -349,6 +364,22 @@ const [sortMode, setSortMode] = useState<SortMode>("upcoming");
 };
 
 const styles = StyleSheet.create({
+  content: {
+    flex: 1,
+  },
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: -spacing.md,
+    right: -spacing.md,
+    zIndex: 10,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+  },
+  pager: {
+    flex: 1,
+    marginHorizontal: -spacing.md,
+  },
   filtersRow: {
     marginBottom: spacing.md,
   },
@@ -364,6 +395,7 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   listContent: {
+    paddingHorizontal: spacing.md,
   },
   sectionHeader: {
     fontSize: 15,

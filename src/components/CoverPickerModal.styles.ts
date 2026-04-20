@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 0,
         borderRadius: 16,
+        borderCurve: "continuous",
         borderWidth: 2,
         borderColor: colors.createCardBorder,
         overflow: "hidden",
