@@ -18,7 +18,6 @@ import Animated, {
 } from "react-native-reanimated";
 import {
   BottomTabNavigationProp,
-  useBottomTabBarHeight,
 } from "@react-navigation/bottom-tabs";
 import {
   useNavigation,
@@ -133,7 +132,6 @@ const MyEventsScreen = () => {
   const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const insets = useSafeAreaInsets();
-  const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
     if (!route.params?.showEventCreatedBadge) {
@@ -441,7 +439,6 @@ const MyEventsScreen = () => {
         <EventActionBadge
           visible={showEventCreatedBadge}
           label="Event Created"
-          bottomOffset={tabBarHeight + spacing.md}
           onHidden={() => {
             setShowEventCreatedBadge(false);
             navigation.setParams({ showEventCreatedBadge: false });
@@ -450,7 +447,6 @@ const MyEventsScreen = () => {
         <EventActionBadge
           visible={showEventDeletedBadge}
           label="Event Deleted"
-          bottomOffset={tabBarHeight + spacing.md}
           onHidden={() => {
             setShowEventDeletedBadge(false);
             navigation.setParams({ showEventDeletedBadge: false });

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  RefreshControl,
+  ScrollView,
   Pressable,
   StyleSheet,
   Text,
@@ -112,109 +113,109 @@ const PendingRequestsScreen = () => {
     });
   };
 
-  const renderItem = ({ item }: { item: ChatJoinRequest }) => {
-    const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
-    const avatarColor = getAvatarColor(item.userId);
-    const isExpanded = expandedRequestIds.has(item.id);
-    const isAccepting = acceptingUserId === item.userId;
-    const isDeclining = decliningUserId === item.userId;
-    const isLoading = isAccepting || isDeclining;
-
-    return (
-      <View style={styles.requestItem}>
-        <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
-
-        <View style={styles.requestContent}>
-          <Text style={styles.requestName}>{item.requester.name}</Text>
-          <Text
-            style={styles.requestMessage}
-            numberOfLines={isExpanded ? undefined : 3}
-          >
-            {item.message}
-          </Text>
-          {!isExpanded && item.message.length > 100 && (
-            <Text
-              style={styles.seeMoreText}
-              onPress={() => toggleRequestExpanded(item.id)}
-            >
-              See more
-            </Text>
-          )}
-        </View>
-
-        <View style={styles.requestActions}>
-          <Pressable
-            style={[styles.actionButton, styles.declineButton]}
-            onPress={() => handleDecline(item)}
-            disabled={isLoading}
-            accessibilityRole="button"
-            accessibilityLabel="Decline request"
-          >
-            {isDeclining ? (
-              <ActivityIndicator size="small" color={colors.text} />
-            ) : (
-              <Feather name="x" size={18} color={colors.text} />
-            )}
-          </Pressable>
-
-          <Pressable
-            style={[styles.actionButton, styles.acceptButton]}
-            onPress={() => handleAccept(item)}
-            disabled={isLoading}
-            accessibilityRole="button"
-            accessibilityLabel="Accept request"
-          >
-            {isAccepting ? (
-              <ActivityIndicator size="small" color={colors.buttonText} />
-            ) : (
-              <Feather name="check" size={18} color={colors.buttonText} />
-            )}
-          </Pressable>
-        </View>
-      </View>
-    );
-  };
-
-  const listEmpty = useMemo(
-    () => (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>No pending requests</Text>
-      </View>
-    ),
-    [],
-  );
-
   return (
     <ScreenContainer edges={["top", "bottom"]}>
       <View style={styles.container}>
         <View style={styles.header}>
+          <Text style={styles.headerTitle}>
+            Requests
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={styles.closeButton}
+            hitSlop={12}
           >
-            <Feather name="chevron-left" size={24} color="#707070" />
+            <Feather name="x" size={18} color="#999999" />
           </Pressable>
-          <Text style={styles.headerTitle}>
-            Requests ({pendingRequests.length})
-          </Text>
         </View>
-        <FlatList
-          data={pendingRequests}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={
             pendingRequests.length === 0
               ? styles.listEmptyContent
               : styles.listContent
           }
-          ListEmptyComponent={listEmpty}
-          onRefresh={handleRefresh}
-          refreshing={isRefreshing}
-        />
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          }
+        >
+          {pendingRequests.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No pending requests</Text>
+            </View>
+          ) : (
+            pendingRequests.map((item, index) => {
+              const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
+              const avatarColor = getAvatarColor(item.userId);
+              const isExpanded = expandedRequestIds.has(item.id);
+              const isAccepting = acceptingUserId === item.userId;
+              const isDeclining = decliningUserId === item.userId;
+              const isLoading = isAccepting || isDeclining;
+
+              return (
+                <View key={item.id}>
+                  <View style={styles.requestItem}>
+                    <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+                      <Text style={styles.avatarText}>{initial}</Text>
+                    </View>
+
+                    <View style={styles.requestContent}>
+                      <Text style={styles.requestName}>{item.requester.name}</Text>
+                      <Text
+                        style={styles.requestMessage}
+                        numberOfLines={isExpanded ? undefined : 3}
+                      >
+                        {item.message}
+                      </Text>
+                      {!isExpanded && item.message.length > 100 && (
+                        <Text
+                          style={styles.seeMoreText}
+                          onPress={() => toggleRequestExpanded(item.id)}
+                        >
+                          See more
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.requestActions}>
+                      <Pressable
+                        style={[styles.actionButton, styles.declineButton]}
+                        onPress={() => handleDecline(item)}
+                        disabled={isLoading}
+                        accessibilityRole="button"
+                        accessibilityLabel="Decline request"
+                      >
+                        {isDeclining ? (
+                          <ActivityIndicator size="small" color={colors.text} />
+                        ) : (
+                          <Feather name="x" size={18} color={colors.text} />
+                        )}
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.actionButton, styles.acceptButton]}
+                        onPress={() => handleAccept(item)}
+                        disabled={isLoading}
+                        accessibilityRole="button"
+                        accessibilityLabel="Accept request"
+                      >
+                        {isAccepting ? (
+                          <ActivityIndicator size="small" color={colors.buttonText} />
+                        ) : (
+                          <Feather name="check" size={18} color={colors.buttonText} />
+                        )}
+                      </Pressable>
+                    </View>
+                  </View>
+                  {index < pendingRequests.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
+                </View>
+              );
+            })
+          )}
+        </ScrollView>
       </View>
     </ScreenContainer>
   );
@@ -226,27 +227,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: spacing.lg - spacing.md,
+    paddingTop: spacing.lg - spacing.md + 12,
     paddingBottom: spacing.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    justifyContent: "space-between",
   },
-  backButton: {
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
-    alignItems: "center",
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 80,
+    backgroundColor: "rgba(120, 120, 128, 0.16)",
     justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
-    lineHeight: 20,
+    fontSize: 20,
+    fontFamily: typography.fontFamilySemiBold,
+    lineHeight: 24,
     letterSpacing: -0.5,
-    color: "#000000",
+    color: "rgba(0, 0, 0, 1)",
   },
   listContent: {
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl,
   },
   listEmptyContent: {
@@ -257,11 +260,13 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: colors.border,
+    marginLeft: 48, // avatar (40) + gap (8)
+    marginTop: spacing.sm + 6,
+    marginBottom: spacing.sm + 6,
   },
   requestItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: spacing.sm,
     gap: spacing.sm,
   },
   avatar: {
@@ -272,9 +277,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    fontSize: typography.subtitle,
+    fontSize: 16,
     fontFamily: typography.fontFamilySemiBold,
     color: "#FFFFFF",
+    lineHeight: 16,
+    includeFontPadding: false,
   },
   requestContent: {
     flex: 1,
@@ -284,14 +291,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   requestMessage: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#707070",
-    lineHeight: 20,
-    letterSpacing: -0.5,
+    color: "#000000",
+    lineHeight: 22,
+    letterSpacing: -0.3,
     marginTop: 2,
   },
   seeMoreText: {
@@ -299,7 +306,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: "#707070",
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
     marginTop: 2,
   },
   requestActions: {

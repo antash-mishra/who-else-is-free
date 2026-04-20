@@ -1,27 +1,32 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  PanResponder,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { BlurView } from "expo-blur";
 
 import { spacing, typography } from "@theme/index";
 
-const BADGE_ANIMATION_MS = 200;
-const BADGE_VISIBLE_TOTAL_MS = 2000;
-const BADGE_HOLD_MS = BADGE_VISIBLE_TOTAL_MS - BADGE_ANIMATION_MS * 2;
+const BADGE_HOLD_MS = 3000;
+const FADE_MS = 180;
 
 type EventActionBadgeProps = {
   visible: boolean;
   label: string;
-  bottomOffset?: number;
+  topOffset?: number;
   onHidden?: () => void;
 };
 
 const EventActionBadge = ({
   visible,
   label,
-  bottomOffset = spacing.md,
+  topOffset = 59,
   onHidden,
 }: EventActionBadgeProps) => {
-  const translateY = useRef(new Animated.Value(40)).current;
+  const translateY = useRef(new Animated.Value(-80)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const [isRendered, setIsRendered] = useState(false);
   const onHiddenRef = useRef<EventActionBadgeProps["onHidden"]>(onHidden);
@@ -31,50 +36,89 @@ const EventActionBadge = ({
     onHiddenRef.current = onHidden;
   }, [onHidden]);
 
+  const dismiss = () => {
+    animationRef.current?.stop();
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -80,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setIsRendered(false);
+        onHiddenRef.current?.();
+      }
+    });
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        gestureState.dy < -8,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -20 || gestureState.vy < -0.5) {
+          dismiss();
+        }
+      },
+    }),
+  ).current;
+
   useEffect(() => {
     animationRef.current?.stop();
     animationRef.current = null;
 
     if (!visible) {
       setIsRendered(false);
-      translateY.setValue(40);
+      translateY.setValue(-80);
       opacity.setValue(0);
       return;
     }
 
     setIsRendered(true);
-    translateY.setValue(40);
+    translateY.setValue(-80);
     opacity.setValue(0);
 
-    const animation = Animated.sequence([
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: BADGE_ANIMATION_MS,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: BADGE_ANIMATION_MS,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.delay(BADGE_HOLD_MS),
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 40,
-          duration: BADGE_ANIMATION_MS,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: BADGE_ANIMATION_MS,
-          useNativeDriver: true,
-        }),
-      ]),
+    const enterAnim = Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: 0,
+        damping: 20,
+        stiffness: 280,
+        mass: 0.8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }),
     ]);
-    animationRef.current = animation;
 
+    const exitAnim = Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -80,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: FADE_MS,
+        useNativeDriver: true,
+      }),
+    ]);
+
+    const animation = Animated.sequence([
+      enterAnim,
+      Animated.delay(BADGE_HOLD_MS),
+      exitAnim,
+    ]);
+
+    animationRef.current = animation;
     animation.start(({ finished }) => {
       if (finished) {
         setIsRendered(false);
@@ -97,13 +141,14 @@ const EventActionBadge = ({
       style={[
         styles.badge,
         {
-          bottom: bottomOffset,
+          top: topOffset,
           opacity,
           transform: [{ translateY }],
         },
       ]}
+      {...panResponder.panHandlers}
     >
-      <BlurView intensity={10} tint="dark" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={65} tint="dark" style={[StyleSheet.absoluteFill, styles.blurClip]} />
       <View style={styles.badgeOverlay} />
       <Text style={styles.badgeText}>{label}</Text>
     </Animated.View>
@@ -114,28 +159,34 @@ const styles = StyleSheet.create({
   badge: {
     position: "absolute",
     alignSelf: "center",
-    minWidth: 112,
-    minHeight: 32,
-    paddingVertical: 10,
-    paddingHorizontal: 11,
-    gap: spacing.xs,
-    borderRadius: 10,
-    overflow: "hidden",
+    maxWidth: "92%",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderCurve: "continuous",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  blurClip: {
+    borderRadius: 16,
+    borderCurve: "continuous",
+    overflow: "hidden",
   },
   badgeOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#00000099",
+    backgroundColor: "#00000066",
+    borderRadius: 16,
+    borderCurve: "continuous",
   },
   badgeText: {
     color: "#FFFFFF",
-    fontSize: 14,
-    lineHeight: 14,
+    fontSize: 15,
+    lineHeight: 20,
     fontFamily: typography.fontFamilyMedium,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
     includeFontPadding: false,
-    textAlignVertical: "center",
   },
 });
 
