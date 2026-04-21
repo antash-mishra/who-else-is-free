@@ -9,6 +9,8 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import {
     RouteProp,
@@ -236,32 +238,38 @@ const CreateEventScreen = () => {
 
     // Open modal handlers - set temp to current value
     const openAgePicker = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempAgeRange(ageRange);
         setAgePickerVisible(true);
     }, [ageRange]);
 
     const openGenderPicker = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempGender(gender);
         setGenderPickerVisible(true);
     }, [gender]);
 
     const openGroupTypePicker = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempGroupType(groupType);
         setGroupTypePickerVisible(true);
     }, [groupType]);
 
     // Confirm selection handlers
     const confirmAgeSelection = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setAgeRange(tempAgeRange);
         setAgePickerVisible(false);
     }, [tempAgeRange]);
 
     const confirmGenderSelection = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setGender(tempGender);
         setGenderPickerVisible(false);
     }, [tempGender]);
 
     const confirmGroupTypeSelection = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setGroupType(tempGroupType);
         setGroupTypePickerVisible(false);
     }, [tempGroupType]);
@@ -284,6 +292,7 @@ const CreateEventScreen = () => {
     );
 
     const handleCoverSelect = useCallback((key: CoverKey) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setCoverKey(key);
         setCoverPickerVisible(false);
     }, []);
@@ -299,12 +308,14 @@ const CreateEventScreen = () => {
             const trimmedDescription = form.description.trim();
 
             if (!trimmedName && !trimmedDescription) {
-                setSubmitError("Add a name or description before publishing.");
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                setSubmitError("Please fill in all fields");
                 return;
             }
 
             if (Number.isNaN(form.selectedDateTime.getTime())) {
-                setSubmitError("Choose a valid date and time.");
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                setSubmitError("Choose a valid date and time");
                 return;
             }
 
@@ -314,17 +325,20 @@ const CreateEventScreen = () => {
             normalizedDateTime.setSeconds(0, 0);
 
             if (isPastDateTimeSelection(normalizedDateTime, now)) {
-                setSubmitError("Choose a future date and time.");
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                setSubmitError("Choose a future date and time");
                 return;
             }
 
             if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
-                setSubmitError("Choose a time within the next 30 days.");
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                setSubmitError("Choose a time within the next 30 days");
                 return;
             }
 
             if (!user) {
-                setSubmitError("You must be signed in to create an event.");
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                setSubmitError("You must be signed in to create an event");
                 return;
             }
 
@@ -363,6 +377,7 @@ const CreateEventScreen = () => {
                         coverKey: selectedCover,
                         scheduledAt,
                     });
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     navigation.navigate("EventDetails", {
                         eventId: String(editEventId),
                         origin: "MyEvents",
@@ -388,6 +403,7 @@ const CreateEventScreen = () => {
                         hostName: user.name,
                         scheduledAt,
                     });
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     resetForm();
                     (navigation as any).navigate("Main", {
                         screen: "MyEvents",
@@ -396,8 +412,9 @@ const CreateEventScreen = () => {
                 }
             } catch (err) {
                 console.error("Failed to submit event", err);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 setSubmitError(
-                    `Unable to ${isEditing ? "update" : "publish"} the event. Please try again.`,
+                    `Unable to ${isEditing ? "update" : "publish"} the event. Please try again`,
                 );
             } finally {
                 setIsSubmitting(false);
@@ -417,6 +434,7 @@ const CreateEventScreen = () => {
     );
 
     const handlePrimaryAction = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         const formState = getCurrentFormState();
 
         // Guest user flow — always open sign-in modal
@@ -428,19 +446,19 @@ const CreateEventScreen = () => {
             if (hasContent) {
                 // Validate date/time only when there's content to publish
                 if (Number.isNaN(formState.selectedDateTime.getTime())) {
-                    setSubmitError("Choose a valid date and time.");
+                    setSubmitError("Choose a valid date and time");
                     return;
                 }
 
                 const now = new Date();
                 const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
                 if (isPastDateTimeSelection(formState.selectedDateTime, now)) {
-                    setSubmitError("Choose a future date and time.");
+                    setSubmitError("Choose a future date and time");
                     return;
                 }
 
                 if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
-                    setSubmitError("Choose a time within the next 30 days.");
+                    setSubmitError("Choose a time within the next 30 days");
                     return;
                 }
 
@@ -494,24 +512,24 @@ const CreateEventScreen = () => {
             formState.description.trim().length > 0;
 
         if (!hasContent) {
-            setSubmitError("Add a name or description before publishing.");
+            setSubmitError("Please fill in all fields");
             return;
         }
 
         if (Number.isNaN(formState.selectedDateTime.getTime())) {
-            setSubmitError("Choose a valid date and time.");
+            setSubmitError("Choose a valid date and time");
             return;
         }
 
         const now = new Date();
         const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
         if (isPastDateTimeSelection(formState.selectedDateTime, now)) {
-            setSubmitError("Choose a future date and time.");
+            setSubmitError("Choose a future date and time");
             return;
         }
 
         if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
-            setSubmitError("Choose a time within the next 30 days.");
+            setSubmitError("Choose a time within the next 30 days");
             return;
         }
 
@@ -537,10 +555,14 @@ const CreateEventScreen = () => {
     // Fixed header component (outside scroll view)
     const renderHeader = () => (
         <View style={styles.headerRow}>
+            <View style={styles.headerSpacer} />
             <Text style={styles.pageTitle}>{isEditing ? "Edit Details" : "Create Event"}</Text>
             <Pressable
                 accessibilityRole="button"
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    navigation.goBack();
+                }}
                 style={styles.dismissButton}
             >
                 <Feather
@@ -557,13 +579,16 @@ const CreateEventScreen = () => {
         <>
             <Pressable
                 style={styles.coverCard}
-                onPress={() => setCoverPickerVisible(true)}
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setCoverPickerVisible(true);
+                }}
                 accessibilityRole="button"
             >
                 <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
-                <View style={styles.coverChip}>
+                <BlurView intensity={60} tint="dark" style={styles.coverChip}>
                     <UploadIcon width={20} height={20} />
-                </View>
+                </BlurView>
             </Pressable>
 
             <View style={styles.fieldCard}>
@@ -640,7 +665,10 @@ const CreateEventScreen = () => {
                 <View style={styles.fieldCardInner}>
                     <Pressable
                         style={[styles.fieldRow, styles.dateRow]}
-                        onPress={() => setDateTimePickerVisible(true)}
+                        onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setDateTimePickerVisible(true);
+                        }}
                     >
                         <Text style={styles.fieldLabel}>Date & Time</Text>
                         <View style={[styles.fieldValuePill, styles.dateTimeValuePill]}>
@@ -658,7 +686,7 @@ const CreateEventScreen = () => {
                     <View style={[styles.fieldRow, styles.locationRow]}>
                         <Text style={styles.fieldLabel}>Location</Text>
                         <TextInput
-                            placeholder="Example: Temple Bar"
+                            placeholder="Example: Bambino"
                             value={location}
                             onChangeText={setLocation}
                             placeholderTextColor="rgba(255, 255, 255, 0.4)"
@@ -679,7 +707,7 @@ const CreateEventScreen = () => {
             <View style={styles.footer}>
                 {submitError ? (
                     <View style={styles.errorContainer}>
-                        <WarningIcon width={20} height={20} />
+                        <WarningIcon width={14} height={14} style={{ alignSelf: "center" }} />
                         <Text style={styles.errorText}>{submitError}</Text>
                     </View>
                 ) : null}

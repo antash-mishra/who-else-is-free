@@ -19,27 +19,44 @@ const styles = StyleSheet.create({
         columnGap: spacing.sm,
         marginBottom: spacing.sm,
     },
-    option: {
+    optionRing: {
         flex: 1,
         minWidth: 0,
         borderRadius: 16,
         borderCurve: "continuous",
-        borderWidth: 2,
-        borderColor: colors.createCardBorder,
-        overflow: "hidden",
-        backgroundColor: colors.createCardBackground,
+        padding: 2.5,
+        backgroundColor: "transparent",
     },
-    optionSelected: {
-        borderColor: colors.primary,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
+    optionRingSelected: {
+        backgroundColor: "rgba(0, 0, 0, 0.15)",
+    },
+    option: {
+        flex: 1,
+        borderRadius: 13,
+        borderCurve: "continuous",
+        padding: 2,
+        backgroundColor: "#FFFFFF",
+        overflow: "hidden",
+    },
+    optionSelected: {},
+    optionImageWrapper: {
+        borderRadius: 11,
+        borderCurve: "continuous",
+        overflow: "hidden",
     },
     optionImage: {
         width: "100%",
         height: 140,
-        resizeMode: "cover",
+    },
+    checkBadge: {
+        position: "absolute",
+        top: 6,
+        right: 6,
+        padding: 6,
+        borderRadius: 999,
+        overflow: "hidden",
+        justifyContent: "center",
+        alignItems: "center",
     },
 });
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import BottomSheetModal from "./BottomSheetModal";
 import styles from "./SelectionModal.styles";
@@ -38,7 +39,10 @@ function SelectionModal<T>({
                         <Pressable
                             key={getKey(option)}
                             style={[styles.chip, selected && styles.chipSelected]}
-                            onPress={() => onSelect(option)}
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                onSelect(option);
+                            }}
                             testID={`option-${getKey(option)}`}
                         >
                             <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
