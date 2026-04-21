@@ -13,6 +13,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: spacing.sm,
         borderRadius: 10,
+        borderCurve: "continuous",
+        overflow: "hidden",
         borderWidth: 1,
         borderColor: "#E6E6E6",
         backgroundColor: "transparent",
@@ -34,8 +36,10 @@ const styles = StyleSheet.create({
     selectButton: {
         backgroundColor: colors.primary,
         borderRadius: 999,
-        paddingVertical: spacing.md,
+        borderCurve: "continuous",
+        height: 52,
         alignItems: "center",
+        justifyContent: "center",
     },
     selectButtonText: {
         color: colors.buttonText,

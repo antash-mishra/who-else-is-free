@@ -335,8 +335,10 @@ const styles = StyleSheet.create({
     primaryButton: {
         backgroundColor: colors.createButtonBackground,
         borderRadius: 999,
-        paddingVertical: spacing.md,
+        borderCurve: "continuous",
+        height: 52,
         alignItems: "center",
+        justifyContent: "center",
         width: "100%",
     },
     // Dimmed state while submitting

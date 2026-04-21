@@ -4,7 +4,7 @@ import { colors, spacing, typography } from '@theme/index';
 
 const styles = StyleSheet.create({
   prompt: {
-    gap: spacing.md,
+    gap: 12,
   },
   promptHeader: {
     gap: spacing.xs
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     color: colors.subText,
-    lineHeight: typography.lineHeight,
+    lineHeight: 20,
     letterSpacing: typography.letterSpacing
   },
   promptError: {
@@ -45,8 +45,10 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: colors.text,
     borderRadius: 999,
-    paddingVertical: spacing.sm + 4,
-    alignItems: 'center'
+    borderCurve: 'continuous',
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   sendButtonPressed: {
     opacity: 0.7
@@ -61,8 +63,10 @@ const styles = StyleSheet.create({
   manageButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: 999,
-    paddingVertical: spacing.sm + 4,
-    alignItems: 'center'
+    borderCurve: 'continuous',
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   manageButtonPressed: {
     opacity: 0.7
@@ -81,15 +85,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   secondaryButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: 999,
-    paddingVertical: spacing.sm + 4,
+    borderCurve: 'continuous',
+    height: 52,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background
+    justifyContent: 'center'
   },
   secondaryButtonPressed: {
-    backgroundColor: 'rgba(0,0,0,0.05)'
+    opacity: 0.7
   },
   secondaryLabel: {
     fontSize: 17,
@@ -101,8 +105,10 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: colors.text,
     borderRadius: 999,
-    paddingVertical: spacing.sm + 4,
-    alignItems: 'center'
+    borderCurve: 'continuous',
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   primaryButtonPressed: {
     opacity: 0.85

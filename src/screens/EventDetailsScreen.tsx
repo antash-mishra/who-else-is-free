@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   LayoutAnimation,
   Platform,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   StatusBar,
   useWindowDimensions,
 } from "react-native";
+import { Image } from "expo-image";
 
 if (
   Platform.OS === "android" &&
@@ -1035,11 +1035,10 @@ const EventDetailsScreen = () => {
     }
   };
 
-  const handleLeavePrompt = () => {
-    setShowMenuOverlay(false);
+  const handleLeavePrompt = () => afterMenuClose(() => {
     setLeaveError(null);
     setShowLeaveConfirm(true);
-  };
+  });
 
   const handleLeaveEvent = async () => {
     if (!event || !user || !token) {
@@ -1100,32 +1099,36 @@ const EventDetailsScreen = () => {
     setShowLeaveConfirm(false);
   };
 
-  const handleMenuReportEvent = () => {
+  // On iOS, opening a new Modal while the previous one is animating closed
+  // causes the second Modal to silently fail. Delay by 300ms to let the first finish.
+  const afterMenuClose = (fn: () => void) => {
     setShowMenuOverlay(false);
+    if (Platform.OS === 'ios') {
+      setTimeout(fn, 300);
+    } else {
+      fn();
+    }
+  };
+
+  const handleMenuReportEvent = () => afterMenuClose(() => {
     setReportMessage("");
     setReportError(null);
     setShowReportPrompt(true);
-  };
+  });
 
   const handleMenuCancelRequest = () => {
     setShowMenuOverlay(false);
     handleCancelRequest();
   };
 
-  const handleMenuViewIntro = () => {
-    setShowMenuOverlay(false);
-    setShowViewIntroOverlay(true);
-  };
+  const handleMenuViewIntro = () => afterMenuClose(() => setShowViewIntroOverlay(true));
 
   const handleMenuEdit = () => {
     setShowMenuOverlay(false);
     handleEdit();
   };
 
-  const handleMenuDelete = () => {
-    setShowMenuOverlay(false);
-    handleDeletePrompt();
-  };
+  const handleMenuDelete = () => afterMenuClose(handleDeletePrompt);
 
   const menuItems = useMemo(() => {
     if (isOwner) {
@@ -1236,8 +1239,9 @@ const EventDetailsScreen = () => {
             <Image
               source={{ uri: event.imageUri }}
               style={styles.heroBackgroundImage}
-              resizeMode="cover"
+              contentFit="cover"
               blurRadius={28}
+              transition={150}
             />
             <View pointerEvents="none" style={styles.heroOverlayDark} />
             <View pointerEvents="none" style={styles.heroOverlayLight} />
@@ -1252,7 +1256,8 @@ const EventDetailsScreen = () => {
               <Image
                 source={{ uri: event.imageUri }}
                 style={styles.imageCard}
-                resizeMode="cover"
+                contentFit="cover"
+                transition={150}
               />
             </View>
           </View>
@@ -2093,7 +2098,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   ctaContainer: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     backgroundColor: 'transparent',
   },
@@ -2120,8 +2125,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 999,
     borderCurve: "continuous",
-    paddingVertical: spacing.md,
+    height: 52,
     alignItems: "center",
+    justifyContent: "center",
   },
   ctaButtonDisabled: {
     backgroundColor: colors.eventDetailButtonDisabledBackground,

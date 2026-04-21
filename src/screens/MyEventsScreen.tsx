@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import {
@@ -16,6 +16,8 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
+import PagerView from "react-native-pager-view";
+
 import {
   BottomTabNavigationProp,
 } from "@react-navigation/bottom-tabs";
@@ -36,8 +38,6 @@ import { colors, spacing, typography } from "@theme/index";
 import { UserEvent, useEvents } from "@context/EventsContext";
 import { useChat } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
-import UpIcon from "@assets/up.svg";
-import DownIcon from "@assets/down.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   formatEventCardMetaLine,
@@ -56,29 +56,24 @@ type EventSection = {
   data: EventItemProps[];
 };
 
-type EventFilter = "all" | "hosting" | "joined" | "requested";
-type SortMode = "upcoming" | "newest";
-
 const buildSections = (items: EventItemProps[]): EventSection[] => {
   const grouped = new Map<string, EventItemProps[]>();
 
   items.forEach((item) => {
     const eventDate = (item as UserEvent & EventItemProps).eventDate;
-    if (!eventDate) {
-      return;
-    }
+    if (!eventDate) return;
     const sectionEvents = grouped.get(eventDate) ?? [];
     sectionEvents.push(item);
     grouped.set(eventDate, sectionEvents);
   });
 
   return Array.from(grouped.entries())
-    .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
+    .sort(([a], [b]) => a.localeCompare(b))
     .map(([eventDate, data]) => ({
       title: formatEventListSectionHeaderLabel(eventDate),
       data,
     }))
-    .filter((section) => section.data.length > 0);
+    .filter((s) => s.data.length > 0);
 };
 
 const EventCardItem = memo(({ item, onPress }: { item: EventItemProps; onPress: () => void }) => {
@@ -99,10 +94,7 @@ const EventCardItem = memo(({ item, onPress }: { item: EventItemProps; onPress: 
   );
 });
 
-const toEventCardItem = (
-  event: UserEvent,
-  badgeLabel: string,
-): EventItemProps => ({
+const toEventCardItem = (event: UserEvent, badgeLabel: string): EventItemProps => ({
   ...event,
   badgeLabel,
   metaLine: formatEventCardMetaLine({
@@ -120,171 +112,80 @@ const MyEventsScreen = () => {
     events,
     userEvents,
     requestedEvents,
-    isLoading,
     refreshEvents,
     refreshRequestedEvents,
   } = useEvents();
   const { conversations } = useChat();
   const { user } = useAuth();
-  const [selectedFilter, setSelectedFilter] = useState<EventFilter>("all");
-  const [sortMode, setSortMode] = useState<SortMode>("upcoming");
+  const insets = useSafeAreaInsets();
+
+  const pagerRef = useRef<PagerView>(null);
+  const [selectedPage, setSelectedPage] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
   const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (!route.params?.showEventCreatedBadge) {
-      return;
-    }
-
+    if (!route.params?.showEventCreatedBadge) return;
     setShowEventCreatedBadge(true);
   }, [route.params?.showEventCreatedBadge]);
 
   useEffect(() => {
-    if (!route.params?.showEventDeletedBadge) {
-      return;
-    }
+    if (!route.params?.showEventDeletedBadge) return;
     setShowEventDeletedBadge(true);
   }, [route.params?.showEventDeletedBadge]);
 
-  // Get joined event IDs from conversations
   const joinedEventIds = useMemo(() => {
-    if (!user) {
-      return new Set<string>();
-    }
+    if (!user) return new Set<string>();
     const ids = new Set<string>();
-    conversations.forEach((conversation) => {
-      if (conversation.eventId && conversation.createdBy !== user.id) {
-        ids.add(String(conversation.eventId));
-      }
+    conversations.forEach((c) => {
+      if (c.eventId && c.createdBy !== user.id) ids.add(String(c.eventId));
     });
     return ids;
   }, [conversations, user]);
 
-  // Get joined events
   const joinedEvents = useMemo(() => {
-    if (!joinedEventIds.size) {
-      return [];
-    }
-    return events.filter((event) => joinedEventIds.has(event.id));
+    if (!joinedEventIds.size) return [];
+    return events.filter((e) => joinedEventIds.has(e.id));
   }, [events, joinedEventIds]);
 
-  // Get requested event IDs set
-  const requestedEventIds = useMemo(() => {
-    return new Set(requestedEvents.map((e) => e.id));
-  }, [requestedEvents]);
-
-  // Helper to determine badge label for an event based on user's relationship
-  const getBadgeLabelForEvent = useCallback(
-    (event: UserEvent): string => {
-      if (user && event.ownerId === user.id) return "Hosting";
-      if (joinedEventIds.has(event.id)) return "Joined";
-      if (requestedEventIds.has(event.id)) return "Pending";
-      return "Hosting"; // fallback
-    },
-    [user, joinedEventIds, requestedEventIds]
+  const hostingSections = useMemo(
+    () => buildSections(userEvents.map((e) => toEventCardItem(e, "Hosting"))),
+    [userEvents],
+  );
+  const joinedSections = useMemo(
+    () => buildSections(joinedEvents.map((e) => toEventCardItem(e, "Joined"))),
+    [joinedEvents],
+  );
+  const requestedSections = useMemo(
+    () => buildSections(requestedEvents.map((e) => toEventCardItem(e, "Pending"))),
+    [requestedEvents],
   );
 
-  // Combine all events for "all" filter with proper badges
-  const allEventsWithBadges = useMemo(() => {
-    if (!user) return [];
-
-    // Collect all unique events
-    const eventMap = new Map<string, UserEvent>();
-
-    // Add user's hosted events
-    userEvents.forEach((event) => {
-      eventMap.set(event.id, event);
-    });
-
-    // Add joined events
-    joinedEvents.forEach((event) => {
-      if (!eventMap.has(event.id)) {
-        eventMap.set(event.id, event);
-      }
-    });
-
-    // Add requested events
-    requestedEvents.forEach((event) => {
-      if (!eventMap.has(event.id)) {
-        eventMap.set(event.id, event);
-      }
-    });
-
-    // Convert to array with proper badges
-    return Array.from(eventMap.values()).map((event) => ({
-      ...toEventCardItem(event, getBadgeLabelForEvent(event)),
-    }));
-  }, [user, userEvents, joinedEvents, requestedEvents, getBadgeLabelForEvent]);
-
-  // Filter events based on selected filter
-  const filteredEvents = useMemo(() => {
-    switch (selectedFilter) {
-      case "all":
-        return allEventsWithBadges;
-      case "hosting":
-        return userEvents.map((event) => toEventCardItem(event, "Hosting"));
-      case "joined":
-        return joinedEvents.map((event) => toEventCardItem(event, "Joined"));
-      case "requested":
-        return requestedEvents.map((event) => toEventCardItem(event, "Pending"));
-      default:
-        return allEventsWithBadges;
-    }
-  }, [
-    selectedFilter,
-    allEventsWithBadges,
-    userEvents,
-    joinedEvents,
-    requestedEvents,
-  ]);
-
-  // Event counts for badges
   const counts = useMemo(
     () => ({
       hosting: userEvents.length,
       joined: joinedEvents.length,
       requested: requestedEvents.length,
     }),
-    [userEvents.length, joinedEvents.length, requestedEvents.length]
+    [userEvents.length, joinedEvents.length, requestedEvents.length],
   );
 
-  const sections = useMemo<EventSection[]>(() => {
-    if (sortMode === "newest") {
-      // Sort by creation date (newest first) and show in single "Newest" section
-      const sorted = [...filteredEvents].sort((a, b) => {
-        const dateA = (a as UserEvent).createdAt
-          ? new Date((a as UserEvent).createdAt!).getTime()
-          : 0;
-        const dateB = (b as UserEvent).createdAt
-          ? new Date((b as UserEvent).createdAt!).getTime()
-          : 0;
-        return dateB - dateA;
-      });
-      return sorted.length > 0
-        ? [{ title: "Newest created", data: sorted }]
-        : [];
-    }
-    // Default: sort by event datetime (upcoming first) with Today/Tomorrow sections
-    return buildSections(filteredEvents);
-  }, [filteredEvents, sortMode]);
-
   const handleRefresh = useCallback(() => {
-    if (selectedFilter === "requested" || selectedFilter === "all") {
+    if (selectedPage === 2) {
       setIsRequestedRefreshing(true);
       Promise.all([refreshEvents(), refreshRequestedEvents()])
         .catch(() => undefined)
         .finally(() => setIsRequestedRefreshing(false));
       return;
     }
-    refreshEvents().catch(() => undefined);
-  }, [refreshEvents, refreshRequestedEvents, selectedFilter]);
-
-  const isRefreshing =
-    selectedFilter === "requested" || selectedFilter === "all"
-      ? isRequestedRefreshing
-      : isLoading;
+    setIsRefreshing(true);
+    refreshEvents()
+      .catch(() => undefined)
+      .finally(() => setIsRefreshing(false));
+  }, [refreshEvents, refreshRequestedEvents, selectedPage]);
 
   const renderSectionHeader = ({ section }: { section: EventSection }) => (
     <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -293,37 +194,19 @@ const MyEventsScreen = () => {
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
     <EventCardItem
       item={item}
-      onPress={() =>
-        navigation.navigate("EventDetails", {
-          eventId: item.id,
-          origin: "MyEvents",
-        })
-      }
+      onPress={() => navigation.navigate("EventDetails", { eventId: item.id, origin: "MyEvents" })}
     />
   );
 
-  // Handle filter button press
-  const handleFilterPress = (filterValue: EventFilter) => {
-    if (filterValue === "all") {
-      // Toggle sort mode when Upcoming is clicked
-      setSortMode((prev) => (prev === "upcoming" ? "newest" : "upcoming"));
-      return;
-    }
-    // Toggle: if already selected, go back to "all"; otherwise select this filter
-    setSelectedFilter((prev) => (prev === filterValue ? "all" : filterValue));
-  };
+  const filterOptions = [
+    { label: "Hosting", count: counts.hosting },
+    { label: "Joined", count: counts.joined },
+    { label: "Requested", count: counts.requested },
+  ];
 
-  // Filter options configuration
-  const filterOptions: {
-    label: string;
-    value: EventFilter;
-    count?: number;
-    showIcon?: boolean;
-  }[] = [
-    { label: sortMode === "upcoming" ? "Upcoming" : "Newest", value: "all", showIcon: true },
-    { label: "Hosting", value: "hosting", count: counts.hosting },
-    { label: "Joined", value: "joined", count: counts.joined },
-    { label: "Requested", value: "requested", count: counts.requested },
+  const listContentStyle = [
+    styles.listContent,
+    { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom },
   ];
 
   const [signInVisible, setSignInVisible] = useState(false);
@@ -350,92 +233,112 @@ const MyEventsScreen = () => {
 
   return (
     <ScreenContainer>
-<View style={styles.content}>
-        <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>My Events</Text>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScrollContent}
-          style={styles.filterScrollView}
+      <View style={styles.content}>
+        <PagerView
+          ref={pagerRef}
+          style={styles.pager}
+          initialPage={0}
+          onPageSelected={(e) => setSelectedPage(e.nativeEvent.position)}
+          onPageScroll={(e) => {
+            const { position, offset } = e.nativeEvent;
+            if (offset > 0.5) setSelectedPage(position + 1);
+            else setSelectedPage(position);
+          }}
         >
-          {filterOptions.map(({ label, value, count, showIcon }) => {
-            // "Upcoming" (all) is always shown as selected
-            // Other filters are selected only when they match selectedFilter
-            const isSelected = value === "all" || value === selectedFilter;
+          {/* Page 0: Hosting */}
+          <View key="hosting" style={{ flex: 1 }}>
+            <SectionList<EventItemProps, EventSection>
+              sections={hostingSections}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+              stickySectionHeadersEnabled={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[listContentStyle, hostingSections.length === 0 && { flex: 1 }]}
+              SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
+              ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+              ListFooterComponent={<View style={styles.footerSpacing} />}
+              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you host\nwill appear here"} imageSource={require('@assets/emptystate_myevent.png')} />}
+              refreshControl={<RefreshControl refreshing={selectedPage === 0 ? isRefreshing : false} onRefresh={handleRefresh} tintColor={colors.primary} />}
+            />
+          </View>
 
-            return (
-              <Pressable
-                key={value}
-                onPress={() => handleFilterPress(value)}
-                style={({ pressed }) => [
-                  styles.filterButton,
-                  (isSelected || pressed) && styles.filterButtonActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterButtonText,
-                    isSelected && styles.filterButtonTextActive,
+          {/* Page 1: Joined */}
+          <View key="joined" style={{ flex: 1 }}>
+            <SectionList<EventItemProps, EventSection>
+              sections={joinedSections}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+              stickySectionHeadersEnabled={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[listContentStyle, joinedSections.length === 0 && { flex: 1 }]}
+              SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
+              ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+              ListFooterComponent={<View style={styles.footerSpacing} />}
+              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you join\nwill appear here"} imageSource={require('@assets/emptystate_myevent.png')} />}
+              refreshControl={<RefreshControl refreshing={selectedPage === 1 ? isRefreshing : false} onRefresh={handleRefresh} tintColor={colors.primary} />}
+            />
+          </View>
+
+          {/* Page 2: Requested */}
+          <View key="requested" style={{ flex: 1 }}>
+            <SectionList<EventItemProps, EventSection>
+              sections={requestedSections}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+              stickySectionHeadersEnabled={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={[listContentStyle, requestedSections.length === 0 && { flex: 1 }]}
+              SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
+              ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+              ListFooterComponent={<View style={styles.footerSpacing} />}
+              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you request to join\nwill appear here"} imageSource={require('@assets/emptystate_myevent.png')} />}
+              refreshControl={<RefreshControl refreshing={isRequestedRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+            />
+          </View>
+        </PagerView>
+
+        {/* Floating blurred header */}
+        <View
+          style={styles.floatingHeader}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        >
+          <View style={styles.headerSpacing}>
+            <Text style={styles.headerTitle}>My Events</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScrollContent}
+            style={styles.filterScrollView}
+          >
+            {filterOptions.map(({ label, count }, index) => {
+              const isSelected = index === selectedPage;
+              return (
+                <Pressable
+                  key={label}
+                  onPress={() => { setSelectedPage(index); pagerRef.current?.setPage(index); }}
+                  style={({ pressed }) => [
+                    styles.filterButton,
+                    (isSelected || pressed) && styles.filterButtonActive,
                   ]}
                 >
-                  {label}
-                </Text>
-                {showIcon && (
-                  <View style={styles.sortIconContainer}>
-                    <DownIcon width={8} height={12} />
-                    <UpIcon width={8} height={12} />
-                  </View>
-                )}
-                {count !== undefined && count > 0 && (
-                  <Text
-                    style={[
-                      styles.filterCountText,
-                      isSelected && styles.filterCountTextActive,
-                    ]}
-                  >
-                    {count}
+                  <Text style={[styles.filterButtonText, isSelected && styles.filterButtonTextActive]}>
+                    {label}
                   </Text>
-                )}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <SectionList<EventItemProps, EventSection>
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: spacing.xl + insets.bottom },
-            sections.length === 0 && { flex: 1 },
-          ]}
-          SectionSeparatorComponent={({ leadingItem }) =>
-            leadingItem ? <View style={styles.sectionSeparator} /> : null
-          }
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          ListFooterComponent={<View style={styles.footerSpacing} />}
-          ListEmptyComponent={
-            !isRefreshing ? (
-              <EmptyState
-                title="No events yet"
-                description={"Events you create or join\nwill appear here"}
-                imageSource={require('@assets/emptystate_myevent.png')}
-              />
-            ) : null
-          }
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      />
+                  {count > 0 && (
+                    <Text style={[styles.filterCountText, isSelected && styles.filterCountTextActive]}>
+                      {count}
+                    </Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
         <EventActionBadge
           visible={showEventCreatedBadge}
           label="Event Created"
@@ -458,6 +361,19 @@ const MyEventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: -spacing.md,
+    right: -spacing.md,
+    zIndex: 10,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background,
+  },
+  pager: {
+    flex: 1,
+    marginHorizontal: -spacing.md,
+  },
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
     paddingBottom: 24,
@@ -518,26 +434,21 @@ const styles = StyleSheet.create({
   filterCountTextActive: {
     color: "#000000",
   },
-  sortIconContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 4,
-    gap: 0,
+  listContent: {
+    paddingHorizontal: spacing.md,
   },
-  listContent: {},
   sectionHeader: {
     fontSize: 15,
     color: "#808080",
     marginTop: 0,
-    marginBottom: 14,
+    marginBottom: 12,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: 20,
     letterSpacing: -0.3,
   },
   sectionSeparator: {
-    height: 20,
+    height: 22,
   },
   itemSeparator: {
     height: 14,

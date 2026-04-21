@@ -195,11 +195,13 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
                 testID="google-sign-in-button"
                 accessibilityRole="button"
             >
-                {isSigningIn ? (
-                    <ActivityIndicator color={colors.buttonText} size="small" />
-                ) : (
-                    <GoogleLogo width={20} height={20} />
-                )}
+                    <View style={styles.iconWrapper}>
+                    {isSigningIn ? (
+                        <ActivityIndicator color={colors.buttonText} size="small" />
+                    ) : (
+                        <GoogleLogo width={20} height={20} />
+                    )}
+                </View>
                 <Text style={styles.buttonText}>
                     {isSigningIn ? "Signing in…" : "Continue with Google"}
                 </Text>
@@ -217,7 +219,9 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
                     testID="apple-sign-in-button"
                     accessibilityRole="button"
                 >
-                    <AppleLogo width={20} height={20} />
+                    <View style={styles.iconWrapper}>
+                        <AppleLogo width={20} height={20} />
+                    </View>
                     <Text style={styles.buttonText}>Continue with Apple</Text>
                 </Pressable>
             ) : null}
@@ -227,17 +231,20 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
 
 const styles = StyleSheet.create({
     container: {
-        gap: spacing.sm,
-        paddingVertical: spacing.sm,
+        gap: 12,
     },
     button: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
-        gap: spacing.sm,
-        height: 48,
-        borderRadius: 52,
-        backgroundColor: colors.buttonBackground,
+        height: 52,
+        borderRadius: 26,
+        borderCurve: "continuous",
+        backgroundColor: "#000000",
+        paddingHorizontal: 16,
+    },
+    iconWrapper: {
+        position: "absolute",
+        left: 16,
     },
     buttonPressed: {
         opacity: 0.85,
@@ -246,6 +253,8 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buttonText: {
+        flex: 1,
+        textAlign: "center",
         fontSize: 16,
         fontFamily: typography.fontFamilyMedium,
         color: colors.buttonText,
