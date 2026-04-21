@@ -1,69 +1,34 @@
 import { Image, ImageSourcePropType } from "react-native";
 
-export const DEFAULT_EVENT_IMAGE =
-  "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=400&q=80";
+export const DEFAULT_EVENT_IMAGE = Image.resolveAssetSource(require("@assets/covers/brunch1.png")).uri;
 
 const RAW_COVER_OPTIONS = [
-  {
-    key: "cover_01",
-    label: "Sunset Glow",
-    source: require("@assets/covers/cover_01.png"),
-  },
-  {
-    key: "cover_02",
-    label: "Ocean Mist",
-    source: require("@assets/covers/cover_02.png"),
-  },
-  {
-    key: "cover_03",
-    label: "Golden Hour",
-    source: require("@assets/covers/cover_03.png"),
-  },
-  {
-    key: "cover_04",
-    label: "Indigo Nights",
-    source: require("@assets/covers/cover_04.png"),
-  },
-  {
-    key: "cover_05",
-    label: "Violet Bloom",
-    source: require("@assets/covers/cover_05.png"),
-  },
-  {
-    key: "cover_06",
-    label: "Neon Pulse",
-    source: require("@assets/covers/cover_06.png"),
-  },
-  {
-    key: "cover_07",
-    label: "Forest Hike",
-    source: require("@assets/covers/cover_07.png"),
-  },
-  {
-    key: "cover_08",
-    label: "Amber Trail",
-    source: require("@assets/covers/cover_08.png"),
-  },
-  {
-    key: "cover_09",
-    label: "Steel City",
-    source: require("@assets/covers/cover_09.png"),
-  },
-  {
-    key: "cover_10",
-    label: "Citrus Pop",
-    source: require("@assets/covers/cover_10.png"),
-  },
-  {
-    key: "cover_11",
-    label: "Deep Dive",
-    source: require("@assets/covers/cover_11.png"),
-  },
-  {
-    key: "cover_12",
-    label: "Magenta Bloom",
-    source: require("@assets/covers/cover_12.png"),
-  },
+  { key: "badminton",    label: "Badminton",    source: require("@assets/covers/badminton.png") },
+  { key: "board-games",  label: "Board Games",  source: require("@assets/covers/board-games.png") },
+  { key: "book",         label: "Book Club",    source: require("@assets/covers/book.png") },
+  { key: "brunch",       label: "Brunch",       source: require("@assets/covers/brunch.png") },
+  { key: "brunch1",      label: "Brunch Alt",   source: require("@assets/covers/brunch1.png") },
+  { key: "chess",        label: "Chess",        source: require("@assets/covers/chess.png") },
+  { key: "coffee",       label: "Coffee",       source: require("@assets/covers/coffee.png") },
+  { key: "comedy",       label: "Comedy",       source: require("@assets/covers/comedy.png") },
+  { key: "crochet",      label: "Crochet",      source: require("@assets/covers/crochet.png") },
+  { key: "gig",          label: "Gig",          source: require("@assets/covers/gig.png") },
+  { key: "karaoke",      label: "Karaoke",      source: require("@assets/covers/karaoke.png") },
+  { key: "martial-arts", label: "Martial Arts", source: require("@assets/covers/martial-arts.png") },
+  { key: "museum",       label: "Museum",       source: require("@assets/covers/museum.png") },
+  { key: "museum1",      label: "Museum Alt",   source: require("@assets/covers/museum1.png") },
+  { key: "pool",         label: "Pool",         source: require("@assets/covers/pool.png") },
+  { key: "running",      label: "Running",      source: require("@assets/covers/running.png") },
+  { key: "running1",     label: "Running Alt",  source: require("@assets/covers/running1.png") },
+  { key: "surfing",      label: "Surfing",      source: require("@assets/covers/surfing.png") },
+  { key: "swimming",     label: "Swimming",     source: require("@assets/covers/swimming.png") },
+  { key: "tennis",       label: "Tennis",       source: require("@assets/covers/tennis.png") },
+  { key: "video-games",  label: "Video Games",  source: require("@assets/covers/video-games.png") },
+  { key: "wine",         label: "Wine",         source: require("@assets/covers/wine.png") },
+  { key: "workout",      label: "Workout",      source: require("@assets/covers/workout.png") },
+  { key: "yoga",         label: "Yoga",         source: require("@assets/covers/yoga.png") },
+  { key: "yoga1",        label: "Yoga Alt",     source: require("@assets/covers/yoga1.png") },
+  { key: "photography",  label: "Photography",  source: require("@assets/covers/photography.png") },
 ] as const;
 
 type RawCoverOption = (typeof RAW_COVER_OPTIONS)[number];
@@ -103,20 +68,33 @@ export const resolveCoverUri = (key?: string | null) => {
 export const isCoverKey = (value: string): value is CoverKey =>
   COVER_OPTIONS.some((option) => option.key === value);
 
-// Gradient colors for each cover - medium-to-dark tones for white text readability
 export const COVER_GRADIENTS: Record<CoverKey, [string, string]> = {
-  cover_01: ["#FF6B6B", "#C44569"],    // Sunset Glow - warm coral to rose
-  cover_02: ["#4ECDC4", "#2C7873"],    // Ocean Mist - teal gradient
-  cover_03: ["#F2994A", "#C75B39"],    // Golden Hour - amber to burnt orange
-  cover_04: ["#5C6BC0", "#3949AB"],    // Indigo Nights - indigo gradient
-  cover_05: ["#9B59B6", "#6C3483"],    // Violet Bloom - violet gradient
-  cover_06: ["#E91E9B", "#9B2FAE"],    // Neon Pulse - hot pink to purple
-  cover_07: ["#27AE60", "#1E7B46"],    // Forest Hike - forest greens
-  cover_08: ["#D68910", "#A04000"],    // Amber Trail - amber to rust
-  cover_09: ["#5D6D7E", "#2C3E50"],    // Steel City - steel blue to dark slate
-  cover_10: ["#F39C12", "#D35400"],    // Citrus Pop - orange gradient
-  cover_11: ["#2980B9", "#1A5276"],    // Deep Dive - ocean blue gradient
-  cover_12: ["#E84393", "#B53389"],    // Magenta Bloom - magenta gradient
+  "badminton":    ["#4CAF50", "#2E7D32"],
+  "board-games":  ["#8D6E63", "#5D4037"],
+  "book":         ["#FF8F00", "#E65100"],
+  "brunch":       ["#F06292", "#C2185B"],
+  "brunch1":      ["#E91E63", "#880E4F"],
+  "chess":        ["#546E7A", "#263238"],
+  "coffee":       ["#795548", "#4E342E"],
+  "comedy":       ["#FFB300", "#E65100"],
+  "crochet":      ["#AB47BC", "#6A1B9A"],
+  "gig":          ["#E53935", "#880E4F"],
+  "karaoke":      ["#EC407A", "#880E4F"],
+  "martial-arts": ["#EF5350", "#B71C1C"],
+  "museum":       ["#5C6BC0", "#283593"],
+  "museum1":      ["#7986CB", "#283593"],
+  "pool":         ["#29B6F6", "#01579B"],
+  "running":      ["#FF7043", "#BF360C"],
+  "running1":     ["#FF5722", "#BF360C"],
+  "surfing":      ["#26C6DA", "#00838F"],
+  "swimming":     ["#26A69A", "#004D40"],
+  "tennis":       ["#D4E157", "#827717"],
+  "video-games":  ["#7E57C2", "#311B92"],
+  "wine":         ["#AD1457", "#880E4F"],
+  "workout":      ["#EF5350", "#B71C1C"],
+  "yoga":         ["#66BB6A", "#1B5E20"],
+  "yoga1":        ["#43A047", "#1B5E20"],
+  "photography":  ["#37474F", "#102027"],
 };
 
 export const resolveCoverGradient = (key?: CoverKey | null): [string, string] => {
