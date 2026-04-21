@@ -98,9 +98,10 @@ wheelTextSelected: {
     confirmButton: {
         backgroundColor: colors.primary,
         borderRadius: 999,
+        borderCurve: "continuous",
+        height: 52,
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: spacing.md,
     },
     confirmButtonText: {
         fontSize: 17,

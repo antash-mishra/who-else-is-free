@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import styles from "./BottomSheetModal.styles";
 
@@ -24,15 +25,17 @@ export type BottomSheetModalProps = {
 };
 
 const SLIDE_DISTANCE = 500;
-// Base bottom padding when keyboard is hidden (matches styles.sheet.paddingBottom)
-const BASE_PADDING_BOTTOM = 24;
+const BASE_PADDING_BOTTOM = 8;
 
 const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModalProps) => {
+    const { bottom: safeBottom } = useSafeAreaInsets();
+    const basePadding = BASE_PADDING_BOTTOM + safeBottom;
+
     const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
     const backdropAnim = useRef(new Animated.Value(0)).current;
     // Controls sheet's paddingBottom — grows to push content above the keyboard
     // while the sheet itself stays anchored to the screen bottom (hidden behind keyboard)
-    const keyboardPaddingAnim = useRef(new Animated.Value(BASE_PADDING_BOTTOM)).current;
+    const keyboardPaddingAnim = useRef(new Animated.Value(basePadding)).current;
     const [modalVisible, setModalVisible] = useState(false);
     const hasBeenVisible = useRef(false);
 
@@ -42,7 +45,7 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
             setModalVisible(true);
             slideAnim.setValue(SLIDE_DISTANCE);
             backdropAnim.setValue(0);
-            keyboardPaddingAnim.setValue(BASE_PADDING_BOTTOM);
+            keyboardPaddingAnim.setValue(basePadding);
 
             Animated.parallel([
                 Animated.spring(slideAnim, {
@@ -95,7 +98,7 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
 
         const hideSub = Keyboard.addListener(hideEvent, (event) => {
             Animated.timing(keyboardPaddingAnim, {
-                toValue: BASE_PADDING_BOTTOM,
+                toValue: basePadding,
                 duration: (event as any).duration || 250,
                 easing: IOS_KEYBOARD_CURVE,
                 useNativeDriver: false,
@@ -109,67 +112,51 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
     }, [keyboardPaddingAnim]);
 
     return (
-        <Modal visible={modalVisible} transparent animationType="none">
-            <View style={fill.container}>
-                {/* Animated dim layer */}
+        <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent>
+            {/* Full-screen Pressable handles backdrop dismiss */}
+            <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={onClose}
+                testID="bottom-sheet-backdrop"
+                accessibilityRole="button"
+            >
+                {/* Dim overlay — visual only, no touch */}
                 <Animated.View
                     style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropAnim }]}
                     pointerEvents="none"
                 />
 
-                {/* Tap backdrop to dismiss */}
-                <Pressable
-                    style={fill.tap}
-                    onPress={onClose}
-                    testID="bottom-sheet-backdrop"
-                    accessibilityRole="button"
-                />
-
-                {/*
-                 * Sheet stays pinned to the screen bottom — it does NOT lift above
-                 * the keyboard. Instead its paddingBottom grows so content is pushed
-                 * up above the keyboard. iOS renders the keyboard on top of Modal
-                 * windows, so the sheet's lower portion (and its square corners) is
-                 * hidden behind the keyboard. No corner gap ever visible.
-                 */}
-                {/* Outer: native-driver translateY slide */}
+                {/* Sheet is a child of the backdrop Pressable.
+                    onStartShouldSetResponder claims all touches within the sheet,
+                    preventing them from bubbling up to the backdrop Pressable.
+                    Child buttons are deeper so they still claim touches first. */}
                 <Animated.View
                     style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
                     testID="bottom-sheet-modal"
+                    onStartShouldSetResponder={() => true}
                 >
-                    {/* Inner: JS-driver paddingBottom — must be a separate node */}
+                    {/* JS-driver paddingBottom must be a separate node from native-driver transform */}
                     <Animated.View style={{ paddingBottom: keyboardPaddingAnim }}>
-                        <Pressable onPress={(e) => e.stopPropagation()}>
-                            {title !== undefined && (
-                                <View style={styles.header}>
-                                    <Text style={styles.title}>{title}</Text>
-                                    <Pressable
-                                        onPress={onClose}
-                                        style={styles.closeButton}
-                                        accessibilityRole="button"
-                                        testID="bottom-sheet-close"
-                                    >
-                                        <Feather name="x" size={18} color="#999999" />
-                                    </Pressable>
-                                </View>
-                            )}
-                            {children}
-                        </Pressable>
+                        {title !== undefined && (
+                            <View style={styles.header}>
+                                <Text style={styles.title}>{title}</Text>
+                                <Pressable
+                                    onPress={onClose}
+                                    style={styles.closeButton}
+                                    accessibilityRole="button"
+                                    testID="bottom-sheet-close"
+                                >
+                                    <Feather name="x" size={18} color="#999999" />
+                                </Pressable>
+                            </View>
+                        )}
+                        {children}
                     </Animated.View>
                 </Animated.View>
-            </View>
+            </Pressable>
         </Modal>
     );
 };
 
-const fill = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: "flex-end",
-    },
-    tap: {
-        flex: 1,
-    },
-});
 
 export default BottomSheetModal;

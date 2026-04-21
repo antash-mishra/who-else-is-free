@@ -306,8 +306,10 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: colors.primary,
     borderRadius: 999,
-    paddingVertical: spacing.md,
+    borderCurve: "continuous",
+    height: 52,
     alignItems: "center",
+    justifyContent: "center",
   },
   saveButtonDisabled: {
     opacity: 0.5,

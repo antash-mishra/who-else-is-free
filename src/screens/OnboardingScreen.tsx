@@ -693,7 +693,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: "#000000",
     height: 52,
-    borderRadius: 52,
+    borderRadius: 999,
+    borderCurve: "continuous",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 54,

@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import MaskedView from '@react-native-masked-view/masked-view';
@@ -54,7 +55,14 @@ const EventCard = ({
   return (
     <View style={styles.container} testID="event-card">
       <View style={styles.imageWrapper}>
-        <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} />
+        <Image
+          source={{ uri: imageUri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={imageUri}
+          transition={150}
+        />
         {showBadge && (
           <MaskedView
             style={{ width: IMAGE_SIZE, height: BLUR_H }}
