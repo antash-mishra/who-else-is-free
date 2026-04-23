@@ -35,15 +35,19 @@ const styles = StyleSheet.create({
     // Row: centers title, positions dismiss button absolutely right
     headerRow: {
         flexDirection: "row",
-        justifyContent: "center",
         alignItems: "center",
         paddingTop: spacing.sm,
         paddingBottom: spacing.sm,
         paddingHorizontal: spacing.lg,
-        position: "relative",
+    },
+    // Invisible spacer on the left, same width as dismissButton, to keep title truly centered
+    headerSpacer: {
+        width: 40,
     },
     // "Create Event" text
     pageTitle: {
+        flex: 1,
+        textAlign: "center",
         fontSize: 20,
         fontFamily: typography.fontFamilySemiBold,
         color: colors.card,
@@ -52,8 +56,8 @@ const styles = StyleSheet.create({
     },
     // ✕ close button (top-right corner)
     dismissButton: {
-        position: "absolute",
-        right: spacing.lg - spacing.sm,
+        width: 40,
+        alignItems: "flex-end",
         padding: spacing.sm,
     },
 
@@ -87,6 +91,7 @@ const styles = StyleSheet.create({
     // Outer card container
     coverCard: {
         borderRadius: 20,
+        borderCurve: "continuous",
         overflow: "hidden",
         backgroundColor: colors.createCardBackground,
         width: 180,
@@ -120,7 +125,7 @@ const styles = StyleSheet.create({
         right: 6,
         padding: spacing.sm,
         borderRadius: 999,
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        overflow: "hidden",
         justifyContent: "center",
         alignItems: "center",
         zIndex: 1,
@@ -139,7 +144,7 @@ const styles = StyleSheet.create({
     fieldCard: {
         backgroundColor: "rgba(255, 255, 255, 0.2)",
         borderRadius: 12,
-        overflow: "hidden",
+        borderCurve: "continuous",
         borderTopWidth: 1,
         borderRightWidth: 1,
         borderBottomWidth: 0,
@@ -151,6 +156,8 @@ const styles = StyleSheet.create({
     fieldCardInner: {
         backgroundColor: "rgba(0, 0, 0, 0.06)",
         borderRadius: 12,
+        borderCurve: "continuous",
+        overflow: "hidden",
         paddingLeft: 10,
         paddingRight: 6,
     },
@@ -159,8 +166,8 @@ const styles = StyleSheet.create({
     fieldDivider: {
         height: 1,
         backgroundColor: "rgba(255, 255, 255, 0.1)",
-        // marginVertical: spacing.xs,
-        marginHorizontal: -spacing.sm,
+        marginLeft: -10,
+        marginRight: -6,
     },
 
     // ┌─────────────────────────────────────────────────────────────┐
@@ -219,6 +226,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         borderRadius: 8,
+        borderCurve: "continuous",
         backgroundColor: "rgba(255, 255, 255, 0.24)",
         borderWidth: 1,
         borderColor: "rgba(255, 255, 255, 0.04)",
@@ -289,6 +297,7 @@ const styles = StyleSheet.create({
     compactInput: {
         backgroundColor: colors.createChipBackground,
         borderRadius: 8,
+        borderCurve: "continuous",
         paddingHorizontal: spacing.md,
         paddingVertical: 0,
         height: 36,
@@ -315,21 +324,21 @@ const styles = StyleSheet.create({
         paddingBottom: 32,
         position: "relative",
     },
-    // Error row (warning icon + text)
+    // Error row
     errorContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: spacing.xs,
-        marginBottom: spacing.sm,
+        gap: 6,
+        marginBottom: 14,
     },
     // Error message text
     errorText: {
         color: "#FF9C9C",
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: typography.fontFamilyMedium,
-        lineHeight: 16,
-        letterSpacing: -0.5,
+        lineHeight: 18,
+        letterSpacing: -0.2,
     },
     // "Create Event" / "Update Event" / "Sign Up or Log In" button
     primaryButton: {

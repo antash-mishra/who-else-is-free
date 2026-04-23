@@ -7,6 +7,7 @@ import {
     Text,
     View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -121,6 +122,7 @@ const EventDateTimeModal = ({
     const wheelMomentumStateRef = useRef<Record<string, boolean>>({});
     const wheelDragSettleTimeoutRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
     const wheelOffsetRef = useRef<Record<string, number>>({});
+    const wheelUserDragRef = useRef<Record<string, boolean>>({});
 
     const dateOptions = useMemo(
         () => buildDateOptions(minDate, maxDate),
@@ -256,6 +258,7 @@ const EventDateTimeModal = ({
             setError("Please choose a time within the next 30 days.");
             return;
         }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setError(null);
         onConfirm(draftValue);
     }, [draftValue, maxDate, onConfirm]);
@@ -283,6 +286,10 @@ const EventDateTimeModal = ({
             const settleWheelAtOffset = (offsetY: number, animateToSnap = false) => {
                 const index = clampWheelIndex(offsetY, items.length);
                 const target = toMiddleIndex ? toMiddleIndex(index) : index;
+                if (wheelUserDragRef.current[keyPrefix]) {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    wheelUserDragRef.current[keyPrefix] = false;
+                }
                 onScrollIndex(index);
                 const targetOffset = target * WHEEL_ITEM_HEIGHT;
                 const needsSnapAlignment = Math.abs(offsetY - targetOffset) > 0.5;
@@ -343,6 +350,7 @@ const EventDateTimeModal = ({
                     onScrollBeginDrag={() => {
                         clearDragSettleTimeout();
                         wheelMomentumStateRef.current[keyPrefix] = false;
+                        wheelUserDragRef.current[keyPrefix] = true;
                     }}
                     onMomentumScrollBegin={() => {
                         clearDragSettleTimeout();

@@ -13,6 +13,7 @@ import {
 
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
 import styles from "./BottomSheetModal.styles";
 
@@ -141,7 +142,10 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
                             <View style={styles.header}>
                                 <Text style={styles.title}>{title}</Text>
                                 <Pressable
-                                    onPress={onClose}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        onClose();
+                                    }}
                                     style={styles.closeButton}
                                     accessibilityRole="button"
                                     testID="bottom-sheet-close"

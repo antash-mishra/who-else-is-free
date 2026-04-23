@@ -1,8 +1,14 @@
 import React from "react";
-import { Dimensions, FlatList, Image, Pressable, Text, View } from "react-native";
+import { Dimensions, FlatList, Pressable, View } from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+
+import { BlurView } from "expo-blur";
 
 import { COVER_OPTIONS, CoverKey } from "@constants/covers";
 import { spacing } from "@theme/index";
+import JoinedIcon from "@assets/joined.svg";
 import BottomSheetModal from "./BottomSheetModal";
 import styles from "./CoverPickerModal.styles";
 
@@ -21,12 +27,10 @@ const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
     onSelect,
     onClose,
 }) => {
+    const { bottom } = useSafeAreaInsets();
     return (
         <BottomSheetModal visible={visible} onClose={onClose} title="Choose a cover">
-            <Text style={styles.subtitle}>
-                Pick a card that best matches your vibe.
-            </Text>
-            <View style={{ maxHeight: LIST_MAX_HEIGHT }}>
+            <View style={{ maxHeight: LIST_MAX_HEIGHT, marginBottom: -(8 + bottom) }}>
                 <FlatList
                     data={COVER_OPTIONS}
                     numColumns={2}
@@ -36,18 +40,28 @@ const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                     renderItem={({ item }) => {
                         const isSelected = item.key === selectedCoverKey;
                         return (
-                            <Pressable
-                                style={[
-                                    styles.option,
-                                    isSelected && styles.optionSelected,
-                                ]}
-                                onPress={() => onSelect(item.key)}
-                            >
-                                <Image
-                                    source={item.source}
-                                    style={styles.optionImage}
-                                />
-                            </Pressable>
+                            <View style={[styles.optionRing, isSelected && styles.optionRingSelected]}>
+                                <Pressable
+                                    style={styles.option}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                        onSelect(item.key);
+                                    }}
+                                >
+                                    <View style={styles.optionImageWrapper}>
+                                        <Image
+                                            source={item.source}
+                                            style={styles.optionImage}
+                                            contentFit="cover"
+                                        />
+                                    </View>
+                                    {isSelected && (
+                                        <BlurView intensity={60} tint="dark" style={styles.checkBadge}>
+                                            <JoinedIcon width={14} height={14} />
+                                        </BlurView>
+                                    )}
+                                </Pressable>
+                            </View>
                         );
                     }}
                     ListFooterComponent={<View style={{ height: spacing.md }} />}
