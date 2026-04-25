@@ -11,6 +11,18 @@ describe("UserAvatar", () => {
     expect(screen.getByText("A")).toBeTruthy();
   });
 
+  it("uses centered fallback text styles for letter avatars", () => {
+    render(<UserAvatar name="Ada Lovelace" />);
+
+    const initials = screen.getByText("A");
+    const style = Array.isArray(initials.props.style)
+      ? Object.assign({}, ...initials.props.style)
+      : initials.props.style;
+
+    expect(style.textAlign).toBe("center");
+    expect(style.textAlignVertical).toBe("center");
+  });
+
   it("supports multi-letter initials when requested", () => {
     render(<UserAvatar name="Ada Lovelace" maxInitials={2} />);
 
