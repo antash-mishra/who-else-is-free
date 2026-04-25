@@ -74,8 +74,9 @@ type joinRequestPayload struct {
 }
 
 type conversationParticipantPayload struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID     int64   `json:"id"`
+	Name   string  `json:"name"`
+	Avatar *string `json:"avatar,omitempty"`
 }
 
 // ChatClient wraps a single WebSocket connection and bookkeeping that helps the
@@ -798,8 +799,9 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 	view := JoinRequestView{
 		ConversationJoinRequest: *req,
 		Requester: ConversationParticipant{
-			ID:   user.ID,
-			Name: user.Name,
+			ID:     user.ID,
+			Name:   user.Name,
+			Avatar: user.Avatar,
 		},
 	}
 
@@ -1396,8 +1398,9 @@ func mapJoinRequestPayload(view JoinRequestView) joinRequestPayload {
 		Status:    view.Status,
 		CreatedAt: view.CreatedAt.Format(time.RFC3339Nano),
 		Requester: conversationParticipantPayload{
-			ID:   view.Requester.ID,
-			Name: view.Requester.Name,
+			ID:     view.Requester.ID,
+			Name:   view.Requester.Name,
+			Avatar: view.Requester.Avatar,
 		},
 	}
 }
@@ -1410,8 +1413,9 @@ func (h *ChatHTTPHandler) buildJoinRequestView(ctx context.Context, req *Convers
 	return JoinRequestView{
 		ConversationJoinRequest: *req,
 		Requester: ConversationParticipant{
-			ID:   user.ID,
-			Name: user.Name,
+			ID:     user.ID,
+			Name:   user.Name,
+			Avatar: user.Avatar,
 		},
 	}, nil
 }

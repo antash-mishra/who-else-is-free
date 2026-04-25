@@ -220,7 +220,7 @@ WHERE conversation_id = ?;
 `
 
 const selectParticipantsForConversation = `
-SELECT cm.user_id, u.name
+SELECT cm.user_id, u.name, u.avatar
 FROM conversation_members cm
 JOIN users u ON u.id = cm.user_id
 WHERE cm.conversation_id = ?
@@ -228,7 +228,7 @@ ORDER BY cm.joined_at ASC;
 `
 
 const selectFormerMessageSenders = `
-SELECT DISTINCT m.sender_id, u.name
+SELECT DISTINCT m.sender_id, u.name, u.avatar
 FROM messages m
 JOIN users u ON u.id = m.sender_id
 WHERE m.conversation_id = ?
@@ -262,14 +262,14 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 ORDER BY e.event_date ASC, e.time ASC, e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 WHERE e.id = ?
@@ -295,7 +295,7 @@ const selectUserPastEvents = `
 SELECT DISTINCT e.id, e.user_id, e.title, e.location, e.time, e.event_date,
        e.description, e.gender, e.min_age, e.max_age, e.date_label,
        e.group_type, e.cover_key, e.scheduled_at, e.created_at,
-       u.name AS host_name
+       u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 LEFT JOIN conversations c ON c.event_id = e.id
@@ -444,7 +444,7 @@ WHERE id = ?;
 `
 
 const selectPendingJoinRequestsForEvent = `
-SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name, u.avatar
 FROM conversation_join_requests r
 JOIN users u ON u.id = r.user_id
 WHERE r.event_id = ? AND r.status = 'pending'
@@ -452,7 +452,7 @@ ORDER BY r.created_at ASC;
 `
 
 const selectPendingOrApprovedJoinRequestsForEvent = `
-SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name, u.avatar
 FROM conversation_join_requests r
 JOIN users u ON u.id = r.user_id
 WHERE r.event_id = ? AND r.status IN ('pending', 'approved')
@@ -460,7 +460,7 @@ ORDER BY r.created_at ASC;
 `
 
 const selectPendingJoinRequestsForUser = `
-SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name, u.avatar
 FROM conversation_join_requests r
 JOIN users u ON u.id = r.user_id
 WHERE r.user_id = ? AND r.status = 'pending'
@@ -468,7 +468,7 @@ ORDER BY r.created_at DESC;
 `
 
 const selectPendingOrApprovedJoinRequestsForUser = `
-SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name
+SELECT r.id, r.event_id, r.user_id, r.status, r.message, r.created_at, r.decided_at, r.decided_by, u.name, u.avatar
 FROM conversation_join_requests r
 JOIN users u ON u.id = r.user_id
 WHERE r.user_id = ? AND r.status IN ('pending', 'approved')
@@ -1796,6 +1796,7 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&scheduledAtStr,
 			&evt.CreatedAt,
 			&evt.HostName,
+			&evt.HostAvatar,
 		); err != nil {
 			return nil, fmt.Errorf("scan event: %w", err)
 		}
@@ -1884,6 +1885,7 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 			&scheduledAtStr,
 			&evt.CreatedAt,
 			&evt.HostName,
+			&evt.HostAvatar,
 		); err != nil {
 			return nil, fmt.Errorf("scan past event: %w", err)
 		}
@@ -2246,6 +2248,7 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&scheduledAtStr,
 		&evt.CreatedAt,
 		&evt.HostName,
+		&evt.HostAvatar,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrEventNotFound
@@ -2625,6 +2628,7 @@ func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64, i
 		var decidedAt sql.NullTime
 		var decidedBy sql.NullInt64
 		var requesterName string
+		var requesterAvatar *string
 		if err := rows.Scan(
 			&req.ID,
 			&req.EventID,
@@ -2635,6 +2639,7 @@ func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64, i
 			&decidedAt,
 			&decidedBy,
 			&requesterName,
+			&requesterAvatar,
 		); err != nil {
 			return nil, fmt.Errorf("scan join request: %w", err)
 		}
@@ -2650,8 +2655,9 @@ func (r *EventRepository) ListJoinRequests(ctx context.Context, eventID int64, i
 			req.DecidedBy = &id
 		}
 		req.Requester = ConversationParticipant{
-			ID:   req.UserID,
-			Name: requesterName,
+			ID:     req.UserID,
+			Name:   requesterName,
+			Avatar: requesterAvatar,
 		}
 
 		requests = append(requests, req)
@@ -2696,6 +2702,7 @@ func (r *EventRepository) ListJoinRequestsByUser(ctx context.Context, userID int
 		var decidedAt sql.NullTime
 		var decidedBy sql.NullInt64
 		var requesterName string
+		var requesterAvatar *string
 		if err := rows.Scan(
 			&req.ID,
 			&req.EventID,
@@ -2706,6 +2713,7 @@ func (r *EventRepository) ListJoinRequestsByUser(ctx context.Context, userID int
 			&decidedAt,
 			&decidedBy,
 			&requesterName,
+			&requesterAvatar,
 		); err != nil {
 			return nil, fmt.Errorf("scan user join request: %w", err)
 		}
@@ -2721,8 +2729,9 @@ func (r *EventRepository) ListJoinRequestsByUser(ctx context.Context, userID int
 			req.DecidedBy = &id
 		}
 		req.Requester = ConversationParticipant{
-			ID:   req.UserID,
-			Name: requesterName,
+			ID:     req.UserID,
+			Name:   requesterName,
+			Avatar: requesterAvatar,
 		}
 		requests = append(requests, req)
 	}
@@ -2797,7 +2806,7 @@ func (r *EventRepository) fetchConversationParticipants(ctx context.Context, con
 	var memberIDs []int64
 	for rows.Next() {
 		var participant ConversationParticipant
-		if err := rows.Scan(&participant.ID, &participant.Name); err != nil {
+		if err := rows.Scan(&participant.ID, &participant.Name, &participant.Avatar); err != nil {
 			return nil, nil, fmt.Errorf("scan conversation participant: %w", err)
 		}
 		participants = append(participants, participant)
@@ -2815,7 +2824,7 @@ func (r *EventRepository) fetchConversationParticipants(ctx context.Context, con
 	defer rows2.Close()
 	for rows2.Next() {
 		var p ConversationParticipant
-		if err := rows2.Scan(&p.ID, &p.Name); err != nil {
+		if err := rows2.Scan(&p.ID, &p.Name, &p.Avatar); err != nil {
 			return nil, nil, fmt.Errorf("scan former message sender: %w", err)
 		}
 		participants = append(participants, p)

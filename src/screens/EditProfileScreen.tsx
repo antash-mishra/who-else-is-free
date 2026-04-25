@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -12,11 +11,11 @@ import {
 import { useCallback, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import ScreenContainer from "@components/ScreenContainer";
+import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
@@ -40,12 +39,12 @@ const EditProfileScreen = () => {
   const [removedAvatar, setRemovedAvatar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const editAvatarUri = removedAvatar
+  const editAvatarValue = removedAvatar
     ? null
     : editAvatarBase64
-      ? `data:image/jpeg;base64,${editAvatarBase64}`
+      ? editAvatarBase64
       : user?.avatar
-        ? `data:image/jpeg;base64,${user.avatar}`
+        ? user.avatar
         : null;
 
   const editHasChanges =
@@ -149,25 +148,18 @@ const EditProfileScreen = () => {
       <View style={styles.avatarSection}>
         <View style={styles.avatarWrapper}>
           <TouchableOpacity onPress={pickImage} accessibilityRole="button">
-            {editAvatarUri ? (
-              <Image source={{ uri: editAvatarUri }} style={styles.avatarImage} />
-            ) : (
-              <LinearGradient
-                colors={["#818CF8", "#6366F1", "#8B5CF6"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.avatarGradient}
-              >
-                <Text style={styles.avatarInitial}>
-                  {user?.name?.charAt(0).toUpperCase() ?? "?"}
-                </Text>
-              </LinearGradient>
-            )}
+            <UserAvatar
+              avatar={editAvatarValue}
+              name={editName.trim() || user?.name}
+              seed={user?.id ?? editName}
+              size={80}
+              style={styles.avatarFrame}
+            />
             <View style={styles.cameraBadge}>
               <CameraIcon width={14} height={14} />
             </View>
           </TouchableOpacity>
-          {editAvatarUri && (
+          {editAvatarValue && (
             <TouchableOpacity
               style={styles.removeBadge}
               onPress={handleRemoveAvatar}
@@ -241,26 +233,12 @@ const styles = StyleSheet.create({
     position: "relative",
     marginBottom: 16,
   },
-  avatarGradient: {
+  avatarFrame: {
     width: 80,
     height: 80,
     borderRadius: 80,
     borderWidth: 2,
     borderColor: "#E6E6E6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 80,
-    borderWidth: 2,
-    borderColor: "#E6E6E6",
-  },
-  avatarInitial: {
-    fontSize: 28,
-    color: "#FFFFFF",
-    fontFamily: typography.fontFamilyBold,
   },
   cameraBadge: {
     position: "absolute",

@@ -16,26 +16,13 @@ import { colors, spacing, typography } from "@theme/index";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
+import UserAvatar from "@components/UserAvatar";
 
 type PendingRequestsRoute = RouteProp<RootStackParamList, "PendingRequests">;
 type PendingRequestsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "PendingRequests"
 >;
-
-const AVATAR_COLORS = [
-  "#4CAF50",
-  "#9C27B0",
-  "#FF9800",
-  "#2196F3",
-  "#E91E63",
-  "#00BCD4",
-  "#8BC34A",
-  "#673AB7",
-];
-
-const getAvatarColor = (userId: number) =>
-  AVATAR_COLORS[userId % AVATAR_COLORS.length];
 
 const PendingRequestsScreen = () => {
   const navigation = useNavigation<PendingRequestsNavigation>();
@@ -146,8 +133,6 @@ const PendingRequestsScreen = () => {
             </View>
           ) : (
             pendingRequests.map((item, index) => {
-              const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
-              const avatarColor = getAvatarColor(item.userId);
               const isExpanded = expandedRequestIds.has(item.id);
               const isAccepting = acceptingUserId === item.userId;
               const isDeclining = decliningUserId === item.userId;
@@ -156,9 +141,12 @@ const PendingRequestsScreen = () => {
               return (
                 <View key={item.id}>
                   <View style={styles.requestItem}>
-                    <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
-                      <Text style={styles.avatarText}>{initial}</Text>
-                    </View>
+                    <UserAvatar
+                      avatar={item.requester.avatar}
+                      name={item.requester.name}
+                      seed={item.userId}
+                      size={40}
+                    />
 
                     <View style={styles.requestContent}>
                       <Text style={styles.requestName}>{item.requester.name}</Text>
@@ -268,20 +256,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: spacing.sm,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilySemiBold,
-    color: "#FFFFFF",
-    lineHeight: 16,
-    includeFontPadding: false,
   },
   requestContent: {
     flex: 1,

@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
+import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatMessage } from "@context/ChatContext";
@@ -274,14 +275,6 @@ const ChatThreadScreen = () => {
     );
     const senderName = participant?.name ?? "";
     const firstName = senderName.split(" ")[0] || "";
-    const initials =
-      senderName
-        .split(" ")
-        .map((w: string) => w[0] ?? "")
-        .slice(0, 2)
-        .join("")
-        .toUpperCase() || "?";
-    const avatarColor = `hsl(${(item.senderId * 47) % 360}, 55%, 45%)`;
 
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const prevIsSystem = prevMessage
@@ -353,9 +346,14 @@ const ChatThreadScreen = () => {
       >
         {showAvatar ? (
           isFirstInRun ? (
-            <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
-            </View>
+            <UserAvatar
+              avatar={participant?.avatar}
+              name={senderName}
+              seed={item.senderId}
+              size={30}
+              maxInitials={2}
+              style={styles.avatarCircle}
+            />
           ) : (
             <View style={styles.avatarSpacer} />
           )
@@ -564,15 +562,8 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
     marginRight: spacing.xs,
     flexShrink: 0,
-  },
-  avatarInitials: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontFamily: typography.fontFamilySemiBold,
   },
   avatarSpacer: {
     width: 30,

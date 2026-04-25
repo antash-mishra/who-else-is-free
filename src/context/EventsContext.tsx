@@ -35,6 +35,7 @@ export interface UserEvent extends EventItemProps {
   description?: string;
   ownerId: number;
   hostName: string;
+  hostAvatar?: string;
   gender: string;
   minAge: number;
   maxAge: number;
@@ -129,6 +130,7 @@ type ApiEvent = {
   group_type?: "Single" | "Group";
   user_id: number;
   host_name: string;
+  host_avatar?: string | null;
   cover_key?: CoverKey | null;
   scheduled_at?: string; // ISO 8601 UTC timestamp
   created_at?: string; // ISO 8601 UTC timestamp
@@ -228,6 +230,7 @@ const mapApiEvent = (
     description: event.description,
     ownerId: event.user_id,
     hostName: event.host_name,
+    hostAvatar: event.host_avatar ?? undefined,
     gender: event.gender,
     minAge: event.min_age,
     maxAge: event.max_age,
@@ -483,6 +486,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         group_type: event.groupType,
         user_id: event.userId,
         host_name: event.hostName,
+        host_avatar: user?.avatar,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
         scheduled_at: event.scheduledAt,
       };
@@ -501,7 +505,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       return eventId;
     },
-    [refreshEvents, token],
+    [refreshEvents, token, user?.avatar],
   );
 
   const updateUserEvent = useCallback(

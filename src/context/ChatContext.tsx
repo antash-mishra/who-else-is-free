@@ -18,6 +18,7 @@ import { getScheduleDisplay } from "@utils/dateTime";
 type ConversationParticipant = {
   id: number;
   name: string;
+  avatar?: string;
 };
 
 type ConversationLastMessage = {
@@ -275,6 +276,19 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     [],
   );
 
+  const normalizeParticipant = useCallback(
+    (raw: any, fallbackID = 0): ConversationParticipant => ({
+      id: raw?.id ?? fallbackID,
+      name: raw?.name ?? raw?.full_name ?? "",
+      avatar:
+        raw?.avatar ??
+        raw?.avatarUrl ??
+        raw?.avatar_url ??
+        undefined,
+    }),
+    [],
+  );
+
   const normalizeJoinRequest = useCallback((raw: any): ChatJoinRequest => {
     const eventId = raw.eventId ?? raw.event_id ?? 0;
     const userId = raw.userId ?? raw.user_id ?? 0;
@@ -289,13 +303,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       message: raw.message ?? "",
       status: (raw.status ?? "pending") as ChatJoinRequest["status"],
       createdAt,
-      requester: {
-        id: requester.id ?? userId,
-        name: requester.name ?? requester.full_name ?? "",
-      },
+      requester: normalizeParticipant(requester, userId),
       conversationId,
     };
-  }, []);
+  }, [normalizeParticipant]);
 
   useEffect(() => {
     if (!user || !token) {
@@ -406,7 +417,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       }
       setError(null);
       const normalized = (payload.conversations ?? []).map((conversation) => {
-        const participants = conversation.participants ?? [];
+        const participants = (conversation.participants ?? []).map(
+          (participant) => normalizeParticipant(participant),
+        );
         const counterpart = participants.find(
           (participant) => participant.id !== user.id,
         );

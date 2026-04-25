@@ -21,6 +21,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ScreenContainer from "@components/ScreenContainer";
 import EmptyState from "@components/EmptyState";
+import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
 import type { ChatConversation } from "@context/ChatContext";
@@ -43,9 +44,9 @@ const ConversationRow = ({
 }: {
   item: ChatConversation;
   onPress: (item: ChatConversation) => void;
-  activeConversationId: string | null;
+  activeConversationId: number | null;
   events: { id: string; imageUri: string }[];
-  userId?: string;
+  userId?: number;
 }) => {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -69,6 +70,9 @@ const ConversationRow = ({
       ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
       : undefined;
   const hasUnread = (item.unreadCount ?? 0) > 0;
+  const avatarName = isGroup ? titleLabel : (counterpart?.name ?? titleLabel);
+  const avatarValue = isGroup ? undefined : counterpart?.avatar;
+  const avatarSeed = isGroup ? titleLabel : (counterpart?.id ?? titleLabel);
 
   return (
     <Pressable
@@ -88,7 +92,12 @@ const ConversationRow = ({
           {eventImageUri ? (
             <Image source={{ uri: eventImageUri }} style={styles.conversationAvatarImage} contentFit="cover" transition={150} />
           ) : (
-            <Text style={styles.avatarInitial}>{titleLabel.charAt(0)}</Text>
+            <UserAvatar
+              avatar={avatarValue}
+              name={avatarName}
+              seed={avatarSeed}
+              size={52}
+            />
           )}
         </View>
         <View style={styles.conversationCopyInner}>
@@ -324,11 +333,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "cover",
-  },
-  avatarInitial: {
-    fontSize: typography.title,
-    color: colors.text,
-    fontFamily: typography.fontFamilyMedium,
   },
   conversationCopy: {
     flex: 1,

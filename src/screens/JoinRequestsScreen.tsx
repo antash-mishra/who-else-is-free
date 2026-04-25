@@ -19,6 +19,7 @@ import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
+import UserAvatar from "@components/UserAvatar";
 import { COVER_OPTIONS } from "@constants/covers";
 import { API_BASE_URL } from "@api/config";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
@@ -28,20 +29,6 @@ type JoinRequestsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "JoinRequests"
 >;
-
-const AVATAR_COLORS = [
-  "#4CAF50",
-  "#9C27B0",
-  "#FF9800",
-  "#2196F3",
-  "#E91E63",
-  "#00BCD4",
-  "#8BC34A",
-  "#673AB7",
-];
-
-const getAvatarColor = (userId: number) =>
-  AVATAR_COLORS[userId % AVATAR_COLORS.length];
 
 const getCoverSource = (coverKey?: string) => {
   const option = COVER_OPTIONS.find((item) => item.key === coverKey);
@@ -396,8 +383,6 @@ const JoinRequestsScreen = () => {
   }: {
     item: ChatJoinRequest & { conversationId?: number };
   }) => {
-    const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
-    const avatarColor = getAvatarColor(item.userId);
     const previewText = getApprovedPreview(item);
     const convo = item.conversationId
       ? conversationById.get(item.conversationId)
@@ -413,9 +398,12 @@ const JoinRequestsScreen = () => {
         onPress={() => handleRequesterPress(item)}
       >
         {hasUnread && <View style={styles.unreadDot1to1} />}
-        <View style={[styles.avatar1to1, { backgroundColor: avatarColor }]}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        <UserAvatar
+          avatar={item.requester.avatar}
+          name={item.requester.name}
+          seed={item.userId}
+          size={40}
+        />
         <View style={styles.requestInfo1to1}>
           <Text style={[styles.requesterName1to1, hasUnread && styles.requesterName1to1Unread]}>{item.requester.name}</Text>
           <Text style={[styles.introMessage1to1, hasUnread && styles.introMessage1to1Unread]} numberOfLines={1}>
@@ -452,13 +440,14 @@ const JoinRequestsScreen = () => {
 
   // Group mode request item
   const renderGroupRequestItem = ({ item }: { item: ChatJoinRequest }) => {
-    const initial = item.requester.name?.charAt(0).toUpperCase() ?? "?";
-    const avatarColor = getAvatarColor(item.userId);
     return (
       <View style={styles.requestItem}>
-        <View style={[styles.avatarFallback, { backgroundColor: avatarColor }]}>
-          <Text style={styles.avatarInitial}>{initial}</Text>
-        </View>
+        <UserAvatar
+          avatar={item.requester.avatar}
+          name={item.requester.name}
+          seed={item.userId}
+          size={40}
+        />
         <View style={styles.requestContent}>
           <Text style={styles.requestName}>{item.requester.name}</Text>
           {item.message ? (
@@ -605,22 +594,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: spacing.sm,
   },
-  avatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  avatarInitial: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 16,
-    textAlign: "center",
-    includeFontPadding: false,
-  },
   requestContent: {
     flex: 1,
   },
@@ -675,18 +648,6 @@ const styles = StyleSheet.create({
   },
   requestRowPressed: {
     backgroundColor: "rgba(0,0,0,0.03)",
-  },
-  avatar1to1: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilySemiBold,
-    color: "#FFFFFF",
   },
   requestInfo1to1: {
     flex: 1,

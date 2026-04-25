@@ -381,9 +381,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
 
     it('renders event description when provided', () => {
-      const { getByText } = render(<EventDetailsScreen />);
+      const { getAllByText } = render(<EventDetailsScreen />);
 
-      expect(getByText(mockGroupEvent.description!)).toBeTruthy();
+      expect(getAllByText(mockGroupEvent.description!).length).toBeGreaterThan(0);
     });
 
     it('renders audience information correctly for group event', () => {
@@ -680,7 +680,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-avatar-0')).toBeTruthy();
     });
 
-    it('shows 1:1 Event label for non-host single events', () => {
+    it('shows 1:1 label for non-host single events', () => {
       mockEventsState.events = [mockSingleEvent];
       mockChatState.conversations = [
         {
@@ -700,7 +700,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId, queryByTestId } = render(<EventDetailsScreen />);
 
       expect(queryByTestId('going-row')).toBeNull();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1:1 event');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1:1');
 
       routeSpy.mockRestore();
     });
@@ -1138,28 +1138,73 @@ describe('EventDetailsScreen Rendering Tests', () => {
   });
 
   describe('Description Expansion', () => {
+    const longDescription = 'A'.repeat(150);
+
     beforeEach(() => {
-      // Create event with long description
-      const longDescription = 'A'.repeat(150);
       mockEventsState.events = [{
         ...mockNonOwnedEvent,
         description: longDescription,
       }];
     });
 
+    const fireMeasurementLayouts = (getByTestId: (id: string) => any) => {
+      fireEvent(getByTestId('description-full-measure'), 'layout', {
+        nativeEvent: { layout: { height: 60 } },
+      });
+      fireEvent(getByTestId('description-truncated-measure'), 'layout', {
+        nativeEvent: { layout: { height: 40 } },
+      });
+    };
+
     it('shows "See more" for long descriptions', () => {
-      const { getByText } = render(<EventDetailsScreen />);
+      const { getByText, getByTestId } = render(<EventDetailsScreen />);
+
+      fireMeasurementLayouts(getByTestId);
 
       expect(getByText('...See more')).toBeTruthy();
     });
 
     it('expands description when See more is pressed', () => {
-      const { getByText, queryByText } = render(<EventDetailsScreen />);
+      const { getByText, queryByText, getByTestId } = render(<EventDetailsScreen />);
+
+      fireMeasurementLayouts(getByTestId);
 
       fireEvent.press(getByText('...See more'));
 
       // After expansion, "See more" should not be visible
       expect(queryByText('...See more')).toBeNull();
+      expect(getByText('Show less')).toBeTruthy();
+    });
+
+    it('collapses description when Show less is pressed', () => {
+      const { getByText, queryByText, getByTestId } = render(<EventDetailsScreen />);
+
+      fireMeasurementLayouts(getByTestId);
+
+      fireEvent.press(getByText('...See more'));
+      fireEvent.press(getByText('Show less'));
+
+      expect(queryByText('Show less')).toBeNull();
+      expect(getByText('...See more')).toBeTruthy();
+    });
+
+    it('does not show toggle for short descriptions', () => {
+      mockEventsState.events = [{
+        ...mockNonOwnedEvent,
+        description: 'Short desc',
+      }];
+
+      const { queryByText, getByTestId } = render(<EventDetailsScreen />);
+
+      fireEvent(getByTestId('description-full-measure'), 'layout', {
+        nativeEvent: { layout: { height: 22 } },
+      });
+      fireEvent(getByTestId('description-truncated-measure'), 'layout', {
+        nativeEvent: { layout: { height: 22 } },
+      });
+
+      expect(queryByText('...See more')).toBeNull();
+      expect(queryByText('Show less')).toBeNull();
     });
   });
 

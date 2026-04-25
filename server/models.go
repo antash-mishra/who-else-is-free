@@ -19,6 +19,7 @@ type Event struct {
 	GroupType   string     `json:"group_type"`
 	CoverKey    string     `json:"cover_key"`
 	HostName    string     `json:"host_name"`
+	HostAvatar  *string    `json:"host_avatar,omitempty"`
 	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 }
@@ -78,8 +79,9 @@ type CreateMessageParams struct {
 }
 
 type ConversationParticipant struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
+	ID     int64   `json:"id"`
+	Name   string  `json:"name"`
+	Avatar *string `json:"avatar,omitempty"`
 }
 
 type ConversationEventMeta struct {

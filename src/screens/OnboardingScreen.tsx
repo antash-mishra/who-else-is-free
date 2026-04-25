@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Platform,
   Alert,
-  Image,
   ActivityIndicator,
   useWindowDimensions,
   Keyboard,
@@ -20,13 +19,12 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 
 import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
+import UserAvatar from "@components/UserAvatar";
 import { typography } from "@theme/index";
-import AvatarPlaceholder from "@assets/avatar.png";
 import CameraIcon from "@assets/camera.svg";
 
 // Lazy import to handle missing native module gracefully
@@ -223,24 +221,13 @@ const OnboardingScreen = () => {
                     testID="avatar-button"
                     accessibilityRole="button"
                   >
-                    {avatarBase64 ? (
-                      <Image
-                        source={{ uri: `data:image/jpeg;base64,${avatarBase64}` }}
-                        style={styles.avatarImage}
-                      />
-                    ) : (
-                      <LinearGradient
-                        colors={["#818CF8", "#6366F1", "#8B5CF6"]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.avatarGradient}
-                      >
-                        <Image
-                          source={AvatarPlaceholder}
-                          style={styles.avatarPlaceholderImage}
-                        />
-                      </LinearGradient>
-                    )}
+                    <UserAvatar
+                      avatar={avatarBase64}
+                      name={name.trim()}
+                      seed={name.trim()}
+                      size={120}
+                      style={styles.avatarFrame}
+                    />
                     {/* Camera badge */}
                     <View style={styles.cameraBadge}>
                       <CameraIcon width={20} height={20}/>
@@ -580,22 +567,10 @@ const styles = StyleSheet.create({
     position: "relative",
     marginBottom: 24,
   },
-  avatarGradient: {
+  avatarFrame: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  avatarPlaceholderImage: {
-    width: 64,
-    height: 64,
-    resizeMode: "contain",
   },
   cameraBadge: {
     position: "absolute",

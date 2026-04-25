@@ -47,6 +47,7 @@ import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
+import UserAvatar from "@components/UserAvatar";
 import { formatEventDetailDateLabel } from "@utils/dateTime";
 import { formatEventDetailAudienceLine } from "@utils/eventDisplay";
 
@@ -145,6 +146,9 @@ const EventDetailsScreen = () => {
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionHasMore, setDescriptionHasMore] = useState(false);
+  const [fullDescHeight, setFullDescHeight] = useState(0);
+  const [truncatedDescHeight, setTruncatedDescHeight] = useState(0);
   const [activeTab, setActiveTab] = useState<
     "requests" | "accepted" | "members"
   >("requests");
@@ -160,7 +164,7 @@ const EventDetailsScreen = () => {
   const [selectedMember, setSelectedMember] = useState<{
     id: number;
     name: string;
-    avatarUrl?: string;
+    avatar?: string;
   } | null>(null);
   const [showMemberMenu, setShowMemberMenu] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
@@ -189,6 +193,12 @@ const EventDetailsScreen = () => {
     }
     setShowEventUpdatedBadge(true);
   }, [showEventUpdatedBadgeParam]);
+
+  useEffect(() => {
+    if (fullDescHeight > 0 && truncatedDescHeight > 0) {
+      setDescriptionHasMore(fullDescHeight > truncatedDescHeight + 1);
+    }
+  }, [fullDescHeight, truncatedDescHeight]);
 
   if (!event) {
     return (
@@ -268,8 +278,9 @@ const EventDetailsScreen = () => {
     () => ({
       id: event.ownerId,
       name: event.hostName,
+      avatar: event.hostAvatar,
     }),
-    [event.ownerId, event.hostName],
+    [event.hostAvatar, event.ownerId, event.hostName],
   );
   const goingParticipants = useMemo(() => {
     if (eventConversation?.participants?.length) {
@@ -523,60 +534,17 @@ const EventDetailsScreen = () => {
     (navigation as any).navigate("ChatThread");
   };
 
-  // Avatar colors for generating fallback avatars
-  const AVATAR_COLORS = [
-    "#4CAF50",
-    "#9C27B0",
-    "#FF9800",
-    "#2196F3",
-    "#E91E63",
-    "#00BCD4",
-    "#8BC34A",
-    "#673AB7",
-  ];
-
-  const getAvatarColor = (userId: number): string => {
-    return AVATAR_COLORS[userId % AVATAR_COLORS.length];
-  };
-
   const renderAvatar = (
-    participant: { id: number; name: string; avatarUrl?: string },
+    participant: { id: number; name: string; avatar?: string },
     size: number = 40,
-    compact: boolean = false,
-  ) => {
-    if (participant.avatarUrl) {
-      return (
-        <Image
-          source={{ uri: participant.avatarUrl }}
-          style={[
-            styles.avatar,
-            { width: size, height: size, borderRadius: size / 2 },
-          ]}
-        />
-      );
-    }
-    const initial = participant.name?.charAt(0).toUpperCase() ?? "?";
-    const bgColor = getAvatarColor(participant.id);
-    return (
-      <View
-        style={[
-          styles.avatarFallback,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: bgColor,
-          },
-        ]}
-      >
-        <Text
-          style={[styles.avatarInitial, compact && styles.avatarInitialCompact]}
-        >
-          {initial}
-        </Text>
-      </View>
-    );
-  };
+  ) => (
+    <UserAvatar
+      avatar={participant.avatar}
+      name={participant.name}
+      seed={participant.id}
+      size={size}
+    />
+  );
 
   const handleAcceptRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
@@ -645,7 +613,7 @@ const EventDetailsScreen = () => {
   const openMemberMenu = (member: {
     id: number;
     name: string;
-    avatarUrl?: string;
+    avatar?: string;
   }) => {
     setSelectedMember(member);
     setShowMemberMenu(true);
@@ -1266,7 +1234,7 @@ const EventDetailsScreen = () => {
             <Text style={styles.hostedBy}>{hostLine}</Text>
             {!readOnly && isSingleEvent && (
               <Text style={styles.goingLabel} testID="going-count-label">
-                1:1 event
+                1:1
               </Text>
             )}
             {!readOnly && !isSingleEvent && (
@@ -1281,7 +1249,7 @@ const EventDetailsScreen = () => {
                       ]}
                       testID={`going-avatar-${index}`}
                     >
-                      {renderAvatar(participant, 24, true)}
+                      {renderAvatar(participant, 24)}
                     </View>
                   ))}
                 </View>
@@ -1317,18 +1285,35 @@ const EventDetailsScreen = () => {
 
             {!!event.description && (
               <View style={{ marginTop: 6 }}>
+                <View style={styles.measureContainer}>
+                  <Text
+                    style={styles.description}
+                    onLayout={(e) => setFullDescHeight(e.nativeEvent.layout.height)}
+                    testID="description-full-measure"
+                  >
+                    {event.description}
+                  </Text>
+                  <Text
+                    style={styles.description}
+                    numberOfLines={2}
+                    onLayout={(e) => setTruncatedDescHeight(e.nativeEvent.layout.height)}
+                    testID="description-truncated-measure"
+                  >
+                    {event.description}
+                  </Text>
+                </View>
                 <Text
                   style={styles.description}
-                  numberOfLines={descriptionExpanded ? undefined : 3}
+                  numberOfLines={descriptionExpanded ? undefined : 2}
                 >
                   {event.description}
                 </Text>
-                {event.description.length > 100 && !descriptionExpanded && (
+                {descriptionHasMore && (
                   <Text
                     style={styles.seeMoreText}
-                    onPress={() => setDescriptionExpanded(true)}
+                    onPress={() => setDescriptionExpanded((prev) => !prev)}
                   >
-                    ...See more
+                    {descriptionExpanded ? "Show less" : "...See more"}
                   </Text>
                 )}
               </View>
@@ -2097,6 +2082,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     letterSpacing: -0.4,
   },
+  measureContainer: {
+    position: "absolute",
+    top: -9999,
+    left: 0,
+    right: 0,
+    opacity: 0,
+  },
   ctaContainer: {
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
@@ -2293,31 +2285,6 @@ const styles = StyleSheet.create({
   },
 
   // Avatar styles
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  avatarFallback: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarInitial: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 16,
-    textAlign: "center",
-    includeFontPadding: false,
-  },
-  avatarInitialCompact: {
-    fontSize: 11,
-    lineHeight: 11,
-  },
-
   // See more text
   seeMoreText: {
     fontSize: 15,

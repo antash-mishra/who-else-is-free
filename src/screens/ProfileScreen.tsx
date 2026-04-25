@@ -1,7 +1,6 @@
 import {
   Alert,
   Animated,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,10 +15,10 @@ import {
 } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 
 import ScreenContainer from "@components/ScreenContainer";
+import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
@@ -199,8 +198,6 @@ const ProfileScreen = () => {
     );
   }
 
-  const initial = user?.name?.charAt(0).toUpperCase() ?? "Y";
-
   return (
     <ScreenContainer>
       <View style={styles.headerSpacing}>
@@ -216,16 +213,13 @@ const ProfileScreen = () => {
           <Animated.View style={[styles.headerCard, { transform: [{ scale: scaleAnim }] }]}>
             <View style={styles.headerCardGradient}>
               <View style={styles.headerContent}>
-                <View style={styles.avatar}>
-                  {user.avatar ? (
-                    <Image
-                      source={{ uri: `data:image/jpeg;base64,${user.avatar}` }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <Text style={styles.avatarInitial}>{initial}</Text>
-                  )}
-                </View>
+                <UserAvatar
+                  avatar={user.avatar}
+                  name={user.name}
+                  seed={user.id}
+                  size={68}
+                  style={styles.avatar}
+                />
                 <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
                 <Text style={styles.email}>{user?.email ?? ""}</Text>
 
@@ -330,16 +324,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
-  },
-  avatarImage: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-  },
-  avatarInitial: {
-    fontSize: 28,
-    color: "#FFFFFF",
-    fontFamily: typography.fontFamilyBold,
   },
   name: {
     fontSize: 20,
