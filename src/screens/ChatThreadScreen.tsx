@@ -51,6 +51,7 @@ const ChatThreadScreen = () => {
 
   const [draft, setDraft] = useState("");
   const [androidKeyboardOffset, setAndroidKeyboardOffset] = useState(0);
+  const messagesListRef = useRef<FlatList<ChatMessage>>(null);
 
   const activeConversation = useMemo(
     () =>
@@ -186,8 +187,15 @@ const ChatThreadScreen = () => {
     const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
       const windowHeight = Dimensions.get("window").height;
       const screenY = event.endCoordinates?.screenY ?? windowHeight;
-      const keyboardHeight = Math.max(0, windowHeight - screenY);
+      const keyboardHeightFromWindow = Math.max(0, windowHeight - screenY);
+      const keyboardHeight =
+        keyboardHeightFromWindow || event.endCoordinates?.height || 0;
+
       setAndroidKeyboardOffset(keyboardHeight);
+
+      setTimeout(() => {
+        messagesListRef.current?.scrollToEnd({ animated: true });
+      }, 50);
     });
     const hideSub = Keyboard.addListener("keyboardDidHide", () => {
       setAndroidKeyboardOffset(0);
@@ -198,8 +206,6 @@ const ChatThreadScreen = () => {
       hideSub.remove();
     };
   }, []);
-
-  const messagesListRef = useRef<FlatList<ChatMessage>>(null);
 
   // Scroll to bottom when new messages arrive (non-inverted list)
   const prevMessageCount = useRef(messages.length);
@@ -231,6 +237,13 @@ const ChatThreadScreen = () => {
   };
 
   const isSendDisabled = draft.trim().length === 0;
+  const closedComposerBottomPadding = insets.bottom + spacing.sm;
+  const keyboardVisibleComposerPadding =
+    spacing.sm + Math.max(0, androidKeyboardOffset - insets.bottom);
+  const composerBottomPadding =
+    Platform.OS === "android" && androidKeyboardOffset > 0
+      ? keyboardVisibleComposerPadding
+      : closedComposerBottomPadding;
   const pendingJoinRequestCount = isConversationHost
     ? joinRequests.filter((request) => request.status === "pending").length
     : 0;
@@ -419,8 +432,9 @@ const ChatThreadScreen = () => {
             <View
               style={[
                 styles.composerContainer,
-                { paddingBottom: spacing.xs + insets.bottom },
+                { paddingBottom: composerBottomPadding },
               ]}
+              testID="chat-composer-container"
             >
               <View style={styles.composerInputWrapper}>
                 <TextInput
@@ -468,11 +482,9 @@ const ChatThreadScreen = () => {
             <View
               style={[
                 styles.composerContainer,
-                {
-                  paddingBottom:
-                    spacing.xs + Math.max(0, androidKeyboardOffset - insets.bottom),
-                },
+                { paddingBottom: composerBottomPadding },
               ]}
+              testID="chat-composer-container"
             >
               <View style={styles.composerInputWrapper}>
                 <TextInput

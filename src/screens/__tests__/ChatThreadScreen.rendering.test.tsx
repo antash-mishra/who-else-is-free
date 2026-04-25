@@ -4,8 +4,8 @@
  */
 
 import React from 'react';
-import { fireEvent, waitFor } from '@testing-library/react-native';
-import { Keyboard, Platform } from 'react-native';
+import { act, fireEvent, waitFor } from '@testing-library/react-native';
+import { Dimensions, Keyboard, Platform, StyleSheet } from 'react-native';
 
 import ChatThreadScreen from '../ChatThreadScreen';
 import {
@@ -23,6 +23,7 @@ import {
   mockEvents,
 } from '../../__tests__/mocks/mockData';
 import { mockNavigation } from '../../__tests__/mocks/mockModules';
+import { spacing } from '@theme/index';
 
 // Mock the context hooks
 jest.mock('@context/AuthContext', () => ({
@@ -372,7 +373,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('1')).toBeTruthy();
     });
 
-    it('should display join request icon for group events when host', () => {
+    it('should not display join request icon for group events when only approved requests exist', () => {
       setupMocks({
         chatOverrides: {
           activeConversationId: 1,
@@ -381,9 +382,9 @@ describe('ChatThreadScreen Rendering', () => {
           },
         },
       });
-      const { getByLabelText } = render(<ChatThreadScreen />);
+      const { queryByLabelText } = render(<ChatThreadScreen />);
 
-      expect(getByLabelText('View join requests')).toBeTruthy();
+      expect(queryByLabelText('View join requests')).toBeNull();
     });
 
     it('should display join request icon for 1:1 host with only pending requests (no accepted)', () => {
@@ -419,7 +420,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('2')).toBeTruthy();
     });
 
-    it('should display join request icon without count when no pending requests', () => {
+    it('should not display join request icon when no pending requests exist', () => {
       const singleHostConversation = {
         ...mockConversations[0],
         id: 99,
@@ -445,10 +446,9 @@ describe('ChatThreadScreen Rendering', () => {
           },
         },
       });
-      const { getByLabelText, queryByText } = render(<ChatThreadScreen />);
+      const { queryByLabelText, queryByText } = render(<ChatThreadScreen />);
 
-      // Icon shows but no count badge
-      expect(getByLabelText('View join requests')).toBeTruthy();
+      expect(queryByLabelText('View join requests')).toBeNull();
       expect(queryByText('1')).toBeNull();
     });
 
@@ -490,14 +490,27 @@ describe('ChatThreadScreen Rendering', () => {
       Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     });
 
-    it('should register Android keyboard listeners for composer offset handling', () => {
+    it('should update Android composer padding from keyboard listeners', () => {
       setupMocks();
       Object.defineProperty(Platform, 'OS', { value: 'android' });
 
-      const addListenerSpy = jest.spyOn(Keyboard, 'addListener').mockReturnValue({
-        remove: jest.fn(),
+      const listeners: Record<string, ((event?: any) => void) | undefined> = {};
+      const addListenerSpy = jest.spyOn(Keyboard, 'addListener').mockImplementation(
+        (eventName, callback) => {
+          listeners[eventName] = callback as (event?: any) => void;
+          return {
+            remove: jest.fn(),
+          } as never;
+        }
+      );
+      const dimensionsSpy = jest.spyOn(Dimensions, 'get').mockReturnValue({
+        width: 360,
+        height: 800,
+        scale: 2,
+        fontScale: 2,
       } as never);
-      render(<ChatThreadScreen />);
+
+      const { getByTestId } = render(<ChatThreadScreen />);
 
       expect(addListenerSpy).toHaveBeenCalledWith(
         'keyboardDidShow',
@@ -507,8 +520,33 @@ describe('ChatThreadScreen Rendering', () => {
         'keyboardDidHide',
         expect.any(Function)
       );
+      expect(
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+      ).toBe(spacing.sm);
+
+      act(() => {
+        listeners.keyboardDidShow?.({
+          endCoordinates: {
+            screenY: 540,
+            height: 260,
+          },
+        });
+      });
+
+      expect(
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+      ).toBe(268);
+
+      act(() => {
+        listeners.keyboardDidHide?.();
+      });
+
+      expect(
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+      ).toBe(spacing.sm);
 
       addListenerSpy.mockRestore();
+      dimensionsSpy.mockRestore();
     });
 
     it('should still render composer on iOS', () => {
