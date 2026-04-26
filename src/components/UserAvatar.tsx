@@ -48,11 +48,7 @@ const UserAvatar = ({
     <View
       style={[
         styles.frame,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-        },
+        { width: size, height: size, borderRadius: size / 2 },
         style,
         !avatarUri && { backgroundColor },
       ]}
@@ -68,14 +64,7 @@ const UserAvatar = ({
       ) : (
         <View style={styles.initialsFrame}>
           <Text
-            style={[
-              styles.initials,
-              {
-                fontSize,
-                lineHeight,
-              },
-              textStyle,
-            ]}
+            style={[styles.initials, { fontSize, lineHeight }, textStyle]}
             numberOfLines={1}
           >
             {initials}

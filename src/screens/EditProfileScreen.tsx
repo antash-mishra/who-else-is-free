@@ -132,48 +132,6 @@ const EditProfileScreen = () => {
 
   return (
     <ScreenContainer>
-<<<<<<< Updated upstream
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          hitSlop={8}
-        >
-          <Feather name="chevron-left" size={20} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
-        <View style={styles.backButton} />
-      </View>
-
-      {/* Avatar */}
-      <View style={styles.avatarSection}>
-        <View style={styles.avatarWrapper}>
-          <TouchableOpacity onPress={pickImage} accessibilityRole="button">
-            <UserAvatar
-              avatar={editAvatarValue}
-              name={editName.trim() || user?.name}
-              seed={user?.id ?? editName}
-              size={80}
-              style={styles.avatarFrame}
-            />
-            <View style={styles.cameraBadge}>
-              <CameraIcon width={14} height={14} />
-            </View>
-          </TouchableOpacity>
-          {editAvatarValue && (
-            <TouchableOpacity
-              style={styles.removeBadge}
-              onPress={handleRemoveAvatar}
-              accessibilityRole="button"
-              accessibilityLabel="Remove photo"
-            >
-              <Feather name="x" size={13} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-=======
       <View style={styles.inner}>
         {/* Header */}
         <View style={styles.header}>
@@ -187,39 +145,32 @@ const EditProfileScreen = () => {
             <Feather name="chevron-left" size={20} color={colors.text} />
           </Pressable>
           <Text style={styles.headerTitle}>Edit Profile</Text>
->>>>>>> Stashed changes
+          <View style={styles.backButton} />
         </View>
 
         {/* Avatar + Name */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
             <TouchableOpacity onPress={pickImage} accessibilityRole="button">
-              {editAvatarUri ? (
-                <Image source={{ uri: editAvatarUri }} style={styles.avatarImage} />
-              ) : (
-                <LinearGradient
-                  colors={["#818CF8", "#6366F1", "#8B5CF6"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatarGradient}
-                >
-                  <Text style={styles.avatarInitial}>
-                    {user?.name?.charAt(0).toUpperCase() ?? "?"}
-                  </Text>
-                </LinearGradient>
-              )}
+              <UserAvatar
+                avatar={editAvatarValue}
+                name={editName.trim() || user?.name}
+                seed={user?.id ?? editName}
+                size={80}
+                style={styles.avatarFrame}
+              />
               <View style={styles.cameraBadge}>
-                <CameraIcon width={20} height={20} />
+                <CameraIcon width={14} height={14} />
               </View>
             </TouchableOpacity>
-            {editAvatarUri && (
+            {editAvatarValue && (
               <TouchableOpacity
                 style={styles.removeBadge}
                 onPress={handleRemoveAvatar}
                 accessibilityRole="button"
                 accessibilityLabel="Remove photo"
               >
-                <Feather name="x" size={16} color="#FFFFFF" />
+                <Feather name="x" size={13} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -292,31 +243,12 @@ const styles = StyleSheet.create({
     position: "relative",
     marginBottom: 24,
   },
-<<<<<<< Updated upstream
   avatarFrame: {
     width: 80,
     height: 80,
     borderRadius: 80,
     borderWidth: 2,
     borderColor: "#E6E6E6",
-=======
-  avatarGradient: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  avatarInitial: {
-    fontSize: 40,
-    color: "#FFFFFF",
-    fontFamily: typography.fontFamilyBold,
->>>>>>> Stashed changes
   },
   cameraBadge: {
     position: "absolute",

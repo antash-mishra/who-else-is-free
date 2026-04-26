@@ -1331,25 +1331,16 @@ const EventDetailsScreen = () => {
                 >
                   {event.description}
                 </Text>
-<<<<<<< Updated upstream
                 {descriptionHasMore && (
                   <Text
                     style={styles.seeMoreText}
-                    onPress={() => setDescriptionExpanded((prev) => !prev)}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setDescriptionExpanded((prev) => !prev);
+                    }}
                   >
                     {descriptionExpanded ? "Show less" : "...See more"}
                   </Text>
-=======
-                {event.description.length > 100 && !descriptionExpanded && (
-                  <ScalePressable
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setDescriptionExpanded(true);
-                    }}
-                  >
-                    <Text style={styles.seeMoreText}>...See more</Text>
-                  </ScalePressable>
->>>>>>> Stashed changes
                 )}
               </View>
             )}

@@ -1,10 +1,5 @@
 import {
   Alert,
-<<<<<<< Updated upstream
-  Animated,
-=======
-  Image,
->>>>>>> Stashed changes
   Pressable,
   ScrollView,
   StyleSheet,
@@ -207,21 +202,6 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header Card with Gradient */}
-<<<<<<< Updated upstream
-        <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
-          <Animated.View style={[styles.headerCard, { transform: [{ scale: scaleAnim }] }]}>
-            <View style={styles.headerCardGradient}>
-              <View style={styles.headerContent}>
-                <UserAvatar
-                  avatar={user.avatar}
-                  name={user.name}
-                  seed={user.id}
-                  size={68}
-                  style={styles.avatar}
-                />
-                <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
-                <Text style={styles.email}>{user?.email ?? ""}</Text>
-=======
         <ScalePressable
           style={styles.headerCard}
           onPress={() => {
@@ -231,19 +211,15 @@ const ProfileScreen = () => {
         >
           <View style={styles.headerCardGradient}>
             <View style={styles.headerContent}>
-              <View style={styles.avatar}>
-                {user.avatar ? (
-                  <Image
-                    source={{ uri: `data:image/jpeg;base64,${user.avatar}` }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Text style={styles.avatarInitial}>{initial}</Text>
-                )}
-              </View>
+              <UserAvatar
+                avatar={user.avatar}
+                name={user.name}
+                seed={user.id}
+                size={68}
+                style={styles.avatar}
+              />
               <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
               <Text style={styles.email}>{user?.email ?? ""}</Text>
->>>>>>> Stashed changes
 
               {/* Stats Row */}
               <View style={styles.statsPill}>
