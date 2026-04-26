@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     optionRingSelected: {
-        backgroundColor: "rgba(0, 0, 0, 0.15)",
+        backgroundColor: "#000000",
     },
     option: {
         flex: 1,

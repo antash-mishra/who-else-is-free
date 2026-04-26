@@ -11,6 +11,8 @@ import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navig
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
+import * as Haptics from "expo-haptics";
+
 import { colors, spacing, typography } from "@theme/index";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
@@ -152,14 +154,16 @@ const JoinRequestsScreen = () => {
   const handleRequesterPress = useCallback(
     async (request: ChatJoinRequest & { conversationId?: number }) => {
       if (request.status !== "approved" || !request.conversationId) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setActiveConversation(request.conversationId);
-      navigation.navigate("ChatThread");
+      (navigation as any).push("ChatThread");
     },
     [navigation, setActiveConversation],
   );
 
   // 1:1 mode: handle 3-dot menu press
   const handleMenuPress = useCallback((request: ChatJoinRequest) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedRequest(request);
     setShowRequestMenu(true);
   }, []);
@@ -340,27 +344,29 @@ const JoinRequestsScreen = () => {
   const render1to1Header = () => {
     return (
       <ChatEventHeader
-        onBack={() => navigation.goBack()}
+        onBack={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
         title={resolvedTitle}
         subtitle={resolvedSubtitle}
         coverSource={getCoverSource(resolvedCoverKey)}
-        onTitlePress={() =>
+        onTitlePress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           navigation.navigate("EventDetailsOverlay", {
             eventId: String(eventId),
             readOnly: true,
-          })
-        }
+          });
+        }}
         rightElement={
           pendingRequests.length > 0 ? (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="View pending requests"
-              onPress={() =>
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 navigation.navigate("PendingRequests", {
                   conversationId,
                   eventId,
-                })
-              }
+                });
+              }}
               style={styles.joinIconButton}
             >
               <Feather name="users" size={20} color={colors.text} />
@@ -425,15 +431,16 @@ const JoinRequestsScreen = () => {
   // Group mode header
   const renderGroupHeader = () => (
     <ChatEventHeader
-      onBack={() => navigation.goBack()}
+      onBack={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
       title={resolvedTitle}
       subtitle="Join Requests"
-      onTitlePress={() =>
+      onTitlePress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         navigation.navigate("EventDetailsOverlay", {
           eventId: String(eventId),
           readOnly: true,
-        })
-      }
+        });
+      }}
       testID="join-requests-group-event-info-button"
     />
   );
@@ -456,13 +463,13 @@ const JoinRequestsScreen = () => {
         </View>
         <View style={styles.requestActions}>
           <Pressable
-            onPress={() => handleAction(item.id, item.userId, "deny")}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleAction(item.id, item.userId, "deny"); }}
             style={styles.declineButton}
           >
             <Feather name="x" size={18} color={colors.text} />
           </Pressable>
           <Pressable
-            onPress={() => handleAction(item.id, item.userId, "approve")}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleAction(item.id, item.userId, "approve"); }}
             style={styles.acceptButton}
           >
             <Feather name="check" size={18} color={colors.buttonText} />

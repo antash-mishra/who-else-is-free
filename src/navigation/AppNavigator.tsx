@@ -1,17 +1,25 @@
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createStackNavigator, CardStyleInterpolators } from "@react-navigation/stack";
+import type { StackCardInterpolationProps } from "@react-navigation/stack";
 import {
   Animated,
+  Pressable,
   TouchableOpacity,
   View,
   StyleSheet,
+  useWindowDimensions,
 } from "react-native";
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
-
+import { enableScreens } from "react-native-screens";
 import HomeScreen from "@screens/HomeScreen";
 import CreateEventScreen from "@screens/CreateEventScreen";
 import MyEventsScreen from "@screens/MyEventsScreen";
@@ -25,8 +33,8 @@ import OnboardingScreen from "@screens/OnboardingScreen";
 import { navigationRef } from "@navigation/navigationRef";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
+import { Springs } from "@theme/springs";
 import { useChat } from "@context/ChatContext";
-import GoogleSignIn from "@screens/GoogleSignIn";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
 import PendingRequestsScreen from "@screens/PendingRequestsScreen";
 import EditProfileScreen from "@screens/EditProfileScreen";
@@ -36,9 +44,173 @@ import HelpScreen from "@screens/HelpScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
-const Tab = createBottomTabNavigator<RootTabParamList>();
-const Stack = createNativeStackNavigator<RootStackParamList>();
+// Render tab screens as plain JS Views so React Navigation's tabAnims-driven
+// opacity (animation: "fade") applies correctly without native screen management
+// interfering by removing screens from the hierarchy before the fade finishes.
+enableScreens(false);
 
+const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
+
+
+// ─── Stack screen animation ───────────────────────────────────────────────────
+// Push (open):  incoming slides from 30% right — matches tab animation
+// Pop  (close): card slides fully off to the right — standard iOS back feel
+const tabLikeInterpolator = ({ current, next, layouts, closing }: StackCardInterpolationProps) => {
+  const { width } = layouts.screen;
+
+  if (next) {
+    // This card is below an incoming card: slide left + fade out
+    return {
+      cardStyle: {
+        transform: [{
+          translateX: next.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -width * 0.2], extrapolate: 'clamp' }),
+        }],
+        opacity: next.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0], extrapolate: 'clamp' }),
+      },
+    };
+  }
+
+  // Top card: open from 30% right, close to full width right
+  const translateXOpen  = current.progress.interpolate({ inputRange: [0, 1], outputRange: [width * 0.3, 0], extrapolate: 'clamp' });
+  const translateXClose = current.progress.interpolate({ inputRange: [0, 1], outputRange: [width, 0],       extrapolate: 'clamp' });
+
+  // Blend: when closing=0 use open translation, when closing=1 use close translation
+  const translateX = Animated.add(
+    translateXOpen,
+    Animated.multiply(closing, Animated.subtract(translateXClose, translateXOpen)),
+  );
+
+  return {
+    cardStyle: {
+      transform: [{ translateX }],
+    },
+  };
+};
+
+const tabLikeTransitionSpec = {
+  open:  { animation: 'spring' as const, config: Springs.snappy },
+  close: { animation: 'spring' as const, config: Springs.snappy },
+};
+
+// Full-screen slide-up modal — no background scaling/dimming
+const slideFromBottomInterpolator = ({ current, layouts }: StackCardInterpolationProps) => ({
+  cardStyle: {
+    transform: [{
+      translateY: current.progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [layouts.screen.height, 0],
+        extrapolate: 'clamp',
+      }),
+    }],
+  },
+});
+
+const slideFromBottomTransitionSpec = {
+  open:  { animation: 'spring' as const, config: Springs.snappy },
+  close: { animation: 'spring' as const, config: Springs.snappy },
+};
+
+// Sheet modal: backdrop fades in place (overlayStyle, requires cardOverlayEnabled),
+// transparent card slides up carrying the sheet content anchored to bottom.
+// Matches BottomSheetModal behaviour exactly.
+const sheetModalInterpolator = ({ current, layouts }: StackCardInterpolationProps) => ({
+  overlayStyle: {
+    opacity: current.progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 0.4],
+      extrapolate: 'clamp',
+    }),
+  },
+  cardStyle: {
+    transform: [{
+      translateY: current.progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [layouts.screen.height, 0],
+        extrapolate: 'clamp',
+      }),
+    }],
+  },
+});
+
+const sheetModalTransitionSpec = {
+  open:  { animation: 'spring' as const, config: Springs.bouncyUp },
+  close: { animation: 'spring' as const, config: Springs.snappy },
+};
+
+// How far the sheet background extends below the screen.
+// When the spring overshoots (translateY goes negative), the card's bottom
+// edge rises above the actual screen bottom, exposing a gap. Extending the
+// sheet background by this amount fills that gap with white instead of
+// revealing the underlying screen.
+const SHEET_BOUNCE_BUFFER = 80;
+
+// Sheet modal wrapper.
+// Backdrop and sheet are NON-OVERLAPPING siblings:
+//   • Backdrop Pressable covers only the top 20% → tapping above sheet closes it
+//   • Sheet View covers bottom 80% with explicit height → no touch interception
+//     needed, so the inner ScrollView receives all gestures unimpeded.
+// onStartShouldSetResponder is intentionally absent from the sheet — it would
+// intercept touches at the JS bridge before the native UIScrollView can scroll.
+const SheetWrapper = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => {
+  const { height: screenHeight } = useWindowDimensions();
+  const sheetHeight = screenHeight * 0.8;
+  return (
+    <View style={{ flex: 1 }} pointerEvents="box-none">
+      <Pressable
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: screenHeight - sheetHeight,
+        }}
+        onPress={onClose}
+      />
+      {/* Outer container extends SHEET_BOUNCE_BUFFER px below the screen so
+          the bounce overshoot never exposes the underlying content. */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: -SHEET_BOUNCE_BUFFER,
+          left: 0,
+          right: 0,
+          height: sheetHeight + SHEET_BOUNCE_BUFFER,
+          backgroundColor: colors.background,
+          borderTopLeftRadius: 28,
+          borderTopRightRadius: 28,
+          overflow: 'hidden',
+        }}
+      >
+        <View style={{ height: sheetHeight }}>
+          {children}
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const EventDetailsOverlaySheet = (props: any) => (
+  <SheetWrapper onClose={() => props.navigation.goBack()}>
+    <EventDetailsScreen {...props} />
+  </SheetWrapper>
+);
+
+const PendingRequestsSheet = (props: any) => (
+  <SheetWrapper onClose={() => props.navigation.goBack()}>
+    <PendingRequestsScreen {...props} />
+  </SheetWrapper>
+);
+
+
+
+// ─── Tab screen wrappers ─────────────────────────────────────────────────────
+const EventsTab = (props: any) => <HomeScreen {...props} />;
+const MyEventsTab = (props: any) => <MyEventsScreen {...props} />;
+const MessagesTab = (props: any) => <MessagesScreen {...props} />;
+const ProfileTab = (props: any) => <ProfileScreen {...props} />;
+
+// ─── Tab bar background ──────────────────────────────────────────────────────
 const TabBarBackground = () => (
   <View style={tabBarStyles.backgroundContainer}>
     <BlurView
@@ -46,9 +218,7 @@ const TabBarBackground = () => (
       tint="light"
       style={StyleSheet.absoluteFill}
     />
-    {/* Fill: #FBFBFB at 60% opacity */}
     <View style={tabBarStyles.frostedOverlay} />
-    {/* Stroke on top: 1px solid white */}
     <View style={tabBarStyles.topBorder} />
   </View>
 );
@@ -72,6 +242,7 @@ const tabBarStyles = StyleSheet.create({
   },
 });
 
+// ─── Tab icons ───────────────────────────────────────────────────────────────
 type TabIconProps = {
   focused: boolean;
   color: string;
@@ -82,49 +253,6 @@ const TAB_ICON_HEIGHT = 29;
 
 const getFillColor = (focused: boolean) =>
   focused ? colors.activeTabIndicator : "none";
-
-const VibratingTabBarButton = (props: BottomTabBarButtonProps) => {
-  const { onPress, style, children, accessibilityLabel, testID } = props;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const triggerScale = () => {
-    scaleAnim.setValue(1);
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.8,
-        duration: 67,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 67,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const handlePress = (e: Parameters<NonNullable<typeof onPress>>[0]) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    triggerScale();
-    if (onPress) {
-      onPress(e);
-    }
-  };
-
-  return (
-    <TouchableOpacity
-      style={style}
-      onPress={handlePress}
-      activeOpacity={1}
-      accessibilityLabel={accessibilityLabel}
-      testID={testID}
-    >
-      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-        {children}
-      </Animated.View>
-    </TouchableOpacity>
-  );
-};
 
 const EventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
@@ -246,8 +374,8 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
         <View
           style={{
             position: "absolute",
-            top: 5,
-            right: 15,
+            top: 0,
+            right: 2,
             width: 10,
             height: 10,
             borderRadius: 5,
@@ -302,8 +430,45 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
   );
 };
 
+// ─── Vibrating tab bar button ────────────────────────────────────────────────
+type VibratingTabBarButtonProps = BottomTabBarButtonProps & { pageIndex: number };
+
+const VibratingTabBarButton = ({
+  onPress,
+  style,
+  children,
+  accessibilityLabel,
+  testID,
+}: VibratingTabBarButtonProps) => {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const handlePress = (e: Parameters<NonNullable<typeof onPress>>[0]) => {
+    scale.value = 0.8;
+    scale.value = withSpring(1, Springs.elegant);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onPress) onPress(e);
+  };
+
+  return (
+    <TouchableOpacity
+      style={style}
+      onPress={handlePress}
+      activeOpacity={1}
+      accessibilityLabel={accessibilityLabel}
+      testID={testID}
+    >
+      <ReAnimated.View style={animStyle}>
+        {children}
+      </ReAnimated.View>
+    </TouchableOpacity>
+  );
+};
+
+// ─── Main tabs ───────────────────────────────────────────────────────────────
 const MainTabs = () => {
   const insets = useSafeAreaInsets();
+
   const tabBarBaseStyle = useMemo(
     () => ({
       backgroundColor: "transparent",
@@ -311,85 +476,108 @@ const MainTabs = () => {
       paddingBottom: insets.bottom,
       paddingTop: 8,
       position: "absolute" as const,
-      // borderTopWidth: 3.18,
-      // borderTopColor: "#FFFFFF",
       elevation: 0,
     }),
     [insets.bottom],
   );
+
+  const tabButtons = useMemo(
+    () => ({
+      events: (props: BottomTabBarButtonProps) => (
+        <VibratingTabBarButton {...props} pageIndex={0} />
+      ),
+      myEvents: (props: BottomTabBarButtonProps) => (
+        <VibratingTabBarButton {...props} pageIndex={1} />
+      ),
+      create: (props: BottomTabBarButtonProps) => (
+        <VibratingTabBarButton {...props} pageIndex={2} />
+      ),
+      messages: (props: BottomTabBarButtonProps) => (
+        <VibratingTabBarButton {...props} pageIndex={3} />
+      ),
+      profile: (props: BottomTabBarButtonProps) => (
+        <VibratingTabBarButton {...props} pageIndex={4} />
+      ),
+    }),
+    [],
+  );
+
   return (
     <Tab.Navigator
-      screenOptions={() => {
-        return {
+        screenOptions={() => ({
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: tabBarBaseStyle,
           tabBarBackground: () => <TabBarBackground />,
           tabBarActiveTintColor: colors.activeTabIndicator,
           tabBarInactiveTintColor: colors.tabInactive,
-          tabBarButton: (props) => <VibratingTabBarButton {...props} />,
           lazy: false,
           animation: "none",
           detachInactiveScreens: false,
-          sceneStyle: { backgroundColor: colors.background },
-        };
-      }}
-    >
-      <Tab.Screen
-        name="Events"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <EventsTabIcon focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="MyEvents"
-        component={MyEventsScreen}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <MyEventsTabIcon focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Create"
-        component={View}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            (navigation as any).navigate("CreateEvent", { editEventId: null });
-          },
+          sceneStyle: { backgroundColor: "transparent" },
         })}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <CreateTabIcon focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Messages"
-        component={MessagesScreen}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <MessagesTabIcon focused={focused} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <ProfileTabIcon focused={focused} color={color} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="Events"
+          component={EventsTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => (
+              <EventsTabIcon focused={focused} color={color} />
+            ),
+            tabBarButton: tabButtons.events,
+          }}
+        />
+        <Tab.Screen
+          name="MyEvents"
+          component={MyEventsTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => (
+              <MyEventsTabIcon focused={focused} color={color} />
+            ),
+            tabBarButton: tabButtons.myEvents,
+          }}
+        />
+        <Tab.Screen
+          name="Create"
+          component={View}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              e.preventDefault();
+              (navigation as any).navigate("CreateEvent", { editEventId: null });
+            },
+          })}
+          options={{
+            tabBarIcon: ({ focused, color }) => (
+              <CreateTabIcon focused={focused} color={color} />
+            ),
+            tabBarButton: tabButtons.create,
+          }}
+        />
+        <Tab.Screen
+          name="Messages"
+          component={MessagesTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => (
+              <MessagesTabIcon focused={focused} color={color} />
+            ),
+            tabBarButton: tabButtons.messages,
+          }}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => (
+              <ProfileTabIcon focused={focused} color={color} />
+            ),
+            tabBarButton: tabButtons.profile,
+          }}
+        />
+      </Tab.Navigator>
   );
 };
 
+// ─── Root navigator ──────────────────────────────────────────────────────────
 const AppNavigator = () => {
   const navigationTheme = {
     ...DefaultTheme,
@@ -410,34 +598,28 @@ const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
           gestureEnabled: true,
-          contentStyle: { backgroundColor: colors.background },
-          animation: "fade_from_bottom",
-          animationDuration: 200,
+          cardStyle: { backgroundColor: colors.background },
+          cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+          transitionSpec: {
+            open:  { animation: 'spring' as const, config: Springs.snappy },
+            close: { animation: 'spring' as const, config: Springs.snappy },
+          },
         }}
       >
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
           options={{
-            animation: "none",
-            headerShown: false,
-            contentStyle: { backgroundColor: "#050F29" },
+            cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+            cardStyle: { backgroundColor: "#050F29" },
           }}
         />
         <Stack.Screen
           name="Main"
           component={MainTabs}
           options={{
-            animation: "fade",
-          }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={GoogleSignIn}
-          options={{
-            presentation: "transparentModal",
-            animation: "fade",
-            animationDuration: 150,
+            gestureEnabled: false,
+            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
           }}
         />
         <Stack.Screen
@@ -445,95 +627,101 @@ const AppNavigator = () => {
           component={OnboardingScreen}
           options={{
             gestureEnabled: false,
-            animation: "fade",
+            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
           }}
         />
         <Stack.Screen
           name="EventDetails"
           component={EventDetailsScreen}
           options={{
-            animation: "slide_from_right",
-            animationDuration: 350,
+            cardStyleInterpolator: tabLikeInterpolator,
+            transitionSpec: tabLikeTransitionSpec,
           }}
         />
         <Stack.Screen
           name="JoinRequests"
           component={JoinRequestsScreen}
           options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 350,
+            cardStyleInterpolator: slideFromBottomInterpolator,
+            transitionSpec: slideFromBottomTransitionSpec,
           }}
         />
         <Stack.Screen
           name="PendingRequests"
-          component={PendingRequestsScreen}
+          component={PendingRequestsSheet}
           options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 350,
+            presentation: "transparentModal",
+            gestureEnabled: false,
+            cardOverlayEnabled: true,
+            cardStyle: { backgroundColor: "transparent" },
+            cardStyleInterpolator: sheetModalInterpolator,
+            transitionSpec: sheetModalTransitionSpec,
           }}
         />
         <Stack.Screen
           name="EventDetailsOverlay"
-          component={EventDetailsScreen}
+          component={EventDetailsOverlaySheet}
           options={{
-            presentation: "modal",
-            animation: "slide_from_bottom",
-            animationDuration: 350,
+            presentation: "transparentModal",
+            gestureEnabled: false,
+            cardOverlayEnabled: true,
+            cardStyle: { backgroundColor: "transparent" },
+            cardStyleInterpolator: sheetModalInterpolator,
+            transitionSpec: sheetModalTransitionSpec,
           }}
         />
         <Stack.Screen
           name="CreateEvent"
           component={CreateEventScreen}
           options={{
-            animation: "slide_from_bottom",
-            animationDuration: 250,
+            cardStyleInterpolator: slideFromBottomInterpolator,
+            transitionSpec: slideFromBottomTransitionSpec,
           }}
         />
         <Stack.Screen
           name="EditProfile"
           component={EditProfileScreen}
           options={{
-            animation: "slide_from_right",
-            animationDuration: 350,
+            cardStyleInterpolator: tabLikeInterpolator,
+            transitionSpec: tabLikeTransitionSpec,
           }}
         />
         <Stack.Screen
           name="PastEvents"
           component={PastEventsScreen}
           options={{
-            animation: "slide_from_right",
-            animationDuration: 350,
+            cardStyleInterpolator: tabLikeInterpolator,
+            transitionSpec: tabLikeTransitionSpec,
           }}
         />
         <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicyScreen}
           options={{
-            animation: "slide_from_right",
-            animationDuration: 350,
+            cardStyleInterpolator: tabLikeInterpolator,
+            transitionSpec: tabLikeTransitionSpec,
           }}
         />
         <Stack.Screen
           name="Help"
           component={HelpScreen}
           options={{
-            animation: "slide_from_right",
-            animationDuration: 350,
+            cardStyleInterpolator: tabLikeInterpolator,
+            transitionSpec: tabLikeTransitionSpec,
           }}
         />
         <Stack.Screen
           name="ChatThread"
           component={ChatThreadScreen}
           options={{
-            animation: "slide_from_right",
-            animationDuration: 350,
+            cardStyleInterpolator: tabLikeInterpolator,
+            transitionSpec: tabLikeTransitionSpec,
           }}
         />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
 
 export default AppNavigator;

@@ -1,13 +1,5 @@
 export type RootStackParamList = {
   Splash: undefined;
-  Login:
-    | {
-        redirect?: {
-          screen: keyof RootTabParamList;
-          params?: RootTabParamList[keyof RootTabParamList];
-        };
-      }
-    | undefined;
   Main: any;
   Onboarding: undefined;
   EventDetails: {

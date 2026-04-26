@@ -1,9 +1,8 @@
 import React from "react";
 import { Dimensions, FlatList, Pressable, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
-
 import { BlurView } from "expo-blur";
 
 import { COVER_OPTIONS, CoverKey } from "@constants/covers";
@@ -44,7 +43,7 @@ const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                                 <Pressable
                                     style={styles.option}
                                     onPress={() => {
-                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                         onSelect(item.key);
                                     }}
                                 >

@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import { colors } from "@theme/index";
 import BottomSheetModal from "./BottomSheetModal";
@@ -120,7 +121,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         ) : null}
         <Pressable
           accessibilityRole="button"
-          onPress={onSendInvite}
+          onPress={() => { if (!isDisabled) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onSendInvite(); } }}
           disabled={isDisabled}
           style={({ pressed }) => [
             styles.sendButton,
@@ -145,7 +146,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       <View style={styles.prompt}>
         <Pressable
           accessibilityRole="button"
-          onPress={onEdit}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onEdit(); }}
           style={({ pressed }) => [
             styles.manageButton,
             pressed && styles.manageButtonPressed,
@@ -156,7 +157,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={onDelete}
+          onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onDelete(); }}
           style={({ pressed }) => [
             styles.manageButton,
             pressed && styles.manageButtonPressed,
@@ -220,7 +221,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={onDismiss}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onDismiss(); }}
           style={({ pressed }) => [
             styles.primaryButton,
             tone === "error" && styles.destructiveButton,
@@ -249,7 +250,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       <View style={styles.prompt}>
         <Pressable
           accessibilityRole="button"
-          onPress={onCancelRequest}
+          onPress={() => { if (!isCancelling) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onCancelRequest(); } }}
           disabled={isCancelling}
           style={({ pressed }) => [
             styles.manageButton,
@@ -264,7 +265,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={onReportEvent}
+          onPress={() => { if (!isCancelling) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onReportEvent(); } }}
           disabled={isCancelling}
           style={({ pressed }) => [
             styles.manageButton,
@@ -309,7 +310,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         ) : null}
         <Pressable
           accessibilityRole="button"
-          onPress={onSubmitReport}
+          onPress={() => { if (!isDisabled) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onSubmitReport(); } }}
           disabled={isDisabled}
           style={({ pressed }) => [
             styles.sendButton,
@@ -338,7 +339,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             <Pressable
               key={index}
               accessibilityRole="button"
-              onPress={item.onPress}
+              onPress={() => { if (!isDisabled) { item.destructive ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning) : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); item.onPress(); } }}
               disabled={isDisabled}
               style={({ pressed }) => [
                 styles.manageButton,
@@ -374,7 +375,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={onDismiss}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onDismiss(); }}
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,

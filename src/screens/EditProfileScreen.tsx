@@ -9,10 +9,12 @@ import {
   View,
 } from "react-native";
 import { useCallback, useState } from "react";
+import ScalePressable from "@components/ScalePressable";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
 import UserAvatar from "@components/UserAvatar";
@@ -33,6 +35,7 @@ type EditProfileNavigation = NativeStackNavigationProp<RootStackParamList>;
 const EditProfileScreen = () => {
   const navigation = useNavigation<EditProfileNavigation>();
   const { user, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [editName, setEditName] = useState(user?.name ?? "");
   const [editAvatarBase64, setEditAvatarBase64] = useState<string | null>(null);
@@ -129,6 +132,7 @@ const EditProfileScreen = () => {
 
   return (
     <ScreenContainer>
+<<<<<<< Updated upstream
       {/* Header */}
       <View style={styles.header}>
         <Pressable
@@ -169,43 +173,97 @@ const EditProfileScreen = () => {
               <Feather name="x" size={13} color="#FFFFFF" />
             </TouchableOpacity>
           )}
+=======
+      <View style={styles.inner}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
+            style={styles.backButton}
+            hitSlop={8}
+          >
+            <Feather name="chevron-left" size={20} color={colors.text} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Edit Profile</Text>
+>>>>>>> Stashed changes
         </View>
 
-        <TextInput
-          style={styles.nameInput}
-          value={editName}
-          onChangeText={setEditName}
-          placeholder="Your Name"
-          placeholderTextColor="#9CA3AF"
-          autoCapitalize="words"
-          autoCorrect={false}
-          textAlign="center"
-          returnKeyType="done"
-          maxLength={50}
-        />
-      </View>
+        {/* Avatar + Name */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarWrapper}>
+            <TouchableOpacity onPress={pickImage} accessibilityRole="button">
+              {editAvatarUri ? (
+                <Image source={{ uri: editAvatarUri }} style={styles.avatarImage} />
+              ) : (
+                <LinearGradient
+                  colors={["#818CF8", "#6366F1", "#8B5CF6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatarGradient}
+                >
+                  <Text style={styles.avatarInitial}>
+                    {user?.name?.charAt(0).toUpperCase() ?? "?"}
+                  </Text>
+                </LinearGradient>
+              )}
+              <View style={styles.cameraBadge}>
+                <CameraIcon width={20} height={20} />
+              </View>
+            </TouchableOpacity>
+            {editAvatarUri && (
+              <TouchableOpacity
+                style={styles.removeBadge}
+                onPress={handleRemoveAvatar}
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
+              >
+                <Feather name="x" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+          </View>
 
-      {/* Save Button */}
-      <Pressable
-        style={[
-          styles.saveButton,
-          (!editHasChanges || isSubmitting) && styles.saveButtonDisabled,
-        ]}
-        onPress={handleSave}
-        disabled={!editHasChanges || isSubmitting}
-        accessibilityRole="button"
-      >
-        {isSubmitting ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Text style={styles.saveButtonText}>Save</Text>
-        )}
-      </Pressable>
+          <TextInput
+            style={styles.nameInput}
+            value={editName}
+            onChangeText={setEditName}
+            placeholder="Your Name"
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="words"
+            autoCorrect={false}
+            textAlign="center"
+            returnKeyType="done"
+            maxLength={50}
+          />
+        </View>
+
+        {/* Save Button — pinned to bottom */}
+        <View style={styles.buttonSection}>
+          <ScalePressable
+            onPress={handleSave}
+            disabled={!editHasChanges || isSubmitting}
+            style={[styles.saveButton, (!editHasChanges || isSubmitting) && styles.saveButtonDisabled]}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#9CA3AF" />
+            ) : (
+              <Text style={[styles.saveButtonText, (!editHasChanges || isSubmitting) && styles.saveButtonTextDisabled]}>
+                Save
+              </Text>
+            )}
+          </ScalePressable>
+        </View>
+      </View>
     </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
+  inner: {
+    flex: 1,
+    justifyContent: "space-between",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -225,28 +283,48 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarSection: {
+    flex: 1,
     alignItems: "center",
-    paddingTop: spacing.xl,
-    marginBottom: spacing.md,
+    justifyContent: "center",
+    marginBottom: 100,
   },
   avatarWrapper: {
     position: "relative",
-    marginBottom: 16,
+    marginBottom: 24,
   },
+<<<<<<< Updated upstream
   avatarFrame: {
     width: 80,
     height: 80,
     borderRadius: 80,
     borderWidth: 2,
     borderColor: "#E6E6E6",
+=======
+  avatarGradient: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarInitial: {
+    fontSize: 40,
+    color: "#FFFFFF",
+    fontFamily: typography.fontFamilyBold,
+>>>>>>> Stashed changes
   },
   cameraBadge: {
     position: "absolute",
-    bottom: -2,
-    right: -4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: 4,
+    right: -2,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
@@ -258,11 +336,11 @@ const styles = StyleSheet.create({
   },
   removeBadge: {
     position: "absolute",
-    top: -2,
-    right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: 0,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
@@ -277,12 +355,15 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#000000",
     textAlign: "center",
-    paddingVertical: 8,
+    paddingVertical: 12,
     minWidth: 200,
     letterSpacing: -0.5,
   },
+  buttonSection: {
+    paddingHorizontal: 16,
+  },
   saveButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: "#000000",
     borderRadius: 999,
     borderCurve: "continuous",
     height: 52,
@@ -290,15 +371,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   saveButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: "#E5E5E5",
   },
   saveButtonText: {
-    color: colors.buttonText,
-    fontSize: 18,
+    color: "#FFFFFF",
+    fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
-    lineHeight: 24,
-    letterSpacing: -0.5,
     textAlign: "center",
+  },
+  saveButtonTextDisabled: {
+    color: "#9CA3AF",
   },
 });
 

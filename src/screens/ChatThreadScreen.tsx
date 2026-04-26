@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import SendIcon from "@assets/chat-icons/send.svg";
+import * as Haptics from "expo-haptics";
 import {
   Dimensions,
   FlatList,
@@ -142,8 +143,14 @@ const ChatThreadScreen = () => {
     );
   }, [activeConversation]);
 
+  const isManuallyLeavingRef = useRef(false);
+
   useEffect(() => {
     if (!activeConversationId) {
+      if (isManuallyLeavingRef.current) {
+        isManuallyLeavingRef.current = false;
+        return;
+      }
       if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
@@ -220,6 +227,8 @@ const ChatThreadScreen = () => {
   }, [messages.length]);
 
   const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    isManuallyLeavingRef.current = true;
     setActiveConversation(null);
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -232,6 +241,7 @@ const ChatThreadScreen = () => {
     if (!activeConversationId || !draft.trim()) {
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sendMessage(activeConversationId, draft.trim());
     setDraft("");
   };
@@ -263,6 +273,7 @@ const ChatThreadScreen = () => {
     ) {
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     navigation.navigate("PendingRequests", {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
@@ -343,7 +354,7 @@ const ChatThreadScreen = () => {
     );
 
     const bubbleContent = item.failed ? (
-      <Pressable onPress={() => retryMessage(item.conversationId, item)}>
+      <Pressable onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); retryMessage(item.conversationId, item); }}>
         {bubble}
       </Pressable>
     ) : (
@@ -387,6 +398,7 @@ const ChatThreadScreen = () => {
         coverUri={eventCoverUri}
         onTitlePress={() => {
           if (activeConversation?.eventId) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             navigation.navigate("EventDetailsOverlay", {
               eventId: String(activeConversation.eventId),
               readOnly: true,

@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Button,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -19,6 +19,8 @@ import { colors, spacing, typography } from "@theme/index";
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
 import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from "@constants/featureFlags";
 import ScreenContainer from "@components/ScreenContainer";
+import GoogleLogo from "@assets/google-logo.svg";
+import AppleLogo from "@assets/apple-logo.svg";
 
 const GoogleSignInScreen = () => {
   const navigation =
@@ -208,7 +210,7 @@ const GoogleSignInScreen = () => {
   return (
     <ScreenContainer>
       <View style={styles.container}>
-        <Text style={styles.heading}>Sign in with Google</Text>
+        <Text style={styles.heading}>Sign in</Text>
         <Text
           style={[
             styles.helper,
@@ -219,28 +221,52 @@ const GoogleSignInScreen = () => {
         </Text>
 
         <View style={styles.buttonGroup}>
-          <Button
-            title={isSigningIn ? "Signing in..." : "Sign in with Google"}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              isSigningIn && styles.buttonDisabled,
+              pressed && !isSigningIn && styles.buttonPressed,
+            ]}
             onPress={onGooglePress}
             disabled={isSigningIn}
             testID="google-sign-in-button"
-          />
+            accessibilityRole="button"
+          >
+            <View style={styles.iconWrapper}>
+              {isSigningIn ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <GoogleLogo width={20} height={20} />
+              )}
+            </View>
+            <Text style={styles.buttonText}>
+              {isSigningIn ? "Signing in…" : "Continue with Google"}
+            </Text>
+          </Pressable>
 
           {shouldShowAppleButton ? (
-            <Button
-              title={isSigningIn ? "Signing in..." : "Sign in with Apple"}
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                isSigningIn && styles.buttonDisabled,
+                pressed && !isSigningIn && styles.buttonPressed,
+              ]}
               onPress={onApplePress}
               disabled={isSigningIn}
               testID="apple-sign-in-button"
-            />
+              accessibilityRole="button"
+            >
+              <View style={styles.iconWrapper}>
+                <AppleLogo width={20} height={20} />
+              </View>
+              <Text style={styles.buttonText}>Continue with Apple</Text>
+            </Pressable>
           ) : null}
         </View>
 
         {appleHelperText ? (
           <Text style={styles.helper}>{appleHelperText}</Text>
         ) : null}
-
-        {isSigningIn ? <ActivityIndicator color={colors.subText} /> : null}
       </View>
     </ScreenContainer>
   );
@@ -269,7 +295,35 @@ const styles = StyleSheet.create({
     color: "#B00020",
   },
   buttonGroup: {
-    gap: spacing.md,
+    gap: 12,
+  },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 52,
+    borderRadius: 26,
+    borderCurve: "continuous",
+    backgroundColor: "#000000",
+    paddingHorizontal: 16,
+  },
+  iconWrapper: {
+    position: "absolute",
+    left: 16,
+  },
+  buttonPressed: {
+    opacity: 0.85,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#FFFFFF",
+    lineHeight: 20,
+    letterSpacing: -0.3,
   },
 });
 

@@ -1,7 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Easing,
     Keyboard,
     Modal,
     Platform,
@@ -10,11 +8,20 @@ import {
     Text,
     View,
 } from "react-native";
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withSpring,
+    withTiming,
+    runOnJS,
+    Easing,
+} from "react-native-reanimated";
 
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
+import { Springs } from "@theme/springs";
 import styles from "./BottomSheetModal.styles";
 
 export type BottomSheetModalProps = {
@@ -28,92 +35,76 @@ export type BottomSheetModalProps = {
 const SLIDE_DISTANCE = 500;
 const BASE_PADDING_BOTTOM = 8;
 
+// Bezier approximation of iOS UIViewAnimationCurveKeyboard
+const IOS_KEYBOARD_EASING = Easing.bezier(0.36, 0.66, 0.04, 1);
+
 const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModalProps) => {
     const { bottom: safeBottom } = useSafeAreaInsets();
     const basePadding = BASE_PADDING_BOTTOM + safeBottom;
 
-    const slideAnim = useRef(new Animated.Value(SLIDE_DISTANCE)).current;
-    const backdropAnim = useRef(new Animated.Value(0)).current;
-    // Controls sheet's paddingBottom — grows to push content above the keyboard
-    // while the sheet itself stays anchored to the screen bottom (hidden behind keyboard)
-    const keyboardPaddingAnim = useRef(new Animated.Value(basePadding)).current;
+    const slideAnim = useSharedValue(SLIDE_DISTANCE);
+    const backdropAnim = useSharedValue(0);
+    const keyboardPaddingAnim = useSharedValue(basePadding);
     const [modalVisible, setModalVisible] = useState(false);
     const hasBeenVisible = useRef(false);
+
+    const sheetStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: slideAnim.value }],
+    }));
+    const backdropStyle = useAnimatedStyle(() => ({
+        opacity: backdropAnim.value,
+    }));
+    const keyboardStyle = useAnimatedStyle(() => ({
+        paddingBottom: keyboardPaddingAnim.value,
+    }));
+
+    const startOpenAnimation = useCallback(() => {
+        slideAnim.value = SLIDE_DISTANCE;
+        backdropAnim.value = 0;
+        keyboardPaddingAnim.value = basePadding;
+        slideAnim.value = withSpring(0, Springs.bouncyUp);
+        backdropAnim.value = withTiming(1, { duration: 100, easing: Easing.out(Easing.cubic) });
+    }, [basePadding]);
 
     useEffect(() => {
         if (visible) {
             hasBeenVisible.current = true;
             setModalVisible(true);
-            slideAnim.setValue(SLIDE_DISTANCE);
-            backdropAnim.setValue(0);
-            keyboardPaddingAnim.setValue(basePadding);
-
-            Animated.parallel([
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    tension: 280,
-                    friction: 26,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(backdropAnim, {
-                    toValue: 1,
-                    duration: 320,
-                    easing: Easing.out(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-            ]).start();
+            // Animation starts in onShow, after the modal content is rendered
         } else if (hasBeenVisible.current) {
-            Animated.parallel([
-                Animated.timing(slideAnim, {
-                    toValue: SLIDE_DISTANCE,
-                    duration: 260,
-                    easing: Easing.in(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-                Animated.timing(backdropAnim, {
-                    toValue: 0,
-                    duration: 220,
-                    easing: Easing.in(Easing.ease),
-                    useNativeDriver: true,
-                }),
-            ]).start(() => setModalVisible(false));
+            slideAnim.value = withSpring(SLIDE_DISTANCE, Springs.snappy, (finished) => {
+                if (finished) runOnJS(setModalVisible)(false);
+            });
+            backdropAnim.value = withTiming(0, { duration: 120, easing: Easing.in(Easing.ease) });
         }
-    }, [visible, slideAnim, backdropAnim, keyboardPaddingAnim]);
+    }, [visible]);
 
     useEffect(() => {
         const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
         const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-        // Bezier approximation of iOS UIViewAnimationCurveKeyboard:
-        // fast initial velocity, very short settle — matches the system keyboard spring.
-        const IOS_KEYBOARD_CURVE = Easing.bezier(0.36, 0.66, 0.04, 1);
-
         const showSub = Keyboard.addListener(showEvent, (event) => {
-            Animated.timing(keyboardPaddingAnim, {
-                toValue: event.endCoordinates.height + 16,
+            keyboardPaddingAnim.value = withTiming(event.endCoordinates.height + 16, {
                 duration: event.duration || 250,
-                easing: IOS_KEYBOARD_CURVE,
-                useNativeDriver: false,
-            }).start();
+                easing: IOS_KEYBOARD_EASING,
+            });
         });
 
         const hideSub = Keyboard.addListener(hideEvent, (event) => {
-            Animated.timing(keyboardPaddingAnim, {
-                toValue: basePadding,
+            keyboardPaddingAnim.value = withTiming(basePadding, {
                 duration: (event as any).duration || 250,
-                easing: IOS_KEYBOARD_CURVE,
-                useNativeDriver: false,
-            }).start();
+                easing: IOS_KEYBOARD_EASING,
+            });
         });
 
         return () => {
             showSub.remove();
             hideSub.remove();
         };
-    }, [keyboardPaddingAnim]);
+    }, [basePadding]);
 
     return (
-        <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent>
+        <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent onShow={startOpenAnimation}>
             {/* Full-screen Pressable handles backdrop dismiss */}
             <Pressable
                 style={StyleSheet.absoluteFill}
@@ -123,7 +114,7 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
             >
                 {/* Dim overlay — visual only, no touch */}
                 <Animated.View
-                    style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdropAnim }]}
+                    style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
                     pointerEvents="none"
                 />
 
@@ -132,12 +123,13 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
                     preventing them from bubbling up to the backdrop Pressable.
                     Child buttons are deeper so they still claim touches first. */}
                 <Animated.View
-                    style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}
+                    style={[styles.sheet, sheetStyle]}
                     testID="bottom-sheet-modal"
                     onStartShouldSetResponder={() => true}
                 >
-                    {/* JS-driver paddingBottom must be a separate node from native-driver transform */}
-                    <Animated.View style={{ paddingBottom: keyboardPaddingAnim }}>
+                    {/* Keyboard padding on a separate node since layout props
+                        can't share the same Animated.View as transform. */}
+                    <Animated.View style={keyboardStyle}>
                         {title !== undefined && (
                             <View style={styles.header}>
                                 <Text style={styles.title}>{title}</Text>

@@ -306,10 +306,11 @@ const CreateEventScreen = () => {
             const form = formOverride ?? getCurrentFormState();
             const trimmedName = form.eventName.trim();
             const trimmedDescription = form.description.trim();
+            const trimmedLocation = form.location.trim();
 
-            if (!trimmedName && !trimmedDescription) {
+            if (!trimmedName || !trimmedDescription || !trimmedLocation) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                setSubmitError("Please fill in all fields");
+                setSubmitError("All fields are required");
                 return;
             }
 
@@ -345,7 +346,7 @@ const CreateEventScreen = () => {
             setSubmitError(null);
             setIsSubmitting(true);
 
-            const locationLabel = form.location.trim() || "To be decided";
+            const locationLabel = trimmedLocation;
             const [rangeStart, rangeEnd] = form.ageRange;
             const minAge = Math.min(rangeStart, rangeEnd);
             const maxAge = Math.max(rangeStart, rangeEnd);
@@ -507,12 +508,8 @@ const CreateEventScreen = () => {
         }
 
         // Authenticated user flow — validate and submit
-        const hasContent =
-            formState.eventName.trim().length > 0 ||
-            formState.description.trim().length > 0;
-
-        if (!hasContent) {
-            setSubmitError("Please fill in all fields");
+        if (!formState.eventName.trim() || !formState.description.trim() || !formState.location.trim()) {
+            setSubmitError("All fields are required");
             return;
         }
 

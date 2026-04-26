@@ -12,6 +12,8 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
+import * as Haptics from "expo-haptics";
+
 import { colors, spacing, typography } from "@theme/index";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { RootStackParamList } from "@navigation/types";
@@ -109,7 +111,7 @@ const PendingRequestsScreen = () => {
           </Text>
           <Pressable
             accessibilityRole="button"
-            onPress={() => navigation.goBack()}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
             style={styles.closeButton}
             hitSlop={12}
           >
@@ -159,7 +161,7 @@ const PendingRequestsScreen = () => {
                       {!isExpanded && item.message.length > 100 && (
                         <Text
                           style={styles.seeMoreText}
-                          onPress={() => toggleRequestExpanded(item.id)}
+                          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleRequestExpanded(item.id); }}
                         >
                           See more
                         </Text>
@@ -169,7 +171,7 @@ const PendingRequestsScreen = () => {
                     <View style={styles.requestActions}>
                       <Pressable
                         style={[styles.actionButton, styles.declineButton]}
-                        onPress={() => handleDecline(item)}
+                        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleDecline(item); }}
                         disabled={isLoading}
                         accessibilityRole="button"
                         accessibilityLabel="Decline request"
@@ -183,7 +185,7 @@ const PendingRequestsScreen = () => {
 
                       <Pressable
                         style={[styles.actionButton, styles.acceptButton]}
-                        onPress={() => handleAccept(item)}
+                        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleAccept(item); }}
                         disabled={isLoading}
                         accessibilityRole="button"
                         accessibilityLabel="Accept request"

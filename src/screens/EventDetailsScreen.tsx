@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import * as Haptics from "expo-haptics";
+import ScalePressable from "@components/ScalePressable";
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -59,6 +61,7 @@ type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
   "EventDetails" | "EventDetailsOverlay"
 >;
+
 
 const EventDetailsScreen = () => {
   const navigation = useNavigation<EventDetailsNavigation>();
@@ -508,10 +511,12 @@ const EventDetailsScreen = () => {
     if (isConversationMember) {
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowInvitePrompt((prev) => !prev);
   };
 
   const handleOpenChat = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (
       isOwner &&
       isSingleEvent &&
@@ -531,7 +536,7 @@ const EventDetailsScreen = () => {
       return;
     }
     setActiveConversation(eventConversation.id);
-    (navigation as any).navigate("ChatThread");
+    (navigation as any).push("ChatThread");
   };
 
   const renderAvatar = (
@@ -548,6 +553,7 @@ const EventDetailsScreen = () => {
 
   const handleAcceptRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setAcceptingUserId(request.userId);
     try {
       await approveJoinRequest(
@@ -574,6 +580,7 @@ const EventDetailsScreen = () => {
 
   const handleDeclineRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setDecliningUserId(request.userId);
     try {
       await denyJoinRequest(
@@ -606,8 +613,9 @@ const EventDetailsScreen = () => {
 
   const handleRequesterPress = async (request: ChatJoinRequest) => {
     if (!request.conversationId) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveConversation(request.conversationId);
-    (navigation as any).navigate("ChatThread");
+    (navigation as any).push("ChatThread");
   };
 
   const openMemberMenu = (member: {
@@ -615,6 +623,7 @@ const EventDetailsScreen = () => {
     name: string;
     avatar?: string;
   }) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedMember(member);
     setShowMemberMenu(true);
   };
@@ -622,6 +631,7 @@ const EventDetailsScreen = () => {
   const handleRemoveMember = async () => {
     if (!event || !token || !selectedMember) return;
     if (isRemovingMember) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     const removedMemberName = selectedMember.name;
     setRemoveError(null);
     setIsRemovingMember(true);
@@ -698,6 +708,7 @@ const EventDetailsScreen = () => {
       setReportError("Please tell us why you are reporting this member.");
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setReportError(null);
     setIsReportingMember(true);
     try {
@@ -777,6 +788,7 @@ const EventDetailsScreen = () => {
       setInviteError("Please include a brief note for the host.");
       return;
     }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setInviteError(null);
     setIsSendingInvite(true);
     try {
@@ -852,6 +864,7 @@ const EventDetailsScreen = () => {
   const handleDeletePrompt = () => {
     setShowManagePrompt(false);
     setDeleteError(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     setShowDeleteConfirm(true);
   };
 
@@ -862,6 +875,7 @@ const EventDetailsScreen = () => {
     if (isDeleting) {
       return;
     }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setDeleteError(null);
     setIsDeleting(true);
     setDisableHostRequestPolling(true);
@@ -903,6 +917,7 @@ const EventDetailsScreen = () => {
     if (isCancellingRequest) {
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsCancellingRequest(true);
     try {
       const response = await authFetch(
@@ -948,6 +963,7 @@ const EventDetailsScreen = () => {
       setReportError("Please tell us why you are reporting this event.");
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setReportError(null);
     setIsSubmittingReport(true);
     try {
@@ -1004,6 +1020,7 @@ const EventDetailsScreen = () => {
   };
 
   const handleLeavePrompt = () => afterMenuClose(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     setLeaveError(null);
     setShowLeaveConfirm(true);
   });
@@ -1015,6 +1032,7 @@ const EventDetailsScreen = () => {
     if (isLeaving) {
       return;
     }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setLeaveError(null);
     setIsLeaving(true);
     try {
@@ -1079,6 +1097,7 @@ const EventDetailsScreen = () => {
   };
 
   const handleMenuReportEvent = () => afterMenuClose(() => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     setReportMessage("");
     setReportError(null);
     setShowReportPrompt(true);
@@ -1157,7 +1176,7 @@ const EventDetailsScreen = () => {
           <>
             <Pressable
               accessibilityRole="button"
-              onPress={navigation.goBack}
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
               style={[styles.backButton, { top: insets.top + 10 }]}
             >
               <Feather
@@ -1168,7 +1187,10 @@ const EventDetailsScreen = () => {
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              onPress={() => setShowMenuOverlay(true)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowMenuOverlay(true);
+              }}
               style={[styles.menuButton, { top: insets.top + 10 }]}
             >
               <Feather
@@ -1181,7 +1203,7 @@ const EventDetailsScreen = () => {
         ) : (
           <Pressable
             accessibilityRole="button"
-            onPress={navigation.goBack}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
             hitSlop={12}
             style={[styles.overlayCloseButton, styles.overlayCloseButtonFixed]}
           >
@@ -1309,6 +1331,7 @@ const EventDetailsScreen = () => {
                 >
                   {event.description}
                 </Text>
+<<<<<<< Updated upstream
                 {descriptionHasMore && (
                   <Text
                     style={styles.seeMoreText}
@@ -1316,6 +1339,17 @@ const EventDetailsScreen = () => {
                   >
                     {descriptionExpanded ? "Show less" : "...See more"}
                   </Text>
+=======
+                {event.description.length > 100 && !descriptionExpanded && (
+                  <ScalePressable
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setDescriptionExpanded(true);
+                    }}
+                  >
+                    <Text style={styles.seeMoreText}>...See more</Text>
+                  </ScalePressable>
+>>>>>>> Stashed changes
                 )}
               </View>
             )}
@@ -1326,10 +1360,13 @@ const EventDetailsScreen = () => {
                 {/* Tabs header + divider as one unit to avoid card gap */}
                 <View>
                   <View style={styles.tabContainer}>
-                    <Pressable
+                    <ScalePressable
                       style={styles.tabItem}
                       hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                      onPress={() => setActiveTab("requests")}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setActiveTab("requests");
+                      }}
                     >
                       <View style={styles.tabLabelRow}>
                         <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
@@ -1340,13 +1377,16 @@ const EventDetailsScreen = () => {
                         </Text>
                       </View>
                       {activeTab === "requests" && <View style={styles.tabUnderline} />}
-                    </Pressable>
+                    </ScalePressable>
 
                     {isSingleEvent && (
-                      <Pressable
+                      <ScalePressable
                         style={styles.tabItem}
                         hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                        onPress={() => setActiveTab("accepted")}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setActiveTab("accepted");
+                        }}
                       >
                         <View style={styles.tabLabelRow}>
                           <Text style={[styles.tabLabel, activeTab === "accepted" && styles.tabLabelActive]}>
@@ -1357,14 +1397,17 @@ const EventDetailsScreen = () => {
                           </Text>
                         </View>
                         {activeTab === "accepted" && <View style={styles.tabUnderline} />}
-                      </Pressable>
+                      </ScalePressable>
                     )}
 
                     {activeTab !== "accepted" && !isSingleEvent && (
-                      <Pressable
+                      <ScalePressable
                         style={styles.tabItem}
                         hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                        onPress={() => setActiveTab("members")}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setActiveTab("members");
+                        }}
                       >
                         <View style={styles.tabLabelRow}>
                           <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
@@ -1375,7 +1418,7 @@ const EventDetailsScreen = () => {
                           </Text>
                         </View>
                         {activeTab === "members" && <View style={styles.tabUnderline} />}
-                      </Pressable>
+                      </ScalePressable>
                     )}
                   </View>
                   <View style={[styles.divider, { marginVertical: 0 }]} />
@@ -1409,19 +1452,19 @@ const EventDetailsScreen = () => {
                                 {request.message}
                               </Text>
                               {!isExpanded && request.message.length > 100 && (
-                                <Text
-                                  style={styles.seeMoreText}
-                                  onPress={() =>
-                                    toggleRequestExpanded(request.id)
-                                  }
+                                <ScalePressable
+                                  onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    toggleRequestExpanded(request.id);
+                                  }}
                                 >
-                                  See more
-                                </Text>
+                                  <Text style={styles.seeMoreText}>See more</Text>
+                                </ScalePressable>
                               )}
                             </View>
 
                             <View style={styles.requestActions}>
-                              <Pressable
+                              <ScalePressable
                                 style={[
                                   styles.actionButton,
                                   styles.declineButton,
@@ -1441,9 +1484,9 @@ const EventDetailsScreen = () => {
                                     color={colors.text}
                                   />
                                 )}
-                              </Pressable>
+                              </ScalePressable>
 
-                              <Pressable
+                              <ScalePressable
                                 style={[
                                   styles.actionButton,
                                   styles.acceptButton,
@@ -1463,7 +1506,7 @@ const EventDetailsScreen = () => {
                                     color={colors.buttonText}
                                   />
                                 )}
-                              </Pressable>
+                              </ScalePressable>
                             </View>
                           </View>
                           {index < pendingRequests.length - 1 && (
@@ -1484,7 +1527,7 @@ const EventDetailsScreen = () => {
                       </Text>
                     ) : (
                       acceptedRequests.map((request) => (
-                        <Pressable
+                        <ScalePressable
                           key={request.id}
                           onPress={() => handleRequesterPress(request)}
                           style={styles.memberItem}
@@ -1493,11 +1536,8 @@ const EventDetailsScreen = () => {
                           <Text style={styles.memberName}>
                             {request.requester.name}
                           </Text>
-                          <Pressable
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              openMemberMenu(request.requester);
-                            }}
+                          <ScalePressable
+                            onPress={() => openMemberMenu(request.requester)}
                             style={styles.requestMenuButton}
                           >
                             <Feather
@@ -1505,8 +1545,8 @@ const EventDetailsScreen = () => {
                               size={24}
                               color="#666"
                             />
-                          </Pressable>
-                        </Pressable>
+                          </ScalePressable>
+                        </ScalePressable>
                       ))
                     )}
                   </View>
@@ -1522,7 +1562,7 @@ const EventDetailsScreen = () => {
                         <View key={member.id} style={styles.memberItem}>
                           {renderAvatar(member)}
                           <Text style={styles.memberName}>{member.name}</Text>
-                          <Pressable
+                          <ScalePressable
                             onPress={() => openMemberMenu(member)}
                             style={styles.requestMenuButton}
                           >
@@ -1531,7 +1571,7 @@ const EventDetailsScreen = () => {
                               size={24}
                               color="#666"
                             />
-                          </Pressable>
+                          </ScalePressable>
                         </View>
                       ))
                     )}
@@ -1572,7 +1612,7 @@ const EventDetailsScreen = () => {
                           {member.id === user?.id && isOwner ? (
                             <Text style={styles.hostBadgeText}>Host</Text>
                           ) : isOwner && member.id !== user?.id ? (
-                            <Pressable
+                            <ScalePressable
                               onPress={() => openMemberMenu(member)}
                               style={styles.requestMenuButton}
                             >
@@ -1581,7 +1621,7 @@ const EventDetailsScreen = () => {
                                 size={24}
                                 color="#666"
                               />
-                            </Pressable>
+                            </ScalePressable>
                           ) : null}
                         </View>
                       ))
@@ -1615,27 +1655,23 @@ const EventDetailsScreen = () => {
                 { paddingBottom: insets.bottom + 4 },
               ]}
             >
-              <Pressable
-                accessibilityRole="button"
+              <ScalePressable
                 onPress={handleCtaPress}
-                style={({ pressed }) => [
-                  styles.ctaButton,
-                  pressed && styles.ctaButtonPressed,
-                  (shouldShowInvitePrompt || hasPendingRequest) &&
-                    styles.ctaButtonDisabled,
-                ]}
                 disabled={shouldShowInvitePrompt || hasPendingRequest}
+                style={[
+                  styles.ctaButton,
+                  (shouldShowInvitePrompt || hasPendingRequest) && styles.ctaButtonDisabled,
+                ]}
               >
                 <Text
                   style={[
                     styles.ctaLabel,
-                    (shouldShowInvitePrompt || hasPendingRequest) &&
-                      styles.ctaLabelDisabled,
+                    (shouldShowInvitePrompt || hasPendingRequest) && styles.ctaLabelDisabled,
                   ]}
                 >
                   {ctaLabel}
                 </Text>
-              </Pressable>
+              </ScalePressable>
             </View>
           </View>
         )}
@@ -1647,21 +1683,14 @@ const EventDetailsScreen = () => {
               style={StyleSheet.absoluteFill}
             />
             <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 4 }]}>
-              <Pressable
-                accessibilityRole="button"
+              <ScalePressable
                 onPress={handleOpenChat}
-                style={({ pressed }) => [
-                  styles.ctaButton,
-                  isOwner && styles.ctaButtonSecondary,
-                  pressed && styles.ctaButtonPressed,
-                ]}
+                style={[styles.ctaButton, isOwner && styles.ctaButtonSecondary]}
               >
-                <Text
-                  style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}
-                >
+                <Text style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}>
                   Go to Chat
                 </Text>
-              </Pressable>
+              </ScalePressable>
             </View>
           </View>
         ) : null}

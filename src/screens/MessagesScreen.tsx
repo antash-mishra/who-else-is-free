@@ -1,14 +1,14 @@
 import {
   FlatList,
-  Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Image } from "expo-image";
+import * as Haptics from "expo-haptics";
 import { useCallback, useMemo, useState } from "react";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import ScalePressable from "@components/ScalePressable";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import {
@@ -48,9 +48,6 @@ const ConversationRow = ({
   events: { id: string; imageUri: string }[];
   userId?: number;
 }) => {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
   const { participants = [] } = item;
   const counterpart =
     participants.find((p) => p.id !== userId) ?? participants[0];
@@ -75,18 +72,11 @@ const ConversationRow = ({
   const avatarSeed = isGroup ? titleLabel : (counterpart?.id ?? titleLabel);
 
   return (
-    <Pressable
+    <ScalePressable
       onPress={() => onPress(item)}
-      onPressIn={() => { scale.value = withSpring(0.96, { damping: 40, stiffness: 600, mass: 0.3 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300, mass: 0.3 }); }}
+      onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+      style={[styles.conversationRow, item.id === activeConversationId && styles.conversationRowActive]}
     >
-      <Animated.View
-        style={[
-          animStyle,
-          styles.conversationRow,
-          item.id === activeConversationId && styles.conversationRowActive,
-        ]}
-      >
         {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
@@ -108,9 +98,8 @@ const ConversationRow = ({
             {previewText}
           </Text>
         </View>
-      </Animated.View>
       <View style={styles.conversationDivider} />
-    </Pressable>
+    </ScalePressable>
   );
 };
 
@@ -228,7 +217,7 @@ const MessagesScreen = () => {
         </View>
         <EmptyState
           title="No messages to show"
-          description={"Sign in to view conversations from\nevents you've created or joined"}
+          description={"Sign in to view conversations from events you've created or joined"}
           actionLabel="Continue"
           onActionPress={() => setSignInVisible(true)}
           imageSource={require('@assets/emptystate_chat.png')}
@@ -261,7 +250,7 @@ const MessagesScreen = () => {
             !isRefreshingConversations && !isConnecting ? (
               <EmptyState
                 title="No Messages Yet"
-                description={"Messages from your events\nwill appear here"}
+                description={"Messages from your events will appear here"}
                 imageSource={require('@assets/emptystate_chat.png')}
               />
             ) : null
