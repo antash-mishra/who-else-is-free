@@ -34,6 +34,7 @@ import { colors, spacing, typography } from "@theme/index";
 import { UserEvent, useEvents } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
 import { useChat } from "@context/ChatContext";
+import { useBloom } from "@context/BloomContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -125,12 +126,14 @@ const HomeScreen = () => {
   } = useEvents();
   const { user } = useAuth();
   const { conversations } = useChat();
+  const { signalReady } = useBloom();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [selectedPage, setSelectedPage] = useState(0);
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const hasLoadedOnce = useRef(false);
+  const hasSignalledReady = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
@@ -200,6 +203,13 @@ const HomeScreen = () => {
       hasLoadedOnce.current = true;
     }
   }, [isLoading, allEvents.length]);
+
+  useEffect(() => {
+    if (!isLoading && !hasSignalledReady.current) {
+      hasSignalledReady.current = true;
+      signalReady();
+    }
+  }, [isLoading, signalReady]);
 
   const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce.current;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;

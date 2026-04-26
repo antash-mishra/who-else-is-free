@@ -1,35 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Easing,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import * as SplashScreenModule from "expo-splash-screen";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { RootStackParamList } from "@navigation/types";
 import { useAuth } from "@context/AuthContext";
+import { useBloom } from "@context/BloomContext";
 import { typography } from "@theme/index";
 import SplashLogo from "@assets/splash_logo.svg";
 
-const FALLBACK_TIMEOUT_MS = 8000;
+const DISPLAY_DURATION_MS = 1600;
 
 const SplashScreen = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const { bloom, signalReady } = useBloom();
   const [isReady, setIsReady] = useState(false);
   const didNavigate = useRef(false);
 
-  const player = useVideoPlayer(require("../../assets/splash.mp4"), (p) => {
-    p.loop = false;
-    p.muted = true;
-    p.play();
-  });
+  const logoScale = useRef(new Animated.Value(1)).current;
 
   const onLayoutRootView = useCallback(async () => {
     if (!isReady) {
       setIsReady(true);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((r) => setTimeout(r, 50));
       await SplashScreenModule.hideAsync();
     }
   }, [isReady]);
@@ -37,70 +39,72 @@ const SplashScreen = () => {
   const navigateAway = useCallback(() => {
     if (didNavigate.current) return;
     didNavigate.current = true;
+    const dest: keyof RootStackParamList =
+      user && !user.profileComplete ? "Onboarding" : "Main";
 
-    let destination: keyof RootStackParamList = "Main";
-    if (user && !user.profileComplete) {
-      destination = "Onboarding";
-    }
-
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
+    Animated.timing(logoScale, {
+      toValue: 45,
+      duration: 450,
+      easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start(() => {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: destination }],
-      });
-    });
-  }, [fadeAnim, navigation, user]);
+    }).start();
+
+    // Navigate at 350ms (bloom ~50% opaque) — gives HomeScreen head start on fetching
+    setTimeout(() => {
+      navigation.reset({ index: 0, routes: [{ name: dest }] });
+      if (dest !== "Main") {
+        setTimeout(signalReady, 100);
+      }
+    }, 350);
+
+    setTimeout(() => {
+      bloom(() => {});
+    }, 200);
+  }, [logoScale, bloom, signalReady, navigation, user]);
 
   useEffect(() => {
     if (!isReady) return;
-
-    const sub = player.addListener("playToEnd", navigateAway);
-
-    // Fallback: navigate after timeout in case video fails to play or fires no event
-    const timer = setTimeout(navigateAway, FALLBACK_TIMEOUT_MS);
-
-    return () => {
-      sub.remove();
-      clearTimeout(timer);
-    };
-  }, [isReady, player, navigateAway]);
+    const timer = setTimeout(navigateAway, DISPLAY_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isReady, navigateAway]);
 
   return (
-    <Animated.View
-      testID="splash-container"
-      style={[styles.container, { opacity: fadeAnim }]}
-      onLayout={onLayoutRootView}
-    >
-      <VideoView
-        player={player}
-        style={styles.video}
-        contentFit="cover"
-        nativeControls={false}
+    <View style={styles.root} onLayout={onLayoutRootView}>
+      <Image
+        source={require("../../assets/splash/VicarStreet.png")}
+        style={styles.image}
+        resizeMode="cover"
       />
       <View style={styles.overlay}>
-        <SplashLogo width={184} height={67} />
-        <Text style={styles.tagline}>Who Else Is Free</Text>
+        <View style={styles.center}>
+          <Animated.View style={{ transform: [{ scale: logoScale }] }}>
+            <SplashLogo width={184} height={67} />
+          </Animated.View>
+          <Text style={styles.tagline}>Who Else Is Free</Text>
+        </View>
+        <Text style={styles.location}>Vicar Street, Dublin</Text>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: "#050F29",
+    backgroundColor: "#000000",
   },
-  video: {
+  image: {
     ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
   },
   overlay: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  center: {
+    alignItems: "center",
   },
   tagline: {
     fontFamily: typography.fontFamilyMedium,
@@ -109,6 +113,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     color: "#FFFFFF",
     marginTop: 20,
+  },
+  location: {
+    position: "absolute",
+    bottom: 20,
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: 13,
+    color: "#FFFFFF",
+    opacity: 0.6,
+    letterSpacing: -0.3,
   },
 });
 

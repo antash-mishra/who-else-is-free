@@ -26,7 +26,7 @@ import MyEventsScreen from "@screens/MyEventsScreen";
 import MessagesScreen from "@screens/MessagesScreen";
 import ChatThreadScreen from "@screens/ChatThreadScreen";
 import ProfileScreen from "@screens/ProfileScreen";
-import LoginScreen from "@screens/LoginScreen";
+import GoogleSignIn from "@screens/GoogleSignIn";
 import EventDetailsScreen from "@screens/EventDetailsScreen";
 import SplashScreen from "@screens/SplashScreen";
 import OnboardingScreen from "@screens/OnboardingScreen";
@@ -619,6 +619,14 @@ const AppNavigator = () => {
           component={MainTabs}
           options={{
             gestureEnabled: false,
+            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+          }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={GoogleSignIn}
+          options={{
+            presentation: "transparentModal",
             cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
           }}
         />
