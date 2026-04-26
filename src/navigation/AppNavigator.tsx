@@ -653,6 +653,14 @@ const AppNavigator = () => {
           }}
         />
         <Stack.Screen
+          name="Login"
+          component={GoogleSignIn}
+          options={{
+            presentation: "transparentModal",
+            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+          }}
+        />
+        <Stack.Screen
           name="Onboarding"
           component={OnboardingScreen}
           options={{
