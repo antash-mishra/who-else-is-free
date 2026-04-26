@@ -1119,8 +1119,9 @@ const EventDetailsScreen = () => {
       ];
     }
     if (hasPendingRequest) {
-      // Pending: Cancel Request, Report Event
+      // Pending: View Intro Message, Cancel Request, Report Event
       return [
+        { label: "View Intro Message", onPress: handleMenuViewIntro },
         {
           label: "Cancel Request",
           onPress: handleMenuCancelRequest,
@@ -1589,7 +1590,7 @@ const EventDetailsScreen = () => {
                 </>
               )}
 
-            {userIntroMessage && !readOnly ? (
+            {userIntroMessage && !readOnly && isConversationMember ? (
               <>
                 <View style={styles.divider} />
                 <Text style={styles.sectionHeading}>Introduction</Text>
