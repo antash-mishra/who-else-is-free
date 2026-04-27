@@ -12,11 +12,11 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppNavigator from '@navigation/AppNavigator';
 import { colors } from '@theme/colors';
+import { BloomProvider } from '@context/BloomContext';
 import { EventsProvider } from '@context/EventsContext';
 import { AuthProvider } from '@context/AuthContext';
 import { ChatProvider } from '@context/ChatContext';
 import { PushProvider } from '@context/PushContext';
-import { BloomProvider } from '@context/BloomContext';
 
 // Prevent native splash from auto-hiding before fonts load
 SplashScreen.preventAutoHideAsync();

@@ -26,9 +26,9 @@ import MyEventsScreen from "@screens/MyEventsScreen";
 import MessagesScreen from "@screens/MessagesScreen";
 import ChatThreadScreen from "@screens/ChatThreadScreen";
 import ProfileScreen from "@screens/ProfileScreen";
-import GoogleSignIn from "@screens/GoogleSignIn";
 import EventDetailsScreen from "@screens/EventDetailsScreen";
 import SplashScreen from "@screens/SplashScreen";
+import GoogleSignIn from "@screens/GoogleSignIn";
 import OnboardingScreen from "@screens/OnboardingScreen";
 import { navigationRef } from "@navigation/navigationRef";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
@@ -359,14 +359,15 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
       <Svg
         width={TAB_ICON_WIDTH}
         height={TAB_ICON_HEIGHT}
-        viewBox="-3 -3 30 31"
+        viewBox="0 0 29 29"
         fill="none"
+        style={focused ? { transform: [{ scale: 1.12 }] } : undefined}
       >
         <Path
-          d="M13.1269 1.31458L12.5763 1.26109C12.0255 1.22242 11.4724 1.22706 10.9222 1.27683L10.8949 1.27998C8.1714 1.5868 5.78746 2.67148 3.93547 4.76442L3.57254 5.19657C1.81763 7.3797 0.998566 10.1694 1.29328 12.9553V12.9627C1.4485 14.346 1.94324 16.0764 2.82783 17.3239C3.02151 17.5971 3.20879 17.8467 3.37641 18.0697C3.54789 18.2979 3.69302 18.4914 3.82219 18.6738C4.08661 19.0476 4.21015 19.2798 4.26377 19.4595C4.31829 19.6422 4.34961 20.3896 3.5222 21.1388L1.84961 22.8896C2.10299 23.3356 3.44207 23.6987 4.3267 23.5617C5.21133 23.4248 6.12197 23.2344 7.03286 22.8937V22.8926C7.43404 22.7423 7.77407 22.5907 8.0461 22.472C8.33074 22.3477 8.52747 22.266 8.71321 22.2087C9.01398 22.1159 9.33594 22.0702 9.95091 22.2087C9.98551 22.2165 10.0206 22.2228 10.0558 22.2275C11.091 22.3683 11.9141 22.4318 13.0399 22.3041C17.7283 21.772 21.6528 17.976 22.2849 13.2805C22.6621 10.4926 21.9215 7.66818 20.2239 5.42522L20.2196 5.41893L19.8861 5.00671C18.175 2.98843 15.7725 1.66905 13.1385 1.31563L13.1269 1.31458Z"
+          d="M21.6674 7.33059C22.9601 8.81846 24.1065 10.8185 24.1309 13.6967C24.1797 15.1602 23.8626 16.5505 23.3992 17.6237C22.9601 18.6482 22.3504 19.6482 21.5454 20.5019C21.1796 20.8922 20.7649 21.258 20.3259 21.5995C19.4722 22.2581 18.4965 22.8191 17.3501 23.2581C16.3013 23.5996 15.0817 23.8435 13.7646 23.8191C13.3012 23.7947 12.8377 23.7459 12.3499 23.6484C12.0328 23.5996 11.7645 23.5264 11.4474 23.5264C10.9352 23.5508 10.7645 23.6728 10.423 23.8679C10.1303 24.0386 9.88639 24.185 9.61809 24.3069C8.91074 24.6484 8.08143 24.8679 7.15456 24.9655C6.95943 24.9899 6.61796 25.0143 6.39843 24.9899C6.17891 24.9655 5.98378 24.746 6.00817 24.5021C6.05696 24.3069 6.30087 24.0142 6.42283 23.8435L6.91065 23.1605C7.17896 22.7947 7.39848 22.4044 7.39848 21.8922C7.39848 21.3068 7.10578 20.9409 6.86187 20.697C5.44717 19.1116 4.42274 17.0139 4.30078 14.2821V13.6967C4.37396 11.5015 5.10569 9.76972 6.00817 8.4282C6.88626 7.15985 8.13022 6.06224 9.34978 5.35489C10.3254 4.79389 11.423 4.33045 12.8377 4.11093C14.5451 3.86702 16.1306 4.03776 17.4477 4.50119C19.0087 5.0378 20.521 6.06224 21.6674 7.33059Z"
           fill={fillColor}
           stroke={strokeColor}
-          strokeWidth={2.6}
+          strokeWidth={focused ? 1.5 : 2.43}
           strokeLinejoin="round"
         />
       </Svg>
@@ -619,7 +620,7 @@ const AppNavigator = () => {
           component={MainTabs}
           options={{
             gestureEnabled: false,
-            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+            cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
           }}
         />
         <Stack.Screen
