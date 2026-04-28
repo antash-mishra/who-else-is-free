@@ -8,9 +8,9 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
-      image: "./assets/splash-screen-high-res.png",
+      image: "./assets/splash/VicarStreet.png",
       resizeMode: "cover",
-      backgroundColor: "#050F29",
+      backgroundColor: "#000000",
     },
     ios: {
       supportsTablet: true,

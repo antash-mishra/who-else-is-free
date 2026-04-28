@@ -29,6 +29,7 @@ export type RootStackParamList = {
   PastEvents: undefined;
   PrivacyPolicy: undefined;
   Help: undefined;
+  Login: undefined;
 };
 
 export type RootTabParamList = {
