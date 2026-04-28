@@ -13,6 +13,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as AppleAuthentication from "expo-apple-authentication";
 
+import * as Haptics from "expo-haptics";
+
 import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import { colors, spacing, typography } from "@theme/index";
@@ -106,6 +108,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
     );
 
     const onGooglePress = useCallback(async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (!isNativeAvailable) {
             Alert.alert(
                 "Google Sign-In Unavailable",
@@ -138,6 +141,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
     }, [handlePostSignInNavigation, isNativeAvailable, signInWithGoogle]);
 
     const onApplePress = useCallback(async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (Platform.OS !== "ios") {
             Alert.alert(
                 "Apple Sign-In (Dev Preview)",

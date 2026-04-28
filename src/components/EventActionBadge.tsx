@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { BlurView } from "expo-blur";
 
-import { spacing, typography } from "@theme/index";
+import { typography, Springs } from "@theme/index";
 
 const BADGE_HOLD_MS = 3000;
 const FADE_MS = 180;
@@ -87,9 +87,7 @@ const EventActionBadge = ({
     const enterAnim = Animated.parallel([
       Animated.spring(translateY, {
         toValue: 0,
-        damping: 20,
-        stiffness: 280,
-        mass: 0.8,
+        ...Springs.bouncyUp,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
@@ -159,6 +157,7 @@ const styles = StyleSheet.create({
   badge: {
     position: "absolute",
     alignSelf: "center",
+    zIndex: 20,
     maxWidth: "92%",
     paddingVertical: 12,
     paddingHorizontal: 16,

@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -20,7 +21,7 @@ const HelpScreen = () => {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          onPress={() => navigation.goBack()}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
           style={styles.backButton}
           hitSlop={8}
         >

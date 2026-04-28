@@ -54,7 +54,7 @@ function SelectionModal<T>({
             </View>
             <Pressable
                 style={styles.selectButton}
-                onPress={onConfirm}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onConfirm(); }}
                 testID="selection-modal-confirm"
                 accessibilityRole="button"
             >

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 import styles from './EventActionOverlay.styles';
 
@@ -35,7 +36,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
     <View style={styles.promptButtons}>
       <Pressable
         accessibilityRole="button"
-        onPress={onCancel}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onCancel(); }}
         style={({ pressed }) => [
           styles.secondaryButton,
           pressed && styles.secondaryButtonPressed
@@ -45,7 +46,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        onPress={isConfirmLoading ? undefined : onConfirm}
+        onPress={isConfirmLoading ? undefined : () => { confirmTone === 'destructive' ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning) : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
         disabled={isConfirmLoading}
         style={({ pressed }) => [
           styles.primaryButton,

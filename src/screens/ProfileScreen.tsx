@@ -1,14 +1,14 @@
 import {
   Alert,
-  Animated,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import ScalePressable from "@components/ScalePressable";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   CompositeNavigationProp,
   useNavigation,
@@ -45,6 +45,7 @@ interface MenuItemProps {
   label: string;
   onPress: () => void;
   showChevron?: boolean;
+  haptic?: "light" | "medium" | "warning";
 }
 
 const MenuItem = ({
@@ -52,13 +53,21 @@ const MenuItem = ({
   label,
   onPress,
   showChevron = true,
+  haptic = "light",
 }: MenuItemProps) => {
+  const handlePress = () => {
+    if (haptic === "warning") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } else if (haptic === "medium") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onPress();
+  };
+
   return (
-    <Pressable
-      style={styles.menuItem}
-      onPress={onPress}
-      accessibilityRole="button"
-    >
+    <ScalePressable pressableStyle={styles.menuItem} style={styles.menuItemInner} onPress={handlePress}>
       <View style={styles.menuItemLeft}>
         <View style={styles.menuIconContainer}>
           {icon}
@@ -68,7 +77,7 @@ const MenuItem = ({
       {showChevron && (
         <Feather name="chevron-right" size={20} color="#808080" />
       )}
-    </Pressable>
+    </ScalePressable>
   );
 };
 
@@ -134,24 +143,6 @@ const ProfileScreen = () => {
     Alert.alert("Delete Account", "Coming Soon");
   }, []);
 
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = useCallback(() => {
-    Animated.timing(scaleAnim, {
-      toValue: 0.97,
-      duration: 100,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
-
-  const handlePressOut = useCallback(() => {
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 100,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
-
   const [signInVisible, setSignInVisible] = useState(false);
 
   if (!user) {
@@ -166,14 +157,16 @@ const ProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.guestCard}>
-            <View style={styles.guestAvatar} />
             <Text style={styles.guestTitle}>No profile to show</Text>
             <Text style={styles.guestDescription}>
               Sign in to view your account
             </Text>
             <Pressable
               style={styles.guestButton}
-              onPress={() => setSignInVisible(true)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSignInVisible(true);
+              }}
             >
               <Text style={styles.guestButtonText}>Continue</Text>
             </Pressable>
@@ -209,36 +202,40 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header Card with Gradient */}
-        <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
-          <Animated.View style={[styles.headerCard, { transform: [{ scale: scaleAnim }] }]}>
-            <View style={styles.headerCardGradient}>
-              <View style={styles.headerContent}>
-                <UserAvatar
-                  avatar={user.avatar}
-                  name={user.name}
-                  seed={user.id}
-                  size={68}
-                  style={styles.avatar}
-                />
-                <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
-                <Text style={styles.email}>{user?.email ?? ""}</Text>
+        <ScalePressable
+          style={styles.headerCard}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            handleEditProfile();
+          }}
+        >
+          <View style={styles.headerCardGradient}>
+            <View style={styles.headerContent}>
+              <UserAvatar
+                avatar={user.avatar}
+                name={user.name}
+                seed={user.id}
+                size={68}
+                style={styles.avatar}
+              />
+              <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
+              <Text style={styles.email}>{user?.email ?? ""}</Text>
 
-                {/* Stats Row */}
-                <View style={styles.statsPill}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>{hostedCount}</Text>
-                    <Text style={styles.statLabel}>Hosted</Text>
-                  </View>
-                  <View style={styles.statDivider} />
-                  <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>{joinedCount}</Text>
-                    <Text style={styles.statLabel}>Joined</Text>
-                  </View>
+              {/* Stats Row */}
+              <View style={styles.statsPill}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{hostedCount}</Text>
+                  <Text style={styles.statLabel}>Hosted</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>{joinedCount}</Text>
+                  <Text style={styles.statLabel}>Joined</Text>
                 </View>
               </View>
             </View>
-          </Animated.View>
-        </Pressable>
+          </View>
+        </ScalePressable>
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <MenuItem
@@ -266,12 +263,14 @@ const ProfileScreen = () => {
             label="Logout"
             onPress={handleSignOut}
             showChevron={false}
+            haptic="medium"
           />
           <MenuItem
             icon={<TrashIcon width={20} height={20} />}
             label="Delete"
             onPress={handleDelete}
             showChevron={false}
+            haptic="warning"
           />
         </View>
       </ScrollView>
@@ -368,12 +367,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   menuItem: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E6E6E6",
+  },
+  menuItemInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 17,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E6E6E6",
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -425,17 +426,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   guestButton: {
-    width: 173,
-    height: 48,
-    borderRadius: 52,
-    backgroundColor: colors.buttonBackground,
+    height: 52,
+    borderRadius: 26,
+    borderCurve: "continuous",
+    backgroundColor: "#000000",
+    paddingHorizontal: 32,
     alignItems: "center",
     justifyContent: "center",
   },
   guestButtonText: {
     fontSize: 16,
-    fontFamily: typography.fontFamilySemiBold,
+    fontFamily: typography.fontFamilyMedium,
     color: "#FFFFFF",
+    lineHeight: 20,
+    letterSpacing: -0.3,
   },
 });
 

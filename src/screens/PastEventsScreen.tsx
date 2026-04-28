@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +10,8 @@ import {
   Text,
   View,
 } from "react-native";
+import ScalePressable from "@components/ScalePressable";
+import * as Haptics from "expo-haptics";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -22,6 +24,7 @@ import { useAuth } from "@context/AuthContext";
 import { API_BASE_URL } from "@api/config";
 import { CoverKey, resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   formatAbsoluteDateLabel,
   getScheduleDisplay,
@@ -89,9 +92,16 @@ const buildPastSections = (items: PastEventItem[]): PastEventSection[] => {
     .filter((section) => section.data.length > 0);
 };
 
+const EventCardItem = memo(({ item, onPress }: { item: PastEventItem; onPress: () => void }) => (
+  <ScalePressable onPress={onPress} delay={80}>
+    <EventCard {...item} />
+  </ScalePressable>
+));
+
 const PastEventsScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { bottom: safeBottom } = useSafeAreaInsets();
   const { user, token, authFetch } = useAuth();
   const isFocused = useIsFocused();
   const [events, setEvents] = useState<PastEventItem[]>([]);
@@ -159,9 +169,13 @@ const PastEventsScreen = () => {
   );
 
   const renderItem = ({ item }: SectionListRenderItemInfo<PastEventItem>) => (
-    <View style={styles.eventPressable}>
-      <EventCard {...item} />
-    </View>
+    <EventCardItem
+      item={item}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        navigation.navigate("EventDetails", { eventId: item.id });
+      }}
+    />
   );
 
   const showLoading = isLoading && events.length === 0;
@@ -169,12 +183,12 @@ const PastEventsScreen = () => {
   const showEmpty = !isLoading && events.length === 0 && !error;
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={["top"]}>
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Go back"
-          onPress={() => navigation.goBack()}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
           style={styles.backButton}
           hitSlop={8}
         >
@@ -218,7 +232,7 @@ const PastEventsScreen = () => {
           renderSectionHeader={renderSectionHeader}
           stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: safeBottom }]}
           SectionSeparatorComponent={({ leadingItem }) =>
             leadingItem ? <View style={styles.sectionSeparator} /> : null
           }
@@ -255,21 +269,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     letterSpacing: -0.4,
   },
-  listContent: {
-    paddingBottom: spacing.xl,
-  },
+  listContent: {},
   sectionHeader: {
-    fontSize: 16,
-    color: "#000000",
+    fontSize: 15,
+    color: '#808080',
     marginTop: 0,
-    marginBottom: 14,
+    marginBottom: 12,
     fontFamily: typography.fontFamilyMedium,
     flexShrink: 1,
     lineHeight: 20,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   sectionSeparator: {
-    height: 28,
+    height: 22,
   },
   itemSeparator: {
     height: 14,
@@ -299,12 +311,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
-  },
-  eventPressable: {
-    borderRadius: 20,
-  },
-  eventPressablePressed: {
-    opacity: 0.85,
   },
 });
 

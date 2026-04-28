@@ -3,19 +3,16 @@ import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   SectionList,
   SectionListRenderItemInfo,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
-import PagerView from "react-native-pager-view";
+import AnimatedPager from "@components/AnimatedPager";
+import ScalePressable from "@components/ScalePressable";
+import * as Haptics from "expo-haptics";
+import { useSharedValue } from "react-native-reanimated";
 import {
   useNavigation,
   useRoute,
@@ -99,24 +96,11 @@ type EventCardItemProps = {
   onPress: () => void;
 };
 
-const EventCardItem = memo(({ item, onPress }: EventCardItemProps) => {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={() => { scale.value = withSpring(0.96, { damping: 40, stiffness: 600, mass: 0.3 }); }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300, mass: 0.3 }); }}
-    >
-      <Animated.View style={animStyle}>
-        <EventCard {...item} />
-      </Animated.View>
-    </Pressable>
-  );
-});
+const EventCardItem = memo(({ item, onPress }: EventCardItemProps) => (
+  <ScalePressable onPress={onPress} delay={80}>
+    <EventCard {...item} />
+  </ScalePressable>
+));
 
 const sortOptions = [
   { label: "Upcoming", value: "upcoming" },
@@ -143,8 +127,8 @@ const HomeScreen = () => {
   const { conversations } = useChat();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const pagerRef = useRef<PagerView>(null);
   const [selectedPage, setSelectedPage] = useState(0);
+  const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const hasLoadedOnce = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
@@ -154,17 +138,20 @@ const HomeScreen = () => {
 
   useEffect(() => {
     if (!route.params?.showEventReportedBadge) return;
-    setShowReportedBadge(true);
+    const t = setTimeout(() => setShowReportedBadge(true), 350);
+    return () => clearTimeout(t);
   }, [route.params?.showEventReportedBadge]);
 
   useEffect(() => {
     if (!route.params?.showEventDeletedBadge) return;
-    setShowEventDeletedBadge(true);
+    const t = setTimeout(() => setShowEventDeletedBadge(true), 350);
+    return () => clearTimeout(t);
   }, [route.params?.showEventDeletedBadge]);
 
   useEffect(() => {
     if (!route.params?.showEventLeftBadge) return;
-    setShowEventLeftBadge(true);
+    const t = setTimeout(() => setShowEventLeftBadge(true), 350);
+    return () => clearTimeout(t);
   }, [route.params?.showEventLeftBadge]);
 
   // Set of event IDs user has joined (is a member of conversation but not owner)
@@ -245,12 +232,13 @@ const HomeScreen = () => {
   const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
     <EventCardItem
       item={item}
-      onPress={() =>
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         navigation.navigate("EventDetails", {
           eventId: item.id,
           origin: "Events",
-        })
-      }
+        });
+      }}
     />
   );
 
@@ -264,23 +252,18 @@ const HomeScreen = () => {
         ) : showAllEventsError ? (
           <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
             <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={handleRefresh}>
+            <Pressable style={styles.retryButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleRefresh(); }}>
               <Text style={styles.retryButtonText}>Try again</Text>
             </Pressable>
           </View>
         ) : (
-          <PagerView
-            ref={pagerRef}
+          <AnimatedPager
+            selectedIndex={selectedPage}
+            onPageChange={setSelectedPage}
+            pageOffsetSV={pageOffset}
             style={styles.pager}
-            initialPage={0}
-            onPageSelected={(e) => setSelectedPage(e.nativeEvent.position)}
-            onPageScroll={(e) => {
-              const { position, offset } = e.nativeEvent;
-              if (offset > 0.5) setSelectedPage(position + 1);
-              else setSelectedPage(position);
-            }}
           >
-            <View key="upcoming" style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
               <SectionList<EventItemProps, EventSection>
                 sections={upcomingSections}
                 keyExtractor={(item) => item.id}
@@ -292,11 +275,11 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available.\nPlease check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
+                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>
-            <View key="newest" style={{ flex: 1 }}>
+            <View style={{ flex: 1 }}>
               <SectionList<EventItemProps, EventSection>
                 sections={newestSections}
                 keyExtractor={(item) => item.id}
@@ -308,11 +291,11 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available.\nPlease check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
+                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>
-          </PagerView>
+          </AnimatedPager>
         )}
         {/* Floating header */}
         <View
@@ -329,8 +312,8 @@ const HomeScreen = () => {
               onChange={(value) => {
                 const index = sortOptions.findIndex((o) => o.value === value);
                 setSelectedPage(index);
-                pagerRef.current?.setPage(index);
               }}
+              pageOffset={pageOffset}
             />
           </View>
         </View>

@@ -1,5 +1,6 @@
 import { ComponentType, memo } from 'react';
 import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SvgProps } from 'react-native-svg';
 
 import CreateEventIllustration from '@assets/create-event.svg';
@@ -48,12 +49,12 @@ const EmptyState = ({
       {(actionLabel || secondaryActionLabel) ? (
         <View style={styles.buttonContainer}>
           {secondaryActionLabel ? (
-            <Pressable style={styles.secondaryButton} onPress={onSecondaryActionPress}>
+            <Pressable style={styles.secondaryButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSecondaryActionPress?.(); }}>
               <Text style={styles.secondaryButtonText}>{secondaryActionLabel}</Text>
             </Pressable>
           ) : null}
           {actionLabel ? (
-            <Pressable style={styles.button} onPress={onActionPress} testID="empty-state-action">
+            <Pressable style={styles.button} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onActionPress?.(); }} testID="empty-state-action">
               <Text style={styles.buttonText}>{actionLabel}</Text>
             </Pressable>
           ) : null}
@@ -89,42 +90,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: typography.fontFamilyRegular,
     lineHeight: 20,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
+    maxWidth: 280,
   },
   buttonContainer: {
     flexDirection: 'row',
     gap: 10
   },
   button: {
-    width: 173,
-    height: 48,
-    borderRadius: 52,
-    backgroundColor: colors.buttonBackground,
+    height: 52,
+    borderRadius: 26,
+    borderCurve: 'continuous',
+    backgroundColor: '#000000',
+    paddingHorizontal: 32,
     alignItems: 'center',
     justifyContent: 'center'
   },
   buttonText: {
-    color: colors.buttonText,
+    color: '#FFFFFF',
     fontFamily: typography.fontFamilyMedium,
-    fontSize: 17,
-    lineHeight: 24,
-    letterSpacing: -0.5,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: -0.3,
     textAlign: 'center'
   },
   secondaryButton: {
-    width: 173,
-    height: 48,
-    borderRadius: 52,
+    height: 52,
+    borderRadius: 26,
+    borderCurve: 'continuous',
     backgroundColor: '#E6E6E6',
+    paddingHorizontal: 32,
     alignItems: 'center',
     justifyContent: 'center'
   },
   secondaryButtonText: {
-    color: colors.buttonBackground,
+    color: '#000000',
     fontFamily: typography.fontFamilyMedium,
-    fontSize: 17,
-    lineHeight: 24,
-    letterSpacing: -0.5,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: -0.3,
     textAlign: 'center'
   }
 });
