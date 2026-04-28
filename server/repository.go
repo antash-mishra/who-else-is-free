@@ -651,6 +651,18 @@ type EventConversationMember struct {
 	UserID         int64
 }
 
+type AccountDeletionHostedEvent struct {
+	ID           int64
+	Title        string
+	RecipientIDs []int64
+}
+
+type DeleteUserAccountResult struct {
+	DeletedUserID           int64
+	HostedEvents            []AccountDeletionHostedEvent
+	MembershipNotifications []EventConversationMember
+}
+
 type EventUpdateTransition struct {
 	RemovedMemberships           []EventConversationMember
 	AddedMemberships             []EventConversationMember
@@ -3284,6 +3296,375 @@ func (r *EventRepository) UpdateUserProfile(ctx context.Context, userID int64, p
 		return nil, fmt.Errorf("update user profile: %w", err)
 	}
 	return r.GetUserByID(ctx, userID)
+}
+
+func (r *EventRepository) DeleteUserAccount(ctx context.Context, userID int64) (*DeleteUserAccountResult, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin delete account tx: %w", err)
+	}
+
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if err := ensureUserExistsTx(ctx, tx, userID); err != nil {
+		return nil, err
+	}
+
+	hostedEvents, hostedNotifications, err := collectHostedEventDeletionEffectsTx(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	joinedNotifications, err := collectJoinedEventDeletionEffectsTx(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	directNotifications, err := collectDirectConversationDeletionEffectsTx(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Hosted events must go first: events.user_id references users.id and
+	// event-backed conversations/join-requests/reports cascade from events.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM events WHERE user_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete hosted events: %w", err)
+	}
+
+	// A joined Single event has a private event conversation. Deleting the
+	// conversation mirrors RemoveEventMember semantics and removes both sides'
+	// private chat without deleting the host's event.
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM conversations
+		WHERE id IN (
+			SELECT c.id
+			FROM conversations c
+			JOIN events e ON e.id = c.event_id
+			JOIN conversation_members cm ON cm.conversation_id = c.id
+			WHERE cm.user_id = ?
+			  AND e.user_id <> ?
+			  AND e.group_type = 'Single'
+		);
+	`, userID, userID); err != nil {
+		return nil, fmt.Errorf("delete joined single-event conversations: %w", err)
+	}
+
+	// Remaining messages from the deleting user would block users.id deletion
+	// because messages.sender_id is a foreign key without ON DELETE CASCADE.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM messages WHERE sender_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete user messages: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM conversation_read_state WHERE user_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete user read state: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM conversation_members WHERE user_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete user conversation memberships: %w", err)
+	}
+
+	// Some old direct/legacy conversations are not event-backed. If the deleted
+	// user created them, remove the whole conversation so conversations.created_by
+	// no longer references the account.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM conversations WHERE created_by = ? AND event_id IS NULL;`, userID); err != nil {
+		return nil, fmt.Errorf("delete direct conversations created by user: %w", err)
+	}
+
+	// Defensive legacy repair: if an event-backed conversation still claims the
+	// deleting user as creator but the event belongs to someone else, hand it
+	// back to the event owner instead of deleting another user's event chat.
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE conversations
+		SET created_by = (
+			SELECT e.user_id
+			FROM events e
+			WHERE e.id = conversations.event_id
+		)
+		WHERE created_by = ?
+		  AND event_id IS NOT NULL
+		  AND EXISTS (
+			SELECT 1
+			FROM events e
+			WHERE e.id = conversations.event_id
+			  AND e.user_id <> ?
+		  );
+	`, userID, userID); err != nil {
+		return nil, fmt.Errorf("repair legacy conversation ownership: %w", err)
+	}
+
+	// Requests and moderation rows reference users in several roles. Removing
+	// any row involving the account keeps the delete privacy-preserving and
+	// avoids dangling decided_by/reviewed_by references.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM conversation_join_requests WHERE user_id = ? OR decided_by = ?;`, userID, userID); err != nil {
+		return nil, fmt.Errorf("delete user join requests: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM event_reports WHERE user_id = ? OR reported_user_id = ? OR reviewed_by = ?;`, userID, userID, userID); err != nil {
+		return nil, fmt.Errorf("delete user reports: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_blocks WHERE blocker_user_id = ? OR blocked_user_id = ?;`, userID, userID); err != nil {
+		return nil, fmt.Errorf("delete user blocks: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM push_tokens WHERE user_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete user push tokens: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM apple_accounts WHERE user_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete apple account links: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?;`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("delete user row: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("check deleted user rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return nil, ErrUserNotFound
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit delete account tx: %w", err)
+	}
+	committed = true
+
+	notifications := append(hostedNotifications, joinedNotifications...)
+	notifications = append(notifications, directNotifications...)
+
+	return &DeleteUserAccountResult{
+		DeletedUserID:           userID,
+		HostedEvents:            hostedEvents,
+		MembershipNotifications: dedupeMembershipNotifications(notifications),
+	}, nil
+}
+
+func ensureUserExistsTx(ctx context.Context, tx *sql.Tx, userID int64) error {
+	var exists int
+	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM users WHERE id = ? LIMIT 1;`, userID).Scan(&exists); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("verify user exists: %w", err)
+	}
+	return nil
+}
+
+func collectHostedEventDeletionEffectsTx(ctx context.Context, tx *sql.Tx, userID int64) ([]AccountDeletionHostedEvent, []EventConversationMember, error) {
+	eventRows, err := tx.QueryContext(ctx, `
+		SELECT id, title
+		FROM events
+		WHERE user_id = ?
+		ORDER BY id ASC;
+	`, userID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("collect hosted events: %w", err)
+	}
+	defer eventRows.Close()
+
+	hostedEvents := make([]AccountDeletionHostedEvent, 0)
+	eventIndex := make(map[int64]int)
+	for eventRows.Next() {
+		var event AccountDeletionHostedEvent
+		if err := eventRows.Scan(&event.ID, &event.Title); err != nil {
+			return nil, nil, fmt.Errorf("scan hosted event: %w", err)
+		}
+		eventIndex[event.ID] = len(hostedEvents)
+		hostedEvents = append(hostedEvents, event)
+	}
+	if err := eventRows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("iterate hosted events: %w", err)
+	}
+
+	memberRows, err := tx.QueryContext(ctx, `
+		SELECT e.id, c.id, cm.user_id
+		FROM events e
+		JOIN conversations c ON c.event_id = e.id
+		JOIN conversation_members cm ON cm.conversation_id = c.id
+		WHERE e.user_id = ?
+		  AND cm.user_id <> ?
+		ORDER BY e.id ASC, c.id ASC, cm.user_id ASC;
+	`, userID, userID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("collect hosted event members: %w", err)
+	}
+	defer memberRows.Close()
+
+	notifications := make([]EventConversationMember, 0)
+	recipientSets := make(map[int64]map[int64]struct{})
+	for memberRows.Next() {
+		var eventID int64
+		var member EventConversationMember
+		if err := memberRows.Scan(&eventID, &member.ConversationID, &member.UserID); err != nil {
+			return nil, nil, fmt.Errorf("scan hosted event member: %w", err)
+		}
+		notifications = append(notifications, member)
+		if _, ok := recipientSets[eventID]; !ok {
+			recipientSets[eventID] = make(map[int64]struct{})
+		}
+		recipientSets[eventID][member.UserID] = struct{}{}
+	}
+	if err := memberRows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("iterate hosted event members: %w", err)
+	}
+
+	for eventID, recipients := range recipientSets {
+		index, ok := eventIndex[eventID]
+		if !ok {
+			continue
+		}
+		hostedEvents[index].RecipientIDs = sortedInt64Keys(recipients)
+	}
+
+	return hostedEvents, notifications, nil
+}
+
+func collectJoinedEventDeletionEffectsTx(ctx context.Context, tx *sql.Tx, userID int64) ([]EventConversationMember, error) {
+	notifications := make([]EventConversationMember, 0)
+
+	// Single-event private conversations are deleted, so every current member
+	// should receive a self-targeted removal and drop the conversation locally.
+	singleRows, err := tx.QueryContext(ctx, `
+		SELECT DISTINCT c.id, cm.user_id
+		FROM conversations c
+		JOIN events e ON e.id = c.event_id
+		JOIN conversation_members self ON self.conversation_id = c.id AND self.user_id = ?
+		JOIN conversation_members cm ON cm.conversation_id = c.id
+		WHERE e.user_id <> ?
+		  AND e.group_type = 'Single'
+		ORDER BY c.id ASC, cm.user_id ASC;
+	`, userID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("collect joined single-event notifications: %w", err)
+	}
+	defer singleRows.Close()
+	for singleRows.Next() {
+		var member EventConversationMember
+		if err := singleRows.Scan(&member.ConversationID, &member.UserID); err != nil {
+			return nil, fmt.Errorf("scan joined single-event notification: %w", err)
+		}
+		notifications = append(notifications, member)
+	}
+	if err := singleRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate joined single-event notifications: %w", err)
+	}
+
+	// Group chats survive; a removal targeted at the deleted user makes that
+	// user's sockets leave, while remaining members refresh because userId differs.
+	groupRows, err := tx.QueryContext(ctx, `
+		SELECT DISTINCT c.id, ?
+		FROM conversations c
+		JOIN events e ON e.id = c.event_id
+		JOIN conversation_members self ON self.conversation_id = c.id AND self.user_id = ?
+		WHERE e.user_id <> ?
+		  AND e.group_type = 'Group'
+		ORDER BY c.id ASC;
+	`, userID, userID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("collect joined group-event notifications: %w", err)
+	}
+	defer groupRows.Close()
+	for groupRows.Next() {
+		var member EventConversationMember
+		if err := groupRows.Scan(&member.ConversationID, &member.UserID); err != nil {
+			return nil, fmt.Errorf("scan joined group-event notification: %w", err)
+		}
+		notifications = append(notifications, member)
+	}
+	if err := groupRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate joined group-event notifications: %w", err)
+	}
+
+	return notifications, nil
+}
+
+func collectDirectConversationDeletionEffectsTx(ctx context.Context, tx *sql.Tx, userID int64) ([]EventConversationMember, error) {
+	notifications := make([]EventConversationMember, 0)
+
+	// Direct conversations created by the deleted user are removed entirely, so
+	// every participant should get a self-removal event.
+	createdRows, err := tx.QueryContext(ctx, `
+		SELECT DISTINCT c.id, cm.user_id
+		FROM conversations c
+		JOIN conversation_members cm ON cm.conversation_id = c.id
+		WHERE c.event_id IS NULL
+		  AND c.created_by = ?
+		ORDER BY c.id ASC, cm.user_id ASC;
+	`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("collect direct-created conversation notifications: %w", err)
+	}
+	defer createdRows.Close()
+	for createdRows.Next() {
+		var member EventConversationMember
+		if err := createdRows.Scan(&member.ConversationID, &member.UserID); err != nil {
+			return nil, fmt.Errorf("scan direct-created conversation notification: %w", err)
+		}
+		notifications = append(notifications, member)
+	}
+	if err := createdRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate direct-created conversation notifications: %w", err)
+	}
+
+	// Direct conversations owned by someone else survive; notify the deleted
+	// user's removal so remaining sockets refresh participant/previews.
+	memberRows, err := tx.QueryContext(ctx, `
+		SELECT DISTINCT c.id, ?
+		FROM conversations c
+		JOIN conversation_members self ON self.conversation_id = c.id AND self.user_id = ?
+		WHERE c.event_id IS NULL
+		  AND c.created_by <> ?
+		ORDER BY c.id ASC;
+	`, userID, userID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("collect direct-member conversation notifications: %w", err)
+	}
+	defer memberRows.Close()
+	for memberRows.Next() {
+		var member EventConversationMember
+		if err := memberRows.Scan(&member.ConversationID, &member.UserID); err != nil {
+			return nil, fmt.Errorf("scan direct-member conversation notification: %w", err)
+		}
+		notifications = append(notifications, member)
+	}
+	if err := memberRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate direct-member conversation notifications: %w", err)
+	}
+
+	return notifications, nil
+}
+
+func dedupeMembershipNotifications(notifications []EventConversationMember) []EventConversationMember {
+	seen := make(map[string]struct{}, len(notifications))
+	deduped := make([]EventConversationMember, 0, len(notifications))
+	for _, notification := range notifications {
+		key := fmt.Sprintf("%d:%d", notification.ConversationID, notification.UserID)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		deduped = append(deduped, notification)
+	}
+	sort.Slice(deduped, func(i, j int) bool {
+		if deduped[i].ConversationID == deduped[j].ConversationID {
+			return deduped[i].UserID < deduped[j].UserID
+		}
+		return deduped[i].ConversationID < deduped[j].ConversationID
+	})
+	return deduped
+}
+
+func sortedInt64Keys(values map[int64]struct{}) []int64 {
+	keys := make([]int64, 0, len(values))
+	for value := range values {
+		keys = append(keys, value)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
+	return keys
 }
 
 func (r *EventRepository) CancelJoinRequest(ctx context.Context, eventID, userID int64) error {
