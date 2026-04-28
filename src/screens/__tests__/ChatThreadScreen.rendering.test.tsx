@@ -4,8 +4,13 @@
  */
 
 import React from 'react';
-import { act, fireEvent, waitFor } from '@testing-library/react-native';
-import { Dimensions, Keyboard, Platform, StyleSheet } from 'react-native';
+import { fireEvent } from '@testing-library/react-native';
+import { Platform, StyleSheet } from 'react-native';
+import {
+  AndroidSoftInputModes,
+  KeyboardController,
+  KeyboardEvents,
+} from 'react-native-keyboard-controller';
 
 import ChatThreadScreen from '../ChatThreadScreen';
 import {
@@ -490,73 +495,40 @@ describe('ChatThreadScreen Rendering', () => {
       Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     });
 
-    it('should update Android composer padding from keyboard listeners', () => {
+    it('should keep Android composer bottom gap without extra footer spacing', () => {
       setupMocks();
       Object.defineProperty(Platform, 'OS', { value: 'android' });
 
-      const listeners: Record<string, ((event?: any) => void) | undefined> = {};
-      const addListenerSpy = jest.spyOn(Keyboard, 'addListener').mockImplementation(
-        (eventName, callback) => {
-          listeners[eventName] = callback as (event?: any) => void;
-          return {
-            remove: jest.fn(),
-          } as never;
-        }
-      );
-      const dimensionsSpy = jest.spyOn(Dimensions, 'get').mockReturnValue({
-        width: 360,
-        height: 800,
-        scale: 2,
-        fontScale: 2,
-      } as never);
-
       const { getByTestId } = render(<ChatThreadScreen />);
 
-      expect(addListenerSpy).toHaveBeenCalledWith(
-        'keyboardDidShow',
-        expect.any(Function)
-      );
-      expect(addListenerSpy).toHaveBeenCalledWith(
-        'keyboardDidHide',
-        expect.any(Function)
-      );
       expect(
         StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
       ).toBe(spacing.sm);
-
-      act(() => {
-        listeners.keyboardDidShow?.({
-          endCoordinates: {
-            screenY: 540,
-            height: 260,
-          },
-        });
-      });
-
-      expect(
-        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
-      ).toBe(268);
-
-      act(() => {
-        listeners.keyboardDidHide?.();
-      });
-
-      expect(
-        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
-      ).toBe(spacing.sm);
-
-      addListenerSpy.mockRestore();
-      dimensionsSpy.mockRestore();
+      expect(KeyboardController.setInputMode).toHaveBeenCalledWith(
+        AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING
+      );
+      expect(KeyboardEvents.addListener).toHaveBeenCalledWith(
+        'keyboardWillShow',
+        expect.any(Function)
+      );
+      expect(KeyboardEvents.addListener).toHaveBeenCalledWith(
+        'keyboardWillHide',
+        expect.any(Function)
+      );
     });
 
     it('should still render composer on iOS', () => {
       setupMocks();
       Object.defineProperty(Platform, 'OS', { value: 'ios' });
 
-      const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
+      const { getByPlaceholderText, getByLabelText, getByTestId } = render(<ChatThreadScreen />);
 
       expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
       expect(getByLabelText('Send message')).toBeTruthy();
+      expect(
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+      ).toBe(spacing.xs);
+      expect(KeyboardController.setInputMode).not.toHaveBeenCalled();
     });
 
     it('should render composer on Android', () => {

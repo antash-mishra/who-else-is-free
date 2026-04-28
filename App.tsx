@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import messaging from '@react-native-firebase/messaging';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppNavigator from '@navigation/AppNavigator';
 import { colors } from '@theme/colors';
@@ -82,18 +83,20 @@ const App = () => {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <AuthProvider>
-          <ChatProvider>
-            <PushProvider>
-              <EventsProvider>
-                <AppNavigator />
-              </EventsProvider>
-            </PushProvider>
-          </ChatProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <StatusBar style="dark" />
+          <AuthProvider>
+            <ChatProvider>
+              <PushProvider>
+                <EventsProvider>
+                  <AppNavigator />
+                </EventsProvider>
+              </PushProvider>
+            </ChatProvider>
+          </AuthProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 };

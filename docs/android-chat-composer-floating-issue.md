@@ -1,187 +1,306 @@
-# Android Chat Composer Floats When Tapping Input
+# Android Chat Composer Keyboard Plan
 
-## Problem Description
+## Summary
 
-On Android, when the user taps the chat input field in `ChatThreadScreen`, the composer (text input + send button) visibly "floats" or jumps to the middle of the screen momentarily before settling into its correct position above the keyboard. This creates a jarring visual glitch every time the user opens the keyboard.
+This document captures the Android chat composer issue in `ChatThreadScreen`, what has already been fixed, what approaches were tried and why they were not sufficient, and the permanent fix that was implemented for the remaining overlap.
 
-## Environment
+## Implementation Status
 
-- React Native + Expo (New Architecture enabled: `newArchEnabled: true`)
-- Android edge-to-edge mode: `edgeToEdgeEnabled: true` (app.config.js:31)
-- Keyboard layout mode: `softwareKeyboardLayoutMode: "pan"` (app.config.js:33)
-- `ScreenContainer` wraps content in `SafeAreaView` with `edges: ["top", "bottom"]`
+Implemented in the current working tree.
 
-## How the Chat Screen Layout Works
+The chat screen now uses `react-native-keyboard-controller` to take control of Android keyboard placement:
 
-The view hierarchy on Android is:
+- `App.tsx` wraps the app in `KeyboardProvider`.
+- `ChatThreadScreen.tsx` switches Android to `SOFT_INPUT_ADJUST_NOTHING` while the screen is mounted.
+- Android composer movement is driven by `KeyboardEvents` keyboard height.
+- The composer is translated by `keyboard height + spacing.xs`, so it sits fully above the keyboard.
+- On unmount, the screen restores the default Android input mode.
 
-```
-ScreenContainer (SafeAreaView + padding)
-  └── Header
-  └── View (threadContainer, flex: 1)
-      └── View (threadBody, flex: 1, paddingBottom: androidKeyboardPadding)
-          ├── FlatList (messages)
-          └── View (composerContainer)
-              └── View (composerInputWrapper) ← the input + send button
-```
+## Current Issue
 
-On **iOS**, the screen uses `<KeyboardAvoidingView behavior="padding">` which handles keyboard avoidance natively.
+### User-visible behavior
 
-On **Android**, the screen does NOT use `KeyboardAvoidingView`. Instead, it uses a manual approach:
-1. Listens to `keyboardDidShow` / `keyboardDidHide` events
-2. Calculates keyboard height from `e.endCoordinates.screenY`
-3. Sets `paddingBottom` on `threadBody` to push the composer above the keyboard
+On Android, the chat textbox is much more stable than before, but one issue remains:
 
-The calculated padding is:
-```ts
-const androidKeyboardPadding =
-  Platform.OS === "android" && keyboardHeight > 0
-    ? Math.max(0, keyboardHeight - insets.bottom)
-    : 0;
-```
+- when the user taps the textbox, the keyboard opens
+- the composer moves upward with the screen
+- a small part of the composer still overlaps the keyboard
+- the overlap is consistent, not random
 
-## Why It Happens: Dual Keyboard Avoidance Conflict
+This means the layout is close, but still not precise enough to be considered correct.
 
-There are **two independent systems** fighting to handle the keyboard:
+### Current code state
 
-### System 1: OS-Level Window Panning
+The current implementation is:
 
-`softwareKeyboardLayoutMode: "pan"` (app.config.js:33) tells Android to **pan (scroll) the entire window upward** when the keyboard opens. The OS does this immediately and natively when the focused input would be obscured.
+- `app.config.js`
+  - `android.edgeToEdgeEnabled: true`
+  - `android.softwareKeyboardLayoutMode: "pan"`
+- `src/screens/ChatThreadScreen.tsx`
+  - iOS uses `KeyboardAvoidingView`
+  - Android uses a normal `FlatList` plus a sibling composer
+  - Android no longer relies on `adjustPan` for final composer placement
+  - Android applies `SOFT_INPUT_ADJUST_NOTHING` while this screen is mounted
+  - Android translates the composer using `react-native-keyboard-controller` keyboard height
+  - a keyboard listener is only used to scroll messages to the end
 
-### System 2: React-Level `paddingBottom` Adjustment
+## Root Cause
 
-The `useEffect` in ChatThreadScreen (line 52-79) listens for `keyboardDidShow` and applies `paddingBottom` equal to the keyboard height on the `threadBody` View. This pushes the composer up from the bottom.
+The remaining overlap is caused by relying on Android `adjustPan` to place the composer correctly.
 
-### The Conflict
+`adjustPan` is good enough to keep the focused `TextInput` visible, but it does not guarantee perfect placement for the whole composer wrapper:
 
-When the user taps the input:
+- textbox
+- send button
+- composer padding
+- multiline growth
 
-1. **T=0ms**: Android OS begins panning the window up (native animation, immediate)
-2. **T=~250ms**: Keyboard is fully visible. `keyboardDidShow` fires.
-3. **T=~250ms**: `setKeyboardHeight(calculatedHeight)` re-renders with `paddingBottom` applied
-4. **Result**: The OS has already panned the window up, AND React is now adding extra padding. The composer is pushed up by **both** systems simultaneously, causing it to overshoot or appear in an intermediate wrong position before the OS panning settles.
+That is why the current result is close but not exact. The OS is protecting the focused input, not positioning the entire chat composer with a precise keyboard gap.
 
-The net effect: the composer briefly appears to float in the middle of the screen because the padding is being applied on top of the OS pan, creating a doubled offset during the transition.
+## What Has Already Been Fixed
 
-## Chosen Fix (Implemented)
+The following issues have already been resolved during this work:
 
-Use a **chat-only fix** in `ChatThreadScreen`:
-- Remove Android keyboard-height calculations and dynamic `paddingBottom` avoidance
-- Keep Android on normal flex layout (`threadBody` without dynamic `paddingBottom`)
-- Keep iOS `KeyboardAvoidingView` path unchanged
-- Keep global Android config unchanged (`softwareKeyboardLayoutMode: "pan"`)
+1. The old Android "floating/jumping to the middle" glitch when opening the keyboard.
+2. The bottom system-navbar overlap in the closed state.
+3. The "textbox sits too low" problem on devices without a visible bottom navbar.
+4. The large temporary gap between keyboard and textbox caused by rendering the composer as a `KeyboardAwareFlatList` footer.
+5. Chat-thread rendering tests were updated so they reflect the current screen structure again.
 
-### Why this fix
+## What We Tried So Far
 
-Android already pans the window in `"pan"` mode. Removing manual React padding prevents double keyboard avoidance, which is what caused the temporary composer overshoot/floating effect.
+### 1. Manual Android keyboard-height padding
 
-### Regression Risks
+Approach:
 
-- On some Android devices, if OS panning behaves differently with edge-to-edge insets, composer placement could still need device-specific handling.
-- This change is scoped only to chat to avoid unintended behavior shifts on other input-heavy screens.
+- listen to `keyboardDidShow` / `keyboardDidHide`
+- calculate keyboard height
+- push the composer up with dynamic bottom padding
 
-### Validation Checklist (Android)
+Result:
 
-- [ ] Open chat thread and tap input: composer does not jump to mid-screen.
-- [ ] Composer stays immediately above keyboard while typing.
-- [ ] Multiline input growth remains stable.
-- [ ] Dismissing/reopening keyboard keeps composer stable.
-- [ ] Sending, retrying failed messages, and navigation still work.
-- [ ] Join request badge and navigation remain unchanged.
+- caused a double-avoidance conflict with Android `pan`
+- the composer visibly floated or overshot while the keyboard opened
 
-## Follow-up: Keyboard Gap Attempts (Rolled Back)
+### 2. Removing `LayoutAnimation`
 
-We attempted multiple Android-only implementations to add a visible gap between keyboard and composer, but none were reliable enough with the current `softwareKeyboardLayoutMode: "pan"` setup.
+Approach:
 
-### Gap approaches tried
+- remove layout animation around keyboard padding changes
 
-1. `marginBottom` gap while keyboard visible (`keyboardDidShow` / `keyboardDidHide`)
-- Gap appeared in some states, but collapsed while interacting/typing on certain keyboards/devices.
+Result:
 
-2. Keyboard visibility + composer focus state (`keyboard visible OR focused`)
-- Reduced some transient drops but still did not produce a consistently visible gap for all interactions.
+- did not fix the core problem
+- the bug was not animation timing, it was the duplicate movement strategy
 
-3. Sticky gap state (`gapActive`) ignoring transient `keyboardDidHide` while focused
-- Logs confirmed state stayed active during typing, but visible spacing still did not hold consistently on device.
+### 3. Android-only visual gap hacks
 
-4. Negative `marginTop` lift on composer
-- Did not consistently create visible separation in the final layout.
+Approaches tried:
 
-5. `transform: translateY(-gap)` lift on composer
-- Also failed to reliably render persistent visual separation across real-device behavior.
+- `marginBottom` while keyboard visible
+- focus-state-based gap
+- sticky gap state
+- negative `marginTop`
+- `transform: translateY(...)`
 
-### Debug evidence
+Result:
 
-Instrumentation logs showed `gapActive: true` and `shouldShowGap: true` during typing, but the UI still rendered flush to keyboard in device testing. This indicates the issue is layout/OS interaction under `"pan"`, not a state toggle bug.
+- inconsistent across devices and keyboard states
+- not reliable enough for production
 
-### Current status
+### 4. Switching to `KeyboardAwareFlatList` with the composer as a footer
 
-- Gap-specific code was rolled back.
-- Chat behavior remains stable (keyboard opens correctly, no composer glitch introduced by the gap experiments).
-- If this requirement becomes mandatory, the next realistic option is changing Android keyboard strategy globally (`"pan"` -> `"resize"`) and doing full regression testing.
+Approach:
 
-## What Was Tried
+- move the composer into the list as `ListFooterComponent`
+- let `react-native-keyboard-aware-scroll-view` manage the keyboard
 
-### Attempt 1: Remove `LayoutAnimation` from Keyboard Handlers
+Result:
 
-**Hypothesis**: The `LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)` calls before `setKeyboardHeight()` were creating a 300ms CSS-like animation on the `paddingBottom` change. During this animation, the composer would pass through intermediate positions (floating in the middle) before reaching its final spot.
+- removed some overlap cases
+- introduced a large temporary gap on keyboard open
+- root cause: the library adds keyboard-sized bottom padding to list content, and the composer was inside that content
 
-**Change**: Removed `LayoutAnimation.configureNext()` from both the `keyboardDidShow` and `keyboardDidHide` handlers, and removed the `UIManager.setLayoutAnimationEnabledExperimental(true)` setup. The `paddingBottom` change now applies instantly when the keyboard event fires.
+### 5. Current fallback: sibling composer + Android `pan`
 
-**Result**: Did not fix the issue. The floating behavior persists because the root cause is the conflict between the OS-level `"pan"` mode and the React-level `paddingBottom` — not the animation timing.
+Approach:
 
-## Remaining Ideas to Investigate
+- restore the composer outside the list
+- keep Android `softwareKeyboardLayoutMode: "pan"`
+- keep only a lightweight scroll-to-end keyboard listener
 
-### Option A: Change `softwareKeyboardLayoutMode` to `"resize"`
+Result:
 
-Change `app.config.js:33` from `"pan"` to `"resize"`:
-```js
-softwareKeyboardLayoutMode: "resize",
-```
-With `"resize"`, Android shrinks the window height instead of panning it. The React keyboard listener then adds `paddingBottom` to fill the difference. This eliminates the double-avoidance because there's no panning — just a smaller window. **Risk**: this changes behavior for ALL screens on Android, not just ChatThread. Other screens may rely on `"pan"` behavior. Needs full regression testing across the app, especially screens with inputs (CreateEvent, EventActionOverlay, Profile, etc.).
+- much better than previous attempts
+- but still leaves a small constant overlap
 
-### Option B: Remove the Manual `paddingBottom` Approach Entirely on Android
+## Why The Current Setup Cannot Be Perfect
 
-If `"pan"` mode already handles pushing the input above the keyboard, the manual `paddingBottom` may be unnecessary and actively harmful. Try:
-- Remove the `keyboardDidShow`/`keyboardDidHide` listener entirely
-- Remove the `androidKeyboardPadding` calculation
-- Let the OS `"pan"` mode handle it alone
+The remaining problem is structural:
 
-**Risk**: The manual padding was likely added because `"pan"` alone wasn't enough in edge-to-edge mode (where the system bars are transparent and content extends behind them). Removing it may cause the composer to sit behind the keyboard in some device configurations.
+- Android `pan` decides how far to move the window
+- React does not control the composer position frame-by-frame
+- safe-area padding only solves resting position, not keyboard clearance
 
-### Option C: Use `KeyboardAvoidingView` on Android Too
+As long as the screen depends on `pan` alone, the result will be approximate rather than exact.
 
-Instead of the manual listener approach, use `KeyboardAvoidingView` on Android as well (currently only used for iOS):
-```tsx
-<KeyboardAvoidingView
-  style={styles.threadContainer}
-  behavior="height" // or "padding"
-  keyboardVerticalOffset={insets.top + HEADER_HEIGHT}
->
-```
-This delegates the keyboard avoidance to React Native's built-in component, which may cooperate better with the OS `"pan"` mode. **Risk**: `KeyboardAvoidingView` has historically been unreliable on Android, which is likely why the manual approach was implemented in the first place.
+## Implemented Permanent Fix
 
-### Option D: Switch to `react-native-keyboard-aware-scroll-view` or `react-native-keyboard-controller`
+Use `react-native-keyboard-controller` for the chat composer on Android.
 
-Use a battle-tested third-party library designed specifically for keyboard avoidance:
-- [`react-native-keyboard-controller`](https://github.com/kirillzyusko/react-native-keyboard-controller) — uses native animations synced with keyboard, supports edge-to-edge and new architecture
-- [`react-native-keyboard-aware-scroll-view`](https://github.com/FLAVOR-FLAVOR/react-native-keyboard-aware-scroll-view) — wraps the scroll view to handle keyboard automatically
+Why this is the right direction:
 
-These libraries are designed to handle the exact edge cases (edge-to-edge, `"pan"` vs `"resize"`, new architecture) that make manual solutions fragile. `react-native-keyboard-controller` in particular is the modern recommendation for Expo + New Architecture apps.
+- it gives direct keyboard-frame driven movement
+- it is designed for modern keyboard interactions on React Native
+- it avoids per-device guessing
+- it can keep a fixed, intentional gap above the keyboard
+- it is better suited to a sticky chat composer than `adjustPan`
 
-### Option E: Use `Keyboard.addListener("keyboardWillShow")` Instead of `"keyboardDidShow"`
+Official references:
 
-On Android (API 30+), `keyboardWillShow` fires before the keyboard animation begins. Applying the padding before the OS pan starts might avoid the conflict. However, `keyboardWillShow` support on Android is limited and may not fire on all devices/versions.
+- Expo keyboard handling guide:
+  - https://docs.expo.dev/guides/keyboard-handling/
+- Expo SDK page for keyboard controller:
+  - https://docs.expo.dev/versions/latest/sdk/keyboard-controller/
+- `react-native-keyboard-controller` docs:
+  - https://kirillzyusko.github.io/react-native-keyboard-controller/
 
-### Option F: Disable Edge-to-Edge for This Screen
+## Fix Plan
 
-If the issue is specifically caused by edge-to-edge mode interacting with `"pan"`, setting `edgeToEdgeEnabled: false` would revert to the traditional Android layout behavior where the system handles insets. **Risk**: This is a global setting, not per-screen, and would affect the entire app's visual style.
+### Step 1. Add the keyboard controller dependency
 
-## Key Files
+- install `react-native-keyboard-controller`
+- rebuild the app after installation
+- status: done
 
-| File | Role |
-|---|---|
-| `src/screens/ChatThreadScreen.tsx` | Chat screen with the floating composer bug |
-| `app.config.js:31-33` | `edgeToEdgeEnabled`, `softwareKeyboardLayoutMode: "pan"` |
-| `src/components/ScreenContainer.tsx` | SafeAreaView wrapper used by ChatThread |
-| `src/components/EventActionOverlay.tsx:104-124` | Similar keyboard offset pattern (works because it uses absolute positioning with `bottom`, not `paddingBottom` in a flex layout) |
+Expected impact:
+
+- enables native keyboard-frame based control instead of relying on `pan` only
+
+### Step 2. Wrap the app with the provider
+
+Target file:
+
+- `App.tsx`
+
+Plan:
+
+- add the library provider near the root app tree
+- keep the rest of the provider hierarchy unchanged
+- status: done
+
+Expected impact:
+
+- makes keyboard animation state available to screens/components
+
+### Step 3. Move chat composer control to keyboard-driven positioning
+
+Target file:
+
+- `src/screens/ChatThreadScreen.tsx`
+
+Plan:
+
+- keep the `FlatList` and composer as siblings
+- do not put the composer back inside the list footer
+- position the composer with keyboard-controller primitives instead of Android `pan` approximation
+- keep a small resting gap when the keyboard is closed
+- keep a fixed visible gap when the keyboard is open
+- status: done
+
+Expected impact:
+
+- no overlap
+- no temporary large gap
+- stable multiline input behavior
+
+### Step 4. Reduce dependence on Android `pan` for this screen
+
+Plan:
+
+- stop treating `softwareKeyboardLayoutMode: "pan"` as the final placement solution
+- use it only as native window behavior, while composer placement is controlled by keyboard-controller
+- if needed, evaluate switching Android input mode for chat handling to a resize-style strategy that better matches keyboard-controller behavior
+- status: done with `SOFT_INPUT_ADJUST_NOTHING` while `ChatThreadScreen` is mounted
+
+Expected impact:
+
+- the composer position becomes deterministic instead of approximate
+
+### Step 5. Keep message scrolling logic minimal
+
+Plan:
+
+- keep the existing "scroll to end on keyboard open / new message" behavior
+- remove any remaining Android-specific overlap assumptions from the screen
+- status: done
+
+Expected impact:
+
+- preserves current chat usability while reducing keyboard-specific fragility
+
+### Step 6. Update tests
+
+Target files:
+
+- `jest.setup.ts`
+- `src/screens/__tests__/ChatThreadScreen.rendering.test.tsx`
+
+Plan:
+
+- mock the new keyboard-controller primitives cleanly
+- update rendering assertions to the new composer structure if needed
+- keep existing chat behavior tests passing
+- status: done
+
+## Validation Checklist
+
+### Android devices
+
+Validate on both:
+
+- gesture navigation device
+- 3-button navigation device
+
+Scenarios:
+
+- tap textbox: composer sits fully above keyboard
+- start typing immediately: no extra jump, no overlap
+- multiline growth: composer remains above keyboard
+- close keyboard: composer returns to resting position without a large bottom gap
+- reopen keyboard repeatedly: behavior stays stable
+- send message, retry failed message, navigate back: no regressions
+
+### iOS smoke test
+
+- existing `KeyboardAvoidingView` behavior remains unchanged
+
+## Risks
+
+1. Introducing a native keyboard library requires rebuild and regression testing.
+2. The app uses edge-to-edge Android layout, so keyboard behavior must be checked against bottom tab/navigation visuals.
+3. Provider-level keyboard changes should remain scoped so they do not accidentally regress other screens.
+
+## Rollback Strategy
+
+If the keyboard-controller migration causes regressions:
+
+1. keep `softwareKeyboardLayoutMode: "pan"`
+2. keep the current sibling `FlatList` + composer structure
+3. remove keyboard-controller usage from chat only
+
+This would return the app to the current "mostly fixed but slightly overlapping" baseline.
+
+## Files Involved
+
+- `app.config.js`
+- `App.tsx`
+- `src/screens/ChatThreadScreen.tsx`
+- `jest.setup.ts`
+- `src/screens/__tests__/ChatThreadScreen.rendering.test.tsx`
+
+## Current Recommendation
+
+Do not continue adding small Android spacing tweaks to the current `pan` approach.
+
+That path has already produced multiple device-specific regressions. The remaining issue is small, but it is the kind of issue that will keep returning unless the composer is moved by actual keyboard-frame data rather than OS pan heuristics.

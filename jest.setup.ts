@@ -234,10 +234,54 @@ jest.mock('@react-native-masked-view/masked-view', () => {
     React.createElement(View, props, children);
 });
 
+jest.mock('react-native-keyboard-controller', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const KeyboardProvider = ({ children, ...props }: any) =>
+    React.createElement(View, props, children);
+
+  return {
+    KeyboardProvider,
+    useGenericKeyboardHandler: jest.fn(),
+    AndroidSoftInputModes: {
+      SOFT_INPUT_ADJUST_NOTHING: 48,
+      SOFT_INPUT_ADJUST_PAN: 32,
+      SOFT_INPUT_ADJUST_RESIZE: 16,
+    },
+    KeyboardController: {
+      setInputMode: jest.fn(),
+      setDefaultMode: jest.fn(),
+      preload: jest.fn(),
+      dismiss: jest.fn(),
+      setFocusTo: jest.fn(),
+      isVisible: jest.fn().mockReturnValue(false),
+      state: jest.fn().mockReturnValue({ height: 0, isVisible: false }),
+    },
+    KeyboardEvents: {
+      addListener: jest.fn(() => ({ remove: jest.fn() })),
+    },
+    KeyboardStickyView: View,
+  };
+});
+
 // Mock react-native-keyboard-aware-scroll-view
 jest.mock('react-native-keyboard-aware-scroll-view', () => {
   const React = require('react');
   const { ScrollView, View } = require('react-native');
+
+  const renderSupplementaryComponent = (component: any) => {
+    if (!component) {
+      return null;
+    }
+    if (React.isValidElement(component)) {
+      return component;
+    }
+    if (typeof component === 'function') {
+      return React.createElement(component);
+    }
+    return null;
+  };
 
   return {
     KeyboardAwareScrollView: React.forwardRef(({ children, testID, ...props }: any, ref: any) => {
@@ -247,12 +291,68 @@ jest.mock('react-native-keyboard-aware-scroll-view', () => {
         ...props,
       }, children);
     }),
-    KeyboardAwareFlatList: React.forwardRef(({ children, testID, ...props }: any, ref: any) => {
+    KeyboardAwareFlatList: React.forwardRef(({
+      children,
+      data = [],
+      keyExtractor,
+      renderItem,
+      ListEmptyComponent,
+      ListFooterComponent,
+      ListHeaderComponent,
+      testID,
+      ...props
+    }: any, ref: any) => {
+      React.useImperativeHandle(ref, () => ({
+        scrollToEnd: jest.fn(),
+        scrollToOffset: jest.fn(),
+        scrollToIndex: jest.fn(),
+      }));
+
+      const renderedChildren = [
+        React.createElement(
+          React.Fragment,
+          { key: 'header' },
+          renderSupplementaryComponent(ListHeaderComponent),
+        ),
+        ...(Array.isArray(data)
+          ? data.map((item, index) => {
+              const key = keyExtractor ? keyExtractor(item, index) : String(index);
+              return React.createElement(
+                React.Fragment,
+                { key },
+                renderItem
+                  ? renderItem({
+                      item,
+                      index,
+                      separators: {
+                        highlight: jest.fn(),
+                        unhighlight: jest.fn(),
+                        updateProps: jest.fn(),
+                      },
+                    })
+                  : null
+              );
+            })
+          : []),
+        React.createElement(
+          React.Fragment,
+          { key: 'empty' },
+          Array.isArray(data) && data.length === 0
+            ? renderSupplementaryComponent(ListEmptyComponent)
+            : null,
+        ),
+        ...React.Children.toArray(children),
+        React.createElement(
+          React.Fragment,
+          { key: 'footer' },
+          renderSupplementaryComponent(ListFooterComponent),
+        ),
+      ];
+
       return React.createElement(View, {
         testID: testID || 'keyboard-aware-flat-list-mock',
-        ref,
         ...props,
-      }, children);
+      }, renderedChildren);
     }),
     KeyboardAwareSectionList: React.forwardRef(({ children, testID, ...props }: any, ref: any) => {
       return React.createElement(View, {

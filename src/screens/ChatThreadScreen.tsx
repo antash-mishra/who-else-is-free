@@ -1,8 +1,8 @@
-import { Feather } from "@expo/vector-icons";
 import SendIcon from "@assets/chat-icons/send.svg";
 import * as Haptics from "expo-haptics";
 import {
-  Dimensions,
+  Animated,
+  Easing,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -17,6 +17,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  AndroidSoftInputModes,
+  KeyboardController,
+  KeyboardEvents,
+} from "react-native-keyboard-controller";
 
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
@@ -30,7 +35,100 @@ import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
-const HEADER_HEIGHT = 56;
+const ANDROID_KEYBOARD_GAP = spacing.xs;
+
+interface ComposerProps {
+  activeConversationName: string;
+  composerBottomPadding: number;
+  draft: string;
+  isSendDisabled: boolean;
+  onDraftChange: (text: string) => void;
+  onSend: () => void;
+}
+
+const ChatComposer = ({
+  activeConversationName,
+  composerBottomPadding,
+  draft,
+  isSendDisabled,
+  onDraftChange,
+  onSend,
+}: ComposerProps) => (
+  <View
+    style={[
+      styles.composerContainer,
+      { paddingBottom: composerBottomPadding },
+    ]}
+    testID="chat-composer-container"
+  >
+    <View style={styles.composerInputWrapper}>
+      <TextInput
+        placeholder={`Message ${activeConversationName}`}
+        value={draft}
+        onChangeText={onDraftChange}
+        style={styles.composerInput}
+        placeholderTextColor={colors.muted}
+        multiline
+      />
+      <Pressable
+        onPress={onSend}
+        disabled={isSendDisabled}
+        style={[
+          styles.sendIconButton,
+          isSendDisabled && styles.sendIconButtonDisabled,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Send message"
+      >
+        <SendIcon
+          width={15}
+          height={16}
+          color={isSendDisabled ? "#A3A3A3" : colors.buttonText}
+        />
+      </Pressable>
+    </View>
+  </View>
+);
+
+const AndroidKeyboardComposer = (props: ComposerProps) => {
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    KeyboardController.setInputMode(
+      AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING,
+    );
+
+    const showSub = KeyboardEvents.addListener("keyboardWillShow", (event) => {
+      Animated.timing(translateY, {
+        toValue: -(event.height + ANDROID_KEYBOARD_GAP),
+        duration: event.duration || 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const hideSub = KeyboardEvents.addListener("keyboardWillHide", (event) => {
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: event.duration || 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+      KeyboardController.setDefaultMode();
+    };
+  }, [translateY]);
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      <ChatComposer {...props} />
+    </Animated.View>
+  );
+};
 
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -51,7 +149,6 @@ const ChatThreadScreen = () => {
   } = useChat();
 
   const [draft, setDraft] = useState("");
-  const [androidKeyboardOffset, setAndroidKeyboardOffset] = useState(0);
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
 
   const activeConversation = useMemo(
@@ -177,41 +274,14 @@ const ChatThreadScreen = () => {
   }, [activeConversation, activeEventGroupType, isConversationHost, refreshJoinRequests]);
 
   useEffect(() => {
-    if (Platform.OS !== "ios") return undefined;
-    const showSub = Keyboard.addListener("keyboardDidShow", () => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const showSub = Keyboard.addListener(showEvent, () => {
       setTimeout(() => {
         messagesListRef.current?.scrollToEnd({ animated: true });
       }, 50);
     });
+
     return () => showSub.remove();
-  }, []);
-
-  useEffect(() => {
-    if (Platform.OS !== "android") {
-      return undefined;
-    }
-
-    const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
-      const windowHeight = Dimensions.get("window").height;
-      const screenY = event.endCoordinates?.screenY ?? windowHeight;
-      const keyboardHeightFromWindow = Math.max(0, windowHeight - screenY);
-      const keyboardHeight =
-        keyboardHeightFromWindow || event.endCoordinates?.height || 0;
-
-      setAndroidKeyboardOffset(keyboardHeight);
-
-      setTimeout(() => {
-        messagesListRef.current?.scrollToEnd({ animated: true });
-      }, 50);
-    });
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-      setAndroidKeyboardOffset(0);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
   }, []);
 
   // Scroll to bottom when new messages arrive (non-inverted list)
@@ -247,13 +317,12 @@ const ChatThreadScreen = () => {
   };
 
   const isSendDisabled = draft.trim().length === 0;
-  const closedComposerBottomPadding = insets.bottom + spacing.sm;
-  const keyboardVisibleComposerPadding =
-    spacing.sm + Math.max(0, androidKeyboardOffset - insets.bottom);
   const composerBottomPadding =
-    Platform.OS === "android" && androidKeyboardOffset > 0
-      ? keyboardVisibleComposerPadding
-      : closedComposerBottomPadding;
+    Platform.OS === "ios"
+      ? insets.bottom + spacing.xs
+      : insets.bottom >= spacing.lg
+        ? insets.bottom
+        : spacing.sm;
   const pendingJoinRequestCount = isConversationHost
     ? joinRequests.filter((request) => request.status === "pending").length
     : 0;
@@ -389,6 +458,15 @@ const ChatThreadScreen = () => {
     );
   };
 
+  const composerProps: ComposerProps = {
+    activeConversationName: activeConversation.displayName,
+    composerBottomPadding,
+    draft,
+    isSendDisabled,
+    onDraftChange: setDraft,
+    onSend: handleSend,
+  };
+
   return (
     <ScreenContainer edges={["top"]}>
       <ChatEventHeader
@@ -440,41 +518,9 @@ const ChatThreadScreen = () => {
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
             />
-            <View
-              style={[
-                styles.composerContainer,
-                { paddingBottom: composerBottomPadding },
-              ]}
-              testID="chat-composer-container"
-            >
-              <View style={styles.composerInputWrapper}>
-                <TextInput
-                  placeholder={`Message ${activeConversation.displayName}`}
-                  value={draft}
-                  onChangeText={setDraft}
-                  style={styles.composerInput}
-                  placeholderTextColor={colors.muted}
-                  multiline
-                />
-                <Pressable
-                  onPress={handleSend}
-                  disabled={isSendDisabled}
-                  style={[
-                    styles.sendIconButton,
-                    isSendDisabled && styles.sendIconButtonDisabled,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Send message"
-                >
-                  <SendIcon
-                    width={15}
-                    height={16}
-                    color={isSendDisabled ? "#A3A3A3" : colors.buttonText}
-                  />
-                </Pressable>
-              </View>
-            </View>
+            <ChatComposer {...composerProps} />
           </View>
         </KeyboardAvoidingView>
       ) : (
@@ -490,41 +536,9 @@ const ChatThreadScreen = () => {
               contentContainerStyle={styles.messagesList}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
             />
-            <View
-              style={[
-                styles.composerContainer,
-                { paddingBottom: composerBottomPadding },
-              ]}
-              testID="chat-composer-container"
-            >
-              <View style={styles.composerInputWrapper}>
-                <TextInput
-                  placeholder={`Message ${activeConversation.displayName}`}
-                  value={draft}
-                  onChangeText={setDraft}
-                  style={styles.composerInput}
-                  placeholderTextColor={colors.muted}
-                  multiline
-                />
-                <Pressable
-                  onPress={handleSend}
-                  disabled={isSendDisabled}
-                  style={[
-                    styles.sendIconButton,
-                    isSendDisabled && styles.sendIconButtonDisabled,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Send message"
-                >
-                  <SendIcon
-                    width={15}
-                    height={16}
-                    color={isSendDisabled ? "#A3A3A3" : colors.buttonText}
-                  />
-                </Pressable>
-              </View>
-            </View>
+            <AndroidKeyboardComposer {...composerProps} />
           </View>
         </View>
       )}

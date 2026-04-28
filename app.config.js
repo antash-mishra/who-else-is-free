@@ -15,7 +15,8 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.whoelseisfree.app",
-      googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
+      googleServicesFile:
+        process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
       usesAppleSignIn: true,
       entitlements: {
         "aps-environment": "development",
@@ -27,14 +28,15 @@ export default {
     },
     android: {
       package: "com.whoelseisfree.app",
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      softwareKeyboardLayoutMode: "resize",
+      softwareKeyboardLayoutMode: "pan",
     },
     web: {
       favicon: "./assets/favicon.png",
@@ -46,8 +48,10 @@ export default {
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: "com.googleusercontent.apps.413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v",
-          iosClientId: "413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v.apps.googleusercontent.com",
+          iosUrlScheme:
+            "com.googleusercontent.apps.413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v",
+          iosClientId:
+            "413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v.apps.googleusercontent.com",
         },
       ],
       "expo-apple-authentication",
@@ -58,14 +62,14 @@ export default {
     ],
     extra: {
       eas: {
-        projectId: "ba8d8a05-086b-483c-93e2-6fc54ffe9f2e",
+        projectId: "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
       },
     },
     runtimeVersion: {
       policy: "appVersion",
     },
     updates: {
-      url: "https://u.expo.dev/ba8d8a05-086b-483c-93e2-6fc54ffe9f2e",
+      url: "https://u.expo.dev/c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
     },
   },
 };
