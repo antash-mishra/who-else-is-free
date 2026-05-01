@@ -8,9 +8,9 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
-      image: "./assets/splash/VicarStreet.png",
+      image: "./assets/splash/splash-launch.png",
       resizeMode: "cover",
-      backgroundColor: "#000000",
+      backgroundColor: "#019AFE",
     },
     ios: {
       supportsTablet: true,
@@ -38,9 +38,7 @@ export default {
       predictiveBackGestureEnabled: false,
       softwareKeyboardLayoutMode: "pan",
     },
-    web: {
-      favicon: "./assets/favicon.png",
-    },
+
     plugins: [
       "./plugins/withModularHeaders",
       "expo-splash-screen",
