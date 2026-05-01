@@ -87,12 +87,12 @@ GitHub issue: https://github.com/antash-mishra/who-else-is-free/issues/38
 - [x] Add backend reporting queries for time from signup to first approved join.
 - [x] Add backend reporting queries for messages per event.
 - [x] Add backend reporting queries for events with zero approved joins.
-- [x] Decide whether backend reporting is exposed through a protected admin API, scheduled report, direct database query, or BigQuery/Looker dashboard.
+- [x] Decide whether backend reporting is exposed through an admin API, scheduled report, direct database query, or BigQuery/Looker dashboard.
 
 Implemented backend surface:
 
 - `GET /api/admin/analytics/summary?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- Protected by normal bearer-token session auth and `ADMIN_USER_IDS`.
+- Does not require a bearer token.
 - Returns aggregate counts only, not user-level records.
 - API failure counts are in-memory since server start.
 - Cancelled/deleted join request counts are marked unavailable because pending join-request rows are deleted on cancellation today.
@@ -107,7 +107,7 @@ Implemented backend surface:
 - [ ] Mark important events as GA4 key events: `signup_succeeded`, `profile_completed`, `event_create_succeeded`, `join_request_succeeded`, and `join_request_approved`.
 - [ ] Use GA4 Audiences for cohorts such as browsers who never signed in, signed-up users who never created an event, and hosts with zero joins.
 - [ ] Enable Firebase BigQuery export for raw event analysis and custom SQL reporting when Firebase dashboards are not enough.
-- [x] For backend-only metrics, expose a protected admin reporting surface or send scheduled reports until a dedicated dashboard exists.
+- [x] For backend-only metrics, expose an admin reporting surface or send scheduled reports until a dedicated dashboard exists.
 
 ## Event Taxonomy
 
@@ -201,14 +201,14 @@ Firebase notes that BigQuery export is useful when Firebase Console reports are 
 
 Several issue metrics are backend facts, not Firebase facts. Until a dedicated admin dashboard exists, the practical choices are:
 
-- Protected admin API endpoints in the Go server.
+- Admin API endpoints in the Go server.
 - Scheduled reports generated from SQLite.
 - A backend export job into BigQuery.
 - A Looker Studio dashboard backed by BigQuery or a reporting database.
 
 Recommended first backend reporting surface:
 
-- Add a protected `/api/admin/analytics/summary` endpoint for authenticated admins.
+- Add a `/api/admin/analytics/summary` endpoint for aggregate backend analytics.
 - Return aggregated counts only, not user-level records.
 - Keep the first version read-only and time-window based, for example `?from=2026-05-01&to=2026-05-31`.
 
