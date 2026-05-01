@@ -11,26 +11,20 @@ import (
 func TestAdminAnalyticsSummaryEndpoint(t *testing.T) {
 	env := setupAPITestEnv(t)
 
-	ava, err := env.repo.GetUserByEmail(context.Background(), "ava@example.com")
-	if err != nil {
-		t.Fatalf("get admin user: %v", err)
-	}
 	noah, err := env.repo.GetUserByEmail(context.Background(), "noah@example.com")
 	if err != nil {
 		t.Fatalf("get requester user: %v", err)
 	}
 
-	t.Setenv("ADMIN_USER_IDS", fmt.Sprintf("%d", ava.ID))
-
 	avaToken := env.issueTokenForEmail(t, "ava@example.com")
 	noahToken := env.issueTokenForEmail(t, "noah@example.com")
 	today := time.Now().UTC().Format("2006-01-02")
 
-	forbiddenResp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary?from="+today+"&to="+today, noahToken, nil)
-	if forbiddenResp.StatusCode != http.StatusForbidden {
-		t.Fatalf("expected non-admin analytics request to be forbidden, got %d", forbiddenResp.StatusCode)
+	notFoundResp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/missing", "", nil)
+	if notFoundResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected missing analytics route to return 404, got %d", notFoundResp.StatusCode)
 	}
-	forbiddenResp.Body.Close()
+	notFoundResp.Body.Close()
 
 	createResp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, CreateEventParams{
 		Title:       "Backend Analytics Test",
@@ -90,7 +84,7 @@ func TestAdminAnalyticsSummaryEndpoint(t *testing.T) {
 		t.Fatalf("create event message: %v", err)
 	}
 
-	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary?from="+today+"&to="+today, avaToken, nil)
+	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary?from="+today+"&to="+today, "", nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected analytics status 200, got %d", resp.StatusCode)
 	}
@@ -109,19 +103,16 @@ func TestAdminAnalyticsSummaryEndpoint(t *testing.T) {
 		t.Fatal("expected cancelled/deleted join request counts to be marked unavailable")
 	}
 	if len(summary.APIRequestFailures) == 0 {
-		t.Fatal("expected API failure stats to include the earlier forbidden request")
+		t.Fatal("expected API failure stats to include the earlier missing-route request")
 	}
 }
 
-func TestAdminAnalyticsSummaryRequiresAdmin(t *testing.T) {
+func TestAdminAnalyticsSummaryDoesNotRequireAuthorization(t *testing.T) {
 	env := setupAPITestEnv(t)
-	token := env.issueTokenForEmail(t, "ava@example.com")
 
-	t.Setenv("ADMIN_USER_IDS", "")
-
-	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary", token, nil)
-	if resp.StatusCode != http.StatusForbidden {
-		t.Fatalf("expected status 403, got %d", resp.StatusCode)
+	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary", "", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
 }

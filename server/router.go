@@ -43,8 +43,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 		protected.POST("/push-tokens/test", pushHandler.testPush)
 	}
 
-	admin := protected.Group("/admin")
-	admin.Use(adminMiddleware())
+	admin := api.Group("/admin")
 	NewAnalyticsHandler(eventHandler.repo, collector).RegisterRoutes(admin)
 
 	api.GET("/ws", chatHub.handleWebSocket)
