@@ -25,6 +25,7 @@ module.exports = {
     '^@context/(.*)$': '<rootDir>/src/context/$1',
     '^@api/(.*)$': '<rootDir>/src/api/$1',
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
     '^@theme/(.*)$': '<rootDir>/src/theme/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
     '^@assets/(.*)$': '<rootDir>/assets/$1',

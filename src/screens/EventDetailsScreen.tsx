@@ -45,6 +45,7 @@ import { useEvents, UserEvent } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { API_BASE_URL } from "@api/config";
+import { getEventAnalyticsParams, trackEvent } from "@services/analytics";
 import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
 import BottomSheetModal from "@components/BottomSheetModal";
@@ -223,6 +224,13 @@ const EventDetailsScreen = () => {
   const isOwner = user?.id === event.ownerId;
   const isSingleEvent = event?.groupType === "Single";
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;
+  const eventAnalyticsParams = getEventAnalyticsParams({
+    groupType: event.groupType,
+    gender: event.gender,
+    minAge: event.minAge,
+    maxAge: event.maxAge,
+    scheduledAt: event.scheduledAt,
+  });
   const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
   const scheduleDateLabel = event.eventDate
     ? formatEventDetailDateLabel(event.eventDate)
@@ -512,6 +520,12 @@ const EventDetailsScreen = () => {
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!showInvitePrompt) {
+      trackEvent("join_request_started", {
+        ...eventAnalyticsParams,
+        source: "event_details_cta",
+      }).catch(() => undefined);
+    }
     setShowInvitePrompt((prev) => !prev);
   };
 
@@ -561,6 +575,9 @@ const EventDetailsScreen = () => {
         eventNumericId,
         request.userId,
       );
+      trackEvent("join_request_approved", eventAnalyticsParams).catch(
+        () => undefined,
+      );
       await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
@@ -587,6 +604,9 @@ const EventDetailsScreen = () => {
         hostRequestStoreKey,
         eventNumericId,
         request.userId,
+      );
+      trackEvent("join_request_denied", eventAnalyticsParams).catch(
+        () => undefined,
       );
       await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
@@ -753,6 +773,9 @@ const EventDetailsScreen = () => {
           ? `${firstName} reported and blocked`
           : "Member reported and blocked",
       );
+      trackEvent("member_reported", eventAnalyticsParams).catch(
+        () => undefined,
+      );
       // Refresh requests since the reported member should be removed
       if (hostRequestStoreKey != null && eventNumericId != null) {
         refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
@@ -776,6 +799,10 @@ const EventDetailsScreen = () => {
       return;
     }
     if (!user || !token) {
+      trackEvent("guest_join_requires_auth", {
+        ...eventAnalyticsParams,
+        source: "event_details_invite",
+      }).catch(() => undefined);
       setPendingSendAfterSignIn(true);
       setSignInVisible(true);
       return;
@@ -791,6 +818,10 @@ const EventDetailsScreen = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setInviteError(null);
     setIsSendingInvite(true);
+    trackEvent("join_request_submitted", eventAnalyticsParams).catch(
+      () => undefined,
+    );
+    let failureTracked = false;
     try {
       const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/requests`,
@@ -807,9 +838,19 @@ const EventDetailsScreen = () => {
         setHasPendingRequest(true);
         markEventRequested(event.id);
         setInviteError("You already have a pending request for this event.");
+        trackEvent("join_request_failed", {
+          ...eventAnalyticsParams,
+          status_code: response.status,
+          reason_category: "duplicate_request",
+        }).catch(() => undefined);
         return;
       }
       if (response.status === 401) {
+        trackEvent("join_request_failed", {
+          ...eventAnalyticsParams,
+          status_code: response.status,
+          reason_category: "unauthorized",
+        }).catch(() => undefined);
         setSignInVisible(true);
         return;
       }
@@ -823,11 +864,29 @@ const EventDetailsScreen = () => {
           `Join request failed: status=${response.status} error=${serverMsg}`,
         );
         if (response.status === 403) {
+          failureTracked = true;
+          trackEvent("join_request_failed", {
+            ...eventAnalyticsParams,
+            status_code: response.status,
+            reason_category: "forbidden",
+          }).catch(() => undefined);
           throw new Error("You are unable to join this event.");
         }
         if (response.status === 404) {
+          failureTracked = true;
+          trackEvent("join_request_failed", {
+            ...eventAnalyticsParams,
+            status_code: response.status,
+            reason_category: "not_found",
+          }).catch(() => undefined);
           throw new Error("This event is no longer available.");
         }
+        failureTracked = true;
+        trackEvent("join_request_failed", {
+          ...eventAnalyticsParams,
+          status_code: response.status,
+          reason_category: "api_error",
+        }).catch(() => undefined);
         throw new Error(serverMsg || "Unable to send request right now.");
       }
       setInviteMessage("");
@@ -835,7 +894,16 @@ const EventDetailsScreen = () => {
       setHasPendingRequest(true);
       markEventRequested(event.id);
       setShowRequestSentBadge(true);
+      trackEvent("join_request_succeeded", eventAnalyticsParams).catch(
+        () => undefined,
+      );
     } catch (err) {
+      if (!failureTracked) {
+        trackEvent("join_request_failed", {
+          ...eventAnalyticsParams,
+          reason_category: "network_error",
+        }).catch(() => undefined);
+      }
       console.error("Failed to send invite", err);
       setInviteError(
         err instanceof Error
@@ -937,6 +1005,9 @@ const EventDetailsScreen = () => {
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
       setShowRequestCancelledBadge(true);
+      trackEvent("join_request_cancelled", eventAnalyticsParams).catch(
+        () => undefined,
+      );
     } catch (err) {
       console.error("Failed to cancel request", err);
     } finally {
@@ -988,6 +1059,9 @@ const EventDetailsScreen = () => {
       setReportMessage("");
       setShowReportPrompt(false);
       markEventReported(event.id);
+      trackEvent("event_reported", eventAnalyticsParams).catch(
+        () => undefined,
+      );
       // Clear local state for pending request since backend also cancels it
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);

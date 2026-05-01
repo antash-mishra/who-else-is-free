@@ -83,6 +83,21 @@ export const mockHaptics = {
 
 jest.mock('expo-haptics', () => mockHaptics);
 
+// Mock Firebase Analytics
+export const mockFirebaseAnalytics = {
+  logEvent: jest.fn().mockResolvedValue(undefined),
+  logScreenView: jest.fn().mockResolvedValue(undefined),
+  setDefaultEventParameters: jest.fn().mockResolvedValue(undefined),
+};
+
+jest.mock('@react-native-firebase/analytics', () => {
+  const analytics = jest.fn(() => mockFirebaseAnalytics);
+  return {
+    __esModule: true,
+    default: analytics,
+  };
+});
+
 // Mock @expo/vector-icons (avoid loading font files in Jest)
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
@@ -97,6 +112,10 @@ jest.mock('expo-constants', () => ({
   expoConfig: { hostUri: 'localhost:19000' },
   manifest2: { extra: { expoClientHost: 'localhost:19000' } },
   manifest: { debuggerHost: 'localhost:19000' },
+}));
+
+jest.mock('expo-updates', () => ({
+  channel: 'test',
 }));
 
 // Mock SVG components
@@ -179,6 +198,9 @@ export const resetAllMocks = () => {
   mockHaptics.impactAsync.mockClear();
   mockHaptics.notificationAsync.mockClear();
   mockHaptics.selectionAsync.mockClear();
+  mockFirebaseAnalytics.logEvent.mockClear();
+  mockFirebaseAnalytics.logScreenView.mockClear();
+  mockFirebaseAnalytics.setDefaultEventParameters.mockClear();
   mockNavigation.navigate.mockClear();
   mockNavigation.goBack.mockClear();
   mockNavigation.reset.mockClear();

@@ -16,6 +16,7 @@ import { EventsProvider } from '@context/EventsContext';
 import { AuthProvider } from '@context/AuthContext';
 import { ChatProvider } from '@context/ChatContext';
 import { PushProvider } from '@context/PushContext';
+import { initializeAnalytics } from '@services/analytics';
 
 // Prevent native splash from auto-hiding before fonts load
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +30,8 @@ const App = () => {
   });
 
   useEffect(() => {
+    initializeAnalytics().catch(() => undefined);
+
     const requestPermission = async () => {
       try {
         const msg = messaging();
