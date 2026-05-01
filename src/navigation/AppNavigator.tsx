@@ -16,7 +16,7 @@ import ReAnimated, {
   withSpring,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { enableScreens } from "react-native-screens";
@@ -35,6 +35,7 @@ import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { colors } from "@theme/colors";
 import { Springs } from "@theme/springs";
 import { useChat } from "@context/ChatContext";
+import { trackScreenView } from "@services/analytics";
 import JoinRequestsScreen from "@screens/JoinRequestsScreen";
 import PendingRequestsScreen from "@screens/PendingRequestsScreen";
 import EditProfileScreen from "@screens/EditProfileScreen";
@@ -580,6 +581,7 @@ const MainTabs = () => {
 
 // ─── Root navigator ──────────────────────────────────────────────────────────
 const AppNavigator = () => {
+  const routeNameRef = useRef<string | undefined>(undefined);
   const navigationTheme = {
     ...DefaultTheme,
     colors: {
@@ -593,7 +595,26 @@ const AppNavigator = () => {
   };
 
   return (
-    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navigationTheme}
+      onReady={() => {
+        routeNameRef.current = navigationRef.getCurrentRoute()?.name;
+        if (routeNameRef.current) {
+          trackScreenView(routeNameRef.current).catch(() => undefined);
+        }
+      }}
+      onStateChange={() => {
+        const currentRouteName = navigationRef.getCurrentRoute()?.name;
+        if (
+          currentRouteName &&
+          routeNameRef.current !== currentRouteName
+        ) {
+          routeNameRef.current = currentRouteName;
+          trackScreenView(currentRouteName).catch(() => undefined);
+        }
+      }}
+    >
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{

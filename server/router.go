@@ -11,6 +11,7 @@ import (
 
 func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, pushHandler *PushHandler, signer *tokenSigner) *gin.Engine {
 	r := gin.Default()
+	collector := newAnalyticsCollector()
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:  []string{"*"},
@@ -19,6 +20,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 		ExposeHeaders: []string{"Content-Length"},
 		MaxAge:        12 * time.Hour,
 	}))
+	r.Use(collector.middleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -40,6 +42,10 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	if os.Getenv("PUSH_ENABLED") == "true" {
 		protected.POST("/push-tokens/test", pushHandler.testPush)
 	}
+
+	admin := protected.Group("/admin")
+	admin.Use(adminMiddleware())
+	NewAnalyticsHandler(eventHandler.repo, collector).RegisterRoutes(admin)
 
 	api.GET("/ws", chatHub.handleWebSocket)
 

@@ -141,7 +141,8 @@ func TestGoogleLoginSuccess(t *testing.T) {
 		User struct {
 			Email string `json:"email"`
 		} `json:"user"`
-		Token string `json:"token"`
+		Token     string `json:"token"`
+		IsNewUser bool   `json:"is_new_user"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -151,6 +152,44 @@ func TestGoogleLoginSuccess(t *testing.T) {
 	}
 	if payload.Token == "" {
 		t.Fatal("expected session token in response")
+	}
+	if payload.IsNewUser {
+		t.Fatal("expected seeded user login to return is_new_user=false")
+	}
+}
+
+func TestGoogleLoginReturnsIsNewUserForFirstSignup(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+
+	google := fakeGoogleVerifier{
+		claims: map[string]any{
+			"email":          "brand-new@example.com",
+			"email_verified": true,
+			"name":           "Brand New",
+		},
+	}
+
+	env := setupAuthTestEnv(t, google, nil)
+	rec := env.postJSON(t, "/api/google-login", map[string]any{"id_token": "google-token"})
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	var payload struct {
+		User struct {
+			Email string `json:"email"`
+		} `json:"user"`
+		IsNewUser bool `json:"is_new_user"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.User.Email != "brand-new@example.com" {
+		t.Fatalf("expected user email brand-new@example.com, got %s", payload.User.Email)
+	}
+	if !payload.IsNewUser {
+		t.Fatal("expected first-time Google auth to return is_new_user=true")
 	}
 }
 
@@ -181,6 +220,15 @@ func TestAppleLoginLinksByEmailAndAllowsSubsequentTokenWithoutEmail(t *testing.T
 	if first.Code != http.StatusOK {
 		t.Fatalf("first login expected 200, got %d (%s)", first.Code, first.Body.String())
 	}
+	var firstPayload struct {
+		IsNewUser bool `json:"is_new_user"`
+	}
+	if err := json.Unmarshal(first.Body.Bytes(), &firstPayload); err != nil {
+		t.Fatalf("decode first response: %v", err)
+	}
+	if firstPayload.IsNewUser {
+		t.Fatal("expected Apple link to existing seeded email to return is_new_user=false")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -196,6 +244,54 @@ func TestAppleLoginLinksByEmailAndAllowsSubsequentTokenWithoutEmail(t *testing.T
 	second := env.postJSON(t, "/api/apple-login", map[string]any{"id_token": "second-token"})
 	if second.Code != http.StatusOK {
 		t.Fatalf("second login expected 200, got %d (%s)", second.Code, second.Body.String())
+	}
+	var secondPayload struct {
+		IsNewUser bool `json:"is_new_user"`
+	}
+	if err := json.Unmarshal(second.Body.Bytes(), &secondPayload); err != nil {
+		t.Fatalf("decode second response: %v", err)
+	}
+	if secondPayload.IsNewUser {
+		t.Fatal("expected Apple subject login to return is_new_user=false")
+	}
+}
+
+func TestAppleLoginReturnsIsNewUserForFirstSignup(t *testing.T) {
+	t.Setenv("APPLE_OAUTH_AUDIENCES", "com.whoelseisfree.app")
+
+	apple := fakeAppleVerifier{
+		responses: map[string]fakeAppleResponse{
+			"new-token": {
+				identity: &appleIdentity{
+					Subject: "apple-sub-new",
+					Email:   "new-apple@example.com",
+					Name:    "New Apple",
+				},
+			},
+		},
+	}
+
+	env := setupAuthTestEnv(t, fakeGoogleVerifier{}, apple)
+
+	rec := env.postJSON(t, "/api/apple-login", map[string]any{"id_token": "new-token"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	var payload struct {
+		User struct {
+			Email string `json:"email"`
+		} `json:"user"`
+		IsNewUser bool `json:"is_new_user"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.User.Email != "new-apple@example.com" {
+		t.Fatalf("expected user email new-apple@example.com, got %s", payload.User.Email)
+	}
+	if !payload.IsNewUser {
+		t.Fatal("expected first-time Apple auth to return is_new_user=true")
 	}
 }
 

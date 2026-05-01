@@ -15,6 +15,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 
 import { useAuth } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
+import { trackEvent } from "@services/analytics";
 import { colors, spacing, typography } from "@theme/index";
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
 import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from "@constants/featureFlags";
@@ -104,7 +105,12 @@ const GoogleSignInScreen = () => {
   );
 
   const onGooglePress = useCallback(async () => {
+    trackEvent("login_started", { provider: "google" }).catch(() => undefined);
     if (!isNativeAvailable) {
+      trackEvent("login_failed", {
+        provider: "google",
+        failure_stage: "native_unavailable",
+      }).catch(() => undefined);
       Alert.alert(
         "Google Sign-In Unavailable",
         "This feature requires running this app from a custom Expo dev build or standalone build with @react-native-google-signin/google-signin installed.",
@@ -112,6 +118,7 @@ const GoogleSignInScreen = () => {
       return;
     }
 
+    let reachedServer = false;
     try {
       if (Platform.OS === "android") {
         await GoogleSignin.hasPlayServices({
@@ -124,12 +131,23 @@ const GoogleSignInScreen = () => {
           "Unable to sign in with Google",
           "No ID token was returned.",
         );
+        trackEvent("login_failed", {
+          provider: "google",
+          failure_stage: "missing_id_token",
+        }).catch(() => undefined);
         return;
       }
 
+      reachedServer = true;
       const user = await signInWithGoogle(result.data.idToken);
       handlePostSignInNavigation(user.profileComplete);
     } catch (error) {
+      if (!reachedServer) {
+        trackEvent("login_failed", {
+          provider: "google",
+          failure_stage: "native",
+        }).catch(() => undefined);
+      }
       console.warn("Google sign-in failed", error);
       Alert.alert("Unable to sign in with Google", "Please try again.");
     }
@@ -140,7 +158,12 @@ const GoogleSignInScreen = () => {
   ]);
 
   const onApplePress = useCallback(async () => {
+    trackEvent("login_started", { provider: "apple" }).catch(() => undefined);
     if (Platform.OS !== "ios") {
+      trackEvent("login_failed", {
+        provider: "apple",
+        failure_stage: "unsupported_platform",
+      }).catch(() => undefined);
       Alert.alert(
         "Apple Sign-In (Dev Preview)",
         "This button is shown in development for UI testing. Apple Sign-In works only on iOS native builds.",
@@ -149,6 +172,10 @@ const GoogleSignInScreen = () => {
     }
 
     if (!isAppleAvailable) {
+      trackEvent("login_failed", {
+        provider: "apple",
+        failure_stage: "native_unavailable",
+      }).catch(() => undefined);
       Alert.alert(
         "Apple Sign-In Unavailable",
         "Apple Sign-In is unavailable on this device or build.",
@@ -156,6 +183,7 @@ const GoogleSignInScreen = () => {
       return;
     }
 
+    let reachedServer = false;
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -169,15 +197,30 @@ const GoogleSignInScreen = () => {
           "Unable to sign in with Apple",
           "No ID token was returned.",
         );
+        trackEvent("login_failed", {
+          provider: "apple",
+          failure_stage: "missing_id_token",
+        }).catch(() => undefined);
         return;
       }
 
+      reachedServer = true;
       const user = await signInWithApple(credential.identityToken);
       handlePostSignInNavigation(user.profileComplete);
     } catch (error) {
       const code = (error as { code?: string })?.code;
       if (code === "ERR_REQUEST_CANCELED") {
+        trackEvent("login_failed", {
+          provider: "apple",
+          failure_stage: "cancelled",
+        }).catch(() => undefined);
         return;
+      }
+      if (!reachedServer) {
+        trackEvent("login_failed", {
+          provider: "apple",
+          failure_stage: "native",
+        }).catch(() => undefined);
       }
       console.warn("Apple sign-in failed", error);
       Alert.alert("Unable to sign in with Apple", "Please try again.");

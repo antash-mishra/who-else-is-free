@@ -93,14 +93,14 @@ func (h *AuthHandler) googleLogin(c *gin.Context) {
 	}
 
 	name, _ := claims["name"].(string)
-	user, err := h.getOrCreateUserByEmail(c.Request.Context(), email, name)
+	user, isNewUser, err := h.getOrCreateUserByEmail(c.Request.Context(), email, name)
 	if err != nil {
 		log.Printf("google-login: failed to upsert user %s: %v", email, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load user"})
 		return
 	}
 
-	h.respondWithIssuedSession(c, user, "google-login")
+	h.respondWithIssuedSession(c, user, "google-login", isNewUser)
 }
 
 func (h *AuthHandler) appleLogin(c *gin.Context) {
@@ -138,7 +138,7 @@ func (h *AuthHandler) appleLogin(c *gin.Context) {
 	user, err := h.repo.GetUserByAppleSubject(ctxRepo, subject)
 	switch {
 	case err == nil:
-		h.respondWithIssuedSession(c, user, "apple-login")
+		h.respondWithIssuedSession(c, user, "apple-login", false)
 		return
 	case !errors.Is(err, ErrUserNotFound):
 		log.Printf("apple-login: failed to lookup account for sub %s: %v", subject, err)
@@ -153,7 +153,7 @@ func (h *AuthHandler) appleLogin(c *gin.Context) {
 		return
 	}
 
-	user, err = h.getOrCreateUserByEmail(c.Request.Context(), email, identity.Name)
+	user, isNewUser, err := h.getOrCreateUserByEmail(c.Request.Context(), email, identity.Name)
 	if err != nil {
 		log.Printf("apple-login: failed to upsert user %s: %v", email, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load user"})
@@ -174,10 +174,10 @@ func (h *AuthHandler) appleLogin(c *gin.Context) {
 		return
 	}
 
-	h.respondWithIssuedSession(c, user, "apple-login")
+	h.respondWithIssuedSession(c, user, "apple-login", isNewUser)
 }
 
-func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, displayName string) (*User, error) {
+func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, displayName string) (*User, bool, error) {
 	name := strings.TrimSpace(displayName)
 	if name == "" {
 		name = fallbackNameFromEmail(email)
@@ -188,17 +188,21 @@ func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, d
 
 	user, err := h.repo.GetUserByEmail(ctx, email)
 	if err == nil {
-		return user, nil
+		return user, false, nil
 	}
 	if !errors.Is(err, ErrUserNotFound) {
-		return nil, err
+		return nil, false, err
 	}
 
 	passwordPlaceholder := uuid.NewString()
-	return h.repo.CreateUserWithPassword(ctx, name, email, passwordPlaceholder)
+	user, err = h.repo.CreateUserWithPassword(ctx, name, email, passwordPlaceholder)
+	if err != nil {
+		return nil, false, err
+	}
+	return user, true, nil
 }
 
-func (h *AuthHandler) respondWithIssuedSession(c *gin.Context, user *User, logPrefix string) {
+func (h *AuthHandler) respondWithIssuedSession(c *gin.Context, user *User, logPrefix string, isNewUser bool) {
 	token, claims, err := h.signer.issue(user.ID, user.Email)
 	if err != nil {
 		log.Printf("%s: failed to issue token for %d: %v", logPrefix, user.ID, err)
@@ -223,9 +227,10 @@ func (h *AuthHandler) respondWithIssuedSession(c *gin.Context, user *User, logPr
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"user":       userResponse,
-		"token":      token,
-		"expires_at": claims.ExpiresAt,
+		"user":        userResponse,
+		"token":       token,
+		"expires_at":  claims.ExpiresAt,
+		"is_new_user": isNewUser,
 	})
 }
 
