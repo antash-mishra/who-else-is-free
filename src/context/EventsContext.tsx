@@ -13,6 +13,7 @@ import {
 import { EventItemProps } from "@components/EventCard";
 import { API_BASE_URL } from "@api/config";
 import { useAuth } from "@context/AuthContext";
+import { getEventAnalyticsParams, trackEvent } from "@services/analytics";
 import {
   CoverKey,
   DEFAULT_COVER_KEY,
@@ -439,15 +440,35 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
       };
-
-      const response = await fetchClient(`${API_BASE_URL}/api/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(payload),
+      const analyticsParams = getEventAnalyticsParams({
+        groupType: event.groupType,
+        gender: event.gender,
+        minAge: event.minAge,
+        maxAge: event.maxAge,
+        scheduledAt: event.scheduledAt,
       });
+
+      trackEvent("event_create_submitted", analyticsParams).catch(
+        () => undefined,
+      );
+
+      let response: Response;
+      try {
+        response = await fetchClient(`${API_BASE_URL}/api/events`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        trackEvent("event_create_failed", {
+          ...analyticsParams,
+          reason_category: "network_error",
+        }).catch(() => undefined);
+        throw error;
+      }
 
       if (!response.ok) {
         let message = `Request failed with status ${response.status}`;
@@ -459,11 +480,20 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         } catch {
           // ignore JSON parse errors and fall back to generic message
         }
+        trackEvent("event_create_failed", {
+          ...analyticsParams,
+          status_code: response.status,
+          reason_category: "api_error",
+        }).catch(() => undefined);
         throw new Error(message);
       }
 
       const { id } = (await response.json()) as { id: number };
       const eventId = String(id);
+
+      trackEvent("event_create_succeeded", analyticsParams).catch(
+        () => undefined,
+      );
 
       metaRef.current = {
         ...metaRef.current,

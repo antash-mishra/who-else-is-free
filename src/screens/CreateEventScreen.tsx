@@ -22,6 +22,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { RootStackParamList } from "@navigation/types";
+import { trackEvent } from "@services/analytics";
 import { colors, spacing } from "@theme/index";
 import { GuestEventDraft, UserEvent, useEvents } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
@@ -102,6 +103,7 @@ const CreateEventScreen = () => {
         useEvents();
     const { user } = useAuth();
     const scrollViewRef = useRef<KeyboardAwareScrollView>(null);
+    const createStartTrackedRef = useRef(false);
 
     // Responsive gap for spacing between form elements
     const responsiveGap = spacing.xs;
@@ -115,6 +117,17 @@ const CreateEventScreen = () => {
         ? events.find((eventItem) => eventItem.id === editEventId)
         : null;
     const isEditing = !!editEvent;
+
+    useEffect(() => {
+        if (isEditing || createStartTrackedRef.current) {
+            return;
+        }
+
+        createStartTrackedRef.current = true;
+        trackEvent("event_create_started", {
+            source: "create_event_screen",
+        }).catch(() => undefined);
+    }, [isEditing]);
 
     // Form state
     const [eventName, setEventName] = useState(editEvent?.title || "");

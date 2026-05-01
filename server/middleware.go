@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -80,4 +82,39 @@ func sessionFromContext(c *gin.Context) (*sessionClaims, bool) {
 	}
 	claims, ok := value.(*sessionClaims)
 	return claims, ok
+}
+
+func adminMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims, exists := sessionFromContext(c)
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+			return
+		}
+
+		if !isAdminUserID(claims.UserID) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func isAdminUserID(userID int64) bool {
+	raw := strings.TrimSpace(os.Getenv("ADMIN_USER_IDS"))
+	if raw == "" {
+		return false
+	}
+
+	for _, part := range strings.Split(raw, ",") {
+		id, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+		if err != nil {
+			continue
+		}
+		if id == userID {
+			return true
+		}
+	}
+	return false
 }

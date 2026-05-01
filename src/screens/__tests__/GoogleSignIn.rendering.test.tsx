@@ -136,7 +136,7 @@ describe('GoogleSignIn Rendering', () => {
       const { getAllByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getAllByText('Sign in with Google')[0]).toBeTruthy();
+        expect(getAllByText('Continue with Google')[0]).toBeTruthy();
       });
     });
 
@@ -144,7 +144,7 @@ describe('GoogleSignIn Rendering', () => {
       const { getAllByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getAllByText('Sign in with Google')[1]).toBeTruthy();
+        expect(getAllByText('Continue with Google')[0]).toBeTruthy();
       });
     });
 
@@ -180,13 +180,13 @@ describe('GoogleSignIn Rendering', () => {
       });
     });
 
-    it('should show "Signing in..." when signing in', async () => {
+    it('should show "Signing in…" when signing in', async () => {
       mockAuthValue.isSigningIn = true;
 
       const { getAllByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getAllByText('Signing in...').length).toBeGreaterThan(0);
+        expect(getAllByText('Signing in…').length).toBeGreaterThan(0);
       });
     });
 

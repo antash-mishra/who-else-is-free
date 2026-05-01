@@ -11,6 +11,7 @@ import {
 
 import { API_BASE_URL } from "@api/config";
 import { resetToLogin } from "@navigation/navigationRef";
+import { getAgeRangeBucket, trackEvent } from "@services/analytics";
 
 import * as SecureStore from "expo-secure-store";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -174,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             profile_complete: boolean;
           };
           token: string;
+          is_new_user?: boolean;
         };
 
         const authUser: AuthUser = {
@@ -196,8 +198,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           SecureStore.setItemAsync(AUTH_PROVIDER_KEY, provider),
         ]);
 
+        trackEvent(
+          payload.is_new_user ? "signup_succeeded" : "login_succeeded",
+          {
+            provider,
+          },
+        ).catch(() => undefined);
+
         return authUser;
       } catch (error) {
+        trackEvent("login_failed", {
+          provider,
+          failure_stage: "server",
+        }).catch(() => undefined);
         if (error instanceof Error) {
           throw error;
         }
@@ -388,9 +401,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(authUser);
 
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser));
+
+      if (!user?.profileComplete && authUser.profileComplete) {
+        trackEvent("profile_completed", {
+          gender: authUser.gender,
+          age_range_bucket: getAgeRangeBucket(authUser.age, authUser.age),
+        }).catch(() => undefined);
+      }
+
       return authUser;
     },
-    [authFetch, token],
+    [authFetch, token, user?.profileComplete],
   );
 
   const deleteAccount = useCallback(async (): Promise<void> => {

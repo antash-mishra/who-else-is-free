@@ -13,6 +13,7 @@ import { AppState, AppStateStatus } from "react-native";
 
 import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from "@api/config";
 import { useAuth } from "@context/AuthContext";
+import { trackEvent } from "@services/analytics";
 import { getScheduleDisplay } from "@utils/dateTime";
 
 type ConversationParticipant = {
@@ -149,6 +150,7 @@ const sortConversationsByActivity = (items: ChatConversation[]) => {
 
 type ServerEnvelope = {
   type: string;
+  code?: string;
   tempId?: string;
   message?: {
     id: number;
@@ -818,6 +820,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
           return sortConversationsByActivity(updated);
         });
+
+        if (message.senderId === currentUserId && envelope.tempId) {
+          trackEvent("message_sent").catch(() => undefined);
+        }
+        return;
+      }
+
+      if (envelope.type === "system:error") {
+        trackEvent("message_send_failed", {
+          failure_stage: envelope.code ?? "server_error",
+        }).catch(() => undefined);
         return;
       }
 
@@ -1110,6 +1123,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           );
           return sortConversationsByActivity(updated);
         });
+        trackEvent("message_send_failed", {
+          failure_stage: "socket_unavailable",
+        }).catch(() => undefined);
         return;
       }
 
@@ -1151,7 +1167,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         tempId,
       };
 
-      socketRef.current.send(JSON.stringify(payload));
+      try {
+        socketRef.current.send(JSON.stringify(payload));
+      } catch (error) {
+        trackEvent("message_send_failed", {
+          failure_stage: "socket_send_error",
+        }).catch(() => undefined);
+        throw error;
+      }
     },
     [connectSocket, user],
   );

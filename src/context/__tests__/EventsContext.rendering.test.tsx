@@ -29,7 +29,7 @@ jest.mock('../AuthContext', () => ({
 // Mock covers module
 jest.mock('@constants/covers', () => ({
   resolveCoverUri: jest.fn((key?: string) => key ? `mock-uri-${key}` : 'default-uri'),
-  DEFAULT_COVER_KEY: 'cover_01',
+  DEFAULT_COVER_KEY: 'badminton',
 }));
 
 // Mock API config
@@ -89,7 +89,7 @@ const InteractiveConsumer = ({
           minAge: 18,
           maxAge: 50,
           groupType: 'Single',
-          coverKey: 'cover_01',
+          coverKey: 'badminton',
           userId: mockAuthUser.id,
           hostName: mockAuthUser.name,
         });
@@ -144,6 +144,13 @@ describe('EventsContext - Rendering Tests', () => {
     mockRefreshSessionSilently.mockClear();
     mockAuthFetch.mockReset();
     mockAuthFetch.mockImplementation((...args: Parameters<typeof fetch>) => fetch(...args));
+    const mockUseAuth = require('../AuthContext').useAuth;
+    mockUseAuth.mockReturnValue({
+      user: mockAuthUser,
+      token: mockToken,
+      refreshSessionSilently: mockRefreshSessionSilently,
+      authFetch: mockAuthFetch,
+    });
     jest.clearAllTimers();
   });
 
@@ -337,7 +344,7 @@ describe('EventsContext - Rendering Tests', () => {
     it('should throw error when not authenticated', async () => {
       // Mock useAuth to return no token
       const mockUseAuth = require('../AuthContext').useAuth;
-      mockUseAuth.mockReturnValueOnce({
+      mockUseAuth.mockReturnValue({
         user: mockAuthUser,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
@@ -444,7 +451,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should throw error when not authenticated', async () => {
       const mockUseAuth = require('../AuthContext').useAuth;
-      mockUseAuth.mockReturnValueOnce({
+      mockUseAuth.mockReturnValue({
         user: mockAuthUser,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
@@ -547,7 +554,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should throw error when not authenticated', async () => {
       const mockUseAuth = require('../AuthContext').useAuth;
-      mockUseAuth.mockReturnValueOnce({
+      mockUseAuth.mockReturnValue({
         user: mockAuthUser,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
@@ -724,7 +731,7 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should return empty array when no user', async () => {
       const mockUseAuth = require('../AuthContext').useAuth;
-      mockUseAuth.mockReturnValueOnce({
+      mockUseAuth.mockReturnValue({
         user: null,
         token: null,
         refreshSessionSilently: mockRefreshSessionSilently,
@@ -907,7 +914,7 @@ describe('EventsContext - Rendering Tests', () => {
           minAge: 18,
           maxAge: 50,
           groupType: 'Single',
-          coverKey: 'cover_01',
+          coverKey: 'badminton',
         });
       });
 
