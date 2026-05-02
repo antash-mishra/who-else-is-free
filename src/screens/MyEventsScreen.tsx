@@ -212,7 +212,9 @@ const MyEventsScreen = () => {
           description={"Sign in to see the events you've created or joined"}
           actionLabel="Continue"
           onActionPress={() => setSignInVisible(true)}
-          imageSource={require('@assets/emptystate_myevent.png')}
+          imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+          imageWidth={258}
+          imageHeight={245}
         />
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
@@ -243,7 +245,7 @@ const MyEventsScreen = () => {
               SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
               ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
               ListFooterComponent={<View style={styles.footerSpacing} />}
-              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you host will appear here"} imageSource={require('@assets/emptystate_myevent.png')} />}
+              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you host will appear here"} imageSource={require('@assets/illustration/myEvent-emptyState.png')} imageWidth={258} imageHeight={245} />}
               refreshControl={<RefreshControl refreshing={selectedPage === 0 ? isRefreshing : false} onRefresh={handleRefresh} tintColor={colors.primary} />}
             />
           </View>
@@ -261,7 +263,7 @@ const MyEventsScreen = () => {
               SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
               ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
               ListFooterComponent={<View style={styles.footerSpacing} />}
-              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you join will appear here"} imageSource={require('@assets/emptystate_myevent.png')} />}
+              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you join will appear here"} imageSource={require('@assets/illustration/myEvent-emptyState.png')} imageWidth={258} imageHeight={245} />}
               refreshControl={<RefreshControl refreshing={selectedPage === 1 ? isRefreshing : false} onRefresh={handleRefresh} tintColor={colors.primary} />}
             />
           </View>
@@ -279,7 +281,7 @@ const MyEventsScreen = () => {
               SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
               ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
               ListFooterComponent={<View style={styles.footerSpacing} />}
-              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you request to join will appear here"} imageSource={require('@assets/emptystate_myevent.png')} />}
+              ListEmptyComponent={<EmptyState title="No events yet" description={"Events you request to join will appear here"} imageSource={require('@assets/illustration/myEvent-emptyState.png')} imageWidth={258} imageHeight={245} />}
               refreshControl={<RefreshControl refreshing={isRequestedRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
             />
           </View>

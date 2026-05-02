@@ -18,14 +18,15 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
+import CloseIcon from "@assets/ui/close.svg";
 
 import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import UserAvatar from "@components/UserAvatar";
 import { typography } from "@theme/index";
-import CameraIcon from "@assets/camera.svg";
+import CameraIcon from "@assets/onboarding/camera.svg";
 
 // Lazy import to handle missing native module gracefully
 let ImagePicker: typeof import("expo-image-picker") | null = null;
@@ -38,7 +39,7 @@ try {
 type OnboardingStep = 1 | 2 | 3;
 
 // Back arrow icon
-const BackArrowIcon = () => <Feather name="chevron-left" size={24} color="#000000" />;
+const BackArrowIcon = () => <ChevronLeftIcon width={24} height={24} color="#000000" />;
 
 const OnboardingScreen = () => {
   const navigation =
@@ -244,7 +245,7 @@ const OnboardingScreen = () => {
                       accessibilityRole="button"
                       accessibilityLabel="Remove photo"
                     >
-                      <Feather name="x" size={16} color="#FFFFFF" />
+                      <CloseIcon width={16} height={16} color="#FFFFFF" />
                     </TouchableOpacity>
                   )}
                 </View>

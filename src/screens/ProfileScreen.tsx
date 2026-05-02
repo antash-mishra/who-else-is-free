@@ -14,9 +14,8 @@ import {
 } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { StackNavigationProp } from "@react-navigation/stack";
-import { Feather } from "@expo/vector-icons";
-
 import ScreenContainer from "@components/ScreenContainer";
+import ChevronRightIcon from "@assets/ui/chevron-right.svg";
 import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth } from "@context/AuthContext";
@@ -75,7 +74,7 @@ const MenuItem = ({
         <Text style={styles.menuItemText}>{label}</Text>
       </View>
       {showChevron && (
-        <Feather name="chevron-right" size={20} color="#808080" />
+        <ChevronRightIcon width={20} height={20} color="#808080" />
       )}
     </ScalePressable>
   );
@@ -207,12 +206,12 @@ const ProfileScreen = () => {
           </View>
           <View style={styles.menuSection}>
             <MenuItem
-              icon={<PrivacyPolicyIcon width={20} height={20} />}
+              icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
               label="Privacy Policy"
               onPress={handlePrivacyPolicy}
             />
             <MenuItem
-              icon={<HelpIcon width={20} height={20} />}
+              icon={<HelpIcon width={20} height={20} color="#000000" />}
               label="Help"
               onPress={handleHelp}
             />
@@ -287,34 +286,34 @@ const ProfileScreen = () => {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <MenuItem
-            icon={<EditProfileIcon width={20} height={20} />}
+            icon={<EditProfileIcon width={20} height={20} color="#000000" />}
             label="Edit Profile"
             onPress={handleEditProfile}
           />
           <MenuItem
-            icon={<PastEventsIcon width={20} height={20} />}
+            icon={<PastEventsIcon width={20} height={20} color="#000000" />}
             label="Past Events"
             onPress={handlePastEvents}
           />
           <MenuItem
-            icon={<PrivacyPolicyIcon width={20} height={20} />}
+            icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
             label="Privacy Policy"
             onPress={handlePrivacyPolicy}
           />
           <MenuItem
-            icon={<HelpIcon width={20} height={20} />}
+            icon={<HelpIcon width={20} height={20} color="#000000" />}
             label="Help"
             onPress={handleHelp}
           />
           <MenuItem
-            icon={<LogoutIcon width={20} height={20} />}
+            icon={<LogoutIcon width={20} height={20} color="#000000" />}
             label="Logout"
             onPress={handleSignOut}
             showChevron={false}
             haptic="medium"
           />
           <MenuItem
-            icon={<TrashIcon width={20} height={20} />}
+            icon={<TrashIcon width={20} height={20} color="#000000" />}
             label="Delete"
             onPress={handleDelete}
             showChevron={false}

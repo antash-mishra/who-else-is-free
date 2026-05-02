@@ -285,7 +285,7 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
+                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>
@@ -301,7 +301,7 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/emptystate_discoverevent.png')} /></View> : null}
+                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>

@@ -20,8 +20,8 @@ import { colors, spacing, typography } from "@theme/index";
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
 import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from "@constants/featureFlags";
 import ScreenContainer from "@components/ScreenContainer";
-import GoogleLogo from "@assets/google-logo.svg";
-import AppleLogo from "@assets/apple-logo.svg";
+import GoogleLogo from "@assets/ui/google-logo.svg";
+import AppleLogo from "@assets/ui/apple-logo.svg";
 
 const GoogleSignInScreen = () => {
   const navigation =

@@ -26,10 +26,14 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-import LocationIcon from "@assets/EventDetails-icons/location.svg";
-import TimeIcon from "@assets/EventDetails-icons/time.svg";
-import PeopleIcon from "@assets/EventDetails-icons/people.svg";
+import LocationIcon from "@assets/event-details/location.svg";
+import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
+import CloseIcon from "@assets/ui/close.svg";
+import MoreHorizontalIcon from "@assets/ui/more-horizontal.svg";
+import AcceptIcon from "@assets/event-details/accept.svg";
+import RejectIcon from "@assets/event-details/reject.svg";
+import TimeIcon from "@assets/event-details/time.svg";
+import PeopleIcon from "@assets/event-details/group-type.svg";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   RouteProp,
@@ -213,7 +217,7 @@ const EventDetailsScreen = () => {
             onPress={navigation.goBack}
             style={styles.fallbackBackButton}
           >
-            <Feather name="chevron-left" size={24} color={colors.text} />
+            <ChevronLeftIcon width={24} height={24} color={colors.text} />
           </Pressable>
           <Text style={styles.fallbackText}>We couldn't find that event.</Text>
         </View>
@@ -1253,11 +1257,7 @@ const EventDetailsScreen = () => {
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
               style={[styles.backButton, { top: insets.top + 10 }]}
             >
-              <Feather
-                name="chevron-left"
-                size={24}
-                color={colors.buttonText}
-              />
+              <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -1267,10 +1267,7 @@ const EventDetailsScreen = () => {
               }}
               style={[styles.menuButton, { top: insets.top + 10 }]}
             >
-              <Feather
-                name="more-horizontal"
-                size={24}
-                color={colors.buttonText}
+              <MoreHorizontalIcon width={24} height={24} color={colors.buttonText}
               />
             </Pressable>
           </>
@@ -1281,7 +1278,7 @@ const EventDetailsScreen = () => {
             hitSlop={12}
             style={[styles.overlayCloseButton, styles.overlayCloseButtonFixed]}
           >
-            <Feather name="x" size={24} color={colors.buttonText} />
+            <CloseIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}
         <ScrollView
@@ -1543,11 +1540,7 @@ const EventDetailsScreen = () => {
                                     color={colors.text}
                                   />
                                 ) : (
-                                  <Feather
-                                    name="x"
-                                    size={18}
-                                    color={colors.text}
-                                  />
+                                  <RejectIcon width={30} height={30} />
                                 )}
                               </ScalePressable>
 
@@ -1565,11 +1558,7 @@ const EventDetailsScreen = () => {
                                     color={colors.buttonText}
                                   />
                                 ) : (
-                                  <Feather
-                                    name="check"
-                                    size={18}
-                                    color={colors.buttonText}
-                                  />
+                                  <AcceptIcon width={30} height={30} />
                                 )}
                               </ScalePressable>
                             </View>
@@ -1605,11 +1594,7 @@ const EventDetailsScreen = () => {
                             onPress={() => openMemberMenu(request.requester)}
                             style={styles.requestMenuButton}
                           >
-                            <Feather
-                              name="more-horizontal"
-                              size={24}
-                              color="#666"
-                            />
+                            <MoreHorizontalIcon width={24} height={24} color="#666" />
                           </ScalePressable>
                         </ScalePressable>
                       ))
@@ -1631,11 +1616,7 @@ const EventDetailsScreen = () => {
                             onPress={() => openMemberMenu(member)}
                             style={styles.requestMenuButton}
                           >
-                            <Feather
-                              name="more-horizontal"
-                              size={24}
-                              color="#666"
-                            />
+                            <MoreHorizontalIcon width={24} height={24} color="#666" />
                           </ScalePressable>
                         </View>
                       ))
@@ -1681,11 +1662,7 @@ const EventDetailsScreen = () => {
                               onPress={() => openMemberMenu(member)}
                               style={styles.requestMenuButton}
                             >
-                              <Feather
-                                name="more-horizontal"
-                                size={24}
-                                color="#666"
-                              />
+                              <MoreHorizontalIcon width={24} height={24} color="#666" />
                             </ScalePressable>
                           ) : null}
                         </View>

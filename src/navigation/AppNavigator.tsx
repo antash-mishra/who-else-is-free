@@ -17,7 +17,7 @@ import ReAnimated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useMemo, useRef } from "react";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Circle, G, Path } from "react-native-svg";
 import { BlurView } from "expo-blur";
 import { enableScreens } from "react-native-screens";
 import HomeScreen from "@screens/HomeScreen";
@@ -252,12 +252,8 @@ type TabIconProps = {
 const TAB_ICON_WIDTH = 29;
 const TAB_ICON_HEIGHT = 29;
 
-const getFillColor = (focused: boolean) =>
-  focused ? colors.activeTabIndicator : "none";
-
 const EventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
-  const fillColor = getFillColor(focused);
 
   return (
     <Svg
@@ -268,9 +264,9 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
     >
       <Path
         d="M11.1736 1.45571C11.7187 1.0456 12.466 1.04931 13.0085 1.46281C15.489 3.35338 22.3821 8.38046 22.5533 9.38231C23.4589 11.7647 23.1687 18.6122 20.7074 20.4582C19.4767 21.3811 4.70892 21.3811 3.47827 20.4582C1.01352 18.6122 0.705862 9.99763 1.62885 9.38231C2.00454 8.50621 8.69315 3.35338 11.1736 1.45571Z"
-        fill={fillColor}
+        fill={focused ? strokeColor : 'none'}
         stroke={strokeColor}
-        strokeWidth={2.3}
+        strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -278,7 +274,7 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
         d="M12.0918 16.3047C13.8759 16.3047 15.3222 14.8583 15.3222 13.0742C15.3222 11.2901 13.8759 9.84375 12.0918 9.84375C10.3076 9.84375 8.86133 11.2901 8.86133 13.0742C8.86133 14.8583 10.3076 16.3047 12.0918 16.3047Z"
         fill={focused ? '#FFFFFF' : 'none'}
         stroke={focused ? 'none' : strokeColor}
-        strokeWidth={2.3}
+        strokeWidth={2.15}
       />
     </Svg>
   );
@@ -286,7 +282,6 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
 
 const MyEventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
-  const fillColor = getFillColor(focused);
 
   return (
     <Svg
@@ -297,15 +292,15 @@ const MyEventsTabIcon = ({ focused, color }: TabIconProps) => {
     >
       <Path
         d="M12.1043 7.62467C13.8922 7.62467 15.3415 6.17535 15.3415 4.38753C15.3415 2.59971 13.8922 1.15039 12.1043 1.15039C10.3165 1.15039 8.86719 2.59971 8.86719 4.38753C8.86719 6.17535 10.3165 7.62467 12.1043 7.62467Z"
-        fill={fillColor}
+        fill={focused ? strokeColor : 'none'}
         stroke={strokeColor}
-        strokeWidth={2.2}
+        strokeWidth={2.15}
       />
       <Path
         d="M4.70292 5.31152C7.94006 14.5605 16.2641 14.5605 19.5013 5.31152L22.7384 7.16132C24.4341 8.08621 18.8847 19.4933 15.8017 20.5723C13.9519 21.3431 10.2523 21.3431 8.40251 20.5723C5.31951 19.4933 -0.229868 8.08621 1.46578 7.16132L4.70292 5.31152Z"
-        fill={fillColor}
+        fill={focused ? strokeColor : 'none'}
         stroke={strokeColor}
-        strokeWidth={2.2}
+        strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -328,21 +323,21 @@ const CreateTabIcon = ({ focused: _focused, color }: TabIconProps) => {
         cy={11.1504}
         r={10}
         stroke={strokeColor}
-        strokeWidth={2.2}
+        strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M11.1504 6.70605V15.5949"
         stroke={strokeColor}
-        strokeWidth={2.2}
+        strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <Path
         d="M6.70312 11.1514H15.592"
         stroke={strokeColor}
-        strokeWidth={2.2}
+        strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -352,7 +347,6 @@ const CreateTabIcon = ({ focused: _focused, color }: TabIconProps) => {
 
 const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
-  const fillColor = getFillColor(focused);
   const { hasUnseenMessages } = useChat();
 
   return (
@@ -360,17 +354,19 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
       <Svg
         width={TAB_ICON_WIDTH}
         height={TAB_ICON_HEIGHT}
-        viewBox="0 0 29 29"
+        viewBox="-1.5 -1.5 26 26"
         fill="none"
-        style={focused ? { transform: [{ scale: 1.12 }] } : undefined}
       >
-        <Path
-          d="M21.6674 7.33059C22.9601 8.81846 24.1065 10.8185 24.1309 13.6967C24.1797 15.1602 23.8626 16.5505 23.3992 17.6237C22.9601 18.6482 22.3504 19.6482 21.5454 20.5019C21.1796 20.8922 20.7649 21.258 20.3259 21.5995C19.4722 22.2581 18.4965 22.8191 17.3501 23.2581C16.3013 23.5996 15.0817 23.8435 13.7646 23.8191C13.3012 23.7947 12.8377 23.7459 12.3499 23.6484C12.0328 23.5996 11.7645 23.5264 11.4474 23.5264C10.9352 23.5508 10.7645 23.6728 10.423 23.8679C10.1303 24.0386 9.88639 24.185 9.61809 24.3069C8.91074 24.6484 8.08143 24.8679 7.15456 24.9655C6.95943 24.9899 6.61796 25.0143 6.39843 24.9899C6.17891 24.9655 5.98378 24.746 6.00817 24.5021C6.05696 24.3069 6.30087 24.0142 6.42283 23.8435L6.91065 23.1605C7.17896 22.7947 7.39848 22.4044 7.39848 21.8922C7.39848 21.3068 7.10578 20.9409 6.86187 20.697C5.44717 19.1116 4.42274 17.0139 4.30078 14.2821V13.6967C4.37396 11.5015 5.10569 9.76972 6.00817 8.4282C6.88626 7.15985 8.13022 6.06224 9.34978 5.35489C10.3254 4.79389 11.423 4.33045 12.8377 4.11093C14.5451 3.86702 16.1306 4.03776 17.4477 4.50119C19.0087 5.0378 20.521 6.06224 21.6674 7.33059Z"
-          fill={fillColor}
-          stroke={strokeColor}
-          strokeWidth={focused ? 1.5 : 2.43}
-          strokeLinejoin="round"
-        />
+        <G transform="translate(1.2, 1.2)">
+          <Path
+            d="M10.2988 18.9727C15.5449 18.9727 19.7988 14.904 19.7988 9.88578C19.7988 4.86758 15.5449 0.798828 10.2988 0.798828C5.05272 0.798828 0.798828 4.86758 0.798828 9.88578C0.798828 12.2032 1.70555 14.3169 3.19811 15.9217C3.65411 16.4141 3.97922 17.0672 3.81666 17.7292C3.63866 18.453 3.30554 19.1253 2.84238 19.6953C3.21304 19.7648 3.58891 19.7994 3.96549 19.7988C5.31872 19.7988 6.57272 19.356 7.60188 18.6015C8.45688 18.8439 9.36255 18.9727 10.2988 18.9727Z"
+            fill={focused ? strokeColor : 'none'}
+            stroke={strokeColor}
+            strokeWidth={2.15}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </G>
       </Svg>
       {hasUnseenMessages && (
         <View
@@ -393,7 +389,28 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
 
 const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
-  const innerStroke = focused ? '#FFFFFF' : strokeColor;
+
+  if (!focused) {
+    return (
+      <Svg
+        width={TAB_ICON_WIDTH}
+        height={TAB_ICON_HEIGHT}
+        viewBox="-1.5 -1.5 26 26"
+        fill="none"
+      >
+        <Circle cx={11.5} cy={11.5} r={10.5} stroke={strokeColor} strokeWidth={2.15} />
+        <Path
+          d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
+          stroke={strokeColor}
+          strokeWidth={2.15}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Circle cx={14.13} cy={8.09} r={1.84} fill={strokeColor} />
+        <Circle cx={8.87} cy={8.09} r={1.84} fill={strokeColor} />
+      </Svg>
+    );
+  }
 
   return (
     <Svg
@@ -402,32 +419,16 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
       viewBox="-1.5 -1.5 26 26"
       fill="none"
     >
+      <Circle cx={11.5} cy={11.5} r={10.5} fill={strokeColor} stroke={strokeColor} strokeWidth={2.15} />
       <Path
-        d="M11.1504 21.1504C16.6732 21.1504 21.1504 16.6732 21.1504 11.1504C21.1504 5.62754 16.6732 1.15039 11.1504 1.15039C5.62754 1.15039 1.15039 5.62754 1.15039 11.1504C1.15039 16.6732 5.62754 21.1504 11.1504 21.1504Z"
-        fill={focused ? strokeColor : 'none'}
-        stroke={strokeColor}
-        strokeWidth={2.1}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M6.45117 8.6861C7.22796 7.30515 8.78153 7.30515 9.55831 8.6861"
-        stroke={innerStroke}
-        strokeWidth={2.1}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M12.666 8.6861C13.4428 7.30515 14.9964 7.30515 15.7732 8.6861"
-        stroke={innerStroke}
-        strokeWidth={2.1}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M14.6504 14.6504C14.6504 14.6504 13.6504 16.6504 11.1504 16.6504C8.65039 16.6504 7.65039 14.6504 7.65039 14.6504"
-        stroke={innerStroke}
-        strokeWidth={2.1}
+        d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
+        stroke="#FFFFFF"
+        strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <Circle cx={14.13} cy={8.09} r={1.84} fill="#FFFFFF" />
+      <Circle cx={8.87} cy={8.09} r={1.84} fill="#FFFFFF" />
     </Svg>
   );
 };

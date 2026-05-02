@@ -15,7 +15,7 @@ import { RootStackParamList } from "@navigation/types";
 import { useAuth } from "@context/AuthContext";
 import { useBloom } from "@context/BloomContext";
 import { typography } from "@theme/index";
-import SplashLogo from "@assets/splash_logo.svg";
+import SplashLogo from "@assets/weif/splash-logo.svg";
 
 const DISPLAY_DURATION_MS = 1600;
 
