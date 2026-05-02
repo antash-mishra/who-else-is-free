@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { BlurView } from "expo-blur";
-import { Feather } from "@expo/vector-icons";
+import CloseIcon from "@assets/ui/close.svg";
 import {
     RouteProp,
     useFocusEffect,
@@ -50,8 +50,8 @@ import {
     isPastDateTimeSelection,
     toDateKey,
 } from "@utils/dateTime";
-import UploadIcon from "@assets/upload.svg";
-import WarningIcon from "@assets/warning.svg";
+import UploadIcon from "@assets/create-event/choose-cover.svg";
+import WarningIcon from "@assets/ui/error.svg";
 import SelectionModal from "@components/SelectionModal";
 import CoverPickerModal from "@components/CoverPickerModal";
 import EventDateTimeModal from "@components/EventDateTimeModal";
@@ -575,11 +575,7 @@ const CreateEventScreen = () => {
                 }}
                 style={styles.dismissButton}
             >
-                <Feather
-                    name="x"
-                    size={24}
-                    color={colors.createTextPrimary}
-                />
+                <CloseIcon width={24} height={24} color={colors.createTextPrimary} />
             </Pressable>
         </View>
     );
@@ -597,7 +593,7 @@ const CreateEventScreen = () => {
             >
                 <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
                 <BlurView intensity={60} tint="dark" style={styles.coverChip}>
-                    <UploadIcon width={20} height={20} />
+                    <UploadIcon width={20} height={20} color="white" />
                 </BlurView>
             </Pressable>
 

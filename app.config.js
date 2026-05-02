@@ -4,7 +4,7 @@ export default {
     slug: "who-else-is-free",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/weif/icon.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
@@ -31,7 +31,7 @@ export default {
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./assets/weif/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
       edgeToEdgeEnabled: true,

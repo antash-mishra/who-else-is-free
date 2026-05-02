@@ -1,10 +1,8 @@
-import { ComponentType, memo } from 'react';
+import { memo } from 'react';
 import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { SvgProps } from 'react-native-svg';
 
-import CreateEventIllustration from '@assets/create-event.svg';
-import { colors, spacing, typography } from '@theme/index';
+import { colors, typography } from '@theme/index';
 
 interface EmptyStateProps {
   title: string;
@@ -13,10 +11,9 @@ interface EmptyStateProps {
   onActionPress?: () => void;
   secondaryActionLabel?: string;
   onSecondaryActionPress?: () => void;
-  illustration?: ComponentType<SvgProps>;
-  illustrationSize?: number;
   imageSource?: ImageSourcePropType;
-  imageSize?: number;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 const EmptyState = ({
@@ -26,22 +23,19 @@ const EmptyState = ({
   onActionPress,
   secondaryActionLabel,
   onSecondaryActionPress,
-  illustration: Illustration = CreateEventIllustration,
-  illustrationSize = 245,
   imageSource,
-  imageSize = 245
+  imageWidth = 245,
+  imageHeight = 245
 }: EmptyStateProps) => {
   return (
     <View style={styles.container} testID="empty-state">
-      {imageSource ? (
+      {imageSource && (
         <Image
           source={imageSource}
-          style={{ width: imageSize, height: imageSize }}
+          style={{ width: imageWidth, height: imageHeight }}
           resizeMode="contain"
         />
-      ) : (
-        <Illustration width={illustrationSize} height={illustrationSize} />
-      )}    
+      )}
       <View style={styles.textContainer}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>

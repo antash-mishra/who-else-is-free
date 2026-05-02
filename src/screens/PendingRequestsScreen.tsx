@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
+import CloseIcon from "@assets/ui/close.svg";
+import AcceptIcon from "@assets/event-details/accept.svg";
+import RejectIcon from "@assets/event-details/reject.svg";
 
 import * as Haptics from "expo-haptics";
 
@@ -115,7 +117,7 @@ const PendingRequestsScreen = () => {
             style={styles.closeButton}
             hitSlop={12}
           >
-            <Feather name="x" size={18} color="#999999" />
+            <CloseIcon width={18} height={18} color="#999999" />
           </Pressable>
         </View>
         <ScrollView
@@ -179,7 +181,7 @@ const PendingRequestsScreen = () => {
                         {isDeclining ? (
                           <ActivityIndicator size="small" color={colors.text} />
                         ) : (
-                          <Feather name="x" size={18} color={colors.text} />
+                          <RejectIcon width={30} height={30} />
                         )}
                       </Pressable>
 
@@ -193,7 +195,7 @@ const PendingRequestsScreen = () => {
                         {isAccepting ? (
                           <ActivityIndicator size="small" color={colors.buttonText} />
                         ) : (
-                          <Feather name="check" size={18} color={colors.buttonText} />
+                          <AcceptIcon width={30} height={30} />
                         )}
                       </Pressable>
                     </View>

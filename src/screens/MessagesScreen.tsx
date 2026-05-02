@@ -220,7 +220,9 @@ const MessagesScreen = () => {
           description={"Sign in to view conversations from events you've created or joined"}
           actionLabel="Continue"
           onActionPress={() => setSignInVisible(true)}
-          imageSource={require('@assets/emptystate_chat.png')}
+          imageSource={require('@assets/illustration/chat-emptyState.png')}
+          imageWidth={279}
+          imageHeight={245}
         />
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
@@ -251,7 +253,9 @@ const MessagesScreen = () => {
               <EmptyState
                 title="No Messages Yet"
                 description={"Messages from your events will appear here"}
-                imageSource={require('@assets/emptystate_chat.png')}
+                imageSource={require('@assets/illustration/chat-emptyState.png')}
+                imageWidth={279}
+                imageHeight={245}
               />
             ) : null
           }

@@ -2,9 +2,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
-
 import ScreenContainer from "@components/ScreenContainer";
+import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 import { colors, spacing, typography } from "@theme/index";
 import { RootStackParamList } from "@navigation/types";
 
@@ -25,7 +24,7 @@ const PrivacyPolicyScreen = () => {
           style={styles.backButton}
           hitSlop={8}
         >
-          <Feather name="chevron-left" size={20} color={colors.text} />
+          <ChevronLeftIcon width={24} height={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Privacy Policy</Text>
       </View>
@@ -51,9 +50,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 44,
     justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
+    lineHeight: 24,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     letterSpacing: -0.4,

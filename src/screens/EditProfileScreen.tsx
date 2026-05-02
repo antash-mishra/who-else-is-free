@@ -12,8 +12,9 @@ import { useCallback, useState } from "react";
 import ScalePressable from "@components/ScalePressable";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
+import CloseIcon from "@assets/ui/close.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
@@ -21,7 +22,7 @@ import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
-import CameraIcon from "@assets/camera.svg";
+import CameraIcon from "@assets/onboarding/camera.svg";
 
 let ImagePicker: typeof import("expo-image-picker") | null = null;
 try {
@@ -142,7 +143,7 @@ const EditProfileScreen = () => {
             style={styles.backButton}
             hitSlop={8}
           >
-            <Feather name="chevron-left" size={20} color={colors.text} />
+            <ChevronLeftIcon width={24} height={24} color={colors.text} />
           </Pressable>
           <Text style={styles.headerTitle}>Edit Profile</Text>
           <View style={styles.backButton} />
@@ -170,7 +171,7 @@ const EditProfileScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Remove photo"
               >
-                <Feather name="x" size={13} color="#FFFFFF" />
+                <CloseIcon width={13} height={13} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -224,6 +225,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
+    lineHeight: 24,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     letterSpacing: -0.4,
@@ -232,6 +234,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 44,
     justifyContent: "center",
+    alignItems: "center",
   },
   avatarSection: {
     flex: 1,

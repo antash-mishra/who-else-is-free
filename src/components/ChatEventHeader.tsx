@@ -7,9 +7,8 @@ import {
   Text,
   View,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
-
 import { colors, spacing, typography } from "@theme/index";
+import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 
 interface ChatEventHeaderProps {
   onBack: () => void;
@@ -43,7 +42,7 @@ const ChatEventHeader = ({
         style={styles.backButton}
         hitSlop={8}
       >
-        <Feather name="chevron-left" size={24} color={colors.text} />
+        <ChevronLeftIcon width={24} height={24} color={colors.text} />
       </Pressable>
       <Pressable
         style={({ pressed }) => [styles.titlePressable, pressed && { opacity: 0.7 }]}

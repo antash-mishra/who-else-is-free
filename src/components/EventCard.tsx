@@ -6,9 +6,9 @@ import { BlurView } from 'expo-blur';
 import MaskedView from '@react-native-masked-view/masked-view';
 
 import { colors, spacing, typography } from '@theme/index';
-import PendingIcon from '@assets/pending.svg';
-import HostingIcon from '@assets/hosting.svg';
-import JoinedIcon from '@assets/joined.svg';
+import PendingIcon from '@assets/event/pending.svg';
+import HostingIcon from '@assets/event/hosting.svg';
+import JoinedIcon from '@assets/event/joined.svg';
 
 const IMAGE_SIZE = 80;
 const IMAGE_BORDER_RADIUS = 10;
@@ -31,11 +31,11 @@ const VALID_BADGES = ['Pending', 'Hosting', 'Joined'];
 const getBadgeIcon = (badgeLabel: string) => {
   switch (badgeLabel) {
     case 'Pending':
-      return <PendingIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;
+      return <PendingIcon width={9.5} height={9.5} />;
     case 'Hosting':
       return <HostingIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;
     case 'Joined':
-      return <JoinedIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;
+      return <JoinedIcon width={9.5} height={9.5} />;
     default:
       return null;
   }
@@ -81,7 +81,7 @@ const EventCard = ({
             />
             <View
               testID="event-card-badge"
-              style={{ position: 'absolute', bottom: 6, left: 7, flexDirection: 'row', alignItems: 'center', gap: 3 }}
+              style={{ position: 'absolute', bottom: 6, left: 7, flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
               {getBadgeIcon(badgeLabel)}
               <Text style={styles.badgeText}>{badgeLabel}</Text>

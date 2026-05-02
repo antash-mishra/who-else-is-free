@@ -14,9 +14,8 @@ import ScalePressable from "@components/ScalePressable";
 import * as Haptics from "expo-haptics";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
-
 import EmptyState from "@components/EmptyState";
+import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
 import { colors, spacing, typography } from "@theme/index";
@@ -192,7 +191,7 @@ const PastEventsScreen = () => {
           style={styles.backButton}
           hitSlop={8}
         >
-          <Feather name="chevron-left" size={20} color={colors.text} />
+          <ChevronLeftIcon width={24} height={24} color={colors.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Past Events</Text>
       </View>
@@ -222,6 +221,9 @@ const PastEventsScreen = () => {
           <EmptyState
             title="No Past Events"
             description="Events you've hosted or joined will appear here after they end."
+            imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+            imageWidth={258}
+            imageHeight={245}
           />
         </ScrollView>
       ) : (
@@ -262,9 +264,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 44,
     justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 18,
+    lineHeight: 24,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     letterSpacing: -0.4,

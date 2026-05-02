@@ -17,8 +17,8 @@ import Animated, {
     Easing,
 } from "react-native-reanimated";
 
-import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CloseIcon from "@assets/ui/close.svg";
 import * as Haptics from "expo-haptics";
 
 import { Springs } from "@theme/springs";
@@ -142,7 +142,7 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
                                     accessibilityRole="button"
                                     testID="bottom-sheet-close"
                                 >
-                                    <Feather name="x" size={18} color="#999999" />
+                                    <CloseIcon width={18} height={18} color="#999999" />
                                 </Pressable>
                             </View>
                         )}

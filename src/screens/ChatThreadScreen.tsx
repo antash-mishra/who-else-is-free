@@ -1,4 +1,4 @@
-import SendIcon from "@assets/chat-icons/send.svg";
+import SendIcon from "@assets/chat/send.svg";
 import * as Haptics from "expo-haptics";
 import {
   Animated,

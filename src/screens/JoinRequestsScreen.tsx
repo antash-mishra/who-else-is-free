@@ -9,7 +9,9 @@ import {
 } from "react-native";
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
+import MoreHorizontalIcon from "@assets/ui/more-horizontal.svg";
+import AcceptIcon from "@assets/event-details/accept.svg";
+import RejectIcon from "@assets/event-details/reject.svg";
 
 import * as Haptics from "expo-haptics";
 
@@ -369,7 +371,6 @@ const JoinRequestsScreen = () => {
               }}
               style={styles.joinIconButton}
             >
-              <Feather name="users" size={20} color={colors.text} />
               <View style={styles.joinCountBadge}>
                 <Text style={styles.joinCountBadgeText}>
                   {pendingRequests.length}
@@ -422,7 +423,7 @@ const JoinRequestsScreen = () => {
           style={styles.menuButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Feather name="more-horizontal" size={20} color={colors.subText} />
+          <MoreHorizontalIcon width={20} height={20} color={colors.subText} />
         </Pressable>
       </Pressable>
     );
@@ -466,13 +467,13 @@ const JoinRequestsScreen = () => {
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleAction(item.id, item.userId, "deny"); }}
             style={styles.declineButton}
           >
-            <Feather name="x" size={18} color={colors.text} />
+            <RejectIcon width={30} height={30} />
           </Pressable>
           <Pressable
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleAction(item.id, item.userId, "approve"); }}
             style={styles.acceptButton}
           >
-            <Feather name="check" size={18} color={colors.buttonText} />
+            <AcceptIcon width={30} height={30} />
           </Pressable>
         </View>
       </View>
@@ -554,19 +555,15 @@ const styles = StyleSheet.create({
   },
   joinIconButton: {
     marginLeft: spacing.sm,
-    padding: spacing.xs,
   },
   joinCountBadge: {
-    position: "absolute",
-    top: 0,
-    right: -2,
     backgroundColor: colors.accent,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 3,
+    paddingHorizontal: 6,
   },
   joinCountBadgeText: {
     color: "#FFFFFF",

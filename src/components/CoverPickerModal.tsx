@@ -7,7 +7,7 @@ import { BlurView } from "expo-blur";
 
 import { COVER_OPTIONS, CoverKey } from "@constants/covers";
 import { spacing } from "@theme/index";
-import JoinedIcon from "@assets/joined.svg";
+import JoinedIcon from "@assets/event/joined.svg";
 import BottomSheetModal from "./BottomSheetModal";
 import styles from "./CoverPickerModal.styles";
 
