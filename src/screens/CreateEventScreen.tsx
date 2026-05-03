@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Image,
+    Keyboard,
     Platform,
     Pressable,
     Text,
@@ -251,18 +252,21 @@ const CreateEventScreen = () => {
 
     // Open modal handlers - set temp to current value
     const openAgePicker = useCallback(() => {
+        Keyboard.dismiss();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempAgeRange(ageRange);
         setAgePickerVisible(true);
     }, [ageRange]);
 
     const openGenderPicker = useCallback(() => {
+        Keyboard.dismiss();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempGender(gender);
         setGenderPickerVisible(true);
     }, [gender]);
 
     const openGroupTypePicker = useCallback(() => {
+        Keyboard.dismiss();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempGroupType(groupType);
         setGroupTypePickerVisible(true);
@@ -586,6 +590,7 @@ const CreateEventScreen = () => {
             <Pressable
                 style={styles.coverCard}
                 onPress={() => {
+                    Keyboard.dismiss();
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setCoverPickerVisible(true);
                 }}
@@ -672,6 +677,7 @@ const CreateEventScreen = () => {
                     <Pressable
                         style={[styles.fieldRow, styles.dateRow]}
                         onPress={() => {
+                            Keyboard.dismiss();
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setDateTimePickerVisible(true);
                         }}
