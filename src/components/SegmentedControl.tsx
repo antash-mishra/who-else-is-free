@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   interpolateColor,
-  useDerivedValue,
   type SharedValue,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -23,35 +22,24 @@ interface SegmentedControlProps {
   options: SegmentedOption[];
   value: string;
   onChange: (value: string) => void;
-  /** Pass the pageOffsetSV from AnimatedPager for smooth swipe-driven tab transitions. */
-  pageOffset?: SharedValue<number>;
 }
 
 type TabProps = {
   option: SegmentedOption;
-  tabIndex: number;
   localProgress: SharedValue<number>;
-  pageOffset?: SharedValue<number>;
   onPress: () => void;
 };
 
-const SegmentedTab = ({ option, tabIndex, localProgress, pageOffset, onPress }: TabProps) => {
-  // Derives 0→1 progress on the UI thread: 1 when selected, 0 when not
-  const effectiveProgress = useDerivedValue(() =>
-    pageOffset
-      ? Math.max(0, 1 - Math.abs(pageOffset.value - tabIndex))
-      : localProgress.value
-  );
-
+const SegmentedTab = ({ option, localProgress, onPress }: TabProps) => {
   const tabStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(effectiveProgress.value, [0, 1], ['transparent', '#000000']),
-    borderColor: interpolateColor(effectiveProgress.value, [0, 1], ['#E6E6E6', 'transparent']),
+    backgroundColor: interpolateColor(localProgress.value, [0, 1], ['transparent', '#000000']),
+    borderColor: interpolateColor(localProgress.value, [0, 1], ['#E6E6E6', 'transparent']),
   }));
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(effectiveProgress.value, [0, 1], ['#494949', '#FFFFFF']),
+    color: interpolateColor(localProgress.value, [0, 1], ['#494949', '#FFFFFF']),
   }));
   const countStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(effectiveProgress.value, [0, 1], ['#808080', 'rgba(255,255,255,0.7)']),
+    color: interpolateColor(localProgress.value, [0, 1], ['#808080', 'rgba(255,255,255,0.7)']),
   }));
 
   return (
@@ -71,7 +59,7 @@ const SegmentedTab = ({ option, tabIndex, localProgress, pageOffset, onPress }: 
 };
 
 // Up to 4 tabs — shared values must be created unconditionally at top level.
-const SegmentedControl = ({ options, value, onChange, pageOffset }: SegmentedControlProps) => {
+const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) => {
   const selectedIndex = options.findIndex(o => o.value === value);
   const prevIndex = useRef(selectedIndex);
 
@@ -81,7 +69,6 @@ const SegmentedControl = ({ options, value, onChange, pageOffset }: SegmentedCon
   const sv3 = useSharedValue(selectedIndex === 3 ? 1 : 0);
   const allSvs = [sv0, sv1, sv2, sv3];
 
-  // Spring-based fallback for programmatic tab changes (tap) when pageOffset not provided
   useEffect(() => {
     const prev = prevIndex.current;
     if (prev === selectedIndex) return;
@@ -96,9 +83,7 @@ const SegmentedControl = ({ options, value, onChange, pageOffset }: SegmentedCon
         <SegmentedTab
           key={option.value}
           option={option}
-          tabIndex={i}
           localProgress={allSvs[i]}
-          pageOffset={pageOffset}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onChange(option.value);

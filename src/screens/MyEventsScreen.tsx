@@ -303,7 +303,6 @@ const MyEventsScreen = () => {
                 const index = filterOptions.findIndex((o) => o.value === value);
                 setSelectedPage(index);
               }}
-              pageOffset={pageOffset}
             />
           </View>
         </View>

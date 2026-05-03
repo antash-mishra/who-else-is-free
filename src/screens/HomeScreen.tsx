@@ -323,7 +323,6 @@ const HomeScreen = () => {
                 const index = sortOptions.findIndex((o) => o.value === value);
                 setSelectedPage(index);
               }}
-              pageOffset={pageOffset}
             />
           </View>
         </View>

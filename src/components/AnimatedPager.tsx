@@ -139,6 +139,7 @@ const AnimatedPager = ({
       if (committed) {
         isAnimating.value = true;
         runOnJS(triggerHaptic)();
+        runOnJS(notifyPageChange)(to);
         selectedIndexSV.value = to;
 
         if (pageOffsetSV) {
@@ -148,9 +149,6 @@ const AnimatedPager = ({
         slides[from].value = withSpring(toIsNext ? -w : w, { ...COMMIT_SPRING, velocity: vx });
         slides[to].value = withSpring(0, { ...COMMIT_SPRING, velocity: vx }, (finished) => {
           isAnimating.value = false;
-          if (finished) {
-            runOnJS(notifyPageChange)(to);
-          }
         });
       } else {
         // Not committed — snap back with timing
