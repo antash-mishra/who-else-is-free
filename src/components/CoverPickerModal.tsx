@@ -7,7 +7,7 @@ import { BlurView } from "expo-blur";
 
 import { COVER_OPTIONS, CoverKey } from "@constants/covers";
 import { spacing } from "@theme/index";
-import JoinedIcon from "@assets/event/joined.svg";
+import CheckSelectedCoverIcon from "@assets/create-event/check-selected-cover.svg";
 import BottomSheetModal from "./BottomSheetModal";
 import styles from "./CoverPickerModal.styles";
 
@@ -56,7 +56,7 @@ const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
                                     </View>
                                     {isSelected && (
                                         <BlurView intensity={60} tint="dark" style={styles.checkBadge}>
-                                            <JoinedIcon width={14} height={14} />
+                                            <CheckSelectedCoverIcon width={14} height={14} />
                                         </BlurView>
                                     )}
                                 </Pressable>
