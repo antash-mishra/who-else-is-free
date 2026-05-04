@@ -1,6 +1,5 @@
 import { memo } from "react";
 import {
-  Platform,
   StyleProp,
   StyleSheet,
   Text,
@@ -42,7 +41,6 @@ const UserAvatar = ({
   const initials = getAvatarInitials(name, maxInitials);
   const backgroundColor = getAvatarColor(seed, name);
   const fontSize = Math.max(12, Math.round(size * 0.38));
-  const lineHeight = Math.max(fontSize, Math.round(fontSize * 1.1));
 
   return (
     <View
@@ -64,7 +62,7 @@ const UserAvatar = ({
       ) : (
         <View style={styles.initialsFrame}>
           <Text
-            style={[styles.initials, { fontSize, lineHeight }, textStyle]}
+            style={[styles.initials, { fontSize, lineHeight: size }, textStyle]}
             numberOfLines={1}
           >
             {initials}
@@ -98,11 +96,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     includeFontPadding: false,
     textAlignVertical: "center",
-    transform: [
-      {
-        translateY: Platform.OS === "android" ? -0.5 : 0,
-      },
-    ],
   },
 });
 

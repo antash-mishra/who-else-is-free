@@ -1343,7 +1343,7 @@ const EventDetailsScreen = () => {
                       ]}
                       testID={`going-avatar-${index}`}
                     >
-                      {renderAvatar(participant, 24)}
+                      {renderAvatar(participant, 28)}
                     </View>
                   ))}
                 </View>
@@ -2101,6 +2101,8 @@ const styles = StyleSheet.create({
   },
   goingAvatarItem: {
     borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
   },
   goingAvatarOverlap: {
     marginLeft: -9,

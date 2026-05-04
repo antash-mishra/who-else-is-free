@@ -1,34 +1,23 @@
 const AVATAR_COLORS = [
-  "#F43F5E", // Rose
-  "#E11D48", // Crimson
-  "#EC4899", // Pink
-  "#DB2777", // Deep Pink
-  "#D946EF", // Fuchsia
-  "#C026D3", // Magenta
-  "#A855F7", // Grape
-  "#9333EA", // Purple
-  "#8B5CF6", // Violet
-  "#7C3AED", // Deep Violet
-  "#6366F1", // Indigo
-  "#4F46E5", // Deep Indigo
-  "#3B82F6", // Blue
-  "#2563EB", // Deep Blue
-  "#0EA5E9", // Sky
-  "#0284C7", // Deep Sky
-  "#06B6D4", // Cyan
-  "#0891B2", // Deep Cyan
-  "#14B8A6", // Teal
-  "#0D9488", // Deep Teal
-  "#10B981", // Emerald
-  "#059669", // Deep Emerald
-  "#22C55E", // Green
-  "#16A34A", // Deep Green
-  "#F59E0B", // Amber
-  "#D97706", // Deep Amber
-  "#F97316", // Orange
-  "#EA580C", // Deep Orange
-  "#EF4444", // Red
-  "#DC2626", // Deep Red
+  "#4BBBA5",
+  "#F07A38",
+  "#7CBAD4",
+  "#F4A0B5",
+  "#9B72CF",
+  "#6B82B0",
+  "#E85D4A",
+  "#E8A64A",
+  "#6DC8A0",
+  "#B99FDB",
+  "#E05252",
+  "#5BBCE4",
+  "#8DC44A",
+  "#F08030",
+  "#E87090",
+  "#48C4C4",
+  "#F0BC2C",
+  "#9E78C4",
+  "#F07878",
 ] as const;
 
 const URI_PREFIXES = [

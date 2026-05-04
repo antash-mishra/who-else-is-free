@@ -5,6 +5,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import ScalePressable from "@components/ScalePressable";
 
 import { useCallback, useMemo, useState } from "react";
@@ -189,7 +190,13 @@ const ProfileScreen = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.guestCard}>
+          <LinearGradient
+            colors={['#E2E5FB', '#E2E5FB', '#B8DCFB']}
+            locations={[0, 0.42, 1]}
+            start={{ x: 0.25, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.guestCard}
+          >
             <Text style={styles.guestTitle}>No profile to show</Text>
             <Text style={styles.guestDescription}>
               Sign in to view your account
@@ -203,7 +210,7 @@ const ProfileScreen = () => {
             >
               <Text style={styles.guestButtonText}>Continue</Text>
             </Pressable>
-          </View>
+          </LinearGradient>
           <View style={styles.menuSection}>
             <MenuItem
               icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
@@ -256,32 +263,38 @@ const ProfileScreen = () => {
             handleEditProfile();
           }}
         >
-          <View style={styles.headerCardGradient}>
+          <LinearGradient
+            colors={['#E2E5FB', '#E2E5FB', '#B8DCFB']}
+            locations={[0, 0.42, 1]}
+            start={{ x: 0.25, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerCardGradient}
+          >
             <View style={styles.headerContent}>
               <UserAvatar
                 avatar={user.avatar}
                 name={user.name}
                 seed={user.id}
-                size={68}
+                size={64}
                 style={styles.avatar}
               />
               <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
               <Text style={styles.email}>{user?.email ?? ""}</Text>
 
               {/* Stats Row */}
-              <View style={styles.statsPill}>
-                <View style={styles.statItem}>
+              <View style={styles.statsRow}>
+                <Text style={styles.statText}>
                   <Text style={styles.statNumber}>{hostedCount}</Text>
-                  <Text style={styles.statLabel}>Hosted</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
+                  <Text style={styles.statLabel}> Hosted</Text>
+                </Text>
+                <View style={styles.statDot} />
+                <Text style={styles.statText}>
                   <Text style={styles.statNumber}>{joinedCount}</Text>
-                  <Text style={styles.statLabel}>Joined</Text>
-                </View>
+                  <Text style={styles.statLabel}> Joined</Text>
+                </Text>
               </View>
             </View>
-          </View>
+          </LinearGradient>
         </ScalePressable>
         {/* Menu Section */}
         <View style={styles.menuSection}>
@@ -364,65 +377,64 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     overflow: "hidden",
   },
-  headerCardGradient: {
-    backgroundColor: "#1B50E3",
-  },
+  headerCardGradient: {},
   headerContent: {
     alignItems: "center",
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
     paddingHorizontal: spacing.md,
   },
   avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.md,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderColor: "rgba(0,0,0,0.1)",
   },
   name: {
     fontSize: 20,
-    color: "#FFFFFF",
+    color: "#000000",
     fontFamily: typography.fontFamilyMedium,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "rgba(0,0,0,0.5)",
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.5,
     marginBottom: 24,
   },
-  statsPill: {
+  statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xl,
+    gap: 8,
   },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: "rgba(255,255,255,0.25)",
+  statDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
-  statItem: {
-    alignItems: "center",
-    gap: 2,
+  statText: {
+    fontSize: 16,
+    letterSpacing: -0.3,
   },
   statNumber: {
-    fontSize: 18,
-    color: "#FFFFFF",
+    fontSize: 16,
+    color: "#000000",
     fontFamily: typography.fontFamilyMedium,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   statLabel: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.5)",
+    fontSize: 16,
+    color: "rgba(0,0,0,0.5)",
     fontFamily: typography.fontFamilyRegular,
+    letterSpacing: -0.3,
   },
   menuSection: {
     paddingTop: 12,
@@ -455,8 +467,9 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   guestCard: {
-    backgroundColor: "#F5F5F5",
     borderRadius: 20,
+    borderCurve: "continuous",
+    overflow: "hidden",
     alignItems: "center",
     paddingVertical: 24,
     paddingHorizontal: spacing.md,
