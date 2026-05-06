@@ -7,6 +7,7 @@ import {
     StyleSheet,
     Text,
     View,
+    useWindowDimensions,
 } from "react-native";
 import Animated, {
     useSharedValue,
@@ -32,7 +33,6 @@ export type BottomSheetModalProps = {
     title?: string;
 };
 
-const SLIDE_DISTANCE = 500;
 const BASE_PADDING_BOTTOM = 8;
 
 // Bezier approximation of iOS UIViewAnimationCurveKeyboard
@@ -40,13 +40,15 @@ const IOS_KEYBOARD_EASING = Easing.bezier(0.36, 0.66, 0.04, 1);
 
 const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModalProps) => {
     const { bottom: safeBottom } = useSafeAreaInsets();
+    const { height: screenHeight } = useWindowDimensions();
     const basePadding = BASE_PADDING_BOTTOM + safeBottom;
 
-    const slideAnim = useSharedValue(SLIDE_DISTANCE);
+    const slideAnim = useSharedValue(screenHeight);
     const backdropAnim = useSharedValue(0);
     const keyboardPaddingAnim = useSharedValue(basePadding);
     const [modalVisible, setModalVisible] = useState(false);
     const hasBeenVisible = useRef(false);
+    const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const sheetStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: slideAnim.value }],
@@ -59,25 +61,28 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
     }));
 
     const startOpenAnimation = useCallback(() => {
-        slideAnim.value = SLIDE_DISTANCE;
+        slideAnim.value = screenHeight;
         backdropAnim.value = 0;
         keyboardPaddingAnim.value = basePadding;
         slideAnim.value = withSpring(0, Springs.bouncyUp);
         backdropAnim.value = withTiming(1, { duration: 100, easing: Easing.out(Easing.cubic) });
-    }, [basePadding]);
+    }, [basePadding, screenHeight]);
 
     useEffect(() => {
         if (visible) {
+            if (dismissTimerRef.current) {
+                clearTimeout(dismissTimerRef.current);
+                dismissTimerRef.current = null;
+            }
             hasBeenVisible.current = true;
             setModalVisible(true);
             // Animation starts in onShow, after the modal content is rendered
         } else if (hasBeenVisible.current) {
-            slideAnim.value = withSpring(SLIDE_DISTANCE, Springs.snappy, (finished) => {
-                if (finished) runOnJS(setModalVisible)(false);
-            });
+            slideAnim.value = withSpring(screenHeight, Springs.elegant);
             backdropAnim.value = withTiming(0, { duration: 120, easing: Easing.in(Easing.ease) });
+            dismissTimerRef.current = setTimeout(() => setModalVisible(false), 400);
         }
-    }, [visible]);
+    }, [visible, screenHeight]);
 
     useEffect(() => {
         const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";

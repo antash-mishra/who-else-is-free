@@ -57,39 +57,19 @@ const Stack = createStackNavigator<RootStackParamList>();
 // ─── Stack screen animation ───────────────────────────────────────────────────
 // Push (open):  incoming slides from 30% right — matches tab animation
 // Pop  (close): card slides fully off to the right — standard iOS back feel
-const tabLikeInterpolator = ({ current, next, layouts, closing }: StackCardInterpolationProps) => {
-  const { width } = layouts.screen;
+const slideFromRightInterpolator = ({ current, layouts }: StackCardInterpolationProps) => ({
+  cardStyle: {
+    transform: [{
+      translateX: current.progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [layouts.screen.width, 0],
+        extrapolate: 'clamp',
+      }),
+    }],
+  },
+});
 
-  if (next) {
-    // This card is below an incoming card: slide left + fade out
-    return {
-      cardStyle: {
-        transform: [{
-          translateX: next.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -width * 0.2], extrapolate: 'clamp' }),
-        }],
-        opacity: next.progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0], extrapolate: 'clamp' }),
-      },
-    };
-  }
-
-  // Top card: open from 30% right, close to full width right
-  const translateXOpen  = current.progress.interpolate({ inputRange: [0, 1], outputRange: [width * 0.3, 0], extrapolate: 'clamp' });
-  const translateXClose = current.progress.interpolate({ inputRange: [0, 1], outputRange: [width, 0],       extrapolate: 'clamp' });
-
-  // Blend: when closing=0 use open translation, when closing=1 use close translation
-  const translateX = Animated.add(
-    translateXOpen,
-    Animated.multiply(closing, Animated.subtract(translateXClose, translateXOpen)),
-  );
-
-  return {
-    cardStyle: {
-      transform: [{ translateX }],
-    },
-  };
-};
-
-const tabLikeTransitionSpec = {
+const slideFromRightTransitionSpec = {
   open:  { animation: 'spring' as const, config: Springs.snappy },
   close: { animation: 'spring' as const, config: Springs.snappy },
 };
@@ -136,7 +116,7 @@ const sheetModalInterpolator = ({ current, layouts }: StackCardInterpolationProp
 
 const sheetModalTransitionSpec = {
   open:  { animation: 'spring' as const, config: Springs.bouncyUp },
-  close: { animation: 'spring' as const, config: Springs.snappy },
+  close: { animation: 'spring' as const, config: Springs.elegant },
 };
 
 // How far the sheet background extends below the screen.
@@ -650,7 +630,6 @@ const AppNavigator = () => {
           component={GoogleSignIn}
           options={{
             presentation: "transparentModal",
-            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
           }}
         />
         <Stack.Screen
@@ -665,16 +644,16 @@ const AppNavigator = () => {
           name="EventDetails"
           component={EventDetailsScreen}
           options={{
-            cardStyleInterpolator: tabLikeInterpolator,
-            transitionSpec: tabLikeTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
         <Stack.Screen
           name="JoinRequests"
           component={JoinRequestsScreen}
           options={{
-            cardStyleInterpolator: slideFromBottomInterpolator,
-            transitionSpec: slideFromBottomTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
         <Stack.Screen
@@ -713,40 +692,40 @@ const AppNavigator = () => {
           name="EditProfile"
           component={EditProfileScreen}
           options={{
-            cardStyleInterpolator: tabLikeInterpolator,
-            transitionSpec: tabLikeTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
         <Stack.Screen
           name="PastEvents"
           component={PastEventsScreen}
           options={{
-            cardStyleInterpolator: tabLikeInterpolator,
-            transitionSpec: tabLikeTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
         <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicyScreen}
           options={{
-            cardStyleInterpolator: tabLikeInterpolator,
-            transitionSpec: tabLikeTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
         <Stack.Screen
           name="Help"
           component={HelpScreen}
           options={{
-            cardStyleInterpolator: tabLikeInterpolator,
-            transitionSpec: tabLikeTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
         <Stack.Screen
           name="ChatThread"
           component={ChatThreadScreen}
           options={{
-            cardStyleInterpolator: tabLikeInterpolator,
-            transitionSpec: tabLikeTransitionSpec,
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
           }}
         />
       </Stack.Navigator>
