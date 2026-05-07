@@ -105,7 +105,7 @@ const PendingRequestsScreen = () => {
   };
 
   return (
-    <ScreenContainer edges={["top", "bottom"]}>
+    <ScreenContainer edges={["bottom"]}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
