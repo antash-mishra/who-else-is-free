@@ -249,15 +249,13 @@ const MessagesScreen = () => {
           style={styles.flatList}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
           ListEmptyComponent={
-            !isRefreshingConversations && !isConnecting ? (
-              <EmptyState
-                title="No Messages Yet"
-                description={"Messages from your events will appear here"}
-                imageSource={require('@assets/illustration/chat-emptyState.png')}
-                imageWidth={279}
-                imageHeight={245}
-              />
-            ) : null
+            <EmptyState
+              title="No Messages Yet"
+              description={"Messages from your events will appear here"}
+              imageSource={require('@assets/illustration/chat-emptyState.png')}
+              imageWidth={279}
+              imageHeight={245}
+            />
           }
           refreshControl={
             <RefreshControl
