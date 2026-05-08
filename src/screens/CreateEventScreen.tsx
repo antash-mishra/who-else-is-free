@@ -4,10 +4,21 @@ import {
     Keyboard,
     Platform,
     Pressable,
+    StyleSheet,
     Text,
     TextInput,
     View,
 } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
+} from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
+import MaskedView from "@react-native-masked-view/masked-view";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
@@ -15,6 +26,7 @@ import { BlurView } from "expo-blur";
 import CloseIcon from "@assets/ui/close.svg";
 import {
     RouteProp,
+    StackActions,
     useFocusEffect,
     useNavigation,
     useRoute,
@@ -59,6 +71,8 @@ import EventDateTimeModal from "@components/EventDateTimeModal";
 import BottomSheetModal from "../components/BottomSheetModal";
 import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
+
+type ButtonLayout = { x: number; y: number; width: number; height: number };
 
 type FormState = {
     eventName: string;
@@ -164,6 +178,29 @@ const CreateEventScreen = () => {
     // Submission state
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+
+    // Button layout for wow transition
+    const [buttonLayout, setButtonLayout] = useState<ButtonLayout>({ x: 0, y: 0, width: 0, height: 0 });
+    const primaryButtonRef = useRef<View>(null);
+
+    // Shimmer animation for "Creating event..." state
+    const shimmerX = useSharedValue(-160);
+    const shimmerStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: shimmerX.value }],
+    }));
+
+    useEffect(() => {
+        if (isSubmitting && !isEditing) {
+            shimmerX.value = -160;
+            shimmerX.value = withRepeat(
+                withSequence(
+                    withTiming(360, { duration: 1100, easing: Easing.linear }),
+                    withTiming(-160, { duration: 0 }),
+                ),
+                -1
+            );
+        }
+    }, [isSubmitting]);
 
     // Temporary selection states for modal confirmation
     const [tempAgeRange, setTempAgeRange] = useState<[number, number]>(ageRange);
@@ -402,6 +439,7 @@ const CreateEventScreen = () => {
                         showEventUpdatedBadge: true,
                     });
                 } else {
+                    const minDelay = new Promise<void>(r => setTimeout(r, 1500));
                     await addUserEvent({
                         title: trimmedName || "New event",
                         location: locationLabel,
@@ -421,12 +459,15 @@ const CreateEventScreen = () => {
                         hostName: user.name,
                         scheduledAt,
                     });
+                    await minDelay;
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     resetForm();
-                    (navigation as any).navigate("Main", {
-                        screen: "MyEvents",
-                        params: { showEventCreatedBadge: true },
-                    });
+                    navigation.dispatch(StackActions.replace("EventCreated", {
+                        eventTitle: trimmedName || "New event",
+                        coverUri: selectedCoverUri,
+                        buttonLayout,
+                        skipAnimation: true,
+                    }));
                 }
             } catch (err) {
                 console.error("Failed to submit event", err);
@@ -440,12 +481,14 @@ const CreateEventScreen = () => {
         },
         [
             addUserEvent,
+            buttonLayout,
             editEventId,
             getCurrentFormState,
             isEditing,
             isSubmitting,
             navigation,
             resetForm,
+            selectedCoverUri,
             updateUserEvent,
             user,
         ],
@@ -725,6 +768,12 @@ const CreateEventScreen = () => {
                 ) : null}
 
                 <Pressable
+                    ref={primaryButtonRef as any}
+                    onLayout={() => {
+                        primaryButtonRef.current?.measureInWindow((x, y, w, h) => {
+                            setButtonLayout({ x, y, width: w, height: h });
+                        });
+                    }}
                     style={[
                         styles.primaryButton,
                         isSubmitting && styles.primaryButtonDisabled,
@@ -734,9 +783,32 @@ const CreateEventScreen = () => {
                     accessibilityRole="button"
                     testID="create-event-submit"
                 >
-                    <Text style={styles.primaryButtonText}>
-                        {primaryButtonLabel}
-                    </Text>
+                    {isSubmitting && !isEditing ? (
+                        <MaskedView
+                            style={shimmerStyles.root}
+                            maskElement={
+                                <View style={shimmerStyles.mask}>
+                                    <Text style={styles.primaryButtonText}>Creating event...</Text>
+                                </View>
+                            }
+                        >
+                            <View style={shimmerStyles.mask}>
+                                <Text style={[styles.primaryButtonText, shimmerStyles.dimText]}>
+                                    Creating event...
+                                </Text>
+                            </View>
+                            <Animated.View style={[shimmerStyles.strip, shimmerStyle]} pointerEvents="none">
+                                <LinearGradient
+                                    colors={["transparent", "rgba(255,255,255,0.8)", "transparent"]}
+                                    start={{ x: 0, y: 0.5 }}
+                                    end={{ x: 1, y: 0.5 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                            </Animated.View>
+                        </MaskedView>
+                    ) : (
+                        <Text style={styles.primaryButtonText}>{primaryButtonLabel}</Text>
+                    )}
                 </Pressable>
             </View>
         </>
@@ -838,8 +910,29 @@ const CreateEventScreen = () => {
             <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
                 <SignInButtons />
             </BottomSheetModal>
+
         </View>
     );
 };
+
+const shimmerStyles = StyleSheet.create({
+    root: {
+        alignItems: "center",
+    },
+    mask: {
+        backgroundColor: "transparent",
+        alignItems: "center",
+    },
+    dimText: {
+        opacity: 0.45,
+    },
+    strip: {
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        left: 0,
+        width: 160,
+    },
+});
 
 export default CreateEventScreen;

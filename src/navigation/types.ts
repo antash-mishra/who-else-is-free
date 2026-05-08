@@ -30,6 +30,12 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   Help: undefined;
   Login: undefined;
+  EventCreated: {
+    eventTitle: string;
+    coverUri: string;
+    buttonLayout: { x: number; y: number; width: number; height: number };
+    skipAnimation?: boolean;
+  };
 };
 
 export type RootTabParamList = {
