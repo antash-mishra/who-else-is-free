@@ -189,6 +189,27 @@ const ChatThreadScreen = () => {
     [activeEventDetails],
   );
 
+  const activeEventOwnerId = useMemo(() => {
+    if (!activeEventDetails) {
+      return null;
+    }
+    if (
+      "ownerId" in activeEventDetails &&
+      typeof activeEventDetails.ownerId === "number"
+    ) {
+      return activeEventDetails.ownerId;
+    }
+    if (
+      "userId" in activeEventDetails &&
+      typeof activeEventDetails.userId === "number"
+    ) {
+      return activeEventDetails.userId;
+    }
+    return null;
+  }, [activeEventDetails]);
+
+  const isGroupEventConversation = activeEventGroupType === "Group";
+
   const headerTitle = useMemo(() => {
     if (activeEventGroupType === "Single" && activeConversation && user) {
       const otherUser = activeConversation.participants?.find(
@@ -218,27 +239,44 @@ const ChatThreadScreen = () => {
   }, [isConnecting, activeEventDetails, activeEventGroupType]);
 
   const joinRequests = useMemo(() => {
-    if (!activeConversationId) {
+    if (activeConversationId == null) {
       return [];
     }
-    return joinRequestsByConversation[activeConversationId] ?? [];
-  }, [activeConversationId, joinRequestsByConversation]);
+    const primary = joinRequestsByConversation[activeConversationId] ?? [];
+    const eventScopedKey = activeConversation?.eventId
+      ? -activeConversation.eventId
+      : null;
+    if (eventScopedKey == null) {
+      return primary;
+    }
+
+    const fallback = joinRequestsByConversation[eventScopedKey] ?? [];
+    if (fallback.length === 0) {
+      return primary;
+    }
+    if (primary.length === 0) {
+      return fallback;
+    }
+
+    const merged = new Map<number, (typeof primary)[number]>();
+    for (const item of fallback) {
+      merged.set(item.id, item);
+    }
+    for (const item of primary) {
+      merged.set(item.id, item);
+    }
+    return Array.from(merged.values());
+  }, [activeConversation?.eventId, activeConversationId, joinRequestsByConversation]);
 
   const isConversationHost = useMemo(() => {
     if (!activeConversation || !user) {
       return false;
     }
-    return user.id === activeConversation.createdBy;
-  }, [activeConversation, user]);
-
-  const isGroupConversation = useMemo(() => {
-    if (!activeConversation) return false;
     return (
-      activeConversation.memberIds.length > 2 ||
-      !!activeConversation.title ||
-      !!activeConversation.eventId
+      user.id === activeConversation.createdBy ||
+      (activeEventOwnerId != null && user.id === activeEventOwnerId)
     );
-  }, [activeConversation]);
+  }, [activeConversation, activeEventOwnerId, user]);
 
   const isManuallyLeavingRef = useRef(false);
 
@@ -260,18 +298,17 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost
+      !isConversationHost ||
+      !isGroupEventConversation
     ) {
       return;
     }
     refreshJoinRequests(
       activeConversation.id,
       activeConversation.eventId,
-      {
-        includeApproved: activeEventGroupType === "Single",
-      },
+      { includeApproved: false },
     ).catch(() => undefined);
-  }, [activeConversation, activeEventGroupType, isConversationHost, refreshJoinRequests]);
+  }, [activeConversation, isConversationHost, isGroupEventConversation, refreshJoinRequests]);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -323,11 +360,13 @@ const ChatThreadScreen = () => {
       : insets.bottom >= spacing.lg
         ? insets.bottom
         : spacing.sm;
-  const pendingJoinRequestCount = isConversationHost
-    ? joinRequests.filter((request) => request.status === "pending").length
-    : 0;
+  const pendingJoinRequestCount =
+    isConversationHost && isGroupEventConversation
+      ? joinRequests.filter((request) => request.status === "pending").length
+      : 0;
   const canViewJoinRequests =
     isConversationHost &&
+    isGroupEventConversation &&
     !!activeConversation?.eventId;
 
   if (!activeConversation) {
@@ -338,7 +377,8 @@ const ChatThreadScreen = () => {
     if (
       !activeConversation ||
       !activeConversation.eventId ||
-      !isConversationHost
+      !isConversationHost ||
+      !isGroupEventConversation
     ) {
       return;
     }
