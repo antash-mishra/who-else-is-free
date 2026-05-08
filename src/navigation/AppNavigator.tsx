@@ -42,6 +42,7 @@ import EditProfileScreen from "@screens/EditProfileScreen";
 import PastEventsScreen from "@screens/PastEventsScreen";
 import PrivacyPolicyScreen from "@screens/PrivacyPolicyScreen";
 import HelpScreen from "@screens/HelpScreen";
+import EventCreatedScreen from "@screens/EventCreatedScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
@@ -726,6 +727,15 @@ const AppNavigator = () => {
           options={{
             cardStyleInterpolator: slideFromRightInterpolator,
             transitionSpec: slideFromRightTransitionSpec,
+          }}
+        />
+        <Stack.Screen
+          name="EventCreated"
+          component={EventCreatedScreen}
+          options={{
+            gestureEnabled: false,
+            cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+            cardStyle: { backgroundColor: "#111" },
           }}
         />
       </Stack.Navigator>

@@ -28,6 +28,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import EmptyState from "@components/EmptyState";
 import EventActionBadge from "@components/EventActionBadge";
+import ConfettiOverlay from "@components/ConfettiOverlay";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
@@ -103,7 +104,6 @@ const MyEventsScreen = () => {
   const { conversations } = useChat();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-
   const [selectedPage, setSelectedPage] = useState(0);
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -114,8 +114,7 @@ const MyEventsScreen = () => {
 
   useEffect(() => {
     if (!route.params?.showEventCreatedBadge) return;
-    const t = setTimeout(() => setShowEventCreatedBadge(true), 350);
-    return () => clearTimeout(t);
+    setShowEventCreatedBadge(true);
   }, [route.params?.showEventCreatedBadge]);
 
   useEffect(() => {
@@ -203,8 +202,8 @@ const MyEventsScreen = () => {
 
   if (!user) {
     return (
-      <ScreenContainer>
-        <View style={styles.headerSpacing}>
+      <ScreenContainer edges={["bottom"]}>
+        <View style={[styles.headerSpacing, { paddingTop: insets.top + (spacing.lg - spacing.md) }]}>
           <Text style={styles.headerTitle}>My Events</Text>
         </View>
         <EmptyState
@@ -224,7 +223,8 @@ const MyEventsScreen = () => {
   }
 
   return (
-    <ScreenContainer>
+    <View style={styles.root}>
+    <ScreenContainer edges={["bottom"]}>
       <View style={styles.content}>
         <AnimatedPager
           selectedIndex={selectedPage}
@@ -289,7 +289,7 @@ const MyEventsScreen = () => {
 
         {/* Floating blurred header */}
         <View
-          style={styles.floatingHeader}
+          style={[styles.floatingHeader, { paddingTop: insets.top }]}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
           <View style={styles.headerSpacing}>
@@ -325,10 +325,15 @@ const MyEventsScreen = () => {
         />
       </View>
     </ScreenContainer>
+    <ConfettiOverlay active={showEventCreatedBadge} variant="burst" speedScale={1.8} />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   floatingHeader: {
     position: "absolute",
     top: 0,
