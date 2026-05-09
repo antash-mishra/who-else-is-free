@@ -1,7 +1,11 @@
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
-import analytics from "@react-native-firebase/analytics";
+import {
+  getAnalytics,
+  logEvent as logAnalyticsEvent,
+  setDefaultEventParameters,
+} from "@react-native-firebase/analytics";
 
 type AnalyticsParamValue = string | number;
 
@@ -66,7 +70,9 @@ export const initializeAnalytics = async () => {
   }
 
   try {
-    await analytics().setDefaultEventParameters(
+    const analytics = getAnalytics();
+    await setDefaultEventParameters(
+      analytics,
       normalizeParams({
         platform: Platform.OS,
         app_version: Constants.expoConfig?.version ?? "unknown",
@@ -87,7 +93,7 @@ export const trackEvent = async (
   }
 
   try {
-    await analytics().logEvent(eventName, normalizeParams(params));
+    await logAnalyticsEvent(getAnalytics(), eventName, normalizeParams(params));
   } catch (error) {
     logAnalyticsWarning(`Failed to track analytics event: ${eventName}`, error);
   }
@@ -99,7 +105,7 @@ export const trackScreenView = async (screenName: string) => {
   }
 
   try {
-    await analytics().logScreenView({
+    await logAnalyticsEvent(getAnalytics(), "screen_view", {
       screen_name: screenName,
       screen_class: screenName,
     });

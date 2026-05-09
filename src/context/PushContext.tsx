@@ -8,8 +8,22 @@ import {
 } from "react";
 
 import { Platform } from "react-native";
-import messaging, {
+import {
+  AuthorizationStatus,
+  getInitialNotification,
+  getMessaging as getFirebaseMessaging,
+  getToken,
+  hasPermission,
+  isDeviceRegisteredForRemoteMessages,
+  onMessage,
+  onNotificationOpenedApp,
+  onTokenRefresh,
+  registerDeviceForRemoteMessages,
+  requestPermission,
+} from "@react-native-firebase/messaging";
+import type {
   FirebaseMessagingTypes,
+  Messaging,
 } from "@react-native-firebase/messaging";
 import * as SecureStore from "expo-secure-store";
 
@@ -80,9 +94,9 @@ const deleteTokenFromServer = async (
 };
 
 /** Returns a messaging instance, or null when Firebase is not initialised. */
-const getMessaging = (): ReturnType<typeof messaging> | null => {
+const getMessagingInstance = (): Messaging | null => {
   try {
-    return messaging();
+    return getFirebaseMessaging();
   } catch {
     return null;
   }
@@ -109,24 +123,24 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
     const setup = async () => {
       try {
-        const msg = getMessaging();
+        const msg = getMessagingInstance();
         if (!msg) {
           console.warn("Firebase messaging not available, push notifications disabled");
           return;
         }
 
-        if (Platform.OS === "ios" && !msg.isDeviceRegisteredForRemoteMessages) {
-          await msg.registerDeviceForRemoteMessages();
+        if (Platform.OS === "ios" && !isDeviceRegisteredForRemoteMessages(msg)) {
+          await registerDeviceForRemoteMessages(msg);
         }
 
-        let authStatus = await msg.hasPermission();
-        if (authStatus === messaging.AuthorizationStatus.NOT_DETERMINED) {
-          authStatus = await msg.requestPermission();
+        let authStatus = await hasPermission(msg);
+        if (authStatus === AuthorizationStatus.NOT_DETERMINED) {
+          authStatus = await requestPermission(msg);
         }
         const enabled =
-          authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-          authStatus === messaging.AuthorizationStatus.PROVISIONAL ||
-          authStatus === messaging.AuthorizationStatus.EPHEMERAL;
+          authStatus === AuthorizationStatus.AUTHORIZED ||
+          authStatus === AuthorizationStatus.PROVISIONAL ||
+          authStatus === AuthorizationStatus.EPHEMERAL;
 
         if (!enabled) {
           console.warn("Push notification permission denied or restricted", {
@@ -135,14 +149,14 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        const fcmToken = await msg.getToken();
+        const fcmToken = await getToken(msg);
         fcmTokenRef.current = fcmToken;
 
         const deviceId = await getOrCreateDeviceId();
         await registerTokenOnServer(fcmToken, deviceId, token);
 
         // Listen for token refresh
-        unsubscribeRefresh = msg.onTokenRefresh(async (newToken) => {
+        unsubscribeRefresh = onTokenRefresh(msg, async (newToken) => {
           fcmTokenRef.current = newToken;
           const did = await getOrCreateDeviceId();
           const currentAuthToken = authTokenRef.current;
@@ -182,7 +196,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
   // Handle notification taps when app is opened from background/quit
   useEffect(() => {
-    const msg = getMessaging();
+    const msg = getMessagingInstance();
     if (!msg) return;
     let isCancelled = false;
 
@@ -206,8 +220,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // App opened from quit state via notification
-    msg
-      .getInitialNotification()
+    getInitialNotification(msg)
       .then((remoteMessage) => {
         if (remoteMessage?.data) {
           routeFromPushTap(remoteMessage.data as PushData);
@@ -215,7 +228,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       });
 
     // App opened from background via notification tap
-    const unsubscribeOpened = msg.onNotificationOpenedApp(
+    const unsubscribeOpened = onNotificationOpenedApp(
+      msg,
       (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         if (remoteMessage.data) {
           routeFromPushTap(remoteMessage.data as PushData);
@@ -231,10 +245,11 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
   // Foreground message handling (silent for MVP - just update unread counts)
   useEffect(() => {
-    const msg = getMessaging();
+    const msg = getMessagingInstance();
     if (!msg) return;
 
-    const unsubscribe = msg.onMessage(
+    const unsubscribe = onMessage(
+      msg,
       async (_remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
         // MVP: silently update unread counts via existing WS connection.
         // The ChatContext already handles WS message:new events which update
@@ -250,7 +265,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   // Badge is set to 1 by the backend APNs payload; we clear it when the user opens the app.
   useEffect(() => {
     if (Platform.OS === "ios") {
-      const msg = getMessaging();
+      const msg = getMessagingInstance();
       if (msg && typeof (msg as any).setBadgeCount === "function") {
         (msg as any).setBadgeCount(0).catch(() => {});
       }

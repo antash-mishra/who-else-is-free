@@ -86,15 +86,106 @@ jest.mock('expo-haptics', () => mockHaptics);
 // Mock Firebase Analytics
 export const mockFirebaseAnalytics = {
   logEvent: jest.fn().mockResolvedValue(undefined),
-  logScreenView: jest.fn().mockResolvedValue(undefined),
   setDefaultEventParameters: jest.fn().mockResolvedValue(undefined),
+};
+
+export const mockFirebaseAnalyticsModule = {
+  getAnalytics: jest.fn(() => mockFirebaseAnalytics),
+  logEvent: jest.fn(
+    (
+      analyticsInstance: typeof mockFirebaseAnalytics,
+      eventName: string,
+      params?: Record<string, unknown>,
+    ) => analyticsInstance.logEvent(eventName, params),
+  ),
+  setDefaultEventParameters: jest.fn(
+    (
+      analyticsInstance: typeof mockFirebaseAnalytics,
+      params?: Record<string, unknown>,
+    ) => analyticsInstance.setDefaultEventParameters(params),
+  ),
 };
 
 jest.mock('@react-native-firebase/analytics', () => {
   const analytics = jest.fn(() => mockFirebaseAnalytics);
   return {
     __esModule: true,
+    ...mockFirebaseAnalyticsModule,
     default: analytics,
+  };
+});
+
+// Mock Firebase Messaging
+export const mockFirebaseMessaging = {
+  getInitialNotification: jest.fn().mockResolvedValue(null),
+  getToken: jest.fn().mockResolvedValue('mock-fcm-token'),
+  hasPermission: jest.fn().mockResolvedValue(1),
+  isDeviceRegisteredForRemoteMessages: true,
+  onMessage: jest.fn((_listener: (remoteMessage: unknown) => unknown) => jest.fn()),
+  onNotificationOpenedApp: jest.fn(
+    (_listener: (remoteMessage: unknown) => unknown) => jest.fn(),
+  ),
+  onTokenRefresh: jest.fn((_listener: (token: string) => unknown) => jest.fn()),
+  registerDeviceForRemoteMessages: jest.fn().mockResolvedValue(undefined),
+  requestPermission: jest.fn().mockResolvedValue(1),
+  setBadgeCount: jest.fn().mockResolvedValue(undefined),
+};
+
+export const mockFirebaseMessagingModule = {
+  AuthorizationStatus: {
+    NOT_DETERMINED: -1,
+    DENIED: 0,
+    AUTHORIZED: 1,
+    PROVISIONAL: 2,
+    EPHEMERAL: 3,
+  },
+  getInitialNotification: jest.fn((messagingInstance: typeof mockFirebaseMessaging) =>
+    messagingInstance.getInitialNotification(),
+  ),
+  getMessaging: jest.fn(() => mockFirebaseMessaging),
+  getToken: jest.fn((messagingInstance: typeof mockFirebaseMessaging) =>
+    messagingInstance.getToken(),
+  ),
+  hasPermission: jest.fn((messagingInstance: typeof mockFirebaseMessaging) =>
+    messagingInstance.hasPermission(),
+  ),
+  isDeviceRegisteredForRemoteMessages: jest.fn(
+    (messagingInstance: typeof mockFirebaseMessaging) =>
+      messagingInstance.isDeviceRegisteredForRemoteMessages,
+  ),
+  onMessage: jest.fn(
+    (
+      messagingInstance: typeof mockFirebaseMessaging,
+      listener: (remoteMessage: unknown) => unknown,
+    ) => messagingInstance.onMessage(listener),
+  ),
+  onNotificationOpenedApp: jest.fn(
+    (
+      messagingInstance: typeof mockFirebaseMessaging,
+      listener: (remoteMessage: unknown) => unknown,
+    ) => messagingInstance.onNotificationOpenedApp(listener),
+  ),
+  onTokenRefresh: jest.fn(
+    (
+      messagingInstance: typeof mockFirebaseMessaging,
+      listener: (token: string) => unknown,
+    ) => messagingInstance.onTokenRefresh(listener),
+  ),
+  registerDeviceForRemoteMessages: jest.fn(
+    (messagingInstance: typeof mockFirebaseMessaging) =>
+      messagingInstance.registerDeviceForRemoteMessages(),
+  ),
+  requestPermission: jest.fn((messagingInstance: typeof mockFirebaseMessaging) =>
+    messagingInstance.requestPermission(),
+  ),
+};
+
+jest.mock('@react-native-firebase/messaging', () => {
+  const messaging = jest.fn(() => mockFirebaseMessaging);
+  return {
+    __esModule: true,
+    ...mockFirebaseMessagingModule,
+    default: messaging,
   };
 });
 
@@ -199,8 +290,29 @@ export const resetAllMocks = () => {
   mockHaptics.notificationAsync.mockClear();
   mockHaptics.selectionAsync.mockClear();
   mockFirebaseAnalytics.logEvent.mockClear();
-  mockFirebaseAnalytics.logScreenView.mockClear();
   mockFirebaseAnalytics.setDefaultEventParameters.mockClear();
+  mockFirebaseAnalyticsModule.getAnalytics.mockClear();
+  mockFirebaseAnalyticsModule.logEvent.mockClear();
+  mockFirebaseAnalyticsModule.setDefaultEventParameters.mockClear();
+  mockFirebaseMessaging.getInitialNotification.mockClear();
+  mockFirebaseMessaging.getToken.mockClear();
+  mockFirebaseMessaging.hasPermission.mockClear();
+  mockFirebaseMessaging.onMessage.mockClear();
+  mockFirebaseMessaging.onNotificationOpenedApp.mockClear();
+  mockFirebaseMessaging.onTokenRefresh.mockClear();
+  mockFirebaseMessaging.registerDeviceForRemoteMessages.mockClear();
+  mockFirebaseMessaging.requestPermission.mockClear();
+  mockFirebaseMessaging.setBadgeCount.mockClear();
+  mockFirebaseMessagingModule.getInitialNotification.mockClear();
+  mockFirebaseMessagingModule.getMessaging.mockClear();
+  mockFirebaseMessagingModule.getToken.mockClear();
+  mockFirebaseMessagingModule.hasPermission.mockClear();
+  mockFirebaseMessagingModule.isDeviceRegisteredForRemoteMessages.mockClear();
+  mockFirebaseMessagingModule.onMessage.mockClear();
+  mockFirebaseMessagingModule.onNotificationOpenedApp.mockClear();
+  mockFirebaseMessagingModule.onTokenRefresh.mockClear();
+  mockFirebaseMessagingModule.registerDeviceForRemoteMessages.mockClear();
+  mockFirebaseMessagingModule.requestPermission.mockClear();
   mockNavigation.navigate.mockClear();
   mockNavigation.goBack.mockClear();
   mockNavigation.reset.mockClear();

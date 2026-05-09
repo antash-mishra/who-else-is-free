@@ -7,7 +7,14 @@ import { Platform, PermissionsAndroid, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import messaging from '@react-native-firebase/messaging';
+import {
+  AuthorizationStatus,
+  getMessaging,
+  hasPermission,
+  isDeviceRegisteredForRemoteMessages,
+  registerDeviceForRemoteMessages,
+  requestPermission as requestMessagingPermission,
+} from '@react-native-firebase/messaging';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppNavigator from '@navigation/AppNavigator';
@@ -35,7 +42,7 @@ const App = () => {
 
     const requestPermission = async () => {
       try {
-        const msg = messaging();
+        const msg = getMessaging();
 
         if (Platform.OS === 'android' && Platform.Version >= 33) {
           await PermissionsAndroid.request(
@@ -44,26 +51,26 @@ const App = () => {
         }
 
         if (Platform.OS === 'ios') {
-          if (!msg.isDeviceRegisteredForRemoteMessages) {
-            await msg.registerDeviceForRemoteMessages();
+          if (!isDeviceRegisteredForRemoteMessages(msg)) {
+            await registerDeviceForRemoteMessages(msg);
           }
 
-          const currentStatus = await msg.hasPermission();
-          if (currentStatus === messaging.AuthorizationStatus.NOT_DETERMINED) {
-            const requestedStatus = await msg.requestPermission();
+          const currentStatus = await hasPermission(msg);
+          if (currentStatus === AuthorizationStatus.NOT_DETERMINED) {
+            const requestedStatus = await requestMessagingPermission(msg);
             const enabled =
-              requestedStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-              requestedStatus === messaging.AuthorizationStatus.PROVISIONAL ||
-              requestedStatus === messaging.AuthorizationStatus.EPHEMERAL;
+              requestedStatus === AuthorizationStatus.AUTHORIZED ||
+              requestedStatus === AuthorizationStatus.PROVISIONAL ||
+              requestedStatus === AuthorizationStatus.EPHEMERAL;
             if (!enabled) {
               console.warn('iOS push permission was not granted', {
                 authStatus: requestedStatus,
               });
             }
           } else if (
-            currentStatus !== messaging.AuthorizationStatus.AUTHORIZED &&
-            currentStatus !== messaging.AuthorizationStatus.PROVISIONAL &&
-            currentStatus !== messaging.AuthorizationStatus.EPHEMERAL
+            currentStatus !== AuthorizationStatus.AUTHORIZED &&
+            currentStatus !== AuthorizationStatus.PROVISIONAL &&
+            currentStatus !== AuthorizationStatus.EPHEMERAL
           ) {
             console.warn(
               'iOS push permission already denied/restricted. System prompt will not show again until changed in Settings.',
@@ -73,7 +80,7 @@ const App = () => {
           return;
         }
 
-        await msg.requestPermission();
+        await requestMessagingPermission(msg);
       } catch (err) {
         console.warn('Initial push permission request failed', err);
       }
