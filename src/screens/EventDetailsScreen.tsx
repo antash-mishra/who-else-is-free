@@ -16,8 +16,13 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 
+const isFabricEnabled = Boolean(
+  (globalThis as { nativeFabricUIManager?: unknown }).nativeFabricUIManager,
+);
+
 if (
   Platform.OS === "android" &&
+  !isFabricEnabled &&
   UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
