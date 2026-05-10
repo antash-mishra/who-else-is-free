@@ -1,9 +1,14 @@
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator, CardStyleInterpolators } from "@react-navigation/stack";
+import {
+  createStackNavigator,
+  CardStyleInterpolators,
+} from "@react-navigation/stack";
 import type { StackCardInterpolationProps } from "@react-navigation/stack";
 import {
   Animated,
+  Modal,
+  Platform,
   Pressable,
   TouchableOpacity,
   View,
@@ -120,6 +125,21 @@ const sheetModalTransitionSpec = {
   close: { animation: 'spring' as const, config: Springs.elegant },
 };
 
+const sheetModalScreenOptions = Platform.select({
+  android: {
+    gestureEnabled: false,
+    cardStyle: { backgroundColor: "transparent" },
+    cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+  },
+  default: {
+    gestureEnabled: false,
+    cardOverlayEnabled: true,
+    cardStyle: { backgroundColor: "transparent" },
+    cardStyleInterpolator: sheetModalInterpolator,
+    transitionSpec: sheetModalTransitionSpec,
+  },
+});
+
 // How far the sheet background extends below the screen.
 // When the spring overshoots (translateY goes negative), the card's bottom
 // edge rises above the actual screen bottom, exposing a gap. Extending the
@@ -172,16 +192,42 @@ const SheetWrapper = ({ children, onClose }: { children: React.ReactNode; onClos
   );
 };
 
+const AndroidSheetRoute = ({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) => {
+  if (Platform.OS !== "android") {
+    return <SheetWrapper onClose={onClose}>{children}</SheetWrapper>;
+  }
+
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+      transparent
+      visible
+    >
+      <View style={tabBarStyles.androidSheetModalBackdrop}>
+        <SheetWrapper onClose={onClose}>{children}</SheetWrapper>
+      </View>
+    </Modal>
+  );
+};
+
 const EventDetailsOverlaySheet = (props: any) => (
-  <SheetWrapper onClose={() => props.navigation.goBack()}>
+  <AndroidSheetRoute onClose={() => props.navigation.goBack()}>
     <EventDetailsScreen {...props} />
-  </SheetWrapper>
+  </AndroidSheetRoute>
 );
 
 const PendingRequestsSheet = (props: any) => (
-  <SheetWrapper onClose={() => props.navigation.goBack()}>
+  <AndroidSheetRoute onClose={() => props.navigation.goBack()}>
     <PendingRequestsScreen {...props} />
-  </SheetWrapper>
+  </AndroidSheetRoute>
 );
 
 
@@ -206,6 +252,10 @@ const TabBarBackground = () => (
 );
 
 const tabBarStyles = StyleSheet.create({
+  androidSheetModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
@@ -662,11 +712,7 @@ const AppNavigator = () => {
           component={PendingRequestsSheet}
           options={{
             presentation: "transparentModal",
-            gestureEnabled: false,
-            cardOverlayEnabled: true,
-            cardStyle: { backgroundColor: "transparent" },
-            cardStyleInterpolator: sheetModalInterpolator,
-            transitionSpec: sheetModalTransitionSpec,
+            ...sheetModalScreenOptions,
           }}
         />
         <Stack.Screen
@@ -674,11 +720,7 @@ const AppNavigator = () => {
           component={EventDetailsOverlaySheet}
           options={{
             presentation: "transparentModal",
-            gestureEnabled: false,
-            cardOverlayEnabled: true,
-            cardStyle: { backgroundColor: "transparent" },
-            cardStyleInterpolator: sheetModalInterpolator,
-            transitionSpec: sheetModalTransitionSpec,
+            ...sheetModalScreenOptions,
           }}
         />
         <Stack.Screen
