@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   joinCountBadge: {
-    backgroundColor: colors.accent,
+    backgroundColor: "#E6E6E6",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   joinCountBadgeText: {
-    color: "#FFFFFF",
+    color: colors.text,
     fontSize: 10,
     fontFamily: typography.fontFamilySemiBold,
     lineHeight: 12,
