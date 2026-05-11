@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import MessagesScreen from '../MessagesScreen';
 
@@ -292,6 +292,10 @@ jest.mock('@components/EmptyState', () => {
 });
 
 describe('MessagesScreen Rendering', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsEventReported.mockReturnValue(false);
@@ -354,6 +358,56 @@ describe('MessagesScreen Rendering', () => {
       expect(getByText(/Looking forward to it!/)).toBeTruthy();
       // User's own message in John Smith chat
       expect(getByText(/You: Hello there!/)).toBeTruthy();
+    });
+
+    it('should render compact timestamps for recent messages', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-05-11T12:00:00.000Z'));
+      mockChatValue.conversations = [
+        {
+          ...mockConversations[0],
+          lastMessage: {
+            ...mockConversations[0].lastMessage!,
+            createdAt: '2026-05-11T11:58:00.000Z',
+          },
+        },
+        {
+          ...mockConversations[1],
+          lastMessage: {
+            ...mockConversations[1].lastMessage!,
+            createdAt: '2026-05-11T11:59:30.000Z',
+          },
+        },
+      ];
+
+      const { getByText } = render(<MessagesScreen />);
+
+      expect(getByText('2m')).toBeTruthy();
+      expect(getByText('now')).toBeTruthy();
+    });
+
+    it('should refresh compact timestamps while the screen is mounted', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-05-11T12:00:00.000Z'));
+      mockChatValue.conversations = [
+        {
+          ...mockConversations[0],
+          lastMessage: {
+            ...mockConversations[0].lastMessage!,
+            createdAt: '2026-05-11T11:59:30.000Z',
+          },
+        },
+      ];
+
+      const { getByText, queryByText } = render(<MessagesScreen />);
+      expect(getByText('now')).toBeTruthy();
+
+      act(() => {
+        jest.advanceTimersByTime(30_000);
+      });
+
+      expect(getByText('1m')).toBeTruthy();
+      expect(queryByText('now')).toBeNull();
     });
 
     it('should show "No messages yet" for conversations without messages', () => {

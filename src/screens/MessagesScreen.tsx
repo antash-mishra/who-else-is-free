@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ScalePressable from "@components/ScalePressable";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
@@ -29,6 +29,10 @@ import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  formatCompactRelativeTime,
+  getNextCompactRelativeTimeUpdateMs,
+} from "@utils/relativeTime";
 
 type MessagesNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, "Messages">,
@@ -54,12 +58,14 @@ const ConversationRow = ({
   activeConversationId,
   events,
   userId,
+  nowMs,
 }: {
   item: ChatConversation;
   onPress: (item: ChatConversation) => void;
   activeConversationId: number | null;
   events: { id: string; imageUri: string }[];
   userId?: number;
+  nowMs: number;
 }) => {
   const { participants = [] } = item;
   const counterpart =
@@ -79,6 +85,9 @@ const ConversationRow = ({
   const previewText = item.lastMessage
     ? `${isOwnMessage ? "You" : (counterpart?.name?.split(" ")[0] ?? "")}: ${lastMessageBody}`
     : lastMessageBody;
+  const timestampLabel = item.lastMessage?.createdAt
+    ? formatCompactRelativeTime(item.lastMessage.createdAt, nowMs)
+    : "";
   const eventImageUri =
     item.eventId != null
       ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
@@ -94,7 +103,8 @@ const ConversationRow = ({
       onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
       style={[styles.conversationRow, item.id === activeConversationId && styles.conversationRowActive]}
     >
-        {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
+      {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
+      <View style={styles.conversationRowContent}>
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
             <Image source={{ uri: eventImageUri }} style={styles.conversationAvatarImage} contentFit="cover" transition={150} />
@@ -108,13 +118,24 @@ const ConversationRow = ({
           )}
         </View>
         <View style={styles.conversationCopyInner}>
-          <Text style={[styles.conversationName, hasUnread && styles.conversationNameUnread]} numberOfLines={1}>
-            {titleLabel}
-          </Text>
+          <View style={styles.conversationTitleRow}>
+            <Text style={[styles.conversationName, hasUnread && styles.conversationNameUnread]} numberOfLines={1}>
+              {titleLabel}
+            </Text>
+            {timestampLabel ? (
+              <Text
+                style={[styles.conversationTimestamp, hasUnread && styles.conversationTimestampUnread]}
+                numberOfLines={1}
+              >
+                {timestampLabel}
+              </Text>
+            ) : null}
+          </View>
           <Text style={[styles.conversationPreview, hasUnread && styles.conversationPreviewUnread]} numberOfLines={1}>
             {previewText}
           </Text>
         </View>
+      </View>
       <View style={styles.conversationDivider} />
     </ScalePressable>
   );
@@ -135,6 +156,7 @@ const MessagesScreen = () => {
   const { events, userEvents, isEventReported } = useEvents();
   const insets = useSafeAreaInsets();
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+  const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
 
   useFocusEffect(
     useCallback(() => {
@@ -249,6 +271,35 @@ const MessagesScreen = () => {
     return consolidated;
   }, [conversations, isEventReported, user, userEvents]);
 
+  useEffect(() => {
+    const nextRefreshMs = displayConversations.reduce<number | null>(
+      (soonest, conversation) => {
+        const delay = getNextCompactRelativeTimeUpdateMs(
+          conversation.lastMessage?.createdAt,
+          relativeTimeNow,
+        );
+        if (delay == null) {
+          return soonest;
+        }
+        if (soonest == null) {
+          return delay;
+        }
+        return Math.min(soonest, delay);
+      },
+      null,
+    );
+
+    if (nextRefreshMs == null) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setRelativeTimeNow(Date.now());
+    }, Math.max(1_000, nextRefreshMs));
+
+    return () => clearTimeout(timeoutId);
+  }, [displayConversations, relativeTimeNow]);
+
   const handleConversationPress = (conversation: ChatConversation) => {
     const is1to1Host = isSingleHostEventConversation(conversation, user?.id);
 
@@ -266,7 +317,7 @@ const MessagesScreen = () => {
   };
 
   const renderConversation = ({ item }: { item: ChatConversation }) => {
-    return <ConversationRow item={item} onPress={handleConversationPress} activeConversationId={activeConversationId} events={events} userId={user?.id} />;
+    return <ConversationRow item={item} onPress={handleConversationPress} activeConversationId={activeConversationId} events={events} userId={user?.id} nowMs={relativeTimeNow} />;
   };
 
   const [signInVisible, setSignInVisible] = useState(false);
@@ -365,6 +416,8 @@ const styles = StyleSheet.create({
   },
   conversationRow: {
     position: "relative",
+  },
+  conversationRowContent: {
     flexDirection: "row",
     alignItems: "center",
     paddingLeft: spacing.md,
@@ -394,8 +447,14 @@ const styles = StyleSheet.create({
   },
   conversationCopyInner: {
     flex: 1,
+    minWidth: 0,
     gap: 4,
     paddingVertical: spacing.md,
+  },
+  conversationTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
   },
   conversationDivider: {
     height: 1,
@@ -403,6 +462,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md + 52 + 12,
   },
   conversationName: {
+    flex: 1,
     fontSize: 17,
     lineHeight: 20,
     letterSpacing: -0.5,
@@ -410,6 +470,18 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
   },
   conversationNameUnread: {},
+  conversationTimestamp: {
+    marginLeft: spacing.sm,
+    fontSize: 13,
+    lineHeight: 16,
+    letterSpacing: -0.2,
+    color: "#8B8B8B",
+    fontFamily: typography.fontFamilyRegular,
+    textAlign: "right",
+  },
+  conversationTimestampUnread: {
+    color: "#5E5E5E",
+  },
   conversationPreview: {
     fontSize: 15,
     lineHeight: 20,
@@ -422,6 +494,8 @@ const styles = StyleSheet.create({
     left: 5,
     width: 8,
     height: 8,
+    top: "50%",
+    marginTop: -4,
     borderRadius: 4,
     backgroundColor: "#2F81E6",
   },
