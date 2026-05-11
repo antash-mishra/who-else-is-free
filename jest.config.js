@@ -23,6 +23,7 @@ module.exports = {
     '^@screens/(.*)$': '<rootDir>/src/screens/$1',
     '^@components/(.*)$': '<rootDir>/src/components/$1',
     '^@context/(.*)$': '<rootDir>/src/context/$1',
+    '^@hooks/(.*)$': '<rootDir>/src/hooks/$1',
     '^@api/(.*)$': '<rootDir>/src/api/$1',
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
     '^@services/(.*)$': '<rootDir>/src/services/$1',

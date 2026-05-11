@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { fireEvent } from '@testing-library/react-native';
+import { fireEvent, waitFor } from '@testing-library/react-native';
 import { Platform, StyleSheet } from 'react-native';
 import {
   AndroidSoftInputModes,
@@ -49,6 +49,65 @@ jest.mock('@components/ScreenContainer', () => {
   return ({ children }: { children: React.ReactNode }) => <View testID="screen-container">{children}</View>;
 });
 
+jest.mock('@components/EventActionOverlay', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+
+  return ({
+    isVisible,
+    onBackdropPress,
+    type,
+    items,
+    onReportMessageChange,
+    onSubmitReport,
+    reportMessage,
+    reportError,
+  }: {
+    isVisible: boolean;
+    onBackdropPress?: () => void;
+    type: string;
+    items?: Array<{ label: string; onPress: () => void }>;
+    onReportMessageChange?: (text: string) => void;
+    onSubmitReport?: () => void;
+    reportMessage?: string;
+    reportError?: string | null;
+  }) => {
+    if (!isVisible) {
+      return null;
+    }
+
+    if (type === 'menu') {
+      return (
+        <View testID="action-overlay-menu">
+          {items?.map((item, index) => (
+            <Pressable key={item.label} testID={`menu-item-${index}`} onPress={item.onPress}>
+              <Text>{item.label}</Text>
+            </Pressable>
+          ))}
+          <Pressable testID="menu-backdrop" onPress={onBackdropPress} />
+        </View>
+      );
+    }
+
+    if (type === 'report') {
+      return (
+        <View testID="action-overlay-report">
+          <Pressable testID="report-input" onPress={() => onReportMessageChange?.('Reason')}>
+            <Text>{reportMessage ?? ''}</Text>
+          </Pressable>
+          {reportError ? <Text>{reportError}</Text> : null}
+          <Pressable testID="submit-report" onPress={onSubmitReport}>
+            <Text>Submit Report</Text>
+          </Pressable>
+          <Pressable testID="report-backdrop" onPress={onBackdropPress} />
+        </View>
+      );
+    }
+
+    return null;
+  };
+});
+
 // Import mocked modules
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
@@ -63,6 +122,7 @@ describe('ChatThreadScreen Rendering', () => {
   const mockRetryMessage = jest.fn();
   const mockSetActiveConversation = jest.fn();
   const mockRefreshJoinRequests = jest.fn().mockResolvedValue(undefined);
+  const mockRefreshConversations = jest.fn().mockResolvedValue(undefined);
 
   const setupMocks = (overrides: {
     authOverrides?: object;
@@ -81,6 +141,7 @@ describe('ChatThreadScreen Rendering', () => {
         retryMessage: mockRetryMessage,
         setActiveConversation: mockSetActiveConversation,
         refreshJoinRequests: mockRefreshJoinRequests,
+        refreshConversations: mockRefreshConversations,
         isConnecting: false,
         error: null,
         joinRequestsByConversation: {},
@@ -502,6 +563,118 @@ describe('ChatThreadScreen Rendering', () => {
       const { queryByLabelText } = render(<ChatThreadScreen />);
 
       expect(queryByLabelText('View join requests')).toBeNull();
+    });
+  });
+
+  describe('Single Chat Header Actions', () => {
+    const singleConversation = {
+      id: 55,
+      createdBy: 1,
+      title: null,
+      memberIds: [1, 2],
+      participants: [
+        { id: 1, name: 'Ava Test' },
+        { id: 2, name: 'Liam Test', avatar: 'https://example.com/liam.jpg' },
+      ],
+      displayName: 'One-on-One Chat',
+      unreadCount: 0,
+      eventId: 7,
+      event: {
+        id: 7,
+        userId: 1,
+        title: 'One-on-One Event',
+        location: 'Cafe',
+        time: '6:00 PM',
+        dateLabel: 'Today',
+        eventDate: mockEvents[0].eventDate,
+        groupType: 'Single',
+        coverKey: 'coffee',
+      },
+    };
+
+    const singleEvent = {
+      ...mockEvents[0],
+      id: '7',
+      ownerId: 1,
+      title: 'One-on-One Event',
+      location: 'Cafe',
+      time: '6:00 PM',
+      groupType: 'Single' as const,
+      imageUri: 'https://example.com/event-cover.jpg',
+    };
+
+    it('should open the member action menu from the single-chat header', () => {
+      setupMocks({
+        chatOverrides: {
+          activeConversationId: 55,
+          conversations: [singleConversation],
+          messages: [],
+        },
+        eventsOverrides: {
+          events: [singleEvent],
+        },
+      });
+
+      const { getByTestId, getByText } = render(<ChatThreadScreen />);
+
+      fireEvent.press(getByTestId('chat-event-info-button'));
+
+      expect(getByTestId('action-overlay-menu')).toBeTruthy();
+      expect(getByText('Report & Block Liam')).toBeTruthy();
+      expect(getByText('Remove Liam')).toBeTruthy();
+    });
+
+    it('should open the report overlay from the single-chat header menu', () => {
+      setupMocks({
+        chatOverrides: {
+          activeConversationId: 55,
+          conversations: [singleConversation],
+          messages: [],
+        },
+        eventsOverrides: {
+          events: [singleEvent],
+        },
+      });
+
+      const { getByTestId } = render(<ChatThreadScreen />);
+
+      fireEvent.press(getByTestId('chat-event-info-button'));
+      fireEvent.press(getByTestId('menu-item-0'));
+
+      expect(getByTestId('action-overlay-report')).toBeTruthy();
+    });
+
+    it('should remove the counterpart from the single-chat header menu', async () => {
+      const mockAuthFetch = jest.fn().mockResolvedValue({ ok: true });
+
+      setupMocks({
+        authOverrides: {
+          authFetch: mockAuthFetch,
+          token: 'mock-token',
+        },
+        chatOverrides: {
+          activeConversationId: 55,
+          conversations: [singleConversation],
+          messages: [],
+        },
+        eventsOverrides: {
+          events: [singleEvent],
+        },
+      });
+
+      const { getByTestId } = render(<ChatThreadScreen />);
+
+      fireEvent.press(getByTestId('chat-event-info-button'));
+      fireEvent.press(getByTestId('menu-item-1'));
+
+      await waitFor(() => {
+        expect(mockAuthFetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/events/7/chat/members/2'),
+          expect.objectContaining({ method: 'DELETE' }),
+        );
+        expect(mockRefreshConversations).toHaveBeenCalled();
+        expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
+      });
     });
   });
 

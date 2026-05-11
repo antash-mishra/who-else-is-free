@@ -16,7 +16,9 @@ interface ChatEventHeaderProps {
   subtitle?: string;
   coverUri?: string | null;
   coverSource?: ImageSourcePropType;
+  leadingElement?: ReactNode;
   onTitlePress?: () => void;
+  titleAccessibilityLabel?: string;
   rightElement?: ReactNode;
   testID?: string;
 }
@@ -27,7 +29,9 @@ const ChatEventHeader = ({
   subtitle,
   coverUri,
   coverSource,
+  leadingElement,
   onTitlePress,
+  titleAccessibilityLabel,
   rightElement,
   testID,
 }: ChatEventHeaderProps) => {
@@ -47,16 +51,16 @@ const ChatEventHeader = ({
       <Pressable
         style={({ pressed }) => [styles.titlePressable, pressed && { opacity: 0.7 }]}
         onPress={onTitlePress}
-        accessibilityRole="button"
-        accessibilityLabel="View event details"
+        accessibilityRole={onTitlePress ? "button" : undefined}
+        accessibilityLabel={titleAccessibilityLabel ?? "View event details"}
         testID={testID}
       >
-        {hasCover ? (
+        {leadingElement ?? (hasCover ? (
           <Image
             source={coverSource ?? { uri: coverUri! }}
             style={styles.coverImage}
           />
-        ) : null}
+        ) : null)}
         <View style={styles.textContainer}>
           <Text style={styles.title} numberOfLines={1}>
             {title}

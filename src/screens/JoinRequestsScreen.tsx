@@ -20,12 +20,12 @@ import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { RootStackParamList } from "@navigation/types";
+import useSingleEventMemberActions from "@hooks/useSingleEventMemberActions";
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
 import EventActionOverlay from "@components/EventActionOverlay";
 import UserAvatar from "@components/UserAvatar";
 import { COVER_OPTIONS } from "@constants/covers";
-import { API_BASE_URL } from "@api/config";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
@@ -42,7 +42,7 @@ const getCoverSource = (coverKey?: string) => {
 const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
   const route = useRoute<JoinRequestsRoute>();
-  const { token, authFetch, user } = useAuth();
+  const { user } = useAuth();
   const { events } = useEvents();
   const {
     joinRequestsByConversation,
@@ -55,16 +55,6 @@ const JoinRequestsScreen = () => {
   const { conversationId, eventId, title, groupType } = route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // State for 1:1 mode menu and report overlays
-  const [selectedRequest, setSelectedRequest] =
-    useState<ChatJoinRequest | null>(null);
-  const [showRequestMenu, setShowRequestMenu] = useState(false);
-  const [showReportOverlay, setShowReportOverlay] = useState(false);
-  const [reportMessage, setReportMessage] = useState("");
-  const [reportError, setReportError] = useState<string | null>(null);
-  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   const conversationById = useMemo(
     () => new Map(conversations.map((conversation) => [conversation.id, conversation])),
@@ -163,108 +153,19 @@ const JoinRequestsScreen = () => {
     [navigation, setActiveConversation],
   );
 
-  // 1:1 mode: handle 3-dot menu press
-  const handleMenuPress = useCallback((request: ChatJoinRequest) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setSelectedRequest(request);
-    setShowRequestMenu(true);
-  }, []);
+  const refreshApprovedRequests = useCallback(async () => {
+    await refreshJoinRequests(conversationId, eventId, {
+      includeApproved: is1to1Mode,
+    });
+  }, [conversationId, eventId, is1to1Mode, refreshJoinRequests]);
 
-  const handleReportFromMenu = useCallback(() => {
-    setShowRequestMenu(false);
-    setShowReportOverlay(true);
-  }, []);
-
-  const handleRemoveFromMenu = useCallback(async () => {
-    if (!selectedRequest || isRemovingMember) return;
-    setIsRemovingMember(true);
-    setShowRequestMenu(false);
-    try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/chat/members/${selectedRequest.userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      if (!response.ok) {
-        throw new Error("Unable to remove member.");
-      }
-      await refreshJoinRequests(conversationId, eventId, {
-        includeApproved: is1to1Mode,
-      });
-    } catch (err) {
-      Alert.alert(
-        "Unable to remove member",
-        err instanceof Error ? err.message : "Please try again.",
-      );
-    } finally {
-      setSelectedRequest(null);
-      setIsRemovingMember(false);
-    }
-  }, [
-    authFetch,
-    conversationId,
+  const memberActions = useSingleEventMemberActions({
     eventId,
-    is1to1Mode,
-    isRemovingMember,
-    refreshJoinRequests,
-    selectedRequest,
-    token,
-  ]);
-
-  const handleSubmitReport = useCallback(async () => {
-    if (!selectedRequest) return;
-    setIsSubmittingReport(true);
-    setReportError(null);
-    try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/members/${selectedRequest.userId}/report`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ reason: reportMessage }),
-        },
-      );
-      if (!response.ok) throw new Error("Failed to report");
-      setShowReportOverlay(false);
-      setReportMessage("");
-      await refreshJoinRequests(conversationId, eventId, {
-        includeApproved: is1to1Mode,
-      });
-      setSelectedRequest(null);
-    } catch (err) {
-      setReportError("Failed to submit report. Please try again.");
-    } finally {
-      setIsSubmittingReport(false);
-    }
-  }, [
-    authFetch,
-    conversationId,
-    eventId,
-    is1to1Mode,
-    refreshJoinRequests,
-    reportMessage,
-    selectedRequest,
-    token,
-  ]);
-
-  // Close overlays
-  const handleCloseMenu = useCallback(() => {
-    setShowRequestMenu(false);
-    setSelectedRequest(null);
-  }, []);
-
-  const handleCloseReportOverlay = useCallback(() => {
-    setShowReportOverlay(false);
-    setReportMessage("");
-    setReportError(null);
-  }, []);
+    onSuccess: refreshApprovedRequests,
+    reportErrorMessages: {
+      generic: "Failed to submit report. Please try again.",
+    },
+  });
 
   const listEmpty = useMemo(
     () => (
@@ -419,7 +320,12 @@ const JoinRequestsScreen = () => {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => handleMenuPress(item)}
+          onPress={() =>
+            memberActions.openMenu({
+              userId: item.userId,
+              name: item.requester.name,
+            })
+          }
           style={styles.menuButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -514,34 +420,23 @@ const JoinRequestsScreen = () => {
 
       {/* 1:1 mode: Request menu overlay */}
       <EventActionOverlay
-        isVisible={showRequestMenu}
-        onBackdropPress={handleCloseMenu}
+        isVisible={memberActions.showMenu}
+        onBackdropPress={memberActions.closeMenu}
         type="menu"
-        items={[
-          {
-            label: `Report & Block ${selectedRequest?.requester?.name?.split(" ")[0] ?? "Member"}`,
-            onPress: handleReportFromMenu,
-          },
-          {
-            label: `Remove ${selectedRequest?.requester?.name?.split(" ")[0] ?? "Member"}`,
-            onPress: handleRemoveFromMenu,
-            loading: isRemovingMember,
-            destructive: true,
-          },
-        ]}
+        items={memberActions.menuItems}
       />
 
       {/* 1:1 mode: Report overlay */}
       <EventActionOverlay
-        isVisible={showReportOverlay}
-        onBackdropPress={handleCloseReportOverlay}
+        isVisible={memberActions.showReportOverlay}
+        onBackdropPress={memberActions.closeReportOverlay}
         type="report"
-        reportMessage={reportMessage}
-        onReportMessageChange={setReportMessage}
-        onSubmitReport={handleSubmitReport}
-        reportError={reportError}
-        reportSubmitting={isSubmittingReport}
-        reportDisabled={!reportMessage.trim()}
+        reportMessage={memberActions.reportMessage}
+        onReportMessageChange={memberActions.setReportMessage}
+        onSubmitReport={memberActions.handleSubmitReport}
+        reportError={memberActions.reportError}
+        reportSubmitting={memberActions.isSubmittingReport}
+        reportDisabled={!memberActions.reportMessage.trim()}
       />
     </ScreenContainer>
   );

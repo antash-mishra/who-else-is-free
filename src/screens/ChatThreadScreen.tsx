@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,6 +25,8 @@ import {
 
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
+import EventActionOverlay from "@components/EventActionOverlay";
+import useSingleEventMemberActions from "@hooks/useSingleEventMemberActions";
 import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useChat } from "@context/ChatContext";
@@ -146,6 +148,7 @@ const ChatThreadScreen = () => {
     error,
     joinRequestsByConversation,
     refreshJoinRequests,
+    refreshConversations,
   } = useChat();
 
   const [draft, setDraft] = useState("");
@@ -189,6 +192,16 @@ const ChatThreadScreen = () => {
     [activeEventDetails],
   );
 
+  const counterpart = useMemo(() => {
+    if (!activeConversation || !user) {
+      return null;
+    }
+    return (
+      activeConversation.participants?.find((participant) => participant.id !== user.id) ??
+      null
+    );
+  }, [activeConversation, user]);
+
   const activeEventOwnerId = useMemo(() => {
     if (!activeEventDetails) {
       return null;
@@ -209,16 +222,20 @@ const ChatThreadScreen = () => {
   }, [activeEventDetails]);
 
   const isGroupEventConversation = activeEventGroupType === "Group";
+  const isSingleEventConversation = activeEventGroupType === "Single";
 
   const headerTitle = useMemo(() => {
+    if (isSingleEventConversation && counterpart?.name) {
+      return counterpart.name;
+    }
     if (activeEventGroupType === "Single" && activeConversation && user) {
-      const otherUser = activeConversation.participants?.find(
-        (p) => p.id !== user.id,
-      );
-      if (otherUser?.name) return otherUser.name;
+      const otherUser = activeConversation.participants?.find((p) => p.id !== user.id);
+      if (otherUser?.name) {
+        return otherUser.name;
+      }
     }
     return activeConversation?.displayName ?? "";
-  }, [activeConversation, activeEventGroupType, user]);
+  }, [activeConversation, activeEventGroupType, counterpart, isSingleEventConversation, user]);
 
   const headerSubtitle = useMemo(() => {
     if (isConnecting) return "Connecting\u2026";
@@ -277,6 +294,11 @@ const ChatThreadScreen = () => {
       (activeEventOwnerId != null && user.id === activeEventOwnerId)
     );
   }, [activeConversation, activeEventOwnerId, user]);
+  const canOpenSingleChatActions =
+    isSingleEventConversation &&
+    isConversationHost &&
+    !!activeConversation?.eventId &&
+    counterpart != null;
 
   const isManuallyLeavingRef = useRef(false);
 
@@ -343,6 +365,39 @@ const ChatThreadScreen = () => {
       navigation.navigate("Main", { screen: "Messages" });
     }
   };
+
+  const refreshSingleConversation = useCallback(async () => {
+    if (!activeConversation?.eventId) {
+      return;
+    }
+    await refreshConversations().catch((err) => {
+      console.error("Failed to refresh conversations after single chat action", err);
+    });
+    await refreshJoinRequests(activeConversationId ?? activeConversation.eventId, activeConversation.eventId, {
+      includeApproved: true,
+    }).catch((err) => {
+      console.error("Failed to refresh join requests after single chat action", err);
+    });
+    setActiveConversation(null);
+  }, [
+    activeConversation?.eventId,
+    activeConversationId,
+    refreshConversations,
+    refreshJoinRequests,
+    setActiveConversation,
+  ]);
+
+  const memberActions = useSingleEventMemberActions({
+    eventId: activeConversation?.eventId,
+    onSuccess: refreshSingleConversation,
+    reportErrorMessages: {
+      generic: "Unable to submit report right now.",
+    },
+  });
+
+  useEffect(() => {
+    memberActions.reset();
+  }, [activeConversationId, memberActions.reset]);
 
   const handleSend = () => {
     if (!activeConversationId || !draft.trim()) {
@@ -513,8 +568,25 @@ const ChatThreadScreen = () => {
         onBack={handleBack}
         title={headerTitle}
         subtitle={headerSubtitle}
-        coverUri={eventCoverUri}
+        coverUri={canOpenSingleChatActions ? undefined : eventCoverUri}
+        leadingElement={
+          isSingleEventConversation && counterpart ? (
+            <UserAvatar
+              avatar={counterpart.avatar}
+              name={counterpart.name}
+              seed={counterpart.id}
+              size={40}
+            />
+          ) : undefined
+        }
         onTitlePress={() => {
+          if (canOpenSingleChatActions && counterpart) {
+            memberActions.openMenu({
+              userId: counterpart.id,
+              name: counterpart.name,
+            });
+            return;
+          }
           if (activeConversation?.eventId) {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             navigation.navigate("EventDetailsOverlay", {
@@ -523,6 +595,9 @@ const ChatThreadScreen = () => {
             });
           }
         }}
+        titleAccessibilityLabel={
+          canOpenSingleChatActions ? "Open member actions" : "View event details"
+        }
         rightElement={
           canViewJoinRequests && pendingJoinRequestCount > 0 ? (
             <Pressable
@@ -582,6 +657,23 @@ const ChatThreadScreen = () => {
           </View>
         </View>
       )}
+      <EventActionOverlay
+        isVisible={memberActions.showMenu}
+        onBackdropPress={memberActions.closeMenu}
+        type="menu"
+        items={memberActions.menuItems}
+      />
+      <EventActionOverlay
+        isVisible={memberActions.showReportOverlay}
+        onBackdropPress={memberActions.closeReportOverlay}
+        type="report"
+        reportMessage={memberActions.reportMessage}
+        onReportMessageChange={memberActions.setReportMessage}
+        onSubmitReport={memberActions.handleSubmitReport}
+        reportError={memberActions.reportError}
+        reportSubmitting={memberActions.isSubmittingReport}
+        reportDisabled={!memberActions.reportMessage.trim()}
+      />
     </ScreenContainer>
   );
 };
