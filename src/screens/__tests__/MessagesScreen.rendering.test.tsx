@@ -209,12 +209,29 @@ const mockEvents = [
     groupType: 'Group',
   },
 ];
+const mockSingleUserEvent = {
+  id: '4',
+  title: 'Solo Coffee',
+  location: 'Downtown Cafe',
+  time: '14:00',
+  audience: 'All Gender, 21 to 35 years',
+  imageUri: 'https://example.com/solo.jpg',
+  dateLabel: 'Today',
+  eventDate: new Date().toISOString().split('T')[0],
+  ownerId: 1,
+  hostName: 'Test User',
+  gender: 'Any',
+  minAge: 21,
+  maxAge: 35,
+  groupType: 'Single' as const,
+};
+let mockUserEvents = [] as typeof mockEvents;
 const mockIsEventReported = jest.fn().mockReturnValue(false);
 
 jest.mock('@context/EventsContext', () => ({
   useEvents: () => ({
     events: mockEvents,
-    userEvents: [],
+    userEvents: mockUserEvents,
     requestedEvents: [],
     isLoading: false,
     error: null,
@@ -278,6 +295,7 @@ describe('MessagesScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsEventReported.mockReturnValue(false);
+    mockUserEvents = [];
     mockAuthValue = {
       user: mockUser,
       token: 'mock-token',
@@ -454,6 +472,50 @@ describe('MessagesScreen Rendering', () => {
         title: 'One-on-One Event',
         groupType: 'Single',
       }));
+    });
+
+    it('should show host-owned 1:1 events without a conversation', () => {
+      mockUserEvents = [mockSingleUserEvent];
+      mockChatValue.conversations = mockConversations.filter(
+        (conversation) => conversation.eventId !== 4,
+      );
+
+      const { getByText } = render(<MessagesScreen />);
+
+      expect(getByText('Solo Coffee')).toBeTruthy();
+      expect(getByText('No accepted members yet')).toBeTruthy();
+    });
+
+    it('should open JoinRequests for a host-owned 1:1 event without a conversation', () => {
+      mockUserEvents = [mockSingleUserEvent];
+      mockChatValue.conversations = mockConversations.filter(
+        (conversation) => conversation.eventId !== 4,
+      );
+
+      const { getByText } = render(<MessagesScreen />);
+
+      fireEvent.press(getByText('Solo Coffee'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('JoinRequests', {
+        conversationId: -4,
+        eventId: 4,
+        title: 'Solo Coffee',
+        groupType: 'Single',
+      });
+    });
+
+    it('should not duplicate a host-owned 1:1 event when a real conversation exists', () => {
+      mockUserEvents = [
+        {
+          ...mockSingleUserEvent,
+          id: '3',
+          title: 'One-on-One Event',
+        },
+      ];
+
+      const { getAllByText } = render(<MessagesScreen />);
+
+      expect(getAllByText('One-on-One Event')).toHaveLength(1);
     });
   });
 

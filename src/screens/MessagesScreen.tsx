@@ -35,6 +35,19 @@ type MessagesNavigation = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
+const isSingleHostEventConversation = (
+  conversation: ChatConversation,
+  userId?: number,
+) =>
+  conversation.event?.groupType === "Single" &&
+  conversation.event?.userId === userId &&
+  conversation.eventId != null;
+
+const isPendingSingleHostPlaceholder = (
+  conversation: ChatConversation,
+  userId?: number,
+) => conversation.id < 0 && isSingleHostEventConversation(conversation, userId);
+
 const ConversationRow = ({
   item,
   onPress,
@@ -57,7 +70,11 @@ const ConversationRow = ({
   const titleLabel = isGroup
     ? (item.event?.title ?? item.title ?? item.displayName)
     : (counterpart?.name ?? item.displayName);
-  const lastMessageBody = item.lastMessage?.body ?? "No messages yet";
+  const lastMessageBody =
+    item.lastMessage?.body ??
+    (isPendingSingleHostPlaceholder(item, userId)
+      ? "No accepted members yet"
+      : "No messages yet");
   const isOwnMessage = item.lastMessage?.senderId === userId;
   const previewText = item.lastMessage
     ? `${isOwnMessage ? "You" : (counterpart?.name?.split(" ")[0] ?? "")}: ${lastMessageBody}`
@@ -115,7 +132,7 @@ const MessagesScreen = () => {
     refreshConversations,
     isRefreshingConversations,
   } = useChat();
-  const { events, isEventReported } = useEvents();
+  const { events, userEvents, isEventReported } = useEvents();
   const insets = useSafeAreaInsets();
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
 
@@ -165,7 +182,8 @@ const MessagesScreen = () => {
     }
 
     const consolidated: ChatConversation[] = [...others];
-    for (const [, group] of singleHostGroups) {
+    const singleHostEventIds = new Set<number>();
+    for (const [eventId, group] of singleHostGroups) {
       // Pick the conversation with the most recent message as representative
       const representative = group.reduce((best, current) => {
         const bestTime = best.lastMessage ? Date.parse(best.lastMessage.createdAt) : 0;
@@ -173,7 +191,53 @@ const MessagesScreen = () => {
         return currentTime > bestTime ? current : best;
       });
       consolidated.push(representative);
+      singleHostEventIds.add(eventId);
     }
+
+    const pendingSingleEventRows = userEvents
+      .filter(
+        (event) =>
+          event.ownerId === user.id &&
+          event.groupType === "Single" &&
+          !isEventReported(event.id),
+      )
+      .filter((event) => {
+        const eventId = Number(event.id);
+        return !Number.isNaN(eventId) && !singleHostEventIds.has(eventId);
+      })
+      .map((event) => {
+        const eventId = Number(event.id);
+        return {
+          id: -eventId,
+          createdBy: user.id,
+          title: event.title,
+          memberIds: [user.id],
+          participants: [
+            {
+              id: user.id,
+              name: event.hostName,
+              avatar: event.hostAvatar,
+            },
+          ],
+          displayName: event.title,
+          unreadCount: 0,
+          eventId,
+          event: {
+            id: eventId,
+            userId: event.ownerId,
+            title: event.title,
+            location: event.location,
+            time: event.time,
+            dateLabel: event.dateLabel,
+            eventDate: event.eventDate,
+            groupType: event.groupType,
+            coverKey: event.coverKey ?? undefined,
+            scheduledAt: event.scheduledAt,
+          },
+        } satisfies ChatConversation;
+      });
+
+    consolidated.push(...pendingSingleEventRows);
 
     // Sort by most recent message
     consolidated.sort((a, b) => {
@@ -183,12 +247,10 @@ const MessagesScreen = () => {
     });
 
     return consolidated;
-  }, [conversations, user, isEventReported]);
+  }, [conversations, isEventReported, user, userEvents]);
 
   const handleConversationPress = (conversation: ChatConversation) => {
-    const is1to1Host =
-      conversation.event?.groupType === "Single" &&
-      conversation.event?.userId === user?.id;
+    const is1to1Host = isSingleHostEventConversation(conversation, user?.id);
 
     if (is1to1Host && conversation.eventId) {
       navigation.navigate("JoinRequests", {
