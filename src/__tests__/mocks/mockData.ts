@@ -46,6 +46,9 @@ export interface MockUserEvent {
   coverKey?: string | null;
   scheduledAt?: string;
   createdAt?: string;
+  placeId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 // Sample users

@@ -30,6 +30,10 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	authHandler.RegisterRoutes(api)
 	eventHandler.RegisterRoutes(api)
 
+	placesHandler := NewPlacesHandler()
+	api.GET("/places/autocomplete", placesHandler.autocomplete)
+	api.GET("/places/details", placesHandler.details)
+
 	protected := api.Group("")
 	protected.Use(sessionMiddleware(signer, eventHandler.repo))
 	eventHandler.RegisterProtectedRoutes(protected)

@@ -68,6 +68,11 @@ import WarningIcon from "@assets/ui/error.svg";
 import SelectionModal from "@components/SelectionModal";
 import CoverPickerModal from "@components/CoverPickerModal";
 import EventDateTimeModal from "@components/EventDateTimeModal";
+import LocationPickerModal from "@components/LocationPickerModal";
+import type { PlaceDetail } from "@hooks/usePlacesAutocomplete";
+import SearchIcon from "@assets/ui/search.svg";
+import LocationPinIcon from "@assets/ui/location-pin.svg";
+import EditIcon from "@assets/ui/edit.svg";
 import BottomSheetModal from "../components/BottomSheetModal";
 import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
@@ -82,6 +87,9 @@ type FormState = {
     ageRange: [number, number];
     selectedDateTime: Date;
     location: string;
+    placeId?: string;
+    latitude?: number;
+    longitude?: number;
     coverKey: CoverKey;
 };
 
@@ -161,6 +169,10 @@ const CreateEventScreen = () => {
         getEventDateTime(editEvent),
     );
     const [location, setLocation] = useState(editEvent?.location || "");
+    const [placeId, setPlaceId] = useState(editEvent?.placeId || "");
+    const [latitude, setLatitude] = useState<number | undefined>(editEvent?.latitude);
+    const [longitude, setLongitude] = useState<number | undefined>(editEvent?.longitude);
+    const [isManualLocation, setIsManualLocation] = useState(false);
     const [coverKey, setCoverKey] = useState<CoverKey>(
         editEvent?.coverKey ?? DEFAULT_COVER_KEY,
     );
@@ -171,6 +183,7 @@ const CreateEventScreen = () => {
     const [isGroupTypePickerVisible, setGroupTypePickerVisible] = useState(false);
     const [isCoverPickerVisible, setCoverPickerVisible] = useState(false);
     const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
+    const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
     // Sign-in modal state
     const [signInVisible, setSignInVisible] = useState(false);
@@ -257,6 +270,9 @@ const CreateEventScreen = () => {
             ageRange,
             selectedDateTime,
             location,
+            placeId,
+            latitude,
+            longitude,
             coverKey,
         }),
         [
@@ -267,6 +283,9 @@ const CreateEventScreen = () => {
             gender,
             groupType,
             location,
+            placeId,
+            latitude,
+            longitude,
             selectedDateTime,
         ],
     );
@@ -351,6 +370,25 @@ const CreateEventScreen = () => {
         setCoverPickerVisible(false);
     }, []);
 
+    const handleLocationSelect = useCallback((place: PlaceDetail) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setLocation(`${place.displayName}, ${place.formattedAddress}`);
+        setPlaceId(place.placeId);
+        setLatitude(place.latitude);
+        setLongitude(place.longitude);
+        setIsManualLocation(false);
+        setLocationPickerVisible(false);
+    }, []);
+
+    const handleManualLocation = useCallback(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setIsManualLocation(true);
+        setPlaceId("");
+        setLatitude(undefined);
+        setLongitude(undefined);
+        setLocationPickerVisible(false);
+    }, []);
+
     const handleSubmit = useCallback(
         async (formOverride?: FormState) => {
             if (isSubmitting) {
@@ -431,6 +469,9 @@ const CreateEventScreen = () => {
                         badgeLabel: form.groupType === "Group" ? "Group" : null,
                         coverKey: selectedCover,
                         scheduledAt,
+                        placeId: form.placeId,
+                        latitude: form.latitude,
+                        longitude: form.longitude,
                     });
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     navigation.navigate("EventDetails", {
@@ -458,6 +499,9 @@ const CreateEventScreen = () => {
                         userId: user.id,
                         hostName: user.name,
                         scheduledAt,
+                        placeId: form.placeId,
+                        latitude: form.latitude,
+                        longitude: form.longitude,
                     });
                     await minDelay;
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -738,22 +782,87 @@ const CreateEventScreen = () => {
 
                     <View style={styles.fieldDivider} />
 
-                    <View style={[styles.fieldRow, styles.locationRow]}>
-                        <Text style={styles.fieldLabel}>Location</Text>
-                        <TextInput
-                            placeholder="Example: Bambino"
-                            value={location}
-                            onChangeText={setLocation}
-                            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                            cursorColor="#FFFFFF"
-                            selectionColor="#FFFFFF"
-                            style={[
-                                styles.textInput,
-                                styles.compactInput,
-                                styles.locationInput,
-                            ]}
-                        />
-                    </View>
+                    {isManualLocation ? (
+                        <View style={[styles.fieldRow, styles.locationRow]}>
+                            <Text style={styles.fieldLabel}>Location</Text>
+                            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                                <TextInput
+                                    placeholder="Example: Bambino"
+                                    value={location}
+                                    onChangeText={(text) => {
+                                        setLocation(text);
+                                        setPlaceId("");
+                                        setLatitude(undefined);
+                                        setLongitude(undefined);
+                                    }}
+                                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                                    cursorColor="#FFFFFF"
+                                    selectionColor="#FFFFFF"
+                                    style={[
+                                        styles.textInput,
+                                        styles.compactInput,
+                                        styles.locationInput,
+                                        { flex: 1 },
+                                    ]}
+                                />
+                                <Pressable
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        setIsManualLocation(false);
+                                        setLocationPickerVisible(true);
+                                    }}
+                                    style={{
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: 8,
+                                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                    }}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <SearchIcon width={14} height={14} color="#FFFFFF" />
+                                </Pressable>
+                            </View>
+                        </View>
+                    ) : (
+                        <Pressable
+                            style={[styles.fieldRow, styles.locationRow]}
+                            onPress={() => {
+                                Keyboard.dismiss();
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                setLocationPickerVisible(true);
+                            }}
+                        >
+                            <Text style={styles.fieldLabel}>Location</Text>
+                            <View style={[styles.fieldValuePill, styles.locationValuePill]}>
+                                {location ? (
+                                    <LocationPinIcon
+                                        width={14}
+                                        height={14}
+                                        color="rgba(255, 255, 255, 0.9)"
+                                        style={{ marginRight: 6 }}
+                                    />
+                                ) : (
+                                    <SearchIcon
+                                        width={14}
+                                        height={14}
+                                        color="rgba(255, 255, 255, 0.4)"
+                                        style={{ marginRight: 6 }}
+                                    />
+                                )}
+                                <Text
+                                    style={[
+                                        styles.fieldValueText,
+                                        !location && styles.locationPlaceholder,
+                                    ]}
+                                    numberOfLines={1}
+                                >
+                                    {location || "Search for a place..."}
+                                </Text>
+                            </View>
+                        </Pressable>
+                    )}
                 </View>
             </View>
 
@@ -905,6 +1014,14 @@ const CreateEventScreen = () => {
                 getLabel={(opt) => opt.label}
                 getKey={(opt) => opt.label}
                 isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
+            />
+
+            <LocationPickerModal
+                visible={isLocationPickerVisible}
+                onClose={() => setLocationPickerVisible(false)}
+                onSelect={handleLocationSelect}
+                onManualEntry={handleManualLocation}
+                initialQuery={location}
             />
 
             <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>

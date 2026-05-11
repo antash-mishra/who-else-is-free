@@ -44,6 +44,9 @@ export interface UserEvent extends EventItemProps {
   coverKey?: CoverKey | null;
   scheduledAt?: string; // ISO 8601 UTC timestamp
   createdAt?: string; // ISO 8601 UTC timestamp
+  placeId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface CreateEventInput {
@@ -62,6 +65,9 @@ interface CreateEventInput {
   userId: number;
   hostName: string;
   scheduledAt?: string; // ISO 8601 UTC timestamp
+  placeId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface UpdateEventInput {
@@ -78,6 +84,9 @@ interface UpdateEventInput {
   badgeLabel?: string | null;
   coverKey?: CoverKey | null;
   scheduledAt?: string; // ISO 8601 UTC timestamp
+  placeId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface GuestEventDraft {
@@ -94,6 +103,9 @@ export interface GuestEventDraft {
   badgeLabel?: string;
   coverKey: CoverKey;
   scheduledAt?: string; // ISO 8601 UTC timestamp
+  placeId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface EventsContextValue {
@@ -135,6 +147,9 @@ type ApiEvent = {
   cover_key?: CoverKey | null;
   scheduled_at?: string; // ISO 8601 UTC timestamp
   created_at?: string; // ISO 8601 UTC timestamp
+  place_id?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 interface EventMeta {
@@ -239,6 +254,9 @@ const mapApiEvent = (
     coverKey: event.cover_key ?? null,
     scheduledAt: event.scheduled_at,
     createdAt: event.created_at,
+    placeId: event.place_id,
+    latitude: event.latitude,
+    longitude: event.longitude,
   };
 };
 
@@ -439,6 +457,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         group_type: event.groupType,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
+        ...(event.placeId ? { place_id: event.placeId } : {}),
+        ...(event.latitude !== undefined ? { latitude: event.latitude } : {}),
+        ...(event.longitude !== undefined ? { longitude: event.longitude } : {}),
       };
       const analyticsParams = getEventAnalyticsParams({
         groupType: event.groupType,
@@ -519,6 +540,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         host_avatar: user?.avatar,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
         scheduled_at: event.scheduledAt,
+        place_id: event.placeId,
+        latitude: event.latitude,
+        longitude: event.longitude,
       };
 
       setEvents((prev) => {
@@ -553,6 +577,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         group_type: event.groupType,
         ...(event.coverKey !== undefined ? { cover_key: event.coverKey } : {}),
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
+        ...(event.placeId ? { place_id: event.placeId } : {}),
+        ...(event.latitude !== undefined ? { latitude: event.latitude } : {}),
+        ...(event.longitude !== undefined ? { longitude: event.longitude } : {}),
       };
 
       if (!token) {

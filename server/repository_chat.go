@@ -296,6 +296,9 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 	row := r.db.QueryRowContext(ctx, selectEventByID, eventID)
 	var evt Event
 	var scheduledAtStr sql.NullString
+	var placeID sql.NullString
+	var lat sql.NullFloat64
+	var lng sql.NullFloat64
 	if err := row.Scan(
 		&evt.ID,
 		&evt.UserID,
@@ -311,6 +314,9 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.GroupType,
 		&evt.CoverKey,
 		&scheduledAtStr,
+		&placeID,
+		&lat,
+		&lng,
 		&evt.CreatedAt,
 		&evt.HostName,
 		&evt.HostAvatar,
@@ -330,6 +336,16 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 			utc := parsed.UTC()
 			evt.ScheduledAt = &utc
 		}
+	}
+
+	if placeID.Valid {
+		evt.PlaceID = &placeID.String
+	}
+	if lat.Valid {
+		evt.Latitude = &lat.Float64
+	}
+	if lng.Valid {
+		evt.Longitude = &lng.Float64
 	}
 
 	now := time.Now()
