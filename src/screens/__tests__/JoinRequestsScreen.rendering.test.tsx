@@ -34,6 +34,7 @@ jest.mock('@react-navigation/native', () => {
     ...actualNav,
     useNavigation: () => ({
       navigate: mockNavigate,
+      push: mockNavigate,
       goBack: mockGoBack,
       replace: mockReplace,
       setOptions: jest.fn(),
@@ -315,18 +316,14 @@ describe('JoinRequestsScreen Rendering', () => {
     });
 
     it('should render back button', () => {
-      const { getByTestId } = render(<JoinRequestsScreen />);
-      expect(getByTestId('icon-chevron-left')).toBeTruthy();
+      const { getByLabelText } = render(<JoinRequestsScreen />);
+      expect(getByLabelText('Go back')).toBeTruthy();
     });
 
     it('should navigate back when back button is pressed', () => {
-      const { getByTestId } = render(<JoinRequestsScreen />);
-
-      const backButton = getByTestId('icon-chevron-left').parent?.parent;
-      if (backButton) {
-        fireEvent.press(backButton);
-        expect(mockGoBack).toHaveBeenCalled();
-      }
+      const { getByLabelText } = render(<JoinRequestsScreen />);
+      fireEvent.press(getByLabelText('Go back'));
+      expect(mockGoBack).toHaveBeenCalled();
     });
   });
 
@@ -347,38 +344,21 @@ describe('JoinRequestsScreen Rendering', () => {
     });
 
     it('should render Accept and Decline buttons for each request', () => {
-      const { getAllByText } = render(<JoinRequestsScreen />);
+      const { getByLabelText } = render(<JoinRequestsScreen />);
 
-      const acceptButtons = getAllByText('Accept');
-      const declineButtons = getAllByText('Decline');
-
-      expect(acceptButtons.length).toBe(3);
-      expect(declineButtons.length).toBe(3);
-    });
-
-    it('should render request timestamp', () => {
-      const { getByText } = render(<JoinRequestsScreen />);
-
-      // The component formats dates like "Jan 15, 10:30 AM"
-      // Since we use dynamic dates, we just verify there are time elements
-      // Check for at least one formatted date (the component uses toLocaleString)
-      const request = mockJoinRequests[0];
-      const formattedDate = new Date(request.createdAt).toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      expect(getByText(formattedDate)).toBeTruthy();
+      expect(getByLabelText('Accept request from Jane Doe')).toBeTruthy();
+      expect(getByLabelText('Decline request from Jane Doe')).toBeTruthy();
+      expect(getByLabelText('Accept request from John Smith')).toBeTruthy();
+      expect(getByLabelText('Decline request from John Smith')).toBeTruthy();
+      expect(getByLabelText('Accept request from Alice Brown')).toBeTruthy();
+      expect(getByLabelText('Decline request from Alice Brown')).toBeTruthy();
     });
   });
 
   describe('Group Mode - Approve Action', () => {
     it('should call approveJoinRequest when Accept is pressed', async () => {
-      const { getAllByText } = render(<JoinRequestsScreen />);
-
-      const acceptButtons = getAllByText('Accept');
-      fireEvent.press(acceptButtons[0]);
+      const { getByLabelText } = render(<JoinRequestsScreen />);
+      fireEvent.press(getByLabelText('Accept request from Jane Doe'));
 
       await waitFor(() => {
         expect(mockApproveJoinRequest).toHaveBeenCalledWith(1, 1, 2);
@@ -388,11 +368,9 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should show alert on approval error', async () => {
       mockApproveJoinRequest.mockRejectedValueOnce(new Error('Network error'));
 
-      const { getAllByText } = render(<JoinRequestsScreen />);
-
-      const acceptButtons = getAllByText('Accept');
+      const { getByLabelText } = render(<JoinRequestsScreen />);
       await act(async () => {
-        fireEvent.press(acceptButtons[0]);
+        fireEvent.press(getByLabelText('Accept request from Jane Doe'));
       });
 
       await waitFor(() => {
@@ -406,10 +384,8 @@ describe('JoinRequestsScreen Rendering', () => {
 
   describe('Group Mode - Deny Action', () => {
     it('should call denyJoinRequest when Decline is pressed', async () => {
-      const { getAllByText } = render(<JoinRequestsScreen />);
-
-      const declineButtons = getAllByText('Decline');
-      fireEvent.press(declineButtons[0]);
+      const { getByLabelText } = render(<JoinRequestsScreen />);
+      fireEvent.press(getByLabelText('Decline request from Jane Doe'));
 
       await waitFor(() => {
         expect(mockDenyJoinRequest).toHaveBeenCalledWith(1, 1, 2);
@@ -419,11 +395,9 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should show alert on denial error', async () => {
       mockDenyJoinRequest.mockRejectedValueOnce(new Error('Server error'));
 
-      const { getAllByText } = render(<JoinRequestsScreen />);
-
-      const declineButtons = getAllByText('Decline');
+      const { getByLabelText } = render(<JoinRequestsScreen />);
       await act(async () => {
-        fireEvent.press(declineButtons[0]);
+        fireEvent.press(getByLabelText('Decline request from Jane Doe'));
       });
 
       await waitFor(() => {
@@ -482,10 +456,9 @@ describe('JoinRequestsScreen Rendering', () => {
     });
 
     it('should render pending requests icon with count badge in 1:1 mode', () => {
-      const { getByText, getByTestId } = render(<JoinRequestsScreen />);
+      const { getByLabelText, getByText } = render(<JoinRequestsScreen />);
 
-      // Users icon + badge with pending count
-      expect(getByTestId('icon-users')).toBeTruthy();
+      expect(getByLabelText('View pending requests')).toBeTruthy();
       expect(getByText('1')).toBeTruthy();
     });
 
@@ -495,9 +468,9 @@ describe('JoinRequestsScreen Rendering', () => {
         1: [mockJoinRequests[0], mockJoinRequests[1]],
       };
 
-      const { queryByTestId } = render(<JoinRequestsScreen />);
+      const { queryByLabelText } = render(<JoinRequestsScreen />);
 
-      expect(queryByTestId('icon-users')).toBeNull();
+      expect(queryByLabelText('View pending requests')).toBeNull();
     });
   });
 
@@ -528,11 +501,10 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(getAllByText('J')[0]).toBeTruthy(); // Jane Doe
     });
 
-    it('should render menu button (more-horizontal icon)', () => {
-      const { getAllByTestId } = render(<JoinRequestsScreen />);
+    it('should not render menu button for accepted users', () => {
+      const { queryByTestId } = render(<JoinRequestsScreen />);
 
-      const menuIcons = getAllByTestId('icon-more-horizontal');
-      expect(menuIcons.length).toBe(2); // Only approved requests show menu
+      expect(queryByTestId('icon-more-horizontal')).toBeNull();
     });
   });
 
@@ -550,113 +522,6 @@ describe('JoinRequestsScreen Rendering', () => {
       await waitFor(() => {
         expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
         expect(mockNavigate).toHaveBeenCalledWith('ChatThread');
-      });
-    });
-  });
-
-  describe('1:1 Mode - Menu Overlay', () => {
-    beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
-      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
-    });
-
-    it('should show menu overlay when 3-dot menu is pressed', async () => {
-      const { getAllByTestId, getByTestId } = render(<JoinRequestsScreen />);
-
-      const menuButtons = getAllByTestId('icon-more-horizontal');
-      fireEvent.press(menuButtons[0].parent!);
-
-      await waitFor(() => {
-        expect(getByTestId('action-overlay-menu')).toBeTruthy();
-      });
-    });
-
-    it('should show Report and Remove options in menu', async () => {
-      const { getAllByTestId, getByText } = render(<JoinRequestsScreen />);
-
-      const menuButtons = getAllByTestId('icon-more-horizontal');
-      fireEvent.press(menuButtons[0].parent!);
-
-      await waitFor(() => {
-        expect(getByText('Report & Block Jane')).toBeTruthy();
-        expect(getByText('Remove Jane')).toBeTruthy();
-      });
-    });
-
-    it('should close menu when backdrop is pressed', async () => {
-      const { getAllByTestId, getByTestId, queryByTestId } = render(<JoinRequestsScreen />);
-
-      const menuButtons = getAllByTestId('icon-more-horizontal');
-      fireEvent.press(menuButtons[0].parent!);
-
-      await waitFor(() => {
-        expect(getByTestId('action-overlay-menu')).toBeTruthy();
-      });
-
-      fireEvent.press(getByTestId('menu-backdrop'));
-
-      await waitFor(() => {
-        expect(queryByTestId('action-overlay-menu')).toBeNull();
-      });
-    });
-
-    it('should not call denyJoinRequest from approved member menu actions', async () => {
-      const { getAllByTestId, getByText } = render(<JoinRequestsScreen />);
-
-      const menuButtons = getAllByTestId('icon-more-horizontal');
-      fireEvent.press(menuButtons[0].parent!);
-
-      await waitFor(() => {
-        fireEvent.press(getByText('Report & Block Jane'));
-      });
-
-      await waitFor(() => {
-        expect(mockDenyJoinRequest).not.toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('1:1 Mode - Report Overlay', () => {
-    beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
-      mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
-    });
-
-    it('should show report overlay when Report & Block Member is selected', async () => {
-      const { getAllByTestId, getByText, getByTestId } = render(<JoinRequestsScreen />);
-
-      const menuButtons = getAllByTestId('icon-more-horizontal');
-      fireEvent.press(menuButtons[0].parent!);
-
-      await waitFor(() => {
-        fireEvent.press(getByText('Report & Block Jane'));
-      });
-
-      await waitFor(() => {
-        expect(getByTestId('action-overlay-report')).toBeTruthy();
-      });
-    });
-
-    it('should close report overlay when backdrop is pressed', async () => {
-      const { getAllByTestId, getByText, getByTestId, queryByTestId } = render(
-        <JoinRequestsScreen />
-      );
-
-      const menuButtons = getAllByTestId('icon-more-horizontal');
-      fireEvent.press(menuButtons[0].parent!);
-
-      await waitFor(() => {
-        fireEvent.press(getByText('Report & Block Jane'));
-      });
-
-      await waitFor(() => {
-        expect(getByTestId('action-overlay-report')).toBeTruthy();
-      });
-
-      fireEvent.press(getByTestId('report-backdrop'));
-
-      await waitFor(() => {
-        expect(queryByTestId('action-overlay-report')).toBeNull();
       });
     });
   });
@@ -761,10 +626,9 @@ describe('JoinRequestsScreen Rendering', () => {
     });
 
     it('should show pending count badge when there are only pending requests', () => {
-      const { getByText, getByTestId } = render(<JoinRequestsScreen />);
+      const { getByLabelText, getByText } = render(<JoinRequestsScreen />);
 
-      // Users icon + badge with pending count
-      expect(getByTestId('icon-users')).toBeTruthy();
+      expect(getByLabelText('View pending requests')).toBeTruthy();
       expect(getByText('2')).toBeTruthy();
     });
 

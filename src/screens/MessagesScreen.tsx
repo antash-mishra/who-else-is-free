@@ -469,7 +469,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
   },
-  conversationNameUnread: {},
+  conversationNameUnread: {
+    fontFamily: typography.fontFamilySemiBold,
+  },
   conversationTimestamp: {
     marginLeft: spacing.sm,
     fontSize: 13,
@@ -481,14 +483,19 @@ const styles = StyleSheet.create({
   },
   conversationTimestampUnread: {
     color: "#5E5E5E",
+    fontFamily: typography.fontFamilyMedium,
   },
   conversationPreview: {
     fontSize: 15,
     lineHeight: 20,
     letterSpacing: -0.5,
     color: "#707070",
+    fontFamily: typography.fontFamilyRegular,
   },
-  conversationPreviewUnread: {},
+  conversationPreviewUnread: {
+    color: colors.text,
+    fontFamily: typography.fontFamilyMedium,
+  },
   unreadDot: {
     position: "absolute",
     left: 5,

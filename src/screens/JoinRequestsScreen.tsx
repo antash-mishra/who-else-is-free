@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import MoreHorizontalIcon from "@assets/ui/more-horizontal.svg";
 import AcceptIcon from "@assets/event-details/accept.svg";
 import RejectIcon from "@assets/event-details/reject.svg";
 
@@ -20,10 +19,8 @@ import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { useAuth } from "@context/AuthContext";
 import { useEvents } from "@context/EventsContext";
 import { RootStackParamList } from "@navigation/types";
-import useSingleEventMemberActions from "@hooks/useSingleEventMemberActions";
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
-import EventActionOverlay from "@components/EventActionOverlay";
 import UserAvatar from "@components/UserAvatar";
 import { COVER_OPTIONS } from "@constants/covers";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
@@ -152,20 +149,6 @@ const JoinRequestsScreen = () => {
     },
     [navigation, setActiveConversation],
   );
-
-  const refreshApprovedRequests = useCallback(async () => {
-    await refreshJoinRequests(conversationId, eventId, {
-      includeApproved: is1to1Mode,
-    });
-  }, [conversationId, eventId, is1to1Mode, refreshJoinRequests]);
-
-  const memberActions = useSingleEventMemberActions({
-    eventId,
-    onSuccess: refreshApprovedRequests,
-    reportErrorMessages: {
-      generic: "Failed to submit report. Please try again.",
-    },
-  });
 
   const listEmpty = useMemo(
     () => (
@@ -318,19 +301,6 @@ const JoinRequestsScreen = () => {
             {previewText}
           </Text>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            memberActions.openMenu({
-              userId: item.userId,
-              name: item.requester.name,
-            })
-          }
-          style={styles.menuButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <MoreHorizontalIcon width={20} height={20} color={colors.subText} />
-        </Pressable>
       </Pressable>
     );
   };
@@ -370,12 +340,16 @@ const JoinRequestsScreen = () => {
         </View>
         <View style={styles.requestActions}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Decline request from ${item.requester.name}`}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleAction(item.id, item.userId, "deny"); }}
             style={styles.declineButton}
           >
             <RejectIcon width={30} height={30} />
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Accept request from ${item.requester.name}`}
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleAction(item.id, item.userId, "approve"); }}
             style={styles.acceptButton}
           >
@@ -417,27 +391,6 @@ const JoinRequestsScreen = () => {
           refreshing={isRefreshing}
         />
       </View>
-
-      {/* 1:1 mode: Request menu overlay */}
-      <EventActionOverlay
-        isVisible={memberActions.showMenu}
-        onBackdropPress={memberActions.closeMenu}
-        type="menu"
-        items={memberActions.menuItems}
-      />
-
-      {/* 1:1 mode: Report overlay */}
-      <EventActionOverlay
-        isVisible={memberActions.showReportOverlay}
-        onBackdropPress={memberActions.closeReportOverlay}
-        type="report"
-        reportMessage={memberActions.reportMessage}
-        onReportMessageChange={memberActions.setReportMessage}
-        onSubmitReport={memberActions.handleSubmitReport}
-        reportError={memberActions.reportError}
-        reportSubmitting={memberActions.isSubmittingReport}
-        reportDisabled={!memberActions.reportMessage.trim()}
-      />
     </ScreenContainer>
   );
 };
@@ -587,9 +540,6 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: "#2F81E6",
-  },
-  menuButton: {
-    padding: spacing.xs,
   },
   // Empty state styles
   emptyState: {

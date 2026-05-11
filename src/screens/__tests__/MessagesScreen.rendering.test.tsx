@@ -6,6 +6,7 @@
 import React from 'react';
 import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
+import { typography } from '@theme/index';
 import MessagesScreen from '../MessagesScreen';
 
 // Mock navigation
@@ -440,6 +441,39 @@ describe('MessagesScreen Rendering', () => {
       const dotStyle = StyleSheet.flatten(getByTestId('conversation-unread-dot-1').props.style);
       expect(dotStyle.position).toBe('absolute');
       expect(dotStyle.left).toBe(5);
+    });
+
+    it('should apply unread typography to host-owned 1:1 event rows in messages', () => {
+      mockChatValue.conversations = mockConversations.map((conversation) =>
+        conversation.id === 3
+          ? {
+              ...conversation,
+              unreadCount: 2,
+              participants: [
+                { id: 1, name: 'Test User' },
+                { id: 4, name: 'Alex Guest' },
+              ],
+              lastMessage: {
+                id: 'single-1',
+                conversationId: 3,
+                senderId: 4,
+                body: 'See you there',
+                createdAt: new Date().toISOString(),
+              },
+            }
+          : conversation
+      );
+
+      const { getByText } = render(<MessagesScreen />);
+
+      const titleStyle = StyleSheet.flatten(getByText('One-on-One Event').props.style);
+      const previewStyle = StyleSheet.flatten(
+        getByText('Alex: See you there').props.style
+      );
+
+      expect(titleStyle.fontFamily).toBe(typography.fontFamilySemiBold);
+      expect(previewStyle.fontFamily).toBe(typography.fontFamilyMedium);
+      expect(previewStyle.color).toBe('#000000');
     });
   });
 
