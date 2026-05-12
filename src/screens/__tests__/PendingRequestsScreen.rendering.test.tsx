@@ -14,6 +14,7 @@ const mockGoBack = jest.fn();
 const mockRouteParams = {
   conversationId: 1,
   eventId: 1,
+  includeApproved: true,
 };
 
 jest.mock('@react-navigation/native', () => {
@@ -146,23 +147,20 @@ describe('PendingRequestsScreen Rendering', () => {
   });
 
   describe('Header', () => {
-    it('should render header with correct pending count', () => {
+    it('should render header title', () => {
       const { getByText } = render(<PendingRequestsScreen />);
-      expect(getByText('Requests (2)')).toBeTruthy();
+      expect(getByText('Requests')).toBeTruthy();
     });
 
-    it('should render back button', () => {
-      const { getByTestId } = render(<PendingRequestsScreen />);
-      expect(getByTestId('icon-chevron-left')).toBeTruthy();
+    it('should render close button', () => {
+      const { getByLabelText } = render(<PendingRequestsScreen />);
+      expect(getByLabelText('Close pending requests')).toBeTruthy();
     });
 
-    it('should navigate back when back button is pressed', () => {
-      const { getByTestId } = render(<PendingRequestsScreen />);
-      const backButton = getByTestId('icon-chevron-left').parent?.parent;
-      if (backButton) {
-        fireEvent.press(backButton);
-        expect(mockGoBack).toHaveBeenCalled();
-      }
+    it('should navigate back when close button is pressed', () => {
+      const { getByLabelText } = render(<PendingRequestsScreen />);
+      fireEvent.press(getByLabelText('Close pending requests'));
+      expect(mockGoBack).toHaveBeenCalled();
     });
   });
 
@@ -191,7 +189,7 @@ describe('PendingRequestsScreen Rendering', () => {
       expect(getByText('Jane Doe')).toBeTruthy();
       expect(getByText('John Smith')).toBeTruthy();
       expect(queryByText('Alice Brown')).toBeNull();
-      expect(getByText('Requests (2)')).toBeTruthy();
+      expect(getByText('Requests')).toBeTruthy();
     });
   });
 
@@ -242,7 +240,7 @@ describe('PendingRequestsScreen Rendering', () => {
       };
       const { getByText } = render(<PendingRequestsScreen />);
       expect(getByText('No pending requests')).toBeTruthy();
-      expect(getByText('Requests (0)')).toBeTruthy();
+      expect(getByText('Requests')).toBeTruthy();
     });
   });
 
@@ -251,7 +249,9 @@ describe('PendingRequestsScreen Rendering', () => {
       render(<PendingRequestsScreen />);
 
       await waitFor(() => {
-        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1);
+        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1, {
+          includeApproved: true,
+        });
       });
     });
   });

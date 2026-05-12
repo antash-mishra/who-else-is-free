@@ -251,6 +251,7 @@ const JoinRequestsScreen = () => {
                 navigation.navigate("PendingRequests", {
                   conversationId,
                   eventId,
+                  includeApproved: is1to1Mode,
                 });
               }}
               style={styles.joinIconButton}
