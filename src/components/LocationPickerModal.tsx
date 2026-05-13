@@ -125,6 +125,8 @@ const LocationPickerModal = ({
                 </View>
 
                 <ScrollView
+                    style={styles.resultsList}
+                    contentContainerStyle={styles.resultsContent}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >

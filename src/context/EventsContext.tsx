@@ -684,6 +684,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           userId: user.id,
           hostName: user.name,
           scheduledAt: pendingGuestEvent.scheduledAt,
+          placeId: pendingGuestEvent.placeId,
+          latitude: pendingGuestEvent.latitude,
+          longitude: pendingGuestEvent.longitude,
         });
 
         if (navigationRef.isReady()) {

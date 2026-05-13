@@ -238,6 +238,10 @@ const CreateEventScreen = () => {
         setAgeRange([AGE_MIN, AGE_MAX]);
         setSelectedDateTime(getDefaultEventDateTime());
         setLocation("");
+        setPlaceId("");
+        setLatitude(undefined);
+        setLongitude(undefined);
+        setIsManualLocation(false);
         setCoverKey(DEFAULT_COVER_KEY);
         setAgePickerVisible(false);
         setCoverPickerVisible(false);
@@ -254,6 +258,10 @@ const CreateEventScreen = () => {
         setAgeRange([current.minAge ?? AGE_MIN, current.maxAge ?? AGE_MAX]);
         setSelectedDateTime(getEventDateTime(current));
         setLocation(current.location || "");
+        setPlaceId(current.placeId ?? "");
+        setLatitude(current.latitude);
+        setLongitude(current.longitude);
+        setIsManualLocation(!current.placeId);
         setCoverKey(current.coverKey ?? DEFAULT_COVER_KEY);
         setAgePickerVisible(false);
         setCoverPickerVisible(false);
@@ -600,6 +608,9 @@ const CreateEventScreen = () => {
                     badgeLabel: formState.groupType === "Group" ? "Group" : undefined,
                     coverKey: selectedCover,
                     scheduledAt,
+                    placeId: formState.placeId,
+                    latitude: formState.latitude,
+                    longitude: formState.longitude,
                 };
 
                 queueGuestEvent(draftPayload);

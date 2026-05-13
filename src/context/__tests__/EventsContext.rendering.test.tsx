@@ -922,6 +922,62 @@ describe('EventsContext - Rendering Tests', () => {
       // Since user is logged in, it will attempt to submit
       expect(capturedCtx!.queueGuestEvent).toBeDefined();
     });
+
+    it('should preserve place metadata when submitting a queued guest event', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+      fetchMock.mockResponseOnce(JSON.stringify({ id: 1000 }), { status: 201 });
+      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
+
+      let capturedCtx: EventsContextValue | null = null;
+      render(
+        <EventsProvider>
+          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
+        </EventsProvider>
+      );
+
+      await waitFor(() => {
+        expect(capturedCtx).not.toBeNull();
+      });
+
+      act(() => {
+        capturedCtx!.queueGuestEvent({
+          title: 'Guest Place Event',
+          location: 'Koramangala SOCIAL',
+          time: '12:00',
+          eventDate: new Date().toISOString().split('T')[0],
+          gender: 'Any',
+          minAge: 18,
+          maxAge: 50,
+          groupType: 'Single',
+          coverKey: 'badminton',
+          placeId: 'place-koramangala-social',
+          latitude: 12.9352,
+          longitude: 77.6245,
+        });
+      });
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(
+          'http://localhost:8080/api/events',
+          expect.objectContaining({
+            method: 'POST',
+            body: expect.any(String),
+          }),
+        );
+      });
+
+      const createCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          url === 'http://localhost:8080/api/events' &&
+          init?.method === 'POST',
+      );
+      expect(createCall).toBeDefined();
+      const body = JSON.parse(String(createCall?.[1]?.body));
+      expect(body.place_id).toBe('place-koramangala-social');
+      expect(body.latitude).toBe(12.9352);
+      expect(body.longitude).toBe(77.6245);
+    });
   });
 
   describe('error state handling', () => {

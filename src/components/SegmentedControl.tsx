@@ -26,11 +26,12 @@ interface SegmentedControlProps {
 
 type TabProps = {
   option: SegmentedOption;
+  selected: boolean;
   localProgress: SharedValue<number>;
   onPress: () => void;
 };
 
-const SegmentedTab = ({ option, localProgress, onPress }: TabProps) => {
+const SegmentedTab = ({ option, selected, localProgress, onPress }: TabProps) => {
   const tabStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(localProgress.value, [0, 1], ['transparent', '#000000']),
     borderColor: interpolateColor(localProgress.value, [0, 1], ['#E6E6E6', 'transparent']),
@@ -43,7 +44,12 @@ const SegmentedTab = ({ option, localProgress, onPress }: TabProps) => {
   }));
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="tab">
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      testID={`segment-${option.value}`}
+    >
       <Animated.View style={[styles.tab, tabStyle]}>
         <Animated.Text style={[styles.label, labelStyle]}>
           {option.label}
@@ -58,7 +64,7 @@ const SegmentedTab = ({ option, localProgress, onPress }: TabProps) => {
   );
 };
 
-// Up to 4 tabs — shared values must be created unconditionally at top level.
+// Up to 5 tabs — shared values must be created unconditionally at top level.
 const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) => {
   const selectedIndex = options.findIndex(o => o.value === value);
   const prevIndex = useRef(selectedIndex);
@@ -67,13 +73,18 @@ const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) =
   const sv1 = useSharedValue(selectedIndex === 1 ? 1 : 0);
   const sv2 = useSharedValue(selectedIndex === 2 ? 1 : 0);
   const sv3 = useSharedValue(selectedIndex === 3 ? 1 : 0);
-  const allSvs = [sv0, sv1, sv2, sv3];
+  const sv4 = useSharedValue(selectedIndex === 4 ? 1 : 0);
+  const allSvs = [sv0, sv1, sv2, sv3, sv4];
 
   useEffect(() => {
     const prev = prevIndex.current;
     if (prev === selectedIndex) return;
-    allSvs[prev].value = 0;
-    allSvs[selectedIndex].value = withSpring(1, Springs.snappy);
+    if (allSvs[prev]) {
+      allSvs[prev].value = 0;
+    }
+    if (allSvs[selectedIndex]) {
+      allSvs[selectedIndex].value = withSpring(1, Springs.snappy);
+    }
     prevIndex.current = selectedIndex;
   }, [selectedIndex]);
 
@@ -83,7 +94,8 @@ const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) =
         <SegmentedTab
           key={option.value}
           option={option}
-          localProgress={allSvs[i]}
+          selected={option.value === value}
+          localProgress={allSvs[i] ?? sv0}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onChange(option.value);

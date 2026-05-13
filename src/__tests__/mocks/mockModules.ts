@@ -260,9 +260,58 @@ jest.mock('react-native-safe-area-context', () => ({
 
 // Mock reanimated
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
+  const React = require('react');
+  const { View, Text, ScrollView } = require('react-native');
+  const createAnimatedComponent = (Component: React.ComponentType<any>) => Component;
+  const runAnimation = (value: unknown, callback?: (finished?: boolean) => void) => {
+    callback?.(true);
+    return value;
+  };
+
+  return {
+    __esModule: true,
+    default: {
+      View,
+      Text,
+      ScrollView,
+      createAnimatedComponent,
+      call: jest.fn(),
+    },
+    View,
+    Text,
+    ScrollView,
+    createAnimatedComponent,
+    useSharedValue: (value: unknown) => ({ value }),
+    useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
+    useAnimatedStyle: (factory: () => object) => factory(),
+    useAnimatedProps: (factory: () => object) => factory(),
+    useAnimatedReaction: jest.fn(),
+    useAnimatedScrollHandler: jest.fn(() => jest.fn()),
+    useFrameCallback: jest.fn(),
+    withSpring: (value: unknown, _config?: unknown, callback?: (finished?: boolean) => void) =>
+      runAnimation(value, callback),
+    withTiming: (value: unknown, _config?: unknown, callback?: (finished?: boolean) => void) =>
+      runAnimation(value, callback),
+    withDelay: (_delay: number, value: unknown) => value,
+    withSequence: (...values: unknown[]) => values[values.length - 1],
+    cancelAnimation: jest.fn(),
+    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+    interpolate: jest.fn(),
+    interpolateColor: (_value: number, _input: number[], output: string[]) => output[0],
+    Extrapolation: {
+      CLAMP: 'clamp',
+      EXTEND: 'extend',
+      IDENTITY: 'identity',
+    },
+    Easing: {
+      linear: jest.fn(),
+      ease: jest.fn(),
+      bezier: jest.fn(() => jest.fn()),
+      in: jest.fn((value) => value),
+      out: jest.fn((value) => value),
+      inOut: jest.fn((value) => value),
+    },
+  };
 });
 
 // Mock expo-font
