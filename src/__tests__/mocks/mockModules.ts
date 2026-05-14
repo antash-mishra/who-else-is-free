@@ -292,6 +292,7 @@ jest.mock('react-native-reanimated', () => {
       runAnimation(value, callback),
     withTiming: (value: unknown, _config?: unknown, callback?: (finished?: boolean) => void) =>
       runAnimation(value, callback),
+    withRepeat: (value: unknown) => value,
     withDelay: (_delay: number, value: unknown) => value,
     withSequence: (...values: unknown[]) => values[values.length - 1],
     cancelAnimation: jest.fn(),

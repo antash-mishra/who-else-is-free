@@ -258,10 +258,6 @@ const HomeScreen = () => {
       );
     }
 
-    sections.push(
-      ...buildSingleSection("Unknown distance", distanceBuckets.unknown, getBadgeLabel),
-    );
-
     return sections;
   }, [allEvents, distanceBuckets, getBadgeLabel]);
 
@@ -282,14 +278,6 @@ const HomeScreen = () => {
           ),
         );
       }
-
-      sections.push(
-        ...buildSingleSection(
-          "Unknown distance",
-          [...distanceBuckets.unknown].sort(sortEventsByCreatedAtDesc),
-          getBadgeLabel,
-        ),
-      );
 
       return sections;
     }
@@ -312,7 +300,6 @@ const HomeScreen = () => {
 
     return [
       ...buildSingleSection("Nearest", knownDistanceEvents, getBadgeLabel),
-      ...buildSingleSection("Unknown distance", distanceBuckets.unknown, getBadgeLabel),
     ];
   }, [distanceBuckets, getBadgeLabel]);
 
@@ -333,6 +320,9 @@ const HomeScreen = () => {
   const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce.current;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
   const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
+  const showUpcomingEmpty = showAllEventsEmpty || (!isLoading && !error && upcomingSections.length === 0);
+  const showNearestEmpty = showAllEventsEmpty || (!isLoading && !error && nearestSections.length === 0);
+  const showNewestEmpty = showAllEventsEmpty || (!isLoading && !error && newestSections.length === 0);
 
   const refreshAll = useCallback(
     async () => Promise.all([refreshEvents(), refreshRequestedEvents()]),
@@ -404,7 +394,7 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
+                ListEmptyComponent={showUpcomingEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>
@@ -421,7 +411,7 @@ const HomeScreen = () => {
                   SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                   ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                   ListFooterComponent={<View style={styles.footerSpacing} />}
-                  ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
+                  ListEmptyComponent={showNearestEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                   refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
                 />
               </View>
@@ -438,7 +428,7 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
+                ListEmptyComponent={showNewestEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>

@@ -288,17 +288,17 @@ describe('HomeScreen Rendering', () => {
         }),
       ];
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText, queryByText } = render(<HomeScreen />);
 
       expect(getByText('Today')).toBeTruthy();
       expect(getByText('Bangalore Coffee')).toBeTruthy();
       expect(getByText('Farther away')).toBeTruthy();
       expect(getByText('Dublin Pint')).toBeTruthy();
-      expect(getByText('Unknown distance')).toBeTruthy();
-      expect(getByText('Mystery Hangout')).toBeTruthy();
+      expect(queryByText('Unknown distance')).toBeNull();
+      expect(queryByText('Mystery Hangout')).toBeNull();
     });
 
-    it('sorts nearest mode by distance and keeps unknown-distance events visible', () => {
+    it('sorts nearest mode by distance and excludes missing-coordinate events', () => {
       mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
       mockViewerLocation.permission = 'granted';
       mockEventsValue.events = [
@@ -320,7 +320,7 @@ describe('HomeScreen Rendering', () => {
         }),
       ];
 
-      const { getByTestId, UNSAFE_getAllByType, getByText } = render(<HomeScreen />);
+      const { getByTestId, UNSAFE_getAllByType, queryByText } = render(<HomeScreen />);
 
       fireEvent.press(getByTestId('segment-nearest'));
 
@@ -333,8 +333,8 @@ describe('HomeScreen Rendering', () => {
       expect(renderedTitles.indexOf('Bangalore Coffee')).toBeLessThan(
         renderedTitles.indexOf('Dublin Pint'),
       );
-      expect(getByText('Unknown distance')).toBeTruthy();
-      expect(getByText('Mystery Hangout')).toBeTruthy();
+      expect(queryByText('Unknown distance')).toBeNull();
+      expect(queryByText('Mystery Hangout')).toBeNull();
     });
   });
 

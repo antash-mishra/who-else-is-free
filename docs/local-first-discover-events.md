@@ -9,8 +9,9 @@ Discover should prioritize events that are actually relevant to the viewer's loc
 - Use the viewer's current device location for v1, not a saved profile/home city.
 - Request foreground location permission when the Discover screen loads.
 - If location permission is denied, unavailable, or still unresolved, keep the existing all-events behavior.
-- Treat events within `150 km` of the viewer as nearby.
-- Keep events with missing coordinates visible. They are not considered nearby or far away; they are shown as unknown distance.
+- Treat events within `50 km` of the viewer as nearby.
+- Do not show an `Unknown distance` section in the location-aware Discover feed.
+- Events with missing coordinates are still visible when viewer location is unavailable, because Discover falls back to the old all-events behavior in that case.
 - Keep the backend unchanged for v1. The API already returns `place_id`, `latitude`, and `longitude` when they are stored.
 
 ## Discover Tabs
@@ -26,26 +27,24 @@ When viewer location is available:
 
 - Show `Upcoming`, `Nearest`, and `Newest`.
 - `Upcoming` shows nearby events first, grouped by date and sorted by schedule.
-- `Nearest` shows all events with known distance from nearest to farthest, then unknown-distance events.
+- `Nearest` shows events with known distance from nearest to farthest.
 - `Newest` shows nearby events first, sorted by creation time.
 
 ## Event Buckets
 
-Events are split into three buckets:
+Events are split into two location-aware buckets:
 
-- `Nearby`: event has coordinates and distance is `<= 150 km`.
-- `Farther away`: event has coordinates and distance is `> 150 km`.
-- `Unknown distance`: event is missing `latitude` or `longitude`.
+- `Nearby`: event has coordinates and distance is `<= 50 km`.
+- `Farther away`: event has coordinates and distance is `> 50 km`.
 
-Unknown-distance events stay visible so old/manual events do not disappear.
+Events missing `latitude` or `longitude` cannot be ranked by distance. They are omitted from the location-aware Discover lists and remain visible only when the app is in the no-viewer-location fallback mode.
 
 ## Fallback Rules
 
 - If there are at least `5` nearby events, keep the main feed focused on nearby events.
 - If there are fewer than `5` nearby events, append fallback sections:
   - `Farther away`
-  - `Unknown distance`
-- `Unknown distance` can still appear after nearby events, because those events may be real and useful even though we cannot rank them geographically.
+- Missing-coordinate events are not added as fallback because the manual-location option has been removed and new events should store coordinates.
 
 ## Event Creation Rules
 
@@ -58,11 +57,12 @@ Unknown-distance events stay visible so old/manual events do not disappear.
   - Queue the full draft before opening sign-in.
   - Preserve `placeId`, `latitude`, and `longitude` in that queued draft.
   - After sign-in, submit those same place fields with the event.
-- When a user manually enters a location, clear `placeId`, `latitude`, and `longitude`; the event will appear under unknown distance.
+- Users must select a location from search suggestions. Manual/free-text location entry is no longer available.
+- Event submission requires a selected place with stored `placeId`, `latitude`, and `longitude`.
 
 ## Known Data State
 
-Existing events may have text locations but null coordinates. These remain in `Unknown distance` until they are edited/recreated or backfilled by geocoding their saved location text.
+Existing events may have text locations but null coordinates. These are not shown in the location-aware Discover feed because they cannot be ranked locally. They still appear when viewer location is unavailable, and they can return to local discovery after they are edited with a selected place or backfilled by geocoding their saved location text.
 
 Example observed issue:
 

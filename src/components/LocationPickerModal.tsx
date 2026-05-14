@@ -13,7 +13,6 @@ import BottomSheetModal from "./BottomSheetModal";
 import SearchIcon from "@assets/ui/search.svg";
 import CloseIcon from "@assets/ui/close.svg";
 import LocationPinIcon from "@assets/ui/location-pin.svg";
-import EditIcon from "@assets/ui/edit.svg";
 import ChevronRightIcon from "@assets/ui/chevron-right.svg";
 import {
     usePlacesAutocomplete,
@@ -27,7 +26,6 @@ export type LocationPickerModalProps = {
     visible: boolean;
     onClose: () => void;
     onSelect: (place: PlaceDetail) => void;
-    onManualEntry: () => void;
     initialQuery?: string;
 };
 
@@ -35,12 +33,12 @@ const LocationPickerModal = ({
     visible,
     onClose,
     onSelect,
-    onManualEntry,
     initialQuery = "",
 }: LocationPickerModalProps) => {
     const [query, setQuery] = useState(initialQuery);
-    const { results, loading, error, search, clear } = usePlacesAutocomplete();
+    const { results, loading, error: autocompleteError, search, clear } = usePlacesAutocomplete();
     const [selectingId, setSelectingId] = useState<string | null>(null);
+    const [selectionError, setSelectionError] = useState<string | null>(null);
 
     useEffect(() => {
         if (visible) {
@@ -51,12 +49,14 @@ const LocationPickerModal = ({
         } else {
             clear();
             setSelectingId(null);
+            setSelectionError(null);
         }
     }, [visible, initialQuery, search, clear]);
 
     const handleQueryChange = useCallback(
         (text: string) => {
             setQuery(text);
+            setSelectionError(null);
             search(text);
         },
         [search],
@@ -69,14 +69,9 @@ const LocationPickerModal = ({
             try {
                 const details = await fetchPlaceDetails(prediction.placeId);
                 onSelect(details);
-            } catch {
-                onSelect({
-                    placeId: prediction.placeId,
-                    displayName: prediction.mainText,
-                    formattedAddress: prediction.secondaryText,
-                    latitude: 0,
-                    longitude: 0,
-                });
+            } catch (error) {
+                console.warn("Failed to fetch place details", error);
+                setSelectionError("Could not get coordinates for that place. Please try another result.");
             } finally {
                 setSelectingId(null);
             }
@@ -84,11 +79,8 @@ const LocationPickerModal = ({
         [onSelect, selectingId],
     );
 
-    const handleManual = useCallback(() => {
-        onManualEntry();
-    }, [onManualEntry]);
-
     const hasQuery = query.length >= 2;
+    const error = selectionError ?? autocompleteError;
     const showResults = hasQuery && !loading && !error;
     const showEmpty = hasQuery && !loading && !error && results.length === 0;
     const showTypingHint = query.length > 0 && query.length < 2 && !loading;
@@ -116,6 +108,7 @@ const LocationPickerModal = ({
                             onPress={() => {
                                 setQuery("");
                                 clear();
+                                setSelectionError(null);
                             }}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
@@ -143,7 +136,7 @@ const LocationPickerModal = ({
                         <View style={styles.errorContainer}>
                             <Text style={styles.errorText}>{error}</Text>
                             <Text style={styles.errorRetryText}>
-                                Tap a result to try again
+                                Search again or choose another result
                             </Text>
                         </View>
                     )}
@@ -156,7 +149,7 @@ const LocationPickerModal = ({
                                 No places found
                             </Text>
                             <Text style={styles.emptyStateText}>
-                                Try searching with a different name or enter the location manually
+                                Try searching with a different name or more specific area
                             </Text>
                         </View>
                     )}
@@ -228,28 +221,6 @@ const LocationPickerModal = ({
                             ))}
                         </>
                     )}
-
-                    {/* Manual Entry */}
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.manualEntryCard,
-                            pressed && { backgroundColor: "#F5F5F7", borderColor: "#D1D1D6" },
-                        ]}
-                        onPress={handleManual}
-                    >
-                        <View style={styles.manualEntryIconContainer}>
-                            <EditIcon width={20} height={20} color="#8E8E93" />
-                        </View>
-                        <View style={styles.manualEntryTextContainer}>
-                            <Text style={styles.manualEntryText}>
-                                Enter location manually
-                            </Text>
-                            <Text style={styles.manualEntrySubtext}>
-                                Type your own address or place name
-                            </Text>
-                        </View>
-                        <ChevronRightIcon width={16} height={16} color="#C7C7CC" />
-                    </Pressable>
                 </ScrollView>
             </View>
         </BottomSheetModal>

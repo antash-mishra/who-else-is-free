@@ -165,48 +165,6 @@ const styles = StyleSheet.create({
         color: "#8E8E93",
         textAlign: "center",
     },
-
-    // Manual Entry — prominent button-like card
-    manualEntryCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 16,
-        paddingHorizontal: 16,
-        borderRadius: 16,
-        borderCurve: "continuous",
-        borderWidth: 1.5,
-        borderColor: "#E5E5EA",
-        borderStyle: "dashed",
-        marginTop: spacing.sm,
-        gap: spacing.md,
-    },
-    manualEntryIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        borderCurve: "continuous",
-        backgroundColor: "#F5F5F7",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    manualEntryTextContainer: {
-        flex: 1,
-        gap: 2,
-    },
-    manualEntryText: {
-        fontSize: 16,
-        fontFamily: typography.fontFamilySemiBold,
-        color: "#1C1C1E",
-        letterSpacing: -0.3,
-        lineHeight: 22,
-    },
-    manualEntrySubtext: {
-        fontSize: 14,
-        fontFamily: typography.fontFamilyRegular,
-        color: "#8E8E93",
-        letterSpacing: -0.2,
-        lineHeight: 18,
-    },
 });
 
 export default styles;

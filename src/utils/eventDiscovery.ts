@@ -3,7 +3,7 @@ import {
   getEventDistanceKm,
 } from "@utils/distance";
 
-export const LOCAL_RADIUS_KM = 150;
+export const LOCAL_RADIUS_KM = 50;
 export const LOCAL_MIN_RESULTS = 5;
 
 type EventWithCoordinates = {
@@ -18,7 +18,6 @@ export type EventWithDistance<T> = T & {
 export type DistanceBuckets<T> = {
   nearby: EventWithDistance<T>[];
   farther: EventWithDistance<T>[];
-  unknown: EventWithDistance<T>[];
 };
 
 export const withEventDistances = <T extends EventWithCoordinates>(
@@ -37,15 +36,17 @@ export const bucketEventsByDistance = <T>(
   events.reduce<DistanceBuckets<T>>(
     (buckets, event) => {
       if (event.distanceKm == null) {
-        buckets.unknown.push(event);
-      } else if (event.distanceKm <= localRadiusKm) {
+        return buckets;
+      }
+
+      if (event.distanceKm <= localRadiusKm) {
         buckets.nearby.push(event);
       } else {
         buckets.farther.push(event);
       }
       return buckets;
     },
-    { nearby: [], farther: [], unknown: [] },
+    { nearby: [], farther: [] },
   );
 
 export const shouldShowFartherFallback = <T>(

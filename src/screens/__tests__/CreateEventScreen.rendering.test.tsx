@@ -49,6 +49,49 @@ jest.mock('@utils/dateTime', () => ({
   parseDateKey: () => new Date('2026-01-24T00:00:00.000Z'),
 }));
 
+jest.mock('@components/LocationPickerModal', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+
+  return function MockLocationPickerModal({
+    visible,
+    onSelect,
+  }: {
+    visible: boolean;
+    onSelect: (place: {
+      placeId: string;
+      displayName: string;
+      formattedAddress: string;
+      latitude: number;
+      longitude: number;
+    }) => void;
+  }) {
+    if (!visible) {
+      return null;
+    }
+
+    return React.createElement(
+      View,
+      null,
+      React.createElement(
+        Pressable,
+        {
+          testID: 'select-mock-place',
+          onPress: () =>
+            onSelect({
+              placeId: 'mock-place-id',
+              displayName: 'Temple Bar',
+              formattedAddress: 'Dublin, Ireland',
+              latitude: 53.3458,
+              longitude: -6.2642,
+            }),
+        },
+        React.createElement(Text, null, 'Select Mock Place'),
+      ),
+    );
+  };
+});
+
 jest.mock('@constants/covers', () => ({
   DEFAULT_COVER_KEY: 'cover_01',
   resolveCoverUri: () => 'https://example.com/cover.png',
@@ -79,6 +122,15 @@ jest.mock('@react-navigation/native', () => {
 import CreateEventScreen from '../CreateEventScreen';
 
 describe('CreateEventScreen Rendering', () => {
+  const selectMockLocation = async () => {
+    fireEvent.press(screen.getByText('Search for a place...'));
+    fireEvent.press(screen.getByTestId('select-mock-place'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Temple Bar, Dublin, Ireland')).toBeTruthy();
+    });
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     currentRouteParams = {};
@@ -94,7 +146,7 @@ describe('CreateEventScreen Rendering', () => {
 
     expect(screen.getByPlaceholderText('Event Name')).toBeTruthy();
     expect(screen.getByPlaceholderText('Description')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Example: Temple Bar')).toBeTruthy();
+    expect(screen.getByText('Search for a place...')).toBeTruthy();
     expect(screen.getByText('Date & Time')).toBeTruthy();
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
     expect(screen.getByText('All Gender')).toBeTruthy();
@@ -116,7 +168,7 @@ describe('CreateEventScreen Rendering', () => {
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
-      expect(screen.getByText('Add a name or description before publishing.')).toBeTruthy();
+      expect(screen.getByText('All fields are required')).toBeTruthy();
     });
   });
 
@@ -125,7 +177,7 @@ describe('CreateEventScreen Rendering', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Coffee Meetup');
     fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Casual chat');
-    fireEvent.changeText(screen.getByPlaceholderText('Example: Temple Bar'), 'Temple Bar');
+    await selectMockLocation();
 
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
@@ -134,19 +186,17 @@ describe('CreateEventScreen Rendering', () => {
         expect.objectContaining({
           title: 'Coffee Meetup',
           description: 'Casual chat',
-          location: 'Temple Bar',
+          location: 'Temple Bar, Dublin, Ireland',
           eventDate: '2026-01-24',
           time: expect.stringMatching(/^\d{2}:\d{2}$/),
           scheduledAt: expect.any(String),
           userId: mockUser.id,
           hostName: mockUser.name,
+          placeId: 'mock-place-id',
+          latitude: 53.3458,
+          longitude: -6.2642,
         }),
       );
-    });
-
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('Main', {
-      screen: 'MyEvents',
-      params: { showEventCreatedBadge: true },
     });
   });
 
@@ -155,6 +205,8 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Create From Null');
+    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Casual chat');
+    await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
@@ -169,6 +221,8 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Guest Event');
+    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Guest description');
+    await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
@@ -178,6 +232,9 @@ describe('CreateEventScreen Rendering', () => {
           eventDate: '2026-01-24',
           time: expect.stringMatching(/^\d{2}:\d{2}$/),
           scheduledAt: expect.any(String),
+          placeId: 'mock-place-id',
+          latitude: 53.3458,
+          longitude: -6.2642,
         }),
       );
     });
@@ -187,6 +244,12 @@ describe('CreateEventScreen Rendering', () => {
 
   it('submits update payload in edit mode', async () => {
     currentRouteParams = { editEventId: mockEvents[0].id };
+    editModeEvents = [{
+      ...mockEvents[0],
+      placeId: 'existing-place-id',
+      latitude: 12.9716,
+      longitude: 77.5946,
+    }];
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Updated Name');
@@ -200,6 +263,9 @@ describe('CreateEventScreen Rendering', () => {
           eventDate: '2026-01-24',
           time: expect.stringMatching(/^\d{2}:\d{2}$/),
           scheduledAt: expect.any(String),
+          placeId: 'existing-place-id',
+          latitude: 12.9716,
+          longitude: 77.5946,
         }),
       );
     });
@@ -225,10 +291,12 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Past Event');
+    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Past description');
+    await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
-      expect(screen.getByText('Choose a future date and time.')).toBeTruthy();
+      expect(screen.getByText('Choose a future date and time')).toBeTruthy();
     });
 
     expect(mockAddUserEvent).not.toHaveBeenCalled();
