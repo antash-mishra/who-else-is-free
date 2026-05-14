@@ -43,8 +43,8 @@ import {
   formatEventListSectionHeaderLabel,
 } from "@utils/eventDisplay";
 import {
-  bucketEventsByDistance,
   EventWithDistance,
+  LOCAL_RADIUS_KM,
   sortByDistance,
   withEventDistances,
 } from "@utils/eventDiscovery";
@@ -113,6 +113,13 @@ const sortEventsByCreatedAtDesc = (a: UserEvent, b: UserEvent) => {
   const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
   return dateB - dateA;
 };
+
+const isLocalOrViewerOwnedEvent = (
+  event: EventWithDistance<UserEvent>,
+  viewerUserId?: number,
+) =>
+  (event.distanceKm != null && event.distanceKm <= LOCAL_RADIUS_KM) ||
+  (viewerUserId != null && event.ownerId === viewerUserId);
 
 type EventCardItemProps = {
   item: EventItemProps;
@@ -235,28 +242,28 @@ const HomeScreen = () => {
     }
   }, [hasViewerLocation, selectedSort]);
 
-  const distanceBuckets = useMemo(() => {
+  const discoverableEvents = useMemo(() => {
     if (!viewerLocation.coords) {
       return null;
     }
-    return bucketEventsByDistance(
-      withEventDistances(allEvents, viewerLocation.coords),
+    return withEventDistances(allEvents, viewerLocation.coords).filter((event) =>
+      isLocalOrViewerOwnedEvent(event, user?.id),
     );
-  }, [allEvents, viewerLocation.coords]);
+  }, [allEvents, user?.id, viewerLocation.coords]);
 
   const upcomingSections = useMemo<EventSection[]>(() => {
-    if (!distanceBuckets) {
+    if (!discoverableEvents) {
       return buildSections(allEvents, getBadgeLabel);
     }
 
-    return buildSections(distanceBuckets.nearby, getBadgeLabel);
-  }, [allEvents, distanceBuckets, getBadgeLabel]);
+    return buildSections(discoverableEvents, getBadgeLabel);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
 
   const newestSections = useMemo<EventSection[]>(() => {
-    if (distanceBuckets) {
+    if (discoverableEvents) {
       return buildSingleSection(
-        "Newest nearby",
-        [...distanceBuckets.nearby].sort(sortEventsByCreatedAtDesc),
+        "Newest",
+        [...discoverableEvents].sort(sortEventsByCreatedAtDesc),
         getBadgeLabel,
       );
     }
@@ -265,21 +272,21 @@ const HomeScreen = () => {
     return sorted.length > 0
       ? [{ title: "Newest created", data: sorted.map((e) => toEventCardItem(e, getBadgeLabel(e))) }]
       : [];
-  }, [allEvents, distanceBuckets, getBadgeLabel]);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
 
   const nearestSections = useMemo<EventSection[]>(() => {
-    if (!distanceBuckets) {
+    if (!discoverableEvents) {
       return [];
     }
 
     const knownDistanceEvents: Array<EventWithDistance<UserEvent>> = [
-      ...distanceBuckets.nearby,
+      ...discoverableEvents,
     ].sort(sortByDistance);
 
     return [
       ...buildSingleSection("Nearest", knownDistanceEvents, getBadgeLabel),
     ];
-  }, [distanceBuckets, getBadgeLabel]);
+  }, [discoverableEvents, getBadgeLabel]);
 
   // Track if initial load has completed
   useEffect(() => {

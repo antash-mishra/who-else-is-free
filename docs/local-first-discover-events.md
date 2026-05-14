@@ -2,7 +2,7 @@
 
 ## Goal
 
-Discover should prioritize events that are actually relevant to the viewer's location. For v1, a user in Bangalore should only see events within the local radius when device location is available.
+Discover should prioritize events that are actually relevant to the viewer's location. For v1, a user in Bangalore should see nearby events within the local radius, plus any events they personally created.
 
 ## Decisions
 
@@ -10,7 +10,8 @@ Discover should prioritize events that are actually relevant to the viewer's loc
 - Request foreground location permission when the Discover screen loads.
 - If location permission is denied, unavailable, or still unresolved, keep the existing all-events behavior.
 - Treat events within `50 km` of the viewer as nearby.
-- When viewer location is available, show only events within `50 km`.
+- When viewer location is available, show events within `50 km`.
+- Always show events owned by the viewer, even when they are beyond `50 km`.
 - Do not show a `Farther away` fallback section in v1.
 - Do not show an `Unknown distance` section in the location-aware Discover feed.
 - Events with missing coordinates are still visible when viewer location is unavailable, because Discover falls back to the old all-events behavior in that case.
@@ -28,24 +29,25 @@ When viewer location is unavailable:
 When viewer location is available:
 
 - Show `Upcoming`, `Nearest`, and `Newest`.
-- `Upcoming` shows nearby events grouped by date and sorted by schedule.
-- `Nearest` shows nearby events from nearest to farthest.
-- `Newest` shows nearby events sorted by creation time.
+- `Upcoming` shows nearby and viewer-owned events grouped by date and sorted by schedule.
+- `Nearest` shows nearby and viewer-owned events from nearest to farthest. Viewer-owned events without coordinates sort last.
+- `Newest` shows nearby and viewer-owned events sorted by creation time.
 
 ## Event Buckets
 
-Events are filtered into one location-aware bucket:
+Events are filtered into one location-aware set:
 
 - `Nearby`: event has coordinates and distance is `<= 50 km`.
+- `Viewer-owned`: event `ownerId` matches the current user.
 
-Events farther than `50 km`, or missing `latitude` / `longitude`, are omitted from the location-aware Discover lists. Missing-coordinate events remain visible only when the app is in the no-viewer-location fallback mode.
+Events farther than `50 km`, or missing `latitude` / `longitude`, are omitted from the location-aware Discover lists unless they are viewer-owned. Missing-coordinate events from other users remain visible only when the app is in the no-viewer-location fallback mode.
 
 ## Filtering Rules
 
 - There is no minimum local-event threshold in v1.
-- If no events are within `50 km`, the location-aware Discover tabs show the empty state.
+- If no events are within `50 km` and the viewer has created no events, the location-aware Discover tabs show the empty state.
 - Farther events are not added as fallback because v1 is intentionally local-only.
-- Missing-coordinate events are not added as fallback because the manual-location option has been removed and new events should store coordinates.
+- Missing-coordinate events from other users are not added as fallback because the manual-location option has been removed and new events should store coordinates.
 
 ## Event Creation Rules
 
@@ -63,7 +65,7 @@ Events farther than `50 km`, or missing `latitude` / `longitude`, are omitted fr
 
 ## Known Data State
 
-Existing events may have text locations but null coordinates. These are not shown in the location-aware Discover feed because they cannot be ranked locally. Far-away events are also not shown in the location-aware feed. Both still appear when viewer location is unavailable, and missing-coordinate events can return to local discovery after they are edited with a selected place or backfilled by geocoding their saved location text.
+Existing events may have text locations but null coordinates. These are not shown in the location-aware Discover feed for other users because they cannot be ranked locally. Far-away events from other users are also not shown in the location-aware feed. Viewer-owned events remain visible so the host can find/manage them. Missing-coordinate events can return to local discovery for everyone after they are edited with a selected place or backfilled by geocoding their saved location text.
 
 Example observed issue:
 

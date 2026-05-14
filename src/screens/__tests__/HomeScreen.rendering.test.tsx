@@ -279,12 +279,14 @@ describe('HomeScreen Rendering', () => {
         createTodayEvent({
           id: 'dub',
           title: 'Dublin Pint',
+          ownerId: 2,
           latitude: 53.3498,
           longitude: -6.2603,
         }),
         createTodayEvent({
           id: 'unknown',
           title: 'Mystery Hangout',
+          ownerId: 2,
         }),
       ];
 
@@ -298,13 +300,41 @@ describe('HomeScreen Rendering', () => {
       expect(queryByText('Mystery Hangout')).toBeNull();
     });
 
-    it('sorts nearest mode by distance and excludes far or missing-coordinate events', () => {
+    it('keeps viewer-owned events visible even when they are beyond the local radius', () => {
+      mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
+      mockViewerLocation.permission = 'granted';
+      mockEventsValue.events = [
+        createTodayEvent({
+          id: 'owned-dub',
+          title: 'My Dublin Meetup',
+          ownerId: mockUser.id,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+        createTodayEvent({
+          id: 'other-dub',
+          title: 'Other Dublin Meetup',
+          ownerId: 2,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+      ];
+
+      const { getByText, queryByText } = render(<HomeScreen />);
+
+      expect(getByText('My Dublin Meetup')).toBeTruthy();
+      expect(getByText('Hosting')).toBeTruthy();
+      expect(queryByText('Other Dublin Meetup')).toBeNull();
+    });
+
+    it('sorts nearest mode by distance and excludes far non-owned or missing-coordinate events', () => {
       mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
       mockViewerLocation.permission = 'granted';
       mockEventsValue.events = [
         createTodayEvent({
           id: 'dub',
           title: 'Dublin Pint',
+          ownerId: 2,
           latitude: 53.3498,
           longitude: -6.2603,
         }),
@@ -317,6 +347,14 @@ describe('HomeScreen Rendering', () => {
         createTodayEvent({
           id: 'unknown',
           title: 'Mystery Hangout',
+          ownerId: 2,
+        }),
+        createTodayEvent({
+          id: 'owned-dub',
+          title: 'My Dublin Meetup',
+          ownerId: mockUser.id,
+          latitude: 53.3498,
+          longitude: -6.2603,
         }),
       ];
 
@@ -330,7 +368,7 @@ describe('HomeScreen Rendering', () => {
         (section: { data: Array<{ title: string }> }) =>
           section.data.map((item) => item.title),
       );
-      expect(renderedTitles).toEqual(['Bangalore Coffee']);
+      expect(renderedTitles).toEqual(['Bangalore Coffee', 'My Dublin Meetup']);
       expect(queryByText('Dublin Pint')).toBeNull();
       expect(queryByText('Unknown distance')).toBeNull();
       expect(queryByText('Mystery Hangout')).toBeNull();
