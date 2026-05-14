@@ -45,7 +45,6 @@ import {
 import {
   bucketEventsByDistance,
   EventWithDistance,
-  shouldShowFartherFallback,
   sortByDistance,
   withEventDistances,
 } from "@utils/eventDiscovery";
@@ -250,36 +249,16 @@ const HomeScreen = () => {
       return buildSections(allEvents, getBadgeLabel);
     }
 
-    const sections = buildSections(distanceBuckets.nearby, getBadgeLabel);
-
-    if (shouldShowFartherFallback(distanceBuckets.nearby)) {
-      sections.push(
-        ...buildSingleSection("Farther away", distanceBuckets.farther, getBadgeLabel),
-      );
-    }
-
-    return sections;
+    return buildSections(distanceBuckets.nearby, getBadgeLabel);
   }, [allEvents, distanceBuckets, getBadgeLabel]);
 
   const newestSections = useMemo<EventSection[]>(() => {
     if (distanceBuckets) {
-      const sections = buildSingleSection(
+      return buildSingleSection(
         "Newest nearby",
         [...distanceBuckets.nearby].sort(sortEventsByCreatedAtDesc),
         getBadgeLabel,
       );
-
-      if (shouldShowFartherFallback(distanceBuckets.nearby)) {
-        sections.push(
-          ...buildSingleSection(
-            "Farther away",
-            [...distanceBuckets.farther].sort(sortEventsByCreatedAtDesc),
-            getBadgeLabel,
-          ),
-        );
-      }
-
-      return sections;
     }
 
     const sorted = [...allEvents].sort(sortEventsByCreatedAtDesc);
@@ -295,7 +274,6 @@ const HomeScreen = () => {
 
     const knownDistanceEvents: Array<EventWithDistance<UserEvent>> = [
       ...distanceBuckets.nearby,
-      ...distanceBuckets.farther,
     ].sort(sortByDistance);
 
     return [

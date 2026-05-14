@@ -1,8 +1,6 @@
 import {
   bucketEventsByDistance,
   LOCAL_RADIUS_KM,
-  LOCAL_MIN_RESULTS,
-  shouldShowFartherFallback,
   sortByDistance,
   withEventDistances,
 } from "@utils/eventDiscovery";
@@ -27,23 +25,12 @@ describe("event discovery utilities", () => {
     expect(LOCAL_RADIUS_KM).toBe(50);
   });
 
-  it("groups nearby and farther events while ignoring missing-distance events", () => {
+  it("keeps only nearby events and ignores far or missing-distance events", () => {
     const buckets = bucketEventsByDistance(
       withEventDistances(events, viewerLocation),
     );
 
     expect(buckets.nearby.map((event) => event.id)).toEqual(["near"]);
-    expect(buckets.farther.map((event) => event.id)).toEqual(["far"]);
-  });
-
-  it("only enables farther fallback when nearby event count is below threshold", () => {
-    const nearby = Array.from({ length: LOCAL_MIN_RESULTS }, (_, index) => ({
-      id: String(index),
-      distanceKm: 1,
-    }));
-
-    expect(shouldShowFartherFallback(nearby)).toBe(false);
-    expect(shouldShowFartherFallback(nearby.slice(1))).toBe(true);
   });
 
   it("sorts known-distance events first from nearest to farthest", () => {

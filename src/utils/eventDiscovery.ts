@@ -4,7 +4,6 @@ import {
 } from "@utils/distance";
 
 export const LOCAL_RADIUS_KM = 50;
-export const LOCAL_MIN_RESULTS = 5;
 
 type EventWithCoordinates = {
   latitude?: number | null;
@@ -17,7 +16,6 @@ export type EventWithDistance<T> = T & {
 
 export type DistanceBuckets<T> = {
   nearby: EventWithDistance<T>[];
-  farther: EventWithDistance<T>[];
 };
 
 export const withEventDistances = <T extends EventWithCoordinates>(
@@ -41,18 +39,11 @@ export const bucketEventsByDistance = <T>(
 
       if (event.distanceKm <= localRadiusKm) {
         buckets.nearby.push(event);
-      } else {
-        buckets.farther.push(event);
       }
       return buckets;
     },
-    { nearby: [], farther: [] },
+    { nearby: [] },
   );
-
-export const shouldShowFartherFallback = <T>(
-  nearbyEvents: EventWithDistance<T>[],
-  localMinResults = LOCAL_MIN_RESULTS,
-) => nearbyEvents.length < localMinResults;
 
 export const sortByDistance = <T>(
   left: EventWithDistance<T>,

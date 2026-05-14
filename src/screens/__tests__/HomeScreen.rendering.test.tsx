@@ -266,7 +266,7 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('segment-nearest')).toBeTruthy();
     });
 
-    it('moves far events out of the primary nearby list when location is available', () => {
+    it('only shows nearby events when location is available', () => {
       mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
       mockViewerLocation.permission = 'granted';
       mockEventsValue.events = [
@@ -292,13 +292,13 @@ describe('HomeScreen Rendering', () => {
 
       expect(getByText('Today')).toBeTruthy();
       expect(getByText('Bangalore Coffee')).toBeTruthy();
-      expect(getByText('Farther away')).toBeTruthy();
-      expect(getByText('Dublin Pint')).toBeTruthy();
+      expect(queryByText('Farther away')).toBeNull();
+      expect(queryByText('Dublin Pint')).toBeNull();
       expect(queryByText('Unknown distance')).toBeNull();
       expect(queryByText('Mystery Hangout')).toBeNull();
     });
 
-    it('sorts nearest mode by distance and excludes missing-coordinate events', () => {
+    it('sorts nearest mode by distance and excludes far or missing-coordinate events', () => {
       mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
       mockViewerLocation.permission = 'granted';
       mockEventsValue.events = [
@@ -330,9 +330,8 @@ describe('HomeScreen Rendering', () => {
         (section: { data: Array<{ title: string }> }) =>
           section.data.map((item) => item.title),
       );
-      expect(renderedTitles.indexOf('Bangalore Coffee')).toBeLessThan(
-        renderedTitles.indexOf('Dublin Pint'),
-      );
+      expect(renderedTitles).toEqual(['Bangalore Coffee']);
+      expect(queryByText('Dublin Pint')).toBeNull();
       expect(queryByText('Unknown distance')).toBeNull();
       expect(queryByText('Mystery Hangout')).toBeNull();
     });
