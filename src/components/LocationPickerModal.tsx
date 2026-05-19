@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Keyboard,
@@ -7,6 +7,7 @@ import {
     Text,
     TextInput,
     View,
+    useWindowDimensions,
 } from "react-native";
 
 import BottomSheetModal from "./BottomSheetModal";
@@ -35,10 +36,15 @@ const LocationPickerModal = ({
     onSelect,
     initialQuery = "",
 }: LocationPickerModalProps) => {
+    const { height: windowHeight } = useWindowDimensions();
     const [query, setQuery] = useState(initialQuery);
     const { results, loading, error: autocompleteError, search, clear } = usePlacesAutocomplete();
     const [selectingId, setSelectingId] = useState<string | null>(null);
     const [selectionError, setSelectionError] = useState<string | null>(null);
+    const resultsListHeight = useMemo(
+        () => Math.round(Math.max(200, Math.min(windowHeight * 0.32, 320))),
+        [windowHeight],
+    );
 
     useEffect(() => {
         if (visible) {
@@ -85,6 +91,8 @@ const LocationPickerModal = ({
     const showEmpty = hasQuery && !loading && !error && results.length === 0;
     const showTypingHint = query.length > 0 && query.length < 2 && !loading;
     const showInitialHint = query.length === 0 && !loading;
+    const shouldCenterResults =
+        loading || Boolean(error) || showEmpty || showTypingHint || showInitialHint;
 
     return (
         <BottomSheetModal visible={visible} onClose={onClose} title="Choose Location">
@@ -118,8 +126,12 @@ const LocationPickerModal = ({
                 </View>
 
                 <ScrollView
-                    style={styles.resultsList}
-                    contentContainerStyle={styles.resultsContent}
+                    style={[styles.resultsList, { height: resultsListHeight }]}
+                    contentContainerStyle={[
+                        styles.resultsContent,
+                        { minHeight: resultsListHeight },
+                        shouldCenterResults && styles.resultsContentCentered,
+                    ]}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >

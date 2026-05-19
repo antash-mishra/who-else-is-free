@@ -6,7 +6,6 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: spacing.md,
         paddingBottom: spacing.xl,
-        flexShrink: 1,
     },
 
     // Search Bar — prominent, premium feel
@@ -36,10 +35,15 @@ const styles = StyleSheet.create({
         letterSpacing: -0.3,
     },
     resultsList: {
-        flexShrink: 1,
+        flexGrow: 0,
+        flexShrink: 0,
     },
     resultsContent: {
+        flexGrow: 1,
         paddingBottom: spacing.sm,
+    },
+    resultsContentCentered: {
+        justifyContent: "center",
     },
     clearButton: {
         width: 22,
