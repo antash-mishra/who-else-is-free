@@ -646,6 +646,7 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(mockNavigate).toHaveBeenCalledWith('PendingRequests', {
         conversationId: 1,
         eventId: 1,
+        includeApproved: true,
       });
     });
   });

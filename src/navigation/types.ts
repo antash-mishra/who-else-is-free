@@ -21,6 +21,7 @@ export type RootStackParamList = {
   PendingRequests: {
     conversationId: number;
     eventId: number;
+    includeApproved?: boolean;
   };
   ChatThread: undefined;
   CreateEvent: { editEventId?: string | null } | undefined;

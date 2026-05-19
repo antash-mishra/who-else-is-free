@@ -37,7 +37,7 @@ const PendingRequestsScreen = () => {
     approveJoinRequest,
     denyJoinRequest,
   } = useChat();
-  const { conversationId, eventId } = route.params;
+  const { conversationId, eventId, includeApproved = false } = route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
@@ -53,28 +53,28 @@ const PendingRequestsScreen = () => {
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
-    refreshJoinRequests(conversationId, eventId)
+    refreshJoinRequests(conversationId, eventId, { includeApproved })
       .catch(() => undefined)
       .finally(() => setIsRefreshing(false));
-  }, [conversationId, eventId, refreshJoinRequests]);
+  }, [conversationId, eventId, includeApproved, refreshJoinRequests]);
 
   useEffect(() => {
-    refreshJoinRequests(conversationId, eventId).catch(() => undefined);
-  }, [conversationId, eventId, refreshJoinRequests]);
+    refreshJoinRequests(conversationId, eventId, { includeApproved }).catch(() => undefined);
+  }, [conversationId, eventId, includeApproved, refreshJoinRequests]);
 
   const handleAccept = useCallback(
     async (request: ChatJoinRequest) => {
       setAcceptingUserId(request.userId);
       try {
         await approveJoinRequest(conversationId, eventId, request.userId);
-        await refreshJoinRequests(conversationId, eventId);
+        await refreshJoinRequests(conversationId, eventId, { includeApproved });
       } catch {
         // silently fail
       } finally {
         setAcceptingUserId(null);
       }
     },
-    [approveJoinRequest, conversationId, eventId, refreshJoinRequests],
+    [approveJoinRequest, conversationId, eventId, includeApproved, refreshJoinRequests],
   );
 
   const handleDecline = useCallback(
@@ -82,14 +82,14 @@ const PendingRequestsScreen = () => {
       setDecliningUserId(request.userId);
       try {
         await denyJoinRequest(conversationId, eventId, request.userId);
-        await refreshJoinRequests(conversationId, eventId);
+        await refreshJoinRequests(conversationId, eventId, { includeApproved });
       } catch {
         // silently fail
       } finally {
         setDecliningUserId(null);
       }
     },
-    [conversationId, denyJoinRequest, eventId, refreshJoinRequests],
+    [conversationId, denyJoinRequest, eventId, includeApproved, refreshJoinRequests],
   );
 
   const toggleRequestExpanded = (requestId: number) => {
@@ -113,6 +113,7 @@ const PendingRequestsScreen = () => {
           </Text>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Close pending requests"
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
             style={styles.closeButton}
             hitSlop={12}
