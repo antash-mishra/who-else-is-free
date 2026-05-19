@@ -70,7 +70,6 @@ import CoverPickerModal from "@components/CoverPickerModal";
 import EventDateTimeModal from "@components/EventDateTimeModal";
 import LocationPickerModal from "@components/LocationPickerModal";
 import type { PlaceDetail } from "@hooks/usePlacesAutocomplete";
-import SearchIcon from "@assets/ui/search.svg";
 import LocationPinIcon from "@assets/ui/location-pin.svg";
 import BottomSheetModal from "../components/BottomSheetModal";
 import SignInButtons from "../components/SignInButtons";
@@ -818,14 +817,7 @@ const CreateEventScreen = () => {
                                     color="rgba(255, 255, 255, 0.9)"
                                     style={{ marginRight: 6 }}
                                 />
-                            ) : (
-                                <SearchIcon
-                                    width={14}
-                                    height={14}
-                                    color="rgba(255, 255, 255, 0.4)"
-                                    style={{ marginRight: 6 }}
-                                />
-                            )}
+                            ) : null}
                             <Text
                                 style={[
                                     styles.fieldValueText,
@@ -833,7 +825,7 @@ const CreateEventScreen = () => {
                                 ]}
                                 numberOfLines={1}
                             >
-                                {selectedLocationLabel || "Search for a place..."}
+                                {selectedLocationLabel || "Select Location"}
                             </Text>
                         </View>
                     </Pressable>

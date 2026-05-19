@@ -123,7 +123,7 @@ import CreateEventScreen from '../CreateEventScreen';
 
 describe('CreateEventScreen Rendering', () => {
   const selectMockLocation = async () => {
-    fireEvent.press(screen.getByText('Search for a place...'));
+    fireEvent.press(screen.getByText('Select Location'));
     fireEvent.press(screen.getByTestId('select-mock-place'));
 
     await waitFor(() => {
@@ -146,7 +146,7 @@ describe('CreateEventScreen Rendering', () => {
 
     expect(screen.getByPlaceholderText('Event Name')).toBeTruthy();
     expect(screen.getByPlaceholderText('Description')).toBeTruthy();
-    expect(screen.getByText('Search for a place...')).toBeTruthy();
+    expect(screen.getByText('Select Location')).toBeTruthy();
     expect(screen.getByText('Date & Time')).toBeTruthy();
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
     expect(screen.getByText('All Gender')).toBeTruthy();
