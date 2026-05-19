@@ -34,14 +34,17 @@ export type BottomSheetModalProps = {
 };
 
 const BASE_PADDING_BOTTOM = 8;
+const MIN_TOP_GUTTER = 96;
 
 // Bezier approximation of iOS UIViewAnimationCurveKeyboard
 const IOS_KEYBOARD_EASING = Easing.bezier(0.36, 0.66, 0.04, 1);
 
 const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModalProps) => {
-    const { bottom: safeBottom } = useSafeAreaInsets();
+    const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
     const { height: screenHeight } = useWindowDimensions();
     const basePadding = BASE_PADDING_BOTTOM + safeBottom;
+    const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
+    const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
 
     const slideAnim = useSharedValue(screenHeight);
     const backdropAnim = useSharedValue(0);
@@ -128,13 +131,13 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
                     preventing them from bubbling up to the backdrop Pressable.
                     Child buttons are deeper so they still claim touches first. */}
                 <Animated.View
-                    style={[styles.sheet, sheetStyle]}
+                    style={[styles.sheet, { maxHeight: sheetMaxHeight }, sheetStyle]}
                     testID="bottom-sheet-modal"
                     onStartShouldSetResponder={() => true}
                 >
                     {/* Keyboard padding on a separate node since layout props
                         can't share the same Animated.View as transform. */}
-                    <Animated.View style={keyboardStyle}>
+                    <Animated.View style={[styles.keyboardContent, keyboardStyle]}>
                         {title !== undefined && (
                             <View style={styles.header}>
                                 <Text style={styles.title}>{title}</Text>

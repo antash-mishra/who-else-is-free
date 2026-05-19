@@ -303,6 +303,16 @@ const styles = StyleSheet.create({
         height: 36,
         fontSize: typography.body,
     },
+    locationValuePill: {
+        flexShrink: 1,
+        maxWidth: "72%",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+    },
+    locationPlaceholder: {
+        color: "rgba(255, 255, 255, 0.4)",
+    },
 
     // ┌─────────────────────────────────────────────────────────────┐
     // │ 14. SPACER — flexible gap pushing footer to bottom         │

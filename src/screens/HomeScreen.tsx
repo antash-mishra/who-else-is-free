@@ -35,12 +35,19 @@ import { UserEvent, useEvents } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
 import { useChat } from "@context/ChatContext";
 import { useBloom } from "@context/BloomContext";
+import { useViewerLocation } from "@hooks/useViewerLocation";
 import { RootStackParamList, RootTabParamList } from "@navigation/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   formatEventCardMetaLine,
   formatEventListSectionHeaderLabel,
 } from "@utils/eventDisplay";
+import {
+  EventWithDistance,
+  LOCAL_RADIUS_KM,
+  sortByDistance,
+  withEventDistances,
+} from "@utils/eventDiscovery";
 
 type EventSection = {
   title: string;
@@ -92,6 +99,28 @@ const buildSections = (
     .filter((section) => section.data.length > 0);
 };
 
+const buildSingleSection = (
+  title: string,
+  items: UserEvent[],
+  getBadgeLabel: (event: UserEvent) => string | undefined,
+): EventSection[] =>
+  items.length > 0
+    ? [{ title, data: items.map((event) => toEventCardItem(event, getBadgeLabel(event))) }]
+    : [];
+
+const sortEventsByCreatedAtDesc = (a: UserEvent, b: UserEvent) => {
+  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+  return dateB - dateA;
+};
+
+const isLocalOrViewerOwnedEvent = (
+  event: EventWithDistance<UserEvent>,
+  viewerUserId?: number,
+) =>
+  (event.distanceKm != null && event.distanceKm <= LOCAL_RADIUS_KM) ||
+  (viewerUserId != null && event.ownerId === viewerUserId);
+
 type EventCardItemProps = {
   item: EventItemProps;
   onPress: () => void;
@@ -103,8 +132,16 @@ const EventCardItem = memo(({ item, onPress }: EventCardItemProps) => (
   </ScalePressable>
 ));
 
-const sortOptions = [
+type SortOptionValue = "upcoming" | "nearest" | "newest";
+
+const baseSortOptions: Array<{ label: string; value: SortOptionValue }> = [
   { label: "Upcoming", value: "upcoming" },
+  { label: "Newest", value: "newest" },
+];
+
+const locationSortOptions: Array<{ label: string; value: SortOptionValue }> = [
+  { label: "Upcoming", value: "upcoming" },
+  { label: "Nearest", value: "nearest" },
   { label: "Newest", value: "newest" },
 ];
 
@@ -127,9 +164,11 @@ const HomeScreen = () => {
   const { user } = useAuth();
   const { conversations } = useChat();
   const { signalReady } = useBloom();
+  const viewerLocation = useViewerLocation();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const [selectedPage, setSelectedPage] = useState(0);
+  const [selectedSort, setSelectedSort] =
+    useState<SortOptionValue>("upcoming");
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const hasLoadedOnce = useRef(false);
@@ -181,21 +220,73 @@ const HomeScreen = () => {
     [user, joinedEventIds, isEventRequested],
   );
 
-  const upcomingSections = useMemo<EventSection[]>(
-    () => buildSections(allEvents, getBadgeLabel),
-    [allEvents, getBadgeLabel],
+  const hasViewerLocation = viewerLocation.coords != null;
+  const sortOptions = useMemo(
+    () => (hasViewerLocation ? locationSortOptions : baseSortOptions),
+    [hasViewerLocation],
+  );
+  const selectedPage = Math.max(
+    0,
+    sortOptions.findIndex((option) => option.value === selectedSort),
+  );
+  const handlePageChange = useCallback(
+    (index: number) => {
+      setSelectedSort(sortOptions[index]?.value ?? "upcoming");
+    },
+    [sortOptions],
   );
 
+  useEffect(() => {
+    if (!hasViewerLocation && selectedSort === "nearest") {
+      setSelectedSort("upcoming");
+    }
+  }, [hasViewerLocation, selectedSort]);
+
+  const discoverableEvents = useMemo(() => {
+    if (!viewerLocation.coords) {
+      return null;
+    }
+    return withEventDistances(allEvents, viewerLocation.coords).filter((event) =>
+      isLocalOrViewerOwnedEvent(event, user?.id),
+    );
+  }, [allEvents, user?.id, viewerLocation.coords]);
+
+  const upcomingSections = useMemo<EventSection[]>(() => {
+    if (!discoverableEvents) {
+      return buildSections(allEvents, getBadgeLabel);
+    }
+
+    return buildSections(discoverableEvents, getBadgeLabel);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
+
   const newestSections = useMemo<EventSection[]>(() => {
-    const sorted = [...allEvents].sort((a, b) => {
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateB - dateA;
-    });
+    if (discoverableEvents) {
+      return buildSingleSection(
+        "Newest",
+        [...discoverableEvents].sort(sortEventsByCreatedAtDesc),
+        getBadgeLabel,
+      );
+    }
+
+    const sorted = [...allEvents].sort(sortEventsByCreatedAtDesc);
     return sorted.length > 0
       ? [{ title: "Newest created", data: sorted.map((e) => toEventCardItem(e, getBadgeLabel(e))) }]
       : [];
-  }, [allEvents, getBadgeLabel]);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
+
+  const nearestSections = useMemo<EventSection[]>(() => {
+    if (!discoverableEvents) {
+      return [];
+    }
+
+    const knownDistanceEvents: Array<EventWithDistance<UserEvent>> = [
+      ...discoverableEvents,
+    ].sort(sortByDistance);
+
+    return [
+      ...buildSingleSection("Nearest", knownDistanceEvents, getBadgeLabel),
+    ];
+  }, [discoverableEvents, getBadgeLabel]);
 
   // Track if initial load has completed
   useEffect(() => {
@@ -214,6 +305,9 @@ const HomeScreen = () => {
   const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce.current;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
   const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
+  const showUpcomingEmpty = showAllEventsEmpty || (!isLoading && !error && upcomingSections.length === 0);
+  const showNearestEmpty = showAllEventsEmpty || (!isLoading && !error && nearestSections.length === 0);
+  const showNewestEmpty = showAllEventsEmpty || (!isLoading && !error && newestSections.length === 0);
 
   const refreshAll = useCallback(
     async () => Promise.all([refreshEvents(), refreshRequestedEvents()]),
@@ -269,7 +363,7 @@ const HomeScreen = () => {
         ) : (
           <AnimatedPager
             selectedIndex={selectedPage}
-            onPageChange={setSelectedPage}
+            onPageChange={handlePageChange}
             pageOffsetSV={pageOffset}
             style={styles.pager}
           >
@@ -285,10 +379,28 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
+                ListEmptyComponent={showUpcomingEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>
+            {hasViewerLocation ? (
+              <View style={{ flex: 1 }}>
+                <SectionList<EventItemProps, EventSection>
+                  sections={nearestSections}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderItem}
+                  renderSectionHeader={renderSectionHeader}
+                  stickySectionHeadersEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom }, nearestSections.length === 0 && { flex: 1 }]}
+                  SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
+                  ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+                  ListFooterComponent={<View style={styles.footerSpacing} />}
+                  ListEmptyComponent={showNearestEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
+                  refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+                />
+              </View>
+            ) : null}
             <View style={{ flex: 1 }}>
               <SectionList<EventItemProps, EventSection>
                 sections={newestSections}
@@ -301,7 +413,7 @@ const HomeScreen = () => {
                 SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
                 ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
                 ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showAllEventsEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
+                ListEmptyComponent={showNewestEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
                 refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
               />
             </View>
@@ -321,7 +433,7 @@ const HomeScreen = () => {
               value={sortOptions[selectedPage].value}
               onChange={(value) => {
                 const index = sortOptions.findIndex((o) => o.value === value);
-                setSelectedPage(index);
+                setSelectedSort(sortOptions[index]?.value ?? "upcoming");
               }}
             />
           </View>

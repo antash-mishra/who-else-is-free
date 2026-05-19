@@ -35,6 +35,19 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		scheduledAtStr = sql.NullString{String: params.ScheduledAt, Valid: true}
 	}
 
+	var placeID sql.NullString
+	if params.PlaceID != "" {
+		placeID = sql.NullString{String: params.PlaceID, Valid: true}
+	}
+	var lat sql.NullFloat64
+	if params.Latitude != 0 {
+		lat = sql.NullFloat64{Float64: params.Latitude, Valid: true}
+	}
+	var lng sql.NullFloat64
+	if params.Longitude != 0 {
+		lng = sql.NullFloat64{Float64: params.Longitude, Valid: true}
+	}
+
 	res, err := tx.ExecContext(ctx, insertEvent,
 		params.UserID,
 		params.Title,
@@ -49,6 +62,9 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		params.GroupType,
 		coverKey,
 		scheduledAtStr,
+		placeID,
+		lat,
+		lng,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -136,6 +152,19 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		scheduledAtStr = sql.NullString{String: params.ScheduledAt, Valid: true}
 	}
 
+	var placeID sql.NullString
+	if params.PlaceID != "" {
+		placeID = sql.NullString{String: params.PlaceID, Valid: true}
+	}
+	var lat sql.NullFloat64
+	if params.Latitude != 0 {
+		lat = sql.NullFloat64{Float64: params.Latitude, Valid: true}
+	}
+	var lng sql.NullFloat64
+	if params.Longitude != 0 {
+		lng = sql.NullFloat64{Float64: params.Longitude, Valid: true}
+	}
+
 	result, err := tx.ExecContext(ctx, updateEvent,
 		params.Title,
 		params.Location,
@@ -149,6 +178,9 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		params.GroupType,
 		coverKeyParam,
 		scheduledAtStr,
+		placeID,
+		lat,
+		lng,
 		id,
 		userID,
 	)
@@ -385,6 +417,9 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 	for rows.Next() {
 		var evt Event
 		var scheduledAtStr sql.NullString
+		var placeID sql.NullString
+		var lat sql.NullFloat64
+		var lng sql.NullFloat64
 		if err := rows.Scan(
 			&evt.ID,
 			&evt.UserID,
@@ -400,6 +435,9 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.GroupType,
 			&evt.CoverKey,
 			&scheduledAtStr,
+			&placeID,
+			&lat,
+			&lng,
 			&evt.CreatedAt,
 			&evt.HostName,
 			&evt.HostAvatar,
@@ -416,6 +454,16 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 				utc := parsed.UTC()
 				evt.ScheduledAt = &utc
 			}
+		}
+
+		if placeID.Valid {
+			evt.PlaceID = &placeID.String
+		}
+		if lat.Valid {
+			evt.Latitude = &lat.Float64
+		}
+		if lng.Valid {
+			evt.Longitude = &lng.Float64
 		}
 
 		// Filter out past events using scheduled_at (UTC comparison)
@@ -474,6 +522,9 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 	for rows.Next() {
 		var evt Event
 		var scheduledAtStr sql.NullString
+		var placeID sql.NullString
+		var lat sql.NullFloat64
+		var lng sql.NullFloat64
 		if err := rows.Scan(
 			&evt.ID,
 			&evt.UserID,
@@ -489,6 +540,9 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 			&evt.GroupType,
 			&evt.CoverKey,
 			&scheduledAtStr,
+			&placeID,
+			&lat,
+			&lng,
 			&evt.CreatedAt,
 			&evt.HostName,
 			&evt.HostAvatar,
@@ -503,6 +557,16 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 				utc := parsed.UTC()
 				evt.ScheduledAt = &utc
 			}
+		}
+
+		if placeID.Valid {
+			evt.PlaceID = &placeID.String
+		}
+		if lat.Valid {
+			evt.Latitude = &lat.Float64
+		}
+		if lng.Valid {
+			evt.Longitude = &lng.Float64
 		}
 
 		evt.DateLabel = deriveDateLabel(evt.EventDate, now)

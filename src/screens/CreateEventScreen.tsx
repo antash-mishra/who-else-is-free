@@ -68,6 +68,9 @@ import WarningIcon from "@assets/ui/error.svg";
 import SelectionModal from "@components/SelectionModal";
 import CoverPickerModal from "@components/CoverPickerModal";
 import EventDateTimeModal from "@components/EventDateTimeModal";
+import LocationPickerModal from "@components/LocationPickerModal";
+import type { PlaceDetail } from "@hooks/usePlacesAutocomplete";
+import LocationPinIcon from "@assets/ui/location-pin.svg";
 import BottomSheetModal from "../components/BottomSheetModal";
 import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
@@ -82,6 +85,9 @@ type FormState = {
     ageRange: [number, number];
     selectedDateTime: Date;
     location: string;
+    placeId?: string;
+    latitude?: number;
+    longitude?: number;
     coverKey: CoverKey;
 };
 
@@ -90,6 +96,13 @@ type CreateNavigation = NativeStackNavigationProp<RootStackParamList, "CreateEve
 type CreateRoute = RouteProp<RootStackParamList, "CreateEvent">;
 
 const EVENT_DATE_WINDOW_DAYS = 30;
+
+const hasSelectedPlaceLocation = (form: FormState) =>
+    !!form.placeId &&
+    typeof form.latitude === "number" &&
+    Number.isFinite(form.latitude) &&
+    typeof form.longitude === "number" &&
+    Number.isFinite(form.longitude);
 
 const getEventDateTime = (event?: UserEvent | null): Date => {
     if (!event) {
@@ -161,6 +174,10 @@ const CreateEventScreen = () => {
         getEventDateTime(editEvent),
     );
     const [location, setLocation] = useState(editEvent?.location || "");
+    const [locationDisplayName, setLocationDisplayName] = useState(editEvent?.location || "");
+    const [placeId, setPlaceId] = useState(editEvent?.placeId || "");
+    const [latitude, setLatitude] = useState<number | undefined>(editEvent?.latitude);
+    const [longitude, setLongitude] = useState<number | undefined>(editEvent?.longitude);
     const [coverKey, setCoverKey] = useState<CoverKey>(
         editEvent?.coverKey ?? DEFAULT_COVER_KEY,
     );
@@ -171,6 +188,7 @@ const CreateEventScreen = () => {
     const [isGroupTypePickerVisible, setGroupTypePickerVisible] = useState(false);
     const [isCoverPickerVisible, setCoverPickerVisible] = useState(false);
     const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
+    const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
 
     // Sign-in modal state
     const [signInVisible, setSignInVisible] = useState(false);
@@ -225,6 +243,10 @@ const CreateEventScreen = () => {
         setAgeRange([AGE_MIN, AGE_MAX]);
         setSelectedDateTime(getDefaultEventDateTime());
         setLocation("");
+        setLocationDisplayName("");
+        setPlaceId("");
+        setLatitude(undefined);
+        setLongitude(undefined);
         setCoverKey(DEFAULT_COVER_KEY);
         setAgePickerVisible(false);
         setCoverPickerVisible(false);
@@ -241,6 +263,10 @@ const CreateEventScreen = () => {
         setAgeRange([current.minAge ?? AGE_MIN, current.maxAge ?? AGE_MAX]);
         setSelectedDateTime(getEventDateTime(current));
         setLocation(current.location || "");
+        setLocationDisplayName(current.location || "");
+        setPlaceId(current.placeId ?? "");
+        setLatitude(current.latitude);
+        setLongitude(current.longitude);
         setCoverKey(current.coverKey ?? DEFAULT_COVER_KEY);
         setAgePickerVisible(false);
         setCoverPickerVisible(false);
@@ -257,6 +283,9 @@ const CreateEventScreen = () => {
             ageRange,
             selectedDateTime,
             location,
+            placeId,
+            latitude,
+            longitude,
             coverKey,
         }),
         [
@@ -267,6 +296,9 @@ const CreateEventScreen = () => {
             gender,
             groupType,
             location,
+            placeId,
+            latitude,
+            longitude,
             selectedDateTime,
         ],
     );
@@ -351,6 +383,20 @@ const CreateEventScreen = () => {
         setCoverPickerVisible(false);
     }, []);
 
+    const handleLocationSelect = useCallback((place: PlaceDetail) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        const displayName = place.displayName || place.formattedAddress;
+        const fullLocation = place.displayName && place.formattedAddress
+            ? `${place.displayName}, ${place.formattedAddress}`
+            : displayName;
+        setLocation(fullLocation);
+        setLocationDisplayName(displayName);
+        setPlaceId(place.placeId);
+        setLatitude(place.latitude);
+        setLongitude(place.longitude);
+        setLocationPickerVisible(false);
+    }, []);
+
     const handleSubmit = useCallback(
         async (formOverride?: FormState) => {
             if (isSubmitting) {
@@ -365,6 +411,12 @@ const CreateEventScreen = () => {
             if (!trimmedName || !trimmedDescription || !trimmedLocation) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 setSubmitError("All fields are required");
+                return;
+            }
+
+            if (!hasSelectedPlaceLocation(form)) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                setSubmitError("Choose a location from search suggestions");
                 return;
             }
 
@@ -431,6 +483,9 @@ const CreateEventScreen = () => {
                         badgeLabel: form.groupType === "Group" ? "Group" : null,
                         coverKey: selectedCover,
                         scheduledAt,
+                        placeId: form.placeId,
+                        latitude: form.latitude,
+                        longitude: form.longitude,
                     });
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     navigation.navigate("EventDetails", {
@@ -458,6 +513,9 @@ const CreateEventScreen = () => {
                         userId: user.id,
                         hostName: user.name,
                         scheduledAt,
+                        placeId: form.placeId,
+                        latitude: form.latitude,
+                        longitude: form.longitude,
                     });
                     await minDelay;
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -556,6 +614,9 @@ const CreateEventScreen = () => {
                     badgeLabel: formState.groupType === "Group" ? "Group" : undefined,
                     coverKey: selectedCover,
                     scheduledAt,
+                    placeId: formState.placeId,
+                    latitude: formState.latitude,
+                    longitude: formState.longitude,
                 };
 
                 queueGuestEvent(draftPayload);
@@ -608,6 +669,7 @@ const CreateEventScreen = () => {
         () => formatPickerDateTimeValue(selectedDateTime),
         [selectedDateTime],
     );
+    const selectedLocationLabel = locationDisplayName || location;
 
     // Fixed header component (outside scroll view)
     const renderHeader = () => (
@@ -738,22 +800,35 @@ const CreateEventScreen = () => {
 
                     <View style={styles.fieldDivider} />
 
-                    <View style={[styles.fieldRow, styles.locationRow]}>
+                    <Pressable
+                        style={[styles.fieldRow, styles.locationRow]}
+                        onPress={() => {
+                            Keyboard.dismiss();
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setLocationPickerVisible(true);
+                        }}
+                    >
                         <Text style={styles.fieldLabel}>Location</Text>
-                        <TextInput
-                            placeholder="Example: Bambino"
-                            value={location}
-                            onChangeText={setLocation}
-                            placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                            cursorColor="#FFFFFF"
-                            selectionColor="#FFFFFF"
-                            style={[
-                                styles.textInput,
-                                styles.compactInput,
-                                styles.locationInput,
-                            ]}
-                        />
-                    </View>
+                        <View style={[styles.fieldValuePill, styles.locationValuePill]}>
+                            {selectedLocationLabel ? (
+                                <LocationPinIcon
+                                    width={14}
+                                    height={14}
+                                    color="rgba(255, 255, 255, 0.9)"
+                                    style={{ marginRight: 6 }}
+                                />
+                            ) : null}
+                            <Text
+                                style={[
+                                    styles.fieldValueText,
+                                    !selectedLocationLabel && styles.locationPlaceholder,
+                                ]}
+                                numberOfLines={1}
+                            >
+                                {selectedLocationLabel || "Select Location"}
+                            </Text>
+                        </View>
+                    </Pressable>
                 </View>
             </View>
 
@@ -905,6 +980,13 @@ const CreateEventScreen = () => {
                 getLabel={(opt) => opt.label}
                 getKey={(opt) => opt.label}
                 isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
+            />
+
+            <LocationPickerModal
+                visible={isLocationPickerVisible}
+                onClose={() => setLocationPickerVisible(false)}
+                onSelect={handleLocationSelect}
+                initialQuery={selectedLocationLabel}
             />
 
             <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>

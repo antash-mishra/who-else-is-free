@@ -21,6 +21,9 @@ type Event struct {
 	HostName    string     `json:"host_name"`
 	HostAvatar  *string    `json:"host_avatar,omitempty"`
 	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
+	PlaceID     *string    `json:"place_id,omitempty"`
+	Latitude    *float64   `json:"latitude,omitempty"`
+	Longitude   *float64   `json:"longitude,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 }
 
@@ -154,9 +157,12 @@ type CreateEventParams struct {
 	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
 	DateLabel   string `json:"date_label"` // accepted for backward compatibility, ignored by server
 	GroupType   string `json:"group_type" binding:"required,oneof=Single Group"`
-	CoverKey    string `json:"cover_key" binding:"omitempty,min=1"`
-	ScheduledAt string `json:"scheduled_at"` // ISO 8601 UTC timestamp
-	UserID      int64  `json:"-"`
+	CoverKey    string  `json:"cover_key" binding:"omitempty,min=1"`
+	ScheduledAt string  `json:"scheduled_at"` // ISO 8601 UTC timestamp
+	PlaceID     string  `json:"place_id"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
+	UserID      int64   `json:"-"`
 }
 
 type UpdateEventParams struct {
@@ -172,4 +178,7 @@ type UpdateEventParams struct {
 	GroupType   string  `json:"group_type" binding:"required,oneof=Single Group"`
 	CoverKey    *string `json:"cover_key" binding:"omitempty,min=1"`
 	ScheduledAt string  `json:"scheduled_at"` // ISO 8601 UTC timestamp
+	PlaceID     string  `json:"place_id"`
+	Latitude    float64 `json:"latitude"`
+	Longitude   float64 `json:"longitude"`
 }

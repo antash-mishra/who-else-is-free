@@ -24,6 +24,8 @@ export default {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         UIBackgroundModes: ["remote-notification"],
+        NSLocationWhenInUseUsageDescription:
+          "We use your location to show nearby events first.",
       },
     },
     android: {
@@ -37,6 +39,7 @@ export default {
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       softwareKeyboardLayoutMode: "pan",
+      permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
     },
 
     plugins: [
@@ -54,6 +57,13 @@ export default {
       ],
       "expo-apple-authentication",
       "expo-secure-store",
+      [
+        "expo-location",
+        {
+          locationWhenInUsePermission:
+            "We use your location to show nearby events first.",
+        },
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "./plugins/withNotificationIcon",

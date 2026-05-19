@@ -143,13 +143,13 @@ CREATE TABLE IF NOT EXISTS conversation_read_state (
 `
 
 const insertEvent = `
-INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at, place_id, latitude, longitude)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
 const updateEvent = `
 UPDATE events
-SET title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key), scheduled_at = ?
+SET title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key), scheduled_at = ?, place_id = ?, latitude = ?, longitude = ?
 WHERE id = ? AND user_id = ?;
 `
 
@@ -242,14 +242,14 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name, u.avatar AS host_avatar
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at, u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 ORDER BY e.event_date ASC, e.time ASC, e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.created_at, u.name AS host_name, u.avatar AS host_avatar
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at, u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 WHERE e.id = ?
@@ -274,7 +274,7 @@ FROM conversations;
 const selectUserPastEvents = `
 SELECT DISTINCT e.id, e.user_id, e.title, e.location, e.time, e.event_date,
        e.description, e.gender, e.min_age, e.max_age, e.date_label,
-       e.group_type, e.cover_key, e.scheduled_at, e.created_at,
+       e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at,
        u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
@@ -646,6 +646,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 		return err
 	}
 	if err := r.ensureScheduledAtColumn(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEventLocationMetaColumns(ctx); err != nil {
 		return err
 	}
 	if _, err := r.db.ExecContext(ctx, createTableConversations); err != nil {
@@ -1081,6 +1084,68 @@ func (r *EventRepository) ensureScheduledAtColumn(ctx context.Context) error {
 	`
 	if _, err := r.db.ExecContext(ctx, backfillQuery); err != nil {
 		return fmt.Errorf("backfill scheduled_at: %w", err)
+	}
+
+	return nil
+}
+
+func (r *EventRepository) ensureEventLocationMetaColumns(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(events);`)
+	if err != nil {
+		return fmt.Errorf("inspect events table: %w", err)
+	}
+	defer rows.Close()
+
+	hasPlaceID := false
+	hasLatitude := false
+	hasLongitude := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			return fmt.Errorf("scan events schema: %w", err)
+		}
+		_ = cid
+		_ = colType
+		_ = notNull
+		_ = defaultVal
+		_ = pk
+		switch name {
+		case "place_id":
+			hasPlaceID = true
+		case "latitude":
+			hasLatitude = true
+		case "longitude":
+			hasLongitude = true
+		}
+		if hasPlaceID && hasLatitude && hasLongitude {
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate events schema: %w", err)
+	}
+
+	if !hasPlaceID {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN place_id TEXT;`); err != nil {
+			return fmt.Errorf("add place_id column: %w", err)
+		}
+	}
+	if !hasLatitude {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN latitude REAL;`); err != nil {
+			return fmt.Errorf("add latitude column: %w", err)
+		}
+	}
+	if !hasLongitude {
+		if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN longitude REAL;`); err != nil {
+			return fmt.Errorf("add longitude column: %w", err)
+		}
 	}
 
 	return nil

@@ -24,10 +24,18 @@ let mockEventsValue = {
   isEventRequested: jest.fn().mockReturnValue(false),
 };
 let mockChatValue = { conversations: mockConversations };
+let mockViewerLocation = {
+  coords: null as { latitude: number; longitude: number } | null,
+  permission: null as "granted" | "denied" | "undetermined" | null,
+  isLoading: false,
+};
 
 jest.mock('@context/AuthContext', () => ({ useAuth: () => mockAuthValue }));
 jest.mock('@context/EventsContext', () => ({ useEvents: () => mockEventsValue }));
 jest.mock('@context/ChatContext', () => ({ useChat: () => mockChatValue }));
+jest.mock('@hooks/useViewerLocation', () => ({
+  useViewerLocation: () => mockViewerLocation,
+}));
 jest.mock('@react-navigation/bottom-tabs', () => {
   const actual = jest.requireActual('@react-navigation/bottom-tabs');
   return {
@@ -53,7 +61,50 @@ jest.mock('@components/ScreenContainer', () => {
   );
 });
 
-jest.mock('@assets/emptystate_discoverevent.png', () => 'mock-empty-state-image');
+jest.mock('@components/AnimatedPager', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return ({
+    children,
+    selectedIndex,
+  }: {
+    children: React.ReactNode;
+    selectedIndex: number;
+    onPageChange: (index: number) => void;
+  }) => {
+    const pages = React.Children.toArray(children);
+    return <View testID="animated-pager">{pages[selectedIndex]}</View>;
+  };
+});
+
+jest.mock('@components/SegmentedControl', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+  return ({
+    options,
+    value,
+    onChange,
+  }: {
+    options: Array<{ label: string; value: string }>;
+    value: string;
+    onChange: (value: string) => void;
+  }) => (
+    <View>
+      {options.map((option) => (
+        <Pressable
+          key={option.value}
+          testID={`segment-${option.value}`}
+          accessibilityState={{ selected: option.value === value }}
+          onPress={() => onChange(option.value)}
+        >
+          <Text>{option.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+});
+
+jest.mock('@assets/illustration/discoverEvent-emptyState.png', () => 'mock-empty-state-image');
 
 describe('HomeScreen Rendering', () => {
   beforeEach(() => {
@@ -68,6 +119,11 @@ describe('HomeScreen Rendering', () => {
       isEventRequested: jest.fn().mockReturnValue(false),
     };
     mockChatValue = { conversations: mockConversations };
+    mockViewerLocation = {
+      coords: null,
+      permission: null,
+      isLoading: false,
+    };
   });
 
   describe('Loading State', () => {
@@ -181,6 +237,11 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('segment-newest')).toBeTruthy();
     });
 
+    it('hides nearest sort mode when viewer location is unavailable', () => {
+      const { queryByTestId } = render(<HomeScreen />);
+      expect(queryByTestId('segment-nearest')).toBeNull();
+    });
+
     it('defaults to upcoming sort mode', () => {
       const { getByTestId } = render(<HomeScreen />);
       expect(getByTestId('segment-upcoming').props.accessibilityState.selected).toBe(true);
@@ -194,6 +255,123 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('segment-newest').props.accessibilityState.selected).toBe(true);
       expect(getAllByText('Newest created')[0]).toBeTruthy();
       expect(queryByText('Today')).toBeNull();
+    });
+
+    it('shows nearest sort mode when viewer location is available', () => {
+      mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
+      mockViewerLocation.permission = 'granted';
+
+      const { getByTestId } = render(<HomeScreen />);
+
+      expect(getByTestId('segment-nearest')).toBeTruthy();
+    });
+
+    it('only shows nearby events when location is available', () => {
+      mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
+      mockViewerLocation.permission = 'granted';
+      mockEventsValue.events = [
+        createTodayEvent({
+          id: 'blr',
+          title: 'Bangalore Coffee',
+          latitude: 12.975,
+          longitude: 77.6,
+        }),
+        createTodayEvent({
+          id: 'dub',
+          title: 'Dublin Pint',
+          ownerId: 2,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+        createTodayEvent({
+          id: 'unknown',
+          title: 'Mystery Hangout',
+          ownerId: 2,
+        }),
+      ];
+
+      const { getByText, queryByText } = render(<HomeScreen />);
+
+      expect(getByText('Today')).toBeTruthy();
+      expect(getByText('Bangalore Coffee')).toBeTruthy();
+      expect(queryByText('Farther away')).toBeNull();
+      expect(queryByText('Dublin Pint')).toBeNull();
+      expect(queryByText('Unknown distance')).toBeNull();
+      expect(queryByText('Mystery Hangout')).toBeNull();
+    });
+
+    it('keeps viewer-owned events visible even when they are beyond the local radius', () => {
+      mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
+      mockViewerLocation.permission = 'granted';
+      mockEventsValue.events = [
+        createTodayEvent({
+          id: 'owned-dub',
+          title: 'My Dublin Meetup',
+          ownerId: mockUser.id,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+        createTodayEvent({
+          id: 'other-dub',
+          title: 'Other Dublin Meetup',
+          ownerId: 2,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+      ];
+
+      const { getByText, queryByText } = render(<HomeScreen />);
+
+      expect(getByText('My Dublin Meetup')).toBeTruthy();
+      expect(getByText('Hosting')).toBeTruthy();
+      expect(queryByText('Other Dublin Meetup')).toBeNull();
+    });
+
+    it('sorts nearest mode by distance and excludes far non-owned or missing-coordinate events', () => {
+      mockViewerLocation.coords = { latitude: 12.9716, longitude: 77.5946 };
+      mockViewerLocation.permission = 'granted';
+      mockEventsValue.events = [
+        createTodayEvent({
+          id: 'dub',
+          title: 'Dublin Pint',
+          ownerId: 2,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+        createTodayEvent({
+          id: 'blr',
+          title: 'Bangalore Coffee',
+          latitude: 12.975,
+          longitude: 77.6,
+        }),
+        createTodayEvent({
+          id: 'unknown',
+          title: 'Mystery Hangout',
+          ownerId: 2,
+        }),
+        createTodayEvent({
+          id: 'owned-dub',
+          title: 'My Dublin Meetup',
+          ownerId: mockUser.id,
+          latitude: 53.3498,
+          longitude: -6.2603,
+        }),
+      ];
+
+      const { getByTestId, UNSAFE_getAllByType, queryByText } = render(<HomeScreen />);
+
+      fireEvent.press(getByTestId('segment-nearest'));
+
+      const { SectionList } = require('react-native');
+      const nearestList = UNSAFE_getAllByType(SectionList)[0];
+      const renderedTitles = nearestList.props.sections.flatMap(
+        (section: { data: Array<{ title: string }> }) =>
+          section.data.map((item) => item.title),
+      );
+      expect(renderedTitles).toEqual(['Bangalore Coffee', 'My Dublin Meetup']);
+      expect(queryByText('Dublin Pint')).toBeNull();
+      expect(queryByText('Unknown distance')).toBeNull();
+      expect(queryByText('Mystery Hangout')).toBeNull();
     });
   });
 
