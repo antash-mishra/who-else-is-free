@@ -180,6 +180,15 @@ export const formatEventDetailAudienceLine = ({
   return parts.join(", ");
 };
 
+export const formatEventLocationName = (location?: string | null): string => {
+  const trimmed = location?.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed.split(",")[0]?.trim() || trimmed;
+};
+
 export const formatEventListSectionHeaderLabel = (
   eventDate: string,
   now: Date = new Date(),

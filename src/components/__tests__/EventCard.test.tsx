@@ -38,6 +38,13 @@ describe('EventCard', () => {
       expect(screen.getByText('Central Park, 10:00')).toBeTruthy();
     });
 
+    it('should render only the place name when location includes a full address', () => {
+      render(<EventCard {...defaultProps} location="Temple Bar, Dublin, Ireland" />);
+
+      expect(screen.getByText('Temple Bar, 10:00')).toBeTruthy();
+      expect(screen.queryByText('Temple Bar, Dublin, Ireland, 10:00')).toBeNull();
+    });
+
     it('should render event audience', () => {
       render(<EventCard {...defaultProps} />);
 
@@ -52,11 +59,9 @@ describe('EventCard', () => {
     });
 
     it('should render event image', () => {
-      const { UNSAFE_getByType } = render(<EventCard {...defaultProps} />);
-      const { Image } = require('react-native');
+      const { UNSAFE_getByProps } = render(<EventCard {...defaultProps} />);
 
-      const image = UNSAFE_getByType(Image);
-      expect(image.props.source.uri).toBe('https://example.com/coffee.jpg');
+      expect(UNSAFE_getByProps({ recyclingKey: 'https://example.com/coffee.jpg' })).toBeTruthy();
     });
 
     it('should render with mock event data', () => {

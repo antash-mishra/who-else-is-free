@@ -36,6 +36,7 @@ import { useEvents } from "@context/EventsContext";
 import { resolveCoverUri } from "@constants/covers";
 import { RootStackParamList } from "@navigation/types";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { formatEventLocationName } from "@utils/eventDisplay";
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
@@ -250,7 +251,7 @@ const ChatThreadScreen = () => {
       const datePart = activeEventDetails.eventDate
         ? formatAbsoluteDateLabel(activeEventDetails.eventDate)
         : activeEventDetails.dateLabel;
-      return `${datePart}, ${activeEventDetails.time} at ${activeEventDetails.location}`;
+      return `${datePart}, ${activeEventDetails.time} at ${formatEventLocationName(activeEventDetails.location)}`;
     }
     return undefined;
   }, [isConnecting, activeEventDetails, activeEventGroupType]);

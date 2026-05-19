@@ -24,6 +24,7 @@ import ChatEventHeader from "@components/ChatEventHeader";
 import UserAvatar from "@components/UserAvatar";
 import { COVER_OPTIONS } from "@constants/covers";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
+import { formatEventLocationName } from "@utils/eventDisplay";
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
 type JoinRequestsNavigation = NativeStackNavigationProp<
@@ -84,7 +85,7 @@ const JoinRequestsScreen = () => {
     const datePart = resolvedSchedule.eventDate
       ? formatAbsoluteDateLabel(resolvedSchedule.eventDate)
       : resolvedSchedule.dateLabel;
-    return `${datePart}, ${resolvedSchedule.time} at ${resolvedSchedule.location}`;
+    return `${datePart}, ${resolvedSchedule.time} at ${formatEventLocationName(resolvedSchedule.location)}`;
   }, [resolvedSchedule]);
 
   const loadRequests = useCallback(async (showRefreshing: boolean) => {

@@ -63,6 +63,7 @@ import {
     isPastDateTimeSelection,
     toDateKey,
 } from "@utils/dateTime";
+import { formatEventLocationName } from "@utils/eventDisplay";
 import UploadIcon from "@assets/create-event/choose-cover.svg";
 import WarningIcon from "@assets/ui/error.svg";
 import SelectionModal from "@components/SelectionModal";
@@ -174,7 +175,9 @@ const CreateEventScreen = () => {
         getEventDateTime(editEvent),
     );
     const [location, setLocation] = useState(editEvent?.location || "");
-    const [locationDisplayName, setLocationDisplayName] = useState(editEvent?.location || "");
+    const [locationDisplayName, setLocationDisplayName] = useState(
+        formatEventLocationName(editEvent?.location),
+    );
     const [placeId, setPlaceId] = useState(editEvent?.placeId || "");
     const [latitude, setLatitude] = useState<number | undefined>(editEvent?.latitude);
     const [longitude, setLongitude] = useState<number | undefined>(editEvent?.longitude);
@@ -263,7 +266,7 @@ const CreateEventScreen = () => {
         setAgeRange([current.minAge ?? AGE_MIN, current.maxAge ?? AGE_MAX]);
         setSelectedDateTime(getEventDateTime(current));
         setLocation(current.location || "");
-        setLocationDisplayName(current.location || "");
+        setLocationDisplayName(formatEventLocationName(current.location));
         setPlaceId(current.placeId ?? "");
         setLatitude(current.latitude);
         setLongitude(current.longitude);

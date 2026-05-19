@@ -3,6 +3,7 @@ import {
   formatCompactAgeLabel,
   formatEventCardMetaLine,
   formatEventDetailAudienceLine,
+  formatEventLocationName,
   formatEventListSectionHeaderLabel,
 } from "../eventDisplay";
 
@@ -117,6 +118,20 @@ describe("eventDisplay", () => {
           maxAge: 60,
         }),
       ).toBe("Group, All Gender, All Age");
+    });
+  });
+
+  describe("formatEventLocationName", () => {
+    it("returns the place name from a full saved location", () => {
+      expect(formatEventLocationName("Temple Bar, Dublin, Ireland")).toBe("Temple Bar");
+    });
+
+    it("preserves locations without address separators", () => {
+      expect(formatEventLocationName("Central Park")).toBe("Central Park");
+    });
+
+    it("returns an empty string for blank locations", () => {
+      expect(formatEventLocationName("   ")).toBe("");
     });
   });
 });

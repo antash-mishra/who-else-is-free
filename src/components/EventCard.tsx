@@ -9,6 +9,7 @@ import { colors, spacing, typography } from '@theme/index';
 import PendingIcon from '@assets/event/pending.svg';
 import HostingIcon from '@assets/event/hosting.svg';
 import JoinedIcon from '@assets/event/joined.svg';
+import { formatEventLocationName } from '@utils/eventDisplay';
 
 const IMAGE_SIZE = 80;
 const IMAGE_BORDER_RADIUS = 10;
@@ -51,6 +52,7 @@ const EventCard = ({
   badgeLabel,
 }: EventItemProps) => {
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
+  const locationName = formatEventLocationName(location);
 
   return (
     <View style={styles.container} testID="event-card">
@@ -94,7 +96,7 @@ const EventCard = ({
           {title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {`${location}, ${time}`}
+          {`${locationName}, ${time}`}
         </Text>
         <Text style={styles.audience} numberOfLines={1}>
           {metaLine ?? audience}
