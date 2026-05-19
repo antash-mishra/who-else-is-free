@@ -136,6 +136,18 @@ type EventReport struct {
 	ReviewedBy     *int64     `json:"reviewed_by,omitempty"`
 }
 
+type HelpSubmission struct {
+	ID                int64     `json:"id"`
+	UserID            *int64    `json:"user_id,omitempty"`
+	SubmissionType    string    `json:"submission_type"`
+	Message           string    `json:"message"`
+	UrgentSafetyIssue bool      `json:"urgent_safety_issue"`
+	WantsReply        bool      `json:"wants_reply"`
+	ReplyEmail        *string   `json:"reply_email,omitempty"`
+	Status            string    `json:"status"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
 type PushToken struct {
 	ID        int64     `json:"id"`
 	UserID    int64     `json:"user_id"`
@@ -147,16 +159,16 @@ type PushToken struct {
 }
 
 type CreateEventParams struct {
-	Title       string `json:"title" binding:"required,min=1"`
-	Location    string `json:"location" binding:"required,min=1"`
-	Time        string `json:"time" binding:"required,min=1"`
-	EventDate   string `json:"event_date" binding:"required,min=10"`
-	Description string `json:"description"`
-	Gender      string `json:"gender" binding:"required,min=1"`
-	MinAge      int    `json:"min_age" binding:"required,gte=0"`
-	MaxAge      int    `json:"max_age" binding:"required,gte=0"`
-	DateLabel   string `json:"date_label"` // accepted for backward compatibility, ignored by server
-	GroupType   string `json:"group_type" binding:"required,oneof=Single Group"`
+	Title       string  `json:"title" binding:"required,min=1"`
+	Location    string  `json:"location" binding:"required,min=1"`
+	Time        string  `json:"time" binding:"required,min=1"`
+	EventDate   string  `json:"event_date" binding:"required,min=10"`
+	Description string  `json:"description"`
+	Gender      string  `json:"gender" binding:"required,min=1"`
+	MinAge      int     `json:"min_age" binding:"required,gte=0"`
+	MaxAge      int     `json:"max_age" binding:"required,gte=0"`
+	DateLabel   string  `json:"date_label"` // accepted for backward compatibility, ignored by server
+	GroupType   string  `json:"group_type" binding:"required,oneof=Single Group"`
 	CoverKey    string  `json:"cover_key" binding:"omitempty,min=1"`
 	ScheduledAt string  `json:"scheduled_at"` // ISO 8601 UTC timestamp
 	PlaceID     string  `json:"place_id"`

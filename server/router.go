@@ -29,6 +29,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	api := r.Group("/api")
 	authHandler.RegisterRoutes(api)
 	eventHandler.RegisterRoutes(api)
+	NewHelpHandler(eventHandler.repo, signer).RegisterRoutes(api)
 
 	placesHandler := NewPlacesHandler()
 	api.GET("/places/autocomplete", placesHandler.autocomplete)

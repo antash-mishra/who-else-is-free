@@ -343,6 +343,26 @@ CREATE TABLE IF NOT EXISTS event_reports (
 );
 `
 
+const createTableHelpSubmissions = `
+CREATE TABLE IF NOT EXISTS help_submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    submission_type TEXT NOT NULL CHECK(submission_type IN ('contact','feedback')),
+    message TEXT NOT NULL,
+    urgent_safety_issue INTEGER NOT NULL DEFAULT 0,
+    wants_reply INTEGER NOT NULL DEFAULT 0,
+    reply_email TEXT,
+    status TEXT NOT NULL CHECK(status IN ('new','reviewed','closed')) DEFAULT 'new',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+`
+
+const createHelpSubmissionsUserIndex = `
+CREATE INDEX IF NOT EXISTS help_submissions_user_idx
+ON help_submissions (user_id, created_at DESC);
+`
+
 const selectAllUsers = `
 SELECT id, name
 FROM users;
@@ -468,6 +488,11 @@ VALUES (?, ?, ?, 'pending');
 const insertMemberReport = `
 INSERT INTO event_reports (event_id, user_id, reported_user_id, reason, status)
 VALUES (?, ?, ?, ?, 'pending');
+`
+
+const insertHelpSubmission = `
+INSERT INTO help_submissions (user_id, submission_type, message, urgent_safety_issue, wants_reply, reply_email)
+VALUES (?, ?, ?, ?, ?, ?);
 `
 
 const insertUserBlock = `
@@ -701,6 +726,12 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createTableUserBlocks); err != nil {
 		return fmt.Errorf("create user_blocks table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableHelpSubmissions); err != nil {
+		return fmt.Errorf("create help_submissions table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createHelpSubmissionsUserIndex); err != nil {
+		return fmt.Errorf("create help_submissions user index: %w", err)
 	}
 	if _, err := r.db.ExecContext(ctx, createUserBlocksBlockedIndex); err != nil {
 		return fmt.Errorf("create user_blocks blocked index: %w", err)
