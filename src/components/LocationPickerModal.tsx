@@ -14,7 +14,6 @@ import BottomSheetModal from "./BottomSheetModal";
 import SearchIcon from "@assets/ui/search.svg";
 import CloseIcon from "@assets/ui/close.svg";
 import LocationPinIcon from "@assets/ui/location-pin.svg";
-import ChevronRightIcon from "@assets/ui/chevron-right.svg";
 import {
     usePlacesAutocomplete,
     fetchPlaceDetails,
@@ -95,19 +94,20 @@ const LocationPickerModal = ({
         loading || Boolean(error) || showEmpty || showTypingHint || showInitialHint;
 
     return (
-        <BottomSheetModal visible={visible} onClose={onClose} title="Choose Location">
+        <BottomSheetModal visible={visible} onClose={onClose} title="Select Location">
             <View style={styles.container}>
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
                     <SearchIcon width={18} height={18} color="#8E8E93" />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search restaurants, bars, venues..."
+                        placeholder="Search Location"
                         placeholderTextColor="#C7C7CC"
                         value={query}
                         onChangeText={handleQueryChange}
                         autoFocus
                         returnKeyType="search"
+                        underlineColorAndroid="transparent"
                         onSubmitEditing={() => search(query)}
                     />
                     {query.length > 0 && (
@@ -120,7 +120,7 @@ const LocationPickerModal = ({
                             }}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         >
-                            <CloseIcon width={10} height={10} color="#FFFFFF" />
+                            <CloseIcon width={14} height={14} color="#8E8E93" />
                         </Pressable>
                     )}
                 </View>
@@ -191,7 +191,6 @@ const LocationPickerModal = ({
                     {/* Results */}
                     {showResults && results.length > 0 && (
                         <>
-                            <Text style={styles.sectionLabel}>Suggestions</Text>
                             {results.map((prediction, index) => (
                                 <Pressable
                                     key={`${prediction.placeId}-${index}`}
@@ -205,13 +204,6 @@ const LocationPickerModal = ({
                                     }}
                                     disabled={selectingId === prediction.placeId}
                                 >
-                                    <View style={styles.resultIconContainer}>
-                                        <LocationPinIcon
-                                            width={20}
-                                            height={20}
-                                            color="#2563EB"
-                                        />
-                                    </View>
                                     <View style={styles.resultTextContainer}>
                                         <Text style={styles.resultMainText} numberOfLines={1}>
                                             {prediction.mainText}
@@ -220,14 +212,8 @@ const LocationPickerModal = ({
                                             {prediction.secondaryText}
                                         </Text>
                                     </View>
-                                    {selectingId === prediction.placeId ? (
+                                    {selectingId === prediction.placeId && (
                                         <ActivityIndicator size="small" color="#C7C7CC" />
-                                    ) : (
-                                        <ChevronRightIcon
-                                            width={16}
-                                            height={16}
-                                            color="#C7C7CC"
-                                        />
                                     )}
                                 </Pressable>
                             ))}

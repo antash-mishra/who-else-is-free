@@ -127,7 +127,7 @@ describe('CreateEventScreen Rendering', () => {
     fireEvent.press(screen.getByTestId('select-mock-place'));
 
     await waitFor(() => {
-      expect(screen.getByText('Temple Bar, Dublin, Ireland')).toBeTruthy();
+      expect(screen.getByText('Temple Bar')).toBeTruthy();
     });
   };
 

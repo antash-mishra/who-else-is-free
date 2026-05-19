@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-import { colors, spacing, typography } from "@theme/index";
+import { spacing, typography } from "@theme/index";
 
 const styles = StyleSheet.create({
     container: {
@@ -12,21 +12,17 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F5F5F7",
+        backgroundColor: "rgba(0, 0, 0, 0.05)",
         borderRadius: 16,
         borderCurve: "continuous",
         paddingHorizontal: spacing.md,
-        paddingVertical: 14,
-        marginBottom: spacing.lg,
+        paddingVertical: 11,
+        marginBottom: spacing.md,
         gap: spacing.sm,
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-        elevation: 2,
     },
     searchInput: {
         flex: 1,
+        backgroundColor: "transparent",
         fontSize: 17,
         fontFamily: typography.fontFamilyRegular,
         color: "#1C1C1E",
@@ -46,49 +42,24 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     clearButton: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        backgroundColor: "#C7C7CC",
+        width: 24,
+        height: 24,
         justifyContent: "center",
         alignItems: "center",
     },
 
-    // Section label
-    sectionLabel: {
-        fontSize: 13,
-        fontFamily: typography.fontFamilySemiBold,
-        color: "#8E8E93",
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-        marginBottom: spacing.sm,
-        marginLeft: 4,
-    },
-
-    // Result Row — card-like with icon
+    // Result Row
     resultRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 14,
-        paddingHorizontal: 14,
-        borderRadius: 16,
-        borderCurve: "continuous",
-        marginBottom: 8,
-        gap: 12,
-        backgroundColor: "#F5F5F7",
+        paddingVertical: 15,
+        paddingHorizontal: 4,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: "#E5E5EA",
+        gap: spacing.sm,
     },
     resultRowPressed: {
-        backgroundColor: "#E5E5EA",
-        transform: [{ scale: 0.98 }],
-    },
-    resultIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        borderCurve: "continuous",
-        backgroundColor: "#E5E5EA",
-        justifyContent: "center",
-        alignItems: "center",
+        opacity: 0.7,
     },
     resultTextContainer: {
         flex: 1,
@@ -96,7 +67,7 @@ const styles = StyleSheet.create({
     },
     resultMainText: {
         fontSize: 16,
-        fontFamily: typography.fontFamilySemiBold,
+        fontFamily: typography.fontFamilyMedium,
         color: "#1C1C1E",
         lineHeight: 22,
         letterSpacing: -0.3,

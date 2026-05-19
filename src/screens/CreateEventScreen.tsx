@@ -175,6 +175,7 @@ const CreateEventScreen = () => {
         getEventDateTime(editEvent),
     );
     const [location, setLocation] = useState(editEvent?.location || "");
+    const [locationDisplayName, setLocationDisplayName] = useState(editEvent?.location || "");
     const [placeId, setPlaceId] = useState(editEvent?.placeId || "");
     const [latitude, setLatitude] = useState<number | undefined>(editEvent?.latitude);
     const [longitude, setLongitude] = useState<number | undefined>(editEvent?.longitude);
@@ -243,6 +244,7 @@ const CreateEventScreen = () => {
         setAgeRange([AGE_MIN, AGE_MAX]);
         setSelectedDateTime(getDefaultEventDateTime());
         setLocation("");
+        setLocationDisplayName("");
         setPlaceId("");
         setLatitude(undefined);
         setLongitude(undefined);
@@ -262,6 +264,7 @@ const CreateEventScreen = () => {
         setAgeRange([current.minAge ?? AGE_MIN, current.maxAge ?? AGE_MAX]);
         setSelectedDateTime(getEventDateTime(current));
         setLocation(current.location || "");
+        setLocationDisplayName(current.location || "");
         setPlaceId(current.placeId ?? "");
         setLatitude(current.latitude);
         setLongitude(current.longitude);
@@ -383,7 +386,12 @@ const CreateEventScreen = () => {
 
     const handleLocationSelect = useCallback((place: PlaceDetail) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        setLocation(`${place.displayName}, ${place.formattedAddress}`);
+        const displayName = place.displayName || place.formattedAddress;
+        const fullLocation = place.displayName && place.formattedAddress
+            ? `${place.displayName}, ${place.formattedAddress}`
+            : displayName;
+        setLocation(fullLocation);
+        setLocationDisplayName(displayName);
         setPlaceId(place.placeId);
         setLatitude(place.latitude);
         setLongitude(place.longitude);
@@ -662,6 +670,7 @@ const CreateEventScreen = () => {
         () => formatPickerDateTimeValue(selectedDateTime),
         [selectedDateTime],
     );
+    const selectedLocationLabel = locationDisplayName || location;
 
     // Fixed header component (outside scroll view)
     const renderHeader = () => (
@@ -802,7 +811,7 @@ const CreateEventScreen = () => {
                     >
                         <Text style={styles.fieldLabel}>Location</Text>
                         <View style={[styles.fieldValuePill, styles.locationValuePill]}>
-                            {location ? (
+                            {selectedLocationLabel ? (
                                 <LocationPinIcon
                                     width={14}
                                     height={14}
@@ -820,11 +829,11 @@ const CreateEventScreen = () => {
                             <Text
                                 style={[
                                     styles.fieldValueText,
-                                    !location && styles.locationPlaceholder,
+                                    !selectedLocationLabel && styles.locationPlaceholder,
                                 ]}
                                 numberOfLines={1}
                             >
-                                {location || "Search for a place..."}
+                                {selectedLocationLabel || "Search for a place..."}
                             </Text>
                         </View>
                     </Pressable>
@@ -985,7 +994,7 @@ const CreateEventScreen = () => {
                 visible={isLocationPickerVisible}
                 onClose={() => setLocationPickerVisible(false)}
                 onSelect={handleLocationSelect}
-                initialQuery={location}
+                initialQuery={selectedLocationLabel}
             />
 
             <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
