@@ -4,8 +4,6 @@ import { spacing, typography } from "@theme/index";
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: spacing.md,
-        paddingBottom: spacing.xl,
     },
 
     // Search Bar — prominent, premium feel
@@ -17,7 +15,7 @@ const styles = StyleSheet.create({
         borderCurve: "continuous",
         paddingHorizontal: spacing.md,
         paddingVertical: 11,
-        marginBottom: spacing.md,
+        marginBottom: 0,
         gap: spacing.sm,
     },
     searchInput: {
@@ -26,26 +24,18 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontFamily: typography.fontFamilyRegular,
         color: "#1C1C1E",
-        lineHeight: 22,
         padding: 0,
         letterSpacing: -0.3,
     },
     resultsList: {
-        flexGrow: 0,
-        flexShrink: 0,
+        flex: 1,
     },
     resultsContent: {
         flexGrow: 1,
-        paddingBottom: spacing.sm,
+        paddingBottom: 30,
     },
     resultsContentCentered: {
         justifyContent: "center",
-    },
-    clearButton: {
-        width: 24,
-        height: 24,
-        justifyContent: "center",
-        alignItems: "center",
     },
 
     // Result Row
@@ -116,6 +106,29 @@ const styles = StyleSheet.create({
         color: "#8E8E93",
         textAlign: "center",
         lineHeight: 20,
+        letterSpacing: -0.2,
+    },
+
+    // Inline Hint (searching / typing / empty)
+    inlineLoadingContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingTop: spacing.md,
+        paddingHorizontal: 4,
+        gap: spacing.sm,
+    },
+    inlineHint: {
+        fontSize: 15,
+        fontFamily: typography.fontFamilyMedium,
+        color: "#8E8E93",
+        paddingTop: spacing.md,
+        paddingHorizontal: 4,
+        letterSpacing: -0.2,
+    },
+    inlineHintNopad: {
+        fontSize: 15,
+        fontFamily: typography.fontFamilyMedium,
+        color: "#8E8E93",
         letterSpacing: -0.2,
     },
 

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
-    Keyboard,
     Pressable,
     ScrollView,
     Text,
@@ -11,9 +10,7 @@ import {
 } from "react-native";
 
 import BottomSheetModal from "./BottomSheetModal";
-import SearchIcon from "@assets/ui/search.svg";
-import CloseIcon from "@assets/ui/close.svg";
-import LocationPinIcon from "@assets/ui/location-pin.svg";
+import SearchIcon from "@assets/create-event/search.svg";
 import {
     usePlacesAutocomplete,
     fetchPlaceDetails,
@@ -40,8 +37,8 @@ const LocationPickerModal = ({
     const { results, loading, error: autocompleteError, search, clear } = usePlacesAutocomplete();
     const [selectingId, setSelectingId] = useState<string | null>(null);
     const [selectionError, setSelectionError] = useState<string | null>(null);
-    const resultsListHeight = useMemo(
-        () => Math.round(Math.max(200, Math.min(windowHeight * 0.32, 320))),
+    const sheetHeight = useMemo(
+        () => Math.round(windowHeight * 0.9),
         [windowHeight],
     );
 
@@ -52,9 +49,13 @@ const LocationPickerModal = ({
                 search(initialQuery);
             }
         } else {
-            clear();
-            setSelectingId(null);
-            setSelectionError(null);
+            const timer = setTimeout(() => {
+                clear();
+                setQuery("");
+                setSelectingId(null);
+                setSelectionError(null);
+            }, 350);
+            return () => clearTimeout(timer);
         }
     }, [visible, initialQuery, search, clear]);
 
@@ -89,16 +90,14 @@ const LocationPickerModal = ({
     const showResults = hasQuery && !loading && !error;
     const showEmpty = hasQuery && !loading && !error && results.length === 0;
     const showTypingHint = query.length > 0 && query.length < 2 && !loading;
-    const showInitialHint = query.length === 0 && !loading;
-    const shouldCenterResults =
-        loading || Boolean(error) || showEmpty || showTypingHint || showInitialHint;
+    const shouldCenterResults = Boolean(error);
 
     return (
-        <BottomSheetModal visible={visible} onClose={onClose} title="Select Location">
-            <View style={styles.container}>
+        <BottomSheetModal visible={visible} onClose={onClose} title="Select Location" avoidKeyboard={false} snapHeight={sheetHeight}>
+            <View style={[styles.container, { flex: 1 }]}>
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
-                    <SearchIcon width={18} height={18} color="#8E8E93" />
+                    <SearchIcon width={16} height={16} color="#8E8E93" />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search Location"
@@ -110,26 +109,13 @@ const LocationPickerModal = ({
                         underlineColorAndroid="transparent"
                         onSubmitEditing={() => search(query)}
                     />
-                    {query.length > 0 && (
-                        <Pressable
-                            style={styles.clearButton}
-                            onPress={() => {
-                                setQuery("");
-                                clear();
-                                setSelectionError(null);
-                            }}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                            <CloseIcon width={14} height={14} color="#8E8E93" />
-                        </Pressable>
-                    )}
                 </View>
 
                 <ScrollView
-                    style={[styles.resultsList, { height: resultsListHeight }]}
+                    style={[styles.resultsList, { maxHeight: Math.round(windowHeight * 0.35) }]}
                     contentContainerStyle={[
                         styles.resultsContent,
-                        { minHeight: resultsListHeight },
+                        { flexGrow: 1 },
                         shouldCenterResults && styles.resultsContentCentered,
                     ]}
                     showsVerticalScrollIndicator={false}
@@ -137,9 +123,9 @@ const LocationPickerModal = ({
                 >
                     {/* Loading State */}
                     {loading && (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator color="#8E8E93" />
-                            <Text style={styles.loadingText}>Searching places...</Text>
+                        <View style={styles.inlineLoadingContainer}>
+                            <ActivityIndicator size="small" color="#8E8E93" />
+                            <Text style={styles.inlineHintNopad}>Searching places...</Text>
                         </View>
                     )}
 
@@ -155,38 +141,14 @@ const LocationPickerModal = ({
 
                     {/* Empty State */}
                     {showEmpty && (
-                        <View style={styles.emptyState}>
-                            <LocationPinIcon width={48} height={48} color="#C7C7CC" />
-                            <Text style={styles.emptyStateTitle}>
-                                No places found
-                            </Text>
-                            <Text style={styles.emptyStateText}>
-                                Try searching with a different name or more specific area
-                            </Text>
-                        </View>
+                        <Text style={styles.inlineHint}>No places with this name found</Text>
                     )}
 
                     {/* Typing Hint */}
                     {showTypingHint && (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyStateText}>
-                                Keep typing to discover places nearby...
-                            </Text>
-                        </View>
+                        <Text style={styles.inlineHint}>Keep typing to discover places nearby...</Text>
                     )}
 
-                    {/* Initial Hint */}
-                    {showInitialHint && (
-                        <View style={styles.emptyState}>
-                            <LocationPinIcon width={48} height={48} color="#C7C7CC" />
-                            <Text style={styles.emptyStateTitle}>
-                                Where&apos;s the vibe at?
-                            </Text>
-                            <Text style={styles.emptyStateText}>
-                                Search for restaurants, bars, cafes, or any cool spot for your event
-                            </Text>
-                        </View>
-                    )}
 
                     {/* Results */}
                     {showResults && results.length > 0 && (
@@ -199,7 +161,7 @@ const LocationPickerModal = ({
                                         pressed && styles.resultRowPressed,
                                     ]}
                                     onPress={() => {
-                                        Keyboard.dismiss();
+                                        onClose();
                                         handleSelect(prediction);
                                     }}
                                     disabled={selectingId === prediction.placeId}

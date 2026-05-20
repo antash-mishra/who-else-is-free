@@ -71,7 +71,6 @@ import CoverPickerModal from "@components/CoverPickerModal";
 import EventDateTimeModal from "@components/EventDateTimeModal";
 import LocationPickerModal from "@components/LocationPickerModal";
 import type { PlaceDetail } from "@hooks/usePlacesAutocomplete";
-import LocationPinIcon from "@assets/ui/location-pin.svg";
 import BottomSheetModal from "../components/BottomSheetModal";
 import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
@@ -813,14 +812,6 @@ const CreateEventScreen = () => {
                     >
                         <Text style={styles.fieldLabel}>Location</Text>
                         <View style={[styles.fieldValuePill, styles.locationValuePill]}>
-                            {selectedLocationLabel ? (
-                                <LocationPinIcon
-                                    width={14}
-                                    height={14}
-                                    color="rgba(255, 255, 255, 0.9)"
-                                    style={{ marginRight: 6 }}
-                                />
-                            ) : null}
                             <Text
                                 style={[
                                     styles.fieldValueText,

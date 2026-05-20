@@ -38,7 +38,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingTop: spacing.sm,
         paddingBottom: spacing.sm,
-        paddingHorizontal: spacing.lg,
+        paddingLeft: spacing.lg,
+        paddingRight: 12,
     },
     // Invisible spacer on the left, same width as dismissButton, to keep title truly centered
     headerSpacer: {
@@ -305,9 +306,10 @@ const styles = StyleSheet.create({
     },
     locationValuePill: {
         flexShrink: 1,
-        maxWidth: "72%",
+        maxWidth: "65%",
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "flex-start",
         paddingHorizontal: 12,
     },
     locationPlaceholder: {
