@@ -306,8 +306,7 @@ const styles = StyleSheet.create({
     },
     locationValuePill: {
         flexShrink: 1,
-        minWidth: "50%",
-        maxWidth: "72%",
+        maxWidth: "65%",
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-start",
