@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     Keyboard,
     Modal,
-    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -12,9 +11,9 @@ import {
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
+    useAnimatedKeyboard,
     withSpring,
     withTiming,
-    runOnJS,
     Easing,
 } from "react-native-reanimated";
 
@@ -31,24 +30,25 @@ export type BottomSheetModalProps = {
     children: React.ReactNode;
     /** Variant A: renders title + × header. Omit for Variant B (content-only). */
     title?: string;
+    /** Set to false to disable keyboard avoidance. Default: true. */
+    avoidKeyboard?: boolean;
+    /** Pin the sheet to an exact height instead of sizing to content. */
+    snapHeight?: number;
 };
 
 const BASE_PADDING_BOTTOM = 8;
 const MIN_TOP_GUTTER = 96;
 
-// Bezier approximation of iOS UIViewAnimationCurveKeyboard
-const IOS_KEYBOARD_EASING = Easing.bezier(0.36, 0.66, 0.04, 1);
-
-const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModalProps) => {
+const BottomSheetModal = ({ visible, onClose, children, title, avoidKeyboard = true, snapHeight }: BottomSheetModalProps) => {
     const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
     const { height: screenHeight } = useWindowDimensions();
     const basePadding = BASE_PADDING_BOTTOM + safeBottom;
     const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
     const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
 
+    const keyboard = useAnimatedKeyboard();
     const slideAnim = useSharedValue(screenHeight);
     const backdropAnim = useSharedValue(0);
-    const keyboardPaddingAnim = useSharedValue(basePadding);
     const [modalVisible, setModalVisible] = useState(false);
     const hasBeenVisible = useRef(false);
     const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,17 +59,20 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
     const backdropStyle = useAnimatedStyle(() => ({
         opacity: backdropAnim.value,
     }));
-    const keyboardStyle = useAnimatedStyle(() => ({
-        paddingBottom: keyboardPaddingAnim.value,
-    }));
+    const keyboardStyle = useAnimatedStyle(() => {
+        if (!avoidKeyboard) return { paddingBottom: basePadding };
+        const kbHeight = keyboard.height.value;
+        return {
+            paddingBottom: kbHeight > 0 ? kbHeight + 16 : basePadding,
+        };
+    });
 
     const startOpenAnimation = useCallback(() => {
         slideAnim.value = screenHeight;
         backdropAnim.value = 0;
-        keyboardPaddingAnim.value = basePadding;
         slideAnim.value = withSpring(0, Springs.bouncyUp);
         backdropAnim.value = withTiming(1, { duration: 100, easing: Easing.out(Easing.cubic) });
-    }, [basePadding, screenHeight]);
+    }, [screenHeight]);
 
     useEffect(() => {
         if (visible) {
@@ -79,65 +82,33 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
             }
             hasBeenVisible.current = true;
             setModalVisible(true);
-            // Animation starts in onShow, after the modal content is rendered
         } else if (hasBeenVisible.current) {
-            slideAnim.value = withSpring(screenHeight, Springs.elegant);
-            backdropAnim.value = withTiming(0, { duration: 120, easing: Easing.in(Easing.ease) });
-            dismissTimerRef.current = setTimeout(() => setModalVisible(false), 400);
+            Keyboard.dismiss();
+            slideAnim.value = withTiming(screenHeight, { duration: 280, easing: Easing.in(Easing.cubic) });
+            backdropAnim.value = withTiming(0, { duration: 200, easing: Easing.in(Easing.ease) });
+            dismissTimerRef.current = setTimeout(() => setModalVisible(false), 300);
         }
     }, [visible, screenHeight]);
 
-    useEffect(() => {
-        const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-        const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-        const showSub = Keyboard.addListener(showEvent, (event) => {
-            keyboardPaddingAnim.value = withTiming(event.endCoordinates.height + 16, {
-                duration: event.duration || 250,
-                easing: IOS_KEYBOARD_EASING,
-            });
-        });
-
-        const hideSub = Keyboard.addListener(hideEvent, (event) => {
-            keyboardPaddingAnim.value = withTiming(basePadding, {
-                duration: (event as any).duration || 250,
-                easing: IOS_KEYBOARD_EASING,
-            });
-        });
-
-        return () => {
-            showSub.remove();
-            hideSub.remove();
-        };
-    }, [basePadding]);
-
     return (
         <Modal visible={modalVisible} transparent animationType="none" statusBarTranslucent onShow={startOpenAnimation}>
-            {/* Full-screen Pressable handles backdrop dismiss */}
             <Pressable
                 style={StyleSheet.absoluteFill}
                 onPress={onClose}
                 testID="bottom-sheet-backdrop"
                 accessibilityRole="button"
             >
-                {/* Dim overlay — visual only, no touch */}
                 <Animated.View
                     style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
                     pointerEvents="none"
                 />
 
-                {/* Sheet is a child of the backdrop Pressable.
-                    onStartShouldSetResponder claims all touches within the sheet,
-                    preventing them from bubbling up to the backdrop Pressable.
-                    Child buttons are deeper so they still claim touches first. */}
                 <Animated.View
-                    style={[styles.sheet, { maxHeight: sheetMaxHeight }, sheetStyle]}
+                    style={[styles.sheet, { maxHeight: sheetMaxHeight }, snapHeight ? { height: snapHeight } : null, sheetStyle]}
                     testID="bottom-sheet-modal"
                     onStartShouldSetResponder={() => true}
                 >
-                    {/* Keyboard padding on a separate node since layout props
-                        can't share the same Animated.View as transform. */}
-                    <Animated.View style={[styles.keyboardContent, keyboardStyle]}>
+                    <Animated.View style={[styles.keyboardContent, keyboardStyle, snapHeight ? { flex: 1 } : null]}>
                         {title !== undefined && (
                             <View style={styles.header}>
                                 <Text style={styles.title}>{title}</Text>
@@ -161,6 +132,5 @@ const BottomSheetModal = ({ visible, onClose, children, title }: BottomSheetModa
         </Modal>
     );
 };
-
 
 export default BottomSheetModal;
