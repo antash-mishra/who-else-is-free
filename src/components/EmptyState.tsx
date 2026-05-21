@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import ScalePressable from './ScalePressable';
 
 import { colors, typography } from '@theme/index';
 
@@ -43,14 +44,14 @@ const EmptyState = ({
       {(actionLabel || secondaryActionLabel) ? (
         <View style={styles.buttonContainer}>
           {secondaryActionLabel ? (
-            <Pressable style={styles.secondaryButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSecondaryActionPress?.(); }}>
+            <ScalePressable style={styles.secondaryButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onSecondaryActionPress?.(); }}>
               <Text style={styles.secondaryButtonText}>{secondaryActionLabel}</Text>
-            </Pressable>
+            </ScalePressable>
           ) : null}
           {actionLabel ? (
-            <Pressable style={styles.button} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onActionPress?.(); }} testID="empty-state-action">
+            <ScalePressable style={styles.button} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onActionPress?.(); }} testID="empty-state-action">
               <Text style={styles.buttonText}>{actionLabel}</Text>
-            </Pressable>
+            </ScalePressable>
           ) : null}
         </View>
       ) : null}

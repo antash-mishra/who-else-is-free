@@ -3,11 +3,11 @@ import {
     ActivityIndicator,
     Alert,
     Platform,
-    Pressable,
     StyleSheet,
     Text,
     View,
 } from "react-native";
+import ScalePressable from "./ScalePressable";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -231,18 +231,14 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
 
     return (
         <View style={styles.container}>
-            <Pressable
-                style={({ pressed }) => [
-                    styles.button,
-                    isSigningIn && styles.buttonDisabled,
-                    pressed && !isSigningIn && styles.buttonPressed,
-                ]}
+            <ScalePressable
+                style={[styles.button, isSigningIn && styles.buttonDisabled]}
                 onPress={onGooglePress}
                 disabled={isSigningIn}
                 testID="google-sign-in-button"
                 accessibilityRole="button"
             >
-                    <View style={styles.iconWrapper}>
+                <View style={styles.iconWrapper}>
                     {isSigningIn ? (
                         <ActivityIndicator color={colors.buttonText} size="small" />
                     ) : (
@@ -252,15 +248,11 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
                 <Text style={styles.buttonText}>
                     {isSigningIn ? "Signing in…" : "Continue with Google"}
                 </Text>
-            </Pressable>
+            </ScalePressable>
 
             {shouldShowAppleButton ? (
-                <Pressable
-                    style={({ pressed }) => [
-                        styles.button,
-                        isSigningIn && styles.buttonDisabled,
-                        pressed && !isSigningIn && styles.buttonPressed,
-                    ]}
+                <ScalePressable
+                    style={[styles.button, isSigningIn && styles.buttonDisabled]}
                     onPress={onApplePress}
                     disabled={isSigningIn}
                     testID="apple-sign-in-button"
@@ -270,7 +262,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
                         <AppleLogo width={20} height={20} />
                     </View>
                     <Text style={styles.buttonText}>Continue with Apple</Text>
-                </Pressable>
+                </ScalePressable>
             ) : null}
         </View>
     );
@@ -292,9 +284,6 @@ const styles = StyleSheet.create({
     iconWrapper: {
         position: "absolute",
         left: 16,
-    },
-    buttonPressed: {
-        opacity: 0.85,
     },
     buttonDisabled: {
         opacity: 0.6,

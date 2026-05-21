@@ -15,8 +15,10 @@ import Animated, {
     useSharedValue,
     withRepeat,
     withSequence,
+    withSpring,
     withTiming,
 } from "react-native-reanimated";
+import { Springs } from "@theme/springs";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
 
@@ -207,6 +209,11 @@ const CreateEventScreen = () => {
     const shimmerX = useSharedValue(-160);
     const shimmerStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: shimmerX.value }],
+    }));
+
+    const buttonScale = useSharedValue(1);
+    const buttonScaleStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: buttonScale.value }],
     }));
 
     useEffect(() => {
@@ -843,15 +850,23 @@ const CreateEventScreen = () => {
                             setButtonLayout({ x, y, width: w, height: h });
                         });
                     }}
-                    style={[
-                        styles.primaryButton,
-                        isSubmitting && styles.primaryButtonDisabled,
-                    ]}
+                    style={{ width: "100%" }}
                     onPress={handlePrimaryAction}
+                    onPressIn={() => {
+                        if (!isSubmitting) buttonScale.value = withSpring(0.96, Springs.snappy);
+                    }}
+                    onPressOut={() => {
+                        buttonScale.value = withSpring(1, Springs.press);
+                    }}
                     disabled={isSubmitting}
                     accessibilityRole="button"
                     testID="create-event-submit"
                 >
+                <Animated.View style={[
+                    styles.primaryButton,
+                    isSubmitting && styles.primaryButtonDisabled,
+                    buttonScaleStyle,
+                ]}>
                     {isSubmitting && !isEditing ? (
                         <MaskedView
                             style={shimmerStyles.root}
@@ -878,6 +893,7 @@ const CreateEventScreen = () => {
                     ) : (
                         <Text style={styles.primaryButtonText}>{primaryButtonLabel}</Text>
                     )}
+                </Animated.View>
                 </Pressable>
             </View>
         </>

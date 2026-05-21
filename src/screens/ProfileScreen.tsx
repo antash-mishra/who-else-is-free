@@ -201,7 +201,7 @@ const ProfileScreen = () => {
             <Text style={styles.guestDescription}>
               Sign in to view your account
             </Text>
-            <Pressable
+            <ScalePressable
               style={styles.guestButton}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -209,7 +209,7 @@ const ProfileScreen = () => {
               }}
             >
               <Text style={styles.guestButtonText}>Continue</Text>
-            </Pressable>
+            </ScalePressable>
           </LinearGradient>
           <View style={styles.menuSection}>
             <MenuItem
