@@ -165,8 +165,6 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
   },
   blurClip: {
     borderRadius: 16,

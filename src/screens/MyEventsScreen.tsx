@@ -4,6 +4,7 @@ import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import SegmentedControl, { SegmentedOption } from "@components/SegmentedControl";
 import {
+  InteractionManager,
   RefreshControl,
   SectionList,
   SectionListRenderItemInfo,
@@ -114,13 +115,14 @@ const MyEventsScreen = () => {
 
   useEffect(() => {
     if (!route.params?.showEventCreatedBadge) return;
-    setShowEventCreatedBadge(true);
+    const task = InteractionManager.runAfterInteractions(() => setShowEventCreatedBadge(true));
+    return () => task.cancel();
   }, [route.params?.showEventCreatedBadge]);
 
   useEffect(() => {
     if (!route.params?.showEventDeletedBadge) return;
-    const t = setTimeout(() => setShowEventDeletedBadge(true), 350);
-    return () => clearTimeout(t);
+    const task = InteractionManager.runAfterInteractions(() => setShowEventDeletedBadge(true));
+    return () => task.cancel();
   }, [route.params?.showEventDeletedBadge]);
 
   const joinedEventIds = useMemo(() => {
