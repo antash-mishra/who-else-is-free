@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { AccessibilityRole, Insets, Pressable, StyleProp, ViewStyle } from 'react-native';
+import { AccessibilityRole, Insets, LayoutChangeEvent, Pressable, StyleProp, ViewStyle } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Springs } from '@theme/springs';
 
@@ -17,6 +17,7 @@ type ScalePressableProps = {
   delay?: number;
   accessibilityRole?: AccessibilityRole;
   testID?: string;
+  onLayout?: (e: LayoutChangeEvent) => void;
 };
 
 const ScalePressable = ({
@@ -30,6 +31,7 @@ const ScalePressable = ({
   delay = 0,
   accessibilityRole = 'button',
   testID,
+  onLayout,
 }: ScalePressableProps) => {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -43,6 +45,7 @@ const ScalePressable = ({
       accessibilityRole={accessibilityRole}
       testID={testID}
       style={pressableStyle}
+      onLayout={onLayout}
       onPressIn={() => {
         if (disabled) return;
         onPressIn?.();
