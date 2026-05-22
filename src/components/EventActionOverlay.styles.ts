@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   promptError: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    color: '#E73737',
+    color: '#D1382C',
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing
   },
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing
   },
   destructiveButton: {
-    backgroundColor: '#E73737'
+    backgroundColor: '#D1382C'
   },
   destructiveLabel: {
     color: colors.buttonText

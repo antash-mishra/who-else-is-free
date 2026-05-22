@@ -60,7 +60,7 @@ const HoldToConfirmButton = ({ label, onConfirm, disabled }: Props) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#E73737',
+    backgroundColor: '#D1382C',
     borderRadius: 999,
     borderCurve: 'continuous',
     height: 52,
