@@ -204,7 +204,11 @@ const EventDetailsScreen = () => {
     if (!showEventUpdatedBadgeParam) {
       return;
     }
-    setShowEventUpdatedBadge(true);
+    const unsubscribe = navigation.addListener('transitionEnd', () => {
+      setShowEventUpdatedBadge(true);
+      unsubscribe();
+    });
+    return unsubscribe;
   }, [showEventUpdatedBadgeParam]);
 
   useEffect(() => {
