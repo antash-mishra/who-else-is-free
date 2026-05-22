@@ -403,13 +403,13 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
         <View
           style={{
             position: "absolute",
-            top: 0,
+            top: 2,
             right: 2,
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: "#FF1519",
-            borderWidth: 2,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: "#E73737",
+            borderWidth: 1,
             borderColor: "#FFFFFF",
           }}
         />
