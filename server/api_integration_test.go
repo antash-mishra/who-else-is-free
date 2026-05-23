@@ -232,6 +232,10 @@ type eventsResponse struct {
 	Data []Event `json:"data"`
 }
 
+type coversResponse struct {
+	Data []CoverOption `json:"data"`
+}
+
 type createEventResponse struct {
 	ID int64 `json:"id"`
 }
@@ -310,6 +314,31 @@ func TestAPIIntegration(t *testing.T) {
 		_ = decodeJSON[eventsResponse](t, resp)
 	})
 
+	t.Run("list covers", func(t *testing.T) {
+		resp := env.doRequest(t, http.MethodGet, "/api/covers", "", nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[coversResponse](t, resp)
+		if len(payload.Data) == 0 {
+			t.Fatal("expected cover options")
+		}
+		if payload.Data[0].Key != defaultCoverKey {
+			t.Fatalf("expected first cover key %q, got %q", defaultCoverKey, payload.Data[0].Key)
+		}
+		if !strings.Contains(payload.Data[0].URL, "/assets/covers/"+payload.Data[0].FileName) {
+			t.Fatalf("expected static cover URL, got %q", payload.Data[0].URL)
+		}
+		staticResp, err := http.Get(payload.Data[0].URL)
+		if err != nil {
+			t.Fatalf("fetch static cover: %v", err)
+		}
+		defer staticResp.Body.Close()
+		if staticResp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 fetching static cover, got %d", staticResp.StatusCode)
+		}
+	})
+
 	token := env.issueTokenForEmail(t, "ava@example.com")
 
 	t.Run("create event", func(t *testing.T) {
@@ -334,6 +363,27 @@ func TestAPIIntegration(t *testing.T) {
 		payload := decodeJSON[createEventResponse](t, resp)
 		if payload.ID == 0 {
 			t.Fatal("expected created event id")
+		}
+	})
+
+	t.Run("create event rejects invalid cover key", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:       "Invalid Cover Event",
+			Location:    "Test Location",
+			Time:        "23:59",
+			EventDate:   time.Now().Add(24 * time.Hour).Format("2006-01-02"),
+			Description: "Integration event",
+			Gender:      "Any",
+			MinAge:      18,
+			MaxAge:      50,
+			DateLabel:   "Tmrw",
+			GroupType:   "Single",
+			CoverKey:    "not-a-cover",
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", token, body)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
 		}
 	})
 

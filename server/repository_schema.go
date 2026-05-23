@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -47,7 +48,7 @@ CREATE TABLE IF NOT EXISTS events (
     max_age INTEGER NOT NULL,
     date_label TEXT NOT NULL CHECK(date_label IN ('Today', 'Tmrw')),
     group_type TEXT NOT NULL DEFAULT 'Single',
-    cover_key TEXT NOT NULL DEFAULT 'cover_01',
+    cover_key TEXT NOT NULL DEFAULT 'badminton',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     CHECK (min_age >= 0),
@@ -664,6 +665,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureEventCoverKeyColumn(ctx); err != nil {
 		return err
 	}
+	if err := r.ensureValidEventCoverKeys(ctx); err != nil {
+		return err
+	}
 	if err := r.ensureEventDateColumn(ctx); err != nil {
 		return err
 	}
@@ -846,8 +850,32 @@ func (r *EventRepository) ensureEventCoverKeyColumn(ctx context.Context) error {
 		return nil
 	}
 
-	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN cover_key TEXT NOT NULL DEFAULT 'cover_01';`); err != nil {
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN cover_key TEXT NOT NULL DEFAULT 'badminton';`); err != nil {
 		return fmt.Errorf("add cover_key column: %w", err)
+	}
+	return nil
+}
+
+func (r *EventRepository) ensureValidEventCoverKeys(ctx context.Context) error {
+	options := listCoverOptions()
+	if len(options) == 0 {
+		return nil
+	}
+
+	placeholders := make([]string, len(options))
+	args := make([]any, 0, len(options)+1)
+	args = append(args, defaultCoverKey)
+	for i, option := range options {
+		placeholders[i] = "?"
+		args = append(args, option.Key)
+	}
+
+	query := fmt.Sprintf(
+		`UPDATE events SET cover_key = ? WHERE TRIM(cover_key) = '' OR cover_key NOT IN (%s);`,
+		strings.Join(placeholders, ","),
+	)
+	if _, err := r.db.ExecContext(ctx, query, args...); err != nil {
+		return fmt.Errorf("backfill invalid cover_key values: %w", err)
 	}
 	return nil
 }

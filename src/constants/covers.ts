@@ -1,74 +1,94 @@
-import { Image, ImageSourcePropType } from "react-native";
+import { ImageSourcePropType } from "react-native";
 
-export const DEFAULT_EVENT_IMAGE = Image.resolveAssetSource(require("@assets/covers/brunch1.png")).uri;
+import { API_BASE_URL } from "@api/config";
 
-const RAW_COVER_OPTIONS = [
-  { key: "badminton",    label: "Badminton",    source: require("@assets/covers/badminton.png") },
-  { key: "board-games",  label: "Board Games",  source: require("@assets/covers/board-games.png") },
-  { key: "book",         label: "Book Club",    source: require("@assets/covers/book.png") },
-  { key: "brunch",       label: "Brunch",       source: require("@assets/covers/brunch.png") },
-  { key: "brunch1",      label: "Brunch Alt",   source: require("@assets/covers/brunch1.png") },
-  { key: "chess",        label: "Chess",        source: require("@assets/covers/chess.png") },
-  { key: "coffee",       label: "Coffee",       source: require("@assets/covers/coffee.png") },
-  { key: "comedy",       label: "Comedy",       source: require("@assets/covers/comedy.png") },
-  { key: "crochet",      label: "Crochet",      source: require("@assets/covers/crochet.png") },
-  { key: "gig",          label: "Gig",          source: require("@assets/covers/gig.png") },
-  { key: "karaoke",      label: "Karaoke",      source: require("@assets/covers/karaoke.png") },
-  { key: "martial-arts", label: "Martial Arts", source: require("@assets/covers/martial-arts.png") },
-  { key: "museum",       label: "Museum",       source: require("@assets/covers/museum.png") },
-  { key: "museum1",      label: "Museum Alt",   source: require("@assets/covers/museum1.png") },
-  { key: "pool",         label: "Pool",         source: require("@assets/covers/pool.png") },
-  { key: "running",      label: "Running",      source: require("@assets/covers/running.png") },
-  { key: "running1",     label: "Running Alt",  source: require("@assets/covers/running1.png") },
-  { key: "surfing",      label: "Surfing",      source: require("@assets/covers/surfing.png") },
-  { key: "swimming",     label: "Swimming",     source: require("@assets/covers/swimming.png") },
-  { key: "tennis",       label: "Tennis",       source: require("@assets/covers/tennis.png") },
-  { key: "video-games",  label: "Video Games",  source: require("@assets/covers/video-games.png") },
-  { key: "wine",         label: "Wine",         source: require("@assets/covers/wine.png") },
-  { key: "workout",      label: "Workout",      source: require("@assets/covers/workout.png") },
-  { key: "yoga",         label: "Yoga",         source: require("@assets/covers/yoga.png") },
-  { key: "yoga1",        label: "Yoga Alt",     source: require("@assets/covers/yoga1.png") },
-  { key: "photography",  label: "Photography",  source: require("@assets/covers/photography.png") },
-] as const;
-
-type RawCoverOption = (typeof RAW_COVER_OPTIONS)[number];
-export type CoverKey = RawCoverOption["key"];
+export type CoverKey = string;
 
 export type CoverOption = {
   key: CoverKey;
   label: string;
+  fileName: string;
+  url: string;
   source: ImageSourcePropType;
 };
 
-export const COVER_OPTIONS = RAW_COVER_OPTIONS as readonly CoverOption[];
+export type ApiCoverOption = {
+  key: string;
+  label: string;
+  file_name?: string;
+  url?: string;
+};
 
-export const DEFAULT_COVER_KEY: CoverKey = COVER_OPTIONS[0].key;
+export const DEFAULT_COVER_KEY: CoverKey = "badminton";
+
+const coverAssetUrl = (fileName: string) =>
+  `${API_BASE_URL}/assets/covers/${encodeURIComponent(fileName)}`;
+
+export const DEFAULT_EVENT_IMAGE = coverAssetUrl("badminton.png");
+
+export const DEFAULT_COVER_OPTION: CoverOption = {
+  key: DEFAULT_COVER_KEY,
+  label: "Badminton",
+  fileName: "badminton.png",
+  url: DEFAULT_EVENT_IMAGE,
+  source: { uri: DEFAULT_EVENT_IMAGE },
+};
+
+export const COVER_OPTIONS: readonly CoverOption[] = [DEFAULT_COVER_OPTION];
 
 const uriCache: Record<string, string> = {};
 
-export const resolveCoverUri = (key?: string | null) => {
-  if (!key) {
-    return DEFAULT_EVENT_IMAGE;
+const normalizeCoverUrl = (url?: string, fileName?: string) => {
+  if (url?.startsWith("http://") || url?.startsWith("https://")) {
+    return url;
   }
-  if (uriCache[key]) {
-    return uriCache[key];
+  if (url?.startsWith("/")) {
+    return `${API_BASE_URL}${url}`;
   }
-  const option = COVER_OPTIONS.find((item) => item.key === key);
-  if (!option) {
-    return DEFAULT_EVENT_IMAGE;
-  }
-  const resolved = Image.resolveAssetSource(option.source);
-  if (resolved?.uri) {
-    uriCache[key] = resolved.uri;
-    return resolved.uri;
+  if (fileName) {
+    return coverAssetUrl(fileName);
   }
   return DEFAULT_EVENT_IMAGE;
 };
 
-export const isCoverKey = (value: string): value is CoverKey =>
-  COVER_OPTIONS.some((option) => option.key === value);
+export const mapApiCoverOption = (option: ApiCoverOption): CoverOption => {
+  const fileName = option.file_name ?? `${option.key}.png`;
+  const url = normalizeCoverUrl(option.url, fileName);
+  return {
+    key: option.key,
+    label: option.label,
+    fileName,
+    url,
+    source: { uri: url },
+  };
+};
 
-export const COVER_GRADIENTS: Record<CoverKey, [string, string]> = {
+export const resolveCoverUri = (
+  key?: string | null,
+  options?: readonly CoverOption[],
+) => {
+  if (!key) {
+    return DEFAULT_EVENT_IMAGE;
+  }
+  if (key === "cover_01") {
+    return DEFAULT_EVENT_IMAGE;
+  }
+  const option = options?.find((item) => item.key === key);
+  if (option?.url) {
+    return option.url;
+  }
+  if (uriCache[key]) {
+    return uriCache[key];
+  }
+  const resolved = coverAssetUrl(`${key}.png`);
+  uriCache[key] = resolved;
+  return resolved;
+};
+
+export const isCoverKey = (value: string): value is CoverKey =>
+  value.trim().length > 0;
+
+export const COVER_GRADIENTS: Record<string, [string, string]> = {
   "badminton":    ["#4CAF50", "#2E7D32"],
   "board-games":  ["#8D6E63", "#5D4037"],
   "book":         ["#FF8F00", "#E65100"],

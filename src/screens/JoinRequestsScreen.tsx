@@ -22,7 +22,7 @@ import { RootStackParamList } from "@navigation/types";
 import ScreenContainer from "@components/ScreenContainer";
 import ChatEventHeader from "@components/ChatEventHeader";
 import UserAvatar from "@components/UserAvatar";
-import { COVER_OPTIONS } from "@constants/covers";
+import { useCovers } from "@context/CoversContext";
 import { formatAbsoluteDateLabel } from "@utils/dateTime";
 import { formatEventLocationName } from "@utils/eventDisplay";
 
@@ -32,14 +32,10 @@ type JoinRequestsNavigation = NativeStackNavigationProp<
   "JoinRequests"
 >;
 
-const getCoverSource = (coverKey?: string) => {
-  const option = COVER_OPTIONS.find((item) => item.key === coverKey);
-  return option?.source ?? COVER_OPTIONS[0].source;
-};
-
 const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
   const route = useRoute<JoinRequestsRoute>();
+  const { getCoverSource } = useCovers();
   const { user } = useAuth();
   const { events } = useEvents();
   const {

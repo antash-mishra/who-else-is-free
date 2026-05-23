@@ -12,6 +12,7 @@ FROM gcr.io/distroless/base-debian12
 
 WORKDIR /app
 COPY --from=builder /app/server /app/server
+COPY --from=builder /app/assets /app/assets
 
 EXPOSE 8080
 

@@ -41,7 +41,8 @@ import { trackEvent } from "@services/analytics";
 import { colors, spacing } from "@theme/index";
 import { GuestEventDraft, UserEvent, useEvents } from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
-import { CoverKey, DEFAULT_COVER_KEY, resolveCoverUri } from "@constants/covers";
+import { useCovers } from "@context/CoversContext";
+import { CoverKey, DEFAULT_COVER_KEY } from "@constants/covers";
 import {
     AGE_MAX,
     AGE_MIN,
@@ -132,6 +133,7 @@ const CreateEventScreen = () => {
     const { addUserEvent, updateUserEvent, events, queueGuestEvent } =
         useEvents();
     const { user } = useAuth();
+    const { resolveCover } = useCovers();
     const scrollViewRef = useRef<KeyboardAwareScrollView>(null);
     const createStartTrackedRef = useRef(false);
 
@@ -370,8 +372,8 @@ const CreateEventScreen = () => {
     }, [tempGroupType]);
 
     const selectedCoverUri = useMemo(
-        () => resolveCoverUri(coverKey),
-        [coverKey],
+        () => resolveCover(coverKey),
+        [coverKey, resolveCover],
     );
 
     const contentContainerStyle = useMemo(

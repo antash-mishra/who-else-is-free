@@ -31,6 +31,7 @@ func NewEventHandler(repo *EventRepository, hub ...*ChatHub) *EventHandler {
 
 func (h *EventHandler) RegisterRoutes(group *gin.RouterGroup) {
 	group.GET("/events", h.listEvents)
+	group.GET("/covers", h.listCovers)
 }
 
 func (h *EventHandler) RegisterProtectedRoutes(group *gin.RouterGroup) {
@@ -62,6 +63,15 @@ func (h *EventHandler) listEvents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": events})
+}
+
+func (h *EventHandler) listCovers(c *gin.Context) {
+	options := listCoverOptions()
+	baseURL := requestBaseURL(c)
+	for i := range options {
+		options[i].URL = baseURL + "/assets/covers/" + options[i].FileName
+	}
+	c.JSON(http.StatusOK, gin.H{"data": options})
 }
 
 func (h *EventHandler) listUserPastEvents(c *gin.Context) {
@@ -142,7 +152,12 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 	if payload.GroupType == "" {
 		payload.GroupType = "Single"
 	}
-	payload.CoverKey = normalizeCoverKey(payload.CoverKey)
+	coverKey, ok := normalizeCoverKey(payload.CoverKey)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cover_key"})
+		return
+	}
+	payload.CoverKey = coverKey
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
@@ -169,7 +184,11 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 	}
 
 	if payload.CoverKey != nil {
-		value := normalizeCoverKey(*payload.CoverKey)
+		value, ok := normalizeCoverKey(*payload.CoverKey)
+		if !ok {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid cover_key"})
+			return
+		}
 		payload.CoverKey = &value
 	}
 
@@ -374,12 +393,27 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "event deleted"})
 }
 
-func normalizeCoverKey(value string) string {
+func normalizeCoverKey(value string) (string, bool) {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
-		return defaultCoverKey
+		return defaultCoverKey, true
 	}
-	return trimmed
+	return trimmed, isValidCoverKey(trimmed)
+}
+
+func requestBaseURL(c *gin.Context) string {
+	proto := strings.TrimSpace(c.GetHeader("X-Forwarded-Proto"))
+	if proto == "" {
+		proto = "http"
+		if c.Request.TLS != nil {
+			proto = "https"
+		}
+	}
+	host := strings.TrimSpace(c.GetHeader("X-Forwarded-Host"))
+	if host == "" {
+		host = c.Request.Host
+	}
+	return proto + "://" + host
 }
 
 type reportEventBody struct {

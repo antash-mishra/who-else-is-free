@@ -24,6 +24,7 @@ import { EventsProvider } from '@context/EventsContext';
 import { AuthProvider } from '@context/AuthContext';
 import { ChatProvider } from '@context/ChatContext';
 import { PushProvider } from '@context/PushContext';
+import { CoversProvider } from '@context/CoversContext';
 import { initializeAnalytics } from '@services/analytics';
 
 // Prevent native splash from auto-hiding before fonts load
@@ -99,13 +100,15 @@ const App = () => {
           <StatusBar style="dark" />
           <BloomProvider>
             <AuthProvider>
-              <ChatProvider>
-                <PushProvider>
-                  <EventsProvider>
-                    <AppNavigator />
-                  </EventsProvider>
-                </PushProvider>
-              </ChatProvider>
+              <CoversProvider>
+                <ChatProvider>
+                  <PushProvider>
+                    <EventsProvider>
+                      <AppNavigator />
+                    </EventsProvider>
+                  </PushProvider>
+                </ChatProvider>
+              </CoversProvider>
             </AuthProvider>
           </BloomProvider>
         </SafeAreaProvider>

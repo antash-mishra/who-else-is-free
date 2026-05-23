@@ -5,7 +5,8 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 
-import { COVER_OPTIONS, CoverKey } from "@constants/covers";
+import { CoverKey } from "@constants/covers";
+import { useCovers } from "@context/CoversContext";
 import { spacing } from "@theme/index";
 import CheckSelectedCoverIcon from "@assets/create-event/check-selected-cover.svg";
 import BottomSheetModal from "./BottomSheetModal";
@@ -27,11 +28,12 @@ const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
     onClose,
 }) => {
     const { bottom } = useSafeAreaInsets();
+    const { covers } = useCovers();
     return (
         <BottomSheetModal visible={visible} onClose={onClose} title="Choose a cover">
             <View style={{ maxHeight: LIST_MAX_HEIGHT, marginBottom: -(8 + bottom) }}>
                 <FlatList
-                    data={COVER_OPTIONS}
+                    data={covers}
                     numColumns={2}
                     keyExtractor={(item) => item.key}
                     columnWrapperStyle={styles.column}

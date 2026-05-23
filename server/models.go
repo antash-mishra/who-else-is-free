@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const defaultCoverKey = "cover_01"
+const defaultCoverKey = "badminton"
 
 type Event struct {
 	ID          int64      `json:"id"`
