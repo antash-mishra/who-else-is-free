@@ -180,13 +180,14 @@ describe('GoogleSignIn Rendering', () => {
       });
     });
 
-    it('should show "Signing in…" when signing in', async () => {
+    it('should keep provider labels when auth is already busy elsewhere', async () => {
       mockAuthValue.isSigningIn = true;
 
-      const { getAllByText } = render(<GoogleSignInScreen />);
+      const { getByText, queryByText } = render(<GoogleSignInScreen />);
 
       await waitFor(() => {
-        expect(getAllByText('Signing in…').length).toBeGreaterThan(0);
+        expect(getByText('Continue with Google')).toBeTruthy();
+        expect(queryByText('Signing in…')).toBeNull();
       });
     });
 
@@ -203,14 +204,88 @@ describe('GoogleSignIn Rendering', () => {
   });
 
   describe('Loading State', () => {
-    it('should show ActivityIndicator when signing in', async () => {
-      mockAuthValue.isSigningIn = true;
+    const originalPlatform = Platform.OS;
 
-      const { UNSAFE_getByType } = render(<GoogleSignInScreen />);
+    afterEach(() => {
+      Object.defineProperty(Platform, 'OS', { value: originalPlatform });
+    });
+
+    it('should show loading state only on Google while Google sign-in is active', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'ios' });
+      let resolveGoogleSignIn: (value: unknown) => void = () => undefined;
+      mockSignInWithGoogle.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveGoogleSignIn = resolve;
+        }),
+      );
+
+      const { getByTestId, getByText, UNSAFE_getAllByType } = render(<GoogleSignInScreen />);
       const { ActivityIndicator } = require('react-native');
 
       await waitFor(() => {
-        expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
+      });
+
+      fireEvent.press(getByTestId('google-sign-in-button'));
+
+      await waitFor(() => {
+        expect(getByText('Signing in…')).toBeTruthy();
+        expect(getByText('Continue with Apple')).toBeTruthy();
+        expect(UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+      });
+
+      await act(async () => {
+        resolveGoogleSignIn({
+          id: 1,
+          name: 'Test User',
+          email: 'test@example.com',
+          profileComplete: true,
+        });
+      });
+    });
+
+    it('should show loading state only on Apple while Apple sign-in is active', async () => {
+      Object.defineProperty(Platform, 'OS', { value: 'ios' });
+      let resolveAppleSignIn: (value: unknown) => void = () => undefined;
+      mockSignInWithApple.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveAppleSignIn = resolve;
+        }),
+      );
+
+      const { getByTestId, getByText, UNSAFE_getAllByType } = render(<GoogleSignInScreen />);
+      const { ActivityIndicator } = require('react-native');
+
+      await waitFor(() => {
+        expect(getByText('Connect with your account to continue.')).toBeTruthy();
+      });
+
+      fireEvent.press(getByTestId('apple-sign-in-button'));
+
+      await waitFor(() => {
+        expect(getByText('Continue with Google')).toBeTruthy();
+        expect(getByText('Signing in…')).toBeTruthy();
+        expect(UNSAFE_getAllByType(ActivityIndicator)).toHaveLength(1);
+      });
+
+      await act(async () => {
+        resolveAppleSignIn({
+          id: 1,
+          name: 'Test User',
+          email: 'test@example.com',
+          profileComplete: true,
+        });
+      });
+    });
+
+    it('should not show ActivityIndicator for a global busy state with no active provider', async () => {
+      mockAuthValue.isSigningIn = true;
+
+      const { UNSAFE_queryByType } = render(<GoogleSignInScreen />);
+      const { ActivityIndicator } = require('react-native');
+
+      await waitFor(() => {
+        expect(UNSAFE_queryByType(ActivityIndicator)).toBeNull();
       });
     });
 

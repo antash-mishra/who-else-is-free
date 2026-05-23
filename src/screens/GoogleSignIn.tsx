@@ -23,6 +23,8 @@ import ScreenContainer from "@components/ScreenContainer";
 import GoogleLogo from "@assets/ui/google-logo.svg";
 import AppleLogo from "@assets/ui/apple-logo.svg";
 
+type SignInProvider = "google" | "apple";
+
 const GoogleSignInScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -31,8 +33,13 @@ const GoogleSignInScreen = () => {
     null,
   );
   const [isAppleAvailable, setIsAppleAvailable] = useState<boolean>(false);
+  const [activeSignInProvider, setActiveSignInProvider] =
+    useState<SignInProvider | null>(null);
   const shouldShowAppleButton =
     Platform.OS === "ios" || APPLE_SIGNIN_DEV_ALL_PLATFORMS;
+  const isAuthBusy = isSigningIn || activeSignInProvider !== null;
+  const isGoogleSigningIn = activeSignInProvider === "google";
+  const isAppleSigningIn = activeSignInProvider === "apple";
 
   useEffect(() => {
     let isActive = true;
@@ -105,127 +112,144 @@ const GoogleSignInScreen = () => {
   );
 
   const onGooglePress = useCallback(async () => {
-    trackEvent("login_started", { provider: "google" }).catch(() => undefined);
-    if (!isNativeAvailable) {
-      trackEvent("login_failed", {
-        provider: "google",
-        failure_stage: "native_unavailable",
-      }).catch(() => undefined);
-      Alert.alert(
-        "Google Sign-In Unavailable",
-        "This feature requires running this app from a custom Expo dev build or standalone build with @react-native-google-signin/google-signin installed.",
-      );
+    if (isAuthBusy) {
       return;
     }
-
-    let reachedServer = false;
+    setActiveSignInProvider("google");
     try {
-      if (Platform.OS === "android") {
-        await GoogleSignin.hasPlayServices({
-          showPlayServicesUpdateDialog: true,
-        });
-      }
-      const result = await GoogleSignin.signIn();
-      if (result.type !== "success" || !result.data.idToken) {
-        Alert.alert(
-          "Unable to sign in with Google",
-          "No ID token was returned.",
-        );
+      trackEvent("login_started", { provider: "google" }).catch(() => undefined);
+      if (!isNativeAvailable) {
         trackEvent("login_failed", {
           provider: "google",
-          failure_stage: "missing_id_token",
+          failure_stage: "native_unavailable",
         }).catch(() => undefined);
+        Alert.alert(
+          "Google Sign-In Unavailable",
+          "This feature requires running this app from a custom Expo dev build or standalone build with @react-native-google-signin/google-signin installed.",
+        );
         return;
       }
 
-      reachedServer = true;
-      const user = await signInWithGoogle(result.data.idToken);
-      handlePostSignInNavigation(user.profileComplete);
-    } catch (error) {
-      if (!reachedServer) {
-        trackEvent("login_failed", {
-          provider: "google",
-          failure_stage: "native",
-        }).catch(() => undefined);
+      let reachedServer = false;
+      try {
+        if (Platform.OS === "android") {
+          await GoogleSignin.hasPlayServices({
+            showPlayServicesUpdateDialog: true,
+          });
+        }
+        const result = await GoogleSignin.signIn();
+        if (result.type !== "success" || !result.data.idToken) {
+          Alert.alert(
+            "Unable to sign in with Google",
+            "No ID token was returned.",
+          );
+          trackEvent("login_failed", {
+            provider: "google",
+            failure_stage: "missing_id_token",
+          }).catch(() => undefined);
+          return;
+        }
+
+        reachedServer = true;
+        const user = await signInWithGoogle(result.data.idToken);
+        handlePostSignInNavigation(user.profileComplete);
+      } catch (error) {
+        if (!reachedServer) {
+          trackEvent("login_failed", {
+            provider: "google",
+            failure_stage: "native",
+          }).catch(() => undefined);
+        }
+        console.warn("Google sign-in failed", error);
+        Alert.alert("Unable to sign in with Google", "Please try again.");
       }
-      console.warn("Google sign-in failed", error);
-      Alert.alert("Unable to sign in with Google", "Please try again.");
+    } finally {
+      setActiveSignInProvider(null);
     }
   }, [
     handlePostSignInNavigation,
+    isAuthBusy,
     isNativeAvailable,
     signInWithGoogle,
   ]);
 
   const onApplePress = useCallback(async () => {
-    trackEvent("login_started", { provider: "apple" }).catch(() => undefined);
-    if (Platform.OS !== "ios") {
-      trackEvent("login_failed", {
-        provider: "apple",
-        failure_stage: "unsupported_platform",
-      }).catch(() => undefined);
-      Alert.alert(
-        "Apple Sign-In (Dev Preview)",
-        "This button is shown in development for UI testing. Apple Sign-In works only on iOS native builds.",
-      );
+    if (isAuthBusy) {
       return;
     }
-
-    if (!isAppleAvailable) {
-      trackEvent("login_failed", {
-        provider: "apple",
-        failure_stage: "native_unavailable",
-      }).catch(() => undefined);
-      Alert.alert(
-        "Apple Sign-In Unavailable",
-        "Apple Sign-In is unavailable on this device or build.",
-      );
-      return;
-    }
-
-    let reachedServer = false;
+    setActiveSignInProvider("apple");
     try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (!credential.identityToken) {
+      trackEvent("login_started", { provider: "apple" }).catch(() => undefined);
+      if (Platform.OS !== "ios") {
+        trackEvent("login_failed", {
+          provider: "apple",
+          failure_stage: "unsupported_platform",
+        }).catch(() => undefined);
         Alert.alert(
-          "Unable to sign in with Apple",
-          "No ID token was returned.",
+          "Apple Sign-In (Dev Preview)",
+          "This button is shown in development for UI testing. Apple Sign-In works only on iOS native builds.",
         );
-        trackEvent("login_failed", {
-          provider: "apple",
-          failure_stage: "missing_id_token",
-        }).catch(() => undefined);
         return;
       }
 
-      reachedServer = true;
-      const user = await signInWithApple(credential.identityToken);
-      handlePostSignInNavigation(user.profileComplete);
-    } catch (error) {
-      const code = (error as { code?: string })?.code;
-      if (code === "ERR_REQUEST_CANCELED") {
+      if (!isAppleAvailable) {
         trackEvent("login_failed", {
           provider: "apple",
-          failure_stage: "cancelled",
+          failure_stage: "native_unavailable",
         }).catch(() => undefined);
+        Alert.alert(
+          "Apple Sign-In Unavailable",
+          "Apple Sign-In is unavailable on this device or build.",
+        );
         return;
       }
-      if (!reachedServer) {
-        trackEvent("login_failed", {
-          provider: "apple",
-          failure_stage: "native",
-        }).catch(() => undefined);
+
+      let reachedServer = false;
+      try {
+        const credential = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+
+        if (!credential.identityToken) {
+          Alert.alert(
+            "Unable to sign in with Apple",
+            "No ID token was returned.",
+          );
+          trackEvent("login_failed", {
+            provider: "apple",
+            failure_stage: "missing_id_token",
+          }).catch(() => undefined);
+          return;
+        }
+
+        reachedServer = true;
+        const user = await signInWithApple(credential.identityToken);
+        handlePostSignInNavigation(user.profileComplete);
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code === "ERR_REQUEST_CANCELED") {
+          trackEvent("login_failed", {
+            provider: "apple",
+            failure_stage: "cancelled",
+          }).catch(() => undefined);
+          return;
+        }
+        if (!reachedServer) {
+          trackEvent("login_failed", {
+            provider: "apple",
+            failure_stage: "native",
+          }).catch(() => undefined);
+        }
+        console.warn("Apple sign-in failed", error);
+        Alert.alert("Unable to sign in with Apple", "Please try again.");
       }
-      console.warn("Apple sign-in failed", error);
-      Alert.alert("Unable to sign in with Apple", "Please try again.");
+    } finally {
+      setActiveSignInProvider(null);
     }
-  }, [handlePostSignInNavigation, isAppleAvailable, signInWithApple]);
+  }, [handlePostSignInNavigation, isAppleAvailable, isAuthBusy, signInWithApple]);
 
   const helperText = useMemo(() => {
     if (isNativeAvailable === null) {
@@ -267,23 +291,23 @@ const GoogleSignInScreen = () => {
           <Pressable
             style={({ pressed }) => [
               styles.button,
-              isSigningIn && styles.buttonDisabled,
-              pressed && !isSigningIn && styles.buttonPressed,
+              isAuthBusy && styles.buttonDisabled,
+              pressed && !isAuthBusy && styles.buttonPressed,
             ]}
             onPress={onGooglePress}
-            disabled={isSigningIn}
+            disabled={isAuthBusy}
             testID="google-sign-in-button"
             accessibilityRole="button"
           >
             <View style={styles.iconWrapper}>
-              {isSigningIn ? (
+              {isGoogleSigningIn ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <GoogleLogo width={20} height={20} />
               )}
             </View>
             <Text style={styles.buttonText}>
-              {isSigningIn ? "Signing in…" : "Continue with Google"}
+              {isGoogleSigningIn ? "Signing in…" : "Continue with Google"}
             </Text>
           </Pressable>
 
@@ -291,18 +315,24 @@ const GoogleSignInScreen = () => {
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                isSigningIn && styles.buttonDisabled,
-                pressed && !isSigningIn && styles.buttonPressed,
+                isAuthBusy && styles.buttonDisabled,
+                pressed && !isAuthBusy && styles.buttonPressed,
               ]}
               onPress={onApplePress}
-              disabled={isSigningIn}
+              disabled={isAuthBusy}
               testID="apple-sign-in-button"
               accessibilityRole="button"
             >
               <View style={styles.iconWrapper}>
-                <AppleLogo width={20} height={20} />
+                {isAppleSigningIn ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <AppleLogo width={20} height={20} />
+                )}
               </View>
-              <Text style={styles.buttonText}>Continue with Apple</Text>
+              <Text style={styles.buttonText}>
+                {isAppleSigningIn ? "Signing in…" : "Continue with Apple"}
+              </Text>
             </Pressable>
           ) : null}
         </View>

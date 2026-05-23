@@ -1,7 +1,7 @@
-// In development, this can expose the Apple button on non-iOS platforms for UI testing.
-// Default is false. Set EXPO_PUBLIC_APPLE_SIGNIN_DEV_ALL_PLATFORMS=true to enable.
+// In development, expose the Apple button on non-iOS platforms for UI testing.
+// Set EXPO_PUBLIC_APPLE_SIGNIN_DEV_ALL_PLATFORMS=false to hide it.
 export const APPLE_SIGNIN_DEV_ALL_PLATFORMS =
   __DEV__ &&
   (typeof process !== "undefined"
-    ? process.env?.EXPO_PUBLIC_APPLE_SIGNIN_DEV_ALL_PLATFORMS === "true"
-    : false);
+    ? process.env?.EXPO_PUBLIC_APPLE_SIGNIN_DEV_ALL_PLATFORMS !== "false"
+    : true);
