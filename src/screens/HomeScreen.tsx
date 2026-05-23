@@ -243,23 +243,35 @@ const HomeScreen = () => {
   }, [hasViewerLocation, selectedSort]);
 
   const discoverableEvents = useMemo(() => {
+    if (viewerLocation.isLoading) {
+      return null;
+    }
+
     if (!viewerLocation.coords) {
       return null;
     }
     return withEventDistances(allEvents, viewerLocation.coords).filter((event) =>
       isLocalOrViewerOwnedEvent(event, user?.id),
     );
-  }, [allEvents, user?.id, viewerLocation.coords]);
+  }, [allEvents, user?.id, viewerLocation.coords, viewerLocation.isLoading]);
 
   const upcomingSections = useMemo<EventSection[]>(() => {
+    if (viewerLocation.isLoading) {
+      return [];
+    }
+
     if (!discoverableEvents) {
       return buildSections(allEvents, getBadgeLabel);
     }
 
     return buildSections(discoverableEvents, getBadgeLabel);
-  }, [allEvents, discoverableEvents, getBadgeLabel]);
+  }, [allEvents, discoverableEvents, getBadgeLabel, viewerLocation.isLoading]);
 
   const newestSections = useMemo<EventSection[]>(() => {
+    if (viewerLocation.isLoading) {
+      return [];
+    }
+
     if (discoverableEvents) {
       return buildSingleSection(
         "Newest",
@@ -272,7 +284,7 @@ const HomeScreen = () => {
     return sorted.length > 0
       ? [{ title: "Newest created", data: sorted.map((e) => toEventCardItem(e, getBadgeLabel(e))) }]
       : [];
-  }, [allEvents, discoverableEvents, getBadgeLabel]);
+  }, [allEvents, discoverableEvents, getBadgeLabel, viewerLocation.isLoading]);
 
   const nearestSections = useMemo<EventSection[]>(() => {
     if (!discoverableEvents) {
@@ -302,7 +314,9 @@ const HomeScreen = () => {
     }
   }, [isLoading, signalReady]);
 
-  const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce.current;
+  const showAllEventsLoading =
+    (isLoading && allEvents.length === 0 && !hasLoadedOnce.current) ||
+    viewerLocation.isLoading;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
   const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
   const showUpcomingEmpty = showAllEventsEmpty || (!isLoading && !error && upcomingSections.length === 0);
