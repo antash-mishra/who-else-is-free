@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import styles from './EventActionOverlay.styles';
+import HoldToConfirmButton from './HoldToConfirmButton';
 
 export type EventActionConfirmProps = {
   title: string;
@@ -44,26 +45,26 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
       >
         <Text style={styles.secondaryLabel}>{cancelLabel}</Text>
       </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={isConfirmLoading ? undefined : () => { confirmTone === 'destructive' ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning) : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
-        disabled={isConfirmLoading}
-        style={({ pressed }) => [
-          styles.primaryButton,
-          confirmTone === 'destructive' && styles.destructiveButton,
-          pressed && !isConfirmLoading && styles.primaryButtonPressed,
-          isConfirmLoading && styles.primaryButtonDisabled
-        ]}
-      >
-        <Text
-          style={[
-            styles.primaryLabel,
-            confirmTone === 'destructive' && styles.destructiveLabel
+      {confirmTone === 'destructive' ? (
+        <HoldToConfirmButton
+          label={confirmLabel}
+          onConfirm={onConfirm}
+          disabled={isConfirmLoading}
+        />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          onPress={isConfirmLoading ? undefined : () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
+          disabled={isConfirmLoading}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && !isConfirmLoading && styles.primaryButtonPressed,
+            isConfirmLoading && styles.primaryButtonDisabled
           ]}
         >
-          {isConfirmLoading ? 'Deleting...' : confirmLabel}
-        </Text>
-      </Pressable>
+          <Text style={styles.primaryLabel}>{confirmLabel}</Text>
+        </Pressable>
+      )}
     </View>
   </View>
 );

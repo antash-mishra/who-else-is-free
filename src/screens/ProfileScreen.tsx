@@ -227,20 +227,6 @@ const ProfileScreen = () => {
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
         </BottomSheetModal>
-        <EventActionOverlay
-          isVisible={showDeleteConfirm}
-          onBackdropPress={handleDeleteCancel}
-          type="confirm"
-          title="Delete your account?"
-          description="This will permanently delete your profile, hosted events, event memberships, and chats. This can't be undone."
-          confirmLabel="Delete account"
-          cancelLabel="Keep account"
-          confirmTone="destructive"
-          onConfirm={handleDeleteAccount}
-          onCancel={handleDeleteCancel}
-          isConfirmLoading={isDeletingAccount}
-          errorMessage={deleteError}
-        />
       </ScreenContainer>
     );
   }
