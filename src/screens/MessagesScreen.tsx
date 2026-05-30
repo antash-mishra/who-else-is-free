@@ -160,14 +160,13 @@ const MessagesScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      setActiveConversation(null);
       if (!user) {
         return undefined;
       }
 
       refreshConversations().catch(() => undefined);
       return undefined;
-    }, [refreshConversations, setActiveConversation, user]),
+    }, [refreshConversations, user]),
   );
 
   const handleRefresh = useCallback(() => {

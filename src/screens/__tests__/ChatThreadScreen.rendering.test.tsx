@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { fireEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { Platform, StyleSheet } from 'react-native';
 import {
   AndroidSoftInputModes,
@@ -403,6 +403,59 @@ describe('ChatThreadScreen Rendering', () => {
 
       // Component should return null when no active conversation
       expect(queryByTestId('screen-container')).toBeNull();
+    });
+
+    it('should not issue an extra goBack while swipe-back is removing the route', () => {
+      let activeConversationId: number | null = 1;
+      const listeners: Record<string, (event?: any) => void> = {};
+      (mockNavigation.addListener as jest.Mock).mockImplementation((eventName: string, callback: (event?: any) => void) => {
+        listeners[eventName] = callback;
+        return jest.fn();
+      });
+      mockedUseChat.mockImplementation(() =>
+        createMockUseChat({
+          activeConversationId,
+          conversations: activeConversationId == null ? [] : mockConversations,
+          messages: mockMessages,
+          sendMessage: mockSendMessage,
+          retryMessage: mockRetryMessage,
+          setActiveConversation: mockSetActiveConversation,
+          refreshJoinRequests: mockRefreshJoinRequests,
+          refreshConversations: mockRefreshConversations,
+          isConnecting: false,
+          error: null,
+          joinRequestsByConversation: {},
+        })()
+      );
+      mockedUseAuth.mockReturnValue(createMockUseAuth({ user: mockUsers[0] })());
+      mockedUseEvents.mockReturnValue(createMockUseEvents({ events: mockEvents })());
+
+      const { rerender } = render(<ChatThreadScreen />);
+
+      act(() => {
+        listeners.beforeRemove?.();
+        activeConversationId = null;
+        rerender(<ChatThreadScreen />);
+      });
+
+      expect(mockNavigation.goBack).not.toHaveBeenCalled();
+    });
+
+    it('should clear active conversation after the chat route closes', () => {
+      const listeners: Record<string, (event?: any) => void> = {};
+      (mockNavigation.addListener as jest.Mock).mockImplementation((eventName: string, callback: (event?: any) => void) => {
+        listeners[eventName] = callback;
+        return jest.fn();
+      });
+      setupMocks();
+
+      render(<ChatThreadScreen />);
+
+      act(() => {
+        listeners.transitionEnd?.({ data: { closing: true } });
+      });
+
+      expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
     });
   });
 

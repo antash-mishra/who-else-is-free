@@ -302,11 +302,33 @@ const ChatThreadScreen = () => {
     counterpart != null;
 
   const isManuallyLeavingRef = useRef(false);
+  const isRouteRemovingRef = useRef(false);
+
+  useEffect(() => {
+    const unsubscribeBeforeRemove = navigation.addListener("beforeRemove", () => {
+      isRouteRemovingRef.current = true;
+    });
+    const unsubscribeTransitionEnd = navigation.addListener("transitionEnd", (event) => {
+      if (event.data?.closing) {
+        setActiveConversation(null);
+      } else {
+        isRouteRemovingRef.current = false;
+      }
+    });
+
+    return () => {
+      unsubscribeBeforeRemove();
+      unsubscribeTransitionEnd();
+    };
+  }, [navigation, setActiveConversation]);
 
   useEffect(() => {
     if (!activeConversationId) {
       if (isManuallyLeavingRef.current) {
         isManuallyLeavingRef.current = false;
+        return;
+      }
+      if (isRouteRemovingRef.current) {
         return;
       }
       if (navigation.canGoBack()) {
