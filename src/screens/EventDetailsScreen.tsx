@@ -44,6 +44,7 @@ import PeopleIcon from "@assets/event-details/group-type.svg";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   RouteProp,
+  StackActions,
   useIsFocused,
   useNavigation,
   useRoute,
@@ -954,7 +955,7 @@ const EventDetailsScreen = () => {
   }, [user, token, pendingSendAfterSignIn]);
 
   const handleEdit = () => {
-    (navigation as any).navigate("CreateEvent", { editEventId: event.id });
+    navigation.dispatch(StackActions.push("CreateEvent", { editEventId: event.id }));
     setShowManagePrompt(false);
   };
 
@@ -1213,10 +1214,7 @@ const EventDetailsScreen = () => {
 
   const handleMenuViewIntro = () => afterMenuClose(() => setShowViewIntroOverlay(true));
 
-  const handleMenuEdit = () => {
-    setShowMenuOverlay(false);
-    handleEdit();
-  };
+  const handleMenuEdit = () => afterMenuClose(handleEdit);
 
   const handleMenuDelete = () => afterMenuClose(handleDeletePrompt);
 

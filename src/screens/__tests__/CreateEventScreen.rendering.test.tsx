@@ -270,11 +270,18 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetails', {
-      eventId: mockEvents[0].id,
-      origin: 'MyEvents',
-      showEventUpdatedBadge: true,
-    });
+    expect(mockNavigation.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'POP_TO',
+      payload: expect.objectContaining({
+        name: 'EventDetails',
+        params: {
+          eventId: mockEvents[0].id,
+          origin: 'MyEvents',
+          showEventUpdatedBadge: true,
+        },
+        merge: true,
+      }),
+    }));
   });
 
   it('does not dispatch route param cleanup on unmount in edit mode', () => {

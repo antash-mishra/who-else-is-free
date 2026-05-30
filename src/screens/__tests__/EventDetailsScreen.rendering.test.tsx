@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { act, render, fireEvent, waitFor, screen } from '@testing-library/react-native';
 import fetchMock from 'jest-fetch-mock';
 
 import { mockEvents, mockUsers, mockConversations, mockJoinRequests } from '../../__tests__/mocks/mockData';
@@ -504,8 +504,17 @@ describe('EventDetailsScreen Rendering Tests', () => {
         const editButton = getByTestId('menu-item-edit-details');
         fireEvent.press(editButton);
       });
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
 
-      expect(mockNavigate).toHaveBeenCalledWith('CreateEvent', { editEventId: mockOwnedEvent.id });
+      expect(mockNavigation.dispatch).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'PUSH',
+        payload: expect.objectContaining({
+          name: 'CreateEvent',
+          params: { editEventId: mockOwnedEvent.id },
+        }),
+      }));
     });
 
     it('shows delete confirmation when Delete Event is pressed', async () => {

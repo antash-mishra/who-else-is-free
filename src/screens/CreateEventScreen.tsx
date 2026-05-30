@@ -499,11 +499,17 @@ const CreateEventScreen = () => {
                         longitude: form.longitude,
                     });
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                    navigation.navigate("EventDetails", {
-                        eventId: String(editEventId),
-                        origin: "MyEvents",
-                        showEventUpdatedBadge: true,
-                    });
+                    navigation.dispatch(
+                        StackActions.popTo(
+                            "EventDetails",
+                            {
+                                eventId: String(editEventId),
+                                origin: "MyEvents",
+                                showEventUpdatedBadge: true,
+                            },
+                            { merge: true },
+                        ),
+                    );
                 } else {
                     const minDelay = new Promise<void>(r => setTimeout(r, 1500));
                     await addUserEvent({
