@@ -1905,10 +1905,7 @@ const EventDetailsScreen = () => {
       {/* Member menu */}
       <EventActionOverlay
         isVisible={showMemberMenu}
-        onBackdropPress={() => {
-          setShowMemberMenu(false);
-          setSelectedMember(null);
-        }}
+        onBackdropPress={() => setShowMemberMenu(false)}
         type="menu"
         items={[
           {
