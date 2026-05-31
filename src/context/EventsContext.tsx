@@ -129,7 +129,7 @@ interface EventsContextValue {
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
 
-type ApiEvent = {
+export type ApiEvent = {
   id: number;
   title: string;
   location: string;
@@ -217,9 +217,9 @@ const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
   return a.eventDate.localeCompare(b.eventDate);
 };
 
-const mapApiEvent = (
+export const mapApiEventToUserEvent = (
   event: ApiEvent,
-  meta: EventMeta | undefined,
+  badgeLabel?: string,
 ): UserEvent => {
   const groupType = event.group_type ?? "Single";
   const schedule = getScheduleDisplay({
@@ -240,7 +240,7 @@ const mapApiEvent = (
       maxAge: event.max_age,
     }),
     imageUri: resolveCoverUri(event.cover_key),
-    badgeLabel: groupType === "Group" ? "Group" : meta?.badgeLabel,
+    badgeLabel: groupType === "Group" ? "Group" : badgeLabel,
     dateLabel: schedule.displayLabel,
     eventDate: schedule.displayDate,
     description: event.description,
@@ -318,7 +318,12 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       const payload: { data: ApiEvent[] | null } = await response.json();
       const nextEvents = (payload.data ?? [])
-        .map((event) => mapApiEvent(event, metaRef.current[String(event.id)]))
+        .map((event) =>
+          mapApiEventToUserEvent(
+            event,
+            metaRef.current[String(event.id)]?.badgeLabel,
+          ),
+        )
         .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
         .sort(sortEventsBySchedule);
       if (requestId !== eventsRequestIdRef.current) {
@@ -547,7 +552,10 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
 
       setEvents((prev) => {
         const withoutNew = prev.filter((item) => item.id !== eventId);
-        const optimistic = mapApiEvent(optimisticEvent, metaRef.current[eventId]);
+        const optimistic = mapApiEventToUserEvent(
+          optimisticEvent,
+          metaRef.current[eventId]?.badgeLabel,
+        );
         const next = [optimistic, ...withoutNew].filter((item) =>
           isUpcomingEvent(item.eventDate, item.time, item.scheduledAt),
         );

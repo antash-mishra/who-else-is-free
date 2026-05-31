@@ -172,7 +172,7 @@ const PastEventsScreen = () => {
       item={item}
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        navigation.navigate("EventDetails", { eventId: item.id });
+        navigation.navigate("EventDetails", { eventId: item.id, readOnly: true });
       }}
     />
   );

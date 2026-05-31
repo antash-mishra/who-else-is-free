@@ -36,9 +36,10 @@ func (h *EventHandler) RegisterRoutes(group *gin.RouterGroup) {
 
 func (h *EventHandler) RegisterProtectedRoutes(group *gin.RouterGroup) {
 	group.POST("/events", h.createEvent)
+	group.GET("/events/past", h.listUserPastEvents)
+	group.GET("/events/:id", h.getEvent)
 	group.PUT("/events/:id", h.updateEvent)
 	group.DELETE("/events/:id", h.deleteEvent)
-	group.GET("/events/past", h.listUserPastEvents)
 }
 
 func (h *EventHandler) listEvents(c *gin.Context) {
@@ -91,6 +92,89 @@ func (h *EventHandler) listUserPastEvents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": events})
+}
+
+func (h *EventHandler) getEvent(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	claims, exists := sessionFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	event, err := h.repo.GetEventByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		}
+		return
+	}
+
+	canView, err := h.canViewEvent(ctx, event, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+	if !canView {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": event})
+}
+
+func (h *EventHandler) canViewEvent(ctx context.Context, event *Event, viewerUserID int64) (bool, error) {
+	if event.UserID == viewerUserID {
+		return true, nil
+	}
+
+	blocked, err := h.repo.AreUsersBlocked(ctx, event.UserID, viewerUserID)
+	if err != nil {
+		return false, err
+	}
+	if blocked {
+		return false, nil
+	}
+
+	if isEventPast(event, time.Now()) {
+		return h.isEventConversationMember(ctx, event.ID, viewerUserID)
+	}
+
+	return true, nil
+}
+
+func (h *EventHandler) isEventConversationMember(ctx context.Context, eventID, userID int64) (bool, error) {
+	members, err := h.repo.ListEventConversationMembers(ctx, eventID)
+	if err != nil {
+		return false, err
+	}
+	for _, member := range members {
+		if member.UserID == userID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func isEventPast(event *Event, now time.Time) bool {
+	if event.ScheduledAt != nil {
+		return event.ScheduledAt.Before(now.UTC())
+	}
+	parsedDate, err := time.ParseInLocation("2006-01-02", strings.TrimSpace(event.EventDate), now.Location())
+	if err != nil {
+		return false
+	}
+	return startOfDay(parsedDate).Before(startOfDay(now))
 }
 
 func (h *EventHandler) createEvent(c *gin.Context) {

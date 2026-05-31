@@ -144,6 +144,7 @@ jest.mock('@context/AuthContext', () => ({
 }));
 
 jest.mock('@context/EventsContext', () => ({
+  ...jest.requireActual('@context/EventsContext'),
   useEvents: () => mockEventsState,
 }));
 
@@ -974,6 +975,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     beforeEach(() => {
       // Set up with empty events or non-matching event ID
       mockEventsState.events = [];
+      mockAuthState.token = null;
     });
 
     it('renders fallback UI when event is not found', () => {
@@ -996,6 +998,52 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(backButton);
 
       expect(mockGoBack).toHaveBeenCalled();
+    });
+
+    it('fetches event details when the event is missing from context', async () => {
+      const routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
+        createMockRoute('42')
+      );
+      mockAuthState.token = 'test-token';
+      mockAuthState.authFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            id: 42,
+            title: 'Past Coffee',
+            location: 'Old Cafe',
+            time: '18:30',
+            event_date: '2026-01-10',
+            date_label: 'Today',
+            description: 'A past event',
+            gender: 'All Gender',
+            min_age: 21,
+            max_age: 40,
+            group_type: 'Group',
+            user_id: mockUser.id,
+            host_name: mockUser.name,
+            cover_key: 'badminton',
+            scheduled_at: '2026-01-10T18:30:00Z',
+            created_at: '2026-01-01T00:00:00Z',
+          },
+        }),
+      });
+
+      const { getByText } = render(<EventDetailsScreen />);
+
+      await waitFor(() => {
+        expect(getByText('Past Coffee')).toBeTruthy();
+      });
+      expect(mockAuthState.authFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/events/42'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        }),
+      );
+
+      routeSpy.mockRestore();
     });
   });
 

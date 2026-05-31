@@ -53,7 +53,12 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { colors, spacing, typography } from "@theme/index";
 import { RootStackParamList } from "@navigation/types";
-import { useEvents, UserEvent } from "@context/EventsContext";
+import {
+  ApiEvent,
+  mapApiEventToUserEvent,
+  useEvents,
+  UserEvent,
+} from "@context/EventsContext";
 import { useAuth } from "@context/AuthContext";
 import { useChat, ChatJoinRequest } from "@context/ChatContext";
 import { API_BASE_URL } from "@api/config";
@@ -76,7 +81,11 @@ type EventDetailsNavigation = NativeStackNavigationProp<
 >;
 
 
-const EventDetailsScreen = () => {
+const EventDetailsScreenContent = ({
+  initialEventSnapshot,
+}: {
+  initialEventSnapshot: UserEvent;
+}) => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
@@ -108,13 +117,17 @@ const EventDetailsScreen = () => {
     [events, route.params.eventId],
   );
   const [eventSnapshot, setEventSnapshot] = useState<UserEvent | null>(
-    () => rawEvent ?? null,
+    () => rawEvent ?? initialEventSnapshot,
   );
   useEffect(() => {
     if (rawEvent) {
       setEventSnapshot(rawEvent);
+    } else {
+      setEventSnapshot((prev) =>
+        prev?.id === route.params.eventId ? prev : initialEventSnapshot,
+      );
     }
-  }, [rawEvent]);
+  }, [initialEventSnapshot, rawEvent, route.params.eventId]);
   const event = eventSnapshot;
   const origin = (route.params as { origin?: string }).origin ?? "Events";
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
@@ -1299,7 +1312,11 @@ const EventDetailsScreen = () => {
             accessibilityRole="button"
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
             hitSlop={12}
-            style={[styles.overlayCloseButton, styles.overlayCloseButtonFixed]}
+            style={[
+              styles.overlayCloseButton,
+              styles.overlayCloseButtonFixed,
+              { top: insets.top + 10 },
+            ]}
           >
             <CloseIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
@@ -1991,6 +2008,99 @@ const EventDetailsScreen = () => {
       {screenContent}
     </SafeAreaView>
   );
+};
+
+const EventDetailsScreen = () => {
+  const navigation = useNavigation<EventDetailsNavigation>();
+  const route = useRoute<EventDetailsRoute>();
+  const { events } = useEvents();
+  const { token, authFetch } = useAuth();
+  const routeEventId = route.params.eventId;
+  const rawEvent = useMemo(
+    () => events.find((item) => item.id === routeEventId),
+    [events, routeEventId],
+  );
+  const [fetchedEvent, setFetchedEvent] = useState<UserEvent | null>(null);
+  const [isFetchingEvent, setIsFetchingEvent] = useState(
+    () => !rawEvent && !!token && !!authFetch,
+  );
+
+  useEffect(() => {
+    setFetchedEvent((prev) => (prev?.id === routeEventId ? prev : null));
+  }, [routeEventId]);
+
+  useEffect(() => {
+    if (rawEvent) {
+      setIsFetchingEvent(false);
+      return;
+    }
+    if (!authFetch || !token) {
+      setIsFetchingEvent(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsFetchingEvent(true);
+
+    const fetchEvent = async () => {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/api/events/${routeEventId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        const payload: { data?: ApiEvent | null } = await response.json();
+        if (!isCancelled && payload.data) {
+          setFetchedEvent(mapApiEventToUserEvent(payload.data));
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error("Failed to fetch event details", err);
+          setFetchedEvent(null);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsFetchingEvent(false);
+        }
+      }
+    };
+
+    fetchEvent();
+    return () => {
+      isCancelled = true;
+    };
+  }, [authFetch, rawEvent, routeEventId, token]);
+
+  const eventSnapshot =
+    rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
+
+  if (!eventSnapshot) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <View style={styles.fallbackContainer}>
+          {isFetchingEvent ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                onPress={navigation.goBack}
+                style={styles.fallbackBackButton}
+              >
+                <ChevronLeftIcon width={24} height={24} color={colors.text} />
+              </Pressable>
+              <Text style={styles.fallbackText}>We couldn't find that event.</Text>
+            </>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return <EventDetailsScreenContent initialEventSnapshot={eventSnapshot} />;
 };
 
 const styles = StyleSheet.create({
