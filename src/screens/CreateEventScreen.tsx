@@ -79,6 +79,29 @@ import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
 
 type ButtonLayout = { x: number; y: number; width: number; height: number };
+type CreateEventSheet =
+    | "age"
+    | "gender"
+    | "groupType"
+    | "cover"
+    | "dateTime"
+    | "location"
+    | "signIn";
+
+const SHEET_CLOSE_DURATION_MS = 320;
+const KEYBOARD_SHEET_SETTLE_DELAY_MS = Platform.OS === "ios" ? 90 : 140;
+const KEYBOARD_SHEET_OPEN_FALLBACK_MS = Platform.OS === "ios" ? 420 : 360;
+
+const logCreateEventSheetDebug = (
+    event: string,
+    details: Record<string, unknown> = {},
+) => {
+    if (!__DEV__) return;
+    console.log(`[CreateEventSheet] ${event}`, {
+        timestamp: new Date().toISOString(),
+        ...details,
+    });
+};
 
 type FormState = {
     eventName: string;
@@ -188,16 +211,17 @@ const CreateEventScreen = () => {
         editEvent?.coverKey ?? DEFAULT_COVER_KEY,
     );
 
-    // Modal visibility state
-    const [isAgePickerVisible, setAgePickerVisible] = useState(false);
-    const [isGenderPickerVisible, setGenderPickerVisible] = useState(false);
-    const [isGroupTypePickerVisible, setGroupTypePickerVisible] = useState(false);
-    const [isCoverPickerVisible, setCoverPickerVisible] = useState(false);
-    const [isDateTimePickerVisible, setDateTimePickerVisible] = useState(false);
-    const [isLocationPickerVisible, setLocationPickerVisible] = useState(false);
-
-    // Sign-in modal state
-    const [signInVisible, setSignInVisible] = useState(false);
+    // Sheet state
+    const [activeSheet, setActiveSheet] = useState<CreateEventSheet | null>(null);
+    const [renderedSheet, setRenderedSheet] = useState<CreateEventSheet | null>(null);
+    const activeSheetRef = useRef<CreateEventSheet | null>(null);
+    const renderedSheetRef = useRef<CreateEventSheet | null>(null);
+    const keyboardVisibleRef = useRef(false);
+    const focusedInputRef = useRef<"title" | "description" | null>(null);
+    const pendingSheetRef = useRef<CreateEventSheet | null>(null);
+    const pendingSheetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const keyboardSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const renderedSheetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Submission state
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -238,13 +262,193 @@ const CreateEventScreen = () => {
 
     const pickerMinDate = useMemo(
         () => new Date(),
-        [isDateTimePickerVisible],
+        [activeSheet],
     );
 
     const pickerMaxDate = useMemo(
         () => getMaxEventDateTime(new Date(), EVENT_DATE_WINDOW_DAYS),
-        [isDateTimePickerVisible],
+        [activeSheet],
     );
+
+    useEffect(() => {
+        activeSheetRef.current = activeSheet;
+    }, [activeSheet]);
+
+    useEffect(() => {
+        renderedSheetRef.current = renderedSheet;
+    }, [renderedSheet]);
+
+    const clearPendingSheetOpen = useCallback(() => {
+        if (pendingSheetTimerRef.current) {
+            logCreateEventSheetDebug("clear pending open timer", {
+                pendingSheet: pendingSheetRef.current,
+            });
+            clearTimeout(pendingSheetTimerRef.current);
+            pendingSheetTimerRef.current = null;
+        }
+        if (keyboardSettleTimerRef.current) {
+            logCreateEventSheetDebug("clear keyboard settle timer", {
+                pendingSheet: pendingSheetRef.current,
+            });
+            clearTimeout(keyboardSettleTimerRef.current);
+            keyboardSettleTimerRef.current = null;
+        }
+        pendingSheetRef.current = null;
+    }, []);
+
+    const clearRenderedSheetClose = useCallback(() => {
+        if (renderedSheetTimerRef.current) {
+            logCreateEventSheetDebug("clear rendered close timer", {
+                activeSheet: activeSheetRef.current,
+                renderedSheet: renderedSheetRef.current,
+            });
+            clearTimeout(renderedSheetTimerRef.current);
+            renderedSheetTimerRef.current = null;
+        }
+    }, []);
+
+    const presentSheet = useCallback(
+        (sheet: CreateEventSheet) => {
+            logCreateEventSheetDebug("present sheet", {
+                sheet,
+                activeSheet: activeSheetRef.current,
+                renderedSheet: renderedSheetRef.current,
+                keyboardVisible: keyboardVisibleRef.current,
+            });
+            clearRenderedSheetClose();
+            setRenderedSheet(sheet);
+            setActiveSheet(sheet);
+        },
+        [clearRenderedSheetClose],
+    );
+
+    const closeSheetImmediately = useCallback(() => {
+        logCreateEventSheetDebug("close sheet immediately", {
+            activeSheet: activeSheetRef.current,
+            renderedSheet: renderedSheetRef.current,
+            pendingSheet: pendingSheetRef.current,
+        });
+        clearPendingSheetOpen();
+        clearRenderedSheetClose();
+        setActiveSheet(null);
+        setRenderedSheet(null);
+    }, [clearPendingSheetOpen, clearRenderedSheetClose]);
+
+    const closeActiveSheet = useCallback(() => {
+        logCreateEventSheetDebug("close active sheet", {
+            activeSheet: activeSheetRef.current,
+            renderedSheet: renderedSheetRef.current,
+            pendingSheet: pendingSheetRef.current,
+        });
+        clearPendingSheetOpen();
+        setActiveSheet(null);
+        clearRenderedSheetClose();
+        const sheetToUnmount = renderedSheetRef.current;
+        renderedSheetTimerRef.current = setTimeout(() => {
+            logCreateEventSheetDebug("unmount rendered sheet after close", {
+                renderedSheet: sheetToUnmount,
+            });
+            setRenderedSheet(null);
+            renderedSheetTimerRef.current = null;
+        }, SHEET_CLOSE_DURATION_MS);
+    }, [clearPendingSheetOpen, clearRenderedSheetClose]);
+
+    const openSheet = useCallback(
+        (sheet: CreateEventSheet) => {
+            logCreateEventSheetDebug("request open sheet", {
+                requestedSheet: sheet,
+                activeSheet: activeSheetRef.current,
+                renderedSheet: renderedSheetRef.current,
+                pendingSheet: pendingSheetRef.current,
+                keyboardVisible: keyboardVisibleRef.current,
+                focusedInput: focusedInputRef.current,
+            });
+            clearPendingSheetOpen();
+            Keyboard.dismiss();
+
+            if (keyboardVisibleRef.current) {
+                pendingSheetRef.current = sheet;
+                logCreateEventSheetDebug("delay sheet until keyboard hide", {
+                    requestedSheet: sheet,
+                    fallbackMs: KEYBOARD_SHEET_OPEN_FALLBACK_MS,
+                    focusedInput: focusedInputRef.current,
+                });
+                pendingSheetTimerRef.current = setTimeout(() => {
+                    if (pendingSheetRef.current !== sheet) {
+                        logCreateEventSheetDebug("skip stale pending sheet", {
+                            timerSheet: sheet,
+                            pendingSheet: pendingSheetRef.current,
+                        });
+                        return;
+                    }
+                    pendingSheetRef.current = null;
+                    pendingSheetTimerRef.current = null;
+                    logCreateEventSheetDebug("fallback presenting pending sheet", {
+                        requestedSheet: sheet,
+                        settleDelayMs: KEYBOARD_SHEET_SETTLE_DELAY_MS,
+                    });
+                    keyboardSettleTimerRef.current = setTimeout(() => {
+                        keyboardSettleTimerRef.current = null;
+                        presentSheet(sheet);
+                    }, KEYBOARD_SHEET_SETTLE_DELAY_MS);
+                }, KEYBOARD_SHEET_OPEN_FALLBACK_MS);
+                return;
+            }
+
+            presentSheet(sheet);
+        },
+        [clearPendingSheetOpen, presentSheet],
+    );
+
+    useEffect(() => {
+        const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+            keyboardVisibleRef.current = true;
+            logCreateEventSheetDebug("keyboard did show", {
+                activeSheet: activeSheetRef.current,
+                renderedSheet: renderedSheetRef.current,
+                pendingSheet: pendingSheetRef.current,
+                focusedInput: focusedInputRef.current,
+            });
+        });
+        const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+            keyboardVisibleRef.current = false;
+            const pendingSheet = pendingSheetRef.current;
+            logCreateEventSheetDebug("keyboard did hide", {
+                activeSheet: activeSheetRef.current,
+                renderedSheet: renderedSheetRef.current,
+                pendingSheet,
+                focusedInput: focusedInputRef.current,
+            });
+            if (!pendingSheet) {
+                return;
+            }
+            if (pendingSheetTimerRef.current) {
+                clearTimeout(pendingSheetTimerRef.current);
+                pendingSheetTimerRef.current = null;
+            }
+            pendingSheetRef.current = null;
+            logCreateEventSheetDebug("present pending sheet after keyboard hide", {
+                pendingSheet,
+                settleDelayMs: KEYBOARD_SHEET_SETTLE_DELAY_MS,
+            });
+            keyboardSettleTimerRef.current = setTimeout(() => {
+                keyboardSettleTimerRef.current = null;
+                presentSheet(pendingSheet);
+            }, KEYBOARD_SHEET_SETTLE_DELAY_MS);
+        });
+
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, [clearPendingSheetOpen, presentSheet]);
+
+    useEffect(() => {
+        return () => {
+            clearPendingSheetOpen();
+            clearRenderedSheetClose();
+        };
+    }, [clearPendingSheetOpen, clearRenderedSheetClose]);
 
     const resetForm = useCallback(() => {
         setEventName("");
@@ -259,12 +463,10 @@ const CreateEventScreen = () => {
         setLatitude(undefined);
         setLongitude(undefined);
         setCoverKey(DEFAULT_COVER_KEY);
-        setAgePickerVisible(false);
-        setCoverPickerVisible(false);
-        setDateTimePickerVisible(false);
+        closeSheetImmediately();
         setSubmitError(null);
         setIsSubmitting(false);
-    }, []);
+    }, [closeSheetImmediately]);
 
     const applyEventToForm = useCallback((current: UserEvent) => {
         setEventName(current.title);
@@ -279,11 +481,9 @@ const CreateEventScreen = () => {
         setLatitude(current.latitude);
         setLongitude(current.longitude);
         setCoverKey(current.coverKey ?? DEFAULT_COVER_KEY);
-        setAgePickerVisible(false);
-        setCoverPickerVisible(false);
-        setDateTimePickerVisible(false);
+        closeSheetImmediately();
         setSubmitError(null);
-    }, []);
+    }, [closeSheetImmediately]);
 
     const getCurrentFormState = useCallback(
         (): FormState => ({
@@ -325,51 +525,48 @@ const CreateEventScreen = () => {
     );
 
     useEffect(() => {
-        if (user && signInVisible) {
-            setSignInVisible(false);
+        if (user && activeSheet === "signIn") {
+            closeActiveSheet();
         }
-    }, [user, signInVisible]);
+    }, [activeSheet, closeActiveSheet, user]);
 
     // Open modal handlers - set temp to current value
     const openAgePicker = useCallback(() => {
-        Keyboard.dismiss();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempAgeRange(ageRange);
-        setAgePickerVisible(true);
-    }, [ageRange]);
+        openSheet("age");
+    }, [ageRange, openSheet]);
 
     const openGenderPicker = useCallback(() => {
-        Keyboard.dismiss();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempGender(gender);
-        setGenderPickerVisible(true);
-    }, [gender]);
+        openSheet("gender");
+    }, [gender, openSheet]);
 
     const openGroupTypePicker = useCallback(() => {
-        Keyboard.dismiss();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setTempGroupType(groupType);
-        setGroupTypePickerVisible(true);
-    }, [groupType]);
+        openSheet("groupType");
+    }, [groupType, openSheet]);
 
     // Confirm selection handlers
     const confirmAgeSelection = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setAgeRange(tempAgeRange);
-        setAgePickerVisible(false);
-    }, [tempAgeRange]);
+        closeActiveSheet();
+    }, [closeActiveSheet, tempAgeRange]);
 
     const confirmGenderSelection = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setGender(tempGender);
-        setGenderPickerVisible(false);
-    }, [tempGender]);
+        closeActiveSheet();
+    }, [closeActiveSheet, tempGender]);
 
     const confirmGroupTypeSelection = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setGroupType(tempGroupType);
-        setGroupTypePickerVisible(false);
-    }, [tempGroupType]);
+        closeActiveSheet();
+    }, [closeActiveSheet, tempGroupType]);
 
     const selectedCoverUri = useMemo(
         () => resolveCover(coverKey),
@@ -391,8 +588,8 @@ const CreateEventScreen = () => {
     const handleCoverSelect = useCallback((key: CoverKey) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setCoverKey(key);
-        setCoverPickerVisible(false);
-    }, []);
+        closeActiveSheet();
+    }, [closeActiveSheet]);
 
     const handleLocationSelect = useCallback((place: PlaceDetail) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -405,8 +602,8 @@ const CreateEventScreen = () => {
         setPlaceId(place.placeId);
         setLatitude(place.latitude);
         setLongitude(place.longitude);
-        setLocationPickerVisible(false);
-    }, []);
+        closeActiveSheet();
+    }, [closeActiveSheet]);
 
     const handleSubmit = useCallback(
         async (formOverride?: FormState) => {
@@ -641,7 +838,7 @@ const CreateEventScreen = () => {
 
             // Always open sign-in modal (no validation blocking for empty fields)
             setSubmitError(null);
-            setSignInVisible(true);
+            openSheet("signIn");
             return;
         }
 
@@ -712,9 +909,8 @@ const CreateEventScreen = () => {
             <Pressable
                 style={styles.coverCard}
                 onPress={() => {
-                    Keyboard.dismiss();
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setCoverPickerVisible(true);
+                    openSheet("cover");
                 }}
                 accessibilityRole="button"
             >
@@ -730,6 +926,26 @@ const CreateEventScreen = () => {
                         placeholder="Event Name"
                         value={eventName}
                         onChangeText={setEventName}
+                        onFocus={() => {
+                            focusedInputRef.current = "title";
+                            logCreateEventSheetDebug("text input focused", {
+                                focusedInput: "title",
+                                keyboardVisible: keyboardVisibleRef.current,
+                                activeSheet,
+                                renderedSheet,
+                            });
+                        }}
+                        onBlur={() => {
+                            logCreateEventSheetDebug("text input blurred", {
+                                focusedInput: "title",
+                                keyboardVisible: keyboardVisibleRef.current,
+                                activeSheet,
+                                renderedSheet,
+                            });
+                            if (focusedInputRef.current === "title") {
+                                focusedInputRef.current = null;
+                            }
+                        }}
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         cursorColor="#FFFFFF"
                         selectionColor="#FFFFFF"
@@ -740,6 +956,26 @@ const CreateEventScreen = () => {
                         placeholder="Description"
                         value={description}
                         onChangeText={setDescription}
+                        onFocus={() => {
+                            focusedInputRef.current = "description";
+                            logCreateEventSheetDebug("text input focused", {
+                                focusedInput: "description",
+                                keyboardVisible: keyboardVisibleRef.current,
+                                activeSheet,
+                                renderedSheet,
+                            });
+                        }}
+                        onBlur={() => {
+                            logCreateEventSheetDebug("text input blurred", {
+                                focusedInput: "description",
+                                keyboardVisible: keyboardVisibleRef.current,
+                                activeSheet,
+                                renderedSheet,
+                            });
+                            if (focusedInputRef.current === "description") {
+                                focusedInputRef.current = null;
+                            }
+                        }}
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         cursorColor="#FFFFFF"
                         selectionColor="#FFFFFF"
@@ -799,9 +1035,8 @@ const CreateEventScreen = () => {
                     <Pressable
                         style={[styles.fieldRow, styles.dateRow]}
                         onPress={() => {
-                            Keyboard.dismiss();
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setDateTimePickerVisible(true);
+                            openSheet("dateTime");
                         }}
                     >
                         <Text style={styles.fieldLabel}>Date & Time</Text>
@@ -820,9 +1055,8 @@ const CreateEventScreen = () => {
                     <Pressable
                         style={[styles.fieldRow, styles.locationRow]}
                         onPress={() => {
-                            Keyboard.dismiss();
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setLocationPickerVisible(true);
+                            openSheet("location");
                         }}
                     >
                         <Text style={styles.fieldLabel}>Location</Text>
@@ -938,78 +1172,88 @@ const CreateEventScreen = () => {
                 </View>
             </SafeAreaView>
 
-            <EventDateTimeModal
-                visible={isDateTimePickerVisible}
-                value={selectedDateTime}
-                minDate={pickerMinDate}
-                maxDate={pickerMaxDate}
-                onClose={() => setDateTimePickerVisible(false)}
-                onConfirm={(value) => {
-                    setSelectedDateTime(value);
-                    setDateTimePickerVisible(false);
-                }}
-            />
+            {renderedSheet === "dateTime" && (
+                <EventDateTimeModal
+                    visible={activeSheet === "dateTime"}
+                    value={selectedDateTime}
+                    minDate={pickerMinDate}
+                    maxDate={pickerMaxDate}
+                    onClose={closeActiveSheet}
+                    onConfirm={(value) => {
+                        setSelectedDateTime(value);
+                        closeActiveSheet();
+                    }}
+                />
+            )}
 
-            {/* Cover Picker Modal */}
-            <CoverPickerModal
-                visible={isCoverPickerVisible}
-                selectedCoverKey={coverKey}
-                onSelect={handleCoverSelect}
-                onClose={() => setCoverPickerVisible(false)}
-            />
+            {renderedSheet === "cover" && (
+                <CoverPickerModal
+                    visible={activeSheet === "cover"}
+                    selectedCoverKey={coverKey}
+                    onSelect={handleCoverSelect}
+                    onClose={closeActiveSheet}
+                />
+            )}
 
-            {/* Group Type Selection Modal */}
-            <SelectionModal
-                visible={isGroupTypePickerVisible}
-                title="Group Type"
-                options={groupOptions}
-                selectedValue={tempGroupType}
-                onSelect={setTempGroupType}
-                onConfirm={confirmGroupTypeSelection}
-                onClose={() => setGroupTypePickerVisible(false)}
-                getLabel={(opt) => groupDisplayLabels[opt]}
-                getKey={(opt) => opt}
-                isSelected={(opt, sel) => opt === sel}
-            />
+            {renderedSheet === "groupType" && (
+                <SelectionModal
+                    visible={activeSheet === "groupType"}
+                    title="Group Type"
+                    options={groupOptions}
+                    selectedValue={tempGroupType}
+                    onSelect={setTempGroupType}
+                    onConfirm={confirmGroupTypeSelection}
+                    onClose={closeActiveSheet}
+                    getLabel={(opt) => groupDisplayLabels[opt]}
+                    getKey={(opt) => opt}
+                    isSelected={(opt, sel) => opt === sel}
+                />
+            )}
 
-            {/* Gender Selection Modal */}
-            <SelectionModal
-                visible={isGenderPickerVisible}
-                title="Gender"
-                options={genderOptions}
-                selectedValue={tempGender}
-                onSelect={setTempGender}
-                onConfirm={confirmGenderSelection}
-                onClose={() => setGenderPickerVisible(false)}
-                getLabel={(opt) => genderDisplayLabels[opt]}
-                getKey={(opt) => opt}
-                isSelected={(opt, sel) => opt === sel}
-            />
+            {renderedSheet === "gender" && (
+                <SelectionModal
+                    visible={activeSheet === "gender"}
+                    title="Gender"
+                    options={genderOptions}
+                    selectedValue={tempGender}
+                    onSelect={setTempGender}
+                    onConfirm={confirmGenderSelection}
+                    onClose={closeActiveSheet}
+                    getLabel={(opt) => genderDisplayLabels[opt]}
+                    getKey={(opt) => opt}
+                    isSelected={(opt, sel) => opt === sel}
+                />
+            )}
 
-            {/* Age Selection Modal */}
-            <SelectionModal<AgeOption>
-                visible={isAgePickerVisible}
-                title="Age"
-                options={ageOptions}
-                selectedValue={{ label: "", min: tempAgeRange[0], max: tempAgeRange[1] }}
-                onSelect={(opt) => setTempAgeRange([opt.min, opt.max])}
-                onConfirm={confirmAgeSelection}
-                onClose={() => setAgePickerVisible(false)}
-                getLabel={(opt) => opt.label}
-                getKey={(opt) => opt.label}
-                isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
-            />
+            {renderedSheet === "age" && (
+                <SelectionModal<AgeOption>
+                    visible={activeSheet === "age"}
+                    title="Age"
+                    options={ageOptions}
+                    selectedValue={{ label: "", min: tempAgeRange[0], max: tempAgeRange[1] }}
+                    onSelect={(opt) => setTempAgeRange([opt.min, opt.max])}
+                    onConfirm={confirmAgeSelection}
+                    onClose={closeActiveSheet}
+                    getLabel={(opt) => opt.label}
+                    getKey={(opt) => opt.label}
+                    isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
+                />
+            )}
 
-            <LocationPickerModal
-                visible={isLocationPickerVisible}
-                onClose={() => setLocationPickerVisible(false)}
-                onSelect={handleLocationSelect}
-                initialQuery={selectedLocationLabel}
-            />
+            {renderedSheet === "location" && (
+                <LocationPickerModal
+                    visible={activeSheet === "location"}
+                    onClose={closeActiveSheet}
+                    onSelect={handleLocationSelect}
+                    initialQuery={selectedLocationLabel}
+                />
+            )}
 
-            <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
-                <SignInButtons />
-            </BottomSheetModal>
+            {renderedSheet === "signIn" && (
+                <BottomSheetModal visible={activeSheet === "signIn"} onClose={closeActiveSheet}>
+                    <SignInButtons />
+                </BottomSheetModal>
+            )}
 
         </View>
     );

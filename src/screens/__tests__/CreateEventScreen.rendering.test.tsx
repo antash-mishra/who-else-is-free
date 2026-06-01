@@ -162,6 +162,21 @@ describe('CreateEventScreen Rendering', () => {
     expect(screen.getByText('Update Time')).toBeTruthy();
   });
 
+  it('preserves typed text when opening a sheet field', () => {
+    render(<CreateEventScreen />);
+
+    const titleInput = screen.getByPlaceholderText('Event Name');
+    const descriptionInput = screen.getByPlaceholderText('Description');
+
+    fireEvent.changeText(titleInput, 'Coffee Meetup');
+    fireEvent.changeText(descriptionInput, 'Casual chat');
+    fireEvent.press(screen.getByText('Gender'));
+
+    expect(screen.getByPlaceholderText('Event Name').props.value).toBe('Coffee Meetup');
+    expect(screen.getByPlaceholderText('Description').props.value).toBe('Casual chat');
+    expect(screen.getAllByText('Gender').length).toBeGreaterThan(0);
+  });
+
   it('shows validation error for empty name and description', async () => {
     render(<CreateEventScreen />);
 
