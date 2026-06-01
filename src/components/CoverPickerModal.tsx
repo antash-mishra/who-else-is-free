@@ -19,56 +19,66 @@ export type CoverPickerModalProps = {
     onClose: () => void;
 };
 
+type CoverPickerContentProps = Omit<CoverPickerModalProps, "visible" | "onClose">;
+
 const LIST_MAX_HEIGHT = Dimensions.get("window").height * 0.5;
 
-const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
-    visible,
+export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
     selectedCoverKey,
     onSelect,
-    onClose,
 }) => {
     const { bottom } = useSafeAreaInsets();
     const { covers } = useCovers();
     return (
+        <View style={{ maxHeight: LIST_MAX_HEIGHT, marginBottom: -(8 + bottom) }}>
+            <FlatList
+                data={covers}
+                numColumns={2}
+                keyExtractor={(item) => item.key}
+                columnWrapperStyle={styles.column}
+                contentContainerStyle={styles.grid}
+                renderItem={({ item }) => {
+                    const isSelected = item.key === selectedCoverKey;
+                    return (
+                        <View style={[styles.optionRing, isSelected && styles.optionRingSelected]}>
+                            <Pressable
+                                style={styles.option}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    onSelect(item.key);
+                                }}
+                            >
+                                <View style={styles.optionImageWrapper}>
+                                    <Image
+                                        source={item.source}
+                                        style={styles.optionImage}
+                                        contentFit="cover"
+                                    />
+                                </View>
+                                {isSelected && (
+                                    <BlurView intensity={60} tint="dark" style={styles.checkBadge}>
+                                        <CheckSelectedCoverIcon width={14} height={14} />
+                                    </BlurView>
+                                )}
+                            </Pressable>
+                        </View>
+                    );
+                }}
+                ListFooterComponent={<View style={{ height: spacing.md }} />}
+                showsVerticalScrollIndicator={false}
+            />
+        </View>
+    );
+};
+
+const CoverPickerModal: React.FC<CoverPickerModalProps> = ({
+    visible,
+    onClose,
+    ...contentProps
+}) => {
+    return (
         <BottomSheetModal visible={visible} onClose={onClose} title="Choose a cover">
-            <View style={{ maxHeight: LIST_MAX_HEIGHT, marginBottom: -(8 + bottom) }}>
-                <FlatList
-                    data={covers}
-                    numColumns={2}
-                    keyExtractor={(item) => item.key}
-                    columnWrapperStyle={styles.column}
-                    contentContainerStyle={styles.grid}
-                    renderItem={({ item }) => {
-                        const isSelected = item.key === selectedCoverKey;
-                        return (
-                            <View style={[styles.optionRing, isSelected && styles.optionRingSelected]}>
-                                <Pressable
-                                    style={styles.option}
-                                    onPress={() => {
-                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                        onSelect(item.key);
-                                    }}
-                                >
-                                    <View style={styles.optionImageWrapper}>
-                                        <Image
-                                            source={item.source}
-                                            style={styles.optionImage}
-                                            contentFit="cover"
-                                        />
-                                    </View>
-                                    {isSelected && (
-                                        <BlurView intensity={60} tint="dark" style={styles.checkBadge}>
-                                            <CheckSelectedCoverIcon width={14} height={14} />
-                                        </BlurView>
-                                    )}
-                                </Pressable>
-                            </View>
-                        );
-                    }}
-                    ListFooterComponent={<View style={{ height: spacing.md }} />}
-                    showsVerticalScrollIndicator={false}
-                />
-            </View>
+            <CoverPickerContent {...contentProps} />
         </BottomSheetModal>
     );
 };

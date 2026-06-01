@@ -18,20 +18,22 @@ export type SelectionModalProps<T> = {
     isSelected: (option: T, selected: T) => boolean;
 };
 
-function SelectionModal<T>({
-    visible,
-    title,
+type SelectionModalContentProps<T> = Omit<
+    SelectionModalProps<T>,
+    "visible" | "title" | "onClose"
+>;
+
+export function SelectionModalContent<T>({
     options,
     selectedValue,
     onSelect,
     onConfirm,
-    onClose,
     getLabel,
     getKey,
     isSelected,
-}: SelectionModalProps<T>) {
+}: SelectionModalContentProps<T>) {
     return (
-        <BottomSheetModal visible={visible} onClose={onClose} title={title}>
+        <>
             <View style={styles.chipsContainer}>
                 {options.map((option) => {
                     const selected = isSelected(option, selectedValue);
@@ -60,6 +62,19 @@ function SelectionModal<T>({
             >
                 <Text style={styles.selectButtonText}>Select</Text>
             </Pressable>
+        </>
+    );
+}
+
+function SelectionModal<T>({
+    visible,
+    title,
+    onClose,
+    ...contentProps
+}: SelectionModalProps<T>) {
+    return (
+        <BottomSheetModal visible={visible} onClose={onClose} title={title}>
+            <SelectionModalContent {...contentProps} />
         </BottomSheetModal>
     );
 }

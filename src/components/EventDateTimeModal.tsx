@@ -36,7 +36,7 @@ const HOUR_SNAP_OFFSETS = HOURS_LOOPED.map((_, index) => index * WHEEL_ITEM_HEIG
 const MINUTE_SNAP_OFFSETS = MINUTES_LOOPED.map((_, index) => index * WHEEL_ITEM_HEIGHT);
 const AMPM_SNAP_OFFSETS = AMPM.map((_, index) => index * WHEEL_ITEM_HEIGHT);
 
-type EventDateTimeModalProps = {
+export type EventDateTimeModalProps = {
     visible: boolean;
     value: Date;
     minDate: Date;
@@ -44,6 +44,8 @@ type EventDateTimeModalProps = {
     onClose: () => void;
     onConfirm: (value: Date) => void;
 };
+
+type EventDateTimePickerContentProps = Omit<EventDateTimeModalProps, "onClose">;
 
 const toSafeDate = (value: Date) => {
     if (Number.isNaN(value.getTime())) {
@@ -100,14 +102,13 @@ const indexToHour24 = (hourIndex: number, amPmIndex: number): number => {
     return hourLabel === 12 ? 12 : hourLabel + 12;
 };
 
-const EventDateTimeModal = ({
+export const EventDateTimePickerContent = ({
     visible,
     value,
     minDate,
     maxDate,
-    onClose,
     onConfirm,
-}: EventDateTimeModalProps) => {
+}: EventDateTimePickerContentProps) => {
     const [draftValue, setDraftValue] = useState(() =>
         clampDateTime(toSafeDate(value), minDate, maxDate),
     );
@@ -345,7 +346,7 @@ const EventDateTimeModal = ({
     );
 
     return (
-        <BottomSheetModal visible={visible} onClose={onClose} title="When is your event?">
+        <>
             <View style={styles.pickerContainer}>
                 {/* Selection indicator: two thin lines framing the centre row */}
                 <View pointerEvents="none" style={styles.selectionIndicator}>
@@ -432,6 +433,17 @@ const EventDateTimeModal = ({
             <Pressable style={styles.confirmButton} onPress={handleConfirm}>
                 <Text style={styles.confirmButtonText}>Update Time</Text>
             </Pressable>
+        </>
+    );
+};
+
+const EventDateTimeModal = ({
+    onClose,
+    ...contentProps
+}: EventDateTimeModalProps) => {
+    return (
+        <BottomSheetModal visible={contentProps.visible} onClose={onClose} title="When is your event?">
+            <EventDateTimePickerContent {...contentProps} />
         </BottomSheetModal>
     );
 };

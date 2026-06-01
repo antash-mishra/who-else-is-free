@@ -26,7 +26,7 @@ export type LocationPickerModalProps = {
     initialQuery?: string;
 };
 
-const LocationPickerModal = ({
+export const LocationPickerContent = ({
     visible,
     onClose,
     onSelect,
@@ -37,10 +37,6 @@ const LocationPickerModal = ({
     const { results, loading, error: autocompleteError, search, clear } = usePlacesAutocomplete();
     const [selectingId, setSelectingId] = useState<string | null>(null);
     const [selectionError, setSelectionError] = useState<string | null>(null);
-    const sheetHeight = useMemo(
-        () => Math.round(windowHeight * 0.9),
-        [windowHeight],
-    );
 
     useEffect(() => {
         if (visible) {
@@ -93,96 +89,101 @@ const LocationPickerModal = ({
     const shouldCenterResults = Boolean(error);
 
     return (
-        <BottomSheetModal visible={visible} onClose={onClose} title="Select Location" avoidKeyboard={false} snapHeight={sheetHeight}>
-            <View style={[styles.container, { flex: 1 }]}>
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <SearchIcon width={16} height={16} color="#8E8E93" />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search Location"
-                        placeholderTextColor="#C7C7CC"
-                        value={query}
-                        onChangeText={handleQueryChange}
-                        autoFocus
-                        returnKeyType="search"
-                        underlineColorAndroid="transparent"
-                        onSubmitEditing={() => search(query)}
-                    />
-                </View>
-
-                <ScrollView
-                    style={[styles.resultsList, { maxHeight: Math.round(windowHeight * 0.35) }]}
-                    contentContainerStyle={[
-                        styles.resultsContent,
-                        { flexGrow: 1 },
-                        shouldCenterResults && styles.resultsContentCentered,
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    {/* Loading State */}
-                    {loading && (
-                        <View style={styles.inlineLoadingContainer}>
-                            <ActivityIndicator size="small" color="#8E8E93" />
-                            <Text style={styles.inlineHintNopad}>Searching places...</Text>
-                        </View>
-                    )}
-
-                    {/* Error State */}
-                    {error && !loading && (
-                        <View style={styles.errorContainer}>
-                            <Text style={styles.errorText}>{error}</Text>
-                            <Text style={styles.errorRetryText}>
-                                Search again or choose another result
-                            </Text>
-                        </View>
-                    )}
-
-                    {/* Empty State */}
-                    {showEmpty && (
-                        <Text style={styles.inlineHint}>No places with this name found</Text>
-                    )}
-
-                    {/* Typing Hint */}
-                    {showTypingHint && (
-                        <Text style={styles.inlineHint}>Keep typing to discover places nearby...</Text>
-                    )}
-
-
-                    {/* Results */}
-                    {showResults && results.length > 0 && (
-                        <>
-                            {results.map((prediction, index) => (
-                                <Pressable
-                                    key={`${prediction.placeId}-${index}`}
-                                    style={({ pressed }) => [
-                                        styles.resultRow,
-                                        pressed && styles.resultRowPressed,
-                                    ]}
-                                    onPress={() => {
-                                        onClose();
-                                        handleSelect(prediction);
-                                    }}
-                                    disabled={selectingId === prediction.placeId}
-                                >
-                                    <View style={styles.resultTextContainer}>
-                                        <Text style={styles.resultMainText} numberOfLines={1}>
-                                            {prediction.mainText}
-                                        </Text>
-                                        <Text style={styles.resultSecondaryText} numberOfLines={1}>
-                                            {prediction.secondaryText}
-                                        </Text>
-                                    </View>
-                                    {selectingId === prediction.placeId && (
-                                        <ActivityIndicator size="small" color="#C7C7CC" />
-                                    )}
-                                </Pressable>
-                            ))}
-                        </>
-                    )}
-                </ScrollView>
+        <View style={[styles.container, { flex: 1 }]}>
+            <View style={styles.searchContainer}>
+                <SearchIcon width={16} height={16} color="#8E8E93" />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search Location"
+                    placeholderTextColor="#C7C7CC"
+                    value={query}
+                    onChangeText={handleQueryChange}
+                    autoFocus
+                    returnKeyType="search"
+                    underlineColorAndroid="transparent"
+                    onSubmitEditing={() => search(query)}
+                />
             </View>
+
+            <ScrollView
+                style={[styles.resultsList, { maxHeight: Math.round(windowHeight * 0.35) }]}
+                contentContainerStyle={[
+                    styles.resultsContent,
+                    { flexGrow: 1 },
+                    shouldCenterResults && styles.resultsContentCentered,
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {loading && (
+                    <View style={styles.inlineLoadingContainer}>
+                        <ActivityIndicator size="small" color="#8E8E93" />
+                        <Text style={styles.inlineHintNopad}>Searching places...</Text>
+                    </View>
+                )}
+
+                {error && !loading && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{error}</Text>
+                        <Text style={styles.errorRetryText}>
+                            Search again or choose another result
+                        </Text>
+                    </View>
+                )}
+
+                {showEmpty && (
+                    <Text style={styles.inlineHint}>No places with this name found</Text>
+                )}
+
+                {showTypingHint && (
+                    <Text style={styles.inlineHint}>Keep typing to discover places nearby...</Text>
+                )}
+
+                {showResults && results.length > 0 && (
+                    <>
+                        {results.map((prediction, index) => (
+                            <Pressable
+                                key={`${prediction.placeId}-${index}`}
+                                style={({ pressed }) => [
+                                    styles.resultRow,
+                                    pressed && styles.resultRowPressed,
+                                ]}
+                                onPress={() => {
+                                    onClose();
+                                    handleSelect(prediction);
+                                }}
+                                disabled={selectingId === prediction.placeId}
+                            >
+                                <View style={styles.resultTextContainer}>
+                                    <Text style={styles.resultMainText} numberOfLines={1}>
+                                        {prediction.mainText}
+                                    </Text>
+                                    <Text style={styles.resultSecondaryText} numberOfLines={1}>
+                                        {prediction.secondaryText}
+                                    </Text>
+                                </View>
+                                {selectingId === prediction.placeId && (
+                                    <ActivityIndicator size="small" color="#C7C7CC" />
+                                )}
+                            </Pressable>
+                        ))}
+                    </>
+                )}
+            </ScrollView>
+        </View>
+    );
+};
+
+const LocationPickerModal = (props: LocationPickerModalProps) => {
+    const { height: windowHeight } = useWindowDimensions();
+    const sheetHeight = useMemo(
+        () => Math.round(windowHeight * 0.9),
+        [windowHeight],
+    );
+
+    return (
+        <BottomSheetModal visible={props.visible} onClose={props.onClose} title="Select Location" avoidKeyboard={false} snapHeight={sheetHeight}>
+            <LocationPickerContent {...props} />
         </BottomSheetModal>
     );
 };

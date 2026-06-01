@@ -7,6 +7,7 @@ import {
     StyleSheet,
     Text,
     TextInput,
+    useWindowDimensions,
     View,
 } from "react-native";
 import Animated, {
@@ -69,12 +70,12 @@ import {
 import { formatEventLocationName } from "@utils/eventDisplay";
 import UploadIcon from "@assets/create-event/choose-cover.svg";
 import WarningIcon from "@assets/ui/error.svg";
-import SelectionModal from "@components/SelectionModal";
-import CoverPickerModal from "@components/CoverPickerModal";
-import EventDateTimeModal from "@components/EventDateTimeModal";
-import LocationPickerModal from "@components/LocationPickerModal";
+import CreateEventBottomSheet from "@components/CreateEventBottomSheet";
+import { SelectionModalContent } from "@components/SelectionModal";
+import { CoverPickerContent } from "@components/CoverPickerModal";
+import { EventDateTimePickerContent } from "@components/EventDateTimeModal";
+import { LocationPickerContent } from "@components/LocationPickerModal";
 import type { PlaceDetail } from "@hooks/usePlacesAutocomplete";
-import BottomSheetModal from "../components/BottomSheetModal";
 import SignInButtons from "../components/SignInButtons";
 import styles from "./CreateEventScreen.styles";
 
@@ -91,17 +92,6 @@ type CreateEventSheet =
 const SHEET_CLOSE_DURATION_MS = 320;
 const KEYBOARD_SHEET_SETTLE_DELAY_MS = Platform.OS === "ios" ? 90 : 140;
 const KEYBOARD_SHEET_OPEN_FALLBACK_MS = Platform.OS === "ios" ? 420 : 360;
-
-const logCreateEventSheetDebug = (
-    event: string,
-    details: Record<string, unknown> = {},
-) => {
-    if (!__DEV__) return;
-    console.log(`[CreateEventSheet] ${event}`, {
-        timestamp: new Date().toISOString(),
-        ...details,
-    });
-};
 
 type FormState = {
     eventName: string;
@@ -153,6 +143,7 @@ const getEventDateTime = (event?: UserEvent | null): Date => {
 const CreateEventScreen = () => {
     const navigation = useNavigation<CreateNavigation>();
     const route = useRoute<CreateRoute>();
+    const { height: windowHeight } = useWindowDimensions();
     const { addUserEvent, updateUserEvent, events, queueGuestEvent } =
         useEvents();
     const { user } = useAuth();
@@ -162,6 +153,10 @@ const CreateEventScreen = () => {
 
     // Responsive gap for spacing between form elements
     const responsiveGap = spacing.xs;
+    const locationSheetHeight = useMemo(
+        () => Math.round(windowHeight * 0.9),
+        [windowHeight],
+    );
 
     const editEventIdParam = route.params?.editEventId;
     const editEventId =
@@ -214,10 +209,8 @@ const CreateEventScreen = () => {
     // Sheet state
     const [activeSheet, setActiveSheet] = useState<CreateEventSheet | null>(null);
     const [renderedSheet, setRenderedSheet] = useState<CreateEventSheet | null>(null);
-    const activeSheetRef = useRef<CreateEventSheet | null>(null);
     const renderedSheetRef = useRef<CreateEventSheet | null>(null);
     const keyboardVisibleRef = useRef(false);
-    const focusedInputRef = useRef<"title" | "description" | null>(null);
     const pendingSheetRef = useRef<CreateEventSheet | null>(null);
     const pendingSheetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const keyboardSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -271,25 +264,15 @@ const CreateEventScreen = () => {
     );
 
     useEffect(() => {
-        activeSheetRef.current = activeSheet;
-    }, [activeSheet]);
-
-    useEffect(() => {
         renderedSheetRef.current = renderedSheet;
     }, [renderedSheet]);
 
     const clearPendingSheetOpen = useCallback(() => {
         if (pendingSheetTimerRef.current) {
-            logCreateEventSheetDebug("clear pending open timer", {
-                pendingSheet: pendingSheetRef.current,
-            });
             clearTimeout(pendingSheetTimerRef.current);
             pendingSheetTimerRef.current = null;
         }
         if (keyboardSettleTimerRef.current) {
-            logCreateEventSheetDebug("clear keyboard settle timer", {
-                pendingSheet: pendingSheetRef.current,
-            });
             clearTimeout(keyboardSettleTimerRef.current);
             keyboardSettleTimerRef.current = null;
         }
@@ -298,10 +281,6 @@ const CreateEventScreen = () => {
 
     const clearRenderedSheetClose = useCallback(() => {
         if (renderedSheetTimerRef.current) {
-            logCreateEventSheetDebug("clear rendered close timer", {
-                activeSheet: activeSheetRef.current,
-                renderedSheet: renderedSheetRef.current,
-            });
             clearTimeout(renderedSheetTimerRef.current);
             renderedSheetTimerRef.current = null;
         }
@@ -309,12 +288,6 @@ const CreateEventScreen = () => {
 
     const presentSheet = useCallback(
         (sheet: CreateEventSheet) => {
-            logCreateEventSheetDebug("present sheet", {
-                sheet,
-                activeSheet: activeSheetRef.current,
-                renderedSheet: renderedSheetRef.current,
-                keyboardVisible: keyboardVisibleRef.current,
-            });
             clearRenderedSheetClose();
             setRenderedSheet(sheet);
             setActiveSheet(sheet);
@@ -323,11 +296,6 @@ const CreateEventScreen = () => {
     );
 
     const closeSheetImmediately = useCallback(() => {
-        logCreateEventSheetDebug("close sheet immediately", {
-            activeSheet: activeSheetRef.current,
-            renderedSheet: renderedSheetRef.current,
-            pendingSheet: pendingSheetRef.current,
-        });
         clearPendingSheetOpen();
         clearRenderedSheetClose();
         setActiveSheet(null);
@@ -335,58 +303,33 @@ const CreateEventScreen = () => {
     }, [clearPendingSheetOpen, clearRenderedSheetClose]);
 
     const closeActiveSheet = useCallback(() => {
-        logCreateEventSheetDebug("close active sheet", {
-            activeSheet: activeSheetRef.current,
-            renderedSheet: renderedSheetRef.current,
-            pendingSheet: pendingSheetRef.current,
-        });
         clearPendingSheetOpen();
+        Keyboard.dismiss();
         setActiveSheet(null);
         clearRenderedSheetClose();
         const sheetToUnmount = renderedSheetRef.current;
         renderedSheetTimerRef.current = setTimeout(() => {
-            logCreateEventSheetDebug("unmount rendered sheet after close", {
-                renderedSheet: sheetToUnmount,
-            });
             setRenderedSheet(null);
+            if (renderedSheetRef.current === sheetToUnmount) {
+                renderedSheetRef.current = null;
+            }
             renderedSheetTimerRef.current = null;
         }, SHEET_CLOSE_DURATION_MS);
     }, [clearPendingSheetOpen, clearRenderedSheetClose]);
 
     const openSheet = useCallback(
         (sheet: CreateEventSheet) => {
-            logCreateEventSheetDebug("request open sheet", {
-                requestedSheet: sheet,
-                activeSheet: activeSheetRef.current,
-                renderedSheet: renderedSheetRef.current,
-                pendingSheet: pendingSheetRef.current,
-                keyboardVisible: keyboardVisibleRef.current,
-                focusedInput: focusedInputRef.current,
-            });
             clearPendingSheetOpen();
             Keyboard.dismiss();
 
             if (keyboardVisibleRef.current) {
                 pendingSheetRef.current = sheet;
-                logCreateEventSheetDebug("delay sheet until keyboard hide", {
-                    requestedSheet: sheet,
-                    fallbackMs: KEYBOARD_SHEET_OPEN_FALLBACK_MS,
-                    focusedInput: focusedInputRef.current,
-                });
                 pendingSheetTimerRef.current = setTimeout(() => {
                     if (pendingSheetRef.current !== sheet) {
-                        logCreateEventSheetDebug("skip stale pending sheet", {
-                            timerSheet: sheet,
-                            pendingSheet: pendingSheetRef.current,
-                        });
                         return;
                     }
                     pendingSheetRef.current = null;
                     pendingSheetTimerRef.current = null;
-                    logCreateEventSheetDebug("fallback presenting pending sheet", {
-                        requestedSheet: sheet,
-                        settleDelayMs: KEYBOARD_SHEET_SETTLE_DELAY_MS,
-                    });
                     keyboardSettleTimerRef.current = setTimeout(() => {
                         keyboardSettleTimerRef.current = null;
                         presentSheet(sheet);
@@ -403,22 +346,10 @@ const CreateEventScreen = () => {
     useEffect(() => {
         const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
             keyboardVisibleRef.current = true;
-            logCreateEventSheetDebug("keyboard did show", {
-                activeSheet: activeSheetRef.current,
-                renderedSheet: renderedSheetRef.current,
-                pendingSheet: pendingSheetRef.current,
-                focusedInput: focusedInputRef.current,
-            });
         });
         const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
             keyboardVisibleRef.current = false;
             const pendingSheet = pendingSheetRef.current;
-            logCreateEventSheetDebug("keyboard did hide", {
-                activeSheet: activeSheetRef.current,
-                renderedSheet: renderedSheetRef.current,
-                pendingSheet,
-                focusedInput: focusedInputRef.current,
-            });
             if (!pendingSheet) {
                 return;
             }
@@ -427,10 +358,6 @@ const CreateEventScreen = () => {
                 pendingSheetTimerRef.current = null;
             }
             pendingSheetRef.current = null;
-            logCreateEventSheetDebug("present pending sheet after keyboard hide", {
-                pendingSheet,
-                settleDelayMs: KEYBOARD_SHEET_SETTLE_DELAY_MS,
-            });
             keyboardSettleTimerRef.current = setTimeout(() => {
                 keyboardSettleTimerRef.current = null;
                 presentSheet(pendingSheet);
@@ -926,26 +853,6 @@ const CreateEventScreen = () => {
                         placeholder="Event Name"
                         value={eventName}
                         onChangeText={setEventName}
-                        onFocus={() => {
-                            focusedInputRef.current = "title";
-                            logCreateEventSheetDebug("text input focused", {
-                                focusedInput: "title",
-                                keyboardVisible: keyboardVisibleRef.current,
-                                activeSheet,
-                                renderedSheet,
-                            });
-                        }}
-                        onBlur={() => {
-                            logCreateEventSheetDebug("text input blurred", {
-                                focusedInput: "title",
-                                keyboardVisible: keyboardVisibleRef.current,
-                                activeSheet,
-                                renderedSheet,
-                            });
-                            if (focusedInputRef.current === "title") {
-                                focusedInputRef.current = null;
-                            }
-                        }}
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         cursorColor="#FFFFFF"
                         selectionColor="#FFFFFF"
@@ -956,26 +863,6 @@ const CreateEventScreen = () => {
                         placeholder="Description"
                         value={description}
                         onChangeText={setDescription}
-                        onFocus={() => {
-                            focusedInputRef.current = "description";
-                            logCreateEventSheetDebug("text input focused", {
-                                focusedInput: "description",
-                                keyboardVisible: keyboardVisibleRef.current,
-                                activeSheet,
-                                renderedSheet,
-                            });
-                        }}
-                        onBlur={() => {
-                            logCreateEventSheetDebug("text input blurred", {
-                                focusedInput: "description",
-                                keyboardVisible: keyboardVisibleRef.current,
-                                activeSheet,
-                                renderedSheet,
-                            });
-                            if (focusedInputRef.current === "description") {
-                                focusedInputRef.current = null;
-                            }
-                        }}
                         placeholderTextColor="rgba(255, 255, 255, 0.6)"
                         cursorColor="#FFFFFF"
                         selectionColor="#FFFFFF"
@@ -1141,6 +1028,99 @@ const CreateEventScreen = () => {
         </>
     );
 
+    const sheetTitle = (() => {
+        switch (renderedSheet) {
+            case "dateTime":
+                return "When is your event?";
+            case "cover":
+                return "Choose a cover";
+            case "groupType":
+                return "Group Type";
+            case "gender":
+                return "Gender";
+            case "age":
+                return "Age";
+            case "location":
+                return "Select Location";
+            default:
+                return undefined;
+        }
+    })();
+
+    const renderSheetContent = () => {
+        switch (renderedSheet) {
+            case "dateTime":
+                return (
+                    <EventDateTimePickerContent
+                        visible={activeSheet === "dateTime"}
+                        value={selectedDateTime}
+                        minDate={pickerMinDate}
+                        maxDate={pickerMaxDate}
+                        onConfirm={(value) => {
+                            setSelectedDateTime(value);
+                            closeActiveSheet();
+                        }}
+                    />
+                );
+            case "cover":
+                return (
+                    <CoverPickerContent
+                        selectedCoverKey={coverKey}
+                        onSelect={handleCoverSelect}
+                    />
+                );
+            case "groupType":
+                return (
+                    <SelectionModalContent
+                        options={groupOptions}
+                        selectedValue={tempGroupType}
+                        onSelect={setTempGroupType}
+                        onConfirm={confirmGroupTypeSelection}
+                        getLabel={(opt) => groupDisplayLabels[opt]}
+                        getKey={(opt) => opt}
+                        isSelected={(opt, sel) => opt === sel}
+                    />
+                );
+            case "gender":
+                return (
+                    <SelectionModalContent
+                        options={genderOptions}
+                        selectedValue={tempGender}
+                        onSelect={setTempGender}
+                        onConfirm={confirmGenderSelection}
+                        getLabel={(opt) => genderDisplayLabels[opt]}
+                        getKey={(opt) => opt}
+                        isSelected={(opt, sel) => opt === sel}
+                    />
+                );
+            case "age":
+                return (
+                    <SelectionModalContent<AgeOption>
+                        options={ageOptions}
+                        selectedValue={{ label: "", min: tempAgeRange[0], max: tempAgeRange[1] }}
+                        onSelect={(opt) => setTempAgeRange([opt.min, opt.max])}
+                        onConfirm={confirmAgeSelection}
+                        getLabel={(opt) => opt.label}
+                        getKey={(opt) => opt.label}
+                        isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
+                    />
+                );
+            case "location":
+                return (
+                    <LocationPickerContent
+                        visible={activeSheet === "location"}
+                        onClose={closeActiveSheet}
+                        onSelect={handleLocationSelect}
+                        initialQuery={selectedLocationLabel}
+                    />
+                );
+            case "signIn":
+                return <SignInButtons />;
+            default:
+                return null;
+        }
+    };
+
     return (
         <View style={styles.root}>
             <Image
@@ -1172,88 +1152,14 @@ const CreateEventScreen = () => {
                 </View>
             </SafeAreaView>
 
-            {renderedSheet === "dateTime" && (
-                <EventDateTimeModal
-                    visible={activeSheet === "dateTime"}
-                    value={selectedDateTime}
-                    minDate={pickerMinDate}
-                    maxDate={pickerMaxDate}
-                    onClose={closeActiveSheet}
-                    onConfirm={(value) => {
-                        setSelectedDateTime(value);
-                        closeActiveSheet();
-                    }}
-                />
-            )}
-
-            {renderedSheet === "cover" && (
-                <CoverPickerModal
-                    visible={activeSheet === "cover"}
-                    selectedCoverKey={coverKey}
-                    onSelect={handleCoverSelect}
-                    onClose={closeActiveSheet}
-                />
-            )}
-
-            {renderedSheet === "groupType" && (
-                <SelectionModal
-                    visible={activeSheet === "groupType"}
-                    title="Group Type"
-                    options={groupOptions}
-                    selectedValue={tempGroupType}
-                    onSelect={setTempGroupType}
-                    onConfirm={confirmGroupTypeSelection}
-                    onClose={closeActiveSheet}
-                    getLabel={(opt) => groupDisplayLabels[opt]}
-                    getKey={(opt) => opt}
-                    isSelected={(opt, sel) => opt === sel}
-                />
-            )}
-
-            {renderedSheet === "gender" && (
-                <SelectionModal
-                    visible={activeSheet === "gender"}
-                    title="Gender"
-                    options={genderOptions}
-                    selectedValue={tempGender}
-                    onSelect={setTempGender}
-                    onConfirm={confirmGenderSelection}
-                    onClose={closeActiveSheet}
-                    getLabel={(opt) => genderDisplayLabels[opt]}
-                    getKey={(opt) => opt}
-                    isSelected={(opt, sel) => opt === sel}
-                />
-            )}
-
-            {renderedSheet === "age" && (
-                <SelectionModal<AgeOption>
-                    visible={activeSheet === "age"}
-                    title="Age"
-                    options={ageOptions}
-                    selectedValue={{ label: "", min: tempAgeRange[0], max: tempAgeRange[1] }}
-                    onSelect={(opt) => setTempAgeRange([opt.min, opt.max])}
-                    onConfirm={confirmAgeSelection}
-                    onClose={closeActiveSheet}
-                    getLabel={(opt) => opt.label}
-                    getKey={(opt) => opt.label}
-                    isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
-                />
-            )}
-
-            {renderedSheet === "location" && (
-                <LocationPickerModal
-                    visible={activeSheet === "location"}
-                    onClose={closeActiveSheet}
-                    onSelect={handleLocationSelect}
-                    initialQuery={selectedLocationLabel}
-                />
-            )}
-
-            {renderedSheet === "signIn" && (
-                <BottomSheetModal visible={activeSheet === "signIn"} onClose={closeActiveSheet}>
-                    <SignInButtons />
-                </BottomSheetModal>
-            )}
+            <CreateEventBottomSheet
+                visible={activeSheet !== null}
+                title={sheetTitle}
+                onClose={closeActiveSheet}
+                snapHeight={renderedSheet === "location" ? locationSheetHeight : undefined}
+            >
+                {renderSheetContent()}
+            </CreateEventBottomSheet>
 
         </View>
     );

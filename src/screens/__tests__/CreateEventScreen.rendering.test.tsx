@@ -53,7 +53,7 @@ jest.mock('@components/LocationPickerModal', () => {
   const React = require('react');
   const { Pressable, Text, View } = require('react-native');
 
-  return function MockLocationPickerModal({
+  const MockLocationPicker = ({
     visible,
     onSelect,
   }: {
@@ -65,7 +65,7 @@ jest.mock('@components/LocationPickerModal', () => {
       latitude: number;
       longitude: number;
     }) => void;
-  }) {
+  }) => {
     if (!visible) {
       return null;
     }
@@ -89,6 +89,12 @@ jest.mock('@components/LocationPickerModal', () => {
         React.createElement(Text, null, 'Select Mock Place'),
       ),
     );
+  };
+
+  return {
+    __esModule: true,
+    default: MockLocationPicker,
+    LocationPickerContent: MockLocationPicker,
   };
 });
 
