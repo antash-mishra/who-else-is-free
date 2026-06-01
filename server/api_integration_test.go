@@ -253,6 +253,10 @@ type conversationsResponse struct {
 	} `json:"conversations"`
 }
 
+type eventMembersResponse struct {
+	Data []ConversationParticipant `json:"data"`
+}
+
 type messagesResponse struct {
 	Messages []struct {
 		ID        int64  `json:"id"`
@@ -2601,6 +2605,85 @@ func TestConversationFilteringByEventDate(t *testing.T) {
 		// This should be 0 (false) when the date is in the past.
 		t.Logf("datetime comparison result: %d (expected 0 for past dates without grace period)", result)
 	})
+}
+
+func TestListEventMembersForPastEvent(t *testing.T) {
+	env := setupAPITestEnv(t)
+	ctx := context.Background()
+
+	host, err := env.repo.GetUserByEmail(ctx, "ava@example.com")
+	if err != nil {
+		t.Fatalf("get host: %v", err)
+	}
+	member, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("get member: %v", err)
+	}
+	unrelated, err := env.repo.GetUserByEmail(ctx, "sophia@example.com")
+	if err != nil {
+		t.Fatalf("get unrelated user: %v", err)
+	}
+
+	hostToken := env.issueTokenForEmail(t, host.Email)
+	memberToken := env.issueTokenForEmail(t, member.Email)
+	unrelatedToken := env.issueTokenForEmail(t, unrelated.Email)
+	pastTime := time.Now().UTC().Add(-24 * time.Hour)
+
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at)
+		VALUES (?, 'Past Members Event', 'Past Court', '10:00', ?, 'Past event with members', 'Any', 18, 50, 'Today', 'Group', 'cover_01', ?)`,
+		host.ID, pastTime.Format("2006-01-02"), pastTime.Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("insert past event: %v", err)
+	}
+	var eventID int64
+	if err := env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&eventID); err != nil {
+		t.Fatalf("scan event id: %v", err)
+	}
+
+	_, err = env.db.ExecContext(ctx, `
+		INSERT INTO conversations (title, created_by, event_id)
+		VALUES ('Past Members Chat', ?, ?)`,
+		host.ID, eventID)
+	if err != nil {
+		t.Fatalf("insert conversation: %v", err)
+	}
+	var conversationID int64
+	if err := env.db.QueryRowContext(ctx, "SELECT last_insert_rowid()").Scan(&conversationID); err != nil {
+		t.Fatalf("scan conversation id: %v", err)
+	}
+
+	for _, userID := range []int64{host.ID, member.ID} {
+		if _, err := env.db.ExecContext(ctx, `
+			INSERT INTO conversation_members (conversation_id, user_id, role, joined_at)
+			VALUES (?, ?, 'member', ?)`,
+			conversationID, userID, pastTime.Format(time.RFC3339)); err != nil {
+			t.Fatalf("insert conversation member %d: %v", userID, err)
+		}
+	}
+
+	for _, token := range []string{hostToken, memberToken} {
+		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/members", eventID), token, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 listing past event members, got %d", resp.StatusCode)
+		}
+		payload := decodeJSON[eventMembersResponse](t, resp)
+		if len(payload.Data) != 2 {
+			t.Fatalf("expected 2 members, got %d", len(payload.Data))
+		}
+		if payload.Data[0].ID != host.ID {
+			t.Fatalf("expected host first, got user %d", payload.Data[0].ID)
+		}
+		if payload.Data[1].ID != member.ID {
+			t.Fatalf("expected approved member second, got user %d", payload.Data[1].ID)
+		}
+	}
+
+	resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/members", eventID), unrelatedToken, nil)
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected unrelated user to receive 404, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
 }
 
 // TestLeaveEventDeletesJoinRequest verifies that when a user leaves an event,

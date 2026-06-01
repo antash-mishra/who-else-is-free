@@ -876,3 +876,26 @@ func (r *EventRepository) ListEventConversationMembers(ctx context.Context, even
 	}
 	return members, nil
 }
+
+// ListEventMembers returns the host plus approved participants for every
+// conversation linked to an event.
+func (r *EventRepository) ListEventMembers(ctx context.Context, eventID int64) ([]ConversationParticipant, error) {
+	rows, err := r.db.QueryContext(ctx, selectEventMembers, eventID, eventID, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("list event members: %w", err)
+	}
+	defer rows.Close()
+
+	members := make([]ConversationParticipant, 0)
+	for rows.Next() {
+		var member ConversationParticipant
+		if err := rows.Scan(&member.ID, &member.Name, &member.Avatar); err != nil {
+			return nil, fmt.Errorf("scan event member: %w", err)
+		}
+		members = append(members, member)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate event members: %w", err)
+	}
+	return members, nil
+}

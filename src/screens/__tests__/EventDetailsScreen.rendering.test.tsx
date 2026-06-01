@@ -76,10 +76,11 @@ const createMockRoute = (
   origin?: string,
   showEventUpdatedBadge?: boolean,
   routeName: 'EventDetails' | 'EventDetailsOverlay' = 'EventDetails',
+  readOnly?: boolean,
 ) => ({
   key: `${routeName}-test`,
   name: routeName,
-  params: { eventId, origin, showEventUpdatedBadge },
+  params: { eventId, origin, showEventUpdatedBadge, readOnly },
 });
 
 // Default mock values for contexts
@@ -1573,6 +1574,52 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
   });
 
+  describe('Read-only Past Event Members', () => {
+    let routeSpy: jest.SpyInstance;
+
+    afterEach(() => {
+      routeSpy?.mockRestore();
+    });
+
+    it('fetches and displays members without live chat conversation state', async () => {
+      mockAuthState.user = mockUser;
+      mockAuthState.token = 'test-token';
+      mockAuthState.authFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          data: [
+            { id: mockUser.id, name: 'Past Host' },
+            { id: mockOtherUser.id, name: 'Past Member' },
+          ],
+        }),
+      });
+      mockEventsState.events = [mockOwnedEvent];
+      mockChatState.conversations = [];
+
+      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
+        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetails', true)
+      );
+
+      const { getByText, queryByText } = render(<EventDetailsScreen />);
+
+      await waitFor(() => {
+        expect(getByText('Past Member')).toBeTruthy();
+      });
+
+      expect(getByText('Past Host')).toBeTruthy();
+      expect(getByText('Host')).toBeTruthy();
+      expect(queryByText('Requests')).toBeNull();
+      expect(mockAuthState.authFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/events/${mockOwnedEvent.id}/members`),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        }),
+      );
+    });
+  });
+
   describe('Overlay Members Tab', () => {
     let routeSpy: jest.SpyInstance;
 
@@ -1679,6 +1726,30 @@ describe('EventDetailsScreen Rendering Tests', () => {
       // Regular EventDetails should still have host tabs
       expect(getByText('Requests')).toBeTruthy();
       expect(getByText('Members')).toBeTruthy();
+    });
+
+    it('does not render duplicate Members sections for read-only group overlay', () => {
+      mockAuthState.user = mockOtherUser; // Liam, id: 2
+      mockAuthState.authFetch = jest.fn();
+      mockEventsState.events = [mockOwnedEvent]; // ownerId: 1
+      mockChatState.conversations = [{
+        ...mockEventConversation,
+        eventId: Number(mockOwnedEvent.id),
+        memberIds: [1, 2],
+        participants: [
+          { id: 1, name: 'Ava Test' },
+          { id: 2, name: 'Liam Test' },
+        ],
+      }];
+
+      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
+        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay', true)
+      );
+
+      const { queryAllByText } = render(<EventDetailsScreen />);
+
+      expect(queryAllByText('Members')).toHaveLength(1);
+      expect(mockAuthState.authFetch).not.toHaveBeenCalled();
     });
   });
 });

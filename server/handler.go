@@ -37,6 +37,7 @@ func (h *EventHandler) RegisterRoutes(group *gin.RouterGroup) {
 func (h *EventHandler) RegisterProtectedRoutes(group *gin.RouterGroup) {
 	group.POST("/events", h.createEvent)
 	group.GET("/events/past", h.listUserPastEvents)
+	group.GET("/events/:id/members", h.listEventMembers)
 	group.GET("/events/:id", h.getEvent)
 	group.PUT("/events/:id", h.updateEvent)
 	group.DELETE("/events/:id", h.deleteEvent)
@@ -131,6 +132,63 @@ func (h *EventHandler) getEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": event})
+}
+
+func (h *EventHandler) listEventMembers(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event id"})
+		return
+	}
+
+	claims, exists := sessionFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+
+	event, err := h.repo.GetEventByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, ErrEventNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		}
+		return
+	}
+
+	canView, err := h.canViewEvent(ctx, event, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+		return
+	}
+	if !canView {
+		c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+		return
+	}
+
+	if event.UserID != claims.UserID {
+		isMember, err := h.isEventConversationMember(ctx, id, claims.UserID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event"})
+			return
+		}
+		if !isMember {
+			c.JSON(http.StatusNotFound, gin.H{"error": "event not found"})
+			return
+		}
+	}
+
+	members, err := h.repo.ListEventMembers(ctx, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load event members"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": members})
 }
 
 func (h *EventHandler) canViewEvent(ctx context.Context, event *Event, viewerUserID int64) (bool, error) {

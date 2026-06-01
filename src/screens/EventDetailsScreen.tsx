@@ -80,6 +80,11 @@ type EventDetailsNavigation = NativeStackNavigationProp<
   "EventDetails" | "EventDetailsOverlay"
 >;
 
+type EventDetailMember = {
+  id: number;
+  name: string;
+  avatar?: string | null;
+};
 
 const EventDetailsScreenContent = ({
   initialEventSnapshot,
@@ -222,6 +227,16 @@ const EventDetailsScreenContent = ({
   const [disableHostRequestPolling, setDisableHostRequestPolling] =
     useState(false);
   const [showEventUpdatedBadge, setShowEventUpdatedBadge] = useState(false);
+  const [readOnlyMembers, setReadOnlyMembers] = useState<EventDetailMember[]>(
+    [],
+  );
+  const [isFetchingReadOnlyMembers, setIsFetchingReadOnlyMembers] =
+    useState(false);
+  const [readOnlyMembersError, setReadOnlyMembersError] = useState<
+    string | null
+  >(null);
+  const [readOnlyMembersTabWidth, setReadOnlyMembersTabWidth] = useState(0);
+  const [overlayMembersTabWidth, setOverlayMembersTabWidth] = useState(0);
 
   useEffect(() => {
     setDisableHostRequestPolling(false);
@@ -297,6 +312,63 @@ const EventDetailsScreenContent = ({
       (conversation) => conversation.eventId === eventNumericId,
     );
   }, [conversations, eventNumericId]);
+
+  useEffect(() => {
+    if (!readOnly || isOverlay) {
+      setReadOnlyMembers([]);
+      setReadOnlyMembersError(null);
+      setIsFetchingReadOnlyMembers(false);
+      return;
+    }
+    if (eventNumericId == null || !token) {
+      setReadOnlyMembers([]);
+      setReadOnlyMembersError(null);
+      setIsFetchingReadOnlyMembers(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsFetchingReadOnlyMembers(true);
+    setReadOnlyMembersError(null);
+
+    const fetchMembers = async () => {
+      try {
+        const response = await authFetch(
+          `${API_BASE_URL}/api/events/${eventNumericId}/members`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        const payload: { data?: EventDetailMember[] } = await response
+          .json()
+          .catch(() => ({}));
+        if (!isCancelled) {
+          setReadOnlyMembers(Array.isArray(payload.data) ? payload.data : []);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error("Failed to fetch event members", err);
+          setReadOnlyMembers([]);
+          setReadOnlyMembersError("Unable to load members right now.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsFetchingReadOnlyMembers(false);
+        }
+      }
+    };
+
+    fetchMembers();
+    return () => {
+      isCancelled = true;
+    };
+  }, [authFetch, eventNumericId, isOverlay, readOnly, token]);
+
   const eventConversationId = eventConversation?.id ?? null;
   const requestStoreKey = useMemo(() => {
     if (eventNumericId == null) {
@@ -597,11 +669,11 @@ const EventDetailsScreenContent = ({
   };
 
   const renderAvatar = (
-    participant: { id: number; name: string; avatar?: string },
+    participant: { id: number; name: string; avatar?: string | null },
     size: number = 40,
   ) => (
     <UserAvatar
-      avatar={participant.avatar}
+      avatar={participant.avatar ?? undefined}
       name={participant.name}
       seed={participant.id}
       size={size}
@@ -1709,17 +1781,27 @@ const EventDetailsScreenContent = ({
                 <>
                   <View>
                     <View style={styles.tabContainer}>
-                      <View style={styles.tabItem}>
+                      <View
+                        style={styles.tabItem}
+                        onLayout={(e) =>
+                          setOverlayMembersTabWidth(e.nativeEvent.layout.width)
+                        }
+                      >
                         <View style={styles.tabLabelRow}>
                           <Text style={[styles.tabLabel, styles.tabLabelActive]}>
                             Members
                           </Text>
-                          <Text style={styles.tabCount}>
+                          <Text style={[styles.tabCount, styles.tabCountActive]}>
                             {" "}{overlayMembers.length}
                           </Text>
                         </View>
-                        <View style={styles.tabUnderline} />
                       </View>
+                      <View
+                        style={[
+                          styles.slidingUnderline,
+                          { left: 0, width: overlayMembersTabWidth },
+                        ]}
+                      />
                     </View>
                     <View style={[styles.divider, { marginVertical: 0 }]} />
                   </View>
@@ -1747,6 +1829,58 @@ const EventDetailsScreenContent = ({
                   </View>
                 </>
               )}
+
+            {readOnly && !isOverlay && (
+              <>
+                <View>
+                  <View style={styles.tabContainer}>
+                    <View
+                      style={styles.tabItem}
+                      onLayout={(e) =>
+                        setReadOnlyMembersTabWidth(e.nativeEvent.layout.width)
+                      }
+                    >
+                      <View style={styles.tabLabelRow}>
+                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>
+                          Members
+                        </Text>
+                        <Text style={[styles.tabCount, styles.tabCountActive]}>
+                          {" "}{readOnlyMembers.length}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.slidingUnderline,
+                        { left: 0, width: readOnlyMembersTabWidth },
+                      ]}
+                    />
+                  </View>
+                  <View style={[styles.divider, { marginVertical: 0 }]} />
+                </View>
+                <View style={styles.listContainer}>
+                  {isFetchingReadOnlyMembers ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : readOnlyMembersError ? (
+                    <Text style={styles.emptyStateText}>
+                      {readOnlyMembersError}
+                    </Text>
+                  ) : readOnlyMembers.length === 0 ? (
+                    <Text style={styles.emptyStateText}>No members yet</Text>
+                  ) : (
+                    readOnlyMembers.map((member) => (
+                      <View key={member.id} style={styles.memberItem}>
+                        {renderAvatar(member)}
+                        <Text style={styles.memberName}>{member.name}</Text>
+                        {member.id === event.ownerId ? (
+                          <Text style={styles.hostBadgeText}>Host</Text>
+                        ) : null}
+                      </View>
+                    ))
+                  )}
+                </View>
+              </>
+            )}
 
             {userIntroMessage && !readOnly && isConversationMember ? (
               <>
@@ -2522,6 +2656,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+    paddingVertical: 6,
   },
   memberName: {
     flex: 1,

@@ -616,6 +616,29 @@ WHERE c.event_id = ?
 ORDER BY cm.conversation_id ASC, cm.user_id ASC;
 `
 
+const selectEventMembers = `
+WITH event_users AS (
+	SELECT e.user_id, 0 AS sort_group, e.created_at AS joined_at
+	FROM events e
+	WHERE e.id = ?
+	UNION ALL
+	SELECT cm.user_id,
+		CASE
+			WHEN cm.user_id = (SELECT user_id FROM events WHERE id = ?) THEN 0
+			ELSE 1
+		END AS sort_group,
+		cm.joined_at
+	FROM conversations c
+	JOIN conversation_members cm ON cm.conversation_id = c.id
+	WHERE c.event_id = ?
+)
+SELECT u.id, u.name, u.avatar
+FROM event_users eu
+JOIN users u ON u.id = eu.user_id
+GROUP BY u.id, u.name, u.avatar
+ORDER BY MIN(eu.sort_group) ASC, MIN(eu.joined_at) ASC, u.name COLLATE NOCASE ASC;
+`
+
 const selectConversationIDsForEvent = `
 SELECT id
 FROM conversations
