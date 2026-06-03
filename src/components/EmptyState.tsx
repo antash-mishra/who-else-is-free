@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import ScalePressable from './ScalePressable';
 
@@ -15,6 +15,8 @@ interface EmptyStateProps {
   imageSource?: ImageSourcePropType;
   imageWidth?: number;
   imageHeight?: number;
+  icon?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
 const EmptyState = ({
@@ -26,10 +28,13 @@ const EmptyState = ({
   onSecondaryActionPress,
   imageSource,
   imageWidth = 245,
-  imageHeight = 245
+  imageHeight = 245,
+  icon,
+  style,
 }: EmptyStateProps) => {
   return (
-    <View style={styles.container} testID="empty-state">
+    <View style={[styles.container, style]} testID="empty-state">
+      {icon}
       {imageSource && (
         <Image
           source={imageSource}

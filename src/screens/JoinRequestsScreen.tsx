@@ -11,6 +11,8 @@ import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navig
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AcceptIcon from "@assets/event-details/accept.svg";
 import RejectIcon from "@assets/event-details/reject.svg";
+import EmptyAcceptedIcon from "@assets/event-details/empty-accepted.svg";
+import EmptyState from "@components/EmptyState";
 
 import * as Haptics from "expo-haptics";
 
@@ -148,21 +150,23 @@ const JoinRequestsScreen = () => {
   );
 
   const listEmpty = useMemo(
-    () => (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyTitle}>
-          {is1to1Mode
-            ? "No accepted users yet"
-            : "No pending requests"}
-        </Text>
-        {!is1to1Mode && (
+    () =>
+      is1to1Mode ? (
+        <EmptyState
+          title="No accepted members yet"
+          description="Chats from accepted members will appear here"
+          icon={<EmptyAcceptedIcon width={64} height={64} />}
+          style={{ marginTop: 32 }}
+        />
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>No pending requests</Text>
           <Text style={styles.emptySubtitle}>
             You&apos;ll see new join requests here when attendees tap
             Interested.
           </Text>
-        )}
-      </View>
-    ),
+        </View>
+      ),
     [is1to1Mode],
   );
 
