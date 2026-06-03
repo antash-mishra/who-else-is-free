@@ -39,6 +39,8 @@ import CloseIcon from "@assets/ui/close.svg";
 import MoreHorizontalIcon from "@assets/ui/more-horizontal.svg";
 import AcceptIcon from "@assets/event-details/accept.svg";
 import RejectIcon from "@assets/event-details/reject.svg";
+import EmptyRequestIcon from "@assets/event-details/empty-request.svg";
+import EmptyAcceptedIcon from "@assets/event-details/empty-accepted.svg";
 import TimeIcon from "@assets/event-details/time.svg";
 import PeopleIcon from "@assets/event-details/group-type.svg";
 import { LinearGradient } from "expo-linear-gradient";
@@ -65,6 +67,7 @@ import { API_BASE_URL } from "@api/config";
 import { getEventAnalyticsParams, trackEvent } from "@services/analytics";
 import EventActionBadge from "@components/EventActionBadge";
 import EventActionOverlay from "@components/EventActionOverlay";
+import EmptyState from "@components/EmptyState";
 import BottomSheetModal from "@components/BottomSheetModal";
 import SignInButtons from "@components/SignInButtons";
 import UserAvatar from "@components/UserAvatar";
@@ -1654,9 +1657,14 @@ const EventDetailsScreenContent = ({
                   <Animated.View style={[{ flexDirection: 'row', width: pagerWidth > 0 ? pagerWidth * 2 : '200%' }, rowAnimStyle]}>
 
                     {/* Page 0: Requests */}
-                    <View style={{ width: pagerWidth > 0 ? pagerWidth : '50%' }}>
+                    <View style={{ width: pagerWidth > 0 ? pagerWidth : '50%', minHeight: 200 }}>
                       {pendingRequests.length === 0 ? (
-                        <Text style={styles.emptyStateText}>No requests yet</Text>
+                        <EmptyState
+                          title="No requests yet"
+                          description="Join requests will appear here"
+                          icon={<EmptyRequestIcon width={64} height={64} />}
+                          style={{ marginTop: 32 }}
+                        />
                       ) : (
                         pendingRequests.map((request, index) => {
                           const isExpanded = expandedRequestIds.has(request.id);
@@ -1727,10 +1735,15 @@ const EventDetailsScreenContent = ({
                     </View>
 
                     {/* Page 1: Accepted (single event) or Members (group event) */}
-                    <View style={{ width: pagerWidth > 0 ? pagerWidth : '50%' }}>
+                    <View style={{ width: pagerWidth > 0 ? pagerWidth : '50%', minHeight: 200 }}>
                       {isSingleEvent ? (
                         acceptedRequests.length === 0 ? (
-                          <Text style={styles.emptyStateText}>No accepted members yet</Text>
+                          <EmptyState
+                            title="No accepted members yet"
+                            description="Members you accept will appear here"
+                            icon={<EmptyAcceptedIcon width={64} height={64} />}
+                            style={{ marginTop: 32 }}
+                          />
                         ) : (
                           acceptedRequests.map((request) => (
                             <ScalePressable
