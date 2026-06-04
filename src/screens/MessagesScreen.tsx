@@ -101,6 +101,7 @@ const ConversationRow = ({
     <ScalePressable
       onPress={() => onPress(item)}
       onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+      delay={80}
       style={[styles.conversationRow, item.id === activeConversationId && styles.conversationRowActive]}
     >
       {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
