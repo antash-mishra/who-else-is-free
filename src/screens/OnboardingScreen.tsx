@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
+import Svg, { Defs, RadialGradient, Stop, Rect } from "react-native-svg";
+import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 import CloseIcon from "@assets/ui/close.svg";
@@ -26,7 +29,9 @@ import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import UserAvatar from "@components/UserAvatar";
 import { typography } from "@theme/index";
+import { getAvatarColor } from "@utils/avatar";
 import CameraIcon from "@assets/onboarding/camera.svg";
+import ProfileIcon from "@assets/onboarding/profile.svg";
 
 // Lazy import to handle missing native module gracefully
 let ImagePicker: typeof import("expo-image-picker") | null = null;
@@ -39,16 +44,35 @@ try {
 type OnboardingStep = 1 | 2 | 3;
 
 // Back arrow icon
-const BackArrowIcon = () => <ChevronLeftIcon width={24} height={24} color="#000000" />;
+const BackArrowIcon = () => <ChevronLeftIcon width={28} height={28} color="#000000" />;
 
 const OnboardingScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
+  const { width, height: screenHeight } = useWindowDimensions();
+  const avatarColor = getAvatarColor(user?.id);
 
   const [step, setStep] = useState<OnboardingStep>(1);
+
+  const slideX = useSharedValue(0);
+  const pagerAnimStyle = useAnimatedStyle(() => ({
+    flexDirection: 'row',
+    width: width * 3,
+    flex: 1,
+    transform: [{ translateX: slideX.value }],
+  }));
+
+  const goForward = useCallback((nextStep: OnboardingStep) => {
+    setStep(nextStep);
+    slideX.value = withTiming(-(nextStep - 1) * width, { duration: 350, easing: Easing.out(Easing.cubic) });
+  }, [slideX, width]);
+
+  const goBack = useCallback((prevStep: OnboardingStep) => {
+    setStep(prevStep);
+    slideX.value = withTiming(-(prevStep - 1) * width, { duration: 350, easing: Easing.out(Easing.cubic) });
+  }, [slideX, width]);
   const [name, setName] = useState(user?.name ?? "");
   const [nameSelection, setNameSelection] = useState<{start: number; end: number} | undefined>(undefined);
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
@@ -58,26 +82,11 @@ const OnboardingScreen = () => {
 
   // Wheel picker
   const wheelScrollRef = useRef<ScrollView>(null);
-  const hasScrolledToDefault = useRef(false);
   const ITEM_HEIGHT = 50;
   const MIN_AGE = 18;
   const MAX_AGE = 120;
   const DEFAULT_AGE = 30;
   const ages = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => i + MIN_AGE); // 18 to 120
-
-  // Scroll to default age (30) only once when entering step 3
-  useEffect(() => {
-    if (step === 3 && !hasScrolledToDefault.current) {
-      hasScrolledToDefault.current = true;
-      const index = DEFAULT_AGE - MIN_AGE;
-      setTimeout(() => {
-        wheelScrollRef.current?.scrollTo({
-          y: index * ITEM_HEIGHT,
-          animated: false,
-        });
-      }, 50);
-    }
-  }, [step]);
 
   const handleNameFocus = useCallback(() => {
     if (name === "") {
@@ -129,8 +138,8 @@ const OnboardingScreen = () => {
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setStep(2);
-  }, [name]);
+    goForward(2);
+  }, [name, goForward]);
 
   const handleContinueStep2 = useCallback(() => {
     if (!gender) {
@@ -138,8 +147,8 @@ const OnboardingScreen = () => {
       return;
     }
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setStep(3);
-  }, [gender]);
+    goForward(3);
+  }, [gender, goForward]);
 
   const handleDone = useCallback(async () => {
     const ageNum = parseInt(age, 10);
@@ -183,11 +192,11 @@ const OnboardingScreen = () => {
   const handleBack = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === 2) {
-      setStep(1);
+      goBack(1);
     } else if (step === 3) {
-      setStep(2);
+      goBack(2);
     }
-  }, [step]);
+  }, [step, goBack]);
 
   const canContinueStep1 = name.trim().length > 0;
   const canContinueStep2 = gender !== null;
@@ -201,16 +210,32 @@ const OnboardingScreen = () => {
     <View
       style={[styles.container, { paddingTop: insets.top + 16 }]}
     >
-      {step === 1 && (
+      <Svg style={StyleSheet.absoluteFillObject} width={width} height={screenHeight}>
+        <Defs>
+          <RadialGradient
+            id="onboardingBg"
+            cx={width / 2}
+            cy={0}
+            r={screenHeight}
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0.24" stopColor="#EAECFB" stopOpacity="1" />
+            <Stop offset="1" stopColor="#C4E4FB" stopOpacity="1" />
+          </RadialGradient>
+        </Defs>
+        <Rect width={width} height={screenHeight} fill="url(#onboardingBg)" opacity={0.7} />
+      </Svg>
+      <Animated.View style={pagerAnimStyle}>
+        {/* Step 1 */}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={styles.stepContainer}>
+          <View style={[styles.stepContainer, { width }]}>
             {/* Main content area */}
             <View style={styles.mainContent}>
               {/* Header */}
               <View style={[styles.headerSection, { marginTop: headerTopMargin }]}>
-                <Text style={styles.title}>Enter personal Information</Text>
+                <Text style={styles.title}>What's your name?</Text>
                 <Text style={styles.subtitle}>
-                  Provide some information about you.
+                  Add your name and a photo so{'\n'}others know who you are.
                 </Text>
               </View>
 
@@ -222,16 +247,24 @@ const OnboardingScreen = () => {
                     testID="avatar-button"
                     accessibilityRole="button"
                   >
-                    <UserAvatar
-                      avatar={avatarBase64}
-                      name={name.trim()}
-                      seed={name.trim()}
-                      size={120}
-                      style={styles.avatarFrame}
-                    />
+                    {!avatarBase64 && !name.trim() ? (
+                      <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+                        <ProfileIcon width={52} height={52} />
+                      </View>
+                    ) : (
+                      <UserAvatar
+                        avatar={avatarBase64}
+                        name={name.trim()}
+                        seed={user?.id}
+                        size={120}
+                        style={styles.avatarFrame}
+                      />
+                    )}
                     {/* Camera badge */}
-                    <View style={styles.cameraBadge}>
-                      <CameraIcon width={20} height={20}/>
+                    <View style={styles.cameraBadgeShadow}>
+                      <BlurView style={styles.cameraBadge} intensity={15} tint="light">
+                        <CameraIcon width={20} height={20} color="#707070"/>
+                      </BlurView>
                     </View>
                   </TouchableOpacity>
                   {/* Remove photo button */}
@@ -290,10 +323,9 @@ const OnboardingScreen = () => {
             </View>
           </View>
         </TouchableWithoutFeedback>
-      )}
 
-      {step === 2 && (
-        <View style={styles.stepContainer}>
+        {/* Step 2 */}
+        <View style={[styles.stepContainer, { width }]}>
           <TouchableOpacity
             onPress={handleBack}
             style={[
@@ -313,7 +345,7 @@ const OnboardingScreen = () => {
             >
               <Text style={styles.title}>What's your gender?</Text>
               <Text style={styles.subtitle}>
-                This can't be changed later. Your{"\n"}gender will not remain public.
+                {"This is private and will never\nbe shown publicly."}
               </Text>
             </View>
 
@@ -386,10 +418,9 @@ const OnboardingScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      )}
 
-      {step === 3 && (
-        <View style={styles.stepContainer}>
+        {/* Step 3 */}
+        <View style={[styles.stepContainer, { width }]}>
           <TouchableOpacity
             onPress={handleBack}
             style={[
@@ -409,7 +440,7 @@ const OnboardingScreen = () => {
             >
               <Text style={styles.title}>What's your age?</Text>
               <Text style={styles.subtitle}>
-                This can't be changed later. Your{"\n"}age will not remain public.
+                {"This is private and will never\nbe shown publicly."}
               </Text>
             </View>
 
@@ -421,6 +452,7 @@ const OnboardingScreen = () => {
                 showsVerticalScrollIndicator={false}
                 snapToInterval={ITEM_HEIGHT}
                 decelerationRate="fast"
+                contentOffset={{ x: 0, y: (DEFAULT_AGE - MIN_AGE) * ITEM_HEIGHT }}
                 contentContainerStyle={{
                   paddingVertical: ITEM_HEIGHT * 2,
                 }}
@@ -486,7 +518,7 @@ const OnboardingScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      )}
+      </Animated.View>
     </View>
   );
 };
@@ -495,6 +527,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
+    overflow: "hidden",
   },
   stepContainer: {
     flex: 1,
@@ -521,18 +554,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#000000",
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: "center",
     lineHeight: 32,
-    letterSpacing: -1,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: typography.fontFamilyRegular,
     fontSize: 16,
     fontWeight: "500",
     color: "#777777",
-    lineHeight: 20,
-    letterSpacing: -0.5,
+    lineHeight: 24,
+    letterSpacing: -0.3,
     textAlign: "center",
   },
   // Header section with back button (same as headerSection for alignment)
@@ -545,7 +578,6 @@ const styles = StyleSheet.create({
   avatarSection: {
     alignItems: "center",
     paddingHorizontal: 24,
-    marginTop: 24,
   },
   // Gender section
   genderSection: {
@@ -573,23 +605,34 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
   },
-  cameraBadge: {
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cameraBadgeShadow: {
     position: "absolute",
     bottom: 4,
     right: -2,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "white",
-    // borderWidth: 2,
-    // borderColor: "#FFFFFF",
-    justifyContent: "center",
-    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  cameraBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
   },
   removePhotoBadge: {
     position: "absolute",
@@ -636,26 +679,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   genderButton: {
-    width: 116,
-    minHeight: 48,
-    padding: 13.33,
-    borderRadius: 16,
-    backgroundColor: "#FFFFFF",
+    width: 200,
+    height: 48,
+    borderRadius: 18,
+    borderCurve: "continuous",
+    backgroundColor: "rgba(255,255,255,0.7)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.33,
-    borderColor: "#E6E6E6",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
   genderButtonSelected: {
     backgroundColor: "#000000",
-    borderColor: "#000000",
   },
   genderButtonText: {
     fontFamily: typography.fontFamilyMedium,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "500",
     lineHeight: 26.67,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
     color: "#494949",
   },
   genderButtonTextSelected: {
@@ -676,7 +720,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 54,
   },
   buttonDisabled: {
-    backgroundColor: "#E5E5E5",
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
   buttonText: {
     fontFamily: typography.fontFamilyMedium,
@@ -684,7 +728,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   buttonTextDisabled: {
-    color: "#9CA3AF",
+    color: "rgba(255,255,255,0.7)",
   },
   // Wheel picker styles
   wheelPickerContainer: {
@@ -699,8 +743,13 @@ const styles = StyleSheet.create({
     width: 240,
     height: 50,
     marginTop: -25,
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 14,
+    borderCurve: "continuous",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
   },
   wheelPickerItem: {
     width: 240,
@@ -709,12 +758,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   wheelPickerText: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: typography.fontFamilyMedium,
-    color: "#CCCCCC",
+    color: "#A3A3A3",
   },
   wheelPickerTextSelected: {
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: typography.fontFamilySemiBold,
     color: "#000000",
   },

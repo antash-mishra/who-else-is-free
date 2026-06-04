@@ -68,7 +68,7 @@ describe('OnboardingScreen Rendering', () => {
   describe('Step 1 - Name Input', () => {
     it('renders step 1 header', () => {
       render(<OnboardingScreen />);
-      expect(screen.getByText('Enter personal Information')).toBeTruthy();
+      expect(screen.getByText('What's your name?')).toBeTruthy();
     });
 
     it('renders name input field', () => {
@@ -181,7 +181,7 @@ describe('OnboardingScreen Rendering', () => {
       goToStep2();
       // Find and press back button (first touchable)
       fireEvent.press(screen.getByTestId('back-button'));
-      expect(screen.getByText('Enter personal Information')).toBeTruthy();
+      expect(screen.getByText('What's your name?')).toBeTruthy();
     });
   });
 
