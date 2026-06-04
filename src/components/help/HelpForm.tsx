@@ -21,6 +21,7 @@ interface HelpFormProps {
   onMessageChange: (value: string) => void;
   onSubmit: () => void;
   buttonLabel: string;
+  placeholder?: string;
   replyEmail?: string;
   onReplyEmailChange?: (value: string) => void;
   showReplyEmailInput?: boolean;
@@ -35,6 +36,7 @@ const HelpForm = ({
   onMessageChange,
   onSubmit,
   buttonLabel,
+  placeholder = "Describe in detail what you need help with",
   replyEmail = "",
   onReplyEmailChange,
   showReplyEmailInput = false,
@@ -49,7 +51,7 @@ const HelpForm = ({
       multiline
       value={message}
       onChangeText={onMessageChange}
-      placeholder="Describe in detail what you need help with"
+      placeholder={placeholder}
       placeholderTextColor="#8B8B8B"
       style={styles.messageInput}
       textAlignVertical="top"
@@ -59,7 +61,6 @@ const HelpForm = ({
       <View style={styles.checkboxList}>
         {checkboxOptions.map((option) => {
           const isChecked = checkedValues.includes(option.value);
-
           return (
             <Pressable
               key={option.value}
@@ -71,10 +72,8 @@ const HelpForm = ({
               }}
               style={styles.checkboxRow}
             >
-              <View
-                style={[styles.checkbox, isChecked && styles.checkboxChecked]}
-              >
-                {isChecked && <Text style={styles.checkboxTick}>{"\u2713"}</Text>}
+              <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+                {isChecked && <Text style={styles.checkboxTick}>{"✓"}</Text>}
               </View>
               <Text style={styles.checkboxLabel}>{option.label}</Text>
             </Pressable>
@@ -118,19 +117,20 @@ const HelpForm = ({
 
 const styles = StyleSheet.create({
   messageInput: {
+    marginTop: 29,
     minHeight: 140,
     borderRadius: 20,
     backgroundColor: "#F4F4F4",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
     color: colors.text,
-    fontSize: typography.body,
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: typography.letterSpacing,
   },
   checkboxList: {
-    marginTop: 13,
-    gap: 13,
+    marginTop: 20,
+    gap: 16,
   },
   checkboxRow: {
     flexDirection: "row",
@@ -144,6 +144,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#D0D0D0",
+    borderRadius: 6,
+    borderCurve: "continuous",
     backgroundColor: "#FFFFFF",
   },
   checkboxChecked: {
@@ -171,7 +173,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     color: "#000000",
     fontSize: 16,
-    lineHeight: 22,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.3,
   },
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
     height: 51,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 29,
+    marginTop: 32,
     borderRadius: 26,
     backgroundColor: "#000000",
   },

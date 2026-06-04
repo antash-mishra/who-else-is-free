@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import ScreenContainer from "@components/ScreenContainer";
-import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
+import ScreenHeader from "@components/ScreenHeader";
 import { colors, spacing, typography } from "@theme/index";
 import { RootStackParamList } from "@navigation/types";
 
@@ -16,18 +16,7 @@ const PrivacyPolicyScreen = () => {
 
   return (
     <ScreenContainer>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
-          style={styles.backButton}
-          hitSlop={8}
-        >
-          <ChevronLeftIcon width={24} height={24} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Privacy Policy</Text>
-      </View>
+      <ScreenHeader title="Privacy Policy" onBack={navigation.goBack} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -39,26 +28,6 @@ const PrivacyPolicyScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
-  },
-  backButton: {
-    width: 32,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    letterSpacing: -0.4,
-  },
   scrollContent: {
     paddingBottom: spacing.xl,
   },
