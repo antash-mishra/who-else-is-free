@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
-import { colors, spacing, typography } from "@theme/index";
+import { colors, typography } from "@theme/index";
 
 interface ScreenHeaderProps {
   title: string;
@@ -21,7 +21,9 @@ const ScreenHeader = ({ title, onBack }: ScreenHeaderProps) => (
     >
       <ChevronLeftIcon width={24} height={24} color={colors.text} />
     </Pressable>
-    <Text style={styles.title} numberOfLines={1} pointerEvents="none">{title}</Text>
+    <View style={styles.titleContainer} pointerEvents="none">
+      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+    </View>
   </View>
 );
 
@@ -29,14 +31,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
+    height: 44,
     marginLeft: -8,
   },
-  title: {
+  titleContainer: {
     position: "absolute",
     left: 0,
     right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
     textAlign: "center",
     fontSize: 18,
     lineHeight: 24,
