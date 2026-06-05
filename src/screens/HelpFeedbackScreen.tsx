@@ -1,0 +1,148 @@
+import { useCallback, useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+import ScreenContainer from "@components/ScreenContainer";
+import ScreenHeader from "@components/ScreenHeader";
+import HelpForm from "@components/help/HelpForm";
+import ReplyIcon from "@assets/help/reply.svg";
+import { API_BASE_URL } from "@api/config";
+import { useAuth, type ApiError } from "@context/AuthContext";
+import { typography } from "@theme/index";
+import { RootStackParamList } from "@navigation/types";
+
+const FEEDBACK_BULLETS = [
+  "Ideas for new features",
+  "Ways to improve the app",
+  "Things that feel confusing or slow",
+  "General thoughts",
+];
+
+const HelpFeedbackScreen = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { authFetch } = useAuth();
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submitHelpRequest = useCallback(
+    async (body: Record<string, unknown>) => {
+      const response = await authFetch(`${API_BASE_URL}/api/help-submissions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+        const message =
+          errorData.error ||
+          (response.status === 401
+            ? "Session expired. Please sign in again."
+            : "Unable to submit right now. Please try again.");
+        const apiError = new Error(message) as ApiError;
+        apiError.status = response.status;
+        throw apiError;
+      }
+    },
+    [authFetch],
+  );
+
+  const handleSubmit = useCallback(async () => {
+    const message = feedbackMessage.trim();
+    if (!message) {
+      Alert.alert("Feedback required", "Please share your ideas or thoughts.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await submitHelpRequest({ type: "feedback", message });
+      Alert.alert("Feedback sent", "Thanks for helping us improve Who else is free.");
+      setFeedbackMessage("");
+    } catch (error) {
+      Alert.alert(
+        "Unable to send",
+        error instanceof Error ? error.message : "Unable to submit right now. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [feedbackMessage, submitHelpRequest]);
+
+  return (
+    <ScreenContainer edges={["top"]}>
+      <ScreenHeader title="Feedback" onBack={navigation.goBack} />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Got ideas or thoughts?</Text>
+          <Text style={styles.sectionBody}>Tell us anything, we read it all.</Text>
+          <View style={styles.bulletList}>
+            {FEEDBACK_BULLETS.map((item) => (
+              <View key={item} style={styles.bulletRow}>
+                <ReplyIcon width={16} height={16} />
+                <Text style={styles.bulletText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+          <HelpForm
+            message={feedbackMessage}
+            onMessageChange={setFeedbackMessage}
+            placeholder="Share your ideas or thoughts"
+            buttonLabel="Send feedback"
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        </View>
+      </ScrollView>
+    </ScreenContainer>
+  );
+};
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
+  },
+  content: {
+    paddingTop: 32,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontFamily: typography.fontFamilyMedium,
+    color: "#000000",
+    letterSpacing: -0.3,
+  },
+  sectionBody: {
+    marginTop: 19,
+    color: "#000000",
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: typography.fontFamilyRegular,
+    letterSpacing: -0.3,
+  },
+  bulletList: {
+    marginTop: 12,
+    gap: 12,
+  },
+  bulletRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  bulletText: {
+    flex: 1,
+    color: "#000000",
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: typography.fontFamilyRegular,
+    letterSpacing: -0.3,
+  },
+});
+
+export default HelpFeedbackScreen;

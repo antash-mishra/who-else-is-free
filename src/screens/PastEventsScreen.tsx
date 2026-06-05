@@ -15,9 +15,9 @@ import * as Haptics from "expo-haptics";
 import { useNavigation, useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import EmptyState from "@components/EmptyState";
-import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 import EventCard, { EventItemProps } from "@components/EventCard";
 import ScreenContainer from "@components/ScreenContainer";
+import ScreenHeader from "@components/ScreenHeader";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth } from "@context/AuthContext";
 import { API_BASE_URL } from "@api/config";
@@ -183,18 +183,7 @@ const PastEventsScreen = () => {
 
   return (
     <ScreenContainer edges={["top"]}>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
-          style={styles.backButton}
-          hitSlop={8}
-        >
-          <ChevronLeftIcon width={24} height={24} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Past Events</Text>
-      </View>
+      <ScreenHeader title="Past Events" onBack={navigation.goBack} />
       {showLoading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -253,26 +242,6 @@ const PastEventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
-  },
-  backButton: {
-    width: 32,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    letterSpacing: -0.4,
-  },
   listContent: {},
   sectionHeader: {
     fontSize: 15,

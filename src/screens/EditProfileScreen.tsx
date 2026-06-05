@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Alert,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -13,11 +12,11 @@ import ScalePressable from "@components/ScalePressable";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
-import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 import CloseIcon from "@assets/ui/close.svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import ScreenContainer from "@components/ScreenContainer";
+import ScreenHeader from "@components/ScreenHeader";
 import UserAvatar from "@components/UserAvatar";
 import { colors, spacing, typography } from "@theme/index";
 import { useAuth, type ApiError } from "@context/AuthContext";
@@ -134,20 +133,7 @@ const EditProfileScreen = () => {
   return (
     <ScreenContainer>
       <View style={styles.inner}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
-            style={styles.backButton}
-            hitSlop={8}
-          >
-            <ChevronLeftIcon width={24} height={24} color={colors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>Edit Profile</Text>
-          <View style={styles.backButton} />
-        </View>
+        <ScreenHeader title="Edit Profile" onBack={navigation.goBack} />
 
         {/* Avatar + Name */}
         <View style={styles.avatarSection}>
@@ -215,26 +201,6 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: "space-between",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingTop: spacing.lg - spacing.md,
-    paddingBottom: spacing.md,
-  },
-  headerTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    letterSpacing: -0.4,
-  },
-  backButton: {
-    width: 32,
-    height: 44,
-    justifyContent: "center",
-    alignItems: "center",
   },
   avatarSection: {
     flex: 1,

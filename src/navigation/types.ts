@@ -30,6 +30,9 @@ export type RootStackParamList = {
   PastEvents: undefined;
   PrivacyPolicy: undefined;
   Help: undefined;
+  HelpContact: undefined;
+  HelpFAQ: undefined;
+  HelpFeedback: undefined;
   Login: undefined;
   EventCreated: {
     eventTitle: string;

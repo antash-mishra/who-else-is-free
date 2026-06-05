@@ -47,6 +47,9 @@ import EditProfileScreen from "@screens/EditProfileScreen";
 import PastEventsScreen from "@screens/PastEventsScreen";
 import PrivacyPolicyScreen from "@screens/PrivacyPolicyScreen";
 import HelpScreen from "@screens/HelpScreen";
+import HelpContactScreen from "@screens/HelpContactScreen";
+import HelpFAQScreen from "@screens/HelpFAQScreen";
+import HelpFeedbackScreen from "@screens/HelpFeedbackScreen";
 import EventCreatedScreen from "@screens/EventCreatedScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
@@ -758,6 +761,30 @@ const AppNavigator = () => {
         <Stack.Screen
           name="Help"
           component={HelpScreen}
+          options={{
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
+          }}
+        />
+        <Stack.Screen
+          name="HelpContact"
+          component={HelpContactScreen}
+          options={{
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
+          }}
+        />
+        <Stack.Screen
+          name="HelpFAQ"
+          component={HelpFAQScreen}
+          options={{
+            cardStyleInterpolator: slideFromRightInterpolator,
+            transitionSpec: slideFromRightTransitionSpec,
+          }}
+        />
+        <Stack.Screen
+          name="HelpFeedback"
+          component={HelpFeedbackScreen}
           options={{
             cardStyleInterpolator: slideFromRightInterpolator,
             transitionSpec: slideFromRightTransitionSpec,
