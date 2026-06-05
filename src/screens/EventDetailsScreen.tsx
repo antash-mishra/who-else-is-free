@@ -1387,13 +1387,9 @@ const EventDetailsScreenContent = ({
             accessibilityRole="button"
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
             hitSlop={12}
-            style={[
-              styles.overlayCloseButton,
-              styles.overlayCloseButtonFixed,
-              { top: insets.top + 10 },
-            ]}
+            style={[styles.backButton, { top: insets.top + 10 }]}
           >
-            <CloseIcon width={24} height={24} color={colors.buttonText} />
+            <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}
         <ScrollView
@@ -1405,12 +1401,7 @@ const EventDetailsScreenContent = ({
           <View
             style={[
               styles.heroContainer,
-              readOnly
-                ? {
-                    paddingTop: screenHeight * 0.065,
-                    paddingBottom: screenHeight * 0.039,
-                  }
-                : { height: 320 + insets.top, paddingTop: insets.top + 10 },
+              { height: 320 + insets.top, paddingTop: insets.top + 10 },
             ]}
           >
             <Image
@@ -1425,10 +1416,7 @@ const EventDetailsScreenContent = ({
 
             {/* Elevated Image Card */}
             <View
-              style={[
-                styles.imageCardContainer,
-                readOnly && styles.imageCardContainerOverlay,
-              ]}
+              style={styles.imageCardContainer}
             >
               <Image
                 source={{ uri: event.imageUri }}
@@ -2669,7 +2657,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    paddingVertical: 6,
+    paddingBottom: 12,
   },
   memberName: {
     flex: 1,

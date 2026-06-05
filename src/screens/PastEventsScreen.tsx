@@ -242,7 +242,9 @@ const PastEventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  listContent: {},
+  listContent: {
+    paddingTop: 24,
+  },
   sectionHeader: {
     fontSize: 15,
     color: '#808080',
