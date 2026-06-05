@@ -8,20 +8,23 @@ import {
   View,
 } from "react-native";
 import { useCallback, useState } from "react";
+import { BlurView } from "expo-blur";
 import ScalePressable from "@components/ScalePressable";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import CloseIcon from "@assets/ui/close.svg";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 
 import ScreenContainer from "@components/ScreenContainer";
 import ScreenHeader from "@components/ScreenHeader";
 import UserAvatar from "@components/UserAvatar";
-import { colors, spacing, typography } from "@theme/index";
+import { colors, typography } from "@theme/index";
 import { useAuth, type ApiError } from "@context/AuthContext";
 import { RootStackParamList } from "@navigation/types";
 import CameraIcon from "@assets/onboarding/camera.svg";
+import ProfileIcon from "@assets/onboarding/profile.svg";
+import { getAvatarColor } from "@utils/avatar";
 
 let ImagePicker: typeof import("expo-image-picker") | null = null;
 try {
@@ -35,8 +38,7 @@ type EditProfileNavigation = NativeStackNavigationProp<RootStackParamList>;
 const EditProfileScreen = () => {
   const navigation = useNavigation<EditProfileNavigation>();
   const { user, updateProfile } = useAuth();
-  const insets = useSafeAreaInsets();
-
+  const avatarColor = getAvatarColor(user?.id);
   const [editName, setEditName] = useState(user?.name ?? "");
   const [editAvatarBase64, setEditAvatarBase64] = useState<string | null>(null);
   const [removedAvatar, setRemovedAvatar] = useState(false);
@@ -139,15 +141,23 @@ const EditProfileScreen = () => {
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
             <TouchableOpacity onPress={pickImage} accessibilityRole="button">
-              <UserAvatar
-                avatar={editAvatarValue}
-                name={editName.trim() || user?.name}
-                seed={user?.id ?? editName}
-                size={80}
-                style={styles.avatarFrame}
-              />
-              <View style={styles.cameraBadge}>
-                <CameraIcon width={14} height={14} />
+              {!editAvatarValue && !editName.trim() ? (
+                <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+                  <ProfileIcon width={52} height={52} />
+                </View>
+              ) : (
+                <UserAvatar
+                  avatar={editAvatarValue}
+                  name={editName.trim() || user?.name}
+                  seed={user?.id ?? editName}
+                  size={120}
+                  style={styles.avatarFrame}
+                />
+              )}
+              <View style={styles.cameraBadgeShadow}>
+                <BlurView style={styles.cameraBadge} intensity={15} tint="light">
+                  <CameraIcon width={20} height={20} color="#707070" />
+                </BlurView>
               </View>
             </TouchableOpacity>
             {editAvatarValue && (
@@ -157,7 +167,7 @@ const EditProfileScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Remove photo"
               >
-                <CloseIcon width={13} height={13} color="#FFFFFF" />
+                <CloseIcon width={16} height={16} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -206,34 +216,45 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 100,
+    marginBottom: 40,
   },
   avatarWrapper: {
     position: "relative",
     marginBottom: 24,
   },
   avatarFrame: {
-    width: 80,
-    height: 80,
-    borderRadius: 80,
-    borderWidth: 2,
-    borderColor: "#E6E6E6",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
   },
-  cameraBadge: {
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cameraBadgeShadow: {
     position: "absolute",
     bottom: 4,
     right: -2,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "white",
-    justifyContent: "center",
-    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  cameraBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
   },
   removeBadge: {
     position: "absolute",
