@@ -4,8 +4,9 @@ import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
 import ScreenContainer from "@components/ScreenContainer";
+import ScreenHeader from "@components/ScreenHeader";
+import ReplyIcon from "@assets/help/reply.svg";
 import { colors, spacing, typography } from "@theme/index";
 import { RootStackParamList } from "@navigation/types";
 import privacyPolicyMarkdown from "../content/privacyPolicyMarkdown";
@@ -23,7 +24,7 @@ interface InlineSegment {
   underline?: boolean;
 }
 
-const LINK_TEXTS = ["Google API Services User Data Policy", "xyz@weif.com"];
+const LINK_TEXTS = ["Google API Services User Data Policy", "xyz@weif.com", "data subject access request"];
 
 const SECTION_SCROLL_OFFSET = 16;
 
@@ -238,7 +239,7 @@ const PolicyBullets = ({ items }: { items: string[] }) => (
         key={`${item}-${index}`}
         style={[styles.bulletRow, index === items.length - 1 && styles.lastListRow]}
       >
-        <Text style={styles.bulletMark}>{"\u2022"}</Text>
+        <ReplyIcon width={16} height={16} color="#828282" style={styles.bulletMark} />
         <Text style={styles.bulletText}>
           <InlineText text={item} />
         </Text>
@@ -247,12 +248,17 @@ const PolicyBullets = ({ items }: { items: string[] }) => (
   </View>
 );
 
+const toSentenceCase = (text: string) =>
+  text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+
 const PolicyOrderedList = ({
   items,
   onItemPress,
+  isToc,
 }: {
   items: string[];
   onItemPress?: (index: number) => void;
+  isToc?: boolean;
 }) => (
   <View style={styles.listBlock}>
     {items.map((item, index) => (
@@ -269,9 +275,9 @@ const PolicyOrderedList = ({
           index === items.length - 1 && styles.lastListRow,
         ]}
       >
-        <Text style={styles.orderedNumber}>{`${index + 1}.`}</Text>
-        <Text style={styles.orderedText}>
-          <InlineText text={item} style={styles.orderedText} />
+        <Text style={[styles.orderedNumber, isToc && styles.tocText]}>{`${index + 1}.`}</Text>
+        <Text style={[styles.orderedText, isToc && styles.tocText]}>
+          <InlineText text={isToc ? toSentenceCase(item) : item} style={[styles.orderedText, isToc && styles.tocText]} />
         </Text>
       </Pressable>
     ))}
@@ -304,21 +310,8 @@ const PrivacyPolicyScreen = () => {
   }, []);
 
   return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.goBack();
-          }}
-          hitSlop={12}
-        >
-          <ChevronLeftIcon width={24} height={24} color={colors.iconColor} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Help</Text>
-      </View>
+    <ScreenContainer edges={["top"]}>
+      <ScreenHeader title="Privacy Policy" onBack={navigation.goBack} />
 
       <ScrollView
         ref={scrollViewRef}
@@ -349,6 +342,7 @@ const PrivacyPolicyScreen = () => {
                 key={`ordered-${index}`}
                 items={block.items}
                 onItemPress={isTableOfContents ? handleTocPress : undefined}
+                isToc={isTableOfContents}
               />
             );
           }
@@ -360,20 +354,6 @@ const PrivacyPolicyScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 44,
-    marginLeft: -8,
-  },
-  headerTitle: {
-    marginLeft: 14,
-    color: colors.text,
-    fontFamily: typography.fontFamilySemiBold,
-    fontSize: 20,
-    letterSpacing: 0,
-    lineHeight: 26,
-  },
   scrollContent: {
     paddingTop: 32,
     paddingBottom: spacing.xxl,
@@ -382,25 +362,27 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.fontFamilySemiBold,
     fontSize: 16,
-    letterSpacing: 0,
-    lineHeight: 22,
-    marginBottom: 12,
+    letterSpacing: -0.2,
+    lineHeight: 24,
+    marginBottom: 8,
+    textAlign: "center",
   },
   updatedAt: {
     color: colors.muted,
-    fontFamily: typography.fontFamilySemiBold,
-    fontSize: 16,
-    letterSpacing: 0,
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: 15,
+    letterSpacing: -0.2,
     lineHeight: 22,
-    marginBottom: 28,
+    marginBottom: 48,
+    textAlign: "center",
   },
   paragraph: {
     color: colors.text,
     fontFamily: typography.fontFamilyRegular,
-    fontSize: 16,
-    letterSpacing: 0,
-    lineHeight: 23,
-    marginBottom: 16,
+    fontSize: 15,
+    letterSpacing: -0.2,
+    lineHeight: 22,
+    marginBottom: 20,
   },
   strong: {
     fontFamily: typography.fontFamilySemiBold,
@@ -409,55 +391,53 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   link: {
-    textDecorationLine: "underline",
+    color: "#2563EB",
   },
   sectionHeadingBlock: {
-    marginTop: 24,
-    marginBottom: 28,
+    marginTop: 28,
+    marginBottom: 24,
   },
   sectionHeading: {
     color: colors.text,
     fontFamily: typography.fontFamilySemiBold,
     fontSize: 16,
-    letterSpacing: 0,
-    lineHeight: 22,
+    letterSpacing: -0.2,
+    lineHeight: 24,
   },
   subheadingBlock: {
+    marginTop: 16,
     marginBottom: 16,
   },
   subheading: {
     color: colors.text,
     fontFamily: typography.fontFamilySemiBold,
     fontSize: 16,
-    letterSpacing: 0,
-    lineHeight: 22,
+    letterSpacing: -0.2,
+    lineHeight: 24,
   },
   listBlock: {
+    marginTop: -8,
     marginBottom: 16,
   },
   bulletRow: {
     flexDirection: "row",
-    marginBottom: 14,
+    marginBottom: 6,
   },
   bulletMark: {
-    color: colors.text,
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: 16,
-    lineHeight: 23,
-    marginRight: 10,
-    width: 16,
+    marginRight: 14,
+    marginTop: 3,
   },
   bulletText: {
     color: colors.text,
     flex: 1,
     fontFamily: typography.fontFamilyRegular,
-    fontSize: 16,
-    letterSpacing: 0,
-    lineHeight: 23,
+    fontSize: 15,
+    letterSpacing: -0.2,
+    lineHeight: 22,
   },
   orderedRow: {
     flexDirection: "row",
-    marginBottom: 0,
+    marginBottom: 12,
   },
   tocRow: {
     borderRadius: 6,
@@ -472,7 +452,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: typography.fontFamilyRegular,
     fontSize: 15,
-    letterSpacing: 0,
+    letterSpacing: -0.2,
     lineHeight: 22,
     width: 28,
   },
@@ -481,8 +461,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: typography.fontFamilyRegular,
     fontSize: 15,
-    letterSpacing: 0,
+    letterSpacing: -0.2,
     lineHeight: 22,
+  },
+  tocText: {
+    color: "#2563EB",
   },
 });
 

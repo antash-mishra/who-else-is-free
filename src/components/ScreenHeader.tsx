@@ -18,6 +18,7 @@ const ScreenHeader = ({ title, onBack }: ScreenHeaderProps) => (
         onBack();
       }}
       hitSlop={12}
+      style={styles.backButton}
     >
       <ChevronLeftIcon width={24} height={24} color={colors.text} />
     </Pressable>
@@ -32,6 +33,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 44,
+  },
+  backButton: {
     marginLeft: -8,
   },
   titleContainer: {
