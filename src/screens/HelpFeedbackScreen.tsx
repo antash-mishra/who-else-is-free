@@ -84,7 +84,7 @@ const HelpFeedbackScreen = () => {
           <View style={styles.bulletList}>
             {FEEDBACK_BULLETS.map((item) => (
               <View key={item} style={styles.bulletRow}>
-                <ReplyIcon width={16} height={16} />
+                <ReplyIcon width={16} height={16} color="#828282" />
                 <Text style={styles.bulletText}>{item}</Text>
               </View>
             ))}
