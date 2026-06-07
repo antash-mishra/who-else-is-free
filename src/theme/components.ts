@@ -38,4 +38,9 @@ export const componentTokens = {
     tabPaddingVertical: 8,
     tabPaddingHorizontal: 10,
   },
+  eventList: {
+    itemSeparatorHeight: 14,
+    sectionSeparatorHeight: 22,
+    topPadding: 24,
+  },
 } as const;

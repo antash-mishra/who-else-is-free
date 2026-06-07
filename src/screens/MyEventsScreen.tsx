@@ -1,19 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import BottomSheetModal from '@components/BottomSheetModal';
-import SignInButtons from '@components/SignInButtons';
-import SegmentedControl, { SegmentedOption } from '@components/SegmentedControl';
-import {
-  InteractionManager,
-  RefreshControl,
-  SectionList,
-  SectionListRenderItemInfo,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import AnimatedPager from '@components/AnimatedPager';
-import ScalePressable from '@components/ScalePressable';
-import { useSharedValue } from 'react-native-reanimated';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { InteractionManager, StyleSheet, Text, View } from 'react-native';
 
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
@@ -23,20 +10,24 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSharedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import AnimatedPager from '@components/AnimatedPager';
+import BottomSheetModal from '@components/BottomSheetModal';
+import ConfettiOverlay from '@components/ConfettiOverlay';
 import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
-import ConfettiOverlay from '@components/ConfettiOverlay';
-import EventCard, { EventItemProps } from '@components/EventCard';
+import { EventItemProps } from '@components/EventCard';
+import { EventListPage, buildEventSections } from '@components/events';
 import ScreenContainer from '@components/ScreenContainer';
-import { RootStackParamList, RootTabParamList } from '@navigation/types';
-import { triggerHaptic } from '@services/haptics';
-import { colors, spacing, typography } from '@theme/index';
-import { UserEvent, useEvents } from '@context/EventsContext';
-import { useChat } from '@context/ChatContext';
+import SegmentedControl, { SegmentedOption } from '@components/SegmentedControl';
+import SignInButtons from '@components/SignInButtons';
 import { useAuth } from '@context/AuthContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatEventCardMetaLine, formatEventListSectionHeaderLabel } from '@utils/eventDisplay';
+import { useChat } from '@context/ChatContext';
+import { useEvents } from '@context/EventsContext';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import { colors, spacing, typography } from '@theme/index';
 
 type MyEventsNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'MyEvents'>,
@@ -44,48 +35,6 @@ type MyEventsNavigation = CompositeNavigationProp<
 >;
 
 type MyEventsRoute = RouteProp<RootTabParamList, 'MyEvents'>;
-
-type EventSection = {
-  title: string;
-  data: EventItemProps[];
-};
-
-const buildSections = (items: EventItemProps[]): EventSection[] => {
-  const grouped = new Map<string, EventItemProps[]>();
-
-  items.forEach((item) => {
-    const eventDate = (item as UserEvent & EventItemProps).eventDate;
-    if (!eventDate) return;
-    const sectionEvents = grouped.get(eventDate) ?? [];
-    sectionEvents.push(item);
-    grouped.set(eventDate, sectionEvents);
-  });
-
-  return Array.from(grouped.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([eventDate, data]) => ({
-      title: formatEventListSectionHeaderLabel(eventDate),
-      data,
-    }))
-    .filter((s) => s.data.length > 0);
-};
-
-const EventCardItem = memo(({ item, onPress }: { item: EventItemProps; onPress: () => void }) => (
-  <ScalePressable onPress={onPress} delay={80}>
-    <EventCard {...item} />
-  </ScalePressable>
-));
-
-const toEventCardItem = (event: UserEvent, badgeLabel: string): EventItemProps => ({
-  ...event,
-  badgeLabel,
-  metaLine: formatEventCardMetaLine({
-    groupType: event.groupType,
-    gender: event.gender,
-    minAge: event.minAge,
-    maxAge: event.maxAge,
-  }),
-});
 
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
@@ -130,15 +79,15 @@ const MyEventsScreen = () => {
   }, [events, joinedEventIds]);
 
   const hostingSections = useMemo(
-    () => buildSections(userEvents.map((e) => toEventCardItem(e, 'Hosting'))),
+    () => buildEventSections(userEvents, () => 'Hosting'),
     [userEvents],
   );
   const joinedSections = useMemo(
-    () => buildSections(joinedEvents.map((e) => toEventCardItem(e, 'Joined'))),
+    () => buildEventSections(joinedEvents, () => 'Joined'),
     [joinedEvents],
   );
   const requestedSections = useMemo(
-    () => buildSections(requestedEvents.map((e) => toEventCardItem(e, 'Pending'))),
+    () => buildEventSections(requestedEvents, () => 'Pending'),
     [requestedEvents],
   );
 
@@ -165,29 +114,17 @@ const MyEventsScreen = () => {
       .finally(() => setIsRefreshing(false));
   }, [refreshEvents, refreshRequestedEvents, selectedPage]);
 
-  const renderSectionHeader = ({ section }: { section: EventSection }) => (
-    <Text style={styles.sectionHeader}>{section.title}</Text>
-  );
-
-  const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
-    <EventCardItem
-      item={item}
-      onPress={() => {
-        triggerHaptic('light');
-        navigation.navigate('EventDetails', { eventId: item.id, origin: 'MyEvents' });
-      }}
-    />
+  const handleEventPress = useCallback(
+    (item: EventItemProps) => {
+      navigation.navigate('EventDetails', { eventId: item.id, origin: 'MyEvents' });
+    },
+    [navigation],
   );
 
   const filterOptions: SegmentedOption[] = [
     { label: 'Hosting', value: 'hosting', count: counts.hosting },
     { label: 'Joined', value: 'joined', count: counts.joined },
     { label: 'Requested', value: 'requested', count: counts.requested },
-  ];
-
-  const listContentStyle = [
-    styles.listContent,
-    { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom },
   ];
 
   const [signInVisible, setSignInVisible] = useState(false);
@@ -226,116 +163,57 @@ const MyEventsScreen = () => {
             pageOffsetSV={pageOffset}
             style={styles.pager}
           >
-            {/* Page 0: Hosting */}
-            <View style={{ flex: 1 }}>
-              <SectionList<EventItemProps, EventSection>
-                sections={hostingSections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[
-                  listContentStyle,
-                  hostingSections.length === 0 && { flex: 1 },
-                ]}
-                SectionSeparatorComponent={({ leadingItem }) =>
-                  leadingItem ? <View style={styles.sectionSeparator} /> : null
-                }
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={
-                  <EmptyState
-                    title="No events yet"
-                    description={'Events you host will appear here'}
-                    imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                    imageWidth={258}
-                    imageHeight={245}
-                  />
-                }
-                refreshControl={
-                  <RefreshControl
-                    refreshing={selectedPage === 0 ? isRefreshing : false}
-                    onRefresh={handleRefresh}
-                    tintColor={colors.primary}
-                  />
-                }
-              />
-            </View>
-
-            {/* Page 1: Joined */}
-            <View style={{ flex: 1 }}>
-              <SectionList<EventItemProps, EventSection>
-                sections={joinedSections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[
-                  listContentStyle,
-                  joinedSections.length === 0 && { flex: 1 },
-                ]}
-                SectionSeparatorComponent={({ leadingItem }) =>
-                  leadingItem ? <View style={styles.sectionSeparator} /> : null
-                }
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={
-                  <EmptyState
-                    title="No events yet"
-                    description={'Events you join will appear here'}
-                    imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                    imageWidth={258}
-                    imageHeight={245}
-                  />
-                }
-                refreshControl={
-                  <RefreshControl
-                    refreshing={selectedPage === 1 ? isRefreshing : false}
-                    onRefresh={handleRefresh}
-                    tintColor={colors.primary}
-                  />
-                }
-              />
-            </View>
-
-            {/* Page 2: Requested */}
-            <View style={{ flex: 1 }}>
-              <SectionList<EventItemProps, EventSection>
-                sections={requestedSections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[
-                  listContentStyle,
-                  requestedSections.length === 0 && { flex: 1 },
-                ]}
-                SectionSeparatorComponent={({ leadingItem }) =>
-                  leadingItem ? <View style={styles.sectionSeparator} /> : null
-                }
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={
-                  <EmptyState
-                    title="No events yet"
-                    description={'Events you request to join will appear here'}
-                    imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                    imageWidth={258}
-                    imageHeight={245}
-                  />
-                }
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isRequestedRefreshing}
-                    onRefresh={handleRefresh}
-                    tintColor={colors.primary}
-                  />
-                }
-              />
-            </View>
+            <EventListPage
+              sections={hostingSections}
+              onEventPress={handleEventPress}
+              headerPaddingTop={headerHeight}
+              bottomInset={insets.bottom}
+              emptyState={
+                <EmptyState
+                  title="No events yet"
+                  description="Events you host will appear here"
+                  imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                  imageWidth={258}
+                  imageHeight={245}
+                />
+              }
+              refreshing={selectedPage === 0 ? isRefreshing : false}
+              onRefresh={handleRefresh}
+            />
+            <EventListPage
+              sections={joinedSections}
+              onEventPress={handleEventPress}
+              headerPaddingTop={headerHeight}
+              bottomInset={insets.bottom}
+              emptyState={
+                <EmptyState
+                  title="No events yet"
+                  description="Events you join will appear here"
+                  imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                  imageWidth={258}
+                  imageHeight={245}
+                />
+              }
+              refreshing={selectedPage === 1 ? isRefreshing : false}
+              onRefresh={handleRefresh}
+            />
+            <EventListPage
+              sections={requestedSections}
+              onEventPress={handleEventPress}
+              headerPaddingTop={headerHeight}
+              bottomInset={insets.bottom}
+              emptyState={
+                <EmptyState
+                  title="No events yet"
+                  description="Events you request to join will appear here"
+                  imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                  imageWidth={258}
+                  imageHeight={245}
+                />
+              }
+              refreshing={isRequestedRefreshing}
+              onRefresh={handleRefresh}
+            />
           </AnimatedPager>
 
           {/* Floating blurred header */}
@@ -414,28 +292,6 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     marginBottom: spacing.md,
-  },
-  listContent: {
-    paddingHorizontal: spacing.md,
-  },
-  sectionHeader: {
-    fontSize: 15,
-    color: '#808080',
-    marginTop: 0,
-    marginBottom: 12,
-    fontFamily: typography.fontFamilyMedium,
-    flexShrink: 1,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-  },
-  sectionSeparator: {
-    height: 22,
-  },
-  itemSeparator: {
-    height: 14,
-  },
-  footerSpacing: {
-    height: spacing.xl,
   },
 });
 

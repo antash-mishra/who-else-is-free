@@ -1,29 +1,21 @@
-import { useCallback, useEffect, useMemo, useState, memo } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  SectionList,
-  SectionListRenderItemInfo,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import ScalePressable from '@components/ScalePressable';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { API_BASE_URL } from '@api/config';
 import EmptyState from '@components/EmptyState';
-import EventCard, { EventItemProps } from '@components/EventCard';
+import { EventItemProps } from '@components/EventCard';
+import { EventSectionList, buildEventItemSections } from '@components/events';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
-import { colors, spacing, typography } from '@theme/index';
-import { useAuth } from '@context/AuthContext';
-import { API_BASE_URL } from '@api/config';
 import { CoverKey, resolveCoverUri } from '@constants/covers';
+import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
-import { triggerHaptic } from '@services/haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, componentTokens, spacing, typography } from '@theme/index';
 import { formatAbsoluteDateLabel, getScheduleDisplay, parseDateKey } from '@utils/dateTime';
 import { formatAudienceLabel } from '@utils/eventDisplay';
 
@@ -47,11 +39,6 @@ type ApiEvent = {
 
 type PastEventItem = EventItemProps & { ownerId: number; eventDate: string };
 
-type PastEventSection = {
-  title: string;
-  data: PastEventItem[];
-};
-
 const getPastSectionDateLabel = (eventDate: string): string => {
   const parsed = parseDateKey(eventDate);
   if (!parsed) return eventDate;
@@ -66,32 +53,6 @@ const getPastSectionDateLabel = (eventDate: string): string => {
   if (diffDays === 1) return 'Yesterday';
   return formatAbsoluteDateLabel(eventDate);
 };
-
-const buildPastSections = (items: PastEventItem[]): PastEventSection[] => {
-  const grouped = new Map<string, PastEventItem[]>();
-
-  items.forEach((event) => {
-    const dateKey = event.eventDate || '';
-    if (!dateKey) return;
-    const sectionEvents = grouped.get(dateKey) ?? [];
-    sectionEvents.push(event);
-    grouped.set(dateKey, sectionEvents);
-  });
-
-  return Array.from(grouped.entries())
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([eventDate, data]) => ({
-      title: getPastSectionDateLabel(eventDate),
-      data,
-    }))
-    .filter((section) => section.data.length > 0);
-};
-
-const EventCardItem = memo(({ item, onPress }: { item: PastEventItem; onPress: () => void }) => (
-  <ScalePressable onPress={onPress} delay={80}>
-    <EventCard {...item} />
-  </ScalePressable>
-));
 
 const PastEventsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -139,36 +100,45 @@ const PastEventsScreen = () => {
         };
       });
       setEvents(mapped);
-    } catch (err) {
+    } catch {
       setError('Failed to load past events');
     }
   }, [authFetch, token, user]);
 
+  const loadPastEvents = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await fetchPastEvents();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchPastEvents]);
+
   useEffect(() => {
     if (!isFocused) return;
-    setIsLoading(true);
-    fetchPastEvents().finally(() => setIsLoading(false));
-  }, [isFocused, fetchPastEvents]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Focus-driven screen loading state wraps the existing fetch lifecycle.
+    loadPastEvents();
+  }, [isFocused, loadPastEvents]);
 
   const handleRefresh = useCallback(() => {
     setIsPullRefreshing(true);
     fetchPastEvents().finally(() => setIsPullRefreshing(false));
   }, [fetchPastEvents]);
 
-  const sections = useMemo(() => buildPastSections(events), [events]);
-
-  const renderSectionHeader = ({ section }: { section: PastEventSection }) => (
-    <Text style={styles.sectionHeader}>{section.title}</Text>
+  const sections = useMemo(
+    () =>
+      buildEventItemSections(events, {
+        sortDirection: 'desc',
+        titleForDate: getPastSectionDateLabel,
+      }),
+    [events],
   );
 
-  const renderItem = ({ item }: SectionListRenderItemInfo<PastEventItem>) => (
-    <EventCardItem
-      item={item}
-      onPress={() => {
-        triggerHaptic('light');
-        navigation.navigate('EventDetails', { eventId: item.id, readOnly: true });
-      }}
-    />
+  const handleEventPress = useCallback(
+    (item: PastEventItem) => {
+      navigation.navigate('EventDetails', { eventId: item.id, readOnly: true });
+    },
+    [navigation],
   );
 
   const showLoading = isLoading && events.length === 0;
@@ -189,46 +159,28 @@ const PastEventsScreen = () => {
             <Text style={styles.retryButtonText}>Try again</Text>
           </Pressable>
         </View>
-      ) : showEmpty ? (
-        <ScrollView
-          contentContainerStyle={styles.centerContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isPullRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          <EmptyState
-            title="No Past Events"
-            description="Events you've hosted or joined will appear here after they end."
-            imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-            imageWidth={258}
-            imageHeight={245}
-          />
-        </ScrollView>
       ) : (
-        <SectionList<PastEventItem, PastEventSection>
+        <EventSectionList
           sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          stickySectionHeadersEnabled={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.listContent, { paddingBottom: safeBottom }]}
-          SectionSeparatorComponent={({ leadingItem }) =>
-            leadingItem ? <View style={styles.sectionSeparator} /> : null
+          onEventPress={handleEventPress}
+          contentHorizontalPadding={false}
+          headerPaddingTop={showEmpty ? 0 : componentTokens.eventList.topPadding}
+          bottomPadding={safeBottom}
+          footerSpacingHeight={0}
+          emptyState={
+            showEmpty ? (
+              <EmptyState
+                title="No Past Events"
+                description="Events you've hosted or joined will appear here after they end."
+                imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                imageWidth={258}
+                imageHeight={245}
+              />
+            ) : null
           }
-          ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={isPullRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-            />
-          }
+          emptyContentStyle={styles.centerContent}
+          refreshing={isPullRefreshing}
+          onRefresh={handleRefresh}
         />
       )}
     </ScreenContainer>
@@ -236,25 +188,6 @@ const PastEventsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  listContent: {
-    paddingTop: 24,
-  },
-  sectionHeader: {
-    fontSize: 15,
-    color: '#808080',
-    marginTop: 0,
-    marginBottom: 12,
-    fontFamily: typography.fontFamilyMedium,
-    flexShrink: 1,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-  },
-  sectionSeparator: {
-    height: 22,
-  },
-  itemSeparator: {
-    height: 14,
-  },
   centerContent: {
     flex: 1,
     alignItems: 'center',
@@ -265,7 +198,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
-    color: '#B00020',
+    color: colors.error,
     textAlign: 'center',
   },
   retryButton: {
