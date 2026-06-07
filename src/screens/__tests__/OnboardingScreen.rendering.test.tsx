@@ -51,6 +51,15 @@ jest.mock('@context/AuthContext', () => ({
 // Import screen after mocks
 import OnboardingScreen from '../OnboardingScreen';
 
+const getStep1ContinueButton = () => screen.getAllByText('Continue')[0];
+const getStep2ContinueButton = () => screen.getAllByText('Continue')[1];
+const getStep2BackButton = () => screen.getAllByTestId('back-button')[0];
+const getStep3BackButton = () => screen.getAllByTestId('back-button')[1];
+const selectAge = (age: number) => fireEvent.press(screen.getByText(String(age)));
+const pressStep1Continue = () => fireEvent.press(getStep1ContinueButton());
+const pressStep2Continue = () => fireEvent.press(getStep2ContinueButton());
+const pressDone = () => fireEvent.press(screen.getByText('Done'));
+
 describe('OnboardingScreen Rendering', () => {
   const defaultUser = mockUsers[2]; // New user without complete profile
 
@@ -68,7 +77,7 @@ describe('OnboardingScreen Rendering', () => {
   describe('Step 1 - Name Input', () => {
     it('renders step 1 header', () => {
       render(<OnboardingScreen />);
-      expect(screen.getByText('What's your name?')).toBeTruthy();
+      expect(screen.getByText("What's your name?")).toBeTruthy();
     });
 
     it('renders name input field', () => {
@@ -84,7 +93,7 @@ describe('OnboardingScreen Rendering', () => {
 
     it('renders Continue button', () => {
       render(<OnboardingScreen />);
-      expect(screen.getByText('Continue')).toBeTruthy();
+      expect(getStep1ContinueButton()).toBeTruthy();
     });
 
     it('disables Continue when name is empty', () => {
@@ -96,9 +105,8 @@ describe('OnboardingScreen Rendering', () => {
       render(<OnboardingScreen />);
       const nameInput = screen.getByPlaceholderText('Your Name');
       fireEvent.changeText(nameInput, '');
-      const continueButton = screen.getByText('Continue');
-      expect(continueButton.parent?.props.accessibilityState?.disabled ||
-             continueButton.parent?.parent?.props.disabled).toBeTruthy;
+      pressStep1Continue();
+      expect(Alert.alert).not.toHaveBeenCalled();
     });
 
     it('does not advance when Continue pressed with empty name', () => {
@@ -110,7 +118,7 @@ describe('OnboardingScreen Rendering', () => {
       render(<OnboardingScreen />);
       const nameInput = screen.getByPlaceholderText('Your Name');
       fireEvent.changeText(nameInput, '   ');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
       expect(Alert.alert).not.toHaveBeenCalled();
     });
 
@@ -118,7 +126,7 @@ describe('OnboardingScreen Rendering', () => {
       render(<OnboardingScreen />);
       const nameInput = screen.getByPlaceholderText('Your Name');
       fireEvent.changeText(nameInput, 'John Doe');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
       expect(screen.getByText("What's your gender?")).toBeTruthy();
     });
   });
@@ -127,7 +135,7 @@ describe('OnboardingScreen Rendering', () => {
     const goToStep2 = () => {
       render(<OnboardingScreen />);
       fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John Doe');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
     };
 
     it('renders gender selection header', () => {
@@ -148,7 +156,7 @@ describe('OnboardingScreen Rendering', () => {
     it('renders back button', () => {
       goToStep2();
       // Back button should be present (chevron-left icon)
-      expect(screen.getByTestId('back-button')).toBeTruthy();
+      expect(getStep2BackButton()).toBeTruthy();
     });
 
     it('selects Female when pressed', () => {
@@ -166,42 +174,44 @@ describe('OnboardingScreen Rendering', () => {
 
     it('does not advance when Continue pressed without selection', () => {
       goToStep2();
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep2Continue();
       expect(Alert.alert).not.toHaveBeenCalled();
     });
 
     it('advances to step 3 with gender selected', () => {
       goToStep2();
       fireEvent.press(screen.getByText('Female'));
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep2Continue();
       expect(screen.getByText("What's your age?")).toBeTruthy();
     });
 
     it('goes back to step 1 when back pressed', () => {
       goToStep2();
       // Find and press back button (first touchable)
-      fireEvent.press(screen.getByTestId('back-button'));
-      expect(screen.getByText('What's your name?')).toBeTruthy();
+      fireEvent.press(getStep2BackButton());
+      expect(screen.getByText("What's your name?")).toBeTruthy();
     });
   });
 
-  describe('Step 3 - Age Input', () => {
+  describe('Step 3 - Age Picker', () => {
     const goToStep3 = () => {
       render(<OnboardingScreen />);
       fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John Doe');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
       fireEvent.press(screen.getByText('Female'));
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep2Continue();
     };
 
-    it('renders age input header', () => {
+    it('renders age picker header', () => {
       goToStep3();
       expect(screen.getByText("What's your age?")).toBeTruthy();
     });
 
-    it('renders age input field', () => {
+    it('renders age wheel options', () => {
       goToStep3();
-      expect(screen.getByPlaceholderText('Enter Age')).toBeTruthy();
+      expect(screen.getByText('18')).toBeTruthy();
+      expect(screen.getByText('30')).toBeTruthy();
+      expect(screen.getByText('120')).toBeTruthy();
     });
 
     it('renders Done button', () => {
@@ -209,37 +219,21 @@ describe('OnboardingScreen Rendering', () => {
       expect(screen.getByText('Done')).toBeTruthy();
     });
 
-    it('accepts numeric age input', () => {
+    it('submits the selected age', async () => {
+      mockUpdateProfile.mockResolvedValue({});
       goToStep3();
-      const ageInput = screen.getByPlaceholderText('Enter Age');
-      fireEvent.changeText(ageInput, '25');
-      expect(ageInput.props.value).toBe('25');
-    });
-
-    it('does not submit when age is below minimum', () => {
-      goToStep3();
-      fireEvent.changeText(screen.getByPlaceholderText('Enter Age'), '10');
-      fireEvent.press(screen.getByText('Done'));
-      expect(Alert.alert).not.toHaveBeenCalled();
-    });
-
-    it('does not submit when age is above maximum', () => {
-      goToStep3();
-      fireEvent.changeText(screen.getByPlaceholderText('Enter Age'), '150');
-      fireEvent.press(screen.getByText('Done'));
-      expect(Alert.alert).not.toHaveBeenCalled();
-    });
-
-    it('does not submit when age is non-numeric', () => {
-      goToStep3();
-      fireEvent.changeText(screen.getByPlaceholderText('Enter Age'), 'abc');
-      fireEvent.press(screen.getByText('Done'));
-      expect(Alert.alert).not.toHaveBeenCalled();
+      selectAge(25);
+      pressDone();
+      await waitFor(() => {
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({ age: 25 }),
+        );
+      });
     });
 
     it('goes back to step 2 when back pressed', () => {
       goToStep3();
-      fireEvent.press(screen.getByTestId('back-button'));
+      fireEvent.press(getStep3BackButton());
       expect(screen.getByText("What's your gender?")).toBeTruthy();
     });
   });
@@ -248,16 +242,16 @@ describe('OnboardingScreen Rendering', () => {
     const completeForm = () => {
       render(<OnboardingScreen />);
       fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John Doe');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
       fireEvent.press(screen.getByText('Female'));
-      fireEvent.press(screen.getByText('Continue'));
-      fireEvent.changeText(screen.getByPlaceholderText('Enter Age'), '25');
+      pressStep2Continue();
+      selectAge(25);
     };
 
     it('calls updateProfile with correct data', async () => {
       mockUpdateProfile.mockResolvedValue({});
       completeForm();
-      fireEvent.press(screen.getByText('Done'));
+      pressDone();
       await waitFor(() => {
         expect(mockUpdateProfile).toHaveBeenCalledWith({
           name: 'John Doe',
@@ -271,7 +265,7 @@ describe('OnboardingScreen Rendering', () => {
     it('navigates to Main after successful submission', async () => {
       mockUpdateProfile.mockResolvedValue({});
       completeForm();
-      fireEvent.press(screen.getByText('Done'));
+      pressDone();
       await waitFor(() => {
         expect(mockReset).toHaveBeenCalledWith({
           index: 0,
@@ -283,7 +277,7 @@ describe('OnboardingScreen Rendering', () => {
     it('shows error alert on submission failure', async () => {
       mockUpdateProfile.mockRejectedValue(new Error('Network error'));
       completeForm();
-      fireEvent.press(screen.getByText('Done'));
+      pressDone();
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith('Error', 'Network error');
       });
@@ -307,7 +301,7 @@ describe('OnboardingScreen Rendering', () => {
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
           'Permission Required',
-          'Please allow access to your photo library to upload an avatar.'
+          'Please allow access to your photo library to upload an avatar.',
         );
       });
     });
@@ -339,17 +333,17 @@ describe('OnboardingScreen Rendering', () => {
 
       // Complete form
       fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
       fireEvent.press(screen.getByText('Male'));
-      fireEvent.press(screen.getByText('Continue'));
-      fireEvent.changeText(screen.getByPlaceholderText('Enter Age'), '30');
-      fireEvent.press(screen.getByText('Done'));
+      pressStep2Continue();
+      selectAge(30);
+      pressDone();
 
       await waitFor(() => {
         expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
             avatar: 'mockBase64Image',
-          })
+          }),
         );
       });
     });
@@ -359,17 +353,20 @@ describe('OnboardingScreen Rendering', () => {
     it('shows loading indicator during submission', async () => {
       // Create a promise that won't resolve immediately
       let resolveUpdate: (value?: unknown) => void = () => {};
-      mockUpdateProfile.mockImplementation(() => new Promise(resolve => {
-        resolveUpdate = resolve;
-      }));
+      mockUpdateProfile.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveUpdate = resolve;
+          }),
+      );
 
       render(<OnboardingScreen />);
       fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John');
-      fireEvent.press(screen.getByText('Continue'));
+      pressStep1Continue();
       fireEvent.press(screen.getByText('Male'));
-      fireEvent.press(screen.getByText('Continue'));
-      fireEvent.changeText(screen.getByPlaceholderText('Enter Age'), '25');
-      fireEvent.press(screen.getByText('Done'));
+      pressStep2Continue();
+      selectAge(25);
+      pressDone();
 
       // Done button should be disabled during loading
       await waitFor(() => {

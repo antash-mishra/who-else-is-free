@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { typography } from '@theme/index';
+import { colors, componentTokens, radii, typography } from '@theme/index';
 import { Springs } from '@theme/springs';
 
 export interface SegmentedOption {
@@ -33,14 +33,30 @@ type TabProps = {
 
 const SegmentedTab = ({ option, selected, localProgress, onPress }: TabProps) => {
   const tabStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(localProgress.value, [0, 1], ['transparent', '#000000']),
-    borderColor: interpolateColor(localProgress.value, [0, 1], ['#E6E6E6', 'transparent']),
+    backgroundColor: interpolateColor(
+      localProgress.value,
+      [0, 1],
+      [colors.transparent, colors.primaryButtonBackground],
+    ),
+    borderColor: interpolateColor(
+      localProgress.value,
+      [0, 1],
+      [colors.borderSubtle, colors.transparent],
+    ),
   }));
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(localProgress.value, [0, 1], ['#494949', '#FFFFFF']),
+    color: interpolateColor(
+      localProgress.value,
+      [0, 1],
+      [colors.eventDetailRowText, colors.selectedTextOnDark],
+    ),
   }));
   const countStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(localProgress.value, [0, 1], ['#808080', 'rgba(255,255,255,0.7)']),
+    color: interpolateColor(
+      localProgress.value,
+      [0, 1],
+      [colors.subText, colors.selectedTextMutedOnDark],
+    ),
   }));
 
   return (
@@ -51,13 +67,9 @@ const SegmentedTab = ({ option, selected, localProgress, onPress }: TabProps) =>
       testID={`segment-${option.value}`}
     >
       <Animated.View style={[styles.tab, tabStyle]}>
-        <Animated.Text style={[styles.label, labelStyle]}>
-          {option.label}
-        </Animated.Text>
+        <Animated.Text style={[styles.label, labelStyle]}>{option.label}</Animated.Text>
         {option.count != null && option.count > 0 && (
-          <Animated.Text style={[styles.count, countStyle]}>
-            {option.count}
-          </Animated.Text>
+          <Animated.Text style={[styles.count, countStyle]}>{option.count}</Animated.Text>
         )}
       </Animated.View>
     </Pressable>
@@ -66,7 +78,7 @@ const SegmentedTab = ({ option, selected, localProgress, onPress }: TabProps) =>
 
 // Up to 5 tabs — shared values must be created unconditionally at top level.
 const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) => {
-  const selectedIndex = options.findIndex(o => o.value === value);
+  const selectedIndex = options.findIndex((o) => o.value === value);
   const prevIndex = useRef(selectedIndex);
 
   const sv0 = useSharedValue(selectedIndex === 0 ? 1 : 0);
@@ -109,15 +121,15 @@ const SegmentedControl = ({ options, value, onChange }: SegmentedControlProps) =
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 5,
+    gap: componentTokens.segmentedControl.gap,
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    gap: componentTokens.segmentedControl.tabGap,
+    paddingVertical: componentTokens.segmentedControl.tabPaddingVertical,
+    paddingHorizontal: componentTokens.segmentedControl.tabPaddingHorizontal,
+    borderRadius: radii.md,
     borderCurve: 'continuous',
     borderWidth: 1,
   },

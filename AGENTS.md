@@ -1,19 +1,188 @@
-# Build Commands
-- Frontend (React Native): `npm start` (Expo), `npm run android`, `npm run ios`, `npm run web`
+# AGENTS.md
+
+Project guide for coding agents and contributors working in this repository.
+
+## Keep This File Updated
+
+- Update this file whenever project conventions, folder structure, validation commands, shared primitives, or architectural rules change.
+- If a refactor introduces a new preferred component, hook, service, API helper, or theme token, document the new rule here in the same change.
+- If a command stops working or a new validation gate is added, update the commands below.
+- Keep this file concise and practical. It should describe how to work in the repo, not every implementation detail.
+
+## Build And Run Commands
+
+- Frontend dev server: `npm start`
+- Android app: `npm run android`
+- iOS app: `npm run ios`
+- Web app: `npm run web`
 - Frontend tests: `npm test`
-- Backend (Go): `cd server && go run .`
+- Frontend typecheck: `npm run typecheck`
+- Frontend lint: `npm run lint`
+- Format all files: `npm run format`
+- Check formatting: `npm run format:check`
+- Backend server: `cd server && go run .`
 - Backend tests: `cd server && go test ./...`
 
-# Architecture
-- **Frontend**: React Native Expo app (TypeScript) in `src/` with root entry in `App.tsx`
-- **Backend**: Go (Gin) HTTP server in `server/` with SQLite database
-- **API**: RESTful endpoints plus WebSocket chat (`/api/ws`)
-- **State**: React Context via `AuthContext`, `EventsContext`, and `ChatContext`
+`npm run lint` currently exits green with a warning baseline for existing import order, direct haptics, hardcoded colors, `any`, hook, and unused-code debt. Do not add new warnings casually; prefer reducing the baseline as files are touched.
 
-# Code Style Guidelines
-- **Imports**: React → external libs → internal (@ aliases)
-- **Types**: Strict TypeScript, interfaces for props/state
-- **Naming**: camelCase vars/functions, PascalCase components
-- **Error Handling**: try/catch with console.error/warn
-- **Async**: Proper await/error handling in functions
-- **Components**: Functional with hooks, typed navigation props
+## Architecture
+
+- Frontend: React Native Expo app in `src/`, with root app setup in `App.tsx` and root registration in `index.ts`.
+- Backend: Go Gin HTTP server in `server/` using SQLite.
+- API: REST endpoints plus WebSocket chat at `/api/ws`.
+- Navigation: React Navigation stack and bottom tabs in `src/navigation`.
+- State: React Context providers currently handle auth, events, chat, push, covers, and bloom state.
+- Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
+- Tests: Jest tests live near source files under `__tests__`.
+
+## Import Rules
+
+Use this order:
+
+1. React imports.
+2. React Native imports.
+3. External library imports.
+4. Internal alias imports.
+5. Relative imports.
+
+Prefer aliases over deep relative paths when an alias exists:
+
+- `@components/*`
+- `@screens/*`
+- `@navigation/*`
+- `@theme/*`
+- `@hooks/*`
+- `@utils/*`
+- `@context/*`
+- `@api/*`
+- `@services/*`
+- `@assets/*`
+- `@constants/*`
+
+Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config.js`.
+
+## TypeScript Rules
+
+- Strict TypeScript is expected.
+- Use interfaces or named types for component props, hook return values, context values, and API payloads.
+- Avoid `any`. If external data is unknown, isolate parsing/casting in adapter or mapper files.
+- Keep navigation params typed in `src/navigation/types.ts`.
+- Do not spread `navigation as any` or `props: any` into new code. Add proper route/screen types instead.
+- Prefer pure mapper functions for API payload conversion.
+
+## React Native Component Rules
+
+- Use functional components and hooks.
+- Keep screens as composition layers. Move reusable UI, data derivation, and actions into components/hooks.
+- Prefer shared primitives over duplicating local UI:
+  - buttons
+  - icon buttons
+  - text fields
+  - checkbox rows
+  - empty states
+  - list separators
+  - section headers
+  - sheets
+  - tabs/segmented controls
+  - event rows and member/request rows
+- If two UI elements look like the same interaction, they should use the same component or hook so styling, animation, haptics, accessibility, loading, and disabled behavior stay consistent.
+- Local one-off animation is allowed only for genuinely unique screen moments, not for common buttons, cards, tabs, sheets, menus, or CTAs.
+
+## Styling And Theme Rules
+
+- Prefer tokens from `src/theme` over raw values.
+- Do not introduce new hardcoded colors, radii, shadows, spacing, button heights, or overlay opacity unless there is a specific reason.
+- Add missing tokens before spreading a new repeated value across screens.
+- Use `src/theme/radii.ts`, `shadows.ts`, `layout.ts`, and `components.ts` for repeated radius, shadow, screen padding, hit slop, z-index, button, input, icon, avatar, overlay, and segmented-control values.
+- Shared components should own their visual states: default, pressed, disabled, loading, selected, error, and destructive.
+- Keep brand-specific or screen-specific tokens named and centralized.
+- Treat "shared CSS" in React Native as shared theme tokens plus shared components.
+
+## Motion And Haptics Rules
+
+- Shared UI components should own their motion and feedback behavior.
+- Prefer semantic haptic helpers once `src/services/haptics.ts` exists.
+- Do not add new direct `expo-haptics` calls in many screens for the same interaction.
+- Repeated interactions should share animation constants or component-level motion tokens.
+- Bottom sheets, action menus, buttons, cards, tabs, and CTAs should feel consistent across the app.
+
+## State And API Rules
+
+- Keep API transport and payload normalization out of screen components.
+- Prefer shared API helpers for auth headers, JSON parsing, timeout handling, and error handling once they exist.
+- Keep context providers focused on state orchestration, not large transport implementations.
+- Split large contexts by data/actions when high-churn state causes broad rerenders.
+- Avoid navigation side effects inside contexts unless there is no practical alternative.
+
+## Refactoring Rules
+
+- Preserve behavior unless the task explicitly asks for behavior change.
+- Refactor one user-visible area at a time.
+- Start with low-risk shared foundations before large screen rewrites.
+- Keep route names and navigation params stable during UI extraction.
+- Do not combine structural refactors with performance optimizations unless the task asks for both.
+- When extracting a component, move only the code required for that component and keep tests passing.
+- Prefer mechanical extraction first, then cleanup.
+- Do not remove user changes or unrelated untracked files.
+
+## Current Refactor Plan
+
+The working refactor roadmap is documented in:
+
+- `report/code-refactoring-consistency-plan.md`
+
+Use that plan for ordering:
+
+1. Guardrails and tooling.
+2. Theme tokens.
+3. Shared UI primitives.
+4. Semantic haptics and pressables.
+5. Sheet and overlay consolidation.
+6. Event list refactor.
+7. Event Details decomposition.
+8. Create/Edit Event form refactor.
+9. API client and context boundaries.
+10. Navigation cleanup.
+11. Final consistency pass.
+
+## Testing And Validation
+
+For frontend changes, run the narrowest relevant test first, then broader validation when the change has shared impact.
+
+Recommended commands:
+
+- Targeted Jest test: `npx jest <path-or-pattern> --runInBand --silent`
+- Full frontend tests: `npm test -- --runInBand --silent`
+- Frontend typecheck: `npm run typecheck`
+- Frontend lint: `npm run lint`
+- Format check: `npm run format:check`
+- Backend tests: `cd server && go test ./...`
+
+Run `npm run typecheck` for TypeScript refactors. For formatting, the full repo still has a legacy formatting baseline; use Prettier on touched files and avoid whole-repo formatting churn unless the task is explicitly a formatting pass.
+
+For visual or interaction refactors, manually smoke test on the connected mobile app/emulator:
+
+- Discover
+- My Events
+- Create Event
+- Messages
+- Profile
+- Event Details
+- Bottom sheets and action menus
+- Back navigation
+
+## Known Quality Gates To Improve
+
+- Reduce lint warning baseline.
+- Establish a green full-repo format baseline without mixing it into behavior refactors.
+- Reduce direct haptic calls.
+- Reduce hardcoded style values outside theme.
+- Reduce large screen/context files.
+- Remove avoidable `any` casts.
+- Consolidate repeated sheet, tab, button, list, and action-menu implementations.
+
+## Backend Notes
+
+- Keep backend changes inside `server/` unless frontend API types must be updated too.
+- Run `cd server && go test ./...` after backend changes.
+- Keep endpoint behavior and payload shape documented in frontend mappers when they are introduced.

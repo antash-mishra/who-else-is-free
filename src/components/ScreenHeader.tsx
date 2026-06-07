@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import * as Haptics from "expo-haptics";
-import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
-import { colors, typography } from "@theme/index";
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+
+import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
+import { colors, layout, typography } from '@theme/index';
 
 interface ScreenHeaderProps {
   title: string;
@@ -17,37 +18,39 @@ const ScreenHeader = ({ title, onBack }: ScreenHeaderProps) => (
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onBack();
       }}
-      hitSlop={12}
+      hitSlop={layout.hitSlop.md}
       style={styles.backButton}
     >
       <ChevronLeftIcon width={24} height={24} color={colors.text} />
     </Pressable>
     <View style={styles.titleContainer} pointerEvents="none">
-      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      <Text style={styles.title} numberOfLines={1}>
+        {title}
+      </Text>
     </View>
   </View>
 );
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: layout.headerHeight,
   },
   backButton: {
     marginLeft: -8,
   },
   titleContainer: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: 18,
     lineHeight: 24,
     fontFamily: typography.fontFamilyMedium,

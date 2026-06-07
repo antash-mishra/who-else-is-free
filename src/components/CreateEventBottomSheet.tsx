@@ -1,29 +1,23 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    useWindowDimensions,
-} from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
-    Easing,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
-import CloseIcon from "@assets/ui/close.svg";
-import { spacing, typography } from "@theme/index";
+import CloseIcon from '@assets/ui/close.svg';
+import { colors, componentTokens, layout, radii, shadows, spacing, typography } from '@theme/index';
 
 type CreateEventBottomSheetProps = {
-    visible: boolean;
-    title?: string;
-    children: React.ReactNode;
-    onClose: () => void;
-    snapHeight?: number;
+  visible: boolean;
+  title?: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  snapHeight?: number;
 };
 
 const OPEN_DURATION_MS = 260;
@@ -32,183 +26,181 @@ const MIN_TOP_GUTTER = 96;
 const BASE_PADDING_BOTTOM = 8;
 
 const CreateEventBottomSheet = ({
-    visible,
-    title,
-    children,
-    onClose,
-    snapHeight,
+  visible,
+  title,
+  children,
+  onClose,
+  snapHeight,
 }: CreateEventBottomSheetProps) => {
-    const { height: screenHeight } = useWindowDimensions();
-    const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
-    const [isMounted, setIsMounted] = useState(visible);
-    const isMountedRef = useRef(visible);
-    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const backdropOpacity = useSharedValue(0);
-    const translateY = useSharedValue(screenHeight);
-    const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
-    const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
+  const { height: screenHeight } = useWindowDimensions();
+  const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
+  const [isMounted, setIsMounted] = useState(visible);
+  const isMountedRef = useRef(visible);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const backdropOpacity = useSharedValue(0);
+  const translateY = useSharedValue(screenHeight);
+  const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
+  const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
 
-    useEffect(() => {
-        return () => {
-            if (closeTimerRef.current) {
-                clearTimeout(closeTimerRef.current);
-            }
-        };
-    }, []);
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
-    useEffect(() => {
-        if (visible) {
-            if (closeTimerRef.current) {
-                clearTimeout(closeTimerRef.current);
-                closeTimerRef.current = null;
-            }
-            isMountedRef.current = true;
-            setIsMounted(true);
-            translateY.value = screenHeight;
-            backdropOpacity.value = 0;
-            requestAnimationFrame(() => {
-                translateY.value = withTiming(0, {
-                    duration: OPEN_DURATION_MS,
-                    easing: Easing.out(Easing.cubic),
-                });
-                backdropOpacity.value = withTiming(1, {
-                    duration: 140,
-                    easing: Easing.out(Easing.cubic),
-                });
-            });
-            return;
-        }
-
-        if (!isMountedRef.current) {
-            return;
-        }
-
-        translateY.value = withTiming(screenHeight, {
-            duration: CLOSE_DURATION_MS,
-            easing: Easing.in(Easing.cubic),
+  useEffect(() => {
+    if (visible) {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      isMountedRef.current = true;
+      setIsMounted(true);
+      translateY.value = screenHeight;
+      backdropOpacity.value = 0;
+      requestAnimationFrame(() => {
+        translateY.value = withTiming(0, {
+          duration: OPEN_DURATION_MS,
+          easing: Easing.out(Easing.cubic),
         });
-        backdropOpacity.value = withTiming(0, {
-            duration: 160,
-            easing: Easing.in(Easing.ease),
+        backdropOpacity.value = withTiming(1, {
+          duration: 140,
+          easing: Easing.out(Easing.cubic),
         });
-        closeTimerRef.current = setTimeout(() => {
-            isMountedRef.current = false;
-            setIsMounted(false);
-            closeTimerRef.current = null;
-        }, CLOSE_DURATION_MS);
-    }, [backdropOpacity, screenHeight, translateY, visible]);
-
-    const handleClose = useCallback(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onClose();
-    }, [onClose]);
-
-    const backdropStyle = useAnimatedStyle(() => ({
-        opacity: backdropOpacity.value,
-    }));
-
-    const sheetStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: translateY.value }],
-    }));
-
-    if (!isMounted) {
-        return null;
+      });
+      return;
     }
 
-    return (
-        <View style={StyleSheet.absoluteFill} pointerEvents={visible ? "auto" : "none"}>
-            <Pressable
-                accessibilityRole="button"
-                onPress={handleClose}
-                style={StyleSheet.absoluteFill}
-                testID="create-event-sheet-backdrop"
-            >
-                <Animated.View
-                    pointerEvents="none"
-                    style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
-                />
-            </Pressable>
+    if (!isMountedRef.current) {
+      return;
+    }
 
-            <Animated.View
-                style={[
-                    styles.sheet,
-                    { maxHeight: sheetMaxHeight, paddingBottom: BASE_PADDING_BOTTOM + safeBottom },
-                    snapHeight ? { height: snapHeight } : null,
-                    sheetStyle,
-                ]}
-                testID="create-event-bottom-sheet"
+    translateY.value = withTiming(screenHeight, {
+      duration: CLOSE_DURATION_MS,
+      easing: Easing.in(Easing.cubic),
+    });
+    backdropOpacity.value = withTiming(0, {
+      duration: 160,
+      easing: Easing.in(Easing.ease),
+    });
+    closeTimerRef.current = setTimeout(() => {
+      isMountedRef.current = false;
+      setIsMounted(false);
+      closeTimerRef.current = null;
+    }, CLOSE_DURATION_MS);
+  }, [backdropOpacity, screenHeight, translateY, visible]);
+
+  const handleClose = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onClose();
+  }, [onClose]);
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: backdropOpacity.value,
+  }));
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  if (!isMounted) {
+    return null;
+  }
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={handleClose}
+        style={StyleSheet.absoluteFill}
+        testID="create-event-sheet-backdrop"
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
+        />
+      </Pressable>
+
+      <Animated.View
+        style={[
+          styles.sheet,
+          { maxHeight: sheetMaxHeight, paddingBottom: BASE_PADDING_BOTTOM + safeBottom },
+          snapHeight ? { height: snapHeight } : null,
+          sheetStyle,
+        ]}
+        testID="create-event-bottom-sheet"
+      >
+        {title !== undefined && (
+          <View style={styles.header}>
+            <Text style={styles.title}>{title}</Text>
+            <Pressable
+              onPress={handleClose}
+              style={styles.closeButton}
+              accessibilityRole="button"
+              testID="create-event-sheet-close"
             >
-                {title !== undefined && (
-                    <View style={styles.header}>
-                        <Text style={styles.title}>{title}</Text>
-                        <Pressable
-                            onPress={handleClose}
-                            style={styles.closeButton}
-                            accessibilityRole="button"
-                            testID="create-event-sheet-close"
-                        >
-                            <CloseIcon width={18} height={18} color="#999999" />
-                        </Pressable>
-                    </View>
-                )}
-                <View style={[styles.content, snapHeight ? styles.contentFill : null]}>
-                    {children}
-                </View>
-            </Animated.View>
-        </View>
-    );
+              <CloseIcon
+                width={componentTokens.iconButton.iconSm}
+                height={componentTokens.iconButton.iconSm}
+                color={colors.iconMuted}
+              />
+            </Pressable>
+          </View>
+        )}
+        <View style={[styles.content, snapHeight ? styles.contentFill : null]}>{children}</View>
+      </Animated.View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    backdrop: {
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
-    },
-    sheet: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 40,
-        backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        borderCurve: "continuous",
-        paddingHorizontal: spacing.md,
-        paddingTop: spacing.md,
-        shadowColor: "#000000",
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-        elevation: 12,
-        overflow: "hidden",
-    },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: spacing.md,
-    },
-    title: {
-        fontSize: 20,
-        fontFamily: typography.fontFamilySemiBold,
-        color: "rgba(0, 0, 0, 1)",
-        lineHeight: 24,
-        letterSpacing: -0.5,
-    },
-    closeButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 80,
-        backgroundColor: "rgba(120, 120, 128, 0.16)",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    content: {
-        flexShrink: 1,
-    },
-    contentFill: {
-        flex: 1,
-    },
+  backdrop: {
+    backgroundColor: componentTokens.overlay.backdrop,
+  },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: layout.sheetZIndex,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: radii.sheet,
+    borderTopRightRadius: radii.sheet,
+    borderCurve: 'continuous',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    ...shadows.sheet,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: 20,
+    fontFamily: typography.fontFamilySemiBold,
+    color: colors.text,
+    lineHeight: 24,
+    letterSpacing: -0.5,
+  },
+  closeButton: {
+    width: componentTokens.iconButton.sm,
+    height: componentTokens.iconButton.sm,
+    borderRadius: radii.pill,
+    backgroundColor: componentTokens.overlay.closeButtonBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flexShrink: 1,
+  },
+  contentFill: {
+    flex: 1,
+  },
 });
 
 export default CreateEventBottomSheet;

@@ -1,8 +1,8 @@
-import { ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
-import { Edge, SafeAreaView } from "react-native-safe-area-context";
+import { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Edge, SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, spacing } from "@theme/index";
+import { colors, layout } from '@theme/index';
 
 interface ScreenContainerProps {
   children: ReactNode;
@@ -10,7 +10,7 @@ interface ScreenContainerProps {
 }
 
 const ScreenContainer = ({ children, edges }: ScreenContainerProps) => {
-  const resolvedEdges: Edge[] = edges ?? ["top", "bottom"];
+  const resolvedEdges: Edge[] = edges ?? ['top', 'bottom'];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={resolvedEdges}>
@@ -22,12 +22,12 @@ const ScreenContainer = ({ children, edges }: ScreenContainerProps) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: "transparent",
-    paddingHorizontal: spacing.md,
+    backgroundColor: colors.transparent,
+    paddingHorizontal: layout.screenHorizontalPadding,
   },
 });
 
