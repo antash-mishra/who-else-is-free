@@ -4,6 +4,7 @@ export const colors = {
   navigationBackground: 'rgba(255, 255, 255, 0.8)',
   surface: '#F8F9FC',
   card: '#FFFFFF',
+  actionSurface: 'rgba(0, 0, 0, 0.08)',
   primary: '#000000',
   secondary: '#2563EB',
   accent: '#4338CA',

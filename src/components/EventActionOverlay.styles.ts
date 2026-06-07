@@ -1,133 +1,112 @@
 import { StyleSheet } from 'react-native';
 
-import { colors, spacing, typography } from '@theme/index';
+import { colors, componentTokens, radii, spacing, typography } from '@theme/index';
 
 const styles = StyleSheet.create({
   prompt: {
-    gap: 12,
+    gap: spacing.sm + spacing.xs,
   },
   promptHeader: {
-    gap: spacing.xs
+    gap: spacing.xs,
   },
   inviteInput: {
     minHeight: 140,
-    borderRadius: 20,
-    backgroundColor: '#F4F4F4',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
+    borderRadius: radii.xl,
+    backgroundColor: colors.inputSurface,
+    paddingHorizontal: componentTokens.input.paddingHorizontal - spacing.xs,
+    paddingVertical: componentTokens.input.paddingVertical,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: typography.letterSpacing,
     color: colors.text,
-    textAlignVertical: 'top'
+    textAlignVertical: 'top',
   },
   promptTitle: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilySemiBold,
     color: colors.text,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    letterSpacing: typography.letterSpacing,
   },
   promptDescription: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     color: colors.subText,
-    lineHeight: 20,
-    letterSpacing: typography.letterSpacing
+    lineHeight: typography.body + spacing.xs,
+    letterSpacing: typography.letterSpacing,
   },
   promptError: {
-    fontSize: typography.body,
+    fontSize: typography.caption,
     fontFamily: typography.fontFamilyRegular,
-    color: '#D1382C',
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    color: colors.error,
+    lineHeight: typography.caption + spacing.xs,
+    letterSpacing: typography.letterSpacing,
   },
   sendButton: {
-    backgroundColor: colors.text,
-    borderRadius: 999,
+    backgroundColor: colors.primaryButtonBackground,
+    borderRadius: radii.pill,
     borderCurve: 'continuous',
-    height: 52,
+    height: componentTokens.button.height,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   sendButtonPressed: {
-    opacity: 0.7
+    opacity: 0.7,
   },
   sendLabel: {
-    fontSize: 17,
+    fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     color: colors.buttonText,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
-  },
-  manageButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.08)',
-    borderRadius: 999,
-    borderCurve: 'continuous',
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  manageButtonPressed: {
-    opacity: 0.7
-  },
-  manageLabel: {
-    fontSize: 17,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
-  },
-  deleteLabel: {
-    color: '#FF383C'
+    lineHeight: typography.body + spacing.xs,
+    letterSpacing: typography.detailLetterSpacing,
   },
   promptButtons: {
-    gap: spacing.sm
+    gap: spacing.sm,
   },
   secondaryButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.08)',
-    borderRadius: 999,
+    backgroundColor: colors.actionSurface,
+    borderRadius: radii.pill,
     borderCurve: 'continuous',
-    height: 52,
+    height: componentTokens.button.height,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   secondaryButtonPressed: {
-    opacity: 0.7
+    opacity: 0.7,
   },
   secondaryLabel: {
-    fontSize: 17,
+    fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    lineHeight: typography.body + spacing.xs,
+    letterSpacing: typography.detailLetterSpacing,
   },
   primaryButton: {
-    backgroundColor: colors.text,
-    borderRadius: 999,
+    backgroundColor: colors.primaryButtonBackground,
+    borderRadius: radii.pill,
     borderCurve: 'continuous',
-    height: 52,
+    height: componentTokens.button.height,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   primaryButtonPressed: {
-    opacity: 0.85
+    opacity: 0.85,
   },
   primaryButtonDisabled: {
-    opacity: 0.6
+    opacity: 0.6,
   },
   primaryLabel: {
-    fontSize: 17,
+    fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     color: colors.buttonText,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
+    lineHeight: typography.body + spacing.xs,
+    letterSpacing: typography.detailLetterSpacing,
   },
   destructiveButton: {
-    backgroundColor: '#D1382C'
+    backgroundColor: colors.error,
   },
   destructiveLabel: {
-    color: colors.buttonText
+    color: colors.buttonText,
   },
   introMessageText: {
     fontSize: typography.body,
@@ -135,8 +114,8 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: colors.text,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing
-  }
+    letterSpacing: typography.letterSpacing,
+  },
 });
 
 export default styles;

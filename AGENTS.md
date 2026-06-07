@@ -34,6 +34,7 @@ Project guide for coding agents and contributors working in this repository.
 - State: React Context providers currently handle auth, events, chat, push, covers, and bloom state.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
 - Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
+- Shared sheet primitives live in `src/components/sheets`; use `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
 - Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
 - Tests: Jest tests live near source files under `__tests__`.
 
@@ -147,7 +148,7 @@ Use that plan for ordering:
 10. Navigation cleanup.
 11. Final consistency pass.
 
-Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, and semantic haptics/pressables.
+Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, and sheet/action overlay foundations.
 
 ## Testing And Validation
 
