@@ -664,7 +664,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (navigationRef.isReady()) {
-          (navigationRef as any).navigate('Main', {
+          navigationRef.navigate('Main', {
             screen: 'MyEvents',
             params: { showEventCreatedBadge: true },
           });

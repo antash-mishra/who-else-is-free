@@ -590,7 +590,7 @@ const EventDetailsScreenContent = ({
   const handleOpenChat = () => {
     triggerHaptic('light');
     if (isOwner && isSingleEvent && eventNumericId != null && requestStoreKey != null) {
-      (navigation as any).navigate('JoinRequests', {
+      navigation.navigate('JoinRequests', {
         conversationId: requestStoreKey,
         eventId: eventNumericId,
         title: event.title,
@@ -603,7 +603,7 @@ const EventDetailsScreenContent = ({
       return;
     }
     setActiveConversation(eventConversation.id);
-    (navigation as any).push('ChatThread');
+    navigation.push('ChatThread');
   };
 
   const renderAvatar = (
@@ -673,7 +673,7 @@ const EventDetailsScreenContent = ({
     if (!request.conversationId) return;
     triggerHaptic('light');
     setActiveConversation(request.conversationId);
-    (navigation as any).push('ChatThread');
+    navigation.push('ChatThread');
   };
 
   const openMemberMenu = (member: { id: number; name: string; avatar?: string }) => {

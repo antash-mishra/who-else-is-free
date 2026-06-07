@@ -126,7 +126,7 @@ const JoinRequestsScreen = () => {
       if (request.status !== 'approved' || !request.conversationId) return;
       triggerHaptic('light');
       setActiveConversation(request.conversationId);
-      (navigation as any).push('ChatThread');
+      navigation.push('ChatThread');
     },
     [navigation, setActiveConversation],
   );

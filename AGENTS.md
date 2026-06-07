@@ -39,6 +39,7 @@ Project guide for coding agents and contributors working in this repository.
 - Create/Edit Event form mapping lives in `src/screens/create-event/createEventForm.ts`; keep payload construction, edit hydration, guest draft mapping, and date normalization there instead of rebuilding them in `CreateEventScreen`.
 - Shared request helpers live in `src/api/request.ts`; use them for repeated API timeout and abort-error handling instead of duplicating request infrastructure inside contexts.
 - Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
+- Keep navigation route params typed in `src/navigation/types.ts`; use `NavigatorScreenParams` for nested navigators and avoid `navigation as any` casts for route jumps.
 - Tests: Jest tests live near source files under `__tests__`.
 
 ## Import Rules
@@ -151,7 +152,7 @@ Use that plan for ordering:
 10. Navigation cleanup.
 11. Final consistency pass.
 
-Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, the first Event Details overlay-route extraction, Create/Edit Event form mapping helpers, and shared API request timeout helpers.
+Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, the first Event Details overlay-route extraction, Create/Edit Event form mapping helpers, shared API request timeout helpers, and typed nested navigation params.
 
 ## Testing And Validation
 

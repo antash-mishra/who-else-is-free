@@ -1,51 +1,60 @@
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
-import type { StackCardInterpolationProps } from '@react-navigation/stack';
+import { type ReactNode, useMemo, useRef } from 'react';
+
 import {
-  Animated,
   Modal,
   Platform,
   Pressable,
-  TouchableOpacity,
-  View,
   StyleSheet,
+  TouchableOpacity,
   useWindowDimensions,
+  View,
 } from 'react-native';
-import ReAnimated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { useMemo, useRef } from 'react';
-import Svg, { Circle, G, Path } from 'react-native-svg';
+
+import {
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps,
+  type BottomTabScreenProps,
+} from '@react-navigation/bottom-tabs';
+import { DefaultTheme, NavigationContainer, type NavigationProp } from '@react-navigation/native';
+import {
+  CardStyleInterpolators,
+  createStackNavigator,
+  type StackCardInterpolationProps,
+  type StackScreenProps,
+} from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
-import HomeScreen from '@screens/HomeScreen';
-import CreateEventScreen from '@screens/CreateEventScreen';
-import MyEventsScreen from '@screens/MyEventsScreen';
-import MessagesScreen from '@screens/MessagesScreen';
-import ChatThreadScreen from '@screens/ChatThreadScreen';
-import ProfileScreen from '@screens/ProfileScreen';
-import EventDetailsScreen from '@screens/EventDetailsScreen';
-import SplashScreen from '@screens/SplashScreen';
-import GoogleSignIn from '@screens/GoogleSignIn';
-import OnboardingScreen from '@screens/OnboardingScreen';
+import Svg, { Circle, G, Path } from 'react-native-svg';
+
+import { useChat } from '@context/ChatContext';
 import { navigationRef } from '@navigation/navigationRef';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
-import { colors } from '@theme/colors';
-import { Springs } from '@theme/springs';
-import { useChat } from '@context/ChatContext';
-import { trackScreenView } from '@services/analytics';
-import { triggerHaptic } from '@services/haptics';
-import JoinRequestsScreen from '@screens/JoinRequestsScreen';
-import PendingRequestsScreen from '@screens/PendingRequestsScreen';
+import ChatThreadScreen from '@screens/ChatThreadScreen';
+import CreateEventScreen from '@screens/CreateEventScreen';
 import EditProfileScreen from '@screens/EditProfileScreen';
-import PastEventsScreen from '@screens/PastEventsScreen';
-import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
-import HelpScreen from '@screens/HelpScreen';
+import EventCreatedScreen from '@screens/EventCreatedScreen';
+import EventDetailsScreen from '@screens/EventDetailsScreen';
+import GoogleSignIn from '@screens/GoogleSignIn';
 import HelpContactScreen from '@screens/HelpContactScreen';
 import HelpFAQScreen from '@screens/HelpFAQScreen';
 import HelpFeedbackScreen from '@screens/HelpFeedbackScreen';
-import EventCreatedScreen from '@screens/EventCreatedScreen';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import HelpScreen from '@screens/HelpScreen';
+import HomeScreen from '@screens/HomeScreen';
+import JoinRequestsScreen from '@screens/JoinRequestsScreen';
+import MessagesScreen from '@screens/MessagesScreen';
+import MyEventsScreen from '@screens/MyEventsScreen';
+import OnboardingScreen from '@screens/OnboardingScreen';
+import PastEventsScreen from '@screens/PastEventsScreen';
+import PendingRequestsScreen from '@screens/PendingRequestsScreen';
+import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
+import ProfileScreen from '@screens/ProfileScreen';
+import SplashScreen from '@screens/SplashScreen';
+import { trackScreenView } from '@services/analytics';
+import { triggerHaptic } from '@services/haptics';
+import { colors } from '@theme/colors';
+import { Springs } from '@theme/springs';
 
 // Render tab screens as plain JS Views so React Navigation's tabAnims-driven
 // opacity (animation: "fade") applies correctly without native screen management
@@ -155,13 +164,7 @@ const SHEET_BOUNCE_BUFFER = 80;
 //     needed, so the inner ScrollView receives all gestures unimpeded.
 // onStartShouldSetResponder is intentionally absent from the sheet — it would
 // intercept touches at the JS bridge before the native UIScrollView can scroll.
-const SheetWrapper = ({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) => {
+const SheetWrapper = ({ children, onClose }: { children: ReactNode; onClose: () => void }) => {
   const { height: screenHeight } = useWindowDimensions();
   const sheetHeight = screenHeight * 0.8;
   return (
@@ -197,13 +200,7 @@ const SheetWrapper = ({
   );
 };
 
-const AndroidSheetRoute = ({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) => {
+const AndroidSheetRoute = ({ children, onClose }: { children: ReactNode; onClose: () => void }) => {
   if (Platform.OS !== 'android') {
     return <SheetWrapper onClose={onClose}>{children}</SheetWrapper>;
   }
@@ -217,23 +214,31 @@ const AndroidSheetRoute = ({
   );
 };
 
-const EventDetailsOverlaySheet = (props: any) => (
-  <AndroidSheetRoute onClose={() => props.navigation.goBack()}>
-    <EventDetailsScreen {...props} />
+type EventDetailsOverlaySheetProps = StackScreenProps<RootStackParamList, 'EventDetailsOverlay'>;
+
+const EventDetailsOverlaySheet = ({ navigation }: EventDetailsOverlaySheetProps) => (
+  <AndroidSheetRoute onClose={() => navigation.goBack()}>
+    <EventDetailsScreen />
   </AndroidSheetRoute>
 );
 
-const PendingRequestsSheet = (props: any) => (
-  <AndroidSheetRoute onClose={() => props.navigation.goBack()}>
-    <PendingRequestsScreen {...props} />
+type PendingRequestsSheetProps = StackScreenProps<RootStackParamList, 'PendingRequests'>;
+
+const PendingRequestsSheet = ({ navigation }: PendingRequestsSheetProps) => (
+  <AndroidSheetRoute onClose={() => navigation.goBack()}>
+    <PendingRequestsScreen />
   </AndroidSheetRoute>
 );
 
 // ─── Tab screen wrappers ─────────────────────────────────────────────────────
-const EventsTab = (props: any) => <HomeScreen {...props} />;
-const MyEventsTab = (props: any) => <MyEventsScreen {...props} />;
-const MessagesTab = (props: any) => <MessagesScreen {...props} />;
-const ProfileTab = (props: any) => <ProfileScreen {...props} />;
+const EventsTab = (_props: BottomTabScreenProps<RootTabParamList, 'Events'>) => <HomeScreen />;
+const MyEventsTab = (_props: BottomTabScreenProps<RootTabParamList, 'MyEvents'>) => (
+  <MyEventsScreen />
+);
+const MessagesTab = (_props: BottomTabScreenProps<RootTabParamList, 'Messages'>) => (
+  <MessagesScreen />
+);
+const ProfileTab = (_props: BottomTabScreenProps<RootTabParamList, 'Profile'>) => <ProfileScreen />;
 
 // ─── Tab bar background ──────────────────────────────────────────────────────
 const TabBarBackground = () => (
@@ -541,7 +546,9 @@ const MainTabs = () => {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            (navigation as any).navigate('CreateEvent', { editEventId: null });
+            navigation
+              .getParent<NavigationProp<RootStackParamList>>()
+              ?.navigate('CreateEvent', { editEventId: null });
           },
         })}
         options={{
