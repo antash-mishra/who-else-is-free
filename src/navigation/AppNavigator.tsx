@@ -252,7 +252,7 @@ const TabBarBackground = () => (
 const tabBarStyles = StyleSheet.create({
   androidSheetModalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: colors.navigationSheetBackdrop,
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -260,7 +260,7 @@ const tabBarStyles = StyleSheet.create({
   },
   frostedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(251, 251, 251, 0.6)',
+    backgroundColor: colors.tabBarFrostedOverlay,
   },
   topBorder: {
     position: 'absolute',
@@ -268,7 +268,7 @@ const tabBarStyles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
 });
 
@@ -296,7 +296,7 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
       />
       <Path
         d="M12.0918 16.3047C13.8759 16.3047 15.3222 14.8583 15.3222 13.0742C15.3222 11.2901 13.8759 9.84375 12.0918 9.84375C10.3076 9.84375 8.86133 11.2901 8.86133 13.0742C8.86133 14.8583 10.3076 16.3047 12.0918 16.3047Z"
-        fill={focused ? '#FFFFFF' : 'none'}
+        fill={focused ? colors.background : 'none'}
         stroke={focused ? 'none' : strokeColor}
         strokeWidth={2.15}
       />
@@ -386,9 +386,9 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
             width: 10,
             height: 10,
             borderRadius: 5,
-            backgroundColor: '#FF1519',
+            backgroundColor: colors.tabBarUnreadDot,
             borderWidth: 2,
-            borderColor: '#FFFFFF',
+            borderColor: colors.background,
           }}
         />
       )}
@@ -428,13 +428,13 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
       />
       <Path
         d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
-        stroke="#FFFFFF"
+        stroke={colors.background}
         strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Circle cx={14.13} cy={8.09} r={1.84} fill="#FFFFFF" />
-      <Circle cx={8.87} cy={8.09} r={1.84} fill="#FFFFFF" />
+      <Circle cx={14.13} cy={8.09} r={1.84} fill={colors.background} />
+      <Circle cx={8.87} cy={8.09} r={1.84} fill={colors.background} />
     </Svg>
   );
 };
@@ -627,7 +627,7 @@ const AppNavigator = () => {
           component={SplashScreen}
           options={{
             cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-            cardStyle: { backgroundColor: '#050F29' },
+            cardStyle: { backgroundColor: colors.splashBackground },
           }}
         />
         <Stack.Screen
@@ -763,7 +763,7 @@ const AppNavigator = () => {
           options={{
             gestureEnabled: false,
             cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-            cardStyle: { backgroundColor: '#111' },
+            cardStyle: { backgroundColor: colors.eventCreatedBackground },
           }}
         />
       </Stack.Navigator>
