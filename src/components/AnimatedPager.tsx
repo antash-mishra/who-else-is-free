@@ -1,10 +1,5 @@
 import React, { useLayoutEffect, useEffect, useRef } from 'react';
-import {
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  ViewStyle,
-} from 'react-native';
+import { StyleSheet, useWindowDimensions, View, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -16,7 +11,8 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
+
+import { triggerHaptic as triggerSemanticHaptic } from '@services/haptics';
 import { colors } from '@theme/colors';
 
 const SWIPE_DISTANCE = 50;
@@ -55,8 +51,12 @@ const AnimatedPager = ({
 
   const onPageChangeRef = useRef(onPageChange);
   const onPendingIndexChangeRef = useRef(onPendingIndexChange);
-  useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
-  useEffect(() => { onPendingIndexChangeRef.current = onPendingIndexChange; }, [onPendingIndexChange]);
+  useEffect(() => {
+    onPageChangeRef.current = onPageChange;
+  }, [onPageChange]);
+  useEffect(() => {
+    onPendingIndexChangeRef.current = onPendingIndexChange;
+  }, [onPendingIndexChange]);
 
   // Prevents useLayoutEffect from re-running the slide animation when selectedIndex
   // updates as a result of a swipe commit (animation already done by gesture handler)
@@ -75,15 +75,23 @@ const AnimatedPager = ({
   const dragFrom = useSharedValue(-1);
   const dragTo = useSharedValue(-1);
 
-  useEffect(() => { selectedIndexSV.value = selectedIndex; }, [selectedIndex]);
-  useEffect(() => { widthSV.value = width; }, [width]);
+  useEffect(() => {
+    selectedIndexSV.value = selectedIndex;
+  }, [selectedIndex]);
+  useEffect(() => {
+    widthSV.value = width;
+  }, [width]);
 
   const notifyPageChange = (index: number) => {
     swipeCommittedRef.current = true;
     onPageChangeRef.current(index);
   };
-  const notifyPendingChange = (index: number) => { onPendingIndexChangeRef.current?.(index); };
-  const triggerHaptic = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); };
+  const notifyPendingChange = (index: number) => {
+    onPendingIndexChangeRef.current?.(index);
+  };
+  const triggerHaptic = () => {
+    triggerSemanticHaptic('selection');
+  };
 
   const pan = Gesture.Pan()
     .enabled(swipeEnabled)
@@ -225,7 +233,11 @@ const AnimatedPager = ({
         {childArray.map((child, index) => (
           <Animated.View
             key={index}
-            style={[StyleSheet.absoluteFill, animStyles[index], { backgroundColor: colors.background }]}
+            style={[
+              StyleSheet.absoluteFill,
+              animStyles[index],
+              { backgroundColor: colors.background },
+            ]}
           >
             {child}
           </Animated.View>

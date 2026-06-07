@@ -1,7 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { StyleSheet, Text, View } from 'react-native';
 
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
+import { IconButton } from '@components/ui';
 import { colors, layout, typography } from '@theme/index';
 
 interface ScreenHeaderProps {
@@ -11,18 +11,12 @@ interface ScreenHeaderProps {
 
 const ScreenHeader = ({ title, onBack }: ScreenHeaderProps) => (
   <View style={styles.header}>
-    <Pressable
-      accessibilityRole="button"
+    <IconButton
       accessibilityLabel="Go back"
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onBack();
-      }}
-      hitSlop={layout.hitSlop.md}
+      icon={<ChevronLeftIcon width={24} height={24} color={colors.text} />}
+      onPress={onBack}
       style={styles.backButton}
-    >
-      <ChevronLeftIcon width={24} height={24} color={colors.text} />
-    </Pressable>
+    />
     <View style={styles.titleContainer} pointerEvents="none">
       <Text style={styles.title} numberOfLines={1}>
         {title}
@@ -36,9 +30,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: layout.headerHeight,
+    marginLeft: -8,
   },
   backButton: {
-    marginLeft: -8,
+    width: layout.headerHeight,
+    height: layout.headerHeight,
   },
   titleContainer: {
     position: 'absolute',

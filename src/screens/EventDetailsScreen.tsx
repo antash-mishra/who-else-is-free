@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from "react-native-reanimated";
-import { Springs } from "@theme/index";
-import * as Haptics from "expo-haptics";
-import ScalePressable from "@components/ScalePressable";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { Springs } from '@theme/index';
+import ScalePressable from '@components/ScalePressable';
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -15,72 +19,62 @@ import {
   Pressable,
   StatusBar,
   useWindowDimensions,
-} from "react-native";
-import { Image } from "expo-image";
+} from 'react-native';
+import { Image } from 'expo-image';
 
 const isFabricEnabled = Boolean(
   (globalThis as { nativeFabricUIManager?: unknown }).nativeFabricUIManager,
 );
 
 if (
-  Platform.OS === "android" &&
+  Platform.OS === 'android' &&
   !isFabricEnabled &&
   UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import LocationIcon from "@assets/event-details/location.svg";
-import ChevronLeftIcon from "@assets/ui/chevron-left.svg";
-import CloseIcon from "@assets/ui/close.svg";
-import MoreHorizontalIcon from "@assets/ui/more-horizontal.svg";
-import AcceptIcon from "@assets/event-details/accept.svg";
-import RejectIcon from "@assets/event-details/reject.svg";
-import EmptyRequestIcon from "@assets/event-details/empty-request.svg";
-import EmptyAcceptedIcon from "@assets/event-details/empty-accepted.svg";
-import TimeIcon from "@assets/event-details/time.svg";
-import PeopleIcon from "@assets/event-details/group-type.svg";
-import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import LocationIcon from '@assets/event-details/location.svg';
+import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
+import CloseIcon from '@assets/ui/close.svg';
+import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
+import AcceptIcon from '@assets/event-details/accept.svg';
+import RejectIcon from '@assets/event-details/reject.svg';
+import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
+import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
+import TimeIcon from '@assets/event-details/time.svg';
+import PeopleIcon from '@assets/event-details/group-type.svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   RouteProp,
   StackActions,
   useIsFocused,
   useNavigation,
   useRoute,
-} from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+} from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { colors, spacing, typography } from "@theme/index";
-import { RootStackParamList } from "@navigation/types";
-import {
-  ApiEvent,
-  mapApiEventToUserEvent,
-  useEvents,
-  UserEvent,
-} from "@context/EventsContext";
-import { useAuth } from "@context/AuthContext";
-import { useChat, ChatJoinRequest } from "@context/ChatContext";
-import { API_BASE_URL } from "@api/config";
-import { getEventAnalyticsParams, trackEvent } from "@services/analytics";
-import EventActionBadge from "@components/EventActionBadge";
-import EventActionOverlay from "@components/EventActionOverlay";
-import EmptyState from "@components/EmptyState";
-import BottomSheetModal from "@components/BottomSheetModal";
-import SignInButtons from "@components/SignInButtons";
-import UserAvatar from "@components/UserAvatar";
-import { formatEventDetailDateLabel } from "@utils/dateTime";
-import { formatEventDetailAudienceLine } from "@utils/eventDisplay";
+import { colors, spacing, typography } from '@theme/index';
+import { RootStackParamList } from '@navigation/types';
+import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
+import { useAuth } from '@context/AuthContext';
+import { useChat, ChatJoinRequest } from '@context/ChatContext';
+import { API_BASE_URL } from '@api/config';
+import { getEventAnalyticsParams, trackEvent } from '@services/analytics';
+import { triggerHaptic } from '@services/haptics';
+import EventActionBadge from '@components/EventActionBadge';
+import EventActionOverlay from '@components/EventActionOverlay';
+import EmptyState from '@components/EmptyState';
+import BottomSheetModal from '@components/BottomSheetModal';
+import SignInButtons from '@components/SignInButtons';
+import UserAvatar from '@components/UserAvatar';
+import { formatEventDetailDateLabel } from '@utils/dateTime';
+import { formatEventDetailAudienceLine } from '@utils/eventDisplay';
 
-type EventDetailsRoute = RouteProp<
-  RootStackParamList,
-  "EventDetails" | "EventDetailsOverlay"
->;
+type EventDetailsRoute = RouteProp<RootStackParamList, 'EventDetails' | 'EventDetailsOverlay'>;
 type EventDetailsNavigation = NativeStackNavigationProp<
   RootStackParamList,
-  "EventDetails" | "EventDetailsOverlay"
+  'EventDetails' | 'EventDetailsOverlay'
 >;
 
 type EventDetailMember = {
@@ -97,7 +91,7 @@ const EventDetailsScreenContent = ({
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
-  const isOverlay = route.name === "EventDetailsOverlay";
+  const isOverlay = route.name === 'EventDetailsOverlay';
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -131,17 +125,15 @@ const EventDetailsScreenContent = ({
     if (rawEvent) {
       setEventSnapshot(rawEvent);
     } else {
-      setEventSnapshot((prev) =>
-        prev?.id === route.params.eventId ? prev : initialEventSnapshot,
-      );
+      setEventSnapshot((prev) => (prev?.id === route.params.eventId ? prev : initialEventSnapshot));
     }
   }, [initialEventSnapshot, rawEvent, route.params.eventId]);
   const event = eventSnapshot;
-  const origin = (route.params as { origin?: string }).origin ?? "Events";
+  const origin = (route.params as { origin?: string }).origin ?? 'Events';
   const [showInvitePrompt, setShowInvitePrompt] = useState(false);
   const [signInVisible, setSignInVisible] = useState(false);
   const [pendingSendAfterSignIn, setPendingSendAfterSignIn] = useState(false);
-  const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteMessage, setInviteMessage] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [hasPendingRequest, setHasPendingRequest] = useState(() =>
@@ -163,18 +155,16 @@ const EventDetailsScreenContent = ({
   }, [user, signInVisible]);
 
   const [showRequestSentBadge, setShowRequestSentBadge] = useState(false);
-  const [showRequestCancelledBadge, setShowRequestCancelledBadge] =
-    useState(false);
+  const [showRequestCancelledBadge, setShowRequestCancelledBadge] = useState(false);
   const [showManagePrompt, setShowManagePrompt] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userIntroMessage, setUserIntroMessage] = useState<string | null>(null);
-  const [showPendingRequestPrompt, setShowPendingRequestPrompt] =
-    useState(false);
+  const [showPendingRequestPrompt, setShowPendingRequestPrompt] = useState(false);
   const [isCancellingRequest, setIsCancellingRequest] = useState(false);
   const [showReportPrompt, setShowReportPrompt] = useState(false);
-  const [reportMessage, setReportMessage] = useState("");
+  const [reportMessage, setReportMessage] = useState('');
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
@@ -186,9 +176,7 @@ const EventDetailsScreenContent = ({
   const [descriptionHasMore, setDescriptionHasMore] = useState(false);
   const [fullDescHeight, setFullDescHeight] = useState(0);
   const [truncatedDescHeight, setTruncatedDescHeight] = useState(0);
-  const [activeTab, setActiveTab] = useState<
-    "requests" | "accepted" | "members"
-  >("requests");
+  const [activeTab, setActiveTab] = useState<'requests' | 'accepted' | 'members'>('requests');
   const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
   const underlineX = useSharedValue(0);
   const underlineWidth = useSharedValue(0);
@@ -203,13 +191,10 @@ const EventDetailsScreenContent = ({
   const rowAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: -tabIndexSV.value * pagerWidthSV.value }],
   }));
-  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(
-    new Set(),
-  );
+  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(new Set());
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
-  const [selectedRequest, setSelectedRequest] =
-    useState<ChatJoinRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<ChatJoinRequest | null>(null);
   const [isReportingMember, setIsReportingMember] = useState(false);
   // Group member menu state
   const [selectedMember, setSelectedMember] = useState<{
@@ -221,23 +206,13 @@ const EventDetailsScreenContent = ({
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
-  const [removedMemberBadgeLabel, setRemovedMemberBadgeLabel] = useState<
-    string | null
-  >(null);
-  const [reportedMemberBadgeLabel, setReportedMemberBadgeLabel] = useState<
-    string | null
-  >(null);
-  const [disableHostRequestPolling, setDisableHostRequestPolling] =
-    useState(false);
+  const [removedMemberBadgeLabel, setRemovedMemberBadgeLabel] = useState<string | null>(null);
+  const [reportedMemberBadgeLabel, setReportedMemberBadgeLabel] = useState<string | null>(null);
+  const [disableHostRequestPolling, setDisableHostRequestPolling] = useState(false);
   const [showEventUpdatedBadge, setShowEventUpdatedBadge] = useState(false);
-  const [readOnlyMembers, setReadOnlyMembers] = useState<EventDetailMember[]>(
-    [],
-  );
-  const [isFetchingReadOnlyMembers, setIsFetchingReadOnlyMembers] =
-    useState(false);
-  const [readOnlyMembersError, setReadOnlyMembersError] = useState<
-    string | null
-  >(null);
+  const [readOnlyMembers, setReadOnlyMembers] = useState<EventDetailMember[]>([]);
+  const [isFetchingReadOnlyMembers, setIsFetchingReadOnlyMembers] = useState(false);
+  const [readOnlyMembersError, setReadOnlyMembersError] = useState<string | null>(null);
   const [readOnlyMembersTabWidth, setReadOnlyMembersTabWidth] = useState(0);
   const [overlayMembersTabWidth, setOverlayMembersTabWidth] = useState(0);
 
@@ -245,9 +220,8 @@ const EventDetailsScreenContent = ({
     setDisableHostRequestPolling(false);
   }, [route.params.eventId]);
 
-  const showEventUpdatedBadgeParam = (
-    route.params as { showEventUpdatedBadge?: boolean }
-  ).showEventUpdatedBadge;
+  const showEventUpdatedBadgeParam = (route.params as { showEventUpdatedBadge?: boolean })
+    .showEventUpdatedBadge;
   useEffect(() => {
     if (!showEventUpdatedBadgeParam) {
       return;
@@ -267,7 +241,7 @@ const EventDetailsScreenContent = ({
 
   if (!event) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.fallbackContainer}>
           <Pressable
             accessibilityRole="button"
@@ -283,7 +257,7 @@ const EventDetailsScreenContent = ({
   }
 
   const isOwner = user?.id === event.ownerId;
-  const isSingleEvent = event?.groupType === "Single";
+  const isSingleEvent = event?.groupType === 'Single';
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;
   const eventAnalyticsParams = getEventAnalyticsParams({
     groupType: event.groupType,
@@ -292,7 +266,7 @@ const EventDetailsScreenContent = ({
     maxAge: event.maxAge,
     scheduledAt: event.scheduledAt,
   });
-  const hostLine = isOwner ? "Hosted by you" : `Hosted by ${event.hostName}`;
+  const hostLine = isOwner ? 'Hosted by you' : `Hosted by ${event.hostName}`;
   const scheduleDateLabel = event.eventDate
     ? formatEventDetailDateLabel(event.eventDate)
     : event.dateLabel;
@@ -311,9 +285,7 @@ const EventDetailsScreenContent = ({
     if (eventNumericId == null) {
       return null;
     }
-    return conversations.find(
-      (conversation) => conversation.eventId === eventNumericId,
-    );
+    return conversations.find((conversation) => conversation.eventId === eventNumericId);
   }, [conversations, eventNumericId]);
 
   useEffect(() => {
@@ -336,28 +308,23 @@ const EventDetailsScreenContent = ({
 
     const fetchMembers = async () => {
       try {
-        const response = await authFetch(
-          `${API_BASE_URL}/api/events/${eventNumericId}/members`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        const response = await authFetch(`${API_BASE_URL}/api/events/${eventNumericId}/members`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+        });
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`);
         }
-        const payload: { data?: EventDetailMember[] } = await response
-          .json()
-          .catch(() => ({}));
+        const payload: { data?: EventDetailMember[] } = await response.json().catch(() => ({}));
         if (!isCancelled) {
           setReadOnlyMembers(Array.isArray(payload.data) ? payload.data : []);
         }
       } catch (err) {
         if (!isCancelled) {
-          console.error("Failed to fetch event members", err);
+          console.error('Failed to fetch event members', err);
           setReadOnlyMembers([]);
-          setReadOnlyMembersError("Unable to load members right now.");
+          setReadOnlyMembersError('Unable to load members right now.');
         }
       } finally {
         if (!isCancelled) {
@@ -423,9 +390,7 @@ const EventDetailsScreenContent = ({
       return 1;
     }
     const memberCount =
-      eventConversation.memberIds?.length ??
-      eventConversation.participants?.length ??
-      0;
+      eventConversation.memberIds?.length ?? eventConversation.participants?.length ?? 0;
     return memberCount > 0 ? memberCount : 1;
   }, [eventConversation]);
 
@@ -452,16 +417,16 @@ const EventDetailsScreenContent = ({
 
     const refreshHostRequests = () => {
       refreshConversations().catch((err) => {
-        console.error("Failed to refresh conversations for host details", err);
+        console.error('Failed to refresh conversations for host details', err);
       });
       refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       }).catch((err: unknown) => {
         const status =
-          typeof err === "object" &&
+          typeof err === 'object' &&
           err !== null &&
-          "status" in err &&
-          typeof (err as { status?: unknown }).status === "number"
+          'status' in err &&
+          typeof (err as { status?: unknown }).status === 'number'
             ? ((err as { status?: number }).status ?? undefined)
             : undefined;
         if (status === 404) {
@@ -490,11 +455,11 @@ const EventDetailsScreenContent = ({
   ]);
 
   useEffect(() => {
-    if (isSingleEvent && activeTab === "members") {
-      setActiveTab("requests");
+    if (isSingleEvent && activeTab === 'members') {
+      setActiveTab('requests');
     }
-    if (!isSingleEvent && activeTab === "accepted") {
-      setActiveTab("requests");
+    if (!isSingleEvent && activeTab === 'accepted') {
+      setActiveTab('requests');
     }
   }, [activeTab, isSingleEvent]);
 
@@ -503,15 +468,11 @@ const EventDetailsScreenContent = ({
       return [];
     }
     const primary = joinRequestsByConversation[hostRequestStoreKey] ?? [];
-    if (
-      eventScopedRequestStoreKey == null ||
-      eventScopedRequestStoreKey === hostRequestStoreKey
-    ) {
+    if (eventScopedRequestStoreKey == null || eventScopedRequestStoreKey === hostRequestStoreKey) {
       return primary;
     }
 
-    const fallback =
-      joinRequestsByConversation[eventScopedRequestStoreKey] ?? [];
+    const fallback = joinRequestsByConversation[eventScopedRequestStoreKey] ?? [];
     if (fallback.length === 0) {
       return primary;
     }
@@ -527,17 +488,13 @@ const EventDetailsScreenContent = ({
       merged.set(item.id, item);
     }
     return Array.from(merged.values());
-  }, [
-    joinRequestsByConversation,
-    hostRequestStoreKey,
-    eventScopedRequestStoreKey,
-  ]);
+  }, [joinRequestsByConversation, hostRequestStoreKey, eventScopedRequestStoreKey]);
   const pendingRequests = useMemo(
-    () => hostRequests.filter((request) => request.status === "pending"),
+    () => hostRequests.filter((request) => request.status === 'pending'),
     [hostRequests],
   );
   const acceptedRequests = useMemo(
-    () => hostRequests.filter((request) => request.status === "approved"),
+    () => hostRequests.filter((request) => request.status === 'approved'),
     [hostRequests],
   );
 
@@ -545,18 +502,14 @@ const EventDetailsScreenContent = ({
   const confirmedMembers = useMemo(() => {
     if (!eventConversation || !user) return [];
     const memberSet = new Set(eventConversation.memberIds ?? []);
-    return eventConversation.participants.filter(
-      (p) => p.id !== user.id && memberSet.has(p.id),
-    );
+    return eventConversation.participants.filter((p) => p.id !== user.id && memberSet.has(p.id));
   }, [eventConversation, user]);
 
   // Overlay: all members with host sorted to top (for group events)
   const overlayMembers = useMemo(() => {
     if (!eventConversation) return [];
     const memberSet = new Set(eventConversation.memberIds ?? []);
-    const allMembers = eventConversation.participants.filter((p) =>
-      memberSet.has(p.id),
-    );
+    const allMembers = eventConversation.participants.filter((p) => memberSet.has(p.id));
     const hostId = event?.ownerId;
     return [...allMembers].sort((a, b) => {
       if (a.id === hostId) return -1;
@@ -567,8 +520,7 @@ const EventDetailsScreenContent = ({
 
   // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {
-    const shouldFetch =
-      (hasPendingRequest || isConversationMember) && !isOwner && !readOnly;
+    const shouldFetch = (hasPendingRequest || isConversationMember) && !isOwner && !readOnly;
     if (!shouldFetch || !token || !event) {
       setUserIntroMessage(null);
       return;
@@ -597,21 +549,14 @@ const EventDetailsScreenContent = ({
           setUserIntroMessage(matchingRequest.message);
         }
       } catch (err) {
-        console.error("Failed to fetch user join request", err);
+        console.error('Failed to fetch user join request', err);
       }
     };
 
     fetchUserRequest();
-  }, [
-    authFetch,
-    hasPendingRequest,
-    isConversationMember,
-    token,
-    event,
-    isOwner,
-  ]);
+  }, [authFetch, hasPendingRequest, isConversationMember, token, event, isOwner]);
 
-  const ctaLabel = hasPendingRequest ? "Pending Request" : "Interested";
+  const ctaLabel = hasPendingRequest ? 'Pending Request' : 'Interested';
 
   // Show standard CTA only for non-owners who haven't joined
   const showStandardCTA = !isOwner && !isConversationMember;
@@ -624,9 +569,7 @@ const EventDetailsScreenContent = ({
   const shouldPinBottomCTA = !readOnly && (showStandardCTA || showOpenChatCTA);
   const pageScrollContentStyle = [
     styles.pageScrollContent,
-    shouldPinBottomCTA
-      ? { paddingBottom: 70 + insets.bottom }
-      : null,
+    shouldPinBottomCTA ? { paddingBottom: 70 + insets.bottom } : null,
   ];
 
   const handleCtaPress = () => {
@@ -637,29 +580,24 @@ const EventDetailsScreenContent = ({
     if (isConversationMember) {
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     if (!showInvitePrompt) {
-      trackEvent("join_request_started", {
+      trackEvent('join_request_started', {
         ...eventAnalyticsParams,
-        source: "event_details_cta",
+        source: 'event_details_cta',
       }).catch(() => undefined);
     }
     setShowInvitePrompt((prev) => !prev);
   };
 
   const handleOpenChat = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (
-      isOwner &&
-      isSingleEvent &&
-      eventNumericId != null &&
-      requestStoreKey != null
-    ) {
-      (navigation as any).navigate("JoinRequests", {
+    triggerHaptic('light');
+    if (isOwner && isSingleEvent && eventNumericId != null && requestStoreKey != null) {
+      (navigation as any).navigate('JoinRequests', {
         conversationId: requestStoreKey,
         eventId: eventNumericId,
         title: event.title,
-        groupType: "Single",
+        groupType: 'Single',
       });
       return;
     }
@@ -668,7 +606,7 @@ const EventDetailsScreenContent = ({
       return;
     }
     setActiveConversation(eventConversation.id);
-    (navigation as any).push("ChatThread");
+    (navigation as any).push('ChatThread');
   };
 
   const renderAvatar = (
@@ -685,29 +623,20 @@ const EventDetailsScreenContent = ({
 
   const handleAcceptRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    triggerHaptic('submit');
     setAcceptingUserId(request.userId);
     try {
-      await approveJoinRequest(
-        hostRequestStoreKey,
-        eventNumericId,
-        request.userId,
-      );
-      trackEvent("join_request_approved", eventAnalyticsParams).catch(
-        () => undefined,
-      );
+      await approveJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
+      trackEvent('join_request_approved', eventAnalyticsParams).catch(() => undefined);
       await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
       await refreshConversations().catch((err) => {
-        console.error(
-          "Failed to refresh conversations after approving request",
-          err,
-        );
+        console.error('Failed to refresh conversations after approving request', err);
       });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (err) {
-      console.error("Failed to accept request", err);
+      console.error('Failed to accept request', err);
     } finally {
       setAcceptingUserId(null);
     }
@@ -715,23 +644,17 @@ const EventDetailsScreenContent = ({
 
   const handleDeclineRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic('destructive');
     setDecliningUserId(request.userId);
     try {
-      await denyJoinRequest(
-        hostRequestStoreKey,
-        eventNumericId,
-        request.userId,
-      );
-      trackEvent("join_request_denied", eventAnalyticsParams).catch(
-        () => undefined,
-      );
+      await denyJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
+      trackEvent('join_request_denied', eventAnalyticsParams).catch(() => undefined);
       await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
         includeApproved: isSingleEvent,
       });
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (err) {
-      console.error("Failed to decline request", err);
+      console.error('Failed to decline request', err);
     } finally {
       setDecliningUserId(null);
     }
@@ -751,17 +674,13 @@ const EventDetailsScreenContent = ({
 
   const handleRequesterPress = async (request: ChatJoinRequest) => {
     if (!request.conversationId) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     setActiveConversation(request.conversationId);
-    (navigation as any).push("ChatThread");
+    (navigation as any).push('ChatThread');
   };
 
-  const openMemberMenu = (member: {
-    id: number;
-    name: string;
-    avatar?: string;
-  }) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const openMemberMenu = (member: { id: number; name: string; avatar?: string }) => {
+    triggerHaptic('light');
     setSelectedMember(member);
     setShowMemberMenu(true);
   };
@@ -769,7 +688,7 @@ const EventDetailsScreenContent = ({
   const handleRemoveMember = async () => {
     if (!event || !token || !selectedMember) return;
     if (isRemovingMember) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    triggerHaptic('destructive');
     const removedMemberName = selectedMember.name;
     setRemoveError(null);
     setIsRemovingMember(true);
@@ -777,40 +696,32 @@ const EventDetailsScreenContent = ({
       const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/members/${selectedMember.id}`,
         {
-          method: "DELETE",
+          method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
       if (!response.ok) {
-        throw new Error("Unable to remove member right now.");
+        throw new Error('Unable to remove member right now.');
       }
       await refreshConversations().catch((err) => {
-        console.error(
-          "Failed to refresh conversations after removing member",
-          err,
-        );
+        console.error('Failed to refresh conversations after removing member', err);
       });
       if (hostRequestStoreKey != null && eventNumericId != null) {
         await refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
           includeApproved: isSingleEvent,
         }).catch((err) => {
-          console.error(
-            "Failed to refresh join requests after removing member",
-            err,
-          );
+          console.error('Failed to refresh join requests after removing member', err);
         });
       }
       setShowRemoveConfirm(false);
       setSelectedMember(null);
-      const firstName = removedMemberName.trim().split(/\s+/)[0] ?? "";
-      setRemovedMemberBadgeLabel(
-        firstName.length > 0 ? `${firstName} removed` : "Member removed",
-      );
+      const firstName = removedMemberName.trim().split(/\s+/)[0] ?? '';
+      setRemovedMemberBadgeLabel(firstName.length > 0 ? `${firstName} removed` : 'Member removed');
     } catch (err) {
-      console.error("Failed to remove member", err);
-      setRemoveError("Unable to remove this member. Please try again.");
+      console.error('Failed to remove member', err);
+      setRemoveError('Unable to remove this member. Please try again.');
     } finally {
       setIsRemovingMember(false);
     }
@@ -818,7 +729,7 @@ const EventDetailsScreenContent = ({
 
   const handleReportMemberFromMenu = () => {
     setShowMemberMenu(false);
-    setReportMessage("");
+    setReportMessage('');
     setReportError(null);
     // Set selectedRequest-like context so handleSubmitMemberReport works
     if (selectedMember) {
@@ -843,57 +754,50 @@ const EventDetailsScreenContent = ({
     if (isReportingMember) return;
     const trimmed = reportMessage.trim();
     if (!trimmed.length) {
-      setReportError("Please tell us why you are reporting this member.");
+      setReportError('Please tell us why you are reporting this member.');
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic('submit');
     setReportError(null);
     setIsReportingMember(true);
     try {
       const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/members/${selectedRequest.userId}/report`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ reason: trimmed }),
         },
       );
       if (response.status === 409) {
-        setReportError("You have already reported this member.");
+        setReportError('You have already reported this member.');
         return;
       }
       if (!response.ok) {
-        throw new Error("Unable to submit report right now.");
+        throw new Error('Unable to submit report right now.');
       }
       const reportTargetName = (
         selectedMember?.name ??
         selectedRequest.requester?.name ??
-        pendingRequests.find(
-          (request) => request.userId === selectedRequest.userId,
-        )?.requester?.name ??
-        acceptedRequests.find(
-          (request) => request.userId === selectedRequest.userId,
-        )?.requester?.name ??
-        confirmedMembers.find((member) => member.id === selectedRequest.userId)
+        pendingRequests.find((request) => request.userId === selectedRequest.userId)?.requester
           ?.name ??
-        ""
+        acceptedRequests.find((request) => request.userId === selectedRequest.userId)?.requester
+          ?.name ??
+        confirmedMembers.find((member) => member.id === selectedRequest.userId)?.name ??
+        ''
       ).trim();
-      const firstName = reportTargetName.split(/\s+/)[0] ?? "";
-      setReportMessage("");
+      const firstName = reportTargetName.split(/\s+/)[0] ?? '';
+      setReportMessage('');
       setShowReportPrompt(false);
       setSelectedRequest(null);
       setSelectedMember(null);
       setReportedMemberBadgeLabel(
-        firstName.length > 0
-          ? `${firstName} reported and blocked`
-          : "Member reported and blocked",
+        firstName.length > 0 ? `${firstName} reported and blocked` : 'Member reported and blocked',
       );
-      trackEvent("member_reported", eventAnalyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('member_reported', eventAnalyticsParams).catch(() => undefined);
       // Refresh requests since the reported member should be removed
       if (hostRequestStoreKey != null && eventNumericId != null) {
         refreshJoinRequests(hostRequestStoreKey, eventNumericId, {
@@ -901,11 +805,9 @@ const EventDetailsScreenContent = ({
         });
       }
     } catch (err) {
-      console.error("Failed to submit member report", err);
+      console.error('Failed to submit member report', err);
       setReportError(
-        err instanceof Error
-          ? err.message
-          : "Unable to submit report. Please try again.",
+        err instanceof Error ? err.message : 'Unable to submit report. Please try again.',
       );
     } finally {
       setIsReportingMember(false);
@@ -917,9 +819,9 @@ const EventDetailsScreenContent = ({
       return;
     }
     if (!user || !token) {
-      trackEvent("guest_join_requires_auth", {
+      trackEvent('guest_join_requires_auth', {
         ...eventAnalyticsParams,
-        source: "event_details_invite",
+        source: 'event_details_invite',
       }).catch(() => undefined);
       setPendingSendAfterSignIn(true);
       setSignInVisible(true);
@@ -930,103 +832,92 @@ const EventDetailsScreenContent = ({
     }
     const trimmed = inviteMessage.trim();
     if (!trimmed.length) {
-      setInviteError("Please include a brief note for the host.");
+      setInviteError('Please include a brief note for the host.');
       return;
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    triggerHaptic('submit');
     setInviteError(null);
     setIsSendingInvite(true);
-    trackEvent("join_request_submitted", eventAnalyticsParams).catch(
-      () => undefined,
-    );
+    trackEvent('join_request_submitted', eventAnalyticsParams).catch(() => undefined);
     let failureTracked = false;
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${event.id}/chat/requests`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ message: trimmed }),
+      const response = await authFetch(`${API_BASE_URL}/api/events/${event.id}/chat/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({ message: trimmed }),
+      });
       if (response.status === 409) {
         setHasPendingRequest(true);
         markEventRequested(event.id);
-        setInviteError("You already have a pending request for this event.");
-        trackEvent("join_request_failed", {
+        setInviteError('You already have a pending request for this event.');
+        trackEvent('join_request_failed', {
           ...eventAnalyticsParams,
           status_code: response.status,
-          reason_category: "duplicate_request",
+          reason_category: 'duplicate_request',
         }).catch(() => undefined);
         return;
       }
       if (response.status === 401) {
-        trackEvent("join_request_failed", {
+        trackEvent('join_request_failed', {
           ...eventAnalyticsParams,
           status_code: response.status,
-          reason_category: "unauthorized",
+          reason_category: 'unauthorized',
         }).catch(() => undefined);
         setSignInVisible(true);
         return;
       }
       if (!response.ok) {
-        let serverMsg = "";
+        let serverMsg = '';
         try {
           const body = await response.json();
-          serverMsg = body?.error || "";
+          serverMsg = body?.error || '';
         } catch {}
-        console.warn(
-          `Join request failed: status=${response.status} error=${serverMsg}`,
-        );
+        console.warn(`Join request failed: status=${response.status} error=${serverMsg}`);
         if (response.status === 403) {
           failureTracked = true;
-          trackEvent("join_request_failed", {
+          trackEvent('join_request_failed', {
             ...eventAnalyticsParams,
             status_code: response.status,
-            reason_category: "forbidden",
+            reason_category: 'forbidden',
           }).catch(() => undefined);
-          throw new Error("You are unable to join this event.");
+          throw new Error('You are unable to join this event.');
         }
         if (response.status === 404) {
           failureTracked = true;
-          trackEvent("join_request_failed", {
+          trackEvent('join_request_failed', {
             ...eventAnalyticsParams,
             status_code: response.status,
-            reason_category: "not_found",
+            reason_category: 'not_found',
           }).catch(() => undefined);
-          throw new Error("This event is no longer available.");
+          throw new Error('This event is no longer available.');
         }
         failureTracked = true;
-        trackEvent("join_request_failed", {
+        trackEvent('join_request_failed', {
           ...eventAnalyticsParams,
           status_code: response.status,
-          reason_category: "api_error",
+          reason_category: 'api_error',
         }).catch(() => undefined);
-        throw new Error(serverMsg || "Unable to send request right now.");
+        throw new Error(serverMsg || 'Unable to send request right now.');
       }
-      setInviteMessage("");
+      setInviteMessage('');
       setShowInvitePrompt(false);
       setHasPendingRequest(true);
       markEventRequested(event.id);
       setShowRequestSentBadge(true);
-      trackEvent("join_request_succeeded", eventAnalyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('join_request_succeeded', eventAnalyticsParams).catch(() => undefined);
     } catch (err) {
       if (!failureTracked) {
-        trackEvent("join_request_failed", {
+        trackEvent('join_request_failed', {
           ...eventAnalyticsParams,
-          reason_category: "network_error",
+          reason_category: 'network_error',
         }).catch(() => undefined);
       }
-      console.error("Failed to send invite", err);
+      console.error('Failed to send invite', err);
       setInviteError(
-        err instanceof Error
-          ? err.message
-          : "Unable to send request. Please try again.",
+        err instanceof Error ? err.message : 'Unable to send request. Please try again.',
       );
     } finally {
       setIsSendingInvite(false);
@@ -1043,14 +934,14 @@ const EventDetailsScreenContent = ({
   }, [user, token, pendingSendAfterSignIn]);
 
   const handleEdit = () => {
-    navigation.dispatch(StackActions.push("CreateEvent", { editEventId: event.id }));
+    navigation.dispatch(StackActions.push('CreateEvent', { editEventId: event.id }));
     setShowManagePrompt(false);
   };
 
   const handleDeletePrompt = () => {
     setShowManagePrompt(false);
     setDeleteError(null);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    triggerHaptic('destructive');
     setShowDeleteConfirm(true);
   };
 
@@ -1061,19 +952,19 @@ const EventDetailsScreenContent = ({
     if (isDeleting) {
       return;
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    triggerHaptic('destructive');
     setDeleteError(null);
     setIsDeleting(true);
     setDisableHostRequestPolling(true);
     try {
       await deleteUserEvent(event.id);
       setShowDeleteConfirm(false);
-      const targetTab = origin === "MyEvents" ? "MyEvents" : "Events";
+      const targetTab = origin === 'MyEvents' ? 'MyEvents' : 'Events';
       navigation.reset({
         index: 0,
         routes: [
           {
-            name: "Main",
+            name: 'Main',
             params: {
               screen: targetTab,
               params: { showEventDeletedBadge: true },
@@ -1082,8 +973,8 @@ const EventDetailsScreenContent = ({
         ],
       });
     } catch (err) {
-      console.error("Failed to delete event", err);
-      setDeleteError("Unable to delete this event. Please try again.");
+      console.error('Failed to delete event', err);
+      setDeleteError('Unable to delete this event. Please try again.');
     } finally {
       setIsDeleting(false);
     }
@@ -1103,31 +994,26 @@ const EventDetailsScreenContent = ({
     if (isCancellingRequest) {
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic('submit');
     setIsCancellingRequest(true);
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${event.id}/chat/requests/me`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await authFetch(`${API_BASE_URL}/api/events/${event.id}/chat/requests/me`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
       if (!response.ok) {
-        throw new Error("Unable to cancel request right now.");
+        throw new Error('Unable to cancel request right now.');
       }
       setShowPendingRequestPrompt(false);
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
       setShowRequestCancelledBadge(true);
-      trackEvent("join_request_cancelled", eventAnalyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('join_request_cancelled', eventAnalyticsParams).catch(() => undefined);
     } catch (err) {
-      console.error("Failed to cancel request", err);
+      console.error('Failed to cancel request', err);
     } finally {
       setIsCancellingRequest(false);
     }
@@ -1135,7 +1021,7 @@ const EventDetailsScreenContent = ({
 
   const handleOpenReportPrompt = () => {
     setShowPendingRequestPrompt(false);
-    setReportMessage("");
+    setReportMessage('');
     setReportError(null);
     setShowReportPrompt(true);
   };
@@ -1149,73 +1035,67 @@ const EventDetailsScreenContent = ({
     }
     const trimmed = reportMessage.trim();
     if (!trimmed.length) {
-      setReportError("Please tell us why you are reporting this event.");
+      setReportError('Please tell us why you are reporting this event.');
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic('submit');
     setReportError(null);
     setIsSubmittingReport(true);
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${event.id}/report`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ reason: trimmed }),
+      const response = await authFetch(`${API_BASE_URL}/api/events/${event.id}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({ reason: trimmed }),
+      });
       if (response.status === 409) {
-        setReportError("You have already reported this event.");
+        setReportError('You have already reported this event.');
         return;
       }
       if (!response.ok) {
-        throw new Error("Unable to submit report right now.");
+        throw new Error('Unable to submit report right now.');
       }
-      setReportMessage("");
+      setReportMessage('');
       setShowReportPrompt(false);
       markEventReported(event.id);
-      trackEvent("event_reported", eventAnalyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('event_reported', eventAnalyticsParams).catch(() => undefined);
       // Clear local state for pending request since backend also cancels it
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
       await refreshConversations().catch((err) => {
-        console.error("Failed to refresh conversations after report", err);
+        console.error('Failed to refresh conversations after report', err);
       });
       navigation.reset({
         index: 0,
         routes: [
           {
-            name: "Main",
+            name: 'Main',
             params: {
-              screen: "Events",
+              screen: 'Events',
               params: { showEventReportedBadge: true },
             },
           },
         ],
       });
     } catch (err) {
-      console.error("Failed to submit report", err);
+      console.error('Failed to submit report', err);
       setReportError(
-        err instanceof Error
-          ? err.message
-          : "Unable to submit report. Please try again.",
+        err instanceof Error ? err.message : 'Unable to submit report. Please try again.',
       );
     } finally {
       setIsSubmittingReport(false);
     }
   };
 
-  const handleLeavePrompt = () => afterMenuClose(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    setLeaveError(null);
-    setShowLeaveConfirm(true);
-  });
+  const handleLeavePrompt = () =>
+    afterMenuClose(() => {
+      triggerHaptic('destructive');
+      setLeaveError(null);
+      setShowLeaveConfirm(true);
+    });
 
   const handleLeaveEvent = async () => {
     if (!event || !user || !token) {
@@ -1224,47 +1104,44 @@ const EventDetailsScreenContent = ({
     if (isLeaving) {
       return;
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    triggerHaptic('destructive');
     setLeaveError(null);
     setIsLeaving(true);
     try {
       const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/members/${user.id}`,
         {
-          method: "DELETE",
+          method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
       );
       if (!response.ok) {
-        throw new Error("Unable to leave event right now.");
+        throw new Error('Unable to leave event right now.');
       }
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
       await refreshConversations().catch((err) => {
-        console.error(
-          "Failed to refresh conversations after leaving event",
-          err,
-        );
+        console.error('Failed to refresh conversations after leaving event', err);
       });
       setShowLeaveConfirm(false);
       navigation.reset({
         index: 0,
         routes: [
           {
-            name: "Main",
+            name: 'Main',
             params: {
-              screen: "Events",
+              screen: 'Events',
               params: { showEventLeftBadge: true },
             },
           },
         ],
       });
     } catch (err) {
-      console.error("Failed to leave event", err);
-      setLeaveError("Unable to leave this event. Please try again.");
+      console.error('Failed to leave event', err);
+      setLeaveError('Unable to leave this event. Please try again.');
     } finally {
       setIsLeaving(false);
     }
@@ -1288,12 +1165,13 @@ const EventDetailsScreenContent = ({
     }
   };
 
-  const handleMenuReportEvent = () => afterMenuClose(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    setReportMessage("");
-    setReportError(null);
-    setShowReportPrompt(true);
-  });
+  const handleMenuReportEvent = () =>
+    afterMenuClose(() => {
+      triggerHaptic('destructive');
+      setReportMessage('');
+      setReportError(null);
+      setShowReportPrompt(true);
+    });
 
   const handleMenuCancelRequest = () => {
     setShowMenuOverlay(false);
@@ -1310,17 +1188,17 @@ const EventDetailsScreenContent = ({
     if (isOwner) {
       // Host: Edit Details, Delete Event
       return [
-        { label: "Edit Details", onPress: handleMenuEdit },
-        { label: "Delete Event", onPress: handleMenuDelete, destructive: true },
+        { label: 'Edit Details', onPress: handleMenuEdit },
+        { label: 'Delete Event', onPress: handleMenuDelete, destructive: true },
       ];
     }
     if (isConversationMember) {
       // Joined: View Intro Message, Leave Event, Report Event
       return [
-        { label: "View Intro Message", onPress: handleMenuViewIntro },
-        { label: "Leave Event", onPress: handleLeavePrompt, destructive: true },
+        { label: 'View Intro Message', onPress: handleMenuViewIntro },
+        { label: 'Leave Event', onPress: handleLeavePrompt, destructive: true },
         {
-          label: "Report Event",
+          label: 'Report Event',
           onPress: handleMenuReportEvent,
           destructive: true,
         },
@@ -1329,14 +1207,14 @@ const EventDetailsScreenContent = ({
     if (hasPendingRequest) {
       // Pending: View Intro Message, Cancel Request, Report Event
       return [
-        { label: "View Intro Message", onPress: handleMenuViewIntro },
+        { label: 'View Intro Message', onPress: handleMenuViewIntro },
         {
-          label: "Cancel Request",
+          label: 'Cancel Request',
           onPress: handleMenuCancelRequest,
           loading: isCancellingRequest,
         },
         {
-          label: "Report Event",
+          label: 'Report Event',
           onPress: handleMenuReportEvent,
           destructive: true,
         },
@@ -1345,7 +1223,7 @@ const EventDetailsScreenContent = ({
     // Not joined: Report Event
     return [
       {
-        label: "Report Event",
+        label: 'Report Event',
         onPress: handleMenuReportEvent,
         destructive: true,
       },
@@ -1365,7 +1243,10 @@ const EventDetailsScreenContent = ({
           <>
             <Pressable
               accessibilityRole="button"
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
+              onPress={() => {
+                triggerHaptic('light');
+                navigation.goBack();
+              }}
               style={[styles.backButton, { top: insets.top + 10 }]}
             >
               <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
@@ -1373,19 +1254,21 @@ const EventDetailsScreenContent = ({
             <Pressable
               accessibilityRole="button"
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                triggerHaptic('light');
                 setShowMenuOverlay(true);
               }}
               style={[styles.menuButton, { top: insets.top + 10 }]}
             >
-              <MoreHorizontalIcon width={24} height={24} color={colors.buttonText}
-              />
+              <MoreHorizontalIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
           </>
         ) : (
           <Pressable
             accessibilityRole="button"
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
+            onPress={() => {
+              triggerHaptic('light');
+              navigation.goBack();
+            }}
             hitSlop={12}
             style={[styles.backButton, { top: insets.top + 10 }]}
           >
@@ -1415,9 +1298,7 @@ const EventDetailsScreenContent = ({
             <View pointerEvents="none" style={styles.heroOverlayLight} />
 
             {/* Elevated Image Card */}
-            <View
-              style={styles.imageCardContainer}
-            >
+            <View style={styles.imageCardContainer}>
               <Image
                 source={{ uri: event.imageUri }}
                 style={styles.imageCard}
@@ -1440,10 +1321,7 @@ const EventDetailsScreenContent = ({
                   {goingParticipants.slice(0, 4).map((participant, index) => (
                     <View
                       key={`${participant.id}-${index}`}
-                      style={[
-                        styles.goingAvatarItem,
-                        index > 0 && styles.goingAvatarOverlap,
-                      ]}
+                      style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
                       testID={`going-avatar-${index}`}
                     >
                       {renderAvatar(participant, 28)}
@@ -1509,11 +1387,11 @@ const EventDetailsScreenContent = ({
                   <Text
                     style={styles.seeMoreText}
                     onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      triggerHaptic('light');
                       setDescriptionExpanded((prev) => !prev);
                     }}
                   >
-                    {descriptionExpanded ? "Show less" : "...See more"}
+                    {descriptionExpanded ? 'Show less' : '...See more'}
                   </Text>
                 )}
               </View>
@@ -1530,30 +1408,41 @@ const EventDetailsScreenContent = ({
                       hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                       onLayout={(e) => {
                         const { x, width } = e.nativeEvent.layout;
-                        tabLayouts.current["requests"] = { x, width };
-                        if (activeTab === "requests" && !underlineReady.current) {
+                        tabLayouts.current['requests'] = { x, width };
+                        if (activeTab === 'requests' && !underlineReady.current) {
                           underlineX.value = x;
                           underlineWidth.value = width;
                           underlineReady.current = true;
                         }
                       }}
                       onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        const layout = tabLayouts.current["requests"];
+                        triggerHaptic('selection');
+                        const layout = tabLayouts.current['requests'];
                         if (layout) {
                           underlineX.value = withSpring(layout.x, Springs.snappy);
                           underlineWidth.value = withSpring(layout.width, Springs.snappy);
                         }
                         tabIndexSV.value = withTiming(0, { duration: 280 });
-                        setActiveTab("requests");
+                        setActiveTab('requests');
                       }}
                     >
                       <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, activeTab === "requests" && styles.tabLabelActive]}>
+                        <Text
+                          style={[
+                            styles.tabLabel,
+                            activeTab === 'requests' && styles.tabLabelActive,
+                          ]}
+                        >
                           Requests
                         </Text>
-                        <Text style={[styles.tabCount, activeTab === "requests" && styles.tabCountActive]}>
-                          {" "}{pendingRequests.length}
+                        <Text
+                          style={[
+                            styles.tabCount,
+                            activeTab === 'requests' && styles.tabCountActive,
+                          ]}
+                        >
+                          {' '}
+                          {pendingRequests.length}
                         </Text>
                       </View>
                     </ScalePressable>
@@ -1564,30 +1453,41 @@ const EventDetailsScreenContent = ({
                         hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                         onLayout={(e) => {
                           const { x, width } = e.nativeEvent.layout;
-                          tabLayouts.current["accepted"] = { x, width };
-                          if (activeTab === "accepted" && !underlineReady.current) {
+                          tabLayouts.current['accepted'] = { x, width };
+                          if (activeTab === 'accepted' && !underlineReady.current) {
                             underlineX.value = x;
                             underlineWidth.value = width;
                             underlineReady.current = true;
                           }
                         }}
                         onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          const layout = tabLayouts.current["accepted"];
+                          triggerHaptic('selection');
+                          const layout = tabLayouts.current['accepted'];
                           if (layout) {
                             underlineX.value = withSpring(layout.x, Springs.snappy);
                             underlineWidth.value = withSpring(layout.width, Springs.snappy);
                           }
                           tabIndexSV.value = withTiming(1, { duration: 280 });
-                          setActiveTab("accepted");
+                          setActiveTab('accepted');
                         }}
                       >
                         <View style={styles.tabLabelRow}>
-                          <Text style={[styles.tabLabel, activeTab === "accepted" && styles.tabLabelActive]}>
+                          <Text
+                            style={[
+                              styles.tabLabel,
+                              activeTab === 'accepted' && styles.tabLabelActive,
+                            ]}
+                          >
                             Accepted
                           </Text>
-                          <Text style={[styles.tabCount, activeTab === "accepted" && styles.tabCountActive]}>
-                            {" "}{acceptedRequests.length}
+                          <Text
+                            style={[
+                              styles.tabCount,
+                              activeTab === 'accepted' && styles.tabCountActive,
+                            ]}
+                          >
+                            {' '}
+                            {acceptedRequests.length}
                           </Text>
                         </View>
                       </ScalePressable>
@@ -1599,30 +1499,41 @@ const EventDetailsScreenContent = ({
                         hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                         onLayout={(e) => {
                           const { x, width } = e.nativeEvent.layout;
-                          tabLayouts.current["members"] = { x, width };
-                          if (activeTab === "members" && !underlineReady.current) {
+                          tabLayouts.current['members'] = { x, width };
+                          if (activeTab === 'members' && !underlineReady.current) {
                             underlineX.value = x;
                             underlineWidth.value = width;
                             underlineReady.current = true;
                           }
                         }}
                         onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          const layout = tabLayouts.current["members"];
+                          triggerHaptic('selection');
+                          const layout = tabLayouts.current['members'];
                           if (layout) {
                             underlineX.value = withSpring(layout.x, Springs.snappy);
                             underlineWidth.value = withSpring(layout.width, Springs.snappy);
                           }
                           tabIndexSV.value = withTiming(1, { duration: 280 });
-                          setActiveTab("members");
+                          setActiveTab('members');
                         }}
                       >
                         <View style={styles.tabLabelRow}>
-                          <Text style={[styles.tabLabel, activeTab === "members" && styles.tabLabelActive]}>
+                          <Text
+                            style={[
+                              styles.tabLabel,
+                              activeTab === 'members' && styles.tabLabelActive,
+                            ]}
+                          >
                             Members
                           </Text>
-                          <Text style={[styles.tabCount, activeTab === "members" && styles.tabCountActive]}>
-                            {" "}{confirmedMembers.length}
+                          <Text
+                            style={[
+                              styles.tabCount,
+                              activeTab === 'members' && styles.tabCountActive,
+                            ]}
+                          >
+                            {' '}
+                            {confirmedMembers.length}
                           </Text>
                         </View>
                       </ScalePressable>
@@ -1642,8 +1553,12 @@ const EventDetailsScreenContent = ({
                     pagerWidthSV.value = w;
                   }}
                 >
-                  <Animated.View style={[{ flexDirection: 'row', width: pagerWidth > 0 ? pagerWidth * 2 : '200%' }, rowAnimStyle]}>
-
+                  <Animated.View
+                    style={[
+                      { flexDirection: 'row', width: pagerWidth > 0 ? pagerWidth * 2 : '200%' },
+                      rowAnimStyle,
+                    ]}
+                  >
                     {/* Page 0: Requests */}
                     <View style={{ width: pagerWidth > 0 ? pagerWidth : '50%', minHeight: 200 }}>
                       {pendingRequests.length === 0 ? (
@@ -1662,60 +1577,58 @@ const EventDetailsScreenContent = ({
 
                           return (
                             <View key={request.id}>
-                            <View style={styles.requestItem}>
-                              {renderAvatar(request.requester)}
+                              <View style={styles.requestItem}>
+                                {renderAvatar(request.requester)}
 
-                              <View style={styles.requestContent}>
-                                <Text style={styles.requestName}>
-                                  {request.requester.name}
-                                </Text>
-                                <Text
-                                  style={styles.requestMessage}
-                                  numberOfLines={isExpanded ? undefined : 3}
-                                >
-                                  {request.message}
-                                </Text>
-                                {!isExpanded && request.message.length > 100 && (
-                                  <ScalePressable
-                                    onPress={() => {
-                                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                      toggleRequestExpanded(request.id);
-                                    }}
+                                <View style={styles.requestContent}>
+                                  <Text style={styles.requestName}>{request.requester.name}</Text>
+                                  <Text
+                                    style={styles.requestMessage}
+                                    numberOfLines={isExpanded ? undefined : 3}
                                   >
-                                    <Text style={styles.seeMoreText}>See more</Text>
+                                    {request.message}
+                                  </Text>
+                                  {!isExpanded && request.message.length > 100 && (
+                                    <ScalePressable
+                                      onPress={() => {
+                                        triggerHaptic('light');
+                                        toggleRequestExpanded(request.id);
+                                      }}
+                                    >
+                                      <Text style={styles.seeMoreText}>See more</Text>
+                                    </ScalePressable>
+                                  )}
+                                </View>
+
+                                <View style={styles.requestActions}>
+                                  <ScalePressable
+                                    style={[styles.actionButton, styles.declineButton]}
+                                    onPress={() => handleDeclineRequest(request)}
+                                    disabled={isLoading}
+                                  >
+                                    {isDeclining ? (
+                                      <ActivityIndicator size="small" color={colors.text} />
+                                    ) : (
+                                      <RejectIcon width={30} height={30} />
+                                    )}
                                   </ScalePressable>
-                                )}
-                              </View>
 
-                              <View style={styles.requestActions}>
-                                <ScalePressable
-                                  style={[styles.actionButton, styles.declineButton]}
-                                  onPress={() => handleDeclineRequest(request)}
-                                  disabled={isLoading}
-                                >
-                                  {isDeclining ? (
-                                    <ActivityIndicator size="small" color={colors.text} />
-                                  ) : (
-                                    <RejectIcon width={30} height={30} />
-                                  )}
-                                </ScalePressable>
-
-                                <ScalePressable
-                                  style={[styles.actionButton, styles.acceptButton]}
-                                  onPress={() => handleAcceptRequest(request)}
-                                  disabled={isLoading}
-                                >
-                                  {isAccepting ? (
-                                    <ActivityIndicator size="small" color={colors.buttonText} />
-                                  ) : (
-                                    <AcceptIcon width={30} height={30} />
-                                  )}
-                                </ScalePressable>
+                                  <ScalePressable
+                                    style={[styles.actionButton, styles.acceptButton]}
+                                    onPress={() => handleAcceptRequest(request)}
+                                    disabled={isLoading}
+                                  >
+                                    {isAccepting ? (
+                                      <ActivityIndicator size="small" color={colors.buttonText} />
+                                    ) : (
+                                      <AcceptIcon width={30} height={30} />
+                                    )}
+                                  </ScalePressable>
+                                </View>
                               </View>
-                            </View>
-                            {index < pendingRequests.length - 1 && (
-                              <View style={styles.requestSeparator} />
-                            )}
+                              {index < pendingRequests.length - 1 && (
+                                <View style={styles.requestSeparator} />
+                              )}
                             </View>
                           );
                         })
@@ -1750,86 +1663,75 @@ const EventDetailsScreenContent = ({
                             </ScalePressable>
                           ))
                         )
+                      ) : confirmedMembers.length === 0 ? (
+                        <Text style={styles.emptyStateText}>No members yet</Text>
                       ) : (
-                        confirmedMembers.length === 0 ? (
-                          <Text style={styles.emptyStateText}>No members yet</Text>
-                        ) : (
-                          confirmedMembers.map((member) => (
-                            <View key={member.id} style={styles.memberItem}>
-                              {renderAvatar(member)}
-                              <Text style={styles.memberName}>{member.name}</Text>
-                              <ScalePressable
-                                onPress={() => openMemberMenu(member)}
-                                style={styles.requestMenuButton}
-                              >
-                                <MoreHorizontalIcon width={24} height={24} color="#666" />
-                              </ScalePressable>
-                            </View>
-                          ))
-                        )
-                      )}
-                    </View>
-
-                  </Animated.View>
-                </View>
-              </>
-            )}
-
-            {/* Overlay: Members tab for group events (all users) */}
-            {!isSingleEvent &&
-              isOverlay &&
-              (isOwner || isConversationMember) && (
-                <>
-                  <View>
-                    <View style={styles.tabContainer}>
-                      <View
-                        style={styles.tabItem}
-                        onLayout={(e) =>
-                          setOverlayMembersTabWidth(e.nativeEvent.layout.width)
-                        }
-                      >
-                        <View style={styles.tabLabelRow}>
-                          <Text style={[styles.tabLabel, styles.tabLabelActive]}>
-                            Members
-                          </Text>
-                          <Text style={[styles.tabCount, styles.tabCountActive]}>
-                            {" "}{overlayMembers.length}
-                          </Text>
-                        </View>
-                      </View>
-                      <View
-                        style={[
-                          styles.slidingUnderline,
-                          { left: 0, width: overlayMembersTabWidth },
-                        ]}
-                      />
-                    </View>
-                    <View style={[styles.divider, { marginVertical: 0 }]} />
-                  </View>
-                  <View style={styles.listContainer}>
-                    {overlayMembers.length === 0 ? (
-                      <Text style={styles.emptyStateText}>No members yet</Text>
-                    ) : (
-                      overlayMembers.map((member) => (
-                        <View key={member.id} style={styles.memberItem}>
-                          {renderAvatar(member)}
-                          <Text style={styles.memberName}>{member.name}</Text>
-                          {member.id === user?.id && isOwner ? (
-                            <Text style={styles.hostBadgeText}>Host</Text>
-                          ) : isOwner && member.id !== user?.id ? (
+                        confirmedMembers.map((member) => (
+                          <View key={member.id} style={styles.memberItem}>
+                            {renderAvatar(member)}
+                            <Text style={styles.memberName}>{member.name}</Text>
                             <ScalePressable
                               onPress={() => openMemberMenu(member)}
                               style={styles.requestMenuButton}
                             >
                               <MoreHorizontalIcon width={24} height={24} color="#666" />
                             </ScalePressable>
-                          ) : null}
-                        </View>
-                      ))
-                    )}
+                          </View>
+                        ))
+                      )}
+                    </View>
+                  </Animated.View>
+                </View>
+              </>
+            )}
+
+            {/* Overlay: Members tab for group events (all users) */}
+            {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
+              <>
+                <View>
+                  <View style={styles.tabContainer}>
+                    <View
+                      style={styles.tabItem}
+                      onLayout={(e) => setOverlayMembersTabWidth(e.nativeEvent.layout.width)}
+                    >
+                      <View style={styles.tabLabelRow}>
+                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>Members</Text>
+                        <Text style={[styles.tabCount, styles.tabCountActive]}>
+                          {' '}
+                          {overlayMembers.length}
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={[styles.slidingUnderline, { left: 0, width: overlayMembersTabWidth }]}
+                    />
                   </View>
-                </>
-              )}
+                  <View style={[styles.divider, { marginVertical: 0 }]} />
+                </View>
+                <View style={styles.listContainer}>
+                  {overlayMembers.length === 0 ? (
+                    <Text style={styles.emptyStateText}>No members yet</Text>
+                  ) : (
+                    overlayMembers.map((member) => (
+                      <View key={member.id} style={styles.memberItem}>
+                        {renderAvatar(member)}
+                        <Text style={styles.memberName}>{member.name}</Text>
+                        {member.id === user?.id && isOwner ? (
+                          <Text style={styles.hostBadgeText}>Host</Text>
+                        ) : isOwner && member.id !== user?.id ? (
+                          <ScalePressable
+                            onPress={() => openMemberMenu(member)}
+                            style={styles.requestMenuButton}
+                          >
+                            <MoreHorizontalIcon width={24} height={24} color="#666" />
+                          </ScalePressable>
+                        ) : null}
+                      </View>
+                    ))
+                  )}
+                </View>
+              </>
+            )}
 
             {readOnly && !isOverlay && (
               <>
@@ -1837,24 +1739,18 @@ const EventDetailsScreenContent = ({
                   <View style={styles.tabContainer}>
                     <View
                       style={styles.tabItem}
-                      onLayout={(e) =>
-                        setReadOnlyMembersTabWidth(e.nativeEvent.layout.width)
-                      }
+                      onLayout={(e) => setReadOnlyMembersTabWidth(e.nativeEvent.layout.width)}
                     >
                       <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>
-                          Members
-                        </Text>
+                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>Members</Text>
                         <Text style={[styles.tabCount, styles.tabCountActive]}>
-                          {" "}{readOnlyMembers.length}
+                          {' '}
+                          {readOnlyMembers.length}
                         </Text>
                       </View>
                     </View>
                     <View
-                      style={[
-                        styles.slidingUnderline,
-                        { left: 0, width: readOnlyMembersTabWidth },
-                      ]}
+                      style={[styles.slidingUnderline, { left: 0, width: readOnlyMembersTabWidth }]}
                     />
                   </View>
                   <View style={[styles.divider, { marginVertical: 0 }]} />
@@ -1863,9 +1759,7 @@ const EventDetailsScreenContent = ({
                   {isFetchingReadOnlyMembers ? (
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : readOnlyMembersError ? (
-                    <Text style={styles.emptyStateText}>
-                      {readOnlyMembersError}
-                    </Text>
+                    <Text style={styles.emptyStateText}>{readOnlyMembersError}</Text>
                   ) : readOnlyMembers.length === 0 ? (
                     <Text style={styles.emptyStateText}>No members yet</Text>
                   ) : (
@@ -1887,9 +1781,7 @@ const EventDetailsScreenContent = ({
               <>
                 <View style={styles.divider} />
                 <Text style={styles.sectionHeading}>Introduction</Text>
-                <Text style={styles.introMessageText}>
-                  "{userIntroMessage}"
-                </Text>
+                <Text style={styles.introMessageText}>"{userIntroMessage}"</Text>
               </>
             ) : null}
           </View>
@@ -1951,9 +1843,7 @@ const EventDetailsScreenContent = ({
 
       <EventActionOverlay
         isVisible={shouldShowInvitePrompt}
-        onBackdropPress={
-          isSendingInvite ? undefined : () => setShowInvitePrompt(false)
-        }
+        onBackdropPress={isSendingInvite ? undefined : () => setShowInvitePrompt(false)}
         type="invite"
         inviteMessage={inviteMessage}
         onInviteMessageChange={(text) => {
@@ -1990,11 +1880,7 @@ const EventDetailsScreenContent = ({
       />
       <EventActionOverlay
         isVisible={showPendingRequestPrompt}
-        onBackdropPress={
-          isCancellingRequest
-            ? undefined
-            : () => setShowPendingRequestPrompt(false)
-        }
+        onBackdropPress={isCancellingRequest ? undefined : () => setShowPendingRequestPrompt(false)}
         type="pendingRequest"
         onCancelRequest={handleCancelRequest}
         onReportEvent={handleOpenReportPrompt}
@@ -2018,9 +1904,7 @@ const EventDetailsScreenContent = ({
             setReportError(null);
           }
         }}
-        onSubmitReport={
-          selectedRequest ? handleSubmitMemberReport : handleSubmitReport
-        }
+        onSubmitReport={selectedRequest ? handleSubmitMemberReport : handleSubmitReport}
         reportError={reportError}
         reportSubmitting={isSubmittingReport || isReportingMember}
         reportDisabled={!reportMessage.trim()}
@@ -2035,7 +1919,7 @@ const EventDetailsScreenContent = ({
         isVisible={showViewIntroOverlay}
         onBackdropPress={() => setShowViewIntroOverlay(false)}
         type="viewIntro"
-        introMessage={userIntroMessage ?? ""}
+        introMessage={userIntroMessage ?? ''}
         onDismiss={() => setShowViewIntroOverlay(false)}
       />
       <EventActionOverlay
@@ -2059,11 +1943,11 @@ const EventDetailsScreenContent = ({
         type="menu"
         items={[
           {
-            label: `Report & Block ${selectedMember?.name?.split(" ")[0] ?? "Member"}`,
+            label: `Report & Block ${selectedMember?.name?.split(' ')[0] ?? 'Member'}`,
             onPress: handleReportMemberFromMenu,
           },
           {
-            label: `Remove ${selectedMember?.name?.split(" ")[0] ?? "Member"}`,
+            label: `Remove ${selectedMember?.name?.split(' ')[0] ?? 'Member'}`,
             onPress: handleRemovePromptFromMenu,
             destructive: true,
           },
@@ -2073,13 +1957,13 @@ const EventDetailsScreenContent = ({
         isVisible={showRemoveConfirm}
         onBackdropPress={isRemovingMember ? undefined : handleRemoveCancel}
         type="confirm"
-        title={`Remove ${selectedMember?.name?.split(" ")[0] ?? "this member"}?`}
+        title={`Remove ${selectedMember?.name?.split(' ')[0] ?? 'this member'}?`}
         description={
           isSingleEvent
-            ? "They will be removed from this event and private chat."
-            : "They will be removed from the group chat and will need to request to join again."
+            ? 'They will be removed from this event and private chat.'
+            : 'They will be removed from the group chat and will need to request to join again.'
         }
-        confirmLabel={`Remove ${selectedMember?.name?.split(" ")[0] ?? "Member"}`}
+        confirmLabel={`Remove ${selectedMember?.name?.split(' ')[0] ?? 'Member'}`}
         cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={handleRemoveMember}
@@ -2111,14 +1995,14 @@ const EventDetailsScreenContent = ({
       />
       <EventActionBadge
         visible={removedMemberBadgeLabel != null}
-        label={removedMemberBadgeLabel ?? ""}
+        label={removedMemberBadgeLabel ?? ''}
         onHidden={() => {
           setRemovedMemberBadgeLabel(null);
         }}
       />
       <EventActionBadge
         visible={reportedMemberBadgeLabel != null}
-        label={reportedMemberBadgeLabel ?? ""}
+        label={reportedMemberBadgeLabel ?? ''}
         onHidden={() => {
           setReportedMemberBadgeLabel(null);
         }}
@@ -2136,7 +2020,6 @@ const EventDetailsScreenContent = ({
       </SafeAreaView>
     );
   }
-
 
   return (
     <SafeAreaView style={styles.safeArea} edges={[]}>
@@ -2156,9 +2039,7 @@ const EventDetailsScreen = () => {
     [events, routeEventId],
   );
   const [fetchedEvent, setFetchedEvent] = useState<UserEvent | null>(null);
-  const [isFetchingEvent, setIsFetchingEvent] = useState(
-    () => !rawEvent && !!token && !!authFetch,
-  );
+  const [isFetchingEvent, setIsFetchingEvent] = useState(() => !rawEvent && !!token && !!authFetch);
 
   useEffect(() => {
     setFetchedEvent((prev) => (prev?.id === routeEventId ? prev : null));
@@ -2193,7 +2074,7 @@ const EventDetailsScreen = () => {
         }
       } catch (err) {
         if (!isCancelled) {
-          console.error("Failed to fetch event details", err);
+          console.error('Failed to fetch event details', err);
           setFetchedEvent(null);
         }
       } finally {
@@ -2209,12 +2090,11 @@ const EventDetailsScreen = () => {
     };
   }, [authFetch, rawEvent, routeEventId, token]);
 
-  const eventSnapshot =
-    rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
+  const eventSnapshot = rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
 
   if (!eventSnapshot) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.fallbackContainer}>
           {isFetchingEvent ? (
             <ActivityIndicator size="large" color={colors.primary} />
@@ -2250,38 +2130,38 @@ const styles = StyleSheet.create({
   heroContainer: {
     paddingHorizontal: spacing.md,
     paddingTop: 10,
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   heroBackgroundImage: {
     ...StyleSheet.absoluteFillObject,
   },
   heroOverlayDark: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   heroOverlayLight: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   overlayWrapper: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   overlayDismissZone: {
-    height: "10%",
+    height: '10%',
   },
   overlayContentContainer: {
     flex: 1,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    overflow: "hidden",
+    overflow: 'hidden',
     backgroundColor: colors.background,
   },
   overlayHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
     zIndex: 10,
   },
@@ -2290,64 +2170,64 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilySemiBold,
     color: colors.buttonText,
-    textAlign: "center",
+    textAlign: 'center',
     marginRight: -40,
   },
   overlayCloseButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   overlayCloseButtonFixed: {
-    position: "absolute",
+    position: 'absolute',
     top: 12,
     right: 16,
     zIndex: 10,
   },
   backButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 10,
     left: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 10,
   },
   menuButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 10,
     right: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 10,
   },
 
   // Image card container
   imageCardContainer: {
-    width: "60%",
+    width: '60%',
     aspectRatio: 1, // Square card
   },
   imageCardContainerOverlay: {
-    width: "50%",
+    width: '50%',
   },
 
   // The elevated image card
   imageCard: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
     borderRadius: 20,
-    borderCurve: "continuous",
-    shadowColor: "#000",
+    borderCurve: 'continuous',
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 12,
@@ -2387,23 +2267,23 @@ const styles = StyleSheet.create({
   hostedBy: {
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    color: "#808080",
+    color: '#808080',
     lineHeight: 20,
     letterSpacing: typography.letterSpacing,
   },
   goingRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   goingAvatarStack: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   goingAvatarItem: {
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: "#FFFFFF",
+    borderColor: '#FFFFFF',
   },
   goingAvatarOverlap: {
     marginLeft: -9,
@@ -2411,7 +2291,7 @@ const styles = StyleSheet.create({
   goingLabel: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#707070",
+    color: '#707070',
     lineHeight: 20,
     letterSpacing: -0.5,
   },
@@ -2423,42 +2303,42 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
-    color: "#000000",
+    color: '#000000',
     lineHeight: 20,
     letterSpacing: -0.3,
   },
   detailDiv: {
-    flexDirection: "column",
+    flexDirection: 'column',
     paddingTop: 6,
   },
   detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 4,
     gap: 6,
   },
   detailIconContainer: {
     width: 24,
     height: 24,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailText: {
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    color: "#000000",
+    color: '#000000',
     letterSpacing: -0.4,
     flex: 1,
   },
   description: {
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
-    color: "#000000",
+    color: '#000000',
     lineHeight: 22,
     letterSpacing: -0.4,
   },
   measureContainer: {
-    position: "absolute",
+    position: 'absolute',
     top: -9999,
     left: 0,
     right: 0,
@@ -2470,20 +2350,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   pinnedCtaWrapper: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     height: 110,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   ctaContainerActive: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: '#F5F5F5',
   },
   introMessageText: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    fontStyle: "italic",
+    fontStyle: 'italic',
     color: colors.text,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
@@ -2491,10 +2371,10 @@ const styles = StyleSheet.create({
   ctaButton: {
     backgroundColor: colors.primary,
     borderRadius: 999,
-    borderCurve: "continuous",
+    borderCurve: 'continuous',
     height: 52,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ctaButtonDisabled: {
     backgroundColor: colors.eventDetailButtonDisabledBackground,
@@ -2513,7 +2393,7 @@ const styles = StyleSheet.create({
     color: colors.eventDetailButtonDisabledText,
   },
   ownerButton: {
-    backgroundColor: "rgba(0, 0, 0, 0.08)",
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
   },
   ownerLabel: {
     color: colors.text,
@@ -2521,18 +2401,18 @@ const styles = StyleSheet.create({
   fallbackContainer: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: spacing.md,
   },
   fallbackText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
     color: colors.subText,
-    textAlign: "center",
+    textAlign: 'center',
   },
   fallbackBackButton: {
-    position: "absolute",
+    position: 'absolute',
     top: spacing.lg,
     left: spacing.lg,
   },
@@ -2540,31 +2420,31 @@ const styles = StyleSheet.create({
   // Separator bar before tabs (host only)
   tabSeparator: {
     height: 8,
-    backgroundColor: "#F4F4F4",
+    backgroundColor: '#F4F4F4',
     marginHorizontal: -spacing.md,
     marginTop: spacing.md,
   },
 
   // Tab container and items
   tabContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 20,
     paddingTop: 20,
     paddingBottom: 10,
   },
   slidingUnderline: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 0,
     height: 2,
     backgroundColor: colors.text,
     borderRadius: 1,
   },
   tabItem: {
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
   },
   tabLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tabLabel: {
     fontSize: 16,
@@ -2582,12 +2462,12 @@ const styles = StyleSheet.create({
   tabCount: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
-    color: "#808080",
+    color: '#808080',
     lineHeight: 15,
     letterSpacing: -0.3,
   },
   tabUnderline: {
-    alignSelf: "stretch",
+    alignSelf: 'stretch',
     height: 2,
     backgroundColor: colors.text,
     marginTop: 8,
@@ -2601,8 +2481,8 @@ const styles = StyleSheet.create({
 
   // Request item styles
   requestItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
   requestSeparator: {
@@ -2625,15 +2505,15 @@ const styles = StyleSheet.create({
   requestMessage: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#000000",
+    color: '#000000',
     lineHeight: 22,
     letterSpacing: -0.3,
     marginTop: 2,
   },
   requestActions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
     marginTop: spacing.xs,
   },
 
@@ -2642,11 +2522,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   declineButton: {
-    backgroundColor: "#E6E6E6",
+    backgroundColor: '#E6E6E6',
   },
   acceptButton: {
     backgroundColor: colors.text,
@@ -2654,8 +2534,8 @@ const styles = StyleSheet.create({
 
   // Member item styles
   memberItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
     paddingBottom: 12,
   },
@@ -2672,7 +2552,7 @@ const styles = StyleSheet.create({
   seeMoreText: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
-    color: "#707070",
+    color: '#707070',
     lineHeight: 20,
     letterSpacing: -0.3,
     marginTop: 2,
@@ -2683,22 +2563,22 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     color: colors.subText,
-    textAlign: "center",
+    textAlign: 'center',
     paddingVertical: spacing.lg,
     letterSpacing: -0.3,
   },
 
   // Secondary CTA button (for host)
   ctaButtonSecondary: {
-    backgroundColor: "#E6E6E6",
+    backgroundColor: '#E6E6E6',
   },
   ctaLabelSecondary: {
     fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
-    color: "#000000",
+    color: '#000000',
     lineHeight: 24,
     letterSpacing: -0.5,
-    textAlign: "center",
+    textAlign: 'center',
   },
 
   // 1:1 event request row styles
@@ -2714,20 +2594,20 @@ const styles = StyleSheet.create({
   },
   requestMessagePreview: {
     fontSize: 14,
-    color: "#666",
+    color: '#666',
     marginTop: 2,
   },
   requestMenuButton: {
     padding: 8,
   },
   hostBadgeText: {
-    fontFamily: "Inter",
-    fontWeight: "500",
+    fontFamily: 'Inter',
+    fontWeight: '500',
     fontSize: 14,
     lineHeight: 14,
     letterSpacing: -0.5,
-    color: "#4E4E4E",
-    marginLeft: "auto",
+    color: '#4E4E4E',
+    marginLeft: 'auto',
   },
 });
 

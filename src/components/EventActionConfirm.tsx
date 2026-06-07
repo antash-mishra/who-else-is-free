@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import * as Haptics from 'expo-haptics';
+
+import { triggerHaptic } from '@services/haptics';
 
 import styles from './EventActionOverlay.styles';
 import HoldToConfirmButton from './HoldToConfirmButton';
@@ -26,7 +27,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
   onCancel,
   confirmTone = 'default',
   isConfirmLoading,
-  errorMessage
+  errorMessage,
 }) => (
   <View style={styles.prompt}>
     <View style={styles.promptHeader}>
@@ -37,11 +38,11 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
     <View style={styles.promptButtons}>
       <Pressable
         accessibilityRole="button"
-        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onCancel(); }}
-        style={({ pressed }) => [
-          styles.secondaryButton,
-          pressed && styles.secondaryButtonPressed
-        ]}
+        onPress={() => {
+          triggerHaptic('light');
+          onCancel();
+        }}
+        style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
       >
         <Text style={styles.secondaryLabel}>{cancelLabel}</Text>
       </Pressable>
@@ -54,12 +55,19 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
       ) : (
         <Pressable
           accessibilityRole="button"
-          onPress={isConfirmLoading ? undefined : () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onConfirm(); }}
+          onPress={
+            isConfirmLoading
+              ? undefined
+              : () => {
+                  triggerHaptic('submit');
+                  onConfirm();
+                }
+          }
           disabled={isConfirmLoading}
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && !isConfirmLoading && styles.primaryButtonPressed,
-            isConfirmLoading && styles.primaryButtonDisabled
+            isConfirmLoading && styles.primaryButtonDisabled,
           ]}
         >
           <Text style={styles.primaryLabel}>{confirmLabel}</Text>

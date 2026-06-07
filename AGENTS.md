@@ -23,7 +23,7 @@ Project guide for coding agents and contributors working in this repository.
 - Backend server: `cd server && go run .`
 - Backend tests: `cd server && go test ./...`
 
-`npm run lint` currently exits green with a warning baseline for existing import order, direct haptics, hardcoded colors, `any`, hook, and unused-code debt. Do not add new warnings casually; prefer reducing the baseline as files are touched.
+`npm run lint` currently exits green with a warning baseline for existing import order, hardcoded colors, `any`, hook, and unused-code debt. Do not add new warnings casually; prefer reducing the baseline as files are touched.
 
 ## Architecture
 
@@ -33,6 +33,8 @@ Project guide for coding agents and contributors working in this repository.
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`.
 - State: React Context providers currently handle auth, events, chat, push, covers, and bloom state.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
+- Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
+- Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
 - Tests: Jest tests live near source files under `__tests__`.
 
 ## Import Rules
@@ -101,8 +103,8 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
 ## Motion And Haptics Rules
 
 - Shared UI components should own their motion and feedback behavior.
-- Prefer semantic haptic helpers once `src/services/haptics.ts` exists.
-- Do not add new direct `expo-haptics` calls in many screens for the same interaction.
+- Use semantic helpers from `src/services/haptics.ts` for feedback such as `selection`, `light`, `submit`, `success`, `warning`, `error`, and `destructive`.
+- Do not import `expo-haptics` outside `src/services/haptics.ts`.
 - Repeated interactions should share animation constants or component-level motion tokens.
 - Bottom sheets, action menus, buttons, cards, tabs, and CTAs should feel consistent across the app.
 
@@ -145,6 +147,8 @@ Use that plan for ordering:
 10. Navigation cleanup.
 11. Final consistency pass.
 
+Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, and semantic haptics/pressables.
+
 ## Testing And Validation
 
 For frontend changes, run the narrowest relevant test first, then broader validation when the change has shared impact.
@@ -175,7 +179,7 @@ For visual or interaction refactors, manually smoke test on the connected mobile
 
 - Reduce lint warning baseline.
 - Establish a green full-repo format baseline without mixing it into behavior refactors.
-- Reduce direct haptic calls.
+- Keep direct haptic imports restricted to `src/services/haptics.ts`.
 - Reduce hardcoded style values outside theme.
 - Reduce large screen/context files.
 - Remove avoidable `any` casts.

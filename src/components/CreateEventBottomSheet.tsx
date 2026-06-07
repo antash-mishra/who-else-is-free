@@ -7,9 +7,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
 
 import CloseIcon from '@assets/ui/close.svg';
+import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, layout, radii, shadows, spacing, typography } from '@theme/index';
 
 type CreateEventBottomSheetProps = {
@@ -93,7 +93,7 @@ const CreateEventBottomSheet = ({
   }, [backdropOpacity, screenHeight, translateY, visible]);
 
   const handleClose = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     onClose();
   }, [onClose]);
 

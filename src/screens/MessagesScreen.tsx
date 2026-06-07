@@ -1,56 +1,38 @@
-import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { Image } from "expo-image";
-import * as Haptics from "expo-haptics";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import ScalePressable from "@components/ScalePressable";
-import BottomSheetModal from "@components/BottomSheetModal";
-import SignInButtons from "@components/SignInButtons";
-import {
-  useFocusEffect,
-  useNavigation,
-  CompositeNavigationProp,
-} from "@react-navigation/native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import ScalePressable from '@components/ScalePressable';
+import BottomSheetModal from '@components/BottomSheetModal';
+import SignInButtons from '@components/SignInButtons';
+import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import ScreenContainer from "@components/ScreenContainer";
-import EmptyState from "@components/EmptyState";
-import UserAvatar from "@components/UserAvatar";
-import { colors, spacing, typography } from "@theme/index";
-import { useChat } from "@context/ChatContext";
-import type { ChatConversation } from "@context/ChatContext";
-import { useAuth } from "@context/AuthContext";
-import { useEvents } from "@context/EventsContext";
-import { RootStackParamList, RootTabParamList } from "@navigation/types";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  formatCompactRelativeTime,
-  getNextCompactRelativeTimeUpdateMs,
-} from "@utils/relativeTime";
+import ScreenContainer from '@components/ScreenContainer';
+import EmptyState from '@components/EmptyState';
+import UserAvatar from '@components/UserAvatar';
+import { colors, spacing, typography } from '@theme/index';
+import { useChat } from '@context/ChatContext';
+import type { ChatConversation } from '@context/ChatContext';
+import { useAuth } from '@context/AuthContext';
+import { useEvents } from '@context/EventsContext';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatCompactRelativeTime, getNextCompactRelativeTimeUpdateMs } from '@utils/relativeTime';
 
 type MessagesNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<RootTabParamList, "Messages">,
+  BottomTabNavigationProp<RootTabParamList, 'Messages'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-const isSingleHostEventConversation = (
-  conversation: ChatConversation,
-  userId?: number,
-) =>
-  conversation.event?.groupType === "Single" &&
+const isSingleHostEventConversation = (conversation: ChatConversation, userId?: number) =>
+  conversation.event?.groupType === 'Single' &&
   conversation.event?.userId === userId &&
   conversation.eventId != null;
 
-const isPendingSingleHostPlaceholder = (
-  conversation: ChatConversation,
-  userId?: number,
-) => conversation.id < 0 && isSingleHostEventConversation(conversation, userId);
+const isPendingSingleHostPlaceholder = (conversation: ChatConversation, userId?: number) =>
+  conversation.id < 0 && isSingleHostEventConversation(conversation, userId);
 
 const ConversationRow = ({
   item,
@@ -68,26 +50,22 @@ const ConversationRow = ({
   nowMs: number;
 }) => {
   const { participants = [] } = item;
-  const counterpart =
-    participants.find((p) => p.id !== userId) ?? participants[0];
+  const counterpart = participants.find((p) => p.id !== userId) ?? participants[0];
   const memberCount = item.memberIds?.length ?? participants.length;
-  const isGroup =
-    memberCount > 2 || !!item.event || (!!item.title && memberCount > 1);
+  const isGroup = memberCount > 2 || !!item.event || (!!item.title && memberCount > 1);
   const titleLabel = isGroup
     ? (item.event?.title ?? item.title ?? item.displayName)
     : (counterpart?.name ?? item.displayName);
   const lastMessageBody =
     item.lastMessage?.body ??
-    (isPendingSingleHostPlaceholder(item, userId)
-      ? "No accepted members yet"
-      : "No messages yet");
+    (isPendingSingleHostPlaceholder(item, userId) ? 'No accepted members yet' : 'No messages yet');
   const isOwnMessage = item.lastMessage?.senderId === userId;
   const previewText = item.lastMessage
-    ? `${isOwnMessage ? "You" : (counterpart?.name?.split(" ")[0] ?? "")}: ${lastMessageBody}`
+    ? `${isOwnMessage ? 'You' : (counterpart?.name?.split(' ')[0] ?? '')}: ${lastMessageBody}`
     : lastMessageBody;
   const timestampLabel = item.lastMessage?.createdAt
     ? formatCompactRelativeTime(item.lastMessage.createdAt, nowMs)
-    : "";
+    : '';
   const eventImageUri =
     item.eventId != null
       ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
@@ -100,39 +78,51 @@ const ConversationRow = ({
   return (
     <ScalePressable
       onPress={() => onPress(item)}
-      onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+      onPressIn={() => triggerHaptic('light')}
       delay={80}
-      style={[styles.conversationRow, item.id === activeConversationId && styles.conversationRowActive]}
+      style={[
+        styles.conversationRow,
+        item.id === activeConversationId && styles.conversationRowActive,
+      ]}
     >
       {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
       <View style={styles.conversationRowContent}>
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
-            <Image source={{ uri: eventImageUri }} style={styles.conversationAvatarImage} contentFit="cover" transition={150} />
-          ) : (
-            <UserAvatar
-              avatar={avatarValue}
-              name={avatarName}
-              seed={avatarSeed}
-              size={52}
+            <Image
+              source={{ uri: eventImageUri }}
+              style={styles.conversationAvatarImage}
+              contentFit="cover"
+              transition={150}
             />
+          ) : (
+            <UserAvatar avatar={avatarValue} name={avatarName} seed={avatarSeed} size={52} />
           )}
         </View>
         <View style={styles.conversationCopyInner}>
           <View style={styles.conversationTitleRow}>
-            <Text style={[styles.conversationName, hasUnread && styles.conversationNameUnread]} numberOfLines={1}>
+            <Text
+              style={[styles.conversationName, hasUnread && styles.conversationNameUnread]}
+              numberOfLines={1}
+            >
               {titleLabel}
             </Text>
             {timestampLabel ? (
               <Text
-                style={[styles.conversationTimestamp, hasUnread && styles.conversationTimestampUnread]}
+                style={[
+                  styles.conversationTimestamp,
+                  hasUnread && styles.conversationTimestampUnread,
+                ]}
                 numberOfLines={1}
               >
                 {timestampLabel}
               </Text>
             ) : null}
           </View>
-          <Text style={[styles.conversationPreview, hasUnread && styles.conversationPreviewUnread]} numberOfLines={1}>
+          <Text
+            style={[styles.conversationPreview, hasUnread && styles.conversationPreviewUnread]}
+            numberOfLines={1}
+          >
             {previewText}
           </Text>
         </View>
@@ -190,7 +180,7 @@ const MessagesScreen = () => {
 
     for (const convo of filtered) {
       const isSingleHost =
-        convo.event?.groupType === "Single" &&
+        convo.event?.groupType === 'Single' &&
         convo.event?.userId === user.id &&
         convo.eventId != null;
 
@@ -219,9 +209,7 @@ const MessagesScreen = () => {
     const pendingSingleEventRows = userEvents
       .filter(
         (event) =>
-          event.ownerId === user.id &&
-          event.groupType === "Single" &&
-          !isEventReported(event.id),
+          event.ownerId === user.id && event.groupType === 'Single' && !isEventReported(event.id),
       )
       .filter((event) => {
         const eventId = Number(event.id);
@@ -270,34 +258,33 @@ const MessagesScreen = () => {
 
     return consolidated;
   }, [conversations, isEventReported, user, userEvents]);
-  const isConversationListBusy =
-    isConnecting || isRefreshingConversations || isPullRefreshing;
+  const isConversationListBusy = isConnecting || isRefreshingConversations || isPullRefreshing;
 
   useEffect(() => {
-    const nextRefreshMs = displayConversations.reduce<number | null>(
-      (soonest, conversation) => {
-        const delay = getNextCompactRelativeTimeUpdateMs(
-          conversation.lastMessage?.createdAt,
-          relativeTimeNow,
-        );
-        if (delay == null) {
-          return soonest;
-        }
-        if (soonest == null) {
-          return delay;
-        }
-        return Math.min(soonest, delay);
-      },
-      null,
-    );
+    const nextRefreshMs = displayConversations.reduce<number | null>((soonest, conversation) => {
+      const delay = getNextCompactRelativeTimeUpdateMs(
+        conversation.lastMessage?.createdAt,
+        relativeTimeNow,
+      );
+      if (delay == null) {
+        return soonest;
+      }
+      if (soonest == null) {
+        return delay;
+      }
+      return Math.min(soonest, delay);
+    }, null);
 
     if (nextRefreshMs == null) {
       return undefined;
     }
 
-    const timeoutId = setTimeout(() => {
-      setRelativeTimeNow(Date.now());
-    }, Math.max(1_000, nextRefreshMs));
+    const timeoutId = setTimeout(
+      () => {
+        setRelativeTimeNow(Date.now());
+      },
+      Math.max(1_000, nextRefreshMs),
+    );
 
     return () => clearTimeout(timeoutId);
   }, [displayConversations, relativeTimeNow]);
@@ -306,20 +293,29 @@ const MessagesScreen = () => {
     const is1to1Host = isSingleHostEventConversation(conversation, user?.id);
 
     if (is1to1Host && conversation.eventId) {
-      navigation.navigate("JoinRequests", {
+      navigation.navigate('JoinRequests', {
         conversationId: conversation.id,
         eventId: conversation.eventId,
         title: conversation.event?.title ?? conversation.displayName,
-        groupType: "Single",
+        groupType: 'Single',
       });
     } else {
       setActiveConversation(conversation.id);
-      navigation.navigate("ChatThread");
+      navigation.navigate('ChatThread');
     }
   };
 
   const renderConversation = ({ item }: { item: ChatConversation }) => {
-    return <ConversationRow item={item} onPress={handleConversationPress} activeConversationId={activeConversationId} events={events} userId={user?.id} nowMs={relativeTimeNow} />;
+    return (
+      <ConversationRow
+        item={item}
+        onPress={handleConversationPress}
+        activeConversationId={activeConversationId}
+        events={events}
+        userId={user?.id}
+        nowMs={relativeTimeNow}
+      />
+    );
   };
 
   const [signInVisible, setSignInVisible] = useState(false);
@@ -353,9 +349,7 @@ const MessagesScreen = () => {
       </View>
       <View style={styles.container}>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {isConnecting ? (
-          <Text style={styles.helperText}>Connecting to chat…</Text>
-        ) : null}
+        {isConnecting ? <Text style={styles.helperText}>Connecting to chat…</Text> : null}
         <FlatList
           data={displayConversations}
           extraData={displayConversations}
@@ -367,7 +361,7 @@ const MessagesScreen = () => {
             isConversationListBusy ? null : (
               <EmptyState
                 title="No Messages Yet"
-                description={"Messages from your events will appear here"}
+                description={'Messages from your events will appear here'}
                 imageSource={require('@assets/illustration/chat-emptyState.png')}
                 imageWidth={279}
                 imageHeight={245}
@@ -393,7 +387,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     gap: spacing.md,
-    overflow: "visible",
+    overflow: 'visible',
   },
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
@@ -419,11 +413,11 @@ const styles = StyleSheet.create({
     marginLeft: -spacing.md,
   },
   conversationRow: {
-    position: "relative",
+    position: 'relative',
   },
   conversationRowContent: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingLeft: spacing.md,
   },
   conversationRowActive: {
@@ -434,15 +428,15 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   conversationAvatarImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   conversationCopy: {
     flex: 1,
@@ -456,13 +450,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   conversationTitleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   conversationDivider: {
     height: 1,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: '#F0F0F0',
     marginLeft: spacing.md + 52 + 12,
   },
   conversationName: {
@@ -481,19 +475,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.2,
-    color: "#8B8B8B",
+    color: '#8B8B8B',
     fontFamily: typography.fontFamilyRegular,
-    textAlign: "right",
+    textAlign: 'right',
   },
   conversationTimestampUnread: {
-    color: "#5E5E5E",
+    color: '#5E5E5E',
     fontFamily: typography.fontFamilyMedium,
   },
   conversationPreview: {
     fontSize: 15,
     lineHeight: 20,
     letterSpacing: -0.5,
-    color: "#707070",
+    color: '#707070',
     fontFamily: typography.fontFamilyRegular,
   },
   conversationPreviewUnread: {
@@ -501,14 +495,14 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
   },
   unreadDot: {
-    position: "absolute",
+    position: 'absolute',
     left: 5,
     width: 8,
     height: 8,
-    top: "50%",
+    top: '50%',
     marginTop: -4,
     borderRadius: 4,
-    backgroundColor: "#2F81E6",
+    backgroundColor: '#2F81E6',
   },
 });
 

@@ -1,18 +1,8 @@
 import { memo } from 'react';
-import {
-  Image,
-  ImageSourcePropType,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { Image, ImageSourcePropType, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import type { SvgProps } from 'react-native-svg';
 
-import ScalePressable from './ScalePressable';
-
+import { AppButton, AppText } from '@components/ui';
 import { colors, componentTokens, typography } from '@theme/index';
 
 interface EmptyStateProps {
@@ -62,33 +52,31 @@ const EmptyState = ({
         <Illustration width={illustrationSize} height={illustrationSize} />
       ) : null}
       <View style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <AppText variant="subtitle" style={styles.title}>
+          {title}
+        </AppText>
+        <AppText variant="body" style={styles.description}>
+          {description}
+        </AppText>
       </View>
       {actionLabel || secondaryActionLabel ? (
         <View style={styles.buttonContainer}>
           {secondaryActionLabel ? (
-            <ScalePressable
+            <AppButton
+              label={secondaryActionLabel}
+              variant="secondary"
               style={styles.secondaryButton}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onSecondaryActionPress?.();
-              }}
-            >
-              <Text style={styles.secondaryButtonText}>{secondaryActionLabel}</Text>
-            </ScalePressable>
+              onPress={() => onSecondaryActionPress?.()}
+            />
           ) : null}
           {actionLabel ? (
-            <ScalePressable
+            <AppButton
+              label={actionLabel}
+              variant="primary"
               style={styles.button}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onActionPress?.();
-              }}
+              onPress={() => onActionPress?.()}
               testID="empty-state-action"
-            >
-              <Text style={styles.buttonText}>{actionLabel}</Text>
-            </ScalePressable>
+            />
           ) : null}
         </View>
       ) : null}
@@ -131,37 +119,11 @@ const styles = StyleSheet.create({
   },
   button: {
     height: componentTokens.button.height,
-    borderRadius: componentTokens.button.radius,
-    borderCurve: 'continuous',
-    backgroundColor: colors.primaryButtonBackground,
-    paddingHorizontal: componentTokens.button.paddingHorizontal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: colors.buttonText,
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: 16,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-    textAlign: 'center',
+    minHeight: componentTokens.button.height,
   },
   secondaryButton: {
     height: componentTokens.button.height,
-    borderRadius: componentTokens.button.radius,
-    borderCurve: 'continuous',
-    backgroundColor: colors.secondaryButtonBackground,
-    paddingHorizontal: componentTokens.button.paddingHorizontal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.text,
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: 16,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-    textAlign: 'center',
+    minHeight: componentTokens.button.height,
   },
 });
 

@@ -1,35 +1,36 @@
-import { useCallback, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import ScreenContainer from "@components/ScreenContainer";
-import ScreenHeader from "@components/ScreenHeader";
-import HelpForm from "@components/help/HelpForm";
-import ReplyIcon from "@assets/help/reply.svg";
-import { API_BASE_URL } from "@api/config";
-import { useAuth, type ApiError } from "@context/AuthContext";
-import { typography } from "@theme/index";
-import { RootStackParamList } from "@navigation/types";
+import ScreenContainer from '@components/ScreenContainer';
+import ScreenHeader from '@components/ScreenHeader';
+import HelpForm from '@components/help/HelpForm';
+import { AppText } from '@components/ui';
+import ReplyIcon from '@assets/help/reply.svg';
+import { API_BASE_URL } from '@api/config';
+import { useAuth, type ApiError } from '@context/AuthContext';
+import { colors, typography } from '@theme/index';
+import { RootStackParamList } from '@navigation/types';
 
 const FEEDBACK_BULLETS = [
-  "Ideas for new features",
-  "Ways to improve the app",
-  "Things that feel confusing or slow",
-  "General thoughts",
+  'Ideas for new features',
+  'Ways to improve the app',
+  'Things that feel confusing or slow',
+  'General thoughts',
 ];
 
 const HelpFeedbackScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { authFetch } = useAuth();
-  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitHelpRequest = useCallback(
     async (body: Record<string, unknown>) => {
       const response = await authFetch(`${API_BASE_URL}/api/help-submissions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!response.ok) {
@@ -37,8 +38,8 @@ const HelpFeedbackScreen = () => {
         const message =
           errorData.error ||
           (response.status === 401
-            ? "Session expired. Please sign in again."
-            : "Unable to submit right now. Please try again.");
+            ? 'Session expired. Please sign in again.'
+            : 'Unable to submit right now. Please try again.');
         const apiError = new Error(message) as ApiError;
         apiError.status = response.status;
         throw apiError;
@@ -50,19 +51,19 @@ const HelpFeedbackScreen = () => {
   const handleSubmit = useCallback(async () => {
     const message = feedbackMessage.trim();
     if (!message) {
-      Alert.alert("Feedback required", "Please share your ideas or thoughts.");
+      Alert.alert('Feedback required', 'Please share your ideas or thoughts.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await submitHelpRequest({ type: "feedback", message });
-      Alert.alert("Feedback sent", "Thanks for helping us improve Who else is free.");
-      setFeedbackMessage("");
+      await submitHelpRequest({ type: 'feedback', message });
+      Alert.alert('Feedback sent', 'Thanks for helping us improve Who else is free.');
+      setFeedbackMessage('');
     } catch (error) {
       Alert.alert(
-        "Unable to send",
-        error instanceof Error ? error.message : "Unable to submit right now. Please try again.",
+        'Unable to send',
+        error instanceof Error ? error.message : 'Unable to submit right now. Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -70,7 +71,7 @@ const HelpFeedbackScreen = () => {
   }, [feedbackMessage, submitHelpRequest]);
 
   return (
-    <ScreenContainer edges={["top"]}>
+    <ScreenContainer edges={['top']}>
       <ScreenHeader title="Feedback" onBack={navigation.goBack} />
       <ScrollView
         keyboardShouldPersistTaps="handled"
@@ -79,13 +80,19 @@ const HelpFeedbackScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Got ideas or thoughts?</Text>
-          <Text style={styles.sectionBody}>Tell us anything, we read it all.</Text>
+          <AppText variant="body" style={styles.sectionTitle}>
+            Got ideas or thoughts?
+          </AppText>
+          <AppText variant="body" style={styles.sectionBody}>
+            Tell us anything, we read it all.
+          </AppText>
           <View style={styles.bulletList}>
             {FEEDBACK_BULLETS.map((item) => (
               <View key={item} style={styles.bulletRow}>
-                <ReplyIcon width={16} height={16} color="#828282" />
-                <Text style={styles.bulletText}>{item}</Text>
+                <ReplyIcon width={16} height={16} />
+                <AppText variant="body" style={styles.bulletText}>
+                  {item}
+                </AppText>
               </View>
             ))}
           </View>
@@ -115,12 +122,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 21,
     fontFamily: typography.fontFamilyMedium,
-    color: "#000000",
+    color: colors.text,
     letterSpacing: -0.3,
   },
   sectionBody: {
     marginTop: 19,
-    color: "#000000",
+    color: colors.text,
     fontSize: 15,
     lineHeight: 22,
     fontFamily: typography.fontFamilyRegular,
@@ -131,13 +138,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bulletRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   bulletText: {
     flex: 1,
-    color: "#000000",
+    color: colors.text,
     fontSize: 15,
     lineHeight: 22,
     fontFamily: typography.fontFamilyRegular,

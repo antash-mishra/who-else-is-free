@@ -7,6 +7,14 @@ export const componentTokens = {
   input: {
     height: 52,
     radius: 16,
+    pillRadius: 26,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  checkbox: {
+    size: 18,
+    radius: 6,
+    tickSize: 15,
   },
   iconButton: {
     sm: 32,
@@ -22,6 +30,7 @@ export const componentTokens = {
   overlay: {
     backdrop: 'rgba(0, 0, 0, 0.4)',
     closeButtonBackground: 'rgba(120, 120, 128, 0.16)',
+    destructiveProgressFill: 'rgba(0, 0, 0, 0.18)',
   },
   segmentedControl: {
     gap: 5,

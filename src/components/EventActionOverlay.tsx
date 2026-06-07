@@ -1,16 +1,14 @@
-import React from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
-import * as Haptics from "expo-haptics";
+import React from 'react';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { colors } from "@theme/index";
-import BottomSheetModal from "./BottomSheetModal";
-import EventActionConfirm, {
-  EventActionConfirmProps,
-} from "./EventActionConfirm";
-import styles from "./EventActionOverlay.styles";
+import { triggerHaptic } from '@services/haptics';
+import { colors } from '@theme/index';
+import BottomSheetModal from './BottomSheetModal';
+import EventActionConfirm, { EventActionConfirmProps } from './EventActionConfirm';
+import styles from './EventActionOverlay.styles';
 
 type InviteOverlayProps = {
-  type: "invite";
+  type: 'invite';
   inviteMessage: string;
   onInviteMessageChange: (text: string) => void;
   onSendInvite: () => void;
@@ -20,33 +18,33 @@ type InviteOverlayProps = {
 };
 
 type ManageOverlayProps = {
-  type: "manage";
+  type: 'manage';
   onEdit: () => void;
   onDelete: () => void;
 };
 
 type ConfirmOverlayProps = {
-  type: "confirm";
+  type: 'confirm';
 } & EventActionConfirmProps;
 
 type ResultOverlayProps = {
-  type: "result";
+  type: 'result';
   title: string;
   description?: string;
   dismissLabel: string;
   onDismiss: () => void;
-  tone?: "default" | "success" | "error";
+  tone?: 'default' | 'success' | 'error';
 };
 
 type PendingRequestOverlayProps = {
-  type: "pendingRequest";
+  type: 'pendingRequest';
   onCancelRequest: () => void;
   onReportEvent: () => void;
   isCancelling?: boolean;
 };
 
 type ReportOverlayProps = {
-  type: "report";
+  type: 'report';
   reportMessage: string;
   onReportMessageChange: (text: string) => void;
   onSubmitReport: () => void;
@@ -64,12 +62,12 @@ type MenuItemProps = {
 };
 
 type MenuOverlayProps = {
-  type: "menu";
+  type: 'menu';
   items: MenuItemProps[];
 };
 
 type ViewIntroOverlayProps = {
-  type: "viewIntro";
+  type: 'viewIntro';
   introMessage: string;
   onDismiss: () => void;
 };
@@ -93,7 +91,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   const { isVisible, onBackdropPress, type } = props;
 
   const renderInvitePrompt = () => {
-    if (props.type !== "invite") return null;
+    if (props.type !== 'invite') return null;
     const {
       inviteMessage,
       onInviteMessageChange,
@@ -116,12 +114,15 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           onChangeText={onInviteMessageChange}
           style={styles.inviteInput}
         />
-        {inviteError ? (
-          <Text style={styles.promptError}>{inviteError}</Text>
-        ) : null}
+        {inviteError ? <Text style={styles.promptError}>{inviteError}</Text> : null}
         <Pressable
           accessibilityRole="button"
-          onPress={() => { if (!isDisabled) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onSendInvite(); } }}
+          onPress={() => {
+            if (!isDisabled) {
+              triggerHaptic('submit');
+              onSendInvite();
+            }
+          }}
           disabled={isDisabled}
           style={({ pressed }) => [
             styles.sendButton,
@@ -131,7 +132,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           testID="action-item-invite"
         >
           <Text style={styles.sendLabel}>
-            {inviteSubmitting ? "Sending…" : "Send Introduction"}
+            {inviteSubmitting ? 'Sending…' : 'Send Introduction'}
           </Text>
         </Pressable>
       </View>
@@ -139,41 +140,39 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   const renderManagePrompt = () => {
-    if (props.type !== "manage") return null;
+    if (props.type !== 'manage') return null;
     const { onEdit, onDelete } = props;
 
     return (
       <View style={styles.prompt}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onEdit(); }}
-          style={({ pressed }) => [
-            styles.manageButton,
-            pressed && styles.manageButtonPressed,
-          ]}
+          onPress={() => {
+            triggerHaptic('light');
+            onEdit();
+          }}
+          style={({ pressed }) => [styles.manageButton, pressed && styles.manageButtonPressed]}
           testID="action-item-edit"
         >
           <Text style={styles.manageLabel}>Edit Event</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onDelete(); }}
-          style={({ pressed }) => [
-            styles.manageButton,
-            pressed && styles.manageButtonPressed,
-          ]}
+          onPress={() => {
+            triggerHaptic('destructive');
+            onDelete();
+          }}
+          style={({ pressed }) => [styles.manageButton, pressed && styles.manageButtonPressed]}
           testID="action-item-delete"
         >
-          <Text style={[styles.manageLabel, styles.deleteLabel]}>
-            Delete Event
-          </Text>
+          <Text style={[styles.manageLabel, styles.deleteLabel]}>Delete Event</Text>
         </Pressable>
       </View>
     );
   };
 
   const renderConfirmPrompt = () => {
-    if (props.type !== "confirm") return null;
+    if (props.type !== 'confirm') return null;
     const {
       title,
       description,
@@ -202,39 +201,29 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   const renderResultPrompt = () => {
-    if (props.type !== "result") return null;
-    const {
-      title,
-      description,
-      dismissLabel,
-      onDismiss,
-      tone = "default",
-    } = props;
+    if (props.type !== 'result') return null;
+    const { title, description, dismissLabel, onDismiss, tone = 'default' } = props;
 
     return (
       <View style={styles.prompt}>
         <View style={styles.promptHeader}>
           <Text style={styles.promptTitle}>{title}</Text>
-          {description ? (
-            <Text style={styles.promptDescription}>{description}</Text>
-          ) : null}
+          {description ? <Text style={styles.promptDescription}>{description}</Text> : null}
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onDismiss(); }}
+          onPress={() => {
+            triggerHaptic('light');
+            onDismiss();
+          }}
           style={({ pressed }) => [
             styles.primaryButton,
-            tone === "error" && styles.destructiveButton,
+            tone === 'error' && styles.destructiveButton,
             pressed && styles.primaryButtonPressed,
           ]}
           testID="action-item-dismiss"
         >
-          <Text
-            style={[
-              styles.primaryLabel,
-              tone === "error" && styles.destructiveLabel,
-            ]}
-          >
+          <Text style={[styles.primaryLabel, tone === 'error' && styles.destructiveLabel]}>
             {dismissLabel}
           </Text>
         </Pressable>
@@ -243,14 +232,19 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   const renderPendingRequestPrompt = () => {
-    if (props.type !== "pendingRequest") return null;
+    if (props.type !== 'pendingRequest') return null;
     const { onCancelRequest, onReportEvent, isCancelling } = props;
 
     return (
       <View style={styles.prompt}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => { if (!isCancelling) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onCancelRequest(); } }}
+          onPress={() => {
+            if (!isCancelling) {
+              triggerHaptic('submit');
+              onCancelRequest();
+            }
+          }}
           disabled={isCancelling}
           style={({ pressed }) => [
             styles.manageButton,
@@ -259,30 +253,28 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           ]}
           testID="action-item-cancel"
         >
-          <Text style={styles.manageLabel}>
-            {isCancelling ? "Cancelling…" : "Cancel Request"}
-          </Text>
+          <Text style={styles.manageLabel}>{isCancelling ? 'Cancelling…' : 'Cancel Request'}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={() => { if (!isCancelling) { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); onReportEvent(); } }}
+          onPress={() => {
+            if (!isCancelling) {
+              triggerHaptic('destructive');
+              onReportEvent();
+            }
+          }}
           disabled={isCancelling}
-          style={({ pressed }) => [
-            styles.manageButton,
-            pressed && styles.manageButtonPressed,
-          ]}
+          style={({ pressed }) => [styles.manageButton, pressed && styles.manageButtonPressed]}
           testID="action-item-report"
         >
-          <Text style={[styles.manageLabel, styles.deleteLabel]}>
-            Report Event
-          </Text>
+          <Text style={[styles.manageLabel, styles.deleteLabel]}>Report Event</Text>
         </Pressable>
       </View>
     );
   };
 
   const renderReportPrompt = () => {
-    if (props.type !== "report") return null;
+    if (props.type !== 'report') return null;
     const {
       reportMessage,
       onReportMessageChange,
@@ -305,12 +297,15 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           onChangeText={onReportMessageChange}
           style={styles.inviteInput}
         />
-        {reportError ? (
-          <Text style={styles.promptError}>{reportError}</Text>
-        ) : null}
+        {reportError ? <Text style={styles.promptError}>{reportError}</Text> : null}
         <Pressable
           accessibilityRole="button"
-          onPress={() => { if (!isDisabled) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onSubmitReport(); } }}
+          onPress={() => {
+            if (!isDisabled) {
+              triggerHaptic('submit');
+              onSubmitReport();
+            }
+          }}
           disabled={isDisabled}
           style={({ pressed }) => [
             styles.sendButton,
@@ -319,16 +314,14 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
           ]}
           testID="action-item-submit-report"
         >
-          <Text style={styles.sendLabel}>
-            {reportSubmitting ? "Submitting…" : "Submit Report"}
-          </Text>
+          <Text style={styles.sendLabel}>{reportSubmitting ? 'Submitting…' : 'Submit Report'}</Text>
         </Pressable>
       </View>
     );
   };
 
   const renderMenuPrompt = () => {
-    if (props.type !== "menu") return null;
+    if (props.type !== 'menu') return null;
     const { items } = props;
 
     return (
@@ -339,7 +332,12 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
             <Pressable
               key={index}
               accessibilityRole="button"
-              onPress={() => { if (!isDisabled) { item.destructive ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning) : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); item.onPress(); } }}
+              onPress={() => {
+                if (!isDisabled) {
+                  triggerHaptic(item.destructive ? 'destructive' : 'light');
+                  item.onPress();
+                }
+              }}
               disabled={isDisabled}
               style={({ pressed }) => [
                 styles.manageButton,
@@ -348,12 +346,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
               ]}
               testID={`action-item-menu-${index}`}
             >
-              <Text
-                style={[
-                  styles.manageLabel,
-                  item.destructive && styles.deleteLabel,
-                ]}
-              >
+              <Text style={[styles.manageLabel, item.destructive && styles.deleteLabel]}>
                 {item.loading ? `${item.label}…` : item.label}
               </Text>
             </Pressable>
@@ -364,7 +357,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   const renderViewIntroPrompt = () => {
-    if (props.type !== "viewIntro") return null;
+    if (props.type !== 'viewIntro') return null;
     const { introMessage, onDismiss } = props;
 
     return (
@@ -375,11 +368,11 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onDismiss(); }}
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.primaryButtonPressed,
-          ]}
+          onPress={() => {
+            triggerHaptic('light');
+            onDismiss();
+          }}
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
           testID="action-item-done"
         >
           <Text style={styles.primaryLabel}>Done</Text>
@@ -389,18 +382,15 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   };
 
   return (
-    <BottomSheetModal
-      visible={isVisible}
-      onClose={onBackdropPress ?? (() => {})}
-    >
-      {type === "invite" && renderInvitePrompt()}
-      {type === "manage" && renderManagePrompt()}
-      {type === "confirm" && renderConfirmPrompt()}
-      {type === "result" && renderResultPrompt()}
-      {type === "pendingRequest" && renderPendingRequestPrompt()}
-      {type === "report" && renderReportPrompt()}
-      {type === "menu" && renderMenuPrompt()}
-      {type === "viewIntro" && renderViewIntroPrompt()}
+    <BottomSheetModal visible={isVisible} onClose={onBackdropPress ?? (() => {})}>
+      {type === 'invite' && renderInvitePrompt()}
+      {type === 'manage' && renderManagePrompt()}
+      {type === 'confirm' && renderConfirmPrompt()}
+      {type === 'result' && renderResultPrompt()}
+      {type === 'pendingRequest' && renderPendingRequestPrompt()}
+      {type === 'report' && renderReportPrompt()}
+      {type === 'menu' && renderMenuPrompt()}
+      {type === 'viewIntro' && renderViewIntroPrompt()}
     </BottomSheetModal>
   );
 };

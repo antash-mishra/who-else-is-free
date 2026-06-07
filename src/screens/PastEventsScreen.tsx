@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -9,27 +9,23 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
-import ScalePressable from "@components/ScalePressable";
-import * as Haptics from "expo-haptics";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import EmptyState from "@components/EmptyState";
-import EventCard, { EventItemProps } from "@components/EventCard";
-import ScreenContainer from "@components/ScreenContainer";
-import ScreenHeader from "@components/ScreenHeader";
-import { colors, spacing, typography } from "@theme/index";
-import { useAuth } from "@context/AuthContext";
-import { API_BASE_URL } from "@api/config";
-import { CoverKey, resolveCoverUri } from "@constants/covers";
-import { RootStackParamList } from "@navigation/types";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  formatAbsoluteDateLabel,
-  getScheduleDisplay,
-  parseDateKey,
-} from "@utils/dateTime";
-import { formatAudienceLabel } from "@utils/eventDisplay";
+} from 'react-native';
+import ScalePressable from '@components/ScalePressable';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import EmptyState from '@components/EmptyState';
+import EventCard, { EventItemProps } from '@components/EventCard';
+import ScreenContainer from '@components/ScreenContainer';
+import ScreenHeader from '@components/ScreenHeader';
+import { colors, spacing, typography } from '@theme/index';
+import { useAuth } from '@context/AuthContext';
+import { API_BASE_URL } from '@api/config';
+import { CoverKey, resolveCoverUri } from '@constants/covers';
+import { RootStackParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { formatAbsoluteDateLabel, getScheduleDisplay, parseDateKey } from '@utils/dateTime';
+import { formatAudienceLabel } from '@utils/eventDisplay';
 
 type ApiEvent = {
   id: number;
@@ -42,7 +38,7 @@ type ApiEvent = {
   max_age: number;
   date_label?: string;
   event_date: string;
-  group_type?: "Single" | "Group";
+  group_type?: 'Single' | 'Group';
   user_id: number;
   host_name: string;
   cover_key?: CoverKey | null;
@@ -66,8 +62,8 @@ const getPastSectionDateLabel = (eventDate: string): string => {
   const diffMs = today.getTime() - eventDay.getTime();
   const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
 
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
   return formatAbsoluteDateLabel(eventDate);
 };
 
@@ -75,7 +71,7 @@ const buildPastSections = (items: PastEventItem[]): PastEventSection[] => {
   const grouped = new Map<string, PastEventItem[]>();
 
   items.forEach((event) => {
-    const dateKey = event.eventDate || "";
+    const dateKey = event.eventDate || '';
     if (!dateKey) return;
     const sectionEvents = grouped.get(dateKey) ?? [];
     sectionEvents.push(event);
@@ -98,8 +94,7 @@ const EventCardItem = memo(({ item, onPress }: { item: PastEventItem; onPress: (
 ));
 
 const PastEventsScreen = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom: safeBottom } = useSafeAreaInsets();
   const { user, token, authFetch } = useAuth();
   const isFocused = useIsFocused();
@@ -138,15 +133,14 @@ const PastEventsScreen = () => {
             maxAge: event.max_age,
           }),
           imageUri: resolveCoverUri(event.cover_key),
-          badgeLabel:
-            user && event.user_id === user.id ? "Hosting" : "Joined",
+          badgeLabel: user && event.user_id === user.id ? 'Hosting' : 'Joined',
           ownerId: event.user_id,
           eventDate: schedule.displayDate,
         };
       });
       setEvents(mapped);
     } catch (err) {
-      setError("Failed to load past events");
+      setError('Failed to load past events');
     }
   }, [authFetch, token, user]);
 
@@ -171,8 +165,8 @@ const PastEventsScreen = () => {
     <EventCardItem
       item={item}
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        navigation.navigate("EventDetails", { eventId: item.id, readOnly: true });
+        triggerHaptic('light');
+        navigation.navigate('EventDetails', { eventId: item.id, readOnly: true });
       }}
     />
   );
@@ -182,7 +176,7 @@ const PastEventsScreen = () => {
   const showEmpty = !isLoading && events.length === 0 && !error;
 
   return (
-    <ScreenContainer edges={["top"]}>
+    <ScreenContainer edges={['top']}>
       <ScreenHeader title="Past Events" onBack={navigation.goBack} />
       {showLoading ? (
         <View style={styles.centerContent}>
@@ -263,16 +257,16 @@ const styles = StyleSheet.create({
   },
   centerContent: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: spacing.xl,
     gap: spacing.md,
   },
   errorText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
-    color: "#B00020",
-    textAlign: "center",
+    color: '#B00020',
+    textAlign: 'center',
   },
   retryButton: {
     paddingHorizontal: spacing.lg,

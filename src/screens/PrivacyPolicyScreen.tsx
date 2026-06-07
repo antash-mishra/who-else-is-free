@@ -1,21 +1,22 @@
-import { useCallback, useRef } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import * as Haptics from "expo-haptics";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useRef } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import ScreenContainer from "@components/ScreenContainer";
-import ScreenHeader from "@components/ScreenHeader";
-import ReplyIcon from "@assets/help/reply.svg";
-import { colors, spacing, typography } from "@theme/index";
-import { RootStackParamList } from "@navigation/types";
-import privacyPolicyMarkdown from "../content/privacyPolicyMarkdown";
+import ReplyIcon from '@assets/help/reply.svg';
+import ScreenContainer from '@components/ScreenContainer';
+import ScreenHeader from '@components/ScreenHeader';
+import { RootStackParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import { colors, spacing, typography } from '@theme/index';
+
+import privacyPolicyMarkdown from '../content/privacyPolicyMarkdown';
 
 type PolicyBlock =
-  | { type: "heading"; level: number; text: string }
-  | { type: "paragraph"; text: string }
-  | { type: "bullets"; items: string[] }
-  | { type: "ordered"; items: string[] };
+  | { type: 'heading'; level: number; text: string }
+  | { type: 'paragraph'; text: string }
+  | { type: 'bullets'; items: string[] }
+  | { type: 'ordered'; items: string[] };
 
 interface InlineSegment {
   text: string;
@@ -24,27 +25,28 @@ interface InlineSegment {
   underline?: boolean;
 }
 
-const LINK_TEXTS = ["Google API Services User Data Policy", "xyz@weif.com", "data subject access request"];
+const LINK_TEXTS = [
+  'Google API Services User Data Policy',
+  'xyz@weif.com',
+  'data subject access request',
+];
 
 const SECTION_SCROLL_OFFSET = 16;
 
 const stripMarkdown = (value: string) =>
   value
-    .replace(/\*\*/g, "")
-    .replace(/\*/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .trim();
 
-const splitLinkedText = (
-  text: string,
-  base: Omit<InlineSegment, "text"> = {},
-): InlineSegment[] => {
+const splitLinkedText = (text: string, base: Omit<InlineSegment, 'text'> = {}): InlineSegment[] => {
   if (!text) {
     return [];
   }
 
   let earliestIndex = -1;
-  let earliestLink = "";
+  let earliestLink = '';
 
   LINK_TEXTS.forEach((linkText) => {
     const index = text.indexOf(linkText);
@@ -102,7 +104,7 @@ const parsePolicyMarkdown = (markdown: string): PolicyBlock[] => {
   while (index < lines.length) {
     const line = lines[index].trim();
 
-    if (!line || line === "# Privacy Policy" || line.startsWith("[Old")) {
+    if (!line || line === '# Privacy Policy' || line.startsWith('[Old')) {
       index += 1;
       continue;
     }
@@ -110,7 +112,7 @@ const parsePolicyMarkdown = (markdown: string): PolicyBlock[] => {
     const heading = line.match(/^(#{2,4})\s+(.+)$/);
     if (heading) {
       blocks.push({
-        type: "heading",
+        type: 'heading',
         level: heading[1].length,
         text: heading[2],
       });
@@ -118,23 +120,23 @@ const parsePolicyMarkdown = (markdown: string): PolicyBlock[] => {
       continue;
     }
 
-    if (line.startsWith("- ")) {
+    if (line.startsWith('- ')) {
       const items: string[] = [];
-      while (index < lines.length && lines[index].trim().startsWith("- ")) {
+      while (index < lines.length && lines[index].trim().startsWith('- ')) {
         items.push(lines[index].trim().slice(2));
         index += 1;
       }
-      blocks.push({ type: "bullets", items });
+      blocks.push({ type: 'bullets', items });
       continue;
     }
 
     if (/^\d+\.\s/.test(line)) {
       const items: string[] = [];
       while (index < lines.length && /^\d+\.\s/.test(lines[index].trim())) {
-        items.push(lines[index].trim().replace(/^\d+\.\s/, ""));
+        items.push(lines[index].trim().replace(/^\d+\.\s/, ''));
         index += 1;
       }
-      blocks.push({ type: "ordered", items });
+      blocks.push({ type: 'ordered', items });
       continue;
     }
 
@@ -143,13 +145,13 @@ const parsePolicyMarkdown = (markdown: string): PolicyBlock[] => {
       index < lines.length &&
       lines[index].trim() &&
       !/^(#{2,4})\s+/.test(lines[index].trim()) &&
-      !lines[index].trim().startsWith("- ") &&
+      !lines[index].trim().startsWith('- ') &&
       !/^\d+\.\s/.test(lines[index].trim())
     ) {
       paragraphLines.push(lines[index].trim());
       index += 1;
     }
-    blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
+    blocks.push({ type: 'paragraph', text: paragraphLines.join(' ') });
   }
 
   return blocks;
@@ -162,13 +164,7 @@ const sectionNumberFromHeading = (text: string) => {
   return match ? Number(match[1]) : undefined;
 };
 
-const InlineText = ({
-  text,
-  style,
-}: {
-  text: string;
-  style?: object;
-}) => (
+const InlineText = ({ text, style }: { text: string; style?: object }) => (
   <>
     {parseInlineText(text).map((segment, index) => (
       <Text
@@ -190,7 +186,7 @@ const PolicyHeading = ({
   block,
   onSectionLayout,
 }: {
-  block: Extract<PolicyBlock, { type: "heading" }>;
+  block: Extract<PolicyBlock, { type: 'heading' }>;
   onSectionLayout?: (sectionNumber: number, y: number) => void;
 }) => {
   const cleanText = stripMarkdown(block.text);
@@ -199,7 +195,7 @@ const PolicyHeading = ({
   if (block.level === 2) {
     return (
       <Text style={styles.documentTitle}>
-        {cleanText.replace("WEIF - PRIVACY POLICY", "WEIF PRIVACY POLICY")}
+        {cleanText.replace('WEIF - PRIVACY POLICY', 'WEIF PRIVACY POLICY')}
       </Text>
     );
   }
@@ -208,7 +204,7 @@ const PolicyHeading = ({
     return <Text style={styles.updatedAt}>{cleanText}</Text>;
   }
 
-  const isSectionHeading = cleanText === "TABLE OF CONTENTS" || /^\d+\./.test(cleanText);
+  const isSectionHeading = cleanText === 'TABLE OF CONTENTS' || /^\d+\./.test(cleanText);
 
   return (
     <View
@@ -248,8 +244,7 @@ const PolicyBullets = ({ items }: { items: string[] }) => (
   </View>
 );
 
-const toSentenceCase = (text: string) =>
-  text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+const toSentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
 
 const PolicyOrderedList = ({
   items,
@@ -264,7 +259,7 @@ const PolicyOrderedList = ({
     {items.map((item, index) => (
       <Pressable
         key={`${item}-${index}`}
-        accessibilityRole={onItemPress ? "button" : undefined}
+        accessibilityRole={onItemPress ? 'button' : undefined}
         accessibilityLabel={onItemPress ? `Jump to ${stripMarkdown(item)}` : undefined}
         disabled={!onItemPress}
         onPress={() => onItemPress?.(index)}
@@ -277,7 +272,10 @@ const PolicyOrderedList = ({
       >
         <Text style={[styles.orderedNumber, isToc && styles.tocText]}>{`${index + 1}.`}</Text>
         <Text style={[styles.orderedText, isToc && styles.tocText]}>
-          <InlineText text={isToc ? toSentenceCase(item) : item} style={[styles.orderedText, isToc && styles.tocText]} />
+          <InlineText
+            text={isToc ? toSentenceCase(item) : item}
+            style={[styles.orderedText, isToc && styles.tocText]}
+          />
         </Text>
       </Pressable>
     ))}
@@ -285,8 +283,7 @@ const PolicyOrderedList = ({
 );
 
 const PrivacyPolicyScreen = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Record<number, number>>({});
 
@@ -298,8 +295,8 @@ const PrivacyPolicyScreen = () => {
     const sectionNumber = index + 1;
     const y = sectionOffsets.current[sectionNumber];
 
-    void Haptics.selectionAsync();
-    if (typeof y !== "number") {
+    triggerHaptic('selection');
+    if (typeof y !== 'number') {
       return;
     }
 
@@ -310,7 +307,7 @@ const PrivacyPolicyScreen = () => {
   }, []);
 
   return (
-    <ScreenContainer edges={["top"]}>
+    <ScreenContainer edges={['top']}>
       <ScreenHeader title="Privacy Policy" onBack={navigation.goBack} />
 
       <ScrollView
@@ -319,7 +316,7 @@ const PrivacyPolicyScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {policyBlocks.map((block, index) => {
-          if (block.type === "heading") {
+          if (block.type === 'heading') {
             return (
               <PolicyHeading
                 key={`${block.text}-${index}`}
@@ -328,14 +325,14 @@ const PrivacyPolicyScreen = () => {
               />
             );
           }
-          if (block.type === "bullets") {
+          if (block.type === 'bullets') {
             return <PolicyBullets key={`bullets-${index}`} items={block.items} />;
           }
-          if (block.type === "ordered") {
+          if (block.type === 'ordered') {
             const previousBlock = policyBlocks[index - 1];
             const isTableOfContents =
-              previousBlock?.type === "heading" &&
-              stripMarkdown(previousBlock.text) === "TABLE OF CONTENTS";
+              previousBlock?.type === 'heading' &&
+              stripMarkdown(previousBlock.text) === 'TABLE OF CONTENTS';
 
             return (
               <PolicyOrderedList
@@ -365,7 +362,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     lineHeight: 24,
     marginBottom: 8,
-    textAlign: "center",
+    textAlign: 'center',
   },
   updatedAt: {
     color: colors.muted,
@@ -374,7 +371,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
     lineHeight: 22,
     marginBottom: 48,
-    textAlign: "center",
+    textAlign: 'center',
   },
   paragraph: {
     color: colors.text,
@@ -388,10 +385,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilySemiBold,
   },
   emphasis: {
-    fontStyle: "italic",
+    fontStyle: 'italic',
   },
   link: {
-    color: "#2563EB",
+    color: colors.secondary,
+    textDecorationLine: 'underline',
   },
   sectionHeadingBlock: {
     marginTop: 28,
@@ -420,7 +418,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bulletRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: 6,
   },
   bulletMark: {
@@ -436,7 +434,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   orderedRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: 12,
   },
   tocRow: {
@@ -465,7 +463,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   tocText: {
-    color: "#2563EB",
+    color: colors.secondary,
   },
 });
 

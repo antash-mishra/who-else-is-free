@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -7,47 +7,37 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
-import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import CloseIcon from "@assets/ui/close.svg";
-import AcceptIcon from "@assets/event-details/accept.svg";
-import RejectIcon from "@assets/event-details/reject.svg";
+} from 'react-native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import CloseIcon from '@assets/ui/close.svg';
+import AcceptIcon from '@assets/event-details/accept.svg';
+import RejectIcon from '@assets/event-details/reject.svg';
 
-import * as Haptics from "expo-haptics";
+import { colors, spacing, typography } from '@theme/index';
+import { useChat, ChatJoinRequest } from '@context/ChatContext';
+import { RootStackParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import ScreenContainer from '@components/ScreenContainer';
+import UserAvatar from '@components/UserAvatar';
 
-import { colors, spacing, typography } from "@theme/index";
-import { useChat, ChatJoinRequest } from "@context/ChatContext";
-import { RootStackParamList } from "@navigation/types";
-import ScreenContainer from "@components/ScreenContainer";
-import UserAvatar from "@components/UserAvatar";
-
-type PendingRequestsRoute = RouteProp<RootStackParamList, "PendingRequests">;
-type PendingRequestsNavigation = NativeStackNavigationProp<
-  RootStackParamList,
-  "PendingRequests"
->;
+type PendingRequestsRoute = RouteProp<RootStackParamList, 'PendingRequests'>;
+type PendingRequestsNavigation = NativeStackNavigationProp<RootStackParamList, 'PendingRequests'>;
 
 const PendingRequestsScreen = () => {
   const navigation = useNavigation<PendingRequestsNavigation>();
   const route = useRoute<PendingRequestsRoute>();
-  const {
-    joinRequestsByConversation,
-    refreshJoinRequests,
-    approveJoinRequest,
-    denyJoinRequest,
-  } = useChat();
+  const { joinRequestsByConversation, refreshJoinRequests, approveJoinRequest, denyJoinRequest } =
+    useChat();
   const { conversationId, eventId, includeApproved = false } = route.params;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
-  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(
-    () => new Set(),
-  );
+  const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(() => new Set());
 
   const pendingRequests = useMemo(
-    () => requests.filter((request) => request.status === "pending"),
+    () => requests.filter((request) => request.status === 'pending'),
     [requests],
   );
 
@@ -105,16 +95,17 @@ const PendingRequestsScreen = () => {
   };
 
   return (
-    <ScreenContainer edges={["bottom"]}>
+    <ScreenContainer edges={['bottom']}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>
-            Requests
-          </Text>
+          <Text style={styles.headerTitle}>Requests</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close pending requests"
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
+            onPress={() => {
+              triggerHaptic('light');
+              navigation.goBack();
+            }}
             style={styles.closeButton}
             hitSlop={12}
           >
@@ -124,13 +115,9 @@ const PendingRequestsScreen = () => {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={
-            pendingRequests.length === 0
-              ? styles.listEmptyContent
-              : styles.listContent
+            pendingRequests.length === 0 ? styles.listEmptyContent : styles.listContent
           }
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
         >
           {pendingRequests.length === 0 ? (
             <View style={styles.emptyState}>
@@ -164,7 +151,10 @@ const PendingRequestsScreen = () => {
                       {!isExpanded && item.message.length > 100 && (
                         <Text
                           style={styles.seeMoreText}
-                          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); toggleRequestExpanded(item.id); }}
+                          onPress={() => {
+                            triggerHaptic('light');
+                            toggleRequestExpanded(item.id);
+                          }}
                         >
                           See more
                         </Text>
@@ -174,7 +164,10 @@ const PendingRequestsScreen = () => {
                     <View style={styles.requestActions}>
                       <Pressable
                         style={[styles.actionButton, styles.declineButton]}
-                        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleDecline(item); }}
+                        onPress={() => {
+                          triggerHaptic('destructive');
+                          handleDecline(item);
+                        }}
                         disabled={isLoading}
                         accessibilityRole="button"
                         accessibilityLabel="Decline request"
@@ -188,7 +181,10 @@ const PendingRequestsScreen = () => {
 
                       <Pressable
                         style={[styles.actionButton, styles.acceptButton]}
-                        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleAccept(item); }}
+                        onPress={() => {
+                          triggerHaptic('submit');
+                          handleAccept(item);
+                        }}
                         disabled={isLoading}
                         accessibilityRole="button"
                         accessibilityLabel="Accept request"
@@ -201,9 +197,7 @@ const PendingRequestsScreen = () => {
                       </Pressable>
                     </View>
                   </View>
-                  {index < pendingRequests.length - 1 && (
-                    <View style={styles.separator} />
-                  )}
+                  {index < pendingRequests.length - 1 && <View style={styles.separator} />}
                 </View>
               );
             })
@@ -222,24 +216,24 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing.lg - spacing.md + 12,
     paddingBottom: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 80,
-    backgroundColor: "rgba(120, 120, 128, 0.16)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(120, 120, 128, 0.16)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontFamily: typography.fontFamilySemiBold,
     lineHeight: 24,
     letterSpacing: -0.5,
-    color: "rgba(0, 0, 0, 1)",
+    color: 'rgba(0, 0, 0, 1)',
   },
   listContent: {
     paddingTop: spacing.md,
@@ -247,8 +241,8 @@ const styles = StyleSheet.create({
   },
   listEmptyContent: {
     flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   separator: {
     height: 1,
@@ -258,8 +252,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm + 6,
   },
   requestItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
   requestContent: {
@@ -275,7 +269,7 @@ const styles = StyleSheet.create({
   requestMessage: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#000000",
+    color: '#000000',
     lineHeight: 22,
     letterSpacing: -0.3,
     marginTop: 2,
@@ -283,39 +277,39 @@ const styles = StyleSheet.create({
   seeMoreText: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
-    color: "#707070",
+    color: '#707070',
     lineHeight: 20,
     letterSpacing: -0.3,
     marginTop: 2,
   },
   requestActions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
     marginTop: spacing.xs,
   },
   actionButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   declineButton: {
-    backgroundColor: "#E6E6E6",
+    backgroundColor: '#E6E6E6',
   },
   acceptButton: {
     backgroundColor: colors.text,
   },
   emptyState: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.sm,
   },
   emptyTitle: {
     fontFamily: typography.fontFamilySemiBold,
     fontSize: typography.title,
     color: colors.text,
-    textAlign: "center",
+    textAlign: 'center',
   },
 });
 

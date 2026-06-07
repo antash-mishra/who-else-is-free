@@ -1,10 +1,7 @@
-import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  createStackNavigator,
-  CardStyleInterpolators,
-} from "@react-navigation/stack";
-import type { StackCardInterpolationProps } from "@react-navigation/stack";
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import type { StackCardInterpolationProps } from '@react-navigation/stack';
 import {
   Animated,
   Modal,
@@ -14,45 +11,41 @@ import {
   View,
   StyleSheet,
   useWindowDimensions,
-} from "react-native";
-import ReAnimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
-import { useMemo, useRef } from "react";
-import Svg, { Circle, G, Path } from "react-native-svg";
-import { BlurView } from "expo-blur";
-import { enableScreens } from "react-native-screens";
-import HomeScreen from "@screens/HomeScreen";
-import CreateEventScreen from "@screens/CreateEventScreen";
-import MyEventsScreen from "@screens/MyEventsScreen";
-import MessagesScreen from "@screens/MessagesScreen";
-import ChatThreadScreen from "@screens/ChatThreadScreen";
-import ProfileScreen from "@screens/ProfileScreen";
-import EventDetailsScreen from "@screens/EventDetailsScreen";
-import SplashScreen from "@screens/SplashScreen";
-import GoogleSignIn from "@screens/GoogleSignIn";
-import OnboardingScreen from "@screens/OnboardingScreen";
-import { navigationRef } from "@navigation/navigationRef";
-import { RootStackParamList, RootTabParamList } from "@navigation/types";
-import { colors } from "@theme/colors";
-import { Springs } from "@theme/springs";
-import { useChat } from "@context/ChatContext";
-import { trackScreenView } from "@services/analytics";
-import JoinRequestsScreen from "@screens/JoinRequestsScreen";
-import PendingRequestsScreen from "@screens/PendingRequestsScreen";
-import EditProfileScreen from "@screens/EditProfileScreen";
-import PastEventsScreen from "@screens/PastEventsScreen";
-import PrivacyPolicyScreen from "@screens/PrivacyPolicyScreen";
-import HelpScreen from "@screens/HelpScreen";
-import HelpContactScreen from "@screens/HelpContactScreen";
-import HelpFAQScreen from "@screens/HelpFAQScreen";
-import HelpFeedbackScreen from "@screens/HelpFeedbackScreen";
-import EventCreatedScreen from "@screens/EventCreatedScreen";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
+} from 'react-native';
+import ReAnimated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useMemo, useRef } from 'react';
+import Svg, { Circle, G, Path } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
+import { enableScreens } from 'react-native-screens';
+import HomeScreen from '@screens/HomeScreen';
+import CreateEventScreen from '@screens/CreateEventScreen';
+import MyEventsScreen from '@screens/MyEventsScreen';
+import MessagesScreen from '@screens/MessagesScreen';
+import ChatThreadScreen from '@screens/ChatThreadScreen';
+import ProfileScreen from '@screens/ProfileScreen';
+import EventDetailsScreen from '@screens/EventDetailsScreen';
+import SplashScreen from '@screens/SplashScreen';
+import GoogleSignIn from '@screens/GoogleSignIn';
+import OnboardingScreen from '@screens/OnboardingScreen';
+import { navigationRef } from '@navigation/navigationRef';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import { colors } from '@theme/colors';
+import { Springs } from '@theme/springs';
+import { useChat } from '@context/ChatContext';
+import { trackScreenView } from '@services/analytics';
+import { triggerHaptic } from '@services/haptics';
+import JoinRequestsScreen from '@screens/JoinRequestsScreen';
+import PendingRequestsScreen from '@screens/PendingRequestsScreen';
+import EditProfileScreen from '@screens/EditProfileScreen';
+import PastEventsScreen from '@screens/PastEventsScreen';
+import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
+import HelpScreen from '@screens/HelpScreen';
+import HelpContactScreen from '@screens/HelpContactScreen';
+import HelpFAQScreen from '@screens/HelpFAQScreen';
+import HelpFeedbackScreen from '@screens/HelpFeedbackScreen';
+import EventCreatedScreen from '@screens/EventCreatedScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
 // Render tab screens as plain JS Views so React Navigation's tabAnims-driven
 // opacity (animation: "fade") applies correctly without native screen management
@@ -62,42 +55,45 @@ enableScreens(false);
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
-
 // ─── Stack screen animation ───────────────────────────────────────────────────
 // Push (open):  incoming slides from 30% right — matches tab animation
 // Pop  (close): card slides fully off to the right — standard iOS back feel
 const slideFromRightInterpolator = ({ current, layouts }: StackCardInterpolationProps) => ({
   cardStyle: {
-    transform: [{
-      translateX: current.progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [layouts.screen.width, 0],
-        extrapolate: 'clamp',
-      }),
-    }],
+    transform: [
+      {
+        translateX: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [layouts.screen.width, 0],
+          extrapolate: 'clamp',
+        }),
+      },
+    ],
   },
 });
 
 const slideFromRightTransitionSpec = {
-  open:  { animation: 'spring' as const, config: Springs.snappy },
+  open: { animation: 'spring' as const, config: Springs.snappy },
   close: { animation: 'spring' as const, config: Springs.snappy },
 };
 
 // Full-screen slide-up modal — no background scaling/dimming
 const slideFromBottomInterpolator = ({ current, layouts }: StackCardInterpolationProps) => ({
   cardStyle: {
-    transform: [{
-      translateY: current.progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [layouts.screen.height, 0],
-        extrapolate: 'clamp',
-      }),
-    }],
+    transform: [
+      {
+        translateY: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [layouts.screen.height, 0],
+          extrapolate: 'clamp',
+        }),
+      },
+    ],
   },
 });
 
 const slideFromBottomTransitionSpec = {
-  open:  { animation: 'spring' as const, config: Springs.snappy },
+  open: { animation: 'spring' as const, config: Springs.snappy },
   close: { animation: 'spring' as const, config: Springs.snappy },
 };
 
@@ -113,31 +109,33 @@ const sheetModalInterpolator = ({ current, layouts }: StackCardInterpolationProp
     }),
   },
   cardStyle: {
-    transform: [{
-      translateY: current.progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [layouts.screen.height, 0],
-        extrapolate: 'clamp',
-      }),
-    }],
+    transform: [
+      {
+        translateY: current.progress.interpolate({
+          inputRange: [0, 1],
+          outputRange: [layouts.screen.height, 0],
+          extrapolate: 'clamp',
+        }),
+      },
+    ],
   },
 });
 
 const sheetModalTransitionSpec = {
-  open:  { animation: 'spring' as const, config: Springs.bouncyUp },
+  open: { animation: 'spring' as const, config: Springs.bouncyUp },
   close: { animation: 'spring' as const, config: Springs.elegant },
 };
 
 const sheetModalScreenOptions = Platform.select({
   android: {
     gestureEnabled: false,
-    cardStyle: { backgroundColor: "transparent" },
+    cardStyle: { backgroundColor: 'transparent' },
     cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
   },
   default: {
     gestureEnabled: false,
     cardOverlayEnabled: true,
-    cardStyle: { backgroundColor: "transparent" },
+    cardStyle: { backgroundColor: 'transparent' },
     cardStyleInterpolator: sheetModalInterpolator,
     transitionSpec: sheetModalTransitionSpec,
   },
@@ -157,7 +155,13 @@ const SHEET_BOUNCE_BUFFER = 80;
 //     needed, so the inner ScrollView receives all gestures unimpeded.
 // onStartShouldSetResponder is intentionally absent from the sheet — it would
 // intercept touches at the JS bridge before the native UIScrollView can scroll.
-const SheetWrapper = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => {
+const SheetWrapper = ({
+  children,
+  onClose,
+}: {
+  children: React.ReactNode;
+  onClose: () => void;
+}) => {
   const { height: screenHeight } = useWindowDimensions();
   const sheetHeight = screenHeight * 0.8;
   return (
@@ -187,9 +191,7 @@ const SheetWrapper = ({ children, onClose }: { children: React.ReactNode; onClos
           overflow: 'hidden',
         }}
       >
-        <View style={{ height: sheetHeight }}>
-          {children}
-        </View>
+        <View style={{ height: sheetHeight }}>{children}</View>
       </View>
     </View>
   );
@@ -202,18 +204,12 @@ const AndroidSheetRoute = ({
   children: React.ReactNode;
   onClose: () => void;
 }) => {
-  if (Platform.OS !== "android") {
+  if (Platform.OS !== 'android') {
     return <SheetWrapper onClose={onClose}>{children}</SheetWrapper>;
   }
 
   return (
-    <Modal
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      transparent
-      visible
-    >
+    <Modal animationType="fade" onRequestClose={onClose} statusBarTranslucent transparent visible>
       <View style={tabBarStyles.androidSheetModalBackdrop}>
         <SheetWrapper onClose={onClose}>{children}</SheetWrapper>
       </View>
@@ -233,8 +229,6 @@ const PendingRequestsSheet = (props: any) => (
   </AndroidSheetRoute>
 );
 
-
-
 // ─── Tab screen wrappers ─────────────────────────────────────────────────────
 const EventsTab = (props: any) => <HomeScreen {...props} />;
 const MyEventsTab = (props: any) => <MyEventsScreen {...props} />;
@@ -244,11 +238,7 @@ const ProfileTab = (props: any) => <ProfileScreen {...props} />;
 // ─── Tab bar background ──────────────────────────────────────────────────────
 const TabBarBackground = () => (
   <View style={tabBarStyles.backgroundContainer}>
-    <BlurView
-      intensity={54}
-      tint="light"
-      style={StyleSheet.absoluteFill}
-    />
+    <BlurView intensity={54} tint="light" style={StyleSheet.absoluteFill} />
     <View style={tabBarStyles.frostedOverlay} />
     <View style={tabBarStyles.topBorder} />
   </View>
@@ -257,23 +247,23 @@ const TabBarBackground = () => (
 const tabBarStyles = StyleSheet.create({
   androidSheetModalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   frostedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(251, 251, 251, 0.6)",
+    backgroundColor: 'rgba(251, 251, 251, 0.6)',
   },
   topBorder: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
   },
 });
 
@@ -290,12 +280,7 @@ const EventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
 
   return (
-    <Svg
-      width={TAB_ICON_WIDTH}
-      height={TAB_ICON_HEIGHT}
-      viewBox="-1.5 -1.5 26 26"
-      fill="none"
-    >
+    <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
       <Path
         d="M11.1736 1.45571C11.7187 1.0456 12.466 1.04931 13.0085 1.46281C15.489 3.35338 22.3821 8.38046 22.5533 9.38231C23.4589 11.7647 23.1687 18.6122 20.7074 20.4582C19.4767 21.3811 4.70892 21.3811 3.47827 20.4582C1.01352 18.6122 0.705862 9.99763 1.62885 9.38231C2.00454 8.50621 8.69315 3.35338 11.1736 1.45571Z"
         fill={focused ? strokeColor : 'none'}
@@ -318,12 +303,7 @@ const MyEventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
 
   return (
-    <Svg
-      width={TAB_ICON_WIDTH}
-      height={TAB_ICON_HEIGHT}
-      viewBox="-1.5 -1.5 26 26"
-      fill="none"
-    >
+    <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
       <Path
         d="M12.1043 7.62467C13.8922 7.62467 15.3415 6.17535 15.3415 4.38753C15.3415 2.59971 13.8922 1.15039 12.1043 1.15039C10.3165 1.15039 8.86719 2.59971 8.86719 4.38753C8.86719 6.17535 10.3165 7.62467 12.1043 7.62467Z"
         fill={focused ? strokeColor : 'none'}
@@ -346,12 +326,7 @@ const CreateTabIcon = ({ focused: _focused, color }: TabIconProps) => {
   const strokeColor = color;
 
   return (
-    <Svg
-      width={TAB_ICON_WIDTH}
-      height={TAB_ICON_HEIGHT}
-      viewBox="-1.5 -1.5 26 26"
-      fill="none"
-    >
+    <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
       <Circle
         cx={11.1504}
         cy={11.1504}
@@ -385,12 +360,7 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
 
   return (
     <View style={{ width: TAB_ICON_WIDTH, height: TAB_ICON_HEIGHT }}>
-      <Svg
-        width={TAB_ICON_WIDTH}
-        height={TAB_ICON_HEIGHT}
-        viewBox="-1.5 -1.5 26 26"
-        fill="none"
-      >
+      <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
         <G transform="translate(1.2, 1.2)">
           <Path
             d="M10.2988 18.9727C15.5449 18.9727 19.7988 14.904 19.7988 9.88578C19.7988 4.86758 15.5449 0.798828 10.2988 0.798828C5.05272 0.798828 0.798828 4.86758 0.798828 9.88578C0.798828 12.2032 1.70555 14.3169 3.19811 15.9217C3.65411 16.4141 3.97922 17.0672 3.81666 17.7292C3.63866 18.453 3.30554 19.1253 2.84238 19.6953C3.21304 19.7648 3.58891 19.7994 3.96549 19.7988C5.31872 19.7988 6.57272 19.356 7.60188 18.6015C8.45688 18.8439 9.36255 18.9727 10.2988 18.9727Z"
@@ -405,15 +375,15 @@ const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
       {hasUnseenMessages && (
         <View
           style={{
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             right: 2,
             width: 10,
             height: 10,
             borderRadius: 5,
-            backgroundColor: "#FF1519",
+            backgroundColor: '#FF1519',
             borderWidth: 2,
-            borderColor: "#FFFFFF",
+            borderColor: '#FFFFFF',
           }}
         />
       )}
@@ -426,12 +396,7 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
 
   if (!focused) {
     return (
-      <Svg
-        width={TAB_ICON_WIDTH}
-        height={TAB_ICON_HEIGHT}
-        viewBox="-1.5 -1.5 26 26"
-        fill="none"
-      >
+      <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
         <Circle cx={11.5} cy={11.5} r={10.5} stroke={strokeColor} strokeWidth={2.15} />
         <Path
           d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
@@ -447,13 +412,15 @@ const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
   }
 
   return (
-    <Svg
-      width={TAB_ICON_WIDTH}
-      height={TAB_ICON_HEIGHT}
-      viewBox="-1.5 -1.5 26 26"
-      fill="none"
-    >
-      <Circle cx={11.5} cy={11.5} r={10.5} fill={strokeColor} stroke={strokeColor} strokeWidth={2.15} />
+    <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
+      <Circle
+        cx={11.5}
+        cy={11.5}
+        r={10.5}
+        fill={strokeColor}
+        stroke={strokeColor}
+        strokeWidth={2.15}
+      />
       <Path
         d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
         stroke="#FFFFFF"
@@ -483,7 +450,7 @@ const VibratingTabBarButton = ({
   const handlePress = (e: Parameters<NonNullable<typeof onPress>>[0]) => {
     scale.value = 0.8;
     scale.value = withSpring(1, Springs.elegant);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('selection');
     if (onPress) onPress(e);
   };
 
@@ -495,9 +462,7 @@ const VibratingTabBarButton = ({
       accessibilityLabel={accessibilityLabel}
       testID={testID}
     >
-      <ReAnimated.View style={animStyle}>
-        {children}
-      </ReAnimated.View>
+      <ReAnimated.View style={animStyle}>{children}</ReAnimated.View>
     </TouchableOpacity>
   );
 };
@@ -508,11 +473,11 @@ const MainTabs = () => {
 
   const tabBarBaseStyle = useMemo(
     () => ({
-      backgroundColor: "transparent",
+      backgroundColor: 'transparent',
       height: 50 + insets.bottom,
       paddingBottom: insets.bottom,
       paddingTop: 8,
-      position: "absolute" as const,
+      position: 'absolute' as const,
       elevation: 0,
     }),
     [insets.bottom],
@@ -541,76 +506,66 @@ const MainTabs = () => {
 
   return (
     <Tab.Navigator
-        screenOptions={() => ({
-          headerShown: false,
-          tabBarShowLabel: false,
-          tabBarStyle: tabBarBaseStyle,
-          tabBarBackground: () => <TabBarBackground />,
-          tabBarActiveTintColor: colors.activeTabIndicator,
-          tabBarInactiveTintColor: colors.tabInactive,
-          lazy: false,
-          animation: "none",
-          detachInactiveScreens: false,
-          sceneStyle: { backgroundColor: "transparent" },
+      screenOptions={() => ({
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: tabBarBaseStyle,
+        tabBarBackground: () => <TabBarBackground />,
+        tabBarActiveTintColor: colors.activeTabIndicator,
+        tabBarInactiveTintColor: colors.tabInactive,
+        lazy: false,
+        animation: 'none',
+        detachInactiveScreens: false,
+        sceneStyle: { backgroundColor: 'transparent' },
+      })}
+    >
+      <Tab.Screen
+        name="Events"
+        component={EventsTab}
+        options={{
+          tabBarIcon: ({ focused, color }) => <EventsTabIcon focused={focused} color={color} />,
+          tabBarButton: tabButtons.events,
+        }}
+      />
+      <Tab.Screen
+        name="MyEvents"
+        component={MyEventsTab}
+        options={{
+          tabBarIcon: ({ focused, color }) => <MyEventsTabIcon focused={focused} color={color} />,
+          tabBarButton: tabButtons.myEvents,
+        }}
+      />
+      <Tab.Screen
+        name="Create"
+        component={View}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            (navigation as any).navigate('CreateEvent', { editEventId: null });
+          },
         })}
-      >
-        <Tab.Screen
-          name="Events"
-          component={EventsTab}
-          options={{
-            tabBarIcon: ({ focused, color }) => (
-              <EventsTabIcon focused={focused} color={color} />
-            ),
-            tabBarButton: tabButtons.events,
-          }}
-        />
-        <Tab.Screen
-          name="MyEvents"
-          component={MyEventsTab}
-          options={{
-            tabBarIcon: ({ focused, color }) => (
-              <MyEventsTabIcon focused={focused} color={color} />
-            ),
-            tabBarButton: tabButtons.myEvents,
-          }}
-        />
-        <Tab.Screen
-          name="Create"
-          component={View}
-          listeners={({ navigation }) => ({
-            tabPress: (e) => {
-              e.preventDefault();
-              (navigation as any).navigate("CreateEvent", { editEventId: null });
-            },
-          })}
-          options={{
-            tabBarIcon: ({ focused, color }) => (
-              <CreateTabIcon focused={focused} color={color} />
-            ),
-            tabBarButton: tabButtons.create,
-          }}
-        />
-        <Tab.Screen
-          name="Messages"
-          component={MessagesTab}
-          options={{
-            tabBarIcon: ({ focused, color }) => (
-              <MessagesTabIcon focused={focused} color={color} />
-            ),
-            tabBarButton: tabButtons.messages,
-          }}
-        />
-        <Tab.Screen
-          name="Profile"
-          component={ProfileTab}
-          options={{
-            tabBarIcon: ({ focused, color }) => (
-              <ProfileTabIcon focused={focused} color={color} />
-            ),
-            tabBarButton: tabButtons.profile,
-          }}
-        />
-      </Tab.Navigator>
+        options={{
+          tabBarIcon: ({ focused, color }) => <CreateTabIcon focused={focused} color={color} />,
+          tabBarButton: tabButtons.create,
+        }}
+      />
+      <Tab.Screen
+        name="Messages"
+        component={MessagesTab}
+        options={{
+          tabBarIcon: ({ focused, color }) => <MessagesTabIcon focused={focused} color={color} />,
+          tabBarButton: tabButtons.messages,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileTab}
+        options={{
+          tabBarIcon: ({ focused, color }) => <ProfileTabIcon focused={focused} color={color} />,
+          tabBarButton: tabButtons.profile,
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
@@ -641,10 +596,7 @@ const AppNavigator = () => {
       }}
       onStateChange={() => {
         const currentRouteName = navigationRef.getCurrentRoute()?.name;
-        if (
-          currentRouteName &&
-          routeNameRef.current !== currentRouteName
-        ) {
+        if (currentRouteName && routeNameRef.current !== currentRouteName) {
           routeNameRef.current = currentRouteName;
           trackScreenView(currentRouteName).catch(() => undefined);
         }
@@ -658,7 +610,7 @@ const AppNavigator = () => {
           cardStyle: { backgroundColor: colors.background },
           cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
           transitionSpec: {
-            open:  { animation: 'spring' as const, config: Springs.snappy },
+            open: { animation: 'spring' as const, config: Springs.snappy },
             close: { animation: 'spring' as const, config: Springs.snappy },
           },
         }}
@@ -668,7 +620,7 @@ const AppNavigator = () => {
           component={SplashScreen}
           options={{
             cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-            cardStyle: { backgroundColor: "#050F29" },
+            cardStyle: { backgroundColor: '#050F29' },
           }}
         />
         <Stack.Screen
@@ -683,7 +635,7 @@ const AppNavigator = () => {
           name="Login"
           component={GoogleSignIn}
           options={{
-            presentation: "transparentModal",
+            presentation: 'transparentModal',
           }}
         />
         <Stack.Screen
@@ -714,7 +666,7 @@ const AppNavigator = () => {
           name="PendingRequests"
           component={PendingRequestsSheet}
           options={{
-            presentation: "transparentModal",
+            presentation: 'transparentModal',
             ...sheetModalScreenOptions,
           }}
         />
@@ -722,7 +674,7 @@ const AppNavigator = () => {
           name="EventDetailsOverlay"
           component={EventDetailsOverlaySheet}
           options={{
-            presentation: "transparentModal",
+            presentation: 'transparentModal',
             ...sheetModalScreenOptions,
           }}
         />
@@ -804,13 +756,12 @@ const AppNavigator = () => {
           options={{
             gestureEnabled: false,
             cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-            cardStyle: { backgroundColor: "#111" },
+            cardStyle: { backgroundColor: '#111' },
           }}
         />
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
 
 export default AppNavigator;

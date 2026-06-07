@@ -1,5 +1,4 @@
-import SendIcon from "@assets/chat/send.svg";
-import * as Haptics from "expo-haptics";
+import SendIcon from '@assets/chat/send.svg';
 import {
   Animated,
   Easing,
@@ -12,31 +11,32 @@ import {
   Text,
   TextInput,
   View,
-} from "react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AndroidSoftInputModes,
   KeyboardController,
   KeyboardEvents,
-} from "react-native-keyboard-controller";
+} from 'react-native-keyboard-controller';
 
-import ScreenContainer from "@components/ScreenContainer";
-import ChatEventHeader from "@components/ChatEventHeader";
-import EventActionOverlay from "@components/EventActionOverlay";
-import useSingleEventMemberActions from "@hooks/useSingleEventMemberActions";
-import UserAvatar from "@components/UserAvatar";
-import { colors, spacing, typography } from "@theme/index";
-import { useChat } from "@context/ChatContext";
-import type { ChatMessage } from "@context/ChatContext";
-import { useAuth } from "@context/AuthContext";
-import { useEvents } from "@context/EventsContext";
-import { resolveCoverUri } from "@constants/covers";
-import { RootStackParamList } from "@navigation/types";
-import { formatAbsoluteDateLabel } from "@utils/dateTime";
-import { formatEventLocationName } from "@utils/eventDisplay";
+import ScreenContainer from '@components/ScreenContainer';
+import ChatEventHeader from '@components/ChatEventHeader';
+import EventActionOverlay from '@components/EventActionOverlay';
+import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
+import UserAvatar from '@components/UserAvatar';
+import { colors, spacing, typography } from '@theme/index';
+import { useChat } from '@context/ChatContext';
+import type { ChatMessage } from '@context/ChatContext';
+import { useAuth } from '@context/AuthContext';
+import { useEvents } from '@context/EventsContext';
+import { resolveCoverUri } from '@constants/covers';
+import { RootStackParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import { formatAbsoluteDateLabel } from '@utils/dateTime';
+import { formatEventLocationName } from '@utils/eventDisplay';
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
@@ -58,10 +58,7 @@ const ChatComposer = ({
   onSend,
 }: ComposerProps) => (
   <View
-    style={[
-      styles.composerContainer,
-      { paddingBottom: composerBottomPadding },
-    ]}
+    style={[styles.composerContainer, { paddingBottom: composerBottomPadding }]}
     testID="chat-composer-container"
   >
     <View style={styles.composerInputWrapper}>
@@ -76,18 +73,11 @@ const ChatComposer = ({
       <Pressable
         onPress={onSend}
         disabled={isSendDisabled}
-        style={[
-          styles.sendIconButton,
-          isSendDisabled && styles.sendIconButtonDisabled,
-        ]}
+        style={[styles.sendIconButton, isSendDisabled && styles.sendIconButtonDisabled]}
         accessibilityRole="button"
         accessibilityLabel="Send message"
       >
-        <SendIcon
-          width={15}
-          height={16}
-          color={isSendDisabled ? "#A3A3A3" : colors.buttonText}
-        />
+        <SendIcon width={15} height={16} color={isSendDisabled ? '#A3A3A3' : colors.buttonText} />
       </Pressable>
     </View>
   </View>
@@ -97,11 +87,9 @@ const AndroidKeyboardComposer = (props: ComposerProps) => {
   const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    KeyboardController.setInputMode(
-      AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING,
-    );
+    KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING);
 
-    const showSub = KeyboardEvents.addListener("keyboardWillShow", (event) => {
+    const showSub = KeyboardEvents.addListener('keyboardWillShow', (event) => {
       Animated.timing(translateY, {
         toValue: -(event.height + ANDROID_KEYBOARD_GAP),
         duration: event.duration || 250,
@@ -110,7 +98,7 @@ const AndroidKeyboardComposer = (props: ComposerProps) => {
       }).start();
     });
 
-    const hideSub = KeyboardEvents.addListener("keyboardWillHide", (event) => {
+    const hideSub = KeyboardEvents.addListener('keyboardWillHide', (event) => {
       Animated.timing(translateY, {
         toValue: 0,
         duration: event.duration || 250,
@@ -152,14 +140,11 @@ const ChatThreadScreen = () => {
     refreshConversations,
   } = useChat();
 
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState('');
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
 
   const activeConversation = useMemo(
-    () =>
-      conversations.find(
-        (conversation) => conversation.id === activeConversationId,
-      ) ?? null,
+    () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
     [conversations, activeConversationId],
   );
 
@@ -167,10 +152,7 @@ const ChatThreadScreen = () => {
     if (!activeConversation?.eventId) {
       return null;
     }
-    return (
-      events.find((eventItem) => Number(eventItem.id) === activeConversation.eventId) ??
-      null
-    );
+    return events.find((eventItem) => Number(eventItem.id) === activeConversation.eventId) ?? null;
   }, [activeConversation, events]);
 
   const eventCoverUri = useMemo(() => {
@@ -198,8 +180,7 @@ const ChatThreadScreen = () => {
       return null;
     }
     return (
-      activeConversation.participants?.find((participant) => participant.id !== user.id) ??
-      null
+      activeConversation.participants?.find((participant) => participant.id !== user.id) ?? null
     );
   }, [activeConversation, user]);
 
@@ -207,40 +188,34 @@ const ChatThreadScreen = () => {
     if (!activeEventDetails) {
       return null;
     }
-    if (
-      "ownerId" in activeEventDetails &&
-      typeof activeEventDetails.ownerId === "number"
-    ) {
+    if ('ownerId' in activeEventDetails && typeof activeEventDetails.ownerId === 'number') {
       return activeEventDetails.ownerId;
     }
-    if (
-      "userId" in activeEventDetails &&
-      typeof activeEventDetails.userId === "number"
-    ) {
+    if ('userId' in activeEventDetails && typeof activeEventDetails.userId === 'number') {
       return activeEventDetails.userId;
     }
     return null;
   }, [activeEventDetails]);
 
-  const isGroupEventConversation = activeEventGroupType === "Group";
-  const isSingleEventConversation = activeEventGroupType === "Single";
+  const isGroupEventConversation = activeEventGroupType === 'Group';
+  const isSingleEventConversation = activeEventGroupType === 'Single';
 
   const headerTitle = useMemo(() => {
     if (isSingleEventConversation && counterpart?.name) {
       return counterpart.name;
     }
-    if (activeEventGroupType === "Single" && activeConversation && user) {
+    if (activeEventGroupType === 'Single' && activeConversation && user) {
       const otherUser = activeConversation.participants?.find((p) => p.id !== user.id);
       if (otherUser?.name) {
         return otherUser.name;
       }
     }
-    return activeConversation?.displayName ?? "";
+    return activeConversation?.displayName ?? '';
   }, [activeConversation, activeEventGroupType, counterpart, isSingleEventConversation, user]);
 
   const headerSubtitle = useMemo(() => {
-    if (isConnecting) return "Connecting\u2026";
-    if (activeEventGroupType === "Single" && activeEventDetails) {
+    if (isConnecting) return 'Connecting\u2026';
+    if (activeEventGroupType === 'Single' && activeEventDetails) {
       const title = activeEventDetails.title;
       const datePart = activeEventDetails.eventDate
         ? formatAbsoluteDateLabel(activeEventDetails.eventDate)
@@ -261,9 +236,7 @@ const ChatThreadScreen = () => {
       return [];
     }
     const primary = joinRequestsByConversation[activeConversationId] ?? [];
-    const eventScopedKey = activeConversation?.eventId
-      ? -activeConversation.eventId
-      : null;
+    const eventScopedKey = activeConversation?.eventId ? -activeConversation.eventId : null;
     if (eventScopedKey == null) {
       return primary;
     }
@@ -305,10 +278,10 @@ const ChatThreadScreen = () => {
   const isRouteRemovingRef = useRef(false);
 
   useEffect(() => {
-    const unsubscribeBeforeRemove = navigation.addListener("beforeRemove", () => {
+    const unsubscribeBeforeRemove = navigation.addListener('beforeRemove', () => {
       isRouteRemovingRef.current = true;
     });
-    const unsubscribeTransitionEnd = navigation.addListener("transitionEnd", (event) => {
+    const unsubscribeTransitionEnd = navigation.addListener('transitionEnd', (event) => {
       if (event.data?.closing) {
         setActiveConversation(null);
       } else {
@@ -334,7 +307,7 @@ const ChatThreadScreen = () => {
       if (navigation.canGoBack()) {
         navigation.goBack();
       } else {
-        navigation.navigate("Main", { screen: "Messages" });
+        navigation.navigate('Main', { screen: 'Messages' });
       }
     }
   }, [activeConversationId, navigation]);
@@ -348,15 +321,13 @@ const ChatThreadScreen = () => {
     ) {
       return;
     }
-    refreshJoinRequests(
-      activeConversation.id,
-      activeConversation.eventId,
-      { includeApproved: false },
-    ).catch(() => undefined);
+    refreshJoinRequests(activeConversation.id, activeConversation.eventId, {
+      includeApproved: false,
+    }).catch(() => undefined);
   }, [activeConversation, isConversationHost, isGroupEventConversation, refreshJoinRequests]);
 
   useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const showSub = Keyboard.addListener(showEvent, () => {
       setTimeout(() => {
         messagesListRef.current?.scrollToEnd({ animated: true });
@@ -379,13 +350,13 @@ const ChatThreadScreen = () => {
   }, [messages.length]);
 
   const handleBack = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     isManuallyLeavingRef.current = true;
     setActiveConversation(null);
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate("Main", { screen: "Messages" });
+      navigation.navigate('Main', { screen: 'Messages' });
     }
   };
 
@@ -394,12 +365,16 @@ const ChatThreadScreen = () => {
       return;
     }
     await refreshConversations().catch((err) => {
-      console.error("Failed to refresh conversations after single chat action", err);
+      console.error('Failed to refresh conversations after single chat action', err);
     });
-    await refreshJoinRequests(activeConversationId ?? activeConversation.eventId, activeConversation.eventId, {
-      includeApproved: true,
-    }).catch((err) => {
-      console.error("Failed to refresh join requests after single chat action", err);
+    await refreshJoinRequests(
+      activeConversationId ?? activeConversation.eventId,
+      activeConversation.eventId,
+      {
+        includeApproved: true,
+      },
+    ).catch((err) => {
+      console.error('Failed to refresh join requests after single chat action', err);
     });
     setActiveConversation(null);
   }, [
@@ -414,7 +389,7 @@ const ChatThreadScreen = () => {
     eventId: activeConversation?.eventId,
     onSuccess: refreshSingleConversation,
     reportErrorMessages: {
-      generic: "Unable to submit report right now.",
+      generic: 'Unable to submit report right now.',
     },
   });
 
@@ -426,26 +401,24 @@ const ChatThreadScreen = () => {
     if (!activeConversationId || !draft.trim()) {
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('submit');
     sendMessage(activeConversationId, draft.trim());
-    setDraft("");
+    setDraft('');
   };
 
   const isSendDisabled = draft.trim().length === 0;
   const composerBottomPadding =
-    Platform.OS === "ios"
+    Platform.OS === 'ios'
       ? insets.bottom + spacing.xs
       : insets.bottom >= spacing.lg
         ? insets.bottom
         : spacing.sm;
   const pendingJoinRequestCount =
     isConversationHost && isGroupEventConversation
-      ? joinRequests.filter((request) => request.status === "pending").length
+      ? joinRequests.filter((request) => request.status === 'pending').length
       : 0;
   const canViewJoinRequests =
-    isConversationHost &&
-    isGroupEventConversation &&
-    !!activeConversation?.eventId;
+    isConversationHost && isGroupEventConversation && !!activeConversation?.eventId;
 
   if (!activeConversation) {
     return null;
@@ -460,8 +433,8 @@ const ChatThreadScreen = () => {
     ) {
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    navigation.navigate("PendingRequests", {
+    triggerHaptic('light');
+    navigation.navigate('PendingRequests', {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
     });
@@ -469,8 +442,8 @@ const ChatThreadScreen = () => {
 
   const renderMessage = ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
     const lowerBody = item.body.toLowerCase();
-    const isJoinSystemMessage = lowerBody.endsWith("joined the chat");
-    const isEventUpdateSystemMessage = lowerBody === "updated event detail";
+    const isJoinSystemMessage = lowerBody.endsWith('joined the chat');
+    const isEventUpdateSystemMessage = lowerBody === 'updated event detail';
 
     if (isJoinSystemMessage || isEventUpdateSystemMessage) {
       return (
@@ -481,29 +454,26 @@ const ChatThreadScreen = () => {
     }
 
     const isOwn = item.senderId === user?.id;
-    const participant = activeConversation.participants?.find(
-      (p) => p.id === item.senderId,
-    );
-    const senderName = participant?.name ?? "";
-    const firstName = senderName.split(" ")[0] || "";
+    const participant = activeConversation.participants?.find((p) => p.id === item.senderId);
+    const senderName = participant?.name ?? '';
+    const firstName = senderName.split(' ')[0] || '';
 
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const prevIsSystem = prevMessage
-      ? prevMessage.body.toLowerCase().endsWith("joined the chat") ||
-        prevMessage.body.toLowerCase() === "updated event detail"
+      ? prevMessage.body.toLowerCase().endsWith('joined the chat') ||
+        prevMessage.body.toLowerCase() === 'updated event detail'
       : false;
-    const isFirstInRun =
-      !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
+    const isFirstInRun = !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
     const showAvatar = !isOwn;
     const showName = showAvatar && isFirstInRun;
 
     const timeText = item.pending
-      ? "Sending…"
+      ? 'Sending…'
       : item.failed
-        ? "Failed. Tap to retry."
+        ? 'Failed. Tap to retry.'
         : new Date(item.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
+            hour: '2-digit',
+            minute: '2-digit',
           });
 
     const bubble = (
@@ -514,15 +484,8 @@ const ChatThreadScreen = () => {
           item.failed ? styles.messageBubbleFailed : undefined,
         ]}
       >
-        {showName && firstName ? (
-          <Text style={styles.senderName}>{firstName}</Text>
-        ) : null}
-        <Text
-          style={[
-            styles.messageText,
-            isOwn ? styles.messageTextOwn : styles.messageTextOther,
-          ]}
-        >
+        {showName && firstName ? <Text style={styles.senderName}>{firstName}</Text> : null}
+        <Text style={[styles.messageText, isOwn ? styles.messageTextOwn : styles.messageTextOther]}>
           {item.body}
         </Text>
         <Text
@@ -541,7 +504,12 @@ const ChatThreadScreen = () => {
     );
 
     const bubbleContent = item.failed ? (
-      <Pressable onPress={() => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); retryMessage(item.conversationId, item); }}>
+      <Pressable
+        onPress={() => {
+          triggerHaptic('warning');
+          retryMessage(item.conversationId, item);
+        }}
+      >
         {bubble}
       </Pressable>
     ) : (
@@ -549,12 +517,7 @@ const ChatThreadScreen = () => {
     );
 
     return (
-      <View
-        style={[
-          styles.messageRow,
-          isOwn ? styles.messageRowOwn : styles.messageRowOther,
-        ]}
-      >
+      <View style={[styles.messageRow, isOwn ? styles.messageRowOwn : styles.messageRowOther]}>
         {showAvatar ? (
           isFirstInRun ? (
             <UserAvatar
@@ -569,9 +532,7 @@ const ChatThreadScreen = () => {
             <View style={styles.avatarSpacer} />
           )
         ) : null}
-        <View style={styles.messageBubbleContainer}>
-          {bubbleContent}
-        </View>
+        <View style={styles.messageBubbleContainer}>{bubbleContent}</View>
       </View>
     );
   };
@@ -586,7 +547,7 @@ const ChatThreadScreen = () => {
   };
 
   return (
-    <ScreenContainer edges={["top"]}>
+    <ScreenContainer edges={['top']}>
       <ChatEventHeader
         onBack={handleBack}
         title={headerTitle}
@@ -611,15 +572,15 @@ const ChatThreadScreen = () => {
             return;
           }
           if (activeConversation?.eventId) {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            navigation.navigate("EventDetailsOverlay", {
+            triggerHaptic('light');
+            navigation.navigate('EventDetailsOverlay', {
               eventId: String(activeConversation.eventId),
               readOnly: true,
             });
           }
         }}
         titleAccessibilityLabel={
-          canOpenSingleChatActions ? "Open member actions" : "View event details"
+          canOpenSingleChatActions ? 'Open member actions' : 'View event details'
         }
         rightElement={
           canViewJoinRequests && pendingJoinRequestCount > 0 ? (
@@ -631,7 +592,7 @@ const ChatThreadScreen = () => {
             >
               <View style={styles.joinCountBadge}>
                 <Text style={styles.joinCountBadgeText}>
-                  {pendingJoinRequestCount > 99 ? "99+" : pendingJoinRequestCount}
+                  {pendingJoinRequestCount > 99 ? '99+' : pendingJoinRequestCount}
                 </Text>
               </View>
             </Pressable>
@@ -639,7 +600,7 @@ const ChatThreadScreen = () => {
         }
         testID="chat-event-info-button"
       />
-      {Platform.OS === "ios" ? (
+      {Platform.OS === 'ios' ? (
         <KeyboardAvoidingView
           style={styles.threadContainer}
           behavior="padding"
@@ -707,12 +668,12 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   joinCountBadge: {
-    backgroundColor: "#E6E6E6",
+    backgroundColor: '#E6E6E6',
     borderRadius: 999,
     minWidth: 28,
     height: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
   joinCountBadgeText: {
@@ -733,23 +694,23 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     flexGrow: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
   },
   messageRow: {
     marginBottom: spacing.sm,
-    flexDirection: "row",
-    alignItems: "flex-end",
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   messageRowOwn: {
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   messageRowOther: {
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
   },
   messageBubbleContainer: {
-    maxWidth: "75%",
+    maxWidth: '75%',
   },
   avatarCircle: {
     width: 30,
@@ -766,10 +727,10 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
+    fontWeight: '500',
     lineHeight: 22,
     letterSpacing: -0.5,
-    color: "#000000",
+    color: '#000000',
     marginBottom: 2,
   },
   messageBubble: {
@@ -778,15 +739,15 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 16,
     borderRadius: 20,
-    borderCurve: "continuous",
+    borderCurve: 'continuous',
   },
   messageBubbleOwn: {
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     backgroundColor: colors.primary,
   },
   messageBubbleOther: {
-    alignSelf: "flex-start",
-    backgroundColor: "#F4F4F4",
+    alignSelf: 'flex-start',
+    backgroundColor: '#F4F4F4',
   },
   messageBubbleFailed: {
     borderColor: colors.accent,
@@ -794,7 +755,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 17,
     fontFamily: typography.fontFamilyRegular,
-    fontWeight: "400",
+    fontWeight: '400',
     lineHeight: 22,
     letterSpacing: -0.5,
   },
@@ -808,10 +769,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 11,
     fontFamily: typography.fontFamilyRegular,
-    fontWeight: "400",
+    fontWeight: '400',
     lineHeight: 11,
     letterSpacing: -0.3,
-    textAlign: "right",
+    textAlign: 'right',
   },
   messageMetaOwn: {
     color: colors.buttonText,
@@ -824,26 +785,26 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   systemMessageRow: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
     paddingHorizontal: spacing.lg,
   },
   systemMessageText: {
     fontSize: typography.caption,
     color: colors.subText,
-    textAlign: "center",
+    textAlign: 'center',
     letterSpacing: -0.3,
   },
   composerContainer: {
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
     paddingHorizontal: 0,
   },
   composerInputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: "#F4F4F4",
+    backgroundColor: '#F4F4F4',
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
@@ -862,13 +823,13 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    borderCurve: "continuous",
-    alignItems: "center",
-    justifyContent: "center",
+    borderCurve: 'continuous',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primary,
   },
   sendIconButtonDisabled: {
-    backgroundColor: "#E6E6E6",
+    backgroundColor: '#E6E6E6',
   },
 });
 
