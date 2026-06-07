@@ -24,7 +24,7 @@ describe('EventActionOverlay', () => {
         />
       );
 
-      expect(screen.queryByTestId('action-menu')).toBeNull();
+      expect(screen.queryByTestId('bottom-sheet-modal')).toBeNull();
     });
 
     it('should render when isVisible is true', () => {
@@ -36,7 +36,7 @@ describe('EventActionOverlay', () => {
         />
       );
 
-      expect(screen.getByTestId('action-menu')).toBeTruthy();
+      expect(screen.getByTestId('bottom-sheet-modal')).toBeTruthy();
     });
   });
 
@@ -53,7 +53,7 @@ describe('EventActionOverlay', () => {
         />
       );
 
-      fireEvent.press(screen.getByTestId('action-backdrop'));
+      fireEvent.press(screen.getByTestId('bottom-sheet-backdrop'));
 
       expect(onBackdropPress).toHaveBeenCalledTimes(1);
     });
@@ -67,7 +67,7 @@ describe('EventActionOverlay', () => {
         />
       );
 
-      expect(() => fireEvent.press(screen.getByTestId('action-backdrop'))).not.toThrow();
+      expect(() => fireEvent.press(screen.getByTestId('bottom-sheet-backdrop'))).not.toThrow();
     });
   });
 
@@ -254,7 +254,13 @@ describe('EventActionOverlay', () => {
 
     it('should call onConfirm when confirm button is pressed', () => {
       const onConfirm = jest.fn();
-      render(<EventActionOverlay {...confirmProps} onConfirm={onConfirm} />);
+      render(
+        <EventActionOverlay
+          {...confirmProps}
+          confirmTone="default"
+          onConfirm={onConfirm}
+        />
+      );
 
       fireEvent.press(screen.getByText('Delete'));
 

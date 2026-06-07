@@ -69,7 +69,11 @@ const SplashScreen = () => {
   }, [isReady, navigateAway]);
 
   return (
-    <View style={styles.root} onLayout={onLayoutRootView}>
+    <View
+      style={styles.root}
+      onLayout={onLayoutRootView}
+      testID="splash-container"
+    >
       <Image
         source={require("../../assets/splash/VicarStreet.png")}
         style={styles.image}

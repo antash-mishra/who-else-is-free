@@ -270,6 +270,8 @@ const MessagesScreen = () => {
 
     return consolidated;
   }, [conversations, isEventReported, user, userEvents]);
+  const isConversationListBusy =
+    isConnecting || isRefreshingConversations || isPullRefreshing;
 
   useEffect(() => {
     const nextRefreshMs = displayConversations.reduce<number | null>(
@@ -362,13 +364,15 @@ const MessagesScreen = () => {
           style={styles.flatList}
           contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
           ListEmptyComponent={
-            <EmptyState
-              title="No Messages Yet"
-              description={"Messages from your events will appear here"}
-              imageSource={require('@assets/illustration/chat-emptyState.png')}
-              imageWidth={279}
-              imageHeight={245}
-            />
+            isConversationListBusy ? null : (
+              <EmptyState
+                title="No Messages Yet"
+                description={"Messages from your events will appear here"}
+                imageSource={require('@assets/illustration/chat-emptyState.png')}
+                imageWidth={279}
+                imageHeight={245}
+              />
+            )
           }
           refreshControl={
             <RefreshControl

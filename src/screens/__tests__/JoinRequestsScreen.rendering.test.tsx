@@ -537,7 +537,8 @@ describe('JoinRequestsScreen Rendering', () => {
 
       const { getByText, queryByText } = render(<JoinRequestsScreen />);
 
-      expect(getByText('No accepted users yet')).toBeTruthy();
+      expect(getByText('No accepted members yet')).toBeTruthy();
+      expect(getByText('Chats from accepted members will appear here')).toBeTruthy();
       expect(
         queryByText("You'll see new join requests here when attendees tap Interested.")
       ).toBeNull();
@@ -635,7 +636,7 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should show empty accepted state by default', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
-      expect(getByText('No accepted users yet')).toBeTruthy();
+      expect(getByText('No accepted members yet')).toBeTruthy();
     });
 
     it('should navigate to PendingRequests when badge icon is pressed', () => {

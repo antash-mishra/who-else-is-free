@@ -11,7 +11,7 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-
 import { Text, View, TouchableOpacity } from 'react-native';
 import fetchMock from 'jest-fetch-mock';
 
-import { ChatProvider, useChat, ChatMessage } from '../ChatContext';
+import { ChatProvider, useChat, ChatMessage, ChatJoinRequest } from '../ChatContext';
 import { mockApiResponses, mockUsers, mockConversations, mockMessages, mockJoinRequests } from '../../__tests__/mocks/mockData';
 
 // Helper to create async delay with real timers
@@ -131,6 +131,25 @@ const TestConsumer = ({
     approveJoinRequest,
     denyJoinRequest,
   } = useChat();
+  const visibleJoinRequests = Object.entries(joinRequestsByConversation).reduce<
+    Array<{ conversationId: number; request: ChatJoinRequest }>
+  >((items, [conversationIdValue, requests]) => {
+    const conversationId = Number(conversationIdValue);
+    requests.forEach((request) => {
+      const existingIndex = items.findIndex((item) => item.request.id === request.id);
+      const nextItem = { conversationId, request };
+
+      if (existingIndex === -1) {
+        items.push(nextItem);
+        return;
+      }
+
+      if (items[existingIndex].conversationId < 0 && conversationId > 0) {
+        items[existingIndex] = nextItem;
+      }
+    });
+    return items;
+  }, []);
 
   return (
     <View>
@@ -178,27 +197,25 @@ const TestConsumer = ({
         }}
       />
 
-      {Object.entries(joinRequestsByConversation).map(([convId, requests]) =>
-        requests.map((request) => (
-          <View key={request.id} testID={`request-${request.id}`}>
-            <Text testID={`request-name-${request.id}`}>{request.requester.name}</Text>
-            <TouchableOpacity
-              testID={`approve-${request.id}`}
-              onPress={() => {
-                approveJoinRequest(Number(convId), request.eventId, request.userId);
-                onApproveRequest?.(Number(convId), request.eventId, request.userId);
-              }}
-            />
-            <TouchableOpacity
-              testID={`deny-${request.id}`}
-              onPress={() => {
-                denyJoinRequest(Number(convId), request.eventId, request.userId);
-                onDenyRequest?.(Number(convId), request.eventId, request.userId);
-              }}
-            />
-          </View>
-        ))
-      )}
+      {visibleJoinRequests.map(({ conversationId, request }) => (
+        <View key={request.id} testID={`request-${request.id}`}>
+          <Text testID={`request-name-${request.id}`}>{request.requester.name}</Text>
+          <TouchableOpacity
+            testID={`approve-${request.id}`}
+            onPress={() => {
+              approveJoinRequest(conversationId, request.eventId, request.userId);
+              onApproveRequest?.(conversationId, request.eventId, request.userId);
+            }}
+          />
+          <TouchableOpacity
+            testID={`deny-${request.id}`}
+            onPress={() => {
+              denyJoinRequest(conversationId, request.eventId, request.userId);
+              onDenyRequest?.(conversationId, request.eventId, request.userId);
+            }}
+          />
+        </View>
+      ))}
     </View>
   );
 };
@@ -586,8 +603,7 @@ describe('ChatContext Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        const requestElement = screen.queryByTestId('request-10');
-        expect(requestElement).toBeTruthy();
+        expect(screen.getAllByTestId('request-10')).toHaveLength(1);
       });
     });
 
@@ -667,7 +683,7 @@ describe('ChatContext Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.queryByTestId('request-20')).toBeTruthy();
+        expect(screen.getAllByTestId('request-20')).toHaveLength(1);
       });
 
       // Mock approve endpoint
@@ -683,7 +699,7 @@ describe('ChatContext Rendering Tests', () => {
 
       // Request should be removed from state
       await waitFor(() => {
-        expect(screen.queryByTestId('request-20')).toBeFalsy();
+        expect(screen.queryAllByTestId('request-20')).toHaveLength(0);
       });
     });
 
@@ -725,7 +741,7 @@ describe('ChatContext Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.queryByTestId('request-30')).toBeTruthy();
+        expect(screen.getAllByTestId('request-30')).toHaveLength(1);
       });
 
       // Mock deny endpoint
@@ -741,7 +757,7 @@ describe('ChatContext Rendering Tests', () => {
 
       // Request should be removed
       await waitFor(() => {
-        expect(screen.queryByTestId('request-30')).toBeFalsy();
+        expect(screen.queryAllByTestId('request-30')).toHaveLength(0);
       });
     });
   });

@@ -102,7 +102,9 @@ describe('MyEventsScreen Rendering', () => {
 
     it('renders all filter buttons', () => {
       renderWithNav(<MyEventsScreen />);
-      expect(screen.getByText('Upcoming')).toBeTruthy();
+      expect(screen.getByTestId('segment-hosting')).toBeTruthy();
+      expect(screen.getByTestId('segment-joined')).toBeTruthy();
+      expect(screen.getByTestId('segment-requested')).toBeTruthy();
       expect(screen.getAllByText('Hosting')[0]).toBeTruthy();
       expect(screen.getAllByText('Joined')[0]).toBeTruthy();
       expect(screen.getByText('Requested')).toBeTruthy();
@@ -118,9 +120,9 @@ describe('MyEventsScreen Rendering', () => {
   describe('Tab Switching', () => {
     it('switches to Hosting filter when pressed', () => {
       renderWithNav(<MyEventsScreen />);
-      const hostingButton = screen.getAllByText('Hosting')[0];
+      const hostingButton = screen.getByTestId('segment-hosting');
       fireEvent.press(hostingButton);
-      // Should still show event cards
+      expect(screen.getByTestId('segment-hosting').props.accessibilityState.selected).toBe(true);
       expect(screen.getAllByTestId('event-card').length).toBeGreaterThan(0);
     });
 
@@ -132,26 +134,24 @@ describe('MyEventsScreen Rendering', () => {
         }],
       });
       renderWithNav(<MyEventsScreen />);
-      const joinedButton = screen.getAllByText('Joined')[0];
+      const joinedButton = screen.getByTestId('segment-joined');
       fireEvent.press(joinedButton);
-      // Filter is now active
-      expect(joinedButton).toBeTruthy();
+      expect(screen.getByTestId('segment-joined').props.accessibilityState.selected).toBe(true);
     });
 
     it('switches to Requested filter when pressed', () => {
       renderWithNav(<MyEventsScreen />);
-      const requestedButton = screen.getByText('Requested');
+      const requestedButton = screen.getByTestId('segment-requested');
       fireEvent.press(requestedButton);
-      expect(requestedButton).toBeTruthy();
+      expect(screen.getByTestId('segment-requested').props.accessibilityState.selected).toBe(true);
     });
 
-    it('toggles back to all when same filter pressed again', () => {
+    it('keeps the selected segment active when pressed again', () => {
       renderWithNav(<MyEventsScreen />);
-      const hostingButton = screen.getAllByText('Hosting')[0];
+      const hostingButton = screen.getByTestId('segment-hosting');
       fireEvent.press(hostingButton);
       fireEvent.press(hostingButton);
-      // Should be back to showing all events
-      expect(screen.getByText('Upcoming')).toBeTruthy();
+      expect(screen.getByTestId('segment-hosting').props.accessibilityState.selected).toBe(true);
     });
   });
 
@@ -209,8 +209,8 @@ describe('MyEventsScreen Rendering', () => {
       });
       mockUseChat.mockReturnValue({ conversations: [] });
       renderWithNav(<MyEventsScreen />);
-      expect(screen.getByTestId('empty-state')).toBeTruthy();
-      expect(screen.getByText('No events yet')).toBeTruthy();
+      expect(screen.getAllByTestId('empty-state').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('No events yet').length).toBeGreaterThan(0);
     });
 
     it('shows login prompt for guest users', () => {
@@ -262,12 +262,10 @@ describe('MyEventsScreen Rendering', () => {
     });
   });
 
-  describe('Sort Mode Toggle', () => {
-    it('toggles sort mode when Upcoming button pressed', () => {
+  describe('Segmented Control State', () => {
+    it('starts on the Hosting segment', () => {
       renderWithNav(<MyEventsScreen />);
-      const upcomingButton = screen.getByText('Upcoming');
-      fireEvent.press(upcomingButton);
-      expect(screen.getByText('Newest created')).toBeTruthy();
+      expect(screen.getByTestId('segment-hosting').props.accessibilityState.selected).toBe(true);
     });
   });
 
@@ -285,10 +283,9 @@ describe('MyEventsScreen Rendering', () => {
         }],
       });
       renderWithNav(<MyEventsScreen />);
-      const joinedButton = screen.getAllByText('Joined')[0];
+      const joinedButton = screen.getByTestId('segment-joined');
       fireEvent.press(joinedButton);
-      // Should filter to show joined events
-      expect(joinedButton).toBeTruthy();
+      expect(screen.getByTestId('segment-joined').props.accessibilityState.selected).toBe(true);
     });
   });
 
@@ -308,7 +305,7 @@ describe('MyEventsScreen Rendering', () => {
         refreshRequestedEvents: jest.fn(),
       });
       renderWithNav(<MyEventsScreen />);
-      const requestedButton = screen.getByText('Requested');
+      const requestedButton = screen.getByTestId('segment-requested');
       fireEvent.press(requestedButton);
       expect(screen.getByText('1')).toBeTruthy(); // Count badge
     });

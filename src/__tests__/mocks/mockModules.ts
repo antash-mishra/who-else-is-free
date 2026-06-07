@@ -52,6 +52,78 @@ export const mockGoogleSignIn = {
 
 jest.mock('@react-native-google-signin/google-signin', () => mockGoogleSignIn);
 
+// Mock Skia canvas components used by animation-only overlays
+jest.mock('@shopify/react-native-skia', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const SkiaView = ({ children, ...props }: { children?: React.ReactNode }) =>
+    React.createElement(View, props, children);
+
+  return {
+    Canvas: SkiaView,
+    Circle: SkiaView,
+    Group: SkiaView,
+    Rect: SkiaView,
+  };
+});
+
+// Mock react-native-gesture-handler
+jest.mock('react-native-gesture-handler', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const makeGesture = () => {
+    const gesture: Record<string, jest.Mock> = {};
+    const chain = () => gesture;
+
+    [
+      'activeOffsetX',
+      'activeOffsetY',
+      'enabled',
+      'failOffsetX',
+      'failOffsetY',
+      'maxPointers',
+      'minDistance',
+      'onBegin',
+      'onChange',
+      'onEnd',
+      'onFinalize',
+      'onStart',
+      'onUpdate',
+      'runOnJS',
+      'simultaneousWithExternalGesture',
+    ].forEach((method) => {
+      gesture[method] = jest.fn(chain);
+    });
+
+    return gesture;
+  };
+
+  return {
+    Directions: {},
+    FlingGestureHandler: View,
+    Gesture: {
+      Fling: jest.fn(makeGesture),
+      LongPress: jest.fn(makeGesture),
+      Manual: jest.fn(makeGesture),
+      Native: jest.fn(makeGesture),
+      Pan: jest.fn(makeGesture),
+      Pinch: jest.fn(makeGesture),
+      Race: jest.fn((...gestures: unknown[]) => gestures[0] ?? makeGesture()),
+      Simultaneous: jest.fn((...gestures: unknown[]) => gestures[0] ?? makeGesture()),
+      Tap: jest.fn(makeGesture),
+    },
+    GestureDetector: ({ children }: { children: React.ReactNode }) => children,
+    GestureHandlerRootView: ({ children, ...props }: { children: React.ReactNode }) =>
+      React.createElement(View, props, children),
+    PanGestureHandler: View,
+    State: {},
+    Swipeable: View,
+    TouchableOpacity: View,
+  };
+});
+
 // Mock expo-apple-authentication
 export const mockAppleAuthentication = {
   isAvailableAsync: jest.fn().mockResolvedValue(false),
@@ -281,6 +353,7 @@ jest.mock('react-native-reanimated', () => {
     Text,
     ScrollView,
     createAnimatedComponent,
+    makeMutable: (value: unknown) => ({ value }),
     useSharedValue: (value: unknown) => ({ value }),
     useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
     useAnimatedStyle: (factory: () => object) => factory(),
