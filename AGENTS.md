@@ -36,6 +36,7 @@ Project guide for coding agents and contributors working in this repository.
 - Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
 - Shared sheet primitives live in `src/components/sheets`; use `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
 - Shared event-list primitives live in `src/components/events`; use `EventSectionList`, `EventListPage`, and `eventListSections` helpers before duplicating event card lists or date grouping in screens.
+- Create/Edit Event form mapping lives in `src/screens/create-event/createEventForm.ts`; keep payload construction, edit hydration, guest draft mapping, and date normalization there instead of rebuilding them in `CreateEventScreen`.
 - Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
 - Tests: Jest tests live near source files under `__tests__`.
 
@@ -149,7 +150,7 @@ Use that plan for ordering:
 10. Navigation cleanup.
 11. Final consistency pass.
 
-Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, and the first Event Details overlay-route extraction.
+Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, the first Event Details overlay-route extraction, and Create/Edit Event form mapping helpers.
 
 ## Testing And Validation
 

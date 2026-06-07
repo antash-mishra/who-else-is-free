@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
   Image,
   Keyboard,
@@ -10,6 +11,19 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+
+import MaskedView from '@react-native-masked-view/masked-view';
+import {
+  RouteProp,
+  StackActions,
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -19,34 +33,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Springs } from '@theme/springs';
-import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
-
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
-import CloseIcon from '@assets/ui/close.svg';
-import {
-  RouteProp,
-  StackActions,
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
-import { RootStackParamList } from '@navigation/types';
-import { trackEvent } from '@services/analytics';
-import { triggerHaptic } from '@services/haptics';
-import { colors, spacing } from '@theme/index';
-import { GuestEventDraft, UserEvent, useEvents } from '@context/EventsContext';
-import { useAuth } from '@context/AuthContext';
-import { useCovers } from '@context/CoversContext';
-import { CoverKey, DEFAULT_COVER_KEY } from '@constants/covers';
 import {
-  AGE_MAX,
-  AGE_MIN,
   AgeOption,
   ageOptions,
   GenderOption,
@@ -58,25 +47,43 @@ import {
   groupOptions,
 } from '@constants/eventOptions';
 import {
-  combineDateAndTime,
   formatPickerDateTimeValue,
-  formatTime,
-  getDefaultEventDateTime,
-  getLegacyDateLabel,
   getMaxEventDateTime,
   isPastDateTimeSelection,
-  toDateKey,
 } from '@utils/dateTime';
-import { formatEventLocationName } from '@utils/eventDisplay';
 import UploadIcon from '@assets/create-event/choose-cover.svg';
+import CloseIcon from '@assets/ui/close.svg';
 import WarningIcon from '@assets/ui/error.svg';
-import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
 import { SelectionModalContent } from '@components/SelectionModal';
 import { CoverPickerContent } from '@components/CoverPickerModal';
+import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
 import { EventDateTimePickerContent } from '@components/EventDateTimeModal';
 import { LocationPickerContent } from '@components/LocationPickerModal';
+import { CoverKey } from '@constants/covers';
+import { useAuth } from '@context/AuthContext';
+import { useCovers } from '@context/CoversContext';
+import { useEvents } from '@context/EventsContext';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
+import { RootStackParamList } from '@navigation/types';
+import { trackEvent } from '@services/analytics';
+import { triggerHaptic } from '@services/haptics';
+import { colors, spacing } from '@theme/index';
+import { Springs } from '@theme/springs';
+
 import SignInButtons from '../components/SignInButtons';
+
+import {
+  CreateEventFormState,
+  buildCreateEventPayload,
+  buildGuestEventDraft,
+  buildUpdateEventPayload,
+  createEmptyFormState,
+  createFormStateFromEvent,
+  getFormLocationDisplayName,
+  hasGuestDraftContent,
+  hasSelectedPlaceLocation,
+  normalizeCreateEventForm,
+} from './create-event/createEventForm';
 import styles from './CreateEventScreen.styles';
 
 type ButtonLayout = { x: number; y: number; width: number; height: number };
@@ -93,52 +100,11 @@ const SHEET_CLOSE_DURATION_MS = 320;
 const KEYBOARD_SHEET_SETTLE_DELAY_MS = Platform.OS === 'ios' ? 90 : 140;
 const KEYBOARD_SHEET_OPEN_FALLBACK_MS = Platform.OS === 'ios' ? 420 : 360;
 
-type FormState = {
-  eventName: string;
-  description: string;
-  groupType: GroupOption;
-  gender: GenderOption;
-  ageRange: [number, number];
-  selectedDateTime: Date;
-  location: string;
-  placeId?: string;
-  latitude?: number;
-  longitude?: number;
-  coverKey: CoverKey;
-};
-
 type CreateNavigation = NativeStackNavigationProp<RootStackParamList, 'CreateEvent'>;
 
 type CreateRoute = RouteProp<RootStackParamList, 'CreateEvent'>;
 
 const EVENT_DATE_WINDOW_DAYS = 30;
-
-const hasSelectedPlaceLocation = (form: FormState) =>
-  !!form.placeId &&
-  typeof form.latitude === 'number' &&
-  Number.isFinite(form.latitude) &&
-  typeof form.longitude === 'number' &&
-  Number.isFinite(form.longitude);
-
-const getEventDateTime = (event?: UserEvent | null): Date => {
-  if (!event) {
-    return getDefaultEventDateTime();
-  }
-
-  if (event.scheduledAt) {
-    const parsed = new Date(event.scheduledAt);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed;
-    }
-  }
-
-  const combined = combineDateAndTime(event.eventDate, event.time);
-  if (combined) {
-    return combined;
-  }
-
-  return getDefaultEventDateTime();
-};
 
 const CreateEventScreen = () => {
   const navigation = useNavigation<CreateNavigation>();
@@ -161,6 +127,11 @@ const CreateEventScreen = () => {
       : undefined;
   const editEvent = editEventId ? events.find((eventItem) => eventItem.id === editEventId) : null;
   const isEditing = !!editEvent;
+  const initialFormState = useMemo(() => createFormStateFromEvent(editEvent), [editEvent]);
+  const initialLocationDisplayName = useMemo(
+    () => getFormLocationDisplayName(editEvent),
+    [editEvent],
+  );
 
   useEffect(() => {
     if (isEditing || createStartTrackedRef.current) {
@@ -174,25 +145,20 @@ const CreateEventScreen = () => {
   }, [isEditing]);
 
   // Form state
-  const [eventName, setEventName] = useState(editEvent?.title || '');
-  const [description, setDescription] = useState(editEvent?.description || '');
-  const [groupType, setGroupType] = useState<GroupOption>(
-    editEvent?.groupType === 'Group' ? 'Group' : 'Single',
+  const [eventName, setEventName] = useState(initialFormState.eventName);
+  const [description, setDescription] = useState(initialFormState.description);
+  const [groupType, setGroupType] = useState<GroupOption>(initialFormState.groupType);
+  const [gender, setGender] = useState<GenderOption>(initialFormState.gender);
+  const [ageRange, setAgeRange] = useState<[number, number]>(initialFormState.ageRange);
+  const [selectedDateTime, setSelectedDateTime] = useState<Date>(
+    () => initialFormState.selectedDateTime,
   );
-  const [gender, setGender] = useState<GenderOption>((editEvent?.gender as GenderOption) || 'Any');
-  const [ageRange, setAgeRange] = useState<[number, number]>([
-    editEvent?.minAge || AGE_MIN,
-    editEvent?.maxAge || AGE_MAX,
-  ]);
-  const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => getEventDateTime(editEvent));
-  const [location, setLocation] = useState(editEvent?.location || '');
-  const [locationDisplayName, setLocationDisplayName] = useState(
-    formatEventLocationName(editEvent?.location),
-  );
-  const [placeId, setPlaceId] = useState(editEvent?.placeId || '');
-  const [latitude, setLatitude] = useState<number | undefined>(editEvent?.latitude);
-  const [longitude, setLongitude] = useState<number | undefined>(editEvent?.longitude);
-  const [coverKey, setCoverKey] = useState<CoverKey>(editEvent?.coverKey ?? DEFAULT_COVER_KEY);
+  const [location, setLocation] = useState(initialFormState.location);
+  const [locationDisplayName, setLocationDisplayName] = useState(initialLocationDisplayName);
+  const [placeId, setPlaceId] = useState(initialFormState.placeId ?? '');
+  const [latitude, setLatitude] = useState<number | undefined>(initialFormState.latitude);
+  const [longitude, setLongitude] = useState<number | undefined>(initialFormState.longitude);
+  const [coverKey, setCoverKey] = useState<CoverKey>(initialFormState.coverKey);
 
   // Sheet state
   const [activeSheet, setActiveSheet] = useState<CreateEventSheet | null>(null);
@@ -367,46 +333,39 @@ const CreateEventScreen = () => {
     };
   }, [clearPendingSheetOpen, clearRenderedSheetClose]);
 
+  const applyFormState = useCallback((form: CreateEventFormState, displayLocationName = '') => {
+    setEventName(form.eventName);
+    setDescription(form.description);
+    setGroupType(form.groupType);
+    setGender(form.gender);
+    setAgeRange(form.ageRange);
+    setSelectedDateTime(form.selectedDateTime);
+    setLocation(form.location);
+    setLocationDisplayName(displayLocationName);
+    setPlaceId(form.placeId ?? '');
+    setLatitude(form.latitude);
+    setLongitude(form.longitude);
+    setCoverKey(form.coverKey);
+  }, []);
+
   const resetForm = useCallback(() => {
-    setEventName('');
-    setDescription('');
-    setGroupType('Single');
-    setGender('Any');
-    setAgeRange([AGE_MIN, AGE_MAX]);
-    setSelectedDateTime(getDefaultEventDateTime());
-    setLocation('');
-    setLocationDisplayName('');
-    setPlaceId('');
-    setLatitude(undefined);
-    setLongitude(undefined);
-    setCoverKey(DEFAULT_COVER_KEY);
+    applyFormState(createEmptyFormState());
     closeSheetImmediately();
     setSubmitError(null);
     setIsSubmitting(false);
-  }, [closeSheetImmediately]);
+  }, [applyFormState, closeSheetImmediately]);
 
   const applyEventToForm = useCallback(
-    (current: UserEvent) => {
-      setEventName(current.title);
-      setDescription(current.description ?? '');
-      setGroupType(current.groupType === 'Group' ? 'Group' : 'Single');
-      setGender((current.gender as GenderOption) || 'Any');
-      setAgeRange([current.minAge ?? AGE_MIN, current.maxAge ?? AGE_MAX]);
-      setSelectedDateTime(getEventDateTime(current));
-      setLocation(current.location || '');
-      setLocationDisplayName(formatEventLocationName(current.location));
-      setPlaceId(current.placeId ?? '');
-      setLatitude(current.latitude);
-      setLongitude(current.longitude);
-      setCoverKey(current.coverKey ?? DEFAULT_COVER_KEY);
+    (current: NonNullable<typeof editEvent>) => {
+      applyFormState(createFormStateFromEvent(current), getFormLocationDisplayName(current));
       closeSheetImmediately();
       setSubmitError(null);
     },
-    [closeSheetImmediately],
+    [applyFormState, closeSheetImmediately],
   );
 
   const getCurrentFormState = useCallback(
-    (): FormState => ({
+    (): CreateEventFormState => ({
       eventName,
       description,
       groupType,
@@ -530,7 +489,7 @@ const CreateEventScreen = () => {
   );
 
   const handleSubmit = useCallback(
-    async (formOverride?: FormState) => {
+    async (formOverride?: CreateEventFormState) => {
       if (isSubmitting) {
         return;
       }
@@ -560,8 +519,8 @@ const CreateEventScreen = () => {
 
       const now = new Date();
       const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
-      const normalizedDateTime = new Date(form.selectedDateTime);
-      normalizedDateTime.setSeconds(0, 0);
+      const normalized = normalizeCreateEventForm(form);
+      const { normalizedDateTime } = normalized;
 
       if (isPastDateTimeSelection(normalizedDateTime, now)) {
         triggerHaptic('error');
@@ -584,36 +543,9 @@ const CreateEventScreen = () => {
       setSubmitError(null);
       setIsSubmitting(true);
 
-      const locationLabel = trimmedLocation;
-      const [rangeStart, rangeEnd] = form.ageRange;
-      const minAge = Math.min(rangeStart, rangeEnd);
-      const maxAge = Math.max(rangeStart, rangeEnd);
-      const selectedCover = form.coverKey || DEFAULT_COVER_KEY;
-      const eventDate = toDateKey(normalizedDateTime);
-      const eventTime = formatTime(normalizedDateTime.getHours(), normalizedDateTime.getMinutes());
-      const selectedLabel = getLegacyDateLabel(eventDate);
-      const scheduledAt = normalizedDateTime.toISOString();
-
       try {
         if (isEditing && editEventId) {
-          await updateUserEvent(editEventId, {
-            title: trimmedName || 'New event',
-            location: locationLabel,
-            time: eventTime,
-            eventDate,
-            dateLabel: selectedLabel,
-            description: trimmedDescription.length ? trimmedDescription : undefined,
-            gender: form.gender,
-            minAge,
-            maxAge,
-            groupType: form.groupType,
-            badgeLabel: form.groupType === 'Group' ? 'Group' : null,
-            coverKey: selectedCover,
-            scheduledAt,
-            placeId: form.placeId,
-            latitude: form.latitude,
-            longitude: form.longitude,
-          });
+          await updateUserEvent(editEventId, buildUpdateEventPayload(form));
           triggerHaptic('success');
           navigation.dispatch(
             StackActions.popTo(
@@ -628,32 +560,13 @@ const CreateEventScreen = () => {
           );
         } else {
           const minDelay = new Promise<void>((r) => setTimeout(r, 1500));
-          await addUserEvent({
-            title: trimmedName || 'New event',
-            location: locationLabel,
-            time: eventTime,
-            eventDate,
-            dateLabel: selectedLabel,
-            description: trimmedDescription.length ? trimmedDescription : undefined,
-            gender: form.gender,
-            minAge,
-            maxAge,
-            groupType: form.groupType,
-            badgeLabel: form.groupType === 'Group' ? 'Group' : undefined,
-            coverKey: selectedCover,
-            userId: user.id,
-            hostName: user.name,
-            scheduledAt,
-            placeId: form.placeId,
-            latitude: form.latitude,
-            longitude: form.longitude,
-          });
+          await addUserEvent(buildCreateEventPayload(form, user));
           await minDelay;
           triggerHaptic('success');
           resetForm();
           navigation.dispatch(
             StackActions.replace('EventCreated', {
-              eventTitle: trimmedName || 'New event',
+              eventTitle: normalized.title,
               coverUri: selectedCoverUri,
               buttonLayout,
               skipAnimation: true,
@@ -689,8 +602,7 @@ const CreateEventScreen = () => {
 
     // Guest user flow — always open sign-in modal
     if (!user) {
-      const hasContent =
-        formState.eventName.trim().length > 0 || formState.description.trim().length > 0;
+      const hasContent = hasGuestDraftContent(formState);
 
       if (hasContent) {
         // Validate date/time only when there's content to publish
@@ -701,55 +613,19 @@ const CreateEventScreen = () => {
 
         const now = new Date();
         const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
-        if (isPastDateTimeSelection(formState.selectedDateTime, now)) {
+        const { normalizedDateTime } = normalizeCreateEventForm(formState);
+        if (isPastDateTimeSelection(normalizedDateTime, now)) {
           setSubmitError('Choose a future date and time');
           return;
         }
 
-        if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
+        if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
           setSubmitError('Choose a time within the next 30 days');
           return;
         }
 
         // Queue the draft for auto-submit after sign-in
-        const trimmedName = formState.eventName.trim();
-        const trimmedDescription = formState.description.trim();
-        const locationLabel = formState.location.trim() || 'To be decided';
-        const [rangeStart, rangeEnd] = formState.ageRange;
-        const minAge = Math.min(rangeStart, rangeEnd);
-        const maxAge = Math.max(rangeStart, rangeEnd);
-        const selectedCover = formState.coverKey || DEFAULT_COVER_KEY;
-        const normalizedDateTime = new Date(formState.selectedDateTime);
-        normalizedDateTime.setSeconds(0, 0);
-
-        const eventDate = toDateKey(normalizedDateTime);
-        const selectedLabel = getLegacyDateLabel(eventDate);
-        const eventTime = formatTime(
-          normalizedDateTime.getHours(),
-          normalizedDateTime.getMinutes(),
-        );
-        const scheduledAt = normalizedDateTime.toISOString();
-
-        const draftPayload: GuestEventDraft = {
-          title: trimmedName || 'New event',
-          location: locationLabel,
-          time: eventTime,
-          eventDate,
-          dateLabel: selectedLabel,
-          description: trimmedDescription.length ? trimmedDescription : undefined,
-          gender: formState.gender,
-          minAge,
-          maxAge,
-          groupType: formState.groupType,
-          badgeLabel: formState.groupType === 'Group' ? 'Group' : undefined,
-          coverKey: selectedCover,
-          scheduledAt,
-          placeId: formState.placeId,
-          latitude: formState.latitude,
-          longitude: formState.longitude,
-        };
-
-        queueGuestEvent(draftPayload);
+        queueGuestEvent(buildGuestEventDraft(formState));
       }
 
       // Always open sign-in modal (no validation blocking for empty fields)
@@ -775,12 +651,13 @@ const CreateEventScreen = () => {
 
     const now = new Date();
     const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
-    if (isPastDateTimeSelection(formState.selectedDateTime, now)) {
+    const { normalizedDateTime } = normalizeCreateEventForm(formState);
+    if (isPastDateTimeSelection(normalizedDateTime, now)) {
       setSubmitError('Choose a future date and time');
       return;
     }
 
-    if (formState.selectedDateTime.getTime() > maxAllowedDate.getTime()) {
+    if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
       setSubmitError('Choose a time within the next 30 days');
       return;
     }
