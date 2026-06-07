@@ -149,7 +149,7 @@ Use that plan for ordering:
 10. Navigation cleanup.
 11. Final consistency pass.
 
-Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, and shared event-list foundations.
+Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, and the first Event Details overlay-route extraction.
 
 ## Testing And Validation
 

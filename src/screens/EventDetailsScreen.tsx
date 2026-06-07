@@ -36,7 +36,6 @@ if (
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import LocationIcon from '@assets/event-details/location.svg';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
-import CloseIcon from '@assets/ui/close.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import AcceptIcon from '@assets/event-details/accept.svg';
 import RejectIcon from '@assets/event-details/reject.svg';
@@ -62,14 +61,12 @@ import { useChat, ChatJoinRequest } from '@context/ChatContext';
 import { API_BASE_URL } from '@api/config';
 import { getEventAnalyticsParams, trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
-import EventActionBadge from '@components/EventActionBadge';
-import EventActionOverlay from '@components/EventActionOverlay';
 import EmptyState from '@components/EmptyState';
-import BottomSheetModal from '@components/BottomSheetModal';
-import SignInButtons from '@components/SignInButtons';
 import UserAvatar from '@components/UserAvatar';
 import { formatEventDetailDateLabel } from '@utils/dateTime';
 import { formatEventDetailAudienceLine } from '@utils/eventDisplay';
+
+import EventDetailsOverlayRoutes from './event-details/EventDetailsOverlayRoutes';
 
 type EventDetailsRoute = RouteProp<RootStackParamList, 'EventDetails' | 'EventDetailsOverlay'>;
 type EventDetailsNavigation = NativeStackNavigationProp<
@@ -1841,10 +1838,8 @@ const EventDetailsScreenContent = ({
         ) : null}
       </View>
 
-      <EventActionOverlay
-        isVisible={shouldShowInvitePrompt}
-        onBackdropPress={isSendingInvite ? undefined : () => setShowInvitePrompt(false)}
-        type="invite"
+      <EventDetailsOverlayRoutes
+        shouldShowInvitePrompt={shouldShowInvitePrompt}
         inviteMessage={inviteMessage}
         onInviteMessageChange={(text) => {
           setInviteMessage(text);
@@ -1854,49 +1849,27 @@ const EventDetailsScreenContent = ({
         }}
         onSendInvite={handleSendInvite}
         inviteError={inviteError}
-        inviteSubmitting={isSendingInvite}
-        inviteDisabled={!inviteMessage.trim()}
-      />
-      <EventActionOverlay
-        isVisible={showManagePrompt}
-        onBackdropPress={() => setShowManagePrompt(false)}
-        type="manage"
+        isSendingInvite={isSendingInvite}
+        onCloseInvitePrompt={() => setShowInvitePrompt(false)}
+        showManagePrompt={showManagePrompt}
+        onCloseManagePrompt={() => setShowManagePrompt(false)}
         onEdit={handleEdit}
-        onDelete={handleDeletePrompt}
-      />
-      <EventActionOverlay
-        isVisible={showDeleteConfirm}
-        onBackdropPress={isDeleting ? undefined : handleDeleteCancel}
-        type="confirm"
-        title="Delete this event?"
-        description="This will remove the event for everyone and can't be undone."
-        confirmLabel="Delete event"
-        cancelLabel="Keep event"
-        confirmTone="destructive"
-        onConfirm={handleDelete}
-        onCancel={handleDeleteCancel}
-        isConfirmLoading={isDeleting}
-        errorMessage={deleteError}
-      />
-      <EventActionOverlay
-        isVisible={showPendingRequestPrompt}
-        onBackdropPress={isCancellingRequest ? undefined : () => setShowPendingRequestPrompt(false)}
-        type="pendingRequest"
+        onDeletePrompt={handleDeletePrompt}
+        showDeleteConfirm={showDeleteConfirm}
+        onDelete={handleDelete}
+        onDeleteCancel={handleDeleteCancel}
+        deleteError={deleteError}
+        isDeleting={isDeleting}
+        showPendingRequestPrompt={showPendingRequestPrompt}
+        onClosePendingRequestPrompt={() => setShowPendingRequestPrompt(false)}
         onCancelRequest={handleCancelRequest}
-        onReportEvent={handleOpenReportPrompt}
-        isCancelling={isCancellingRequest}
-      />
-      <EventActionOverlay
-        isVisible={showReportPrompt}
-        onBackdropPress={
-          isSubmittingReport || isReportingMember
-            ? undefined
-            : () => {
-                setShowReportPrompt(false);
-                setSelectedRequest(null);
-              }
-        }
-        type="report"
+        onOpenReportPrompt={handleOpenReportPrompt}
+        isCancellingRequest={isCancellingRequest}
+        showReportPrompt={showReportPrompt}
+        onCloseReportPrompt={() => {
+          setShowReportPrompt(false);
+          setSelectedRequest(null);
+        }}
         reportMessage={reportMessage}
         onReportMessageChange={(text) => {
           setReportMessage(text);
@@ -1906,110 +1879,53 @@ const EventDetailsScreenContent = ({
         }}
         onSubmitReport={selectedRequest ? handleSubmitMemberReport : handleSubmitReport}
         reportError={reportError}
-        reportSubmitting={isSubmittingReport || isReportingMember}
-        reportDisabled={!reportMessage.trim()}
-      />
-      <EventActionOverlay
-        isVisible={showMenuOverlay}
-        onBackdropPress={() => setShowMenuOverlay(false)}
-        type="menu"
-        items={menuItems}
-      />
-      <EventActionOverlay
-        isVisible={showViewIntroOverlay}
-        onBackdropPress={() => setShowViewIntroOverlay(false)}
-        type="viewIntro"
-        introMessage={userIntroMessage ?? ''}
-        onDismiss={() => setShowViewIntroOverlay(false)}
-      />
-      <EventActionOverlay
-        isVisible={showLeaveConfirm}
-        onBackdropPress={isLeaving ? undefined : handleLeaveCancel}
-        type="confirm"
-        title="Leave this event?"
-        description="You'll need to request to join again if you change your mind."
-        confirmLabel="Leave Event"
-        cancelLabel="Stay"
-        confirmTone="destructive"
-        onConfirm={handleLeaveEvent}
-        onCancel={handleLeaveCancel}
-        isConfirmLoading={isLeaving}
-        errorMessage={leaveError}
-      />
-      {/* Member menu */}
-      <EventActionOverlay
-        isVisible={showMemberMenu}
-        onBackdropPress={() => setShowMemberMenu(false)}
-        type="menu"
-        items={[
-          {
-            label: `Report & Block ${selectedMember?.name?.split(' ')[0] ?? 'Member'}`,
-            onPress: handleReportMemberFromMenu,
-          },
-          {
-            label: `Remove ${selectedMember?.name?.split(' ')[0] ?? 'Member'}`,
-            onPress: handleRemovePromptFromMenu,
-            destructive: true,
-          },
-        ]}
-      />
-      <EventActionOverlay
-        isVisible={showRemoveConfirm}
-        onBackdropPress={isRemovingMember ? undefined : handleRemoveCancel}
-        type="confirm"
-        title={`Remove ${selectedMember?.name?.split(' ')[0] ?? 'this member'}?`}
-        description={
-          isSingleEvent
-            ? 'They will be removed from this event and private chat.'
-            : 'They will be removed from the group chat and will need to request to join again.'
-        }
-        confirmLabel={`Remove ${selectedMember?.name?.split(' ')[0] ?? 'Member'}`}
-        cancelLabel="Cancel"
-        confirmTone="destructive"
-        onConfirm={handleRemoveMember}
-        onCancel={handleRemoveCancel}
-        isConfirmLoading={isRemovingMember}
-        errorMessage={removeError}
-      />
-      <EventActionBadge
-        visible={showEventUpdatedBadge}
-        label="Event details updated"
-        onHidden={() => {
+        isSubmittingReport={isSubmittingReport || isReportingMember}
+        showMenuOverlay={showMenuOverlay}
+        onCloseMenuOverlay={() => setShowMenuOverlay(false)}
+        menuItems={menuItems}
+        showViewIntroOverlay={showViewIntroOverlay}
+        onCloseViewIntroOverlay={() => setShowViewIntroOverlay(false)}
+        userIntroMessage={userIntroMessage}
+        showLeaveConfirm={showLeaveConfirm}
+        onLeaveEvent={handleLeaveEvent}
+        onLeaveCancel={handleLeaveCancel}
+        isLeaving={isLeaving}
+        leaveError={leaveError}
+        showMemberMenu={showMemberMenu}
+        onCloseMemberMenu={() => setShowMemberMenu(false)}
+        selectedMemberName={selectedMember?.name}
+        onReportMemberFromMenu={handleReportMemberFromMenu}
+        onRemovePromptFromMenu={handleRemovePromptFromMenu}
+        showRemoveConfirm={showRemoveConfirm}
+        onRemoveMember={handleRemoveMember}
+        onRemoveCancel={handleRemoveCancel}
+        isRemovingMember={isRemovingMember}
+        removeError={removeError}
+        isSingleEvent={isSingleEvent}
+        showEventUpdatedBadge={showEventUpdatedBadge}
+        onEventUpdatedBadgeHidden={() => {
           setShowEventUpdatedBadge(false);
           navigation.setParams({ showEventUpdatedBadge: false });
         }}
-      />
-      <EventActionBadge
-        visible={showRequestSentBadge}
-        label="Requested to join"
-        onHidden={() => {
+        showRequestSentBadge={showRequestSentBadge}
+        onRequestSentBadgeHidden={() => {
           setShowRequestSentBadge(false);
         }}
-      />
-      <EventActionBadge
-        visible={showRequestCancelledBadge}
-        label="Requested to join cancelled"
-        onHidden={() => {
+        showRequestCancelledBadge={showRequestCancelledBadge}
+        onRequestCancelledBadgeHidden={() => {
           setShowRequestCancelledBadge(false);
         }}
-      />
-      <EventActionBadge
-        visible={removedMemberBadgeLabel != null}
-        label={removedMemberBadgeLabel ?? ''}
-        onHidden={() => {
+        removedMemberBadgeLabel={removedMemberBadgeLabel}
+        onRemovedMemberBadgeHidden={() => {
           setRemovedMemberBadgeLabel(null);
         }}
-      />
-      <EventActionBadge
-        visible={reportedMemberBadgeLabel != null}
-        label={reportedMemberBadgeLabel ?? ''}
-        onHidden={() => {
+        reportedMemberBadgeLabel={reportedMemberBadgeLabel}
+        onReportedMemberBadgeHidden={() => {
           setReportedMemberBadgeLabel(null);
         }}
+        signInVisible={signInVisible}
+        onCloseSignIn={() => setSignInVisible(false)}
       />
-      <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
-        <SignInButtons />
-      </BottomSheetModal>
     </>
   );
 
