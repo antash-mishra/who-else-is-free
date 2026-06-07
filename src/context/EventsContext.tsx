@@ -7,26 +7,24 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
+} from 'react';
 // TODO: replace in-memory state with persisted cache for offline support when API integration stabilises.
 
-import { EventItemProps } from "@components/EventCard";
-import { API_BASE_URL } from "@api/config";
-import { useAuth } from "@context/AuthContext";
-import { getEventAnalyticsParams, trackEvent } from "@services/analytics";
-import {
-  CoverKey,
-  DEFAULT_COVER_KEY,
-  resolveCoverUri,
-} from "@constants/covers";
+import { API_BASE_URL } from '@api/config';
+import { createRequestTimeout, isAbortError } from '@api/request';
+import { EventItemProps } from '@components/EventCard';
+import { CoverKey, DEFAULT_COVER_KEY, resolveCoverUri } from '@constants/covers';
+import { useAuth } from '@context/AuthContext';
+import { getEventAnalyticsParams, trackEvent } from '@services/analytics';
 import {
   getLegacyDateLabel,
   getScheduleDisplay,
   parseDateKey,
   timeStringToMinutes,
-} from "@utils/dateTime";
-import { formatAudienceLabel } from "@utils/eventDisplay";
-import { navigationRef } from "../navigation/navigationRef";
+} from '@utils/dateTime';
+import { formatAudienceLabel } from '@utils/eventDisplay';
+
+import { navigationRef } from '../navigation/navigationRef';
 
 export type DateLabel = string;
 
@@ -40,7 +38,7 @@ export interface UserEvent extends EventItemProps {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   coverKey?: CoverKey | null;
   scheduledAt?: string; // ISO 8601 UTC timestamp
   createdAt?: string; // ISO 8601 UTC timestamp
@@ -59,7 +57,7 @@ interface CreateEventInput {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   badgeLabel?: string;
   coverKey: CoverKey;
   userId: number;
@@ -80,7 +78,7 @@ interface UpdateEventInput {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   badgeLabel?: string | null;
   coverKey?: CoverKey | null;
   scheduledAt?: string; // ISO 8601 UTC timestamp
@@ -99,7 +97,7 @@ export interface GuestEventDraft {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   badgeLabel?: string;
   coverKey: CoverKey;
   scheduledAt?: string; // ISO 8601 UTC timestamp
@@ -140,7 +138,7 @@ export type ApiEvent = {
   max_age: number;
   date_label: string;
   event_date: string;
-  group_type?: "Single" | "Group";
+  group_type?: 'Single' | 'Group';
   user_id: number;
   host_name: string;
   host_avatar?: string | null;
@@ -157,20 +155,6 @@ interface EventMeta {
 }
 
 const REFRESH_TIMEOUT_MS = 10_000;
-
-const createRequestTimeout = (timeoutMs: number) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-  return {
-    signal: controller.signal,
-    clear: () => clearTimeout(timeoutId),
-  };
-};
-
-const isAbortError = (err: unknown) =>
-  err instanceof Error && err.name === "AbortError";
 
 const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
   return getLegacyDateLabel(eventDate);
@@ -217,11 +201,8 @@ const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
   return a.eventDate.localeCompare(b.eventDate);
 };
 
-export const mapApiEventToUserEvent = (
-  event: ApiEvent,
-  badgeLabel?: string,
-): UserEvent => {
-  const groupType = event.group_type ?? "Single";
+export const mapApiEventToUserEvent = (event: ApiEvent, badgeLabel?: string): UserEvent => {
+  const groupType = event.group_type ?? 'Single';
   const schedule = getScheduleDisplay({
     scheduledAt: event.scheduled_at,
     eventDate: event.event_date,
@@ -240,7 +221,7 @@ export const mapApiEventToUserEvent = (
       maxAge: event.max_age,
     }),
     imageUri: resolveCoverUri(event.cover_key),
-    badgeLabel: groupType === "Group" ? "Group" : badgeLabel,
+    badgeLabel: groupType === 'Group' ? 'Group' : badgeLabel,
     dateLabel: schedule.displayLabel,
     eventDate: schedule.displayDate,
     description: event.description,
@@ -265,15 +246,10 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingGuestEvent, setPendingGuestEvent] =
-    useState<GuestEventDraft | null>(null);
+  const [pendingGuestEvent, setPendingGuestEvent] = useState<GuestEventDraft | null>(null);
   const metaRef = useRef<Record<string, EventMeta>>({});
-  const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(() => new Set());
+  const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(() => new Set());
   const eventsRequestIdRef = useRef(0);
   const requestedEventsRequestIdRef = useRef(0);
   const resetRequestedEventIds = useCallback(() => {
@@ -319,10 +295,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       const payload: { data: ApiEvent[] | null } = await response.json();
       const nextEvents = (payload.data ?? [])
         .map((event) =>
-          mapApiEventToUserEvent(
-            event,
-            metaRef.current[String(event.id)]?.badgeLabel,
-          ),
+          mapApiEventToUserEvent(event, metaRef.current[String(event.id)]?.badgeLabel),
         )
         .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
         .sort(sortEventsBySchedule);
@@ -334,11 +307,11 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== eventsRequestIdRef.current) {
         return;
       }
-      console.error("Failed to fetch events", err);
+      console.error('Failed to fetch events', err);
       if (isAbortError(err)) {
-        setError("Unable to load events. Request timed out.");
+        setError('Unable to load events. Request timed out.');
       } else {
-        setError("Unable to load events. Pull to refresh.");
+        setError('Unable to load events. Pull to refresh.');
       }
     } finally {
       timeout.clear();
@@ -401,7 +374,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== requestedEventsRequestIdRef.current) {
         return;
       }
-      console.error("Failed to fetch requested events", err);
+      console.error('Failed to fetch requested events', err);
       resetRequestedEventIds();
     } finally {
       timeout.clear();
@@ -441,11 +414,11 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const addUserEvent = useCallback(
     async (event: CreateEventInput) => {
       if (!token) {
-        throw new Error("You must be signed in to create an event.");
+        throw new Error('You must be signed in to create an event.');
       }
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Unable to submit event at this time.");
+        throw new Error('Unable to submit event at this time.');
       }
 
       const derivedLabel = deriveDateLabelFromDate(event.eventDate);
@@ -453,7 +426,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         title: event.title,
         location: event.location,
         time: event.time,
-        description: event.description ?? "",
+        description: event.description ?? '',
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
@@ -474,24 +447,22 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         scheduledAt: event.scheduledAt,
       });
 
-      trackEvent("event_create_submitted", analyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('event_create_submitted', analyticsParams).catch(() => undefined);
 
       let response: Response;
       try {
         response = await fetchClient(`${API_BASE_URL}/api/events`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify(payload),
         });
       } catch (error) {
-        trackEvent("event_create_failed", {
+        trackEvent('event_create_failed', {
           ...analyticsParams,
-          reason_category: "network_error",
+          reason_category: 'network_error',
         }).catch(() => undefined);
         throw error;
       }
@@ -506,10 +477,10 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         } catch {
           // ignore JSON parse errors and fall back to generic message
         }
-        trackEvent("event_create_failed", {
+        trackEvent('event_create_failed', {
           ...analyticsParams,
           status_code: response.status,
-          reason_category: "api_error",
+          reason_category: 'api_error',
         }).catch(() => undefined);
         throw new Error(message);
       }
@@ -517,14 +488,12 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       const { id } = (await response.json()) as { id: number };
       const eventId = String(id);
 
-      trackEvent("event_create_succeeded", analyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('event_create_succeeded', analyticsParams).catch(() => undefined);
 
       metaRef.current = {
         ...metaRef.current,
         [eventId]: {
-          badgeLabel: event.groupType === "Group" ? "Group" : event.badgeLabel,
+          badgeLabel: event.groupType === 'Group' ? 'Group' : event.badgeLabel,
         },
       };
 
@@ -576,7 +545,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         title: event.title,
         location: event.location,
         time: event.time,
-        description: event.description ?? "",
+        description: event.description ?? '',
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
@@ -591,18 +560,18 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       };
 
       if (!token) {
-        throw new Error("You must be signed in to update an event.");
+        throw new Error('You must be signed in to update an event.');
       }
 
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Unable to update event at this time.");
+        throw new Error('Unable to update event at this time.');
       }
 
       const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(payload),
@@ -619,10 +588,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           ...metaRef.current[eventId],
           ...(event.groupType !== undefined
             ? {
-                badgeLabel:
-                  event.groupType === "Group"
-                    ? "Group"
-                    : event.badgeLabel ?? undefined,
+                badgeLabel: event.groupType === 'Group' ? 'Group' : (event.badgeLabel ?? undefined),
               }
             : {}),
         },
@@ -636,16 +602,16 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const deleteUserEvent = useCallback(
     async (eventId: string) => {
       if (!token) {
-        throw new Error("You must be signed in to delete an event.");
+        throw new Error('You must be signed in to delete an event.');
       }
 
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Unable to delete event at this time.");
+        throw new Error('Unable to delete event at this time.');
       }
 
       const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: token
           ? {
               Authorization: `Bearer ${token}`,
@@ -698,13 +664,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (navigationRef.isReady()) {
-          (navigationRef as any).navigate("Main", {
-            screen: "MyEvents",
+          (navigationRef as any).navigate('Main', {
+            screen: 'MyEvents',
             params: { showEventCreatedBadge: true },
           });
         }
       } catch (err) {
-        console.error("Failed to submit queued guest event", err);
+        console.error('Failed to submit queued guest event', err);
       } finally {
         if (!cancelled) {
           setPendingGuestEvent(null);
@@ -790,16 +756,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     ],
   );
 
-  return (
-    <EventsContext.Provider value={value}>{children}</EventsContext.Provider>
-  );
+  return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;
 };
 
 export const useEvents = () => {
   const context = useContext(EventsContext);
 
   if (!context) {
-    throw new Error("useEvents must be used within an EventsProvider");
+    throw new Error('useEvents must be used within an EventsProvider');
   }
 
   return context;

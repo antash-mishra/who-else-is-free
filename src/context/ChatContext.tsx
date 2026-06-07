@@ -7,14 +7,15 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
+} from 'react';
 
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus } from 'react-native';
 
-import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from "@api/config";
-import { useAuth } from "@context/AuthContext";
-import { trackEvent } from "@services/analytics";
-import { getScheduleDisplay } from "@utils/dateTime";
+import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from '@api/config';
+import { createRequestTimeout, isAbortError } from '@api/request';
+import { useAuth } from '@context/AuthContext';
+import { trackEvent } from '@services/analytics';
+import { getScheduleDisplay } from '@utils/dateTime';
 
 type ConversationParticipant = {
   id: number;
@@ -82,10 +83,10 @@ export type ChatJoinRequest = {
   eventId: number;
   userId: number;
   message: string;
-  status: "pending" | "approved" | "denied";
+  status: 'pending' | 'approved' | 'denied';
   createdAt: string;
   requester: ConversationParticipant;
-  conversationId?: number;  // for 1:1 events
+  conversationId?: number; // for 1:1 events
 };
 
 interface ChatContextValue {
@@ -106,16 +107,8 @@ interface ChatContextValue {
       includeApproved?: boolean;
     },
   ) => Promise<void>;
-  approveJoinRequest: (
-    conversationId: number,
-    eventId: number,
-    userId: number,
-  ) => Promise<void>;
-  denyJoinRequest: (
-    conversationId: number,
-    eventId: number,
-    userId: number,
-  ) => Promise<void>;
+  approveJoinRequest: (conversationId: number, eventId: number, userId: number) => Promise<void>;
+  denyJoinRequest: (conversationId: number, eventId: number, userId: number) => Promise<void>;
   reportMember: (eventId: number, userId: number, reason: string) => Promise<void>;
   isRefreshingConversations: boolean;
   hasUnseenMessages: boolean;
@@ -123,22 +116,8 @@ interface ChatContextValue {
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
-const WS_PATH = "/api/ws";
+const WS_PATH = '/api/ws';
 const REFRESH_TIMEOUT_MS = 10_000;
-
-const createRequestTimeout = (timeoutMs: number) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-  return {
-    signal: controller.signal,
-    clear: () => clearTimeout(timeoutId),
-  };
-};
-
-const isAbortError = (err: unknown) =>
-  err instanceof Error && err.name === "AbortError";
 
 const sortConversationsByActivity = (items: ChatConversation[]) => {
   return [...items].sort((a, b) => {
@@ -205,20 +184,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [messagesByConversation, setMessagesByConversation] = useState<
     Record<number, ChatMessage[]>
   >({});
-  const [activeConversationId, setActiveConversationId] = useState<
-    number | null
-  >(null);
+  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isRefreshingConversations, setIsRefreshingConversations] =
-    useState(false);
+  const [isRefreshingConversations, setIsRefreshingConversations] = useState(false);
   const [joinRequestsByConversation, setJoinRequestsByConversation] = useState<
     Record<number, ChatJoinRequest[]>
   >({});
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const manuallyClosedRef = useRef(false);
   const appStateRef = useRef(AppState.currentState);
   const activeConversationRef = useRef<number | null>(null);
@@ -234,12 +208,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
     // Send presence update over WebSocket so the server can suppress pushes
     // for the conversation the user is currently viewing.
-    if (
-      socketRef.current &&
-      socketRef.current.readyState === WebSocket.OPEN
-    ) {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       const presencePayload = {
-        type: "presence:active_conversation",
+        type: 'presence:active_conversation',
         conversationId: activeConversationId ?? 0,
       };
       socketRef.current.send(JSON.stringify(presencePayload));
@@ -262,53 +233,48 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     refreshSessionSilentlyRef.current = refreshSessionSilently;
   }, [refreshSessionSilently]);
 
-  const mapServerMessage = useCallback(
-    (payload: ServerEnvelope["message"]): ChatMessage | null => {
-      if (!payload) {
-        return null;
-      }
-      return {
-        id: String(payload.id),
-        conversationId: payload.conversationId,
-        senderId: payload.senderId,
-        body: payload.body,
-        createdAt: payload.createdAt,
-      };
-    },
-    [],
-  );
+  const mapServerMessage = useCallback((payload: ServerEnvelope['message']): ChatMessage | null => {
+    if (!payload) {
+      return null;
+    }
+    return {
+      id: String(payload.id),
+      conversationId: payload.conversationId,
+      senderId: payload.senderId,
+      body: payload.body,
+      createdAt: payload.createdAt,
+    };
+  }, []);
 
   const normalizeParticipant = useCallback(
     (raw: any, fallbackID = 0): ConversationParticipant => ({
       id: raw?.id ?? fallbackID,
-      name: raw?.name ?? raw?.full_name ?? "",
-      avatar:
-        raw?.avatar ??
-        raw?.avatarUrl ??
-        raw?.avatar_url ??
-        undefined,
+      name: raw?.name ?? raw?.full_name ?? '',
+      avatar: raw?.avatar ?? raw?.avatarUrl ?? raw?.avatar_url ?? undefined,
     }),
     [],
   );
 
-  const normalizeJoinRequest = useCallback((raw: any): ChatJoinRequest => {
-    const eventId = raw.eventId ?? raw.event_id ?? 0;
-    const userId = raw.userId ?? raw.user_id ?? 0;
-    const createdAt =
-      raw.createdAt ?? raw.created_at ?? new Date().toISOString();
-    const requester = raw.requester ?? {};
-    const conversationId = raw.conversationId ?? raw.conversation_id;
-    return {
-      id: raw.id,
-      eventId,
-      userId,
-      message: raw.message ?? "",
-      status: (raw.status ?? "pending") as ChatJoinRequest["status"],
-      createdAt,
-      requester: normalizeParticipant(requester, userId),
-      conversationId,
-    };
-  }, [normalizeParticipant]);
+  const normalizeJoinRequest = useCallback(
+    (raw: any): ChatJoinRequest => {
+      const eventId = raw.eventId ?? raw.event_id ?? 0;
+      const userId = raw.userId ?? raw.user_id ?? 0;
+      const createdAt = raw.createdAt ?? raw.created_at ?? new Date().toISOString();
+      const requester = raw.requester ?? {};
+      const conversationId = raw.conversationId ?? raw.conversation_id;
+      return {
+        id: raw.id,
+        eventId,
+        userId,
+        message: raw.message ?? '',
+        status: (raw.status ?? 'pending') as ChatJoinRequest['status'],
+        createdAt,
+        requester: normalizeParticipant(requester, userId),
+        conversationId,
+      };
+    },
+    [normalizeParticipant],
+  );
 
   useEffect(() => {
     if (!user || !token) {
@@ -346,13 +312,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           `${API_BASE_URL}/api/conversations/${conversationId}/messages?limit=50`,
           {
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
               Authorization: `Bearer ${activeToken}`,
             },
           },
         );
         if (!response.ok) {
-          throw new Error("Failed to load messages");
+          throw new Error('Failed to load messages');
         }
         const payload = (await response.json()) as MessagesResponse;
         const normalized = payload.messages
@@ -373,13 +339,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
         setConversations((prev) =>
           prev.map((conversation) =>
-            conversation.id === conversationId
-              ? { ...conversation, unreadCount: 0 }
-              : conversation,
+            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
           ),
         );
       } catch (err) {
-        console.error("Failed to refresh messages", err);
+        console.error('Failed to refresh messages', err);
         setError((err as Error).message);
       }
     },
@@ -405,13 +369,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetchClient(`${API_BASE_URL}/api/conversations`, {
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${activeToken}`,
         },
         signal: timeout.signal,
       });
       if (!response.ok) {
-        throw new Error("Unable to load conversations");
+        throw new Error('Unable to load conversations');
       }
       const payload = (await response.json()) as ConversationsResponse;
       if (requestId !== conversationsRefreshRequestIdRef.current) {
@@ -419,12 +383,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       }
       setError(null);
       const normalized = (payload.conversations ?? []).map((conversation) => {
-        const participants = (conversation.participants ?? []).map(
-          (participant) => normalizeParticipant(participant),
+        const participants = (conversation.participants ?? []).map((participant) =>
+          normalizeParticipant(participant),
         );
-        const counterpart = participants.find(
-          (participant) => participant.id !== user.id,
-        );
+        const counterpart = participants.find((participant) => participant.id !== user.id);
         const event = conversation.event
           ? (() => {
               const schedule = getScheduleDisplay({
@@ -448,16 +410,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
               };
             })()
           : undefined;
-        const memberCount =
-          conversation.member_ids?.length ?? participants.length;
+        const memberCount = conversation.member_ids?.length ?? participants.length;
         const hasEvent = !!event;
-        const isGroup =
-          hasEvent || memberCount > 2 || (!!conversation.title && memberCount > 1);
-        const fallbackName =
-          conversation.title ?? participants[0]?.name ?? "Conversation";
+        const isGroup = hasEvent || memberCount > 2 || (!!conversation.title && memberCount > 1);
+        const fallbackName = conversation.title ?? participants[0]?.name ?? 'Conversation';
         const displayName = hasEvent
-          ? event?.title ?? fallbackName
-          : counterpart?.name ?? fallbackName;
+          ? (event?.title ?? fallbackName)
+          : (counterpart?.name ?? fallbackName);
         const lastMessage = conversation.last_message
           ? {
               id: String(conversation.last_message.id),
@@ -519,9 +478,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== conversationsRefreshRequestIdRef.current) {
         return;
       }
-      console.error("Failed to load conversations", err);
+      console.error('Failed to load conversations', err);
       if (isAbortError(err)) {
-        setError("Unable to load conversations");
+        setError('Unable to load conversations');
       } else {
         setError((err as Error).message);
       }
@@ -543,14 +502,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     ) => {
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Not authenticated");
+        throw new Error('Not authenticated');
       }
       const activeToken = tokenRef.current;
       if (!activeToken) {
-        throw new Error("Not authenticated");
+        throw new Error('Not authenticated');
       }
       const includeApproved = options?.includeApproved === true;
-      const query = includeApproved ? "?include_approved=1" : "";
+      const query = includeApproved ? '?include_approved=1' : '';
       const requestId = (joinRequestsRefreshRequestIdRef.current[eventId] ?? 0) + 1;
       joinRequestsRefreshRequestIdRef.current[eventId] = requestId;
       const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
@@ -576,7 +535,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         if (!response.ok) {
-          const error = new Error("Failed to load join requests") as Error & {
+          const error = new Error('Failed to load join requests') as Error & {
             status?: number;
           };
           error.status = response.status;
@@ -598,7 +557,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
           return;
         }
-        console.error("Failed to load join requests", err);
+        console.error('Failed to load join requests', err);
         throw err;
       } finally {
         timeout.clear();
@@ -608,47 +567,36 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const performJoinRequestAction = useCallback(
-    async (
-      conversationId: number,
-      eventId: number,
-      userId: number,
-      action: "approve" | "deny",
-    ) => {
+    async (conversationId: number, eventId: number, userId: number, action: 'approve' | 'deny') => {
       const path =
-        action === "approve"
+        action === 'approve'
           ? `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/approve`
           : `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/deny`;
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Not authenticated");
+        throw new Error('Not authenticated');
       }
       const activeToken = tokenRef.current;
       if (!activeToken) {
-        throw new Error("Not authenticated");
+        throw new Error('Not authenticated');
       }
       const response = await fetchClient(path, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${activeToken}`,
         },
       });
       if (!response.ok) {
         const message =
-          action === "approve"
-            ? "Unable to approve join request."
-            : "Unable to deny join request.";
+          action === 'approve' ? 'Unable to approve join request.' : 'Unable to deny join request.';
         throw new Error(message);
       }
       setJoinRequestsByConversation((prev) => {
         const eventScopedKey = -eventId;
         const existingByConversation = prev[conversationId] ?? [];
         const existingByEvent = prev[eventScopedKey] ?? [];
-        const nextByConversation = existingByConversation.filter(
-          (item) => item.userId !== userId,
-        );
-        const nextByEvent = existingByEvent.filter(
-          (item) => item.userId !== userId,
-        );
+        const nextByConversation = existingByConversation.filter((item) => item.userId !== userId);
+        const nextByEvent = existingByEvent.filter((item) => item.userId !== userId);
         if (
           existingByConversation.length === nextByConversation.length &&
           existingByEvent.length === nextByEvent.length
@@ -667,65 +615,57 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const approveJoinRequest = useCallback(
     async (conversationId: number, eventId: number, userId: number) => {
-      await performJoinRequestAction(
-        conversationId,
-        eventId,
-        userId,
-        "approve",
-      );
+      await performJoinRequestAction(conversationId, eventId, userId, 'approve');
     },
     [performJoinRequestAction],
   );
 
   const denyJoinRequest = useCallback(
     async (conversationId: number, eventId: number, userId: number) => {
-      await performJoinRequestAction(conversationId, eventId, userId, "deny");
+      await performJoinRequestAction(conversationId, eventId, userId, 'deny');
     },
     [performJoinRequestAction],
   );
 
-  const reportMember = useCallback(
-    async (eventId: number, userId: number, reason: string) => {
-      const fetchClient = authFetchRef.current;
-      if (!fetchClient) {
-        throw new Error("Not authenticated");
-      }
-      const activeToken = tokenRef.current;
-      if (!activeToken) {
-        throw new Error("Not authenticated");
-      }
+  const reportMember = useCallback(async (eventId: number, userId: number, reason: string) => {
+    const fetchClient = authFetchRef.current;
+    if (!fetchClient) {
+      throw new Error('Not authenticated');
+    }
+    const activeToken = tokenRef.current;
+    if (!activeToken) {
+      throw new Error('Not authenticated');
+    }
 
-      const response = await fetchClient(
-        `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${activeToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ reason }),
+    const response = await fetchClient(
+      `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${activeToken}`,
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({ reason }),
+      },
+    );
 
-      if (!response.ok) {
-        throw new Error("Unable to report member");
+    if (!response.ok) {
+      throw new Error('Unable to report member');
+    }
+
+    // The backend also denies the join request, so we need to update local state
+    // This is similar to denyJoinRequest behavior
+    // Find the conversationId for this user and remove them from joinRequestsByConversation
+    setJoinRequestsByConversation((prev) => {
+      const updated = { ...prev };
+      for (const [convId, requests] of Object.entries(updated)) {
+        updated[Number(convId)] = requests.filter(
+          (req) => !(req.eventId === eventId && req.userId === userId),
+        );
       }
-
-      // The backend also denies the join request, so we need to update local state
-      // This is similar to denyJoinRequest behavior
-      // Find the conversationId for this user and remove them from joinRequestsByConversation
-      setJoinRequestsByConversation((prev) => {
-        const updated = { ...prev };
-        for (const [convId, requests] of Object.entries(updated)) {
-          updated[Number(convId)] = requests.filter((req) =>
-            !(req.eventId === eventId && req.userId === userId)
-          );
-        }
-        return updated;
-      });
-    },
-    [],
-  );
+      return updated;
+    });
+  }, []);
 
   useEffect(() => {
     if (!user || !CHAT_ENABLED || !token) {
@@ -768,7 +708,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const currentUserId = userIdRef.current;
       const currentActiveConversationId = activeConversationRef.current;
 
-      if (envelope.type === "message:new") {
+      if (envelope.type === 'message:new') {
         const message = mapServerMessage(envelope.message);
         if (!message) {
           return;
@@ -779,9 +719,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           let nextMessages = existing;
 
           if (envelope.tempId) {
-            nextMessages = existing.filter(
-              (item) => item.tempId !== envelope.tempId,
-            );
+            nextMessages = existing.filter((item) => item.tempId !== envelope.tempId);
           }
 
           return {
@@ -822,19 +760,19 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (message.senderId === currentUserId && envelope.tempId) {
-          trackEvent("message_sent").catch(() => undefined);
+          trackEvent('message_sent').catch(() => undefined);
         }
         return;
       }
 
-      if (envelope.type === "system:error") {
-        trackEvent("message_send_failed", {
-          failure_stage: envelope.code ?? "server_error",
+      if (envelope.type === 'system:error') {
+        trackEvent('message_send_failed', {
+          failure_stage: envelope.code ?? 'server_error',
         }).catch(() => undefined);
         return;
       }
 
-      if (envelope.type === "conversation:join_request") {
+      if (envelope.type === 'conversation:join_request') {
         const { conversationId, action, request } = envelope;
         if (!conversationId || !request || !action) {
           return;
@@ -842,11 +780,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
         setJoinRequestsByConversation((prev) => {
           const normalized = normalizeJoinRequest(request);
-          const eventScopedKey =
-            normalized.eventId > 0 ? -normalized.eventId : null;
+          const eventScopedKey = normalized.eventId > 0 ? -normalized.eventId : null;
           const existing = prev[conversationId] ?? [];
-          const eventScopedExisting =
-            eventScopedKey != null ? (prev[eventScopedKey] ?? []) : [];
+          const eventScopedExisting = eventScopedKey != null ? (prev[eventScopedKey] ?? []) : [];
 
           const upsertByID = (
             items: ChatJoinRequest[],
@@ -856,12 +792,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             return [...filtered, nextItem];
           };
 
-          const removeByID = (
-            items: ChatJoinRequest[],
-            targetID: number,
-          ): ChatJoinRequest[] => items.filter((item) => item.id !== targetID);
+          const removeByID = (items: ChatJoinRequest[], targetID: number): ChatJoinRequest[] =>
+            items.filter((item) => item.id !== targetID);
 
-          if (action === "created") {
+          if (action === 'created') {
             const nextByConversation = upsertByID(existing, normalized);
             const next = {
               ...prev,
@@ -874,17 +808,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
               ...next,
             };
           }
-          if (action === "approved" || action === "denied") {
+          if (action === 'approved' || action === 'denied') {
             const nextByConversation = removeByID(existing, normalized.id);
-            const conversationChanged =
-              nextByConversation.length !== existing.length;
+            const conversationChanged = nextByConversation.length !== existing.length;
             const nextByEvent =
-              eventScopedKey != null
-                ? removeByID(eventScopedExisting, normalized.id)
-                : [];
+              eventScopedKey != null ? removeByID(eventScopedExisting, normalized.id) : [];
             const eventChanged =
-              eventScopedKey != null &&
-              nextByEvent.length !== eventScopedExisting.length;
+              eventScopedKey != null && nextByEvent.length !== eventScopedExisting.length;
             if (!conversationChanged && !eventChanged) {
               return prev;
             }
@@ -902,18 +832,18 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (envelope.type === "conversation:membership") {
+      if (envelope.type === 'conversation:membership') {
         const { conversationId, userId, action } = envelope;
         if (!conversationId || !action) {
           return;
         }
 
-        if (action === "added") {
+        if (action === 'added') {
           refreshConversations().catch(() => undefined);
           return;
         }
 
-        if (action === "removed") {
+        if (action === 'removed') {
           if (userId === currentUserId) {
             setConversations((prev) =>
               prev.filter((conversation) => conversation.id !== conversationId),
@@ -975,7 +905,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
 
     socket.onerror = async () => {
-      setError("Failed to connect to chat.");
+      setError('Failed to connect to chat.');
       setIsConnecting(false);
       const refreshedToken = await refreshSessionSilentlyRef.current?.();
       if (refreshedToken) {
@@ -1003,7 +933,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         const envelope = JSON.parse(String(event.data)) as ServerEnvelope;
         handleServerEnvelope(envelope);
       } catch (err) {
-        console.error("Failed to parse WS message", err);
+        console.error('Failed to parse WS message', err);
       }
     };
   }, [
@@ -1043,10 +973,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (
-        nextState === "active" &&
-        (previous === "inactive" || previous === "background")
-      ) {
+      if (nextState === 'active' && (previous === 'inactive' || previous === 'background')) {
         manuallyClosedRef.current = false;
         connectSocket();
         refreshConversations().catch(() => undefined);
@@ -1057,27 +984,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (nextState === "background" || nextState === "inactive") {
+      if (nextState === 'background' || nextState === 'inactive') {
         manuallyClosedRef.current = true;
         cleanupSocket();
       }
     };
 
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange,
-    );
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => {
       subscription.remove();
     };
-  }, [
-    cleanupSocket,
-    connectSocket,
-    refreshConversations,
-    refreshMessages,
-    token,
-    user,
-  ]);
+  }, [cleanupSocket, connectSocket, refreshConversations, refreshMessages, token, user]);
 
   const sendMessage = useCallback(
     (conversationId: number, body: string) => {
@@ -1089,11 +1006,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const tempId = `${conversationId}-${Date.now()}`;
       const timestamp = new Date().toISOString();
 
-      if (
-        !socketRef.current ||
-        socketRef.current.readyState !== WebSocket.OPEN
-      ) {
-        setError("Chat connection is not ready.");
+      if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+        setError('Chat connection is not ready.');
         connectSocket();
 
         const failedMessage: ChatMessage = {
@@ -1123,8 +1037,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           );
           return sortConversationsByActivity(updated);
         });
-        trackEvent("message_send_failed", {
-          failure_stage: "socket_unavailable",
+        trackEvent('message_send_failed', {
+          failure_stage: 'socket_unavailable',
         }).catch(() => undefined);
         return;
       }
@@ -1161,7 +1075,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       });
 
       const payload = {
-        type: "message:send",
+        type: 'message:send',
         conversationId,
         body: trimmed,
         tempId,
@@ -1170,8 +1084,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       try {
         socketRef.current.send(JSON.stringify(payload));
       } catch (error) {
-        trackEvent("message_send_failed", {
-          failure_stage: "socket_send_error",
+        trackEvent('message_send_failed', {
+          failure_stage: 'socket_send_error',
         }).catch(() => undefined);
         throw error;
       }
@@ -1203,9 +1117,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     if (conversationId !== null) {
       setConversations((prev) =>
         prev.map((conversation) =>
-          conversation.id === conversationId
-            ? { ...conversation, unreadCount: 0 }
-            : conversation,
+          conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
         ),
       );
     }
@@ -1267,7 +1179,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 export const useChat = () => {
   const context = useContext(ChatContext);
   if (!context) {
-    throw new Error("useChat must be used within a ChatProvider");
+    throw new Error('useChat must be used within a ChatProvider');
   }
   return context;
 };
