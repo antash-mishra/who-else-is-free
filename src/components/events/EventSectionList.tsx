@@ -68,6 +68,7 @@ const EventSectionList = <TItem extends EventItemProps>({
   emptyContentStyle,
 }: EventSectionListProps<TItem>) => {
   const resolvedBottomPadding = bottomPadding ?? spacing.xl + bottomInset;
+  const shouldShowFooterSpacing = sections.length > 0 && footerSpacingHeight > 0;
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: EventSection<TItem> }) => (
@@ -105,11 +106,15 @@ const EventSectionList = <TItem extends EventItemProps>({
       }
       ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
       ListFooterComponent={
-        footerSpacingHeight > 0 ? (
+        shouldShowFooterSpacing ? (
           <View style={[styles.footerSpacing, { height: footerSpacingHeight }]} />
         ) : null
       }
-      ListEmptyComponent={emptyState ? <View style={emptyContentStyle}>{emptyState}</View> : null}
+      ListEmptyComponent={
+        emptyState ? (
+          <View style={[styles.emptyStateWrapper, emptyContentStyle]}>{emptyState}</View>
+        ) : null
+      }
       refreshControl={
         onRefresh ? (
           <RefreshControl
@@ -128,7 +133,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   emptyList: {
-    flex: 1,
+    flexGrow: 1,
+  },
+  emptyStateWrapper: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionHeader: {
     fontSize: 15,

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability -- Reanimated tab button feedback mutates shared values from press handlers. */
 import { type ReactNode, useMemo, useRef } from 'react';
 
 import {
@@ -15,7 +16,12 @@ import {
   type BottomTabBarButtonProps,
   type BottomTabScreenProps,
 } from '@react-navigation/bottom-tabs';
-import { DefaultTheme, NavigationContainer, type NavigationProp } from '@react-navigation/native';
+import {
+  DefaultTheme,
+  NavigationContainer,
+  useNavigationState,
+  type NavigationProp,
+} from '@react-navigation/native';
 import {
   CardStyleInterpolators,
   createStackNavigator,
@@ -231,14 +237,48 @@ const PendingRequestsSheet = ({ navigation }: PendingRequestsSheetProps) => (
 );
 
 // ─── Tab screen wrappers ─────────────────────────────────────────────────────
-const EventsTab = (_props: BottomTabScreenProps<RootTabParamList, 'Events'>) => <HomeScreen />;
+type TabAccessibilityBoundaryProps = {
+  routeName: keyof RootTabParamList;
+  children: ReactNode;
+};
+
+const TabAccessibilityBoundary = ({ routeName, children }: TabAccessibilityBoundaryProps) => {
+  const currentRouteName = useNavigationState((state) => state.routes[state.index]?.name);
+  const isFocused = currentRouteName === routeName;
+
+  return (
+    <View
+      style={[tabBarStyles.tabScene, !isFocused && tabBarStyles.tabSceneHidden]}
+      collapsable={false}
+      accessibilityElementsHidden={!isFocused}
+      importantForAccessibility={isFocused ? 'auto' : 'no-hide-descendants'}
+      pointerEvents={isFocused ? 'auto' : 'none'}
+    >
+      {children}
+    </View>
+  );
+};
+
+const EventsTab = (_props: BottomTabScreenProps<RootTabParamList, 'Events'>) => (
+  <TabAccessibilityBoundary routeName="Events">
+    <HomeScreen />
+  </TabAccessibilityBoundary>
+);
 const MyEventsTab = (_props: BottomTabScreenProps<RootTabParamList, 'MyEvents'>) => (
-  <MyEventsScreen />
+  <TabAccessibilityBoundary routeName="MyEvents">
+    <MyEventsScreen />
+  </TabAccessibilityBoundary>
 );
 const MessagesTab = (_props: BottomTabScreenProps<RootTabParamList, 'Messages'>) => (
-  <MessagesScreen />
+  <TabAccessibilityBoundary routeName="Messages">
+    <MessagesScreen />
+  </TabAccessibilityBoundary>
 );
-const ProfileTab = (_props: BottomTabScreenProps<RootTabParamList, 'Profile'>) => <ProfileScreen />;
+const ProfileTab = (_props: BottomTabScreenProps<RootTabParamList, 'Profile'>) => (
+  <TabAccessibilityBoundary routeName="Profile">
+    <ProfileScreen />
+  </TabAccessibilityBoundary>
+);
 
 // ─── Tab bar background ──────────────────────────────────────────────────────
 const TabBarBackground = () => (
@@ -257,6 +297,12 @@ const tabBarStyles = StyleSheet.create({
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+  },
+  tabScene: {
+    flex: 1,
+  },
+  tabSceneHidden: {
+    display: 'none',
   },
   frostedOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -518,7 +564,7 @@ const MainTabs = () => {
         tabBarBackground: () => <TabBarBackground />,
         tabBarActiveTintColor: colors.activeTabIndicator,
         tabBarInactiveTintColor: colors.tabInactive,
-        lazy: false,
+        lazy: true,
         animation: 'none',
         detachInactiveScreens: false,
         sceneStyle: { backgroundColor: 'transparent' },

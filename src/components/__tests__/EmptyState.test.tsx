@@ -39,7 +39,7 @@ describe('EmptyState', () => {
         <EmptyState
           title="Nothing Happening Here (Yet!)"
           description="There are currently no events available."
-        />
+        />,
       );
 
       expect(screen.getByText('Nothing Happening Here (Yet!)')).toBeTruthy();
@@ -63,12 +63,7 @@ describe('EmptyState', () => {
         return <View testID="custom-illustration" />;
       };
 
-      render(
-        <EmptyState
-          {...defaultProps}
-          illustration={CustomIllustration}
-        />
-      );
+      render(<EmptyState {...defaultProps} illustration={CustomIllustration} />);
 
       expect(screen.getByTestId('custom-illustration')).toBeTruthy();
     });
@@ -87,11 +82,7 @@ describe('EmptyState', () => {
       };
 
       render(
-        <EmptyState
-          {...defaultProps}
-          illustration={CustomIllustration}
-          illustrationSize={300}
-        />
+        <EmptyState {...defaultProps} illustration={CustomIllustration} illustrationSize={300} />,
       );
 
       const illustration = screen.getByTestId('sized-illustration');
@@ -102,10 +93,7 @@ describe('EmptyState', () => {
   describe('Image Source', () => {
     it('should render image when imageSource is provided', () => {
       const { UNSAFE_getByType } = render(
-        <EmptyState
-          {...defaultProps}
-          imageSource={{ uri: 'https://example.com/image.png' }}
-        />
+        <EmptyState {...defaultProps} imageSource={{ uri: 'https://example.com/image.png' }} />,
       );
       const { Image } = require('react-native');
 
@@ -115,15 +103,14 @@ describe('EmptyState', () => {
 
     it('should use default image size', () => {
       const { UNSAFE_getByType } = render(
-        <EmptyState
-          {...defaultProps}
-          imageSource={{ uri: 'https://example.com/image.png' }}
-        />
+        <EmptyState {...defaultProps} imageSource={{ uri: 'https://example.com/image.png' }} />,
       );
-      const { Image } = require('react-native');
+      const { Image, StyleSheet } = require('react-native');
 
       const image = UNSAFE_getByType(Image);
-      expect(image.props.style).toEqual({ width: 245, height: 245 });
+      expect(StyleSheet.flatten(image.props.style)).toEqual(
+        expect.objectContaining({ width: 245, height: 245 }),
+      );
     });
 
     it('should use custom image size', () => {
@@ -132,12 +119,14 @@ describe('EmptyState', () => {
           {...defaultProps}
           imageSource={{ uri: 'https://example.com/image.png' }}
           imageSize={200}
-        />
+        />,
       );
-      const { Image } = require('react-native');
+      const { Image, StyleSheet } = require('react-native');
 
       const image = UNSAFE_getByType(Image);
-      expect(image.props.style).toEqual({ width: 200, height: 200 });
+      expect(StyleSheet.flatten(image.props.style)).toEqual(
+        expect.objectContaining({ width: 200, height: 200 }),
+      );
     });
 
     it('should prefer image over illustration when both provided', () => {
@@ -151,7 +140,7 @@ describe('EmptyState', () => {
           {...defaultProps}
           illustration={CustomIllustration}
           imageSource={{ uri: 'https://example.com/image.png' }}
-        />
+        />,
       );
       const { Image } = require('react-native');
 
@@ -173,13 +162,7 @@ describe('EmptyState', () => {
     });
 
     it('should render action button when actionLabel is provided', () => {
-      render(
-        <EmptyState
-          {...defaultProps}
-          actionLabel="Create Event"
-          onActionPress={() => {}}
-        />
-      );
+      render(<EmptyState {...defaultProps} actionLabel="Create Event" onActionPress={() => {}} />);
 
       expect(screen.getByTestId('empty-state-action')).toBeTruthy();
       expect(screen.getByText('Create Event')).toBeTruthy();
@@ -189,11 +172,7 @@ describe('EmptyState', () => {
       const onActionPress = jest.fn();
 
       render(
-        <EmptyState
-          {...defaultProps}
-          actionLabel="Create Event"
-          onActionPress={onActionPress}
-        />
+        <EmptyState {...defaultProps} actionLabel="Create Event" onActionPress={onActionPress} />,
       );
 
       fireEvent.press(screen.getByTestId('empty-state-action'));
@@ -202,13 +181,7 @@ describe('EmptyState', () => {
     });
 
     it('should render with different action label', () => {
-      render(
-        <EmptyState
-          {...defaultProps}
-          actionLabel="Add New Event"
-          onActionPress={() => {}}
-        />
-      );
+      render(<EmptyState {...defaultProps} actionLabel="Add New Event" onActionPress={() => {}} />);
 
       expect(screen.getByText('Add New Event')).toBeTruthy();
     });
@@ -216,13 +189,7 @@ describe('EmptyState', () => {
 
   describe('Secondary Action Button', () => {
     it('should not render secondary button when secondaryActionLabel is undefined', () => {
-      render(
-        <EmptyState
-          {...defaultProps}
-          actionLabel="Create Event"
-          onActionPress={() => {}}
-        />
-      );
+      render(<EmptyState {...defaultProps} actionLabel="Create Event" onActionPress={() => {}} />);
 
       expect(screen.queryByText('Explore')).toBeNull();
     });
@@ -233,7 +200,7 @@ describe('EmptyState', () => {
           {...defaultProps}
           secondaryActionLabel="Explore"
           onSecondaryActionPress={() => {}}
-        />
+        />,
       );
 
       expect(screen.getByText('Explore')).toBeTruthy();
@@ -247,7 +214,7 @@ describe('EmptyState', () => {
           {...defaultProps}
           secondaryActionLabel="Explore"
           onSecondaryActionPress={onSecondaryActionPress}
-        />
+        />,
       );
 
       fireEvent.press(screen.getByText('Explore'));
@@ -261,7 +228,7 @@ describe('EmptyState', () => {
           {...defaultProps}
           secondaryActionLabel="Browse Events"
           onSecondaryActionPress={() => {}}
-        />
+        />,
       );
 
       expect(screen.getByText('Browse Events')).toBeTruthy();
@@ -280,7 +247,7 @@ describe('EmptyState', () => {
           onActionPress={onActionPress}
           secondaryActionLabel="Explore"
           onSecondaryActionPress={onSecondaryActionPress}
-        />
+        />,
       );
 
       expect(screen.getByText('Create Event')).toBeTruthy();
@@ -298,7 +265,7 @@ describe('EmptyState', () => {
           onActionPress={onActionPress}
           secondaryActionLabel="Explore"
           onSecondaryActionPress={onSecondaryActionPress}
-        />
+        />,
       );
 
       fireEvent.press(screen.getByTestId('empty-state-action'));
@@ -321,13 +288,7 @@ describe('EmptyState', () => {
     });
 
     it('should render button container when at least one action is provided', () => {
-      render(
-        <EmptyState
-          {...defaultProps}
-          actionLabel="Create Event"
-          onActionPress={() => {}}
-        />
-      );
+      render(<EmptyState {...defaultProps} actionLabel="Create Event" onActionPress={() => {}} />);
 
       expect(screen.getByTestId('empty-state-action')).toBeTruthy();
     });
@@ -341,7 +302,7 @@ describe('EmptyState', () => {
           description="Create your first event to get started!"
           actionLabel="Create Event"
           onActionPress={() => {}}
-        />
+        />,
       );
 
       expect(screen.getByText('No Events Yet')).toBeTruthy();
@@ -356,7 +317,7 @@ describe('EmptyState', () => {
           description="Start a conversation by joining an event!"
           secondaryActionLabel="Browse Events"
           onSecondaryActionPress={() => {}}
-        />
+        />,
       );
 
       expect(screen.getByText('No Messages')).toBeTruthy();
@@ -365,10 +326,7 @@ describe('EmptyState', () => {
 
     it('should render search results empty state', () => {
       render(
-        <EmptyState
-          title="No Results Found"
-          description="Try adjusting your search or filters."
-        />
+        <EmptyState title="No Results Found" description="Try adjusting your search or filters." />,
       );
 
       expect(screen.getByText('No Results Found')).toBeTruthy();

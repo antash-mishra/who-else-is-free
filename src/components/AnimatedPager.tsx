@@ -230,18 +230,25 @@ const AnimatedPager = ({
   return (
     <GestureDetector gesture={pan}>
       <View style={[styles.container, style]}>
-        {childArray.map((child, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              StyleSheet.absoluteFill,
-              animStyles[index],
-              { backgroundColor: colors.background },
-            ]}
-          >
-            {child}
-          </Animated.View>
-        ))}
+        {childArray.map((child, index) => {
+          const isActive = index === selectedIndex;
+          return (
+            <Animated.View
+              key={index}
+              collapsable={false}
+              accessibilityElementsHidden={!isActive}
+              importantForAccessibility={isActive ? 'auto' : 'no-hide-descendants'}
+              pointerEvents={isActive ? 'auto' : 'none'}
+              style={[
+                StyleSheet.absoluteFill,
+                animStyles[index],
+                { backgroundColor: colors.background },
+              ]}
+            >
+              {child}
+            </Animated.View>
+          );
+        })}
       </View>
     </GestureDetector>
   );

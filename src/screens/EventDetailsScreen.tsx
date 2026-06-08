@@ -564,9 +564,12 @@ const EventDetailsScreenContent = ({
     ? isSingleEvent || !!eventConversation
     : isConversationMember && !!eventConversation;
   const shouldPinBottomCTA = !readOnly && (showStandardCTA || showOpenChatCTA);
+  const overlayBottomPadding = isOverlay ? Math.max(insets.bottom + spacing.lg, spacing.xl) : 0;
   const pageScrollContentStyle = [
     styles.pageScrollContent,
-    shouldPinBottomCTA ? { paddingBottom: 70 + insets.bottom } : null,
+    shouldPinBottomCTA
+      ? { paddingBottom: 70 + insets.bottom }
+      : { paddingBottom: overlayBottomPadding },
   ];
 
   const handleCtaPress = () => {

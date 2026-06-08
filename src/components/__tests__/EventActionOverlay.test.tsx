@@ -21,7 +21,7 @@ describe('EventActionOverlay', () => {
           isVisible={false}
           type="menu"
           items={[{ label: 'Test', onPress: jest.fn() }]}
-        />
+        />,
       );
 
       expect(screen.queryByTestId('bottom-sheet-modal')).toBeNull();
@@ -33,7 +33,7 @@ describe('EventActionOverlay', () => {
           isVisible={true}
           type="menu"
           items={[{ label: 'Test', onPress: jest.fn() }]}
-        />
+        />,
       );
 
       expect(screen.getByTestId('bottom-sheet-modal')).toBeTruthy();
@@ -50,7 +50,7 @@ describe('EventActionOverlay', () => {
           type="menu"
           items={[{ label: 'Test', onPress: jest.fn() }]}
           onBackdropPress={onBackdropPress}
-        />
+        />,
       );
 
       fireEvent.press(screen.getByTestId('bottom-sheet-backdrop'));
@@ -64,7 +64,7 @@ describe('EventActionOverlay', () => {
           isVisible={true}
           type="menu"
           items={[{ label: 'Test', onPress: jest.fn() }]}
-        />
+        />,
       );
 
       expect(() => fireEvent.press(screen.getByTestId('bottom-sheet-backdrop'))).not.toThrow();
@@ -90,7 +90,7 @@ describe('EventActionOverlay', () => {
       render(<EventActionOverlay {...inviteProps} />);
 
       expect(
-        screen.getByPlaceholderText('Send an intro about you and why you would like to join.')
+        screen.getByPlaceholderText('Send an intro about you and why you would like to join.'),
       ).toBeTruthy();
     });
 
@@ -102,12 +102,10 @@ describe('EventActionOverlay', () => {
 
     it('should call onInviteMessageChange when text changes', () => {
       const onInviteMessageChange = jest.fn();
-      render(
-        <EventActionOverlay {...inviteProps} onInviteMessageChange={onInviteMessageChange} />
-      );
+      render(<EventActionOverlay {...inviteProps} onInviteMessageChange={onInviteMessageChange} />);
 
       const input = screen.getByPlaceholderText(
-        'Send an intro about you and why you would like to join.'
+        'Send an intro about you and why you would like to join.',
       );
       fireEvent.changeText(input, 'Hello, I would love to join!');
 
@@ -144,20 +142,16 @@ describe('EventActionOverlay', () => {
     });
 
     it('should show error when inviteError is set', () => {
-      render(
-        <EventActionOverlay {...inviteProps} inviteError="Please include a message" />
-      );
+      render(<EventActionOverlay {...inviteProps} inviteError="Please include a message" />);
 
       expect(screen.getByText('Please include a message')).toBeTruthy();
     });
 
     it('should display current message value', () => {
-      render(
-        <EventActionOverlay {...inviteProps} inviteMessage="I am excited to join!" />
-      );
+      render(<EventActionOverlay {...inviteProps} inviteMessage="I am excited to join!" />);
 
       const input = screen.getByPlaceholderText(
-        'Send an intro about you and why you would like to join.'
+        'Send an intro about you and why you would like to join.',
       );
       expect(input.props.value).toBe('I am excited to join!');
     });
@@ -254,13 +248,7 @@ describe('EventActionOverlay', () => {
 
     it('should call onConfirm when confirm button is pressed', () => {
       const onConfirm = jest.fn();
-      render(
-        <EventActionOverlay
-          {...confirmProps}
-          confirmTone="default"
-          onConfirm={onConfirm}
-        />
-      );
+      render(<EventActionOverlay {...confirmProps} confirmTone="default" onConfirm={onConfirm} />);
 
       fireEvent.press(screen.getByText('Delete'));
 
@@ -283,23 +271,13 @@ describe('EventActionOverlay', () => {
     });
 
     it('should show error message when provided', () => {
-      render(
-        <EventActionOverlay
-          {...confirmProps}
-          errorMessage="Failed to delete event"
-        />
-      );
+      render(<EventActionOverlay {...confirmProps} errorMessage="Failed to delete event" />);
 
       expect(screen.getByText('Failed to delete event')).toBeTruthy();
     });
 
     it('should render with default tone', () => {
-      render(
-        <EventActionOverlay
-          {...confirmProps}
-          confirmTone="default"
-        />
-      );
+      render(<EventActionOverlay {...confirmProps} confirmTone="default" />);
 
       expect(screen.getByText('Delete')).toBeTruthy();
     });
@@ -350,36 +328,20 @@ describe('EventActionOverlay', () => {
     });
 
     it('should render without description', () => {
-      render(
-        <EventActionOverlay
-          {...resultProps}
-          description={undefined}
-        />
-      );
+      render(<EventActionOverlay {...resultProps} description={undefined} />);
 
       expect(screen.getByText('Event deleted')).toBeTruthy();
       expect(screen.queryByText('The event has been removed.')).toBeNull();
     });
 
     it('should render with error tone', () => {
-      render(
-        <EventActionOverlay
-          {...resultProps}
-          title="Error occurred"
-          tone="error"
-        />
-      );
+      render(<EventActionOverlay {...resultProps} title="Error occurred" tone="error" />);
 
       expect(screen.getByText('Error occurred')).toBeTruthy();
     });
 
     it('should render with default tone', () => {
-      render(
-        <EventActionOverlay
-          {...resultProps}
-          tone="default"
-        />
-      );
+      render(<EventActionOverlay {...resultProps} tone="default" />);
 
       expect(screen.getByText('Event deleted')).toBeTruthy();
     });
@@ -462,9 +424,7 @@ describe('EventActionOverlay', () => {
     it('should render text input for reason', () => {
       render(<EventActionOverlay {...reportProps} />);
 
-      expect(
-        screen.getByPlaceholderText('Tell us why you are reporting this event')
-      ).toBeTruthy();
+      expect(screen.getByPlaceholderText('Tell us why you are reporting this event')).toBeTruthy();
     });
 
     it('should show "Submit Report" button text', () => {
@@ -475,9 +435,7 @@ describe('EventActionOverlay', () => {
 
     it('should call onReportMessageChange when text changes', () => {
       const onReportMessageChange = jest.fn();
-      render(
-        <EventActionOverlay {...reportProps} onReportMessageChange={onReportMessageChange} />
-      );
+      render(<EventActionOverlay {...reportProps} onReportMessageChange={onReportMessageChange} />);
 
       const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
       fireEvent.changeText(input, 'This event is spam');
@@ -515,17 +473,13 @@ describe('EventActionOverlay', () => {
     });
 
     it('should show error when reportError is set', () => {
-      render(
-        <EventActionOverlay {...reportProps} reportError="Please provide a reason" />
-      );
+      render(<EventActionOverlay {...reportProps} reportError="Please provide a reason" />);
 
       expect(screen.getByText('Please provide a reason')).toBeTruthy();
     });
 
     it('should display current report message value', () => {
-      render(
-        <EventActionOverlay {...reportProps} reportMessage="This is inappropriate content" />
-      );
+      render(<EventActionOverlay {...reportProps} reportMessage="This is inappropriate content" />);
 
       const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
       expect(input.props.value).toBe('This is inappropriate content');
@@ -565,13 +519,7 @@ describe('EventActionOverlay', () => {
         { label: 'Delete', onPress: jest.fn() },
       ];
 
-      render(
-        <EventActionOverlay
-          isVisible={true}
-          type="menu"
-          items={items}
-        />
-      );
+      render(<EventActionOverlay isVisible={true} type="menu" items={items} />);
 
       fireEvent.press(screen.getByTestId('action-item-menu-0'));
 
@@ -585,13 +533,7 @@ describe('EventActionOverlay', () => {
         { label: 'Delete', onPress },
       ];
 
-      render(
-        <EventActionOverlay
-          isVisible={true}
-          type="menu"
-          items={items}
-        />
-      );
+      render(<EventActionOverlay isVisible={true} type="menu" items={items} />);
 
       fireEvent.press(screen.getByTestId('action-item-menu-1'));
 
@@ -604,7 +546,7 @@ describe('EventActionOverlay', () => {
           isVisible={true}
           type="menu"
           items={[{ label: 'Only Item', onPress: jest.fn() }]}
-        />
+        />,
       );
 
       expect(screen.getByText('Only Item')).toBeTruthy();
@@ -619,13 +561,7 @@ describe('EventActionOverlay', () => {
         { label: 'Item 4', onPress: jest.fn() },
       ];
 
-      render(
-        <EventActionOverlay
-          isVisible={true}
-          type="menu"
-          items={manyItems}
-        />
-      );
+      render(<EventActionOverlay isVisible={true} type="menu" items={manyItems} />);
 
       expect(screen.getByText('Item 1')).toBeTruthy();
       expect(screen.getByText('Item 2')).toBeTruthy();
@@ -634,51 +570,27 @@ describe('EventActionOverlay', () => {
     });
 
     it('should handle loading state for menu items', () => {
-      const items = [
-        { label: 'Delete', onPress: jest.fn(), loading: true },
-      ];
+      const items = [{ label: 'Delete', onPress: jest.fn(), loading: true }];
 
-      render(
-        <EventActionOverlay
-          isVisible={true}
-          type="menu"
-          items={items}
-        />
-      );
+      render(<EventActionOverlay isVisible={true} type="menu" items={items} />);
 
       // When loading, label should have ellipsis
       expect(screen.getByText('Delete…')).toBeTruthy();
     });
 
     it('should disable item when loading', () => {
-      const items = [
-        { label: 'Delete', onPress: jest.fn(), loading: true },
-      ];
+      const items = [{ label: 'Delete', onPress: jest.fn(), loading: true }];
 
-      render(
-        <EventActionOverlay
-          isVisible={true}
-          type="menu"
-          items={items}
-        />
-      );
+      render(<EventActionOverlay isVisible={true} type="menu" items={items} />);
 
       const button = screen.getByTestId('action-item-menu-0');
       expect(button.props.accessibilityState?.disabled).toBe(true);
     });
 
     it('should disable item when disabled prop is true', () => {
-      const items = [
-        { label: 'Disabled Item', onPress: jest.fn(), disabled: true },
-      ];
+      const items = [{ label: 'Disabled Item', onPress: jest.fn(), disabled: true }];
 
-      render(
-        <EventActionOverlay
-          isVisible={true}
-          type="menu"
-          items={items}
-        />
-      );
+      render(<EventActionOverlay isVisible={true} type="menu" items={items} />);
 
       const button = screen.getByTestId('action-item-menu-0');
       expect(button.props.accessibilityState?.disabled).toBe(true);
@@ -731,7 +643,7 @@ describe('EventActionOverlay', () => {
         <EventActionOverlay
           {...viewIntroProps}
           introMessage="I love hiking and outdoor activities!"
-        />
+        />,
       );
 
       expect(screen.getByText('"I love hiking and outdoor activities!"')).toBeTruthy();
@@ -754,7 +666,7 @@ describe('EventActionOverlay', () => {
           onConfirm={onConfirm}
           onCancel={onCancel}
           confirmTone="destructive"
-        />
+        />,
       );
 
       expect(screen.getByText('Delete Event?')).toBeTruthy();
@@ -780,7 +692,7 @@ describe('EventActionOverlay', () => {
           cancelLabel="Stay"
           onConfirm={onConfirm}
           onCancel={onCancel}
-        />
+        />,
       );
 
       expect(screen.getByText('Leave Event?')).toBeTruthy();
@@ -803,17 +715,17 @@ describe('EventActionOverlay', () => {
           inviteMessage=""
           onInviteMessageChange={onInviteMessageChange}
           onSendInvite={onSendInvite}
-        />
+        />,
       );
 
       const input = screen.getByPlaceholderText(
-        'Send an intro about you and why you would like to join.'
+        'Send an intro about you and why you would like to join.',
       );
 
       // Type a message
       fireEvent.changeText(input, 'Hi, I love coffee and would be great to meet!');
       expect(onInviteMessageChange).toHaveBeenCalledWith(
-        'Hi, I love coffee and would be great to meet!'
+        'Hi, I love coffee and would be great to meet!',
       );
 
       // Send the invite
@@ -832,7 +744,7 @@ describe('EventActionOverlay', () => {
           reportMessage=""
           onReportMessageChange={onReportMessageChange}
           onSubmitReport={onSubmitReport}
-        />
+        />,
       );
 
       const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
@@ -840,7 +752,7 @@ describe('EventActionOverlay', () => {
       // Type a report reason
       fireEvent.changeText(input, 'This event contains inappropriate content');
       expect(onReportMessageChange).toHaveBeenCalledWith(
-        'This event contains inappropriate content'
+        'This event contains inappropriate content',
       );
 
       // Submit the report
@@ -858,7 +770,7 @@ describe('EventActionOverlay', () => {
           inviteMessage=""
           onInviteMessageChange={jest.fn()}
           onSendInvite={jest.fn()}
-        />
+        />,
       );
 
       const button = screen.getByTestId('action-item-invite');
@@ -871,10 +783,29 @@ describe('EventActionOverlay', () => {
           isVisible={true}
           type="menu"
           items={[{ label: 'Test', onPress: jest.fn() }]}
-        />
+        />,
       );
 
       const button = screen.getByTestId('action-item-menu-0');
+      expect(button.props.accessibilityRole).toBe('button');
+    });
+
+    it('should have button accessibility role for destructive confirm actions', () => {
+      render(
+        <EventActionOverlay
+          isVisible={true}
+          type="confirm"
+          title="Leave this event?"
+          description="You'll need to request to join again if you change your mind."
+          confirmLabel="Leave Event"
+          cancelLabel="Stay"
+          confirmTone="destructive"
+          onConfirm={jest.fn()}
+          onCancel={jest.fn()}
+        />,
+      );
+
+      const button = screen.getByLabelText('Leave Event');
       expect(button.props.accessibilityRole).toBe('button');
     });
 
@@ -886,14 +817,14 @@ describe('EventActionOverlay', () => {
           inviteMessage=""
           onInviteMessageChange={jest.fn()}
           onSendInvite={jest.fn()}
-        />
+        />,
       );
 
       const input = screen.getByPlaceholderText(
-        'Send an intro about you and why you would like to join.'
+        'Send an intro about you and why you would like to join.',
       );
       expect(input.props.accessibilityLabel).toBe(
-        'Send an intro about you and why you would like to join.'
+        'Send an intro about you and why you would like to join.',
       );
     });
 
@@ -905,13 +836,11 @@ describe('EventActionOverlay', () => {
           reportMessage=""
           onReportMessageChange={jest.fn()}
           onSubmitReport={jest.fn()}
-        />
+        />,
       );
 
       const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
-      expect(input.props.accessibilityLabel).toBe(
-        'Tell us why you are reporting this event'
-      );
+      expect(input.props.accessibilityLabel).toBe('Tell us why you are reporting this event');
     });
   });
 });

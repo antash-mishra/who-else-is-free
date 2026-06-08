@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+
 import { mockUsers } from '../../__tests__/mocks/mockData';
 
 // Mock context modules before importing components
@@ -37,73 +38,125 @@ jest.mock('@context/ChatContext', () => ({
 jest.mock('@screens/HomeScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'home-screen' }, React.createElement(Text, null, 'Home'));
+  return () =>
+    React.createElement(View, { testID: 'home-screen' }, React.createElement(Text, null, 'Home'));
 });
 
 jest.mock('@screens/MyEventsScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'my-events-screen' }, React.createElement(Text, null, 'My Events'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'my-events-screen' },
+      React.createElement(Text, null, 'My Events'),
+    );
 });
 
 jest.mock('@screens/CreateEventScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'create-event-screen' }, React.createElement(Text, null, 'Create Event'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'create-event-screen' },
+      React.createElement(Text, null, 'Create Event'),
+    );
 });
 
 jest.mock('@screens/MessagesScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'messages-screen' }, React.createElement(Text, null, 'Messages'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'messages-screen' },
+      React.createElement(Text, null, 'Messages'),
+    );
 });
 
 jest.mock('@screens/ProfileScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'profile-screen' }, React.createElement(Text, null, 'Profile'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'profile-screen' },
+      React.createElement(Text, null, 'Profile'),
+    );
 });
 
 jest.mock('@screens/LoginScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'login-screen' }, React.createElement(Text, null, 'Login'));
+  return () =>
+    React.createElement(View, { testID: 'login-screen' }, React.createElement(Text, null, 'Login'));
 });
 
 jest.mock('@screens/GoogleSignIn', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'google-signin-screen' }, React.createElement(Text, null, 'Google Sign In'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'google-signin-screen' },
+      React.createElement(Text, null, 'Google Sign In'),
+    );
 });
 
 jest.mock('@screens/SplashScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'splash-screen' }, React.createElement(Text, null, 'Splash'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'splash-screen' },
+      React.createElement(Text, null, 'Splash'),
+    );
 });
 
 jest.mock('@screens/OnboardingScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'onboarding-screen' }, React.createElement(Text, null, 'Onboarding'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'onboarding-screen' },
+      React.createElement(Text, null, 'Onboarding'),
+    );
 });
 
 jest.mock('@screens/EventDetailsScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'event-details-screen' }, React.createElement(Text, null, 'Event Details'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'event-details-screen' },
+      React.createElement(Text, null, 'Event Details'),
+    );
 });
 
 jest.mock('@screens/JoinRequestsScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'join-requests-screen' }, React.createElement(Text, null, 'Join Requests'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'join-requests-screen' },
+      React.createElement(Text, null, 'Join Requests'),
+    );
 });
 
 jest.mock('@screens/ChatThreadScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
-  return () => React.createElement(View, { testID: 'chat-thread-screen' }, React.createElement(Text, null, 'Chat Thread'));
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'chat-thread-screen' },
+      React.createElement(Text, null, 'Chat Thread'),
+    );
 });
 
 // Mock expo-blur
@@ -122,7 +175,8 @@ jest.mock('react-native-svg', () => {
   const React = require('react');
   const { View } = require('react-native');
   return {
-    Svg: ({ children }: { children: React.ReactNode }) => React.createElement(View, { testID: 'svg' }, children),
+    Svg: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(View, { testID: 'svg' }, children),
     Circle: () => null,
     Path: () => null,
     G: ({ children }: { children: React.ReactNode }) => children,
@@ -178,7 +232,6 @@ describe('AppNavigator', () => {
   describe('Auth Flow', () => {
     it('should route to Login when user is not authenticated', () => {
       const user = null;
-      const loading = false;
       const hasSession = user !== null;
 
       expect(hasSession).toBe(false);
@@ -188,7 +241,6 @@ describe('AppNavigator', () => {
 
     it('should route to Main when user is authenticated with complete profile', () => {
       const user = mockUsers[0]; // profileComplete: true
-      const loading = false;
       const hasSession = user !== null;
       const profileComplete = user?.profileComplete ?? false;
 
@@ -208,7 +260,6 @@ describe('AppNavigator', () => {
 
     it('should route to Onboarding when user is authenticated but profile incomplete', () => {
       const user = mockUsers[2]; // profileComplete: false
-      const loading = false;
       const hasSession = user !== null;
       const profileComplete = user?.profileComplete ?? false;
 
@@ -329,9 +380,10 @@ describe('AppNavigator', () => {
       expect(hasCustomBackground).toBe(true);
     });
 
-    it('should disable lazy loading', () => {
-      const tabOptions = { lazy: false };
-      expect(tabOptions.lazy).toBe(false);
+    it('should lazily mount tabs while preserving visited tab layouts', () => {
+      const tabOptions = { lazy: true, detachInactiveScreens: false };
+      expect(tabOptions.lazy).toBe(true);
+      expect(tabOptions.detachInactiveScreens).toBe(false);
     });
   });
 });

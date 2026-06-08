@@ -36,6 +36,9 @@ type MyEventsNavigation = CompositeNavigationProp<
 
 type MyEventsRoute = RouteProp<RootTabParamList, 'MyEvents'>;
 
+const MY_EVENTS_EMPTY_IMAGE_WIDTH = 216;
+const MY_EVENTS_EMPTY_IMAGE_HEIGHT = 205;
+
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
   const route = useRoute<MyEventsRoute>();
@@ -143,8 +146,8 @@ const MyEventsScreen = () => {
           actionLabel="Continue"
           onActionPress={() => setSignInVisible(true)}
           imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-          imageWidth={258}
-          imageHeight={245}
+          imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+          imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
         />
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
@@ -173,8 +176,8 @@ const MyEventsScreen = () => {
                   title="No events yet"
                   description="Events you host will appear here"
                   imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                  imageWidth={258}
-                  imageHeight={245}
+                  imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+                  imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
                 />
               }
               refreshing={selectedPage === 0 ? isRefreshing : false}
@@ -190,8 +193,8 @@ const MyEventsScreen = () => {
                   title="No events yet"
                   description="Events you join will appear here"
                   imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                  imageWidth={258}
-                  imageHeight={245}
+                  imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+                  imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
                 />
               }
               refreshing={selectedPage === 1 ? isRefreshing : false}
@@ -207,8 +210,8 @@ const MyEventsScreen = () => {
                   title="No events yet"
                   description="Events you request to join will appear here"
                   imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                  imageWidth={258}
-                  imageHeight={245}
+                  imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+                  imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
                 />
               }
               refreshing={isRequestedRefreshing}

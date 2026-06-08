@@ -94,9 +94,14 @@ const renderOverlayContent = (props: OverlayVariantProps) => {
 
 const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   const { isVisible, onBackdropPress } = props;
+  const shouldAvoidKeyboard = props.type === 'invite' || props.type === 'report';
 
   return (
-    <BottomSheetModal visible={isVisible} onClose={onBackdropPress ?? (() => {})}>
+    <BottomSheetModal
+      visible={isVisible}
+      onClose={onBackdropPress ?? (() => {})}
+      avoidKeyboard={shouldAvoidKeyboard}
+    >
       {renderOverlayContent(props)}
     </BottomSheetModal>
   );

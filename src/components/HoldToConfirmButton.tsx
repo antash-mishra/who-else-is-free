@@ -33,6 +33,10 @@ const HoldToConfirmButton = ({ label, onConfirm, disabled }: Props) => {
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
       onLayout={(e) => {
         containerWidth.value = e.nativeEvent.layout.width;
       }}

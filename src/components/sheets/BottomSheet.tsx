@@ -3,7 +3,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   Keyboard,
+  KeyboardEvent,
   Modal,
+  Platform,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -14,7 +16,6 @@ import {
 
 import Animated, {
   Easing,
-  useAnimatedKeyboard,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -68,7 +69,6 @@ const BottomSheet = ({
 }: BottomSheetProps) => {
   const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
-  const keyboard = useAnimatedKeyboard();
   const [isMounted, setIsMounted] = useState(visible);
   const isMountedRef = useRef(visible);
   const hasBeenVisible = useRef(visible);
@@ -76,27 +76,53 @@ const BottomSheet = ({
   const shouldAnimateOnShowRef = useRef(false);
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
+  const keyboardOffset = useSharedValue(0);
   const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
   const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
   const closeDuration =
     presentation === 'modal' ? MODAL_CLOSE_DURATION_MS : INLINE_CLOSE_DURATION_MS;
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideY.value }],
+    transform: [{ translateY: slideY.value - (avoidKeyboard ? keyboardOffset.value : 0) }],
   }));
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
-  const keyboardStyle = useAnimatedStyle(() => {
-    const basePadding = BASE_PADDING_BOTTOM + safeBottom;
+  const keyboardContentStyle = { paddingBottom: BASE_PADDING_BOTTOM + safeBottom };
+
+  useEffect(() => {
     if (!avoidKeyboard) {
-      return { paddingBottom: basePadding };
+      keyboardOffset.value = withTiming(0, {
+        duration: 160,
+        easing: Easing.out(Easing.cubic),
+      });
+      return undefined;
     }
-    const keyboardHeight = keyboard.height.value;
-    return {
-      paddingBottom: keyboardHeight > 0 ? keyboardHeight + spacing.md : basePadding,
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const updateKeyboardOffset = (event: KeyboardEvent) => {
+      const heightFromScreen = Math.max(0, screenHeight - event.endCoordinates.screenY);
+      const keyboardHeight = Math.max(heightFromScreen, event.endCoordinates.height ?? 0);
+      keyboardOffset.value = withTiming(keyboardHeight, {
+        duration: event.duration ?? 220,
+        easing: Easing.out(Easing.cubic),
+      });
     };
-  });
+    const resetKeyboardOffset = (event?: KeyboardEvent) => {
+      keyboardOffset.value = withTiming(0, {
+        duration: event?.duration ?? 180,
+        easing: Easing.out(Easing.cubic),
+      });
+    };
+    const showSubscription = Keyboard.addListener(showEvent, updateKeyboardOffset);
+    const hideSubscription = Keyboard.addListener(hideEvent, resetKeyboardOffset);
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [avoidKeyboard, keyboardOffset, screenHeight]);
 
   const startOpenAnimation = useCallback(() => {
     slideY.value = screenHeight;
@@ -117,6 +143,10 @@ const BottomSheet = ({
 
   const startCloseAnimation = useCallback(() => {
     Keyboard.dismiss();
+    keyboardOffset.value = withTiming(0, {
+      duration: Math.min(180, closeDuration),
+      easing: Easing.out(Easing.cubic),
+    });
     slideY.value = withTiming(screenHeight, {
       duration: closeDuration,
       easing: Easing.in(Easing.cubic),
@@ -125,7 +155,7 @@ const BottomSheet = ({
       duration: Math.min(200, closeDuration),
       easing: Easing.in(Easing.ease),
     });
-  }, [backdropOpacity, closeDuration, screenHeight, slideY]);
+  }, [backdropOpacity, closeDuration, keyboardOffset, screenHeight, slideY]);
 
   useEffect(() => {
     if (visible) {
@@ -199,7 +229,11 @@ const BottomSheet = ({
         onStartShouldSetResponder={() => true}
       >
         <Animated.View
-          style={[styles.keyboardContent, keyboardStyle, snapHeight ? styles.contentFill : null]}
+          style={[
+            styles.keyboardContent,
+            keyboardContentStyle,
+            snapHeight ? styles.contentFill : null,
+          ]}
           testID={contentTestID}
         >
           {title !== undefined ? (

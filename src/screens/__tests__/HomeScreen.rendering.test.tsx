@@ -6,7 +6,13 @@
 import React from 'react';
 import { render, fireEvent, act } from '@testing-library/react-native';
 import HomeScreen from '../HomeScreen';
-import { mockEvents, mockUsers, mockConversations, createTodayEvent, createTomorrowEvent } from '../../__tests__/mocks/mockData';
+import {
+  mockEvents,
+  mockUsers,
+  mockConversations,
+  createTodayEvent,
+  createTomorrowEvent,
+} from '../../__tests__/mocks/mockData';
 import { mockNavigation } from '../../__tests__/mocks/mockModules';
 
 const mockUser = mockUsers[0];
@@ -26,7 +32,7 @@ let mockEventsValue = {
 let mockChatValue = { conversations: mockConversations };
 let mockViewerLocation = {
   coords: null as { latitude: number; longitude: number } | null,
-  permission: null as "granted" | "denied" | "undetermined" | null,
+  permission: null as 'granted' | 'denied' | 'undetermined' | null,
   isLoading: false,
 };
 
@@ -140,6 +146,16 @@ describe('HomeScreen Rendering', () => {
       const { getAllByTestId } = render(<HomeScreen />);
       expect(getAllByTestId('event-card').length).toBeGreaterThan(0);
     });
+
+    it('renders events while viewer location is still loading', () => {
+      mockViewerLocation.isLoading = true;
+      mockViewerLocation.coords = null;
+
+      const { getAllByTestId, queryByTestId } = render(<HomeScreen />);
+
+      expect(queryByTestId('empty-state')).toBeNull();
+      expect(getAllByTestId('event-card').length).toBeGreaterThan(0);
+    });
   });
 
   describe('Error State', () => {
@@ -167,7 +183,9 @@ describe('HomeScreen Rendering', () => {
       const { getByTestId } = render(<HomeScreen />);
       expect(getByTestId('empty-state')).toBeTruthy();
       expect(getByTestId('empty-state-title').props.children).toBe('Nothing Happening Here (Yet!)');
-      expect(getByTestId('empty-state-description').props.children).toContain('no events available');
+      expect(getByTestId('empty-state-description').props.children).toContain(
+        'no events available',
+      );
     });
   });
 
@@ -248,7 +266,9 @@ describe('HomeScreen Rendering', () => {
     });
 
     it('switches to newest mode and shows Newest Created section header', () => {
-      mockEventsValue.events = [createTodayEvent({ id: '100', createdAt: new Date().toISOString() })];
+      mockEventsValue.events = [
+        createTodayEvent({ id: '100', createdAt: new Date().toISOString() }),
+      ];
       const { getByTestId, getAllByText, queryByText } = render(<HomeScreen />);
       expect(getAllByText('Today')[0]).toBeTruthy();
       fireEvent.press(getByTestId('segment-newest'));
@@ -365,8 +385,7 @@ describe('HomeScreen Rendering', () => {
       const { SectionList } = require('react-native');
       const nearestList = UNSAFE_getAllByType(SectionList)[0];
       const renderedTitles = nearestList.props.sections.flatMap(
-        (section: { data: Array<{ title: string }> }) =>
-          section.data.map((item) => item.title),
+        (section: { data: Array<{ title: string }> }) => section.data.map((item) => item.title),
       );
       expect(renderedTitles).toEqual(['Bangalore Coffee', 'My Dublin Meetup']);
       expect(queryByText('Dublin Pint')).toBeNull();
@@ -380,7 +399,9 @@ describe('HomeScreen Rendering', () => {
       const { UNSAFE_getByType } = render(<HomeScreen />);
       const { SectionList } = require('react-native');
       const refreshControl = UNSAFE_getByType(SectionList).props.refreshControl;
-      await act(async () => { refreshControl.props.onRefresh(); });
+      await act(async () => {
+        refreshControl.props.onRefresh();
+      });
       expect(mockEventsValue.refreshEvents).toHaveBeenCalled();
     });
 

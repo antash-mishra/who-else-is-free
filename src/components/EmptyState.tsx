@@ -3,7 +3,7 @@ import { Image, ImageSourcePropType, StyleProp, StyleSheet, View, ViewStyle } fr
 import type { SvgProps } from 'react-native-svg';
 
 import { AppButton, AppText } from '@components/ui';
-import { colors, componentTokens, typography } from '@theme/index';
+import { colors, componentTokens, spacing, typography } from '@theme/index';
 
 interface EmptyStateProps {
   title: string;
@@ -44,7 +44,7 @@ const EmptyState = ({
       {imageSource && (
         <Image
           source={imageSource}
-          style={{ width: imageWidth, height: imageHeight }}
+          style={[styles.image, { width: imageWidth, height: imageHeight }]}
           resizeMode="contain"
         />
       )}
@@ -86,14 +86,18 @@ const EmptyState = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
-    paddingBottom: '20%',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+  },
+  image: {
+    maxWidth: '82%',
   },
   textContainer: {
-    gap: 10,
+    gap: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },

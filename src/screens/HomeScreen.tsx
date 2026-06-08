@@ -174,22 +174,14 @@ const HomeScreen = () => {
   }, [allEvents, user?.id, viewerLocation.coords, viewerLocation.isLoading]);
 
   const upcomingSections = useMemo<EventSection[]>(() => {
-    if (viewerLocation.isLoading) {
-      return [];
-    }
-
     if (!discoverableEvents) {
       return buildEventSections(allEvents, getBadgeLabel);
     }
 
     return buildEventSections(discoverableEvents, getBadgeLabel);
-  }, [allEvents, discoverableEvents, getBadgeLabel, viewerLocation.isLoading]);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
 
   const newestSections = useMemo<EventSection[]>(() => {
-    if (viewerLocation.isLoading) {
-      return [];
-    }
-
     if (discoverableEvents) {
       return buildSingleEventSection(
         'Newest',
@@ -200,7 +192,7 @@ const HomeScreen = () => {
 
     const sorted = [...allEvents].sort(sortEventsByCreatedAtDesc);
     return buildSingleEventSection('Newest created', sorted, getBadgeLabel);
-  }, [allEvents, discoverableEvents, getBadgeLabel, viewerLocation.isLoading]);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
 
   const nearestSections = useMemo<EventSection[]>(() => {
     if (!discoverableEvents) {
@@ -233,8 +225,7 @@ const HomeScreen = () => {
     }
   }, [isLoading, signalReady]);
 
-  const showAllEventsLoading =
-    (isLoading && allEvents.length === 0 && !hasLoadedOnce) || viewerLocation.isLoading;
+  const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
   const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
   const showUpcomingEmpty =
@@ -285,7 +276,7 @@ const HomeScreen = () => {
   const emptyContentStyle = [styles.centerContent, { paddingTop: headerHeight }];
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['bottom']}>
       <View style={styles.content}>
         {showAllEventsLoading ? (
           <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
@@ -347,7 +338,7 @@ const HomeScreen = () => {
         )}
         {/* Floating header */}
         <View
-          style={styles.floatingHeader}
+          style={[styles.floatingHeader, { paddingTop: insets.top }]}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
           <View style={styles.headerSpacing}>
