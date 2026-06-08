@@ -1,79 +1,99 @@
-# Shared Components And Refactor Guide
+# Shared Components Refactor Guide
 
-Date: 2026-06-08
+Updated: June 8, 2026
 
-This guide documents the shared UI, shared styling, and structural refactors added across the recent refactor phases after the green test baseline commit.
+Branch: `refactor/code-consistency-shared-components`
 
-Reviewed commit range:
+Reviewed through: `8c92001 Fix member mobile layout issues`
 
-- `7bb3477 refactor: add shared primitives and semantic haptics`
-- `888918d refactor: unify sheet and overlay foundations`
-- `722e9bf refactor: share event list foundations`
-- `45e145e refactor: extract event details overlay routes`
-- `dc8bc62 refactor: extract create event form mapping`
-- `f63f792 refactor: share API request timeout helpers`
-- `7e4a6ec refactor: tighten navigation route typing`
-- `39fe7d4 refactor: tokenize navigation colors`
+Related docs:
 
-## Review Status
+- `report/code-refactoring-consistency-plan.md`
+- `report/member-pending-requester-mobile-issues.md`
+- `report/shared-components-refactor-guide.html`
 
-The refactor is in a good state for the next phase of work.
+## Why This Doc Exists
 
-Validation run:
+This refactor introduced shared React Native UI foundations so screens stop rebuilding the same
+buttons, tabs, bottom sheets, empty states, event lists, haptics, and request helpers in slightly
+different ways.
 
-```sh
-npm run typecheck
-npm run lint -- --quiet
-npm test -- --runInBand --silent
-cd server && go test ./...
-```
+The goal is not a redesign. The goal is consistency:
 
-Result:
+- same-looking UI should behave the same way
+- shared interactions should own their animation and haptics
+- repeated styling should live in theme tokens or shared components
+- screens should mostly compose shared pieces instead of rebuilding them
 
-- TypeScript passed.
-- ESLint passed with no errors in quiet mode.
-- Frontend Jest passed: 61 suites, 1099 tests.
-- Backend Go tests passed.
+## Current Status
 
-No blocking code-review findings were found in the reviewed phase commits. There is still normal follow-up cleanup to do: some screen-local styling remains, but the main repeated interaction and layout surfaces now have shared owners.
+The branch contains both implementation work and docs. It is not docs-only.
 
-## Screenshot References
+The latest mobile QA pass found a few issues in the first shared-component implementation. Those
+were documented in `member-pending-requester-mobile-issues.md` and fixed in
+`8c92001 Fix member mobile layout issues`.
 
-Screenshots were captured from the connected Android emulator with mobile-mcp.
+Important follow-up from that commit:
 
-| Screenshot | What It Shows |
-| --- | --- |
-| ![Discover event list](screenshots/shared-components-discover-event-list.png) | `SegmentedControl` -> `AppTabs`, `EventListPage`, `EventSectionList`, shared event card rows |
-| ![My Events tabs](screenshots/shared-components-my-events-tabs.png) | Shared event-list sections reused in My Events with count tabs |
-| ![Create Event sheet](screenshots/shared-components-create-event-sheet.png) | `CreateEventBottomSheet` using the shared `BottomSheet` foundation |
-| ![Help form](screenshots/shared-components-help-form.png) | `HelpForm`, `TextField`, `CheckboxRow`, and `AppButton` |
-| ![Event action confirm](screenshots/shared-components-event-action-confirm.png) | `EventActionOverlay`, `BottomSheetModal`, and shared confirm action styling |
+| Mobile issue | Fix added | Rule going forward |
+| --- | --- | --- |
+| Event Details action sheet had too much empty space | `EventActionOverlay` only enables keyboard avoidance for input prompts. `BottomSheet` now uses explicit keyboard listeners. | Non-input sheets should not avoid the keyboard. Input sheets should. |
+| My Events empty states looked cropped/broken | `EmptyState`, `EventSectionList`, and My Events image sizing were adjusted. | Empty states should be centered by the list wrapper, not by forcing the empty component to fill the whole screen. |
+| Discover could look blank while location was loading | Discover no longer blocks all event rendering on viewer-location loading when event data exists. | Loading gates should not hide usable data. |
+| Inactive tabs were exposed to accessibility | `TabAccessibilityBoundary` and `AnimatedPager` hide inactive scenes/pages from accessibility and pointer events. | Hidden tabs/pages should not be reachable by screen readers or tests. |
+| Event Details overlay was cramped near the bottom safe area | Overlay bottom padding was added for sheet mode. | Overlay content needs safe-area padding when no pinned CTA is present. |
+| Destructive confirmation was not exposed as a button | `HoldToConfirmButton` now sets button accessibility role/state. | Custom pressables must expose role, label, state, and disabled behavior. |
 
-## New Shared UI Primitives
+## What To Use Now
 
-### `AppButton`
+Use this table first when building or refactoring a screen.
 
-File: `src/components/ui/AppButton.tsx`
+| Need | Use | Do not do this anymore |
+| --- | --- | --- |
+| Common CTA button | `AppButton` | Rebuild local button height, radius, disabled style, loading state, or haptic handling. |
+| Icon-only close/back/action button | `IconButton` | Recreate hit slop, size, accessibility label, and press feedback locally. |
+| Text variants | `AppText` | Repeat title/body/caption/error font styles in every screen. |
+| Text input | `TextField` | Recreate input surface, placeholder color, multiline padding, and error text. |
+| Checkbox row | `CheckboxRow` | Build custom checkbox visuals inside a form. |
+| Tabs or segmented controls | `AppTabs` or `SegmentedControl` | Add another local tab animation or selected-state style. |
+| Press scale and haptic feedback | `ScalePressable` with `haptic`, or `triggerHaptic` | Import `expo-haptics` directly. |
+| Bottom sheet | `BottomSheetModal`, `CreateEventBottomSheet`, or `BottomSheet` | Create a new sheet wrapper with separate backdrop, keyboard, and safe-area behavior. |
+| Sheet action menu | `SheetActionList` | Rebuild action rows, destructive labels, disabled/loading states, and haptics. |
+| Event card list | `EventListPage` and `EventSectionList` | Rebuild section headers, separators, refresh control, empty wrapper, and footer spacing. |
+| Event list data mapping | `buildEventSections`, `buildEventItemSections`, `buildSingleEventSection` | Repeat date grouping, sorting, and badge selection in screens. |
+| Create/Edit Event payload mapping | `createEventForm.ts` helpers | Build API payloads directly inside `CreateEventScreen`. |
+| API timeout handling | `createRequestTimeout`, `isAbortError` | Recreate `AbortController` timeout boilerplate in contexts. |
+| Navigation params | `src/navigation/types.ts` | Add `navigation as any` or untyped nested route jumps. |
 
-Use for primary, secondary, destructive, and ghost buttons.
+## Main Shared Components
 
-Before:
+### UI Primitives
 
-- Screens and components created local `Pressable`, `TouchableOpacity`, or `ScalePressable` buttons.
-- Button height, radius, opacity, loading indicators, haptics, and disabled styles were repeated.
-- Direct haptic calls often lived in the screen.
+Files:
 
-Now:
+- `src/components/ui/AppButton.tsx`
+- `src/components/ui/AppText.tsx`
+- `src/components/ui/TextField.tsx`
+- `src/components/ui/CheckboxRow.tsx`
+- `src/components/ui/IconButton.tsx`
+- `src/components/ui/AppTabs.tsx`
+- `src/components/ui/ListSeparator.tsx`
+- `src/components/ui/SectionHeaderText.tsx`
 
-- Use `AppButton` for common CTA buttons.
-- `AppButton` owns disabled state, loading state, haptic feedback, variants, text style, and accessibility state.
-- It uses `componentTokens.button`, `colors.primaryButtonBackground`, `colors.secondaryButtonBackground`, and semantic haptic props.
+Before this refactor, screens and forms often used local `Pressable`, `TouchableOpacity`, `Text`,
+`TextInput`, and style objects for the same visual patterns.
 
-Current usage:
+Now, the shared UI primitives own common visual states:
 
-- `src/components/EmptyState.tsx`
-- `src/components/SignInButtons.tsx`
-- `src/components/help/HelpForm.tsx`
+- default
+- pressed
+- disabled
+- loading
+- selected
+- destructive
+- error
+- accessibility state
+- haptic feedback where relevant
 
 Example:
 
@@ -87,166 +107,87 @@ Example:
 />
 ```
 
-### `AppTabs`
-
-File: `src/components/ui/AppTabs.tsx`
-
-Use for repeated tab and segmented-control UI.
-
-Before:
-
-- `SegmentedControl` had its own animated colors, spacing, and press behavior.
-- Event Details also had separate tab/underline implementations inline.
-
-Now:
-
-- `AppTabs` owns pill and underline tab variants.
-- `SegmentedControl` is a thin wrapper around `AppTabs` with `variant="pill"`.
-- Tab animation, selected state, count labels, test IDs, and selection haptics are centralized.
-
-Current usage:
-
-- `src/components/SegmentedControl.tsx`
-- Discover Events and My Events through `SegmentedControl`
-
-Example:
-
-```tsx
-<AppTabs
-  options={[
-    { label: 'Hosting', value: 'hosting', count: 1 },
-    { label: 'Joined', value: 'joined' },
-  ]}
-  value={selectedTab}
-  onChange={setSelectedTab}
-/>
-```
-
-### `AppText`
-
-File: `src/components/ui/AppText.tsx`
-
-Use for simple shared typography variants.
-
-Before:
-
-- Screens repeated font family, line height, letter spacing, muted/error colors, and title/body sizes.
-
-Now:
-
-- `AppText` provides `title`, `subtitle`, `body`, `caption`, `button`, and `error` variants.
-- It is intentionally small so screens can still apply layout-specific style overrides.
-
-Current usage:
-
-- `EmptyState`
-- `HelpContactScreen`
-- `HelpFeedbackScreen`
-- `HelpFAQScreen`
-- Shared UI primitives
-
-### `TextField`
-
-File: `src/components/ui/TextField.tsx`
-
-Use for common single-line and multiline text inputs.
-
-Before:
-
-- Help, profile, event, and overlay forms duplicated input backgrounds, radius, placeholder color, padding, and error text.
-
-Now:
-
-- `TextField` owns input surface color, placeholder color, single-line vs multiline shape, and optional error text.
-- `HelpForm` uses it for message and email fields.
-
-Example:
-
-```tsx
-<TextField
-  accessibilityLabel="Help message"
-  multiline
-  value={message}
-  onChangeText={setMessage}
-  placeholder="Describe in detail what you need help with"
-/>
-```
-
-### `CheckboxRow`
-
-File: `src/components/ui/CheckboxRow.tsx`
-
-Use for checkbox-style rows.
-
-Before:
-
-- Help form checkbox rows had local checkbox boxes, labels, checked state styling, and press behavior.
-
-Now:
-
-- `CheckboxRow` owns checkbox visual state, row layout, checkbox accessibility role, selected state, disabled state, and selection haptic.
-
-Current usage:
-
-- `src/components/help/HelpForm.tsx`
-
-### `IconButton`
-
-File: `src/components/ui/IconButton.tsx`
-
-Use for close buttons, back/header icon actions, and small icon-only buttons.
-
-Before:
-
-- Header and sheet close buttons repeated hit slop, background, icon sizing, and accessibility wiring.
-
-Now:
-
-- `IconButton` wraps `ScalePressable` with standard sizes, hit slop, variants, haptics, disabled state, and accessibility label.
-
-Current usage:
-
-- `ScreenHeader`
-- `SheetHeader`
-
-### `ListSeparator` And `SectionHeaderText`
+### Sheets And Overlays
 
 Files:
 
-- `src/components/ui/ListSeparator.tsx`
-- `src/components/ui/SectionHeaderText.tsx`
+- `src/components/sheets/BottomSheet.tsx`
+- `src/components/sheets/SheetHeader.tsx`
+- `src/components/sheets/SheetActionList.tsx`
+- `src/components/BottomSheetModal.tsx`
+- `src/components/CreateEventBottomSheet.tsx`
+- `src/components/EventActionOverlay.tsx`
+- `src/components/EventActionOverlay.prompts.tsx`
 
-Use for repeated simple list dividers and section text styles.
+Before this refactor, the app had multiple bottom-sheet implementations with different animation,
+keyboard, backdrop, and safe-area behavior.
 
-Before:
+Now, `BottomSheet` is the shared foundation. Existing wrappers keep their public APIs but share the
+same mechanics underneath.
 
-- Screens repeated `StyleSheet.hairlineWidth`, border colors, and medium section labels.
+Important keyboard rule after mobile QA:
 
-Now:
+- input overlays, such as invite and report prompts, should use `avoidKeyboard`
+- non-input overlays, such as action menus and confirmations, should not use keyboard avoidance
 
-- Dividers and section labels have small shared primitives that use theme tokens.
+`EventActionOverlay` now applies that rule automatically.
 
-Current usage:
+### Event Lists And Empty States
 
-- `HelpScreen`
-- Available for new list and settings screens.
+Files:
 
-## Shared Press And Haptics
+- `src/components/events/EventListPage.tsx`
+- `src/components/events/EventSectionList.tsx`
+- `src/components/events/eventListSections.ts`
+- `src/components/EmptyState.tsx`
 
-### `ScalePressable`
+Before this refactor, Discover, My Events, and Past Events each owned their own list shape,
+empty-state placement, section headers, separators, and event-card mapping.
 
-File: `src/components/ScalePressable.tsx`
+Now, screens pass sections and callbacks to the shared list components.
 
-Before:
+After mobile QA, the empty-state rule is:
 
-- Many call sites handled press scale and `expo-haptics` directly.
-- Interactions that looked similar could feel different.
+- `EmptyState` should render its content
+- `EventSectionList` should center the empty state in the list
+- screen-specific empty illustrations should pass explicit image dimensions when needed
 
-Now:
+Example:
 
-- `ScalePressable` accepts a semantic `haptic` prop.
-- It still owns the press scale animation and optional delayed press for event rows.
-- Shared components such as `AppButton`, `IconButton`, `CheckboxRow`, `EventSectionList`, and screen menu rows build on it.
+```tsx
+const sections = useMemo(
+  () => buildEventSections(userEvents, () => 'Hosting'),
+  [userEvents],
+);
+
+return (
+  <EventListPage
+    sections={sections}
+    onEventPress={handleEventPress}
+    emptyState={<EmptyState title="No events yet" description="Events you host will appear here" />}
+  />
+);
+```
+
+### Haptics
+
+Files:
+
+- `src/services/haptics.ts`
+- `src/components/ScalePressable.tsx`
+
+Before this refactor, screens imported `expo-haptics` directly and each caller chose its own
+feedback type.
+
+Now, only `src/services/haptics.ts` imports `expo-haptics`. Callers use semantic names:
+
+- `selection`
+- `light`
+- `submit`
+- `success`
+- `warning`
+- `error`
+- `destructive`
 
 Example:
 
@@ -256,415 +197,103 @@ Example:
 </ScalePressable>
 ```
 
-### Semantic Haptics Service
-
-File: `src/services/haptics.ts`
-
-Before:
-
-- Screens imported `expo-haptics` directly.
-- Some interactions used impact feedback, others selection feedback, with no shared meaning.
-
-Now:
-
-- Code calls `triggerHaptic('light')`, `triggerHaptic('selection')`, `triggerHaptic('submit')`, `triggerHaptic('destructive')`, etc.
-- The service safely catches haptic errors so feedback never blocks the interaction.
-- `expo-haptics` is isolated to the service.
-
-Current usage:
-
-- `ScalePressable`
-- `AnimatedPager`
-- Create Event
-- Event Details
-- Chat screens
-- Profile and Help flows
-- Sheet action lists
-
-## Shared Sheet And Overlay Foundations
-
-### `BottomSheet`
-
-File: `src/components/sheets/BottomSheet.tsx`
-
-Use for all bottom-sheet foundations.
-
-Before:
-
-- `BottomSheetModal` and `CreateEventBottomSheet` each owned animation, backdrop, keyboard avoidance, radii, shadows, padding, and mounting behavior.
-- Event action overlays carried separate prompt and sheet styles.
-
-Now:
-
-- `BottomSheet` owns modal vs inline presentation, keyboard avoidance, snap height, backdrop, open/close animation, max height, safe area, and shared sheet styling.
-- Wrappers keep old public APIs stable.
-
-Current wrappers:
-
-- `BottomSheetModal`
-- `CreateEventBottomSheet`
-
-Example:
-
-```tsx
-<BottomSheetModal visible={visible} onClose={onClose} title="Group Type">
-  {children}
-</BottomSheetModal>
-```
-
-### `SheetHeader`
-
-File: `src/components/sheets/SheetHeader.tsx`
-
-Use for sheet titles and close buttons.
-
-Before:
-
-- Sheet headers duplicated text style and close-button styling.
-
-Now:
-
-- `SheetHeader` uses `IconButton`, sheet title typography, and shared close icon treatment.
-
-### `SheetActionList`
-
-File: `src/components/sheets/SheetActionList.tsx`
-
-Use for vertical action lists inside sheets.
-
-Before:
-
-- Manage menus, pending-request menus, and account actions repeated row height, pill radius, destructive labels, loading label text, and haptic behavior.
-
-Now:
-
-- `SheetActionList` owns disabled/loading/destructive states and light/destructive haptics.
-
-Current usage:
-
-- `ManageEventMenu`
-- `PendingRequestMenu`
-- generic `ActionMenu`
-
-### `EventActionOverlay` Prompt Split
+### Navigation And Hidden Content
 
 Files:
 
-- `src/components/EventActionOverlay.tsx`
-- `src/components/EventActionOverlay.prompts.tsx`
-- `src/components/EventActionOverlay.styles.ts`
-
-Before:
-
-- `EventActionOverlay` contained multiple prompt variants and action-menu logic in one large component.
-
-Now:
-
-- The top-level overlay just chooses a prompt variant and renders it in `BottomSheetModal`.
-- Prompt bodies live in `EventActionOverlay.prompts.tsx`.
-- Menu-style prompts use `SheetActionList`.
-
-Current prompt types:
-
-- `invite`
-- `manage`
-- `confirm`
-- `result`
-- `pendingRequest`
-- `report`
-- `menu`
-- `viewIntro`
-
-## Shared Event List Foundations
-
-### `EventListPage`
-
-File: `src/components/events/EventListPage.tsx`
-
-Use as the screen-level wrapper around an event section list.
-
-Before:
-
-- Discover, My Events, and Past Events each repeated list wrapper structure and padding coordination.
-
-Now:
-
-- `EventListPage` wraps `EventSectionList` and keeps each screen focused on data and state.
-
-### `EventSectionList`
-
-File: `src/components/events/EventSectionList.tsx`
-
-Use for grouped event card lists.
-
-Before:
-
-- Home, My Events, and Past Events each built their own event list rows, section headers, item separators, footer spacing, refresh control, and empty states.
-
-Now:
-
-- `EventSectionList` owns section rendering, event row press behavior, haptics, separators, padding, empty state placement, and pull-to-refresh.
-- Screens pass sections and callbacks.
-
-Current usage:
-
-- `HomeScreen`
-- `MyEventsScreen`
-- `PastEventsScreen`
-
-### Event List Mappers
-
-File: `src/components/events/eventListSections.ts`
-
-Before:
-
-- Screens repeated event-to-card mapping, badge label selection, date grouping, and date sorting.
-
-Now:
-
-- Shared helpers handle the repeated mapping:
-  - `toEventCardItem`
-  - `buildEventSections`
-  - `buildSingleEventSection`
-  - `buildEventItemSections`
-  - `sortEventsByCreatedAtDesc`
-
-Example:
-
-```tsx
-const hostingSections = useMemo(
-  () => buildEventSections(userEvents, () => 'Hosting'),
-  [userEvents],
-);
-```
-
-## Shared Help Form
-
-### `HelpForm`
-
-File: `src/components/help/HelpForm.tsx`
-
-Before:
-
-- Contact and feedback forms repeated multiline input, optional reply email input, checkbox rows, submit button, loading state, and form spacing.
-
-Now:
-
-- `HelpForm` composes `TextField`, `CheckboxRow`, and `AppButton`.
-- `HelpContactScreen` owns contact-specific validation and payload.
-- `HelpFeedbackScreen` owns feedback-specific validation and payload.
-
-Current usage:
-
-- `HelpContactScreen`
-- `HelpFeedbackScreen`
-
-## Event Details Overlay Extraction
-
-### `EventDetailsOverlayRoutes`
-
-File: `src/screens/event-details/EventDetailsOverlayRoutes.tsx`
-
-Before:
-
-- `EventDetailsScreen` directly rendered every invite, manage, delete, pending request, report, leave, member-menu, remove-member, badge, and sign-in overlay inline.
-
-Now:
-
-- `EventDetailsScreen` owns state and handlers.
-- `EventDetailsOverlayRoutes` owns overlay composition.
-- The main screen JSX is easier to scan and future overlay changes have a smaller surface.
-
-Use this pattern for future extractions:
-
-- Keep state and business handlers in the screen until a hook extraction is clearly useful.
-- Move repeated overlay composition into a route/component file.
-- Keep route params typed in `src/navigation/types.ts`.
-
-## Create Event Form Mapping
-
-### `createEventForm`
-
-File: `src/screens/create-event/createEventForm.ts`
-
-Before:
-
-- Create/edit screen logic directly normalized title, description, date, time, location, age range, cover, guest draft, and update payload values.
-
-Now:
-
-- Form state and submit payload mapping are isolated and tested.
-- `CreateEventScreen` handles UI and orchestration.
-- `createEventForm.ts` handles mapping:
-  - `createEmptyFormState`
-  - `createFormStateFromEvent`
-  - `normalizeCreateEventForm`
-  - `buildCreateEventPayload`
-  - `buildUpdateEventPayload`
-  - `buildGuestEventDraft`
-
-This makes future Create/Edit UI changes safer because payload behavior has a focused test file.
-
-## Shared API Timeout Helpers
-
-### `createRequestTimeout` And `isAbortError`
-
-File: `src/api/request.ts`
-
-Before:
-
-- Contexts created `AbortController` timeouts inline.
-- Timeout cleanup and abort error checks were repeated.
-
-Now:
-
-- `createRequestTimeout(timeoutMs)` returns `{ signal, clear }`.
-- `isAbortError(err)` centralizes abort detection.
-
-Current usage:
-
-- `ChatContext.refreshConversations`
-- `ChatContext.refreshJoinRequests`
-- `EventsContext.refreshEvents`
-- `EventsContext.refreshRequestedEvents`
-
-## Navigation Typing And Tokenized Navigation Colors
-
-Files:
-
+- `src/navigation/AppNavigator.tsx`
 - `src/navigation/types.ts`
 - `src/context/pushRouting.ts`
-- `src/context/PushContext.tsx`
-- `src/navigation/AppNavigator.tsx`
-- `src/theme/colors.ts`
+- `src/components/AnimatedPager.tsx`
 
-Before:
+The refactor tightened navigation params and moved navigation colors into theme tokens.
 
-- Some navigation paths relied on looser typing and local color literals.
-- Push routing had less explicit route params.
+The mobile QA fix also added a rule for hidden UI:
 
-Now:
+- inactive bottom tabs should be hidden from accessibility and pointer events
+- inactive pager pages should be hidden from accessibility and pointer events
 
-- `RootStackParamList` includes typed params for `EventDetailsOverlay`, `PendingRequests`, `JoinRequests`, and other routes.
-- `pushRouting.ts` uses typed navigation contracts.
-- Navigation background, sheet backdrop, tab frosted overlay, unread dot, splash background, and EventCreated background colors live in `colors`.
+This matters because automated mobile tests and screen readers should only see the active screen.
 
-## Shared Styling And Tokens
+## Before And Now
 
-Shared styling in React Native now means:
+### Before
 
-- theme tokens in `src/theme`
-- shared primitive components in `src/components/ui`
-- sheet foundations in `src/components/sheets`
-- shared event-list composition in `src/components/events`
+Common UI patterns looked similar but were implemented separately:
 
-Important token files:
+- buttons had different press feedback, disabled styles, and loading states
+- bottom sheets had different keyboard and safe-area behavior
+- event lists duplicated section/list scaffolding
+- empty states were centered differently per screen
+- haptics were imported directly from `expo-haptics`
+- navigation code still had loose casts in some places
 
-- `src/theme/colors.ts`
-- `src/theme/components.ts`
-- `src/theme/layout.ts`
-- `src/theme/radii.ts`
-- `src/theme/shadows.ts`
-- `src/theme/spacing.ts`
-- `src/theme/typography.ts`
-- `src/theme/springs.ts`
+### Now
 
-Use tokens instead of adding new raw values when a value is repeated across screens.
+Shared foundations own repeated behavior:
 
-## What To Use For New Work
+- `AppButton` owns common CTA behavior
+- `AppTabs` owns repeated tab behavior
+- `BottomSheet` owns sheet mechanics
+- `SheetActionList` owns menu rows
+- `EventSectionList` owns event-list rendering
+- `EmptyState` owns empty content, while list wrappers own placement
+- `triggerHaptic` owns semantic haptics
+- typed navigation params live in `src/navigation/types.ts`
 
-| Need | Use |
+## Visual References
+
+The screenshots below were captured during the earlier shared-component review. They are links
+instead of inline images so this Markdown file stays easy to scan.
+
+| Surface | Screenshot |
 | --- | --- |
-| Primary/secondary/destructive CTA | `AppButton` |
-| Icon-only close/back/action button | `IconButton` |
-| Common press scale/haptic wrapper | `ScalePressable` |
-| Single-line or multiline input | `TextField` |
-| Checkbox row | `CheckboxRow` |
-| Tabs/segmented controls | `AppTabs` or `SegmentedControl` |
-| Simple shared text variant | `AppText` |
-| List divider | `ListSeparator` |
-| Bottom sheet | `BottomSheetModal` or `CreateEventBottomSheet` wrapper |
-| Sheet action menu | `SheetActionList` |
-| Event card sections | `EventListPage` / `EventSectionList` |
-| Event section data | `buildEventSections` / `buildEventItemSections` |
-| Haptic feedback | `triggerHaptic` or `haptic` prop |
-| Fetch timeout | `createRequestTimeout` |
+| Discover event list and shared tabs | `report/screenshots/shared-components-discover-event-list.png` |
+| My Events shared tabs and event list | `report/screenshots/shared-components-my-events-tabs.png` |
+| Create Event sheet | `report/screenshots/shared-components-create-event-sheet.png` |
+| Help form primitives | `report/screenshots/shared-components-help-form.png` |
+| Event action confirmation sheet | `report/screenshots/shared-components-event-action-confirm.png` |
+| Member action-sheet issue evidence | `report/member-event-action-sheet-extra-space.png` |
 
-## Before And Now Summary
+## Validation Notes
 
-### Buttons
+Latest reviewed implementation commit:
 
-Before:
+- `8c92001 Fix member mobile layout issues`
 
-- Local `Pressable` or `TouchableOpacity`
-- Local loading indicator
-- Local disabled opacity
-- Local haptic call
-- Local height/radius/color
+That commit added or updated tests for:
 
-Now:
+- `AnimatedPager`
+- `BottomSheet`
+- `EmptyState`
+- `EventActionOverlay`
+- `AppNavigator`
+- `HomeScreen`
 
-- `AppButton` or `ScalePressable`
-- Shared tokens and semantic haptics
+Recommended validation before merging more changes:
 
-### Inputs
+```sh
+npm run typecheck
+npm run lint -- --quiet
+npm test -- --runInBand --silent
+```
 
-Before:
+For future mobile UI changes, smoke test:
 
-- Each form owned input background, padding, placeholder color, multiline behavior, and error text.
-
-Now:
-
-- `TextField` owns common input visuals.
-- Form components own validation and payload behavior.
-
-### Tabs
-
-Before:
-
-- Segmented controls and event-detail tabs used separate implementations.
-
-Now:
-
-- `AppTabs` owns repeated tab motion and selected states.
-- `SegmentedControl` wraps `AppTabs`.
-
-### Sheets
-
-Before:
-
-- Modal sheets, Create Event sheets, and action overlays had separate sheet foundations.
-
-Now:
-
-- `BottomSheet` owns the common mechanics.
-- Wrappers preserve current public APIs.
-
-### Event Lists
-
-Before:
-
-- Discover, My Events, and Past Events repeated section list scaffolding and event-card mapping.
-
-Now:
-
-- Screens build sections with helpers and render through `EventSectionList`.
-
-### Haptics
-
-Before:
-
-- Direct `expo-haptics` calls spread across screens.
-
-Now:
-
-- Only `src/services/haptics.ts` imports `expo-haptics`.
-- Callers use semantic feedback names.
+- Discover first app open
+- My Events empty Hosting, Joined, and Requested tabs
+- Event Details member action menu
+- Event Details pending requester action menu
+- Leave Event confirmation
+- Chat entry from Event Details
+- Chat event-details overlay near the bottom safe area
+- Profile with inactive tabs hidden from accessibility
 
 ## Remaining Follow-Up
 
-- Continue replacing screen-local one-off buttons with `AppButton` where the visuals match.
-- Continue replacing repeated text inputs with `TextField`.
-- Consider moving more Event Details tab UI to `AppTabs` once behavior is stable.
-- Keep avoiding direct `expo-haptics` imports outside `src/services/haptics.ts`.
-- Keep `AGENTS.md` updated when new primitives or validation rules are added.
+- Continue migrating matching one-off CTAs to `AppButton`.
+- Continue migrating repeated inputs to `TextField`.
+- Keep non-input sheets from using keyboard avoidance.
+- Keep inactive tabs and pager pages hidden from accessibility.
+- Keep direct `expo-haptics` imports restricted to `src/services/haptics.ts`.
+- Keep `AGENTS.md` updated when new shared primitives or validation rules are added.

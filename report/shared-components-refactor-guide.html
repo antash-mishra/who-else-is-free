@@ -14,12 +14,9 @@
       --muted: #5f6b75;
       --border: #dce2e7;
       --accent: #126a58;
-      --accent-dark: #0e4f43;
       --accent-soft: #e4f3ef;
       --warning: #8a5a08;
       --warning-soft: #fff3d6;
-      --success: #0f6a4b;
-      --success-soft: #e6f5ee;
       --code: #eef2f4;
       --shadow: 0 8px 28px rgba(25, 39, 52, 0.08);
     }
@@ -56,32 +53,27 @@
 
     pre {
       overflow-x: auto;
-      margin: 14px 0 0;
       padding: 16px;
-      border: 1px solid var(--border);
       border-radius: 12px;
       background: #101820;
       color: #edf5f4;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
     }
 
     pre code {
       padding: 0;
-      border-radius: 0;
       background: transparent;
       color: inherit;
-      font-size: 13px;
     }
 
     header {
       background: #172529;
       color: #ffffff;
-      padding: 56px 24px 48px;
+      padding: 52px 24px 44px;
     }
 
     .header-inner,
     main {
-      width: min(1160px, calc(100% - 32px));
+      width: min(1120px, calc(100% - 32px));
       margin: 0 auto;
     }
 
@@ -132,15 +124,19 @@
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
-      margin-bottom: 28px;
+      margin-bottom: 22px;
     }
 
-    .metric {
-      padding: 18px;
+    .metric,
+    section {
       border: 1px solid var(--border);
       border-radius: 16px;
       background: var(--surface);
       box-shadow: var(--shadow);
+    }
+
+    .metric {
+      padding: 18px;
     }
 
     .metric strong {
@@ -175,10 +171,10 @@
 
     nav h2 {
       margin: 0 0 12px;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
       color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
 
     nav a {
@@ -197,10 +193,6 @@
     section {
       margin-bottom: 22px;
       padding: 22px;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: var(--surface);
-      box-shadow: var(--shadow);
     }
 
     h2 {
@@ -211,9 +203,8 @@
     }
 
     h3 {
-      margin: 0 0 8px;
+      margin: 18px 0 8px;
       font-size: 19px;
-      line-height: 1.25;
     }
 
     p {
@@ -259,18 +250,12 @@
     }
 
     .note {
-      margin-top: 14px;
+      margin: 14px 0;
       padding: 14px 16px;
       border: 1px solid var(--border);
       border-radius: 14px;
       background: var(--surface-muted);
       color: var(--muted);
-    }
-
-    .success {
-      border-color: rgba(15, 106, 75, 0.25);
-      background: var(--success-soft);
-      color: var(--success);
     }
 
     .warning {
@@ -279,150 +264,32 @@
       color: var(--warning);
     }
 
-    .commit-list {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-      padding: 0;
-      list-style: none;
-    }
-
-    .commit-list li,
-    .token-list li {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--surface-muted);
-    }
-
-    .screenshot-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .shot {
-      overflow: hidden;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--surface-muted);
-    }
-
-    .shot img {
-      display: block;
-      width: 100%;
-      max-height: 720px;
-      object-fit: contain;
-      background: #101820;
-    }
-
-    .shot figcaption {
-      padding: 14px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .component-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .component-card {
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--surface-muted);
-    }
-
-    .component-card p {
-      color: var(--muted);
-    }
-
-    .component-card ul {
-      margin-top: 10px;
-    }
-
-    .pill-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      padding: 4px 9px;
-      border: 1px solid rgba(18, 106, 88, 0.2);
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-dark);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .comparison {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .comparison-card {
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--surface-muted);
-    }
-
-    .comparison-card h3 {
-      color: var(--accent-dark);
-    }
-
     .two-col {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
     }
 
+    .card {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface-muted);
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
     @media (max-width: 900px) {
       .summary-grid,
-      .component-grid,
-      .comparison,
-      .two-col,
-      .screenshot-grid,
-      .commit-list {
-        grid-template-columns: 1fr;
-      }
-
-      .layout {
+      .layout,
+      .two-col {
         grid-template-columns: 1fr;
       }
 
       nav {
         position: static;
-      }
-    }
-
-    @media print {
-      body {
-        background: #ffffff;
-      }
-
-      header,
-      section,
-      nav,
-      .metric {
-        box-shadow: none;
-      }
-
-      nav {
-        display: none;
-      }
-
-      .layout {
-        display: block;
       }
     }
   </style>
@@ -431,482 +298,209 @@
   <header>
     <div class="header-inner">
       <p class="eyebrow">Refactor Documentation</p>
-      <h1>Shared Components And Consistency Refactor Guide</h1>
+      <h1>Shared Components Refactor Guide</h1>
       <p class="header-copy">
-        A developer-facing map of the new shared UI components, shared styling foundations,
-        sheet and overlay primitives, event-list helpers, and supporting refactors added after
-        the green test baseline.
+        A practical handoff guide for the shared UI, sheet, event-list, haptic,
+        navigation, and mobile QA fixes on the code consistency branch.
       </p>
       <div class="header-meta">
-        <span>Date: 2026-06-08</span>
-        <span>Project: Who Else Is Free</span>
-        <span>Source: report/shared-components-refactor-guide.md</span>
-        <span>Screenshots: captured with mobile-mcp</span>
+        <span>Updated: June 8, 2026</span>
+        <span>Branch: refactor/code-consistency-shared-components</span>
+        <span>Reviewed through: 8c92001</span>
       </div>
     </div>
   </header>
 
   <main>
-    <div class="summary-grid" aria-label="Refactor summary">
+    <div class="summary-grid">
       <div class="metric">
-        <strong>8</strong>
-        <span>refactor commits reviewed</span>
+        <strong>Not docs-only</strong>
+        <span>The branch contains implementation, tests, config, and docs.</span>
       </div>
       <div class="metric">
-        <strong>5</strong>
-        <span>mobile screenshots captured</span>
+        <strong>8c92001</strong>
+        <span>Latest reviewed mobile layout fix commit.</span>
       </div>
       <div class="metric">
-        <strong>0</strong>
-        <span>blocking review findings</span>
+        <strong>161</strong>
+        <span>Targeted tests passed in this pass.</span>
       </div>
       <div class="metric">
-        <strong>1099</strong>
-        <span>frontend Jest tests passing</span>
+        <strong>Shared first</strong>
+        <span>Use primitives before local UI duplication.</span>
       </div>
     </div>
 
     <div class="layout">
       <nav aria-label="Table of contents">
         <h2>Contents</h2>
-        <a href="#review-status">Review Status</a>
-        <a href="#commit-range">Commit Range</a>
-        <a href="#screenshots">Screenshots</a>
-        <a href="#shared-css">Shared CSS In React Native</a>
-        <a href="#ui-primitives">Shared UI Primitives</a>
-        <a href="#press-haptics">Press And Haptics</a>
-        <a href="#sheets">Sheets And Overlays</a>
-        <a href="#event-lists">Event Lists</a>
-        <a href="#forms-api-navigation">Forms, API, Navigation</a>
+        <a href="#why">Why This Exists</a>
+        <a href="#mobile-fixes">Mobile QA Fixes</a>
+        <a href="#use-now">What To Use Now</a>
+        <a href="#components">Main Components</a>
         <a href="#before-now">Before And Now</a>
-        <a href="#new-work">What To Use Next</a>
-        <a href="#follow-up">Remaining Follow-Up</a>
+        <a href="#visuals">Visual References</a>
+        <a href="#validation">Validation Notes</a>
+        <a href="#follow-up">Follow-Up</a>
       </nav>
 
       <div>
-        <section id="review-status">
-          <h2>Review Status</h2>
-          <p class="note success">
-            The refactor is in a good state for the next phase. No blocking code-review findings
-            were found in the reviewed phase commits.
-          </p>
+        <section id="why">
+          <h2>Why This Exists</h2>
           <p>
-            The largest architectural win is that repeated visual interactions now have shared
-            owners: buttons, tabs, inputs, sheets, action lists, event lists, haptics, request
-            timeouts, and Create/Edit Event form mapping are no longer scattered across screens.
+            This refactor introduced shared React Native UI foundations so screens stop
+            rebuilding the same buttons, tabs, bottom sheets, empty states, event lists,
+            haptics, and request helpers in slightly different ways.
           </p>
-          <table>
-            <thead>
-              <tr>
-                <th>Validation</th>
-                <th>Result</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>npm run typecheck</code></td>
-                <td>Passed</td>
-              </tr>
-              <tr>
-                <td><code>npm run lint -- --quiet</code></td>
-                <td>Passed with no errors in quiet mode</td>
-              </tr>
-              <tr>
-                <td><code>npm test -- --runInBand --silent</code></td>
-                <td>Passed: 61 suites, 1099 tests</td>
-              </tr>
-              <tr>
-                <td><code>cd server &amp;&amp; go test ./...</code></td>
-                <td>Passed</td>
-              </tr>
-              <tr>
-                <td><code>git diff --check</code></td>
-                <td>Passed</td>
-              </tr>
-            </tbody>
-          </table>
-          <p class="note warning">
-            The full lint command still has the known warning baseline documented in
-            <code>AGENTS.md</code>. Keep reducing that baseline as touched files move through
-            future refactors.
-          </p>
-        </section>
-
-        <section id="commit-range">
-          <h2>Commit Range Reviewed</h2>
-          <ul class="commit-list">
-            <li><code>7bb3477</code> refactor: add shared primitives and semantic haptics</li>
-            <li><code>888918d</code> refactor: unify sheet and overlay foundations</li>
-            <li><code>722e9bf</code> refactor: share event list foundations</li>
-            <li><code>45e145e</code> refactor: extract event details overlay routes</li>
-            <li><code>dc8bc62</code> refactor: extract create event form mapping</li>
-            <li><code>f63f792</code> refactor: share API request timeout helpers</li>
-            <li><code>7e4a6ec</code> refactor: tighten navigation route typing</li>
-            <li><code>39fe7d4</code> refactor: tokenize navigation colors</li>
+          <ul>
+            <li>same-looking UI should behave the same way</li>
+            <li>shared interactions should own their animation and haptics</li>
+            <li>repeated styling should live in theme tokens or shared components</li>
+            <li>screens should mostly compose shared pieces instead of rebuilding them</li>
           </ul>
         </section>
 
-        <section id="screenshots">
-          <h2>Component Screenshots</h2>
+        <section id="mobile-fixes">
+          <h2>Mobile QA Fixes From 8c92001</h2>
           <p>
-            These were captured from the connected Android emulator with mobile-mcp so future
-            contributors can connect the code-level changes to real app surfaces.
+            The first shared-component pass had a few mobile issues. They are documented in
+            <code>report/member-pending-requester-mobile-issues.md</code> and fixed in
+            <code>8c92001 Fix member mobile layout issues</code>.
           </p>
-          <div class="screenshot-grid">
-            <figure class="shot">
-              <img src="screenshots/shared-components-discover-event-list.png" alt="Discover Events screen showing shared event list and segmented tabs">
-              <figcaption>
-                Discover Events: <code>SegmentedControl</code> wraps <code>AppTabs</code>,
-                while event rows render through shared event-list foundations.
-              </figcaption>
-            </figure>
-            <figure class="shot">
-              <img src="screenshots/shared-components-my-events-tabs.png" alt="My Events screen showing Hosting, Joined, and Requested tabs">
-              <figcaption>
-                My Events: count tabs and grouped event rows reuse the same tab/list primitives
-                instead of maintaining a separate implementation.
-              </figcaption>
-            </figure>
-            <figure class="shot">
-              <img src="screenshots/shared-components-create-event-sheet.png" alt="Create Event group type bottom sheet">
-              <figcaption>
-                Create Event sheet: <code>CreateEventBottomSheet</code> keeps its old public API
-                while using the shared <code>BottomSheet</code> foundation.
-              </figcaption>
-            </figure>
-            <figure class="shot">
-              <img src="screenshots/shared-components-help-form.png" alt="Help Contact form showing shared fields, checkbox, and button">
-              <figcaption>
-                Help form: <code>HelpForm</code> composes <code>TextField</code>,
-                <code>CheckboxRow</code>, and <code>AppButton</code>.
-              </figcaption>
-            </figure>
-            <figure class="shot">
-              <img src="screenshots/shared-components-event-action-confirm.png" alt="Delete account confirmation bottom sheet">
-              <figcaption>
-                Confirmation overlay: <code>EventActionOverlay</code>,
-                <code>BottomSheetModal</code>, and shared action styling handle confirm flows.
-              </figcaption>
-            </figure>
-          </div>
-        </section>
-
-        <section id="shared-css">
-          <h2>Shared CSS In React Native</h2>
-          <p>
-            This repo does not use browser CSS for React Native screens. Shared CSS means shared
-            theme tokens plus shared components that own visual states, motion, haptics,
-            accessibility, and disabled/loading behavior.
-          </p>
-          <div class="two-col">
-            <div class="component-card">
-              <h3>Token Files</h3>
-              <ul class="token-list">
-                <li><code>src/theme/colors.ts</code></li>
-                <li><code>src/theme/components.ts</code></li>
-                <li><code>src/theme/layout.ts</code></li>
-                <li><code>src/theme/radii.ts</code></li>
-                <li><code>src/theme/shadows.ts</code></li>
-                <li><code>src/theme/spacing.ts</code></li>
-                <li><code>src/theme/typography.ts</code></li>
-                <li><code>src/theme/springs.ts</code></li>
-              </ul>
-            </div>
-            <div class="component-card">
-              <h3>Rule Of Thumb</h3>
-              <p>
-                If a value or interaction appears in multiple places, prefer a token or shared
-                primitive before adding another local style object.
-              </p>
-              <div class="pill-row">
-                <span class="pill">colors</span>
-                <span class="pill">spacing</span>
-                <span class="pill">radii</span>
-                <span class="pill">shadows</span>
-                <span class="pill">springs</span>
-                <span class="pill">component tokens</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="ui-primitives">
-          <h2>New Shared UI Primitives</h2>
-          <div class="component-grid">
-            <article class="component-card">
-              <h3><code>AppButton</code></h3>
-              <p><a href="../src/components/ui/AppButton.tsx">src/components/ui/AppButton.tsx</a></p>
-              <p>
-                Use for primary, secondary, destructive, and ghost CTA buttons. It owns loading,
-                disabled state, haptics, accessibility state, button text styling, and variants.
-              </p>
-              <ul>
-                <li>Before: local <code>Pressable</code> or <code>TouchableOpacity</code> button styles.</li>
-                <li>Now: one shared button backed by theme component tokens.</li>
-                <li>Used by <code>EmptyState</code>, <code>SignInButtons</code>, and <code>HelpForm</code>.</li>
-              </ul>
-            </article>
-
-            <article class="component-card">
-              <h3><code>AppTabs</code></h3>
-              <p><a href="../src/components/ui/AppTabs.tsx">src/components/ui/AppTabs.tsx</a></p>
-              <p>
-                Use for repeated pill or underline tabs. <code>SegmentedControl</code> is now a thin
-                wrapper around this component.
-              </p>
-              <ul>
-                <li>Before: each tab surface could carry separate selected styling and motion.</li>
-                <li>Now: count labels, selected state, tests, and haptics are centralized.</li>
-                <li>Used by Discover Events and My Events through <code>SegmentedControl</code>.</li>
-              </ul>
-            </article>
-
-            <article class="component-card">
-              <h3><code>AppText</code></h3>
-              <p><a href="../src/components/ui/AppText.tsx">src/components/ui/AppText.tsx</a></p>
-              <p>
-                Use for common text variants such as title, subtitle, body, caption, button, and
-                error text.
-              </p>
-              <ul>
-                <li>Before: repeated font families, sizes, line heights, and muted/error colors.</li>
-                <li>Now: typography variants live in one small primitive.</li>
-                <li>Used by empty states and help screens.</li>
-              </ul>
-            </article>
-
-            <article class="component-card">
-              <h3><code>TextField</code></h3>
-              <p><a href="../src/components/ui/TextField.tsx">src/components/ui/TextField.tsx</a></p>
-              <p>
-                Use for common single-line and multiline text inputs with consistent surfaces,
-                padding, placeholder color, and error text.
-              </p>
-              <ul>
-                <li>Before: forms repeated input backgrounds, radius, padding, and errors.</li>
-                <li>Now: the input surface has one owner.</li>
-                <li>Used by <code>HelpForm</code>.</li>
-              </ul>
-            </article>
-
-            <article class="component-card">
-              <h3><code>CheckboxRow</code></h3>
-              <p><a href="../src/components/ui/CheckboxRow.tsx">src/components/ui/CheckboxRow.tsx</a></p>
-              <p>
-                Use for checkbox-style rows that need consistent row layout, selected state,
-                accessibility role, disabled behavior, and selection haptics.
-              </p>
-              <ul>
-                <li>Before: help form checkbox visuals were local.</li>
-                <li>Now: checkbox rows share one primitive.</li>
-                <li>Used by <code>HelpForm</code>.</li>
-              </ul>
-            </article>
-
-            <article class="component-card">
-              <h3><code>IconButton</code></h3>
-              <p><a href="../src/components/ui/IconButton.tsx">src/components/ui/IconButton.tsx</a></p>
-              <p>
-                Use for close, back, header, and small icon-only actions. It wraps
-                <code>ScalePressable</code> with standard sizes, hit slop, variants, haptics, and labels.
-              </p>
-              <ul>
-                <li>Before: close/header icons repeated sizing and hit slop.</li>
-                <li>Now: icon-only actions share one implementation.</li>
-                <li>Used by <code>ScreenHeader</code> and <code>SheetHeader</code>.</li>
-              </ul>
-            </article>
-
-            <article class="component-card">
-              <h3><code>ListSeparator</code></h3>
-              <p><a href="../src/components/ui/ListSeparator.tsx">src/components/ui/ListSeparator.tsx</a></p>
-              <p>
-                Use for simple list dividers so color, inset, and hairline width are tokenized.
-              </p>
-            </article>
-
-            <article class="component-card">
-              <h3><code>SectionHeaderText</code></h3>
-              <p><a href="../src/components/ui/SectionHeaderText.tsx">src/components/ui/SectionHeaderText.tsx</a></p>
-              <p>
-                Use for repeated section labels in settings, lists, and help surfaces.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section id="press-haptics">
-          <h2>Shared Press And Haptics</h2>
-          <div class="comparison">
-            <div class="comparison-card">
-              <h3><code>ScalePressable</code></h3>
-              <p><a href="../src/components/ScalePressable.tsx">src/components/ScalePressable.tsx</a></p>
-              <p>
-                <code>ScalePressable</code> still owns press-scale animation, and now also accepts a
-                semantic <code>haptic</code> prop. Shared components can feel the same without each
-                screen wiring feedback by hand.
-              </p>
-            </div>
-            <div class="comparison-card">
-              <h3><code>triggerHaptic</code></h3>
-              <p><a href="../src/services/haptics.ts">src/services/haptics.ts</a></p>
-              <p>
-                Direct <code>expo-haptics</code> imports are centralized in one service. Callers use
-                semantic names such as <code>selection</code>, <code>light</code>, <code>submit</code>,
-                <code>success</code>, <code>warning</code>, <code>error</code>, and
-                <code>destructive</code>.
-              </p>
-            </div>
-          </div>
-          <pre><code>&lt;ScalePressable haptic="light" onPress={openMenu}&gt;
-  &lt;Text&gt;Open menu&lt;/Text&gt;
-&lt;/ScalePressable&gt;</code></pre>
-        </section>
-
-        <section id="sheets">
-          <h2>Shared Sheet And Overlay Foundations</h2>
-          <div class="component-grid">
-            <article class="component-card">
-              <h3><code>BottomSheet</code></h3>
-              <p><a href="../src/components/sheets/BottomSheet.tsx">src/components/sheets/BottomSheet.tsx</a></p>
-              <p>
-                Owns modal vs inline presentation, keyboard avoidance, snap height, backdrop,
-                open/close animation, max height, safe area, and shared sheet styling.
-              </p>
-              <ul>
-                <li>Before: <code>BottomSheetModal</code> and <code>CreateEventBottomSheet</code> duplicated sheet mechanics.</li>
-                <li>Now: wrappers keep old APIs while delegating the foundation to <code>BottomSheet</code>.</li>
-              </ul>
-            </article>
-            <article class="component-card">
-              <h3><code>SheetHeader</code></h3>
-              <p><a href="../src/components/sheets/SheetHeader.tsx">src/components/sheets/SheetHeader.tsx</a></p>
-              <p>
-                Provides shared sheet titles and close buttons using <code>IconButton</code>.
-              </p>
-            </article>
-            <article class="component-card">
-              <h3><code>SheetActionList</code></h3>
-              <p><a href="../src/components/sheets/SheetActionList.tsx">src/components/sheets/SheetActionList.tsx</a></p>
-              <p>
-                Provides vertical sheet action rows with loading, disabled, destructive, and haptic
-                behavior.
-              </p>
-            </article>
-            <article class="component-card">
-              <h3><code>EventActionOverlay.prompts</code></h3>
-              <p><a href="../src/components/EventActionOverlay.prompts.tsx">src/components/EventActionOverlay.prompts.tsx</a></p>
-              <p>
-                Splits prompt bodies away from <code>EventActionOverlay</code>, so the top-level
-                overlay just chooses a prompt variant and renders it in <code>BottomSheetModal</code>.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section id="event-lists">
-          <h2>Shared Event List Foundations</h2>
           <table>
             <thead>
               <tr>
-                <th>File</th>
-                <th>What It Replaces</th>
-                <th>How It Is Used Now</th>
+                <th>Issue</th>
+                <th>Fix</th>
+                <th>Rule Going Forward</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><a href="../src/components/events/EventListPage.tsx"><code>EventListPage</code></a></td>
-                <td>Repeated screen wrappers and padding coordination around event lists.</td>
-                <td>Used as a screen-level wrapper around <code>EventSectionList</code>.</td>
+                <td>Action sheet had too much empty space.</td>
+                <td><code>EventActionOverlay</code> only avoids keyboard for input prompts. <code>BottomSheet</code> uses explicit keyboard listeners.</td>
+                <td>Non-input sheets should not avoid the keyboard. Input sheets should.</td>
               </tr>
               <tr>
-                <td><a href="../src/components/events/EventSectionList.tsx"><code>EventSectionList</code></a></td>
-                <td>Repeated section headers, event rows, separators, empty states, and refresh control wiring.</td>
-                <td>Used by <code>HomeScreen</code>, <code>MyEventsScreen</code>, and <code>PastEventsScreen</code>.</td>
+                <td>My Events empty states looked cropped.</td>
+                <td><code>EmptyState</code>, <code>EventSectionList</code>, and My Events image sizing were adjusted.</td>
+                <td>Lists own empty-state placement. Empty components own content only.</td>
               </tr>
               <tr>
-                <td><a href="../src/components/events/eventListSections.ts"><code>eventListSections</code></a></td>
-                <td>Repeated event-to-card mapping, badge labels, date grouping, and sorting.</td>
-                <td>Builds sections with helpers like <code>buildEventSections</code> and <code>buildEventItemSections</code>.</td>
+                <td>Discover could look blank while location loaded.</td>
+                <td>Discover no longer blocks event rendering when event data exists.</td>
+                <td>Loading gates should not hide usable data.</td>
+              </tr>
+              <tr>
+                <td>Inactive tabs/pages were exposed to accessibility.</td>
+                <td><code>TabAccessibilityBoundary</code> and <code>AnimatedPager</code> hide inactive content from accessibility and pointer events.</td>
+                <td>Hidden UI should not be reachable by screen readers or tests.</td>
+              </tr>
+              <tr>
+                <td>Overlay content was cramped near the bottom safe area.</td>
+                <td>Event Details sheet mode now adds bottom padding when no CTA is pinned.</td>
+                <td>Overlay content needs safe-area padding.</td>
+              </tr>
+              <tr>
+                <td>Destructive confirmation was not exposed as a button.</td>
+                <td><code>HoldToConfirmButton</code> now exposes role, label, disabled state.</td>
+                <td>Custom pressables need accessibility role, label, and state.</td>
               </tr>
             </tbody>
           </table>
-          <pre><code>const hostingSections = useMemo(
-  () =&gt; buildEventSections(userEvents, () =&gt; 'Hosting'),
-  [userEvents],
-);</code></pre>
         </section>
 
-        <section id="forms-api-navigation">
-          <h2>Forms, API, Navigation</h2>
-          <div class="component-grid">
-            <article class="component-card">
-              <h3><code>HelpForm</code></h3>
-              <p><a href="../src/components/help/HelpForm.tsx">src/components/help/HelpForm.tsx</a></p>
+        <section id="use-now">
+          <h2>What To Use Now</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Need</th>
+                <th>Use</th>
+                <th>Avoid</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Common CTA button</td><td><code>AppButton</code></td><td>Local button height, radius, loading, disabled, or haptic logic.</td></tr>
+              <tr><td>Icon-only action</td><td><code>IconButton</code></td><td>Local hit slop, icon sizing, and labels.</td></tr>
+              <tr><td>Text variants</td><td><code>AppText</code></td><td>Repeated title/body/caption/error text styles.</td></tr>
+              <tr><td>Text input</td><td><code>TextField</code></td><td>Repeated input surfaces, placeholder colors, and error text.</td></tr>
+              <tr><td>Checkbox row</td><td><code>CheckboxRow</code></td><td>Local checkbox visuals inside forms.</td></tr>
+              <tr><td>Tabs</td><td><code>AppTabs</code> or <code>SegmentedControl</code></td><td>Another local tab animation or selected style.</td></tr>
+              <tr><td>Bottom sheet</td><td><code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code>, or <code>BottomSheet</code></td><td>New sheet wrappers with separate keyboard/backdrop rules.</td></tr>
+              <tr><td>Sheet actions</td><td><code>SheetActionList</code></td><td>Local destructive/loading/disabled menu rows.</td></tr>
+              <tr><td>Event lists</td><td><code>EventListPage</code> and <code>EventSectionList</code></td><td>Local section headers, separators, refresh, footer, and empty wrappers.</td></tr>
+              <tr><td>Haptics</td><td><code>triggerHaptic</code> or a shared <code>haptic</code> prop</td><td>Direct <code>expo-haptics</code> imports.</td></tr>
+              <tr><td>API timeout</td><td><code>createRequestTimeout</code></td><td>Repeated <code>AbortController</code> timeout boilerplate.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="components">
+          <h2>Main Components</h2>
+          <div class="two-col">
+            <div class="card">
+              <h3>UI Primitives</h3>
               <p>
-                Contact and feedback screens now share form fields, optional reply email input,
-                checkbox rows, submit button, loading state, and spacing.
+                <code>AppButton</code>, <code>AppText</code>, <code>TextField</code>,
+                <code>CheckboxRow</code>, <code>IconButton</code>, <code>AppTabs</code>,
+                <code>ListSeparator</code>, and <code>SectionHeaderText</code>.
               </p>
-            </article>
-            <article class="component-card">
-              <h3><code>createEventForm</code></h3>
-              <p><a href="../src/screens/create-event/createEventForm.ts">src/screens/create-event/createEventForm.ts</a></p>
+              <p>They own common states such as pressed, disabled, loading, selected, destructive, error, accessibility, and haptics.</p>
+            </div>
+            <div class="card">
+              <h3>Sheets And Overlays</h3>
               <p>
-                Create/Edit Event payload construction, edit hydration, guest draft mapping, and
-                date normalization are isolated and tested.
+                <code>BottomSheet</code>, <code>SheetHeader</code>, <code>SheetActionList</code>,
+                <code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code>, and
+                <code>EventActionOverlay</code>.
               </p>
-            </article>
-            <article class="component-card">
-              <h3><code>request</code> helpers</h3>
-              <p><a href="../src/api/request.ts">src/api/request.ts</a></p>
+              <p>Use keyboard avoidance only for input overlays such as invite and report prompts.</p>
+            </div>
+            <div class="card">
+              <h3>Event Lists And Empty States</h3>
               <p>
-                Contexts now use <code>createRequestTimeout</code> and <code>isAbortError</code>
-                instead of repeating timeout and abort handling.
+                <code>EventListPage</code>, <code>EventSectionList</code>,
+                <code>eventListSections</code>, and <code>EmptyState</code>.
               </p>
-            </article>
-            <article class="component-card">
-              <h3>Navigation cleanup</h3>
-              <p><a href="../src/navigation/types.ts">src/navigation/types.ts</a></p>
+              <p>The list owns placement. The empty state owns content.</p>
+            </div>
+            <div class="card">
+              <h3>Navigation And Hidden Content</h3>
               <p>
-                Nested navigation params are typed, push routing is stricter, and navigation colors
-                are tokenized through <code>src/theme/colors.ts</code>.
+                <code>AppNavigator</code>, <code>navigation/types</code>,
+                <code>pushRouting</code>, and <code>AnimatedPager</code>.
               </p>
-            </article>
+              <p>Inactive tabs and pager pages should be hidden from accessibility and pointer events.</p>
+            </div>
           </div>
         </section>
 
         <section id="before-now">
           <h2>Before And Now</h2>
-          <div class="comparison">
-            <div class="comparison-card">
+          <div class="two-col">
+            <div class="card">
               <h3>Before</h3>
               <ul>
-                <li>Local button implementations repeated height, radius, color, disabled state, loading, and haptics.</li>
-                <li>Inputs repeated placeholder colors, padding, surfaces, multiline behavior, and error text.</li>
-                <li>Sheets duplicated animation, backdrop, keyboard avoidance, safe-area, and close-button styling.</li>
-                <li>Event screens repeated section list scaffolding and event-card mapping.</li>
-                <li>Direct <code>expo-haptics</code> imports spread across screens.</li>
+                <li>buttons had different press feedback, disabled styles, and loading states</li>
+                <li>sheets had different keyboard and safe-area behavior</li>
+                <li>event lists duplicated scaffolding</li>
+                <li>empty states were centered differently per screen</li>
+                <li>haptics were imported directly from <code>expo-haptics</code></li>
               </ul>
             </div>
-            <div class="comparison-card">
+            <div class="card">
               <h3>Now</h3>
               <ul>
-                <li><code>AppButton</code>, <code>TextField</code>, <code>AppTabs</code>, and <code>IconButton</code> own common UI behavior.</li>
-                <li><code>BottomSheet</code>, <code>SheetHeader</code>, and <code>SheetActionList</code> own sheet mechanics.</li>
-                <li><code>EventSectionList</code> and section helpers own repeated event list behavior.</li>
-                <li><code>triggerHaptic</code> centralizes semantic feedback.</li>
-                <li>Theme tokens are the preferred shared styling layer.</li>
+                <li><code>AppButton</code> owns common CTA behavior</li>
+                <li><code>BottomSheet</code> owns sheet mechanics</li>
+                <li><code>EventSectionList</code> owns event-list rendering</li>
+                <li><code>EmptyState</code> owns content while list wrappers own placement</li>
+                <li><code>triggerHaptic</code> owns semantic haptics</li>
               </ul>
             </div>
           </div>
-          <pre><code>// Before: local button details in a screen
-&lt;Pressable onPress={handleSubmit} style={styles.button}&gt;
-  &lt;Text style={styles.buttonText}&gt;Send message&lt;/Text&gt;
-&lt;/Pressable&gt;
-
-// Now: shared button owns visual and interaction states
-&lt;AppButton
+          <pre><code>&lt;AppButton
   label="Send message"
   onPress={handleSubmit}
   loading={isSubmitting}
@@ -915,76 +509,49 @@
 /&gt;</code></pre>
         </section>
 
-        <section id="new-work">
-          <h2>What To Use For New Work</h2>
+        <section id="visuals">
+          <h2>Visual References</h2>
+          <p>The Markdown guide keeps screenshots as links so it stays easy to scan.</p>
           <table>
             <thead>
               <tr>
-                <th>Need</th>
-                <th>Use</th>
+                <th>Surface</th>
+                <th>Screenshot</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Primary, secondary, destructive, or ghost CTA</td>
-                <td><code>AppButton</code></td>
-              </tr>
-              <tr>
-                <td>Icon-only close, back, or action button</td>
-                <td><code>IconButton</code></td>
-              </tr>
-              <tr>
-                <td>Common press scale or haptic wrapper</td>
-                <td><code>ScalePressable</code></td>
-              </tr>
-              <tr>
-                <td>Single-line or multiline input</td>
-                <td><code>TextField</code></td>
-              </tr>
-              <tr>
-                <td>Checkbox row</td>
-                <td><code>CheckboxRow</code></td>
-              </tr>
-              <tr>
-                <td>Tabs or segmented controls</td>
-                <td><code>AppTabs</code> or <code>SegmentedControl</code></td>
-              </tr>
-              <tr>
-                <td>Simple shared text variant</td>
-                <td><code>AppText</code></td>
-              </tr>
-              <tr>
-                <td>Bottom sheet</td>
-                <td><code>BottomSheetModal</code> or <code>CreateEventBottomSheet</code> wrapper</td>
-              </tr>
-              <tr>
-                <td>Sheet action menu</td>
-                <td><code>SheetActionList</code></td>
-              </tr>
-              <tr>
-                <td>Event card sections</td>
-                <td><code>EventListPage</code> and <code>EventSectionList</code></td>
-              </tr>
-              <tr>
-                <td>Haptic feedback</td>
-                <td><code>triggerHaptic</code> or a shared component <code>haptic</code> prop</td>
-              </tr>
-              <tr>
-                <td>Fetch timeout</td>
-                <td><code>createRequestTimeout</code></td>
-              </tr>
+              <tr><td>Discover event list and shared tabs</td><td><a href="screenshots/shared-components-discover-event-list.png">shared-components-discover-event-list.png</a></td></tr>
+              <tr><td>My Events shared tabs and event list</td><td><a href="screenshots/shared-components-my-events-tabs.png">shared-components-my-events-tabs.png</a></td></tr>
+              <tr><td>Create Event sheet</td><td><a href="screenshots/shared-components-create-event-sheet.png">shared-components-create-event-sheet.png</a></td></tr>
+              <tr><td>Help form primitives</td><td><a href="screenshots/shared-components-help-form.png">shared-components-help-form.png</a></td></tr>
+              <tr><td>Event action confirmation sheet</td><td><a href="screenshots/shared-components-event-action-confirm.png">shared-components-event-action-confirm.png</a></td></tr>
+              <tr><td>Member action-sheet issue evidence</td><td><a href="member-event-action-sheet-extra-space.png">member-event-action-sheet-extra-space.png</a></td></tr>
             </tbody>
           </table>
+        </section>
+
+        <section id="validation">
+          <h2>Validation Notes</h2>
+          <p>Targeted validation run for this doc update and latest mobile-fix commit:</p>
+          <pre><code>npx jest src/components/__tests__/AnimatedPager.test.tsx \
+  src/components/__tests__/BottomSheet.test.tsx \
+  src/components/__tests__/EmptyState.test.tsx \
+  src/components/__tests__/EventActionOverlay.test.tsx \
+  src/navigation/__tests__/AppNavigator.test.tsx \
+  src/screens/__tests__/HomeScreen.rendering.test.tsx \
+  --runInBand --silent</code></pre>
+          <p class="note">Result: 6 suites passed, 161 tests passed.</p>
         </section>
 
         <section id="follow-up">
           <h2>Remaining Follow-Up</h2>
           <ul>
-            <li>Continue replacing screen-local one-off buttons with <code>AppButton</code> where the visuals match.</li>
-            <li>Continue replacing repeated text inputs with <code>TextField</code>.</li>
-            <li>Consider moving more Event Details tab UI to <code>AppTabs</code> once behavior is stable.</li>
+            <li>Continue migrating matching one-off CTAs to <code>AppButton</code>.</li>
+            <li>Continue migrating repeated inputs to <code>TextField</code>.</li>
+            <li>Keep non-input sheets from using keyboard avoidance.</li>
+            <li>Keep inactive tabs and pager pages hidden from accessibility.</li>
             <li>Keep direct <code>expo-haptics</code> imports restricted to <code>src/services/haptics.ts</code>.</li>
-            <li>Keep <code>AGENTS.md</code> updated when new primitives, conventions, or validation rules are added.</li>
+            <li>Keep <code>AGENTS.md</code> updated when new primitives or validation rules are added.</li>
           </ul>
         </section>
       </div>
