@@ -1,65 +1,125 @@
-# Who Else Is Free
+# CLAUDE.md
 
-Event discovery and social coordination mobile app.
+Guide for Claude and other coding agents working in this repository.
 
-## Tech Stack
+Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented workflows.
 
-**Frontend:** React Native + Expo, TypeScript, React Navigation (bottom tabs + stack)
-**Backend:** Go (Gin), SQLite, REST API + WebSocket (chat)
-**Auth:** Google OAuth 2.0
+## Project
 
-## Project Structure
+Who Else Is Free is an event discovery and social coordination app.
 
-```
-src/
-├── screens/          # Main screens
-│   ├── HomeScreen.tsx        # Event discovery (browse all events)
-│   ├── CreateEventScreen.tsx # Create/edit events
-│   ├── MyEventsScreen.tsx    # Created/Joined/Requested events
-│   ├── MessagesScreen.tsx    # Conversation list
-│   ├── ChatThreadScreen.tsx  # Real-time chat
-│   ├── ProfileScreen.tsx     # User profile & sign out
-│   └── GoogleSignIn.tsx      # Auth screen
-├── context/          # Global state (AuthContext, EventsContext, ChatContext)
-├── components/       # Reusable components (EventCard, etc.)
-└── ...
-server/               # Go backend
-```
+- Frontend: React Native Expo app in `src/`
+- Backend: Go Gin server in `server/`
+- API: REST plus WebSocket chat at `/api/ws`
+- Navigation: React Navigation stack and bottom tabs in `src/navigation`
+- State: React Context providers for auth, events, chat, push, covers, and bloom state
 
-## Key Contexts
+## Working References
 
-- **AuthContext** - User auth state, sign-in/out
-- **EventsContext** - Events data, CRUD operations, user events
-- **ChatContext** - Conversations, messages, WebSocket connection, join requests
+- Repo working rules: `AGENTS.md`
+- Shared components and shared styling catalog: `report/shared-components-refactor-guide.md`
+- Refactor roadmap: `report/code-refactoring-consistency-plan.md`
+- Performance reports: `report/performance-consistency-audit.html` and `report/performance-baseline.html`
+
+Before adding or refactoring UI, read `report/shared-components-refactor-guide.md`. It explains what each shared component is, where it is used, and which theme/style files act as shared CSS.
+
+## Working Agreement
+
+- Preserve behavior unless the task explicitly asks for behavior change.
+- Prefer existing shared components, hooks, services, API helpers, and theme tokens before adding local code.
+- Keep screens focused on composition, state orchestration, and navigation.
+- Move repeated UI, data mapping, payload construction, request helpers, haptics, and action behavior into shared components/helpers.
+- Refactor one user-visible area at a time.
+- Do not mix structural refactors with performance optimization unless explicitly asked.
+- Do not remove user changes or unrelated untracked files.
+- Update `AGENTS.md`, `CLAUDE.md`, and relevant report docs when conventions, validation commands, shared primitives, or architectural rules change.
+
+## Shared Components And Styling
+
+Treat "shared CSS" in React Native as:
+
+- theme tokens in `src/theme`
+- shared component-owned styles
+- feature-level `.styles.ts` files for complex component-local styling
+
+Use shared primitives before local UI:
+
+- UI primitives: `src/components/ui`
+- Sheets: `src/components/sheets`, `BottomSheetModal`, `CreateEventBottomSheet`
+- Event lists: `src/components/events`
+- Empty states: `EmptyState`
+- Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
+- Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
+- API timeout helpers: `src/api/request.ts`
+
+Do not import `expo-haptics` outside `src/services/haptics.ts`.
 
 ## Commands
 
-```bash
-# Frontend
-npm start               # Start Expo dev server
-npm run android         # Run on Android
-npm run ios             # Run on iOS
-npm run web             # Run on web
-npm test                # Run frontend tests
+Frontend:
 
-# Backend (from server/)
-go run .                # Start server
-go test ./...           # Run backend tests
+```sh
+npm start
+npm run android
+npm run ios
+npm run web
+npm test
+npm run typecheck
+npm run lint
+npm run format:check
 ```
 
-## Features
+Backend:
 
-1. **Event Discovery** - Browse events by date (Today/Tomorrow), no auth required
-2. **Event Creation** - Create events with preferences (group type, gender, age, time, location, cover)
-3. **User Events** - Manage created/joined/requested events
-4. **Messaging** - Real-time WebSocket chat, group chats linked to events
-5. **Auth** - Google OAuth (requires native build, not Expo Go)
-6. **Profile** - View info, sign out
+```sh
+cd server && go run .
+cd server && go test ./...
+```
 
-## Notes
+`npm run lint` currently has an existing warning baseline. Do not add new warnings casually; reduce the baseline when touching files.
 
-- Events organized by "Today"/"Tomorrow" sections
-- Chat supports message retry on failure
-- WebSocket endpoint is `/api/ws`
-- Guest users can browse events but need auth to create/join
-- iOS/Android require native builds for Google Sign-In
+## Validation
+
+For frontend changes:
+
+- Run the narrowest relevant Jest test first: `npx jest <path-or-pattern> --runInBand --silent`
+- Run `npm run typecheck` for TypeScript refactors.
+- Run broader tests when changing shared components, navigation, contexts, or API helpers.
+- Use Prettier on touched files rather than formatting the whole repo unless the task is a formatting pass.
+
+For visual or interaction changes, smoke test on the connected mobile app/emulator:
+
+- Discover
+- My Events
+- Create Event
+- Messages
+- Profile
+- Event Details
+- Bottom sheets and action menus
+- Back navigation
+
+## Import And Type Rules
+
+Import order:
+
+1. React imports.
+2. React Native imports.
+3. External library imports.
+4. Internal alias imports.
+5. Relative imports.
+
+Prefer aliases when available:
+
+- `@components/*`
+- `@screens/*`
+- `@navigation/*`
+- `@theme/*`
+- `@hooks/*`
+- `@utils/*`
+- `@context/*`
+- `@api/*`
+- `@services/*`
+- `@assets/*`
+- `@constants/*`
+
+Keep route params typed in `src/navigation/types.ts`. Avoid `navigation as any`, `props: any`, and new broad `any` casts.

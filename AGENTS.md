@@ -9,6 +9,25 @@ Project guide for coding agents and contributors working in this repository.
 - If a command stops working or a new validation gate is added, update the commands below.
 - Keep this file concise and practical. It should describe how to work in the repo, not every implementation detail.
 
+## Working References
+
+- Shared components and shared styling catalog: `report/shared-components-refactor-guide.md`.
+- Refactor roadmap and rationale: `report/code-refactoring-consistency-plan.md`.
+- Performance reports: `report/performance-consistency-audit.html` and `report/performance-baseline.html`.
+- Mobile QA history reports belong in `report/`; keep QA history separate from evergreen component/style references.
+
+Read `report/shared-components-refactor-guide.md` before adding or refactoring UI. It explains what each shared component is, where it is used, and which theme/style files act as shared CSS.
+
+## Working Agreement
+
+- Preserve behavior unless the task explicitly asks for behavior change.
+- Prefer the existing shared component, hook, service, API helper, or theme token before creating a local implementation.
+- Treat "shared CSS" in React Native as `src/theme` tokens plus shared component-owned styles.
+- Keep screens focused on composition, state orchestration, and navigation. Move repeated UI, data mapping, and side-effect helpers into shared components/hooks/helpers.
+- Refactor one user-visible area at a time and avoid mixing structural refactors with performance optimization unless the task asks for both.
+- When a change introduces or changes a shared primitive, token, helper, validation command, or architectural rule, update `AGENTS.md`, `CLAUDE.md`, and the relevant report reference in the same change.
+- Do not remove user changes or unrelated untracked files.
+
 ## Build And Run Commands
 
 - Frontend dev server: `npm start`
@@ -36,6 +55,7 @@ Project guide for coding agents and contributors working in this repository.
 - Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
 - Shared sheet primitives live in `src/components/sheets`; use `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
 - Shared event-list primitives live in `src/components/events`; use `EventSectionList`, `EventListPage`, and `eventListSections` helpers before duplicating event card lists or date grouping in screens.
+- Shared component/style documentation lives in `report/shared-components-refactor-guide.md`; update it when shared components, shared style files, or theme-token ownership changes.
 - Create/Edit Event form mapping lives in `src/screens/create-event/createEventForm.ts`; keep payload construction, edit hydration, guest draft mapping, and date normalization there instead of rebuilding them in `CreateEventScreen`.
 - Shared request helpers live in `src/api/request.ts`; use them for repeated API timeout and abort-error handling instead of duplicating request infrastructure inside contexts.
 - Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
@@ -105,6 +125,7 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
 - Shared components should own their visual states: default, pressed, disabled, loading, selected, error, and destructive.
 - Keep brand-specific or screen-specific tokens named and centralized.
 - Treat "shared CSS" in React Native as shared theme tokens plus shared components.
+- Use feature-level `.styles.ts` files for complex component-local styling that is not broadly reusable yet. If a style pattern repeats across features, promote it to a theme token or shared component.
 
 ## Motion And Haptics Rules
 
@@ -138,6 +159,7 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
 The working refactor roadmap is documented in:
 
 - `report/code-refactoring-consistency-plan.md`
+- `report/shared-components-refactor-guide.md`
 
 Use that plan for ordering:
 
@@ -153,7 +175,7 @@ Use that plan for ordering:
 10. Navigation cleanup.
 11. Final consistency pass.
 
-Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, the first Event Details overlay-route extraction, Create/Edit Event form mapping helpers, shared API request timeout helpers, typed nested navigation params, and navigation color token cleanup.
+Completed so far: guardrails/tooling, expanded theme tokens, shared UI primitives, semantic haptics/pressables, sheet/action overlay foundations, shared event-list foundations, Event Details overlay-route extraction, Create/Edit Event form mapping helpers, shared API request timeout helpers, typed nested navigation params, navigation color token cleanup, and mobile layout/accessibility fixes for the shared foundations.
 
 ## Testing And Validation
 
