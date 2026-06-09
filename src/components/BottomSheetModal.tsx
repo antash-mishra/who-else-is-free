@@ -1,5 +1,7 @@
 import React, { useEffect, useId, useMemo } from 'react';
 
+import { StyleProp, ViewStyle } from 'react-native';
+
 import { BottomSheet, useOptionalBottomSheetHost } from '@components/sheets';
 
 export type BottomSheetModalProps = {
@@ -12,6 +14,11 @@ export type BottomSheetModalProps = {
   avoidKeyboard?: boolean;
   /** Pin the sheet to an exact height instead of sizing to content. */
   snapHeight?: number;
+  testID?: string;
+  backdropTestID?: string;
+  closeTestID?: string;
+  contentTestID?: string;
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
 const BottomSheetModal = ({
@@ -21,6 +28,11 @@ const BottomSheetModal = ({
   title,
   avoidKeyboard = true,
   snapHeight,
+  testID = 'bottom-sheet-modal',
+  backdropTestID = 'bottom-sheet-backdrop',
+  closeTestID = 'bottom-sheet-close',
+  contentTestID,
+  contentStyle,
 }: BottomSheetModalProps) => {
   const host = useOptionalBottomSheetHost();
   const ownerId = useId();
@@ -31,11 +43,24 @@ const BottomSheetModal = ({
       avoidKeyboard,
       snapHeight,
       onClose,
-      testID: 'bottom-sheet-modal',
-      backdropTestID: 'bottom-sheet-backdrop',
-      closeTestID: 'bottom-sheet-close',
+      testID,
+      backdropTestID,
+      closeTestID,
+      contentTestID,
+      contentStyle,
     }),
-    [avoidKeyboard, children, onClose, snapHeight, title],
+    [
+      avoidKeyboard,
+      backdropTestID,
+      children,
+      closeTestID,
+      contentStyle,
+      contentTestID,
+      onClose,
+      snapHeight,
+      testID,
+      title,
+    ],
   );
 
   useEffect(() => {
@@ -68,9 +93,11 @@ const BottomSheetModal = ({
       avoidKeyboard={avoidKeyboard}
       snapHeight={snapHeight}
       presentation="modal"
-      testID="bottom-sheet-modal"
-      backdropTestID="bottom-sheet-backdrop"
-      closeTestID="bottom-sheet-close"
+      testID={testID}
+      backdropTestID={backdropTestID}
+      closeTestID={closeTestID}
+      contentTestID={contentTestID}
+      contentStyle={contentStyle}
     >
       {children}
     </BottomSheet>

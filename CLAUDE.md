@@ -52,7 +52,7 @@ Use shared primitives before local UI:
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
 - API timeout helpers: `src/api/request.ts`
 
-Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Keep `CreateEventBottomSheet` for inline Create/Edit Event sheets.
+Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
 
 Do not import `expo-haptics` outside `src/services/haptics.ts`.
 

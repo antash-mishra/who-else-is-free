@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { BottomSheet } from '@components/sheets';
+import BottomSheetModal from './BottomSheetModal';
 
 type CreateEventBottomSheetProps = {
   visible: boolean;
@@ -17,20 +17,18 @@ const CreateEventBottomSheet = ({
   onClose,
   snapHeight,
 }: CreateEventBottomSheetProps) => (
-  <BottomSheet
+  <BottomSheetModal
     visible={visible}
     onClose={onClose}
     title={title}
     snapHeight={snapHeight}
     avoidKeyboard={false}
-    presentation="inline"
-    animation="timing"
     testID="create-event-bottom-sheet"
     backdropTestID="create-event-sheet-backdrop"
     closeTestID="create-event-sheet-close"
   >
     {children}
-  </BottomSheet>
+  </BottomSheetModal>
 );
 
 export default CreateEventBottomSheet;

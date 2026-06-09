@@ -1,5 +1,5 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -14,8 +14,8 @@ import BottomSheetModal from './BottomSheetModal';
 import styles from './EventDateTimeModal.styles';
 
 const WHEEL_ITEM_HEIGHT = 44;
-const WHEEL_HEIGHT = 220; // 5 visible items
 const DRAG_END_SETTLE_DELAY_MS = 16;
+const WHEEL_MOUNT_DEFER_FRAMES = 2;
 
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1)); // ["1".."12"]
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')); // ["00".."59"]
@@ -37,6 +37,7 @@ export type EventDateTimeModalProps = {
   maxDate: Date;
   onClose: () => void;
   onConfirm: (value: Date) => void;
+  deferWheelMount?: boolean;
 };
 
 type EventDateTimePickerContentProps = Omit<EventDateTimeModalProps, 'onClose'>;
@@ -102,11 +103,13 @@ export const EventDateTimePickerContent = ({
   minDate,
   maxDate,
   onConfirm,
+  deferWheelMount = true,
 }: EventDateTimePickerContentProps) => {
   const [draftValue, setDraftValue] = useState(() =>
     clampDateTime(toSafeDate(value), minDate, maxDate),
   );
   const [error, setError] = useState<string | null>(null);
+  const [wheelContentReady, setWheelContentReady] = useState(false);
 
   const dateWheelRef = useRef<ScrollView>(null);
   const hourWheelRef = useRef<ScrollView>(null);
@@ -120,6 +123,7 @@ export const EventDateTimePickerContent = ({
   const wheelUserDragRef = useRef<Record<string, boolean>>({});
 
   const dateOptions = useMemo(() => buildDateOptions(minDate, maxDate), [minDate, maxDate]);
+  const dateLabels = useMemo(() => dateOptions.map((option) => option.label), [dateOptions]);
 
   const selectedDateIndex = useMemo(() => {
     const key = toDateKey(draftValue);
@@ -136,6 +140,7 @@ export const EventDateTimePickerContent = ({
   const selectedHourLogical = hour24ToIndex(draftValue.getHours());
   const selectedMinuteLogical = draftValue.getMinutes();
   const selectedAmPmIndex = draftValue.getHours() >= 12 ? 1 : 0;
+  const shouldRenderWheels = !deferWheelMount || (visible && wheelContentReady);
 
   const scrollWheelToIndex = useCallback(
     (ref: RefObject<ScrollView | null>, index: number, animated = false) => {
@@ -150,6 +155,38 @@ export const EventDateTimePickerContent = ({
     setDraftValue(initialDraft);
     setError(null);
   }, [maxDate, minDate, value, visible]);
+
+  useEffect(() => {
+    if (!visible || !deferWheelMount) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    const animationFrames: number[] = [];
+    const scheduleWheelMount = (remainingFrames: number) => {
+      const frame = requestAnimationFrame(() => {
+        if (isCancelled) {
+          return;
+        }
+        if (remainingFrames <= 1) {
+          setWheelContentReady(true);
+          return;
+        }
+        scheduleWheelMount(remainingFrames - 1);
+      });
+      animationFrames.push(frame);
+    };
+
+    const interactionHandle = InteractionManager.runAfterInteractions(() => {
+      scheduleWheelMount(WHEEL_MOUNT_DEFER_FRAMES);
+    });
+
+    return () => {
+      isCancelled = true;
+      interactionHandle.cancel();
+      animationFrames.forEach((frame) => globalThis.cancelAnimationFrame(frame));
+    };
+  }, [deferWheelMount, visible]);
 
   const applyDateIndex = useCallback(
     (index: number) => {
@@ -333,78 +370,84 @@ export const EventDateTimePickerContent = ({
           <View style={styles.selectionLine} />
         </View>
 
-        <View style={styles.wheelRow}>
-          {/* Date column — bounded, no looping */}
-          <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
-            {renderWheel(
-              dateWheelRef,
-              dateOptions.map((o) => o.label),
-              dateSnapOffsets,
-              (i) => i === selectedDateIndex,
-              applyDateIndex,
-              'date',
-              undefined,
-              selectedDateIndex * WHEEL_ITEM_HEIGHT,
-            )}
-          </View>
+        {shouldRenderWheels ? (
+          <>
+            <View style={styles.wheelRow}>
+              {/* Date column — bounded, no looping */}
+              <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
+                {renderWheel(
+                  dateWheelRef,
+                  dateLabels,
+                  dateSnapOffsets,
+                  (i) => i === selectedDateIndex,
+                  applyDateIndex,
+                  'date',
+                  undefined,
+                  selectedDateIndex * WHEEL_ITEM_HEIGHT,
+                )}
+              </View>
 
-          {/* Hour column — looped */}
-          <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
-            {renderWheel(
-              hourWheelRef,
-              HOURS_LOOPED,
-              HOUR_SNAP_OFFSETS,
-              (i) => i % HOURS_12.length === selectedHourLogical,
-              handleHourScrollIndex,
-              'hour',
-              (i) => HOUR_LOOP_OFFSET + (i % HOURS_12.length),
-              (HOUR_LOOP_OFFSET + selectedHourLogical) * WHEEL_ITEM_HEIGHT,
-            )}
-          </View>
+              {/* Hour column — looped */}
+              <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                {renderWheel(
+                  hourWheelRef,
+                  HOURS_LOOPED,
+                  HOUR_SNAP_OFFSETS,
+                  (i) => i % HOURS_12.length === selectedHourLogical,
+                  handleHourScrollIndex,
+                  'hour',
+                  (i) => HOUR_LOOP_OFFSET + (i % HOURS_12.length),
+                  (HOUR_LOOP_OFFSET + selectedHourLogical) * WHEEL_ITEM_HEIGHT,
+                )}
+              </View>
 
-          {/* Separator */}
-          <Text style={styles.timeSeparator}>:</Text>
+              {/* Separator */}
+              <Text style={styles.timeSeparator}>:</Text>
 
-          {/* Minute column — looped */}
-          <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
-            {renderWheel(
-              minuteWheelRef,
-              MINUTES_LOOPED,
-              MINUTE_SNAP_OFFSETS,
-              (i) => i % MINUTES.length === selectedMinuteLogical,
-              handleMinuteScrollIndex,
-              'minute',
-              (i) => MINUTE_LOOP_OFFSET + (i % MINUTES.length),
-              (MINUTE_LOOP_OFFSET + selectedMinuteLogical) * WHEEL_ITEM_HEIGHT,
-            )}
-          </View>
+              {/* Minute column — looped */}
+              <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+                {renderWheel(
+                  minuteWheelRef,
+                  MINUTES_LOOPED,
+                  MINUTE_SNAP_OFFSETS,
+                  (i) => i % MINUTES.length === selectedMinuteLogical,
+                  handleMinuteScrollIndex,
+                  'minute',
+                  (i) => MINUTE_LOOP_OFFSET + (i % MINUTES.length),
+                  (MINUTE_LOOP_OFFSET + selectedMinuteLogical) * WHEEL_ITEM_HEIGHT,
+                )}
+              </View>
 
-          {/* AM/PM column — only 2 items, no looping needed */}
-          <View style={[styles.wheelColumn, styles.amPmWheelColumn]}>
-            {renderWheel(
-              amPmWheelRef,
-              AMPM,
-              AMPM_SNAP_OFFSETS,
-              (i) => i === selectedAmPmIndex,
-              applyAmPmIndex,
-              'ampm',
-              undefined,
-              selectedAmPmIndex * WHEEL_ITEM_HEIGHT,
-            )}
-          </View>
-        </View>
+              {/* AM/PM column — only 2 items, no looping needed */}
+              <View style={[styles.wheelColumn, styles.amPmWheelColumn]}>
+                {renderWheel(
+                  amPmWheelRef,
+                  AMPM,
+                  AMPM_SNAP_OFFSETS,
+                  (i) => i === selectedAmPmIndex,
+                  applyAmPmIndex,
+                  'ampm',
+                  undefined,
+                  selectedAmPmIndex * WHEEL_ITEM_HEIGHT,
+                )}
+              </View>
+            </View>
 
-        {/* Fade gradients — each covers 2 items above/below centre */}
-        <LinearGradient
-          colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
-          style={styles.fadeTop}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
-          style={styles.fadeBottom}
-          pointerEvents="none"
-        />
+            {/* Fade gradients — each covers 2 items above/below centre */}
+            <LinearGradient
+              colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+              style={styles.fadeTop}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
+              style={styles.fadeBottom}
+              pointerEvents="none"
+            />
+          </>
+        ) : (
+          <View style={styles.wheelPlaceholder} pointerEvents="none" />
+        )}
       </View>
 
       {error ? <Text style={errorStyle.text}>{error}</Text> : null}

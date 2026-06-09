@@ -753,8 +753,9 @@ File: `src/components/CreateEventBottomSheet.tsx`
 
 What it is:
 
-- Inline sheet wrapper for Create/Edit Event.
-- Uses `BottomSheet` with inline presentation and timing animation.
+- Modal sheet wrapper for Create/Edit Event.
+- Uses `BottomSheetModal` with keyboard avoidance disabled so Create/Edit Event sheets share the
+  app-wide modal transition and host coordination.
 
 Where it is used:
 
@@ -910,7 +911,7 @@ Files:
 What it is:
 
 - Cover image picker sheet/content.
-- Also exports `CoverPickerContent` for Create Event inline sheets.
+- Also exports `CoverPickerContent` for Create Event hosted sheet content.
 
 Where it is used:
 
@@ -950,7 +951,7 @@ Files:
 What it is:
 
 - Location search and selection sheet/content.
-- Also exports content for Create Event inline sheet usage.
+- Also exports content for Create Event hosted sheet usage.
 
 Where it is used:
 
