@@ -17,6 +17,7 @@ import {
 } from '@react-native-firebase/messaging';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
+import { BottomSheetHostProvider } from '@components/sheets';
 import AppNavigator from '@navigation/AppNavigator';
 import { colors } from '@theme/colors';
 import { BloomProvider } from '@context/BloomContext';
@@ -104,7 +105,9 @@ const App = () => {
                 <ChatProvider>
                   <PushProvider>
                     <EventsProvider>
-                      <AppNavigator />
+                      <BottomSheetHostProvider>
+                        <AppNavigator />
+                      </BottomSheetHostProvider>
                     </EventsProvider>
                   </PushProvider>
                 </ChatProvider>

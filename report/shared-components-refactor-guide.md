@@ -1,6 +1,6 @@
 # Shared Components And Shared Styling Guide
 
-Updated: June 8, 2026
+Updated: June 9, 2026
 
 Branch: `refactor/code-consistency-shared-components`
 
@@ -41,7 +41,7 @@ In this React Native app, "shared CSS" means:
 | Standard back/title header | `ScreenHeader` | Help screens, Edit Profile, Past Events |
 | Empty state | `EmptyState` | Discover, My Events, Messages, Join Requests, Event Details |
 | Event card list | `EventListPage`, `EventSectionList` | Discover, My Events, Past Events |
-| Bottom sheet | `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modals, create-event sheets, action overlays |
+| Bottom sheet | `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modal coordination, create-event sheets, action overlays |
 | Sheet action menu | `SheetActionList` | event action menus and pending request menus |
 | Event action prompt | `EventActionOverlay` | Event Details, Chat Thread, Profile |
 | Avatar | `UserAvatar` | Profile, messages, chat, event members, onboarding |
@@ -702,6 +702,25 @@ Use it when:
 
 - Creating a new sheet wrapper or updating sheet mechanics.
 
+### `BottomSheetHostProvider`
+
+File: `src/components/sheets/BottomSheetHost.tsx`
+
+What it is:
+
+- App-level coordinator for modal bottom sheets.
+- Keeps one native modal sheet mounted and swaps content when another `BottomSheetModal` becomes
+  visible, avoiding sibling native modal handoff bugs on iOS.
+
+Where it is used:
+
+- `App.tsx`
+- `BottomSheetModal`
+
+Use it when:
+
+- Wiring app-level providers or coordinating modal sheet presentation.
+
 ### `BottomSheetModal`
 
 File: `src/components/BottomSheetModal.tsx`
@@ -710,6 +729,8 @@ What it is:
 
 - Standard modal sheet wrapper around `BottomSheet`.
 - Supports optional title, close header, `avoidKeyboard`, and `snapHeight`.
+- Uses `BottomSheetHostProvider` when available and falls back to local modal rendering in isolated
+  tests or stories.
 
 Where it is used:
 
@@ -724,6 +745,7 @@ Where it is used:
 Use it when:
 
 - A normal modal sheet is needed.
+- A sheet can transition to another modal sheet; do not hand-roll timers between sibling modals.
 
 ### `CreateEventBottomSheet`
 

@@ -1091,7 +1091,7 @@ const EventDetailsScreenContent = ({
   };
 
   const handleLeavePrompt = () =>
-    afterMenuClose(() => {
+    replaceMenuOverlay(() => {
       triggerHaptic('destructive');
       setLeaveError(null);
       setShowLeaveConfirm(true);
@@ -1154,19 +1154,13 @@ const EventDetailsScreenContent = ({
     setShowLeaveConfirm(false);
   };
 
-  // On iOS, opening a new Modal while the previous one is animating closed
-  // causes the second Modal to silently fail. Delay by 300ms to let the first finish.
-  const afterMenuClose = (fn: () => void) => {
+  const replaceMenuOverlay = (fn: () => void) => {
     setShowMenuOverlay(false);
-    if (Platform.OS === 'ios') {
-      setTimeout(fn, 300);
-    } else {
-      fn();
-    }
+    fn();
   };
 
   const handleMenuReportEvent = () =>
-    afterMenuClose(() => {
+    replaceMenuOverlay(() => {
       triggerHaptic('destructive');
       setReportMessage('');
       setReportError(null);
@@ -1178,11 +1172,11 @@ const EventDetailsScreenContent = ({
     handleCancelRequest();
   };
 
-  const handleMenuViewIntro = () => afterMenuClose(() => setShowViewIntroOverlay(true));
+  const handleMenuViewIntro = () => replaceMenuOverlay(() => setShowViewIntroOverlay(true));
 
-  const handleMenuEdit = () => afterMenuClose(handleEdit);
+  const handleMenuEdit = () => replaceMenuOverlay(handleEdit);
 
-  const handleMenuDelete = () => afterMenuClose(handleDeletePrompt);
+  const handleMenuDelete = () => replaceMenuOverlay(handleDeletePrompt);
 
   const menuItems = useMemo(() => {
     if (isOwner) {

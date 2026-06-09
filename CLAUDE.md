@@ -45,12 +45,14 @@ Treat "shared CSS" in React Native as:
 Use shared primitives before local UI:
 
 - UI primitives: `src/components/ui`
-- Sheets: `src/components/sheets`, `BottomSheetModal`, `CreateEventBottomSheet`
+- Sheets: `src/components/sheets`, `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`
 - Event lists: `src/components/events`
 - Empty states: `EmptyState`
 - Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
 - API timeout helpers: `src/api/request.ts`
+
+Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Keep `CreateEventBottomSheet` for inline Create/Edit Event sheets.
 
 Do not import `expo-haptics` outside `src/services/haptics.ts`.
 

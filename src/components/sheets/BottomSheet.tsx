@@ -45,6 +45,7 @@ export type BottomSheetProps = {
   closeTestID?: string;
   contentTestID?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  onClosed?: () => void;
 };
 
 const BASE_PADDING_BOTTOM = 8;
@@ -66,6 +67,7 @@ const BottomSheet = ({
   closeTestID = 'bottom-sheet-close',
   contentTestID,
   contentStyle,
+  onClosed,
 }: BottomSheetProps) => {
   const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -73,6 +75,7 @@ const BottomSheet = ({
   const isMountedRef = useRef(visible);
   const hasBeenVisible = useRef(visible);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onClosedRef = useRef(onClosed);
   const shouldAnimateOnShowRef = useRef(false);
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
@@ -89,6 +92,10 @@ const BottomSheet = ({
     opacity: backdropOpacity.value,
   }));
   const keyboardContentStyle = { paddingBottom: BASE_PADDING_BOTTOM + safeBottom };
+
+  useEffect(() => {
+    onClosedRef.current = onClosed;
+  }, [onClosed]);
 
   useEffect(() => {
     if (!avoidKeyboard) {
@@ -184,6 +191,7 @@ const BottomSheet = ({
       isMountedRef.current = false;
       setIsMounted(false);
       closeTimerRef.current = null;
+      onClosedRef.current?.();
     }, closeDuration);
   }, [closeDuration, isMounted, presentation, startCloseAnimation, startOpenAnimation, visible]);
 

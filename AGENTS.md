@@ -53,7 +53,8 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 - State: React Context providers currently handle auth, events, chat, push, covers, and bloom state.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
 - Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
-- Shared sheet primitives live in `src/components/sheets`; use `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
+- Shared sheet primitives live in `src/components/sheets`; use `BottomSheetHostProvider` for modal-sheet coordination and `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
+- Modal bottom sheets should go through `BottomSheetModal` so iOS uses the shared host instead of stacking sibling native modals. Keep `CreateEventBottomSheet` for inline Create/Edit Event sheets.
 - Shared event-list primitives live in `src/components/events`; use `EventSectionList`, `EventListPage`, and `eventListSections` helpers before duplicating event card lists or date grouping in screens.
 - Shared component/style documentation lives in `report/shared-components-refactor-guide.md`; update it when shared components, shared style files, or theme-token ownership changes.
 - Create/Edit Event form mapping lives in `src/screens/create-event/createEventForm.ts`; keep payload construction, edit hydration, guest draft mapping, and date normalization there instead of rebuilding them in `CreateEventScreen`.
