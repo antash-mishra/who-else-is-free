@@ -714,7 +714,7 @@ What it is:
 
 Where it is used:
 
-- `App.tsx`
+- `AppNavigator`
 - `BottomSheetModal`
 
 Use it when:
