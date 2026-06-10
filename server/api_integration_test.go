@@ -5193,6 +5193,9 @@ func TestUpdateEventPublishesChatUpdateForGroupEvent(t *testing.T) {
 			if convo.LastMessage.SenderID != 1 {
 				t.Fatalf("expected sender_id 1, got %d", convo.LastMessage.SenderID)
 			}
+			if convo.UnreadCount != 0 {
+				t.Fatalf("host's own update message must not be unread, got unread_count %d for conversation %d", convo.UnreadCount, convo.ID)
+			}
 		}
 	})
 }
