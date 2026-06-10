@@ -5,6 +5,7 @@ export const colors = {
   navigationSheetBackdrop: 'rgba(0, 0, 0, 0.3)',
   tabBarFrostedOverlay: 'rgba(251, 251, 251, 0.6)',
   tabBarUnreadDot: '#FF1519',
+  unreadIndicator: '#2F81E6',
   splashBackground: '#050F29',
   eventCreatedBackground: '#111111',
   surface: '#F8F9FC',

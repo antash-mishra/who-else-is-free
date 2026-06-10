@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AcceptIcon from '@assets/event-details/accept.svg';
 import RejectIcon from '@assets/event-details/reject.svg';
 import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
+import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
 import EmptyState from '@components/EmptyState';
 
 import { colors, spacing, typography } from '@theme/index';
@@ -14,6 +15,7 @@ import { useEvents } from '@context/EventsContext';
 import { RootStackParamList } from '@navigation/types';
 import ScreenContainer from '@components/ScreenContainer';
 import ChatEventHeader from '@components/ChatEventHeader';
+import { CountBadge, UnreadDot } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
@@ -141,12 +143,12 @@ const JoinRequestsScreen = () => {
           style={{ marginTop: 32 }}
         />
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No pending requests</Text>
-          <Text style={styles.emptySubtitle}>
-            You&apos;ll see new join requests here when attendees tap Interested.
-          </Text>
-        </View>
+        <EmptyState
+          title="No pending requests"
+          description="You'll see new join requests here when attendees tap Interested."
+          icon={<EmptyRequestIcon width={64} height={64} />}
+          style={{ marginTop: 32 }}
+        />
       ),
     [is1to1Mode],
   );
@@ -237,9 +239,7 @@ const JoinRequestsScreen = () => {
               }}
               style={styles.joinIconButton}
             >
-              <View style={styles.joinCountBadge}>
-                <Text style={styles.joinCountBadgeText}>{pendingRequests.length}</Text>
-              </View>
+              <CountBadge count={pendingRequests.length} />
             </Pressable>
           ) : undefined
         }
@@ -263,7 +263,7 @@ const JoinRequestsScreen = () => {
         style={({ pressed }) => [styles.requestRow1to1, pressed && styles.requestRowPressed]}
         onPress={() => handleRequesterPress(item)}
       >
-        {hasUnread && <View style={styles.unreadDot1to1} />}
+        {hasUnread && <UnreadDot style={styles.unreadDot1to1} />}
         <UserAvatar
           avatar={item.requester.avatar}
           name={item.requester.name}
@@ -384,21 +384,7 @@ const styles = StyleSheet.create({
   },
   joinIconButton: {
     marginLeft: spacing.sm,
-  },
-  joinCountBadge: {
-    backgroundColor: '#E6E6E6',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  joinCountBadgeText: {
-    color: colors.text,
-    fontSize: 10,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 12,
+    padding: spacing.xs,
   },
   // List styles
   listContent: {
@@ -517,27 +503,8 @@ const styles = StyleSheet.create({
   unreadDot1to1: {
     position: 'absolute',
     left: 5,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#2F81E6',
-  },
-  // Empty state styles
-  emptyState: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  emptyTitle: {
-    fontFamily: typography.fontFamilySemiBold,
-    fontSize: typography.title,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.body,
-    color: colors.subText,
-    textAlign: 'center',
+    top: '50%',
+    marginTop: -4,
   },
 });
 

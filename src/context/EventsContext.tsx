@@ -24,8 +24,6 @@ import {
 } from '@utils/dateTime';
 import { formatAudienceLabel } from '@utils/eventDisplay';
 
-import { navigationRef } from '../navigation/navigationRef';
-
 export type DateLabel = string;
 
 export interface UserEvent extends EventItemProps {
@@ -241,7 +239,16 @@ export const mapApiEventToUserEvent = (event: ApiEvent, badgeLabel?: string): Us
   };
 };
 
-export const EventsProvider = ({ children }: { children: ReactNode }) => {
+export const EventsProvider = ({
+  children,
+  onGuestEventSubmitted,
+}: {
+  children: ReactNode;
+  /** Invoked after a queued guest event is submitted post sign-in. Navigation lives with the caller, not in this context. */
+  onGuestEventSubmitted?: () => void;
+}) => {
+  const onGuestEventSubmittedRef = useRef(onGuestEventSubmitted);
+  onGuestEventSubmittedRef.current = onGuestEventSubmitted;
   const { user, token, authFetch } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -663,12 +670,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           longitude: pendingGuestEvent.longitude,
         });
 
-        if (navigationRef.isReady()) {
-          navigationRef.navigate('Main', {
-            screen: 'MyEvents',
-            params: { showEventCreatedBadge: true },
-          });
-        }
+        onGuestEventSubmittedRef.current?.();
       } catch (err) {
         console.error('Failed to submit queued guest event', err);
       } finally {

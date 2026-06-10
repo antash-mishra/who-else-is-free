@@ -6,9 +6,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   StyleSheet,
-  Platform,
   Alert,
-  ActivityIndicator,
   useWindowDimensions,
   Keyboard,
   ScrollView,
@@ -33,7 +31,8 @@ import { useAuth, type ApiError } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import UserAvatar from '@components/UserAvatar';
-import { typography } from '@theme/index';
+import { AppButton, IconButton } from '@components/ui';
+import { colors, typography } from '@theme/index';
 import { getAvatarColor } from '@utils/avatar';
 import CameraIcon from '@assets/onboarding/camera.svg';
 import ProfileIcon from '@assets/onboarding/profile.svg';
@@ -49,7 +48,7 @@ try {
 type OnboardingStep = 1 | 2 | 3;
 
 // Back arrow icon
-const BackArrowIcon = () => <ChevronLeftIcon width={28} height={28} color="#000000" />;
+const BackArrowIcon = () => <ChevronLeftIcon width={28} height={28} color={colors.text} />;
 
 const OnboardingScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -154,7 +153,6 @@ const OnboardingScreen = () => {
       Alert.alert('Name Required', 'Please enter your name.');
       return;
     }
-    triggerHaptic('light');
     goForward(2);
   }, [name, goForward]);
 
@@ -163,7 +161,6 @@ const OnboardingScreen = () => {
       Alert.alert('Gender Required', 'Please select your gender.');
       return;
     }
-    triggerHaptic('light');
     goForward(3);
   }, [gender, goForward]);
 
@@ -178,7 +175,6 @@ const OnboardingScreen = () => {
       return;
     }
 
-    triggerHaptic('submit');
     setIsSubmitting(true);
     try {
       await updateProfile({
@@ -204,7 +200,6 @@ const OnboardingScreen = () => {
   }, [age, gender, name, avatarBase64, updateProfile, navigation]);
 
   const handleBack = useCallback(() => {
-    triggerHaptic('light');
     if (step === 2) {
       goBack(1);
     } else if (step === 3) {
@@ -275,7 +270,7 @@ const OnboardingScreen = () => {
                     {/* Camera badge */}
                     <View style={styles.cameraBadgeShadow}>
                       <BlurView style={styles.cameraBadge} intensity={15} tint="light">
-                        <CameraIcon width={20} height={20} color="#707070" />
+                        <CameraIcon width={20} height={20} color={colors.iconColor} />
                       </BlurView>
                     </View>
                   </TouchableOpacity>
@@ -290,7 +285,7 @@ const OnboardingScreen = () => {
                       accessibilityRole="button"
                       accessibilityLabel="Remove photo"
                     >
-                      <CloseIcon width={16} height={16} color="#FFFFFF" />
+                      <CloseIcon width={16} height={16} color={colors.buttonText} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -303,7 +298,7 @@ const OnboardingScreen = () => {
                   onSubmitEditing={Keyboard.dismiss}
                   selection={nameSelection}
                   placeholder="Your Name"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={colors.placeholder}
                   autoCapitalize="words"
                   autoCorrect={false}
                   textAlign="center"
@@ -314,30 +309,27 @@ const OnboardingScreen = () => {
 
             {/* Button - Fixed at bottom */}
             <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
-              <TouchableOpacity
-                style={[styles.button, !canContinueStep1 && styles.buttonDisabled]}
+              <AppButton
+                label="Continue"
+                variant="primary"
+                fullWidth
                 onPress={handleContinueStep1}
                 disabled={!canContinueStep1}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.buttonText, !canContinueStep1 && styles.buttonTextDisabled]}>
-                  Continue
-                </Text>
-              </TouchableOpacity>
+              />
             </View>
           </View>
         </TouchableWithoutFeedback>
 
         {/* Step 2 */}
         <View style={[styles.stepContainer, { width }]}>
-          <TouchableOpacity
-            onPress={handleBack}
-            style={[styles.backButton, { position: 'absolute', top: 0, left: 24 }]}
-            testID="back-button"
-            accessibilityRole="button"
-          >
-            <BackArrowIcon />
-          </TouchableOpacity>
+          <View style={styles.backButtonWrapper}>
+            <IconButton
+              icon={<BackArrowIcon />}
+              onPress={handleBack}
+              accessibilityLabel="Go back"
+              testID="back-button"
+            />
+          </View>
           {/* Main content area */}
           <View style={styles.mainContent}>
             {/* Header with back button */}
@@ -391,29 +383,26 @@ const OnboardingScreen = () => {
 
           {/* Button - Fixed at bottom */}
           <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity
-              style={[styles.button, !canContinueStep2 && styles.buttonDisabled]}
+            <AppButton
+              label="Continue"
+              variant="primary"
+              fullWidth
               onPress={handleContinueStep2}
               disabled={!canContinueStep2}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.buttonText, !canContinueStep2 && styles.buttonTextDisabled]}>
-                Continue
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         </View>
 
         {/* Step 3 */}
         <View style={[styles.stepContainer, { width }]}>
-          <TouchableOpacity
-            onPress={handleBack}
-            style={[styles.backButton, { position: 'absolute', top: 0, left: 24, zIndex: 10 }]}
-            testID="back-button"
-            accessibilityRole="button"
-          >
-            <BackArrowIcon />
-          </TouchableOpacity>
+          <View style={[styles.backButtonWrapper, styles.backButtonWrapperRaised]}>
+            <IconButton
+              icon={<BackArrowIcon />}
+              onPress={handleBack}
+              accessibilityLabel="Go back"
+              testID="back-button"
+            />
+          </View>
           {/* Main content area */}
           <View style={styles.mainContent}>
             {/* Header with back button */}
@@ -474,18 +463,15 @@ const OnboardingScreen = () => {
 
           {/* Button - Fixed at bottom */}
           <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
-            <TouchableOpacity
-              style={[styles.button, (!canDone || isSubmitting) && styles.buttonDisabled]}
+            <AppButton
+              label="Done"
+              variant="primary"
+              fullWidth
+              haptic="submit"
               onPress={handleDone}
-              disabled={!canDone || isSubmitting}
-              activeOpacity={0.8}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#9CA3AF" />
-              ) : (
-                <Text style={[styles.buttonText, !canDone && styles.buttonTextDisabled]}>Done</Text>
-              )}
-            </TouchableOpacity>
+              disabled={!canDone}
+              loading={isSubmitting}
+            />
           </View>
         </View>
       </Animated.View>
@@ -496,7 +482,7 @@ const OnboardingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     overflow: 'hidden',
   },
   stepContainer: {
@@ -514,16 +500,19 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     alignItems: 'center',
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+  backButtonWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+  },
+  backButtonWrapperRaised: {
+    zIndex: 10,
   },
   title: {
     fontFamily: typography.fontFamilySemiBold,
     fontSize: 24,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
     lineHeight: 32,
@@ -533,7 +522,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     fontSize: 16,
     fontWeight: '500',
-    color: '#777777',
+    color: colors.mutedText,
     lineHeight: 24,
     letterSpacing: -0.3,
     textAlign: 'center',
@@ -551,18 +540,6 @@ const styles = StyleSheet.create({
   },
   // Gender section
   genderSection: {
-    paddingHorizontal: 24,
-  },
-  // Age section
-  ageSection: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  // Content section - centered vertically (for steps 2 and 3)
-  contentSection: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 24,
   },
   // Avatar styles
@@ -589,7 +566,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -611,10 +588,10 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#000000',
+    backgroundColor: colors.primaryButtonBackground,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -624,22 +601,11 @@ const styles = StyleSheet.create({
   nameInput: {
     fontFamily: typography.fontFamilyMedium,
     fontSize: 24,
-    color: '#000000',
+    color: colors.text,
     textAlign: 'center',
     paddingVertical: 12,
     minWidth: 200,
     letterSpacing: -0.5,
-  },
-  // Age input
-  ageInput: {
-    fontFamily: typography.fontFamilySemiBold,
-    fontSize: 24,
-    color: '#000000',
-    textAlign: 'center',
-    lineHeight: Platform.select({ ios: 24, android: 26, default: 24 }),
-    letterSpacing: -1,
-    paddingVertical: 12,
-    width: '100%',
   },
   // Gender options
   genderOptions: {
@@ -656,13 +622,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.7)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
   },
   genderButtonSelected: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.primaryButtonBackground,
   },
   genderButtonText: {
     fontFamily: typography.fontFamilyMedium,
@@ -670,35 +636,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 26.67,
     letterSpacing: -0.3,
-    color: '#494949',
+    color: colors.eventDetailRowText,
   },
   genderButtonTextSelected: {
-    color: '#FFFFFF',
+    color: colors.buttonText,
   },
   // Button section - fixed at bottom
   buttonSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  button: {
-    backgroundColor: '#000000',
-    height: 52,
-    borderRadius: 999,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 54,
-  },
-  buttonDisabled: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  buttonText: {
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: 17,
-    color: '#FFFFFF',
-  },
-  buttonTextDisabled: {
-    color: 'rgba(255,255,255,0.7)',
   },
   // Wheel picker styles
   wheelPickerContainer: {
@@ -716,7 +662,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 14,
     borderCurve: 'continuous',
-    shadowColor: '#000',
+    shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -730,12 +676,12 @@ const styles = StyleSheet.create({
   wheelPickerText: {
     fontSize: 22,
     fontFamily: typography.fontFamilyMedium,
-    color: '#A3A3A3',
+    color: colors.tabInactive,
   },
   wheelPickerTextSelected: {
     fontSize: 24,
     fontFamily: typography.fontFamilySemiBold,
-    color: '#000000',
+    color: colors.text,
   },
 });
 

@@ -11,6 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenContainer from '@components/ScreenContainer';
 import EmptyState from '@components/EmptyState';
 import UserAvatar from '@components/UserAvatar';
+import { UnreadDot } from '@components/ui';
 import { colors, spacing, typography } from '@theme/index';
 import { useChat } from '@context/ChatContext';
 import type { ChatConversation } from '@context/ChatContext';
@@ -85,7 +86,9 @@ const ConversationRow = ({
         item.id === activeConversationId && styles.conversationRowActive,
       ]}
     >
-      {hasUnread && <View testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />}
+      {hasUnread && (
+        <UnreadDot testID={`conversation-unread-dot-${item.id}`} style={styles.unreadDot} />
+      )}
       <View style={styles.conversationRowContent}>
         <View style={styles.conversationAvatar}>
           {eventImageUri ? (
@@ -497,12 +500,8 @@ const styles = StyleSheet.create({
   unreadDot: {
     position: 'absolute',
     left: 5,
-    width: 8,
-    height: 8,
     top: '50%',
     marginTop: -4,
-    borderRadius: 4,
-    backgroundColor: '#2F81E6',
   },
 });
 

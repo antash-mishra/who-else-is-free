@@ -1,4 +1,4 @@
-import SendIcon from '@assets/chat/send.svg';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -12,7 +12,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,8 +21,10 @@ import {
   KeyboardEvents,
 } from 'react-native-keyboard-controller';
 
+import SendIcon from '@assets/chat/send.svg';
 import ScreenContainer from '@components/ScreenContainer';
 import ChatEventHeader from '@components/ChatEventHeader';
+import { CountBadge } from '@components/ui';
 import EventActionOverlay from '@components/EventActionOverlay';
 import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
 import UserAvatar from '@components/UserAvatar';
@@ -76,8 +77,13 @@ const ChatComposer = ({
         style={[styles.sendIconButton, isSendDisabled && styles.sendIconButtonDisabled]}
         accessibilityRole="button"
         accessibilityLabel="Send message"
+        accessibilityState={{ disabled: isSendDisabled }}
       >
-        <SendIcon width={15} height={16} color={isSendDisabled ? '#A3A3A3' : colors.buttonText} />
+        <SendIcon
+          width={15}
+          height={16}
+          color={isSendDisabled ? colors.tabInactive : colors.buttonText}
+        />
       </Pressable>
     </View>
   </View>
@@ -590,11 +596,7 @@ const ChatThreadScreen = () => {
               onPress={handleOpenJoinRequests}
               style={styles.joinIconButton}
             >
-              <View style={styles.joinCountBadge}>
-                <Text style={styles.joinCountBadgeText}>
-                  {pendingJoinRequestCount > 99 ? '99+' : pendingJoinRequestCount}
-                </Text>
-              </View>
+              <CountBadge count={pendingJoinRequestCount} />
             </Pressable>
           ) : undefined
         }
@@ -667,21 +669,6 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     padding: spacing.xs,
   },
-  joinCountBadge: {
-    backgroundColor: '#E6E6E6',
-    borderRadius: 999,
-    minWidth: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  joinCountBadgeText: {
-    color: colors.text,
-    fontSize: 13,
-    fontFamily: typography.fontFamilyMedium,
-    letterSpacing: -0.3,
-  },
   errorText: {
     fontSize: typography.caption,
     color: colors.accent,
@@ -730,7 +717,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 22,
     letterSpacing: -0.5,
-    color: '#000000',
+    color: colors.text,
     marginBottom: 2,
   },
   messageBubble: {
@@ -747,7 +734,7 @@ const styles = StyleSheet.create({
   },
   messageBubbleOther: {
     alignSelf: 'flex-start',
-    backgroundColor: '#F4F4F4',
+    backgroundColor: colors.inputSurface,
   },
   messageBubbleFailed: {
     borderColor: colors.accent,
@@ -797,14 +784,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   composerContainer: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.transparent,
     paddingHorizontal: 0,
   },
   composerInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#F4F4F4',
+    backgroundColor: colors.inputSurface,
     borderRadius: 999,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
@@ -829,7 +816,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   sendIconButtonDisabled: {
-    backgroundColor: '#E6E6E6',
+    backgroundColor: colors.secondaryButtonBackground,
   },
 });
 

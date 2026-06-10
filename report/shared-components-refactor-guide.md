@@ -36,6 +36,11 @@ In this React Native app, "shared CSS" means:
 | Checkbox row | `CheckboxRow` | `HelpForm` |
 | Icon-only close/back/action button | `IconButton` | `ScreenHeader`, `SheetHeader` |
 | Tabs or segmented controls | `AppTabs`, `SegmentedControl` | Discover, My Events |
+| Sliding-underline tabs over a pager | `SlidingTabs` | Event Details requests/members tabs |
+| Numeric count badge in a header/row | `CountBadge` | Chat thread header, Join Requests header |
+| Unread indicator dot on a list row | `UnreadDot` | Messages rows, Join Requests 1:1 rows |
+| Join-request row with accept/decline | `EventRequestRow` | Event Details, Pending Requests |
+| Member row with menu or host label | `EventMemberRow` | Event Details members/accepted lists |
 | Press scale and haptics | `ScalePressable` | UI primitives, event rows, profile/menu rows |
 | Screen safe-area shell | `ScreenContainer` | Most app screens |
 | Standard back/title header | `ScreenHeader` | Help screens, Edit Profile, Past Events |
@@ -394,6 +399,59 @@ Where it is used:
 Use it when:
 
 - A screen needs tabs with the same behavior as existing segmented controls.
+
+### `SlidingTabs`
+
+File: `src/components/ui/SlidingTabs.tsx`
+
+What it is:
+
+- Tab bar with a sliding underline that springs between tabs.
+- Owns tab layout tracking, underline motion, count labels, selection haptics, and tab
+  accessibility roles.
+- Omit `onChange` for a static single-tab header with an underline.
+
+Where it is used:
+
+- `EventDetailsScreen` host requests/accepted/members tabs and the static Members headers.
+
+Use it when:
+
+- A screen pairs tabs with a pager-style section and needs the sliding underline treatment.
+
+### `CountBadge`
+
+File: `src/components/ui/CountBadge.tsx`
+
+What it is:
+
+- Shared numeric count badge (pill, 28pt, secondary surface) with built-in `99+` capping.
+
+Where it is used:
+
+- `ChatThreadScreen` header join-request count.
+- `JoinRequestsScreen` header pending count.
+
+Use it when:
+
+- A header or row needs a numeric count chip.
+
+### `UnreadDot`
+
+File: `src/components/ui/UnreadDot.tsx`
+
+What it is:
+
+- Shared unread indicator dot (8pt, `colors.unreadIndicator`). Parents own positioning only.
+
+Where it is used:
+
+- `MessagesScreen` conversation rows.
+- `JoinRequestsScreen` 1:1 request rows.
+
+Use it when:
+
+- A list row needs an unread marker.
 
 ### `ListSeparator`
 
@@ -1000,6 +1058,43 @@ Where it is used:
 Use it when:
 
 - Rendering event cards grouped into sections.
+
+### `EventRequestRow`
+
+File: `src/components/events/EventRequestRow.tsx`
+
+What it is:
+
+- Shared join-request row: avatar, name, expandable intro message ("See more"), and
+  accept/decline actions with loading states.
+- Owns action haptics (`submit` accept, `destructive` decline) — callers must not re-trigger.
+- Also exports `EventRequestRowSeparator` for the inset divider between rows.
+
+Where it is used:
+
+- `EventDetailsScreen` host Requests tab.
+- `PendingRequestsScreen`.
+
+Use it when:
+
+- A host needs to review join requests anywhere in the app.
+
+### `EventMemberRow`
+
+File: `src/components/events/EventMemberRow.tsx`
+
+What it is:
+
+- Shared member row: avatar, name, and an optional trailing "more" menu button or text label
+  (for example "Host"). Optional whole-row press.
+
+Where it is used:
+
+- `EventDetailsScreen` Accepted/Members lists, group overlay members, and read-only members.
+
+Use it when:
+
+- Rendering event members or accepted requesters in a list.
 
 ### `eventListSections`
 

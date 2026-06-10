@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { Springs } from '@theme/index';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import ScalePressable from '@components/ScalePressable';
 import {
   ActivityIndicator,
@@ -37,8 +31,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import LocationIcon from '@assets/event-details/location.svg';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
-import AcceptIcon from '@assets/event-details/accept.svg';
-import RejectIcon from '@assets/event-details/reject.svg';
 import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
 import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
 import TimeIcon from '@assets/event-details/time.svg';
@@ -63,6 +55,8 @@ import { getEventAnalyticsParams, trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import EmptyState from '@components/EmptyState';
 import UserAvatar from '@components/UserAvatar';
+import { SlidingTabs } from '@components/ui';
+import { EventMemberRow, EventRequestRow, EventRequestRowSeparator } from '@components/events';
 import { formatEventDetailDateLabel } from '@utils/dateTime';
 import { formatEventDetailAudienceLine } from '@utils/eventDisplay';
 
@@ -174,14 +168,6 @@ const EventDetailsScreenContent = ({
   const [fullDescHeight, setFullDescHeight] = useState(0);
   const [truncatedDescHeight, setTruncatedDescHeight] = useState(0);
   const [activeTab, setActiveTab] = useState<'requests' | 'accepted' | 'members'>('requests');
-  const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
-  const underlineX = useSharedValue(0);
-  const underlineWidth = useSharedValue(0);
-  const underlineReady = useRef(false);
-  const underlineAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: underlineX.value }],
-    width: underlineWidth.value,
-  }));
   const [pagerWidth, setPagerWidth] = useState(0);
   const pagerWidthSV = useSharedValue(0);
   const tabIndexSV = useSharedValue(0);
@@ -210,8 +196,6 @@ const EventDetailsScreenContent = ({
   const [readOnlyMembers, setReadOnlyMembers] = useState<EventDetailMember[]>([]);
   const [isFetchingReadOnlyMembers, setIsFetchingReadOnlyMembers] = useState(false);
   const [readOnlyMembersError, setReadOnlyMembersError] = useState<string | null>(null);
-  const [readOnlyMembersTabWidth, setReadOnlyMembersTabWidth] = useState(0);
-  const [overlayMembersTabWidth, setOverlayMembersTabWidth] = useState(0);
 
   useEffect(() => {
     setDisableHostRequestPolling(false);
@@ -623,7 +607,6 @@ const EventDetailsScreenContent = ({
 
   const handleAcceptRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
-    triggerHaptic('submit');
     setAcceptingUserId(request.userId);
     try {
       await approveJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
@@ -644,7 +627,6 @@ const EventDetailsScreenContent = ({
 
   const handleDeclineRequest = async (request: ChatJoinRequest) => {
     if (!event || hostRequestStoreKey == null || eventNumericId == null) return;
-    triggerHaptic('destructive');
     setDecliningUserId(request.userId);
     try {
       await denyJoinRequest(hostRequestStoreKey, eventNumericId, request.userId);
@@ -925,7 +907,6 @@ const EventDetailsScreenContent = ({
   };
 
   // Auto-send invite after sign-in completes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (user && token && pendingSendAfterSignIn) {
       setPendingSendAfterSignIn(false);
@@ -1396,145 +1377,29 @@ const EventDetailsScreenContent = ({
               <>
                 {/* Tabs header + divider as one unit to avoid card gap */}
                 <View>
-                  <View style={styles.tabContainer}>
-                    <ScalePressable
-                      style={styles.tabItem}
-                      hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                      onLayout={(e) => {
-                        const { x, width } = e.nativeEvent.layout;
-                        tabLayouts.current['requests'] = { x, width };
-                        if (activeTab === 'requests' && !underlineReady.current) {
-                          underlineX.value = x;
-                          underlineWidth.value = width;
-                          underlineReady.current = true;
-                        }
-                      }}
-                      onPress={() => {
-                        triggerHaptic('selection');
-                        const layout = tabLayouts.current['requests'];
-                        if (layout) {
-                          underlineX.value = withSpring(layout.x, Springs.snappy);
-                          underlineWidth.value = withSpring(layout.width, Springs.snappy);
-                        }
-                        tabIndexSV.value = withTiming(0, { duration: 280 });
-                        setActiveTab('requests');
-                      }}
-                    >
-                      <View style={styles.tabLabelRow}>
-                        <Text
-                          style={[
-                            styles.tabLabel,
-                            activeTab === 'requests' && styles.tabLabelActive,
-                          ]}
-                        >
-                          Requests
-                        </Text>
-                        <Text
-                          style={[
-                            styles.tabCount,
-                            activeTab === 'requests' && styles.tabCountActive,
-                          ]}
-                        >
-                          {' '}
-                          {pendingRequests.length}
-                        </Text>
-                      </View>
-                    </ScalePressable>
-
-                    {isSingleEvent && (
-                      <ScalePressable
-                        style={styles.tabItem}
-                        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                        onLayout={(e) => {
-                          const { x, width } = e.nativeEvent.layout;
-                          tabLayouts.current['accepted'] = { x, width };
-                          if (activeTab === 'accepted' && !underlineReady.current) {
-                            underlineX.value = x;
-                            underlineWidth.value = width;
-                            underlineReady.current = true;
-                          }
-                        }}
-                        onPress={() => {
-                          triggerHaptic('selection');
-                          const layout = tabLayouts.current['accepted'];
-                          if (layout) {
-                            underlineX.value = withSpring(layout.x, Springs.snappy);
-                            underlineWidth.value = withSpring(layout.width, Springs.snappy);
-                          }
-                          tabIndexSV.value = withTiming(1, { duration: 280 });
-                          setActiveTab('accepted');
-                        }}
-                      >
-                        <View style={styles.tabLabelRow}>
-                          <Text
-                            style={[
-                              styles.tabLabel,
-                              activeTab === 'accepted' && styles.tabLabelActive,
-                            ]}
-                          >
-                            Accepted
-                          </Text>
-                          <Text
-                            style={[
-                              styles.tabCount,
-                              activeTab === 'accepted' && styles.tabCountActive,
-                            ]}
-                          >
-                            {' '}
-                            {acceptedRequests.length}
-                          </Text>
-                        </View>
-                      </ScalePressable>
-                    )}
-
-                    {!isSingleEvent && (
-                      <ScalePressable
-                        style={styles.tabItem}
-                        hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                        onLayout={(e) => {
-                          const { x, width } = e.nativeEvent.layout;
-                          tabLayouts.current['members'] = { x, width };
-                          if (activeTab === 'members' && !underlineReady.current) {
-                            underlineX.value = x;
-                            underlineWidth.value = width;
-                            underlineReady.current = true;
-                          }
-                        }}
-                        onPress={() => {
-                          triggerHaptic('selection');
-                          const layout = tabLayouts.current['members'];
-                          if (layout) {
-                            underlineX.value = withSpring(layout.x, Springs.snappy);
-                            underlineWidth.value = withSpring(layout.width, Springs.snappy);
-                          }
-                          tabIndexSV.value = withTiming(1, { duration: 280 });
-                          setActiveTab('members');
-                        }}
-                      >
-                        <View style={styles.tabLabelRow}>
-                          <Text
-                            style={[
-                              styles.tabLabel,
-                              activeTab === 'members' && styles.tabLabelActive,
-                            ]}
-                          >
-                            Members
-                          </Text>
-                          <Text
-                            style={[
-                              styles.tabCount,
-                              activeTab === 'members' && styles.tabCountActive,
-                            ]}
-                          >
-                            {' '}
-                            {confirmedMembers.length}
-                          </Text>
-                        </View>
-                      </ScalePressable>
-                    )}
-
-                    <Animated.View style={[styles.slidingUnderline, underlineAnimStyle]} />
-                  </View>
+                  <SlidingTabs
+                    options={
+                      isSingleEvent
+                        ? [
+                            { label: 'Requests', value: 'requests', count: pendingRequests.length },
+                            {
+                              label: 'Accepted',
+                              value: 'accepted',
+                              count: acceptedRequests.length,
+                            },
+                          ]
+                        : [
+                            { label: 'Requests', value: 'requests', count: pendingRequests.length },
+                            { label: 'Members', value: 'members', count: confirmedMembers.length },
+                          ]
+                    }
+                    value={activeTab}
+                    onChange={(nextTab, index) => {
+                      tabIndexSV.value = withTiming(index, { duration: 280 });
+                      setActiveTab(nextTab as 'requests' | 'accepted' | 'members');
+                    }}
+                    testIDPrefix="event-details-tab"
+                  />
                   <View style={[styles.divider, { marginVertical: 0 }]} />
                 </View>
 
@@ -1563,69 +1428,21 @@ const EventDetailsScreenContent = ({
                           style={{ marginTop: 32 }}
                         />
                       ) : (
-                        pendingRequests.map((request, index) => {
-                          const isExpanded = expandedRequestIds.has(request.id);
-                          const isAccepting = acceptingUserId === request.userId;
-                          const isDeclining = decliningUserId === request.userId;
-                          const isLoading = isAccepting || isDeclining;
-
-                          return (
-                            <View key={request.id}>
-                              <View style={styles.requestItem}>
-                                {renderAvatar(request.requester)}
-
-                                <View style={styles.requestContent}>
-                                  <Text style={styles.requestName}>{request.requester.name}</Text>
-                                  <Text
-                                    style={styles.requestMessage}
-                                    numberOfLines={isExpanded ? undefined : 3}
-                                  >
-                                    {request.message}
-                                  </Text>
-                                  {!isExpanded && request.message.length > 100 && (
-                                    <ScalePressable
-                                      onPress={() => {
-                                        triggerHaptic('light');
-                                        toggleRequestExpanded(request.id);
-                                      }}
-                                    >
-                                      <Text style={styles.seeMoreText}>See more</Text>
-                                    </ScalePressable>
-                                  )}
-                                </View>
-
-                                <View style={styles.requestActions}>
-                                  <ScalePressable
-                                    style={[styles.actionButton, styles.declineButton]}
-                                    onPress={() => handleDeclineRequest(request)}
-                                    disabled={isLoading}
-                                  >
-                                    {isDeclining ? (
-                                      <ActivityIndicator size="small" color={colors.text} />
-                                    ) : (
-                                      <RejectIcon width={30} height={30} />
-                                    )}
-                                  </ScalePressable>
-
-                                  <ScalePressable
-                                    style={[styles.actionButton, styles.acceptButton]}
-                                    onPress={() => handleAcceptRequest(request)}
-                                    disabled={isLoading}
-                                  >
-                                    {isAccepting ? (
-                                      <ActivityIndicator size="small" color={colors.buttonText} />
-                                    ) : (
-                                      <AcceptIcon width={30} height={30} />
-                                    )}
-                                  </ScalePressable>
-                                </View>
-                              </View>
-                              {index < pendingRequests.length - 1 && (
-                                <View style={styles.requestSeparator} />
-                              )}
-                            </View>
-                          );
-                        })
+                        pendingRequests.map((request, index) => (
+                          <View key={request.id}>
+                            <EventRequestRow
+                              requester={request.requester}
+                              message={request.message}
+                              expanded={expandedRequestIds.has(request.id)}
+                              onToggleExpanded={() => toggleRequestExpanded(request.id)}
+                              onAccept={() => handleAcceptRequest(request)}
+                              onDecline={() => handleDeclineRequest(request)}
+                              isAccepting={acceptingUserId === request.userId}
+                              isDeclining={decliningUserId === request.userId}
+                            />
+                            {index < pendingRequests.length - 1 && <EventRequestRowSeparator />}
+                          </View>
+                        ))
                       )}
                     </View>
 
@@ -1641,36 +1458,28 @@ const EventDetailsScreenContent = ({
                           />
                         ) : (
                           acceptedRequests.map((request) => (
-                            <ScalePressable
+                            <EventMemberRow
                               key={request.id}
+                              member={request.requester}
                               onPress={() => handleRequesterPress(request)}
-                              style={styles.memberItem}
-                            >
-                              {renderAvatar(request.requester)}
-                              <Text style={styles.memberName}>{request.requester.name}</Text>
-                              <ScalePressable
-                                onPress={() => openMemberMenu(request.requester)}
-                                style={styles.requestMenuButton}
-                              >
-                                <MoreHorizontalIcon width={24} height={24} color="#666" />
-                              </ScalePressable>
-                            </ScalePressable>
+                              onMenuPress={() => openMemberMenu(request.requester)}
+                            />
                           ))
                         )
                       ) : confirmedMembers.length === 0 ? (
-                        <Text style={styles.emptyStateText}>No members yet</Text>
+                        <EmptyState
+                          title="No members yet"
+                          description="Members who join will appear here"
+                          icon={<EmptyAcceptedIcon width={64} height={64} />}
+                          style={{ marginTop: 32 }}
+                        />
                       ) : (
                         confirmedMembers.map((member) => (
-                          <View key={member.id} style={styles.memberItem}>
-                            {renderAvatar(member)}
-                            <Text style={styles.memberName}>{member.name}</Text>
-                            <ScalePressable
-                              onPress={() => openMemberMenu(member)}
-                              style={styles.requestMenuButton}
-                            >
-                              <MoreHorizontalIcon width={24} height={24} color="#666" />
-                            </ScalePressable>
-                          </View>
+                          <EventMemberRow
+                            key={member.id}
+                            member={member}
+                            onMenuPress={() => openMemberMenu(member)}
+                          />
                         ))
                       )}
                     </View>
@@ -1683,44 +1492,33 @@ const EventDetailsScreenContent = ({
             {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
               <>
                 <View>
-                  <View style={styles.tabContainer}>
-                    <View
-                      style={styles.tabItem}
-                      onLayout={(e) => setOverlayMembersTabWidth(e.nativeEvent.layout.width)}
-                    >
-                      <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>Members</Text>
-                        <Text style={[styles.tabCount, styles.tabCountActive]}>
-                          {' '}
-                          {overlayMembers.length}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={[styles.slidingUnderline, { left: 0, width: overlayMembersTabWidth }]}
-                    />
-                  </View>
+                  <SlidingTabs
+                    options={[{ label: 'Members', value: 'members', count: overlayMembers.length }]}
+                    value="members"
+                    testIDPrefix="event-details-overlay-tab"
+                  />
                   <View style={[styles.divider, { marginVertical: 0 }]} />
                 </View>
                 <View style={styles.listContainer}>
                   {overlayMembers.length === 0 ? (
-                    <Text style={styles.emptyStateText}>No members yet</Text>
+                    <EmptyState
+                      title="No members yet"
+                      description="Members who join will appear here"
+                      icon={<EmptyAcceptedIcon width={64} height={64} />}
+                      style={{ marginTop: 32 }}
+                    />
                   ) : (
                     overlayMembers.map((member) => (
-                      <View key={member.id} style={styles.memberItem}>
-                        {renderAvatar(member)}
-                        <Text style={styles.memberName}>{member.name}</Text>
-                        {member.id === user?.id && isOwner ? (
-                          <Text style={styles.hostBadgeText}>Host</Text>
-                        ) : isOwner && member.id !== user?.id ? (
-                          <ScalePressable
-                            onPress={() => openMemberMenu(member)}
-                            style={styles.requestMenuButton}
-                          >
-                            <MoreHorizontalIcon width={24} height={24} color="#666" />
-                          </ScalePressable>
-                        ) : null}
-                      </View>
+                      <EventMemberRow
+                        key={member.id}
+                        member={member}
+                        trailingLabel={member.id === user?.id && isOwner ? 'Host' : undefined}
+                        onMenuPress={
+                          isOwner && member.id !== user?.id
+                            ? () => openMemberMenu(member)
+                            : undefined
+                        }
+                      />
                     ))
                   )}
                 </View>
@@ -1730,23 +1528,13 @@ const EventDetailsScreenContent = ({
             {readOnly && !isOverlay && (
               <>
                 <View>
-                  <View style={styles.tabContainer}>
-                    <View
-                      style={styles.tabItem}
-                      onLayout={(e) => setReadOnlyMembersTabWidth(e.nativeEvent.layout.width)}
-                    >
-                      <View style={styles.tabLabelRow}>
-                        <Text style={[styles.tabLabel, styles.tabLabelActive]}>Members</Text>
-                        <Text style={[styles.tabCount, styles.tabCountActive]}>
-                          {' '}
-                          {readOnlyMembers.length}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={[styles.slidingUnderline, { left: 0, width: readOnlyMembersTabWidth }]}
-                    />
-                  </View>
+                  <SlidingTabs
+                    options={[
+                      { label: 'Members', value: 'members', count: readOnlyMembers.length },
+                    ]}
+                    value="members"
+                    testIDPrefix="event-details-readonly-tab"
+                  />
                   <View style={[styles.divider, { marginVertical: 0 }]} />
                 </View>
                 <View style={styles.listContainer}>
@@ -1755,16 +1543,19 @@ const EventDetailsScreenContent = ({
                   ) : readOnlyMembersError ? (
                     <Text style={styles.emptyStateText}>{readOnlyMembersError}</Text>
                   ) : readOnlyMembers.length === 0 ? (
-                    <Text style={styles.emptyStateText}>No members yet</Text>
+                    <EmptyState
+                      title="No members yet"
+                      description="Members who join will appear here"
+                      icon={<EmptyAcceptedIcon width={64} height={64} />}
+                      style={{ marginTop: 32 }}
+                    />
                   ) : (
                     readOnlyMembers.map((member) => (
-                      <View key={member.id} style={styles.memberItem}>
-                        {renderAvatar(member)}
-                        <Text style={styles.memberName}>{member.name}</Text>
-                        {member.id === event.ownerId ? (
-                          <Text style={styles.hostBadgeText}>Host</Text>
-                        ) : null}
-                      </View>
+                      <EventMemberRow
+                        key={member.id}
+                        member={member}
+                        trailingLabel={member.id === event.ownerId ? 'Host' : undefined}
+                      />
                     ))
                   )}
                 </View>
@@ -1978,6 +1769,14 @@ const EventDetailsScreen = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+        if (response.status === 404) {
+          // The event was deleted; the "couldn't find that event" fallback
+          // handles this, so don't treat it as an error.
+          if (!isCancelled) {
+            setFetchedEvent(null);
+          }
+          return;
+        }
         if (!response.ok) {
           throw new Error(`Request failed with status ${response.status}`);
         }
@@ -2338,129 +2137,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 
-  // Tab container and items
-  tabContainer: {
-    flexDirection: 'row',
-    gap: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  slidingUnderline: {
-    position: 'absolute',
-    bottom: 0,
-    height: 2,
-    backgroundColor: colors.text,
-    borderRadius: 1,
-  },
-  tabItem: {
-    alignItems: 'flex-start',
-  },
-  tabLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  tabLabel: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.subText,
-    lineHeight: 16,
-    letterSpacing: -0.3,
-  },
-  tabLabelActive: {
-    color: colors.text,
-  },
-  tabCountActive: {
-    color: colors.text,
-  },
-  tabCount: {
-    fontSize: 15,
-    fontFamily: typography.fontFamilyMedium,
-    color: '#808080',
-    lineHeight: 15,
-    letterSpacing: -0.3,
-  },
-  tabUnderline: {
-    alignSelf: 'stretch',
-    height: 2,
-    backgroundColor: colors.text,
-    marginTop: 8,
-  },
-
   // List container for requests/members
   listContainer: {
     marginTop: spacing.sm,
     paddingTop: spacing.sm,
   },
 
-  // Request item styles
-  requestItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  requestSeparator: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginLeft: 48, // avatar (40) + gap (8)
-    marginTop: spacing.sm + 6,
-    marginBottom: spacing.sm + 6,
-  },
-  requestContent: {
-    flex: 1,
-  },
-  requestName: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-  },
-  requestMessage: {
-    fontSize: 15,
-    fontFamily: typography.fontFamilyRegular,
-    color: '#000000',
-    lineHeight: 22,
-    letterSpacing: -0.3,
-    marginTop: 2,
-  },
-  requestActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'flex-start',
-    marginTop: spacing.xs,
-  },
-
-  // Action buttons (accept/decline)
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  declineButton: {
-    backgroundColor: '#E6E6E6',
-  },
-  acceptButton: {
-    backgroundColor: colors.text,
-  },
-
-  // Member item styles
-  memberItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingBottom: 12,
-  },
-  memberName: {
-    flex: 1,
-    fontSize: typography.body,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    lineHeight: typography.lineHeight,
-  },
-
-  // Avatar styles
   // See more text
   seeMoreText: {
     fontSize: 15,
@@ -2509,18 +2191,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
-  },
-  requestMenuButton: {
-    padding: 8,
-  },
-  hostBadgeText: {
-    fontFamily: 'Inter',
-    fontWeight: '500',
-    fontSize: 14,
-    lineHeight: 14,
-    letterSpacing: -0.5,
-    color: '#4E4E4E',
-    marginLeft: 'auto',
   },
 });
 

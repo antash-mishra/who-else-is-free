@@ -32,6 +32,11 @@ export const componentTokens = {
     closeButtonBackground: 'rgba(120, 120, 128, 0.16)',
     destructiveProgressFill: 'rgba(0, 0, 0, 0.18)',
   },
+  countBadge: {
+    size: 28,
+    paddingHorizontal: 8,
+    fontSize: 13,
+  },
   segmentedControl: {
     gap: 5,
     tabGap: 4,
