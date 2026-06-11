@@ -2,42 +2,51 @@ import { StyleSheet } from 'react-native';
 
 import { colors, radii, spacing, typography } from '@theme/index';
 
+// Sizes follow the Figma spec for the Choose Cover overlay (node 101:929):
+// search 40h/r10, chips 36h/r10 with 15/20 labels, 3-column square tiles
+// with an 18pt visual gutter.
 const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     borderCurve: 'continuous',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 11,
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    height: 40,
+    paddingHorizontal: 12,
+    gap: 10,
+    marginBottom: spacing.md,
   },
   searchInput: {
     flex: 1,
     backgroundColor: 'transparent',
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
     color: colors.text,
     padding: 0,
-    letterSpacing: -0.3,
+    letterSpacing: typography.detailLetterSpacing,
   },
   chipsRow: {
     flexGrow: 0,
-    marginBottom: spacing.sm,
+    // Horizontal ScrollView under-measures its cross axis and clips the
+    // pills' bottom edge; size it explicitly to the chip height.
+    height: 36,
+    marginBottom: 20,
   },
   chipsContent: {
-    gap: spacing.xs,
+    gap: 6,
+    alignItems: 'center',
     paddingRight: spacing.md,
   },
   chip: {
-    borderRadius: radii.sm,
+    height: 36,
+    borderRadius: radii.md,
     borderCurve: 'continuous',
     borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    borderColor: colors.borderSubtle,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.background,
   },
   chipActive: {
@@ -45,9 +54,11 @@ const styles = StyleSheet.create({
     borderColor: colors.text,
   },
   chipLabel: {
-    fontSize: typography.caption,
+    fontSize: 15,
+    lineHeight: 20,
     fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
+    letterSpacing: typography.detailLetterSpacing,
+    color: colors.muted,
   },
   chipLabelActive: {
     color: colors.background,
@@ -56,8 +67,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   column: {
-    columnGap: spacing.xs,
-    marginBottom: spacing.xs,
+    // 18pt visual gutter minus the ring (2) + card (1.5) insets on each tile.
+    columnGap: 11,
+    marginBottom: 11,
   },
   optionRing: {
     flex: 1,
@@ -82,13 +94,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   optionImageWrapper: {
-    borderRadius: 10,
+    borderRadius: radii.md,
     borderCurve: 'continuous',
     overflow: 'hidden',
   },
   optionImage: {
     width: '100%',
-    aspectRatio: 1.45,
+    aspectRatio: 1,
   },
   checkBadge: {
     position: 'absolute',

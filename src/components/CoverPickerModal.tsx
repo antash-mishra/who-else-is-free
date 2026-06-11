@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CheckSelectedCoverIcon from '@assets/create-event/check-selected-cover.svg';
 import SearchIcon from '@assets/create-event/search.svg';
-import { CoverKey, GENERIC_COVER_CATEGORY } from '@constants/covers';
+import { CoverKey } from '@constants/covers';
 import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing } from '@theme/index';
@@ -37,10 +37,6 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
   const [query, setQuery] = useState('');
   const [categoryKey, setCategoryKey] = useState<string | null>(null);
 
-  const chips = useMemo(
-    () => categories.filter((category) => category.key !== GENERIC_COVER_CATEGORY),
-    [categories],
-  );
   const results = useMemo(
     () => searchCovers(covers, categories, { query, categoryKey }),
     [covers, categories, query, categoryKey],
@@ -74,7 +70,7 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
           testID="cover-search-input"
         />
       </View>
-      {chips.length > 0 && (
+      {categories.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -82,7 +78,7 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
           contentContainerStyle={styles.chipsContent}
           keyboardShouldPersistTaps="handled"
         >
-          {chips.map((category) => {
+          {categories.map((category) => {
             const isActive = category.key === categoryKey;
             return (
               <Pressable
