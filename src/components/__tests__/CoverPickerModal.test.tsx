@@ -89,16 +89,6 @@ describe('CoverPickerModal', () => {
   });
 
   describe('FlatList Configuration', () => {
-    it('should have column wrapper style', () => {
-      const columnWrapperStyle = { justifyContent: 'space-between' };
-      expect(columnWrapperStyle.justifyContent).toBe('space-between');
-    });
-
-    it('should have content container style', () => {
-      const contentContainerStyle = { padding: 16 };
-      expect(contentContainerStyle.padding).toBe(16);
-    });
-
     it('should hide scroll indicator', () => {
       const showsVerticalScrollIndicator = false;
       expect(showsVerticalScrollIndicator).toBe(false);

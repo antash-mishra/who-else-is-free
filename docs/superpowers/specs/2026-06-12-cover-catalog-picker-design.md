@@ -46,7 +46,8 @@ and a 3-column image grid.
 not shown as a chip). Categories found in Drive but not in this list are appended
 alphabetically before Generic. Tag groups within a category are ordered with
 Badminton-first parity to the taxonomy by sorting Drive folder names alphabetically
-(Sports → Badminton is first); files within a tag group sort by natural file title.
+(Sports → Badminton is first); files within a tag group sort by lowercase
+lexicographic title (deterministic across re-runs).
 
 ## Catalog generation (sync script)
 
@@ -85,7 +86,8 @@ Badminton-first parity to the taxonomy by sorting Drive folder names alphabetica
 
 - `cover_catalog.go`: load the embedded JSON instead of the hardcoded array.
   `CoverOption` gains `Category` and `Tags []string` (JSON `category`, `tags`).
-  `defaultCoverKey` becomes a function: first cover of the first category.
+  `defaultCoverKey` stays a const (`sports-badminton-1` — SQL DDL defaults need a
+  literal anyway); a test asserts it equals the first cover of the first category.
 - `GET /api/covers` returns the ordered catalog plus categories:
   `{ "data": [CoverOption...], "categories": [{key,label}...] }` — a
   backward-compatible superset of the current `{ "data": [...] }`.

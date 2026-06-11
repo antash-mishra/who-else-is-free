@@ -29,7 +29,7 @@ jest.mock('../AuthContext', () => ({
 // Mock covers module
 jest.mock('@constants/covers', () => ({
   resolveCoverUri: jest.fn((key?: string) => key ? `mock-uri-${key}` : 'default-uri'),
-  DEFAULT_COVER_KEY: 'badminton',
+  DEFAULT_COVER_KEY: 'sports-badminton-1',
 }));
 
 // Mock API config

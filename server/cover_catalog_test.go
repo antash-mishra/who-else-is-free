@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestCoverCatalogLoads(t *testing.T) {
 	if len(coverCatalog) == 0 {
@@ -53,5 +57,42 @@ func TestCoverTagsExposed(t *testing.T) {
 	}
 	if !foundTagged || !foundGeneric {
 		t.Fatalf("expected multi-tag and generic covers (tagged=%v generic=%v)", foundTagged, foundGeneric)
+	}
+}
+
+func TestCoverCatalogIntegrity(t *testing.T) {
+	categoryKeys := make(map[string]bool, len(coverCategories))
+	for _, category := range coverCategories {
+		categoryKeys[category.Key] = true
+	}
+
+	seenKeys := make(map[string]bool, len(coverCatalog))
+	referenced := make(map[string]bool, len(coverCatalog))
+	for _, option := range coverCatalog {
+		if seenKeys[option.Key] {
+			t.Fatalf("duplicate cover key %q", option.Key)
+		}
+		seenKeys[option.Key] = true
+		if !categoryKeys[option.Category] {
+			t.Fatalf("cover %q references unknown category %q", option.Key, option.Category)
+		}
+		if option.FileName != option.Key+".png" {
+			t.Fatalf("cover %q file name %q != key-derived name", option.Key, option.FileName)
+		}
+		path := filepath.Join(coverAssetsDir(), option.FileName)
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("cover %q asset missing: %v", option.Key, err)
+		}
+		referenced[option.FileName] = true
+	}
+
+	entries, err := os.ReadDir(coverAssetsDir())
+	if err != nil {
+		t.Fatalf("read assets dir: %v", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && !referenced[entry.Name()] {
+			t.Fatalf("orphan asset %q not referenced by catalog", entry.Name())
+		}
 	}
 }
