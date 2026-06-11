@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -53,6 +54,18 @@ func main() {
 		}
 	}
 
+	keep := make(map[string]bool, len(images))
+	for fileName := range images {
+		keep[fileName] = true
+	}
+	removed, err := pruneOrphans(*assetsDir, keep)
+	if err != nil {
+		log.Fatalf("prune orphans: %v", err)
+	}
+	for _, name := range removed {
+		log.Printf("pruned orphan %s", name)
+	}
+
 	encoded, err := json.MarshalIndent(catalog, "", "  ")
 	if err != nil {
 		log.Fatalf("encode catalog: %v", err)
@@ -61,6 +74,28 @@ func main() {
 		log.Fatalf("write catalog: %v", err)
 	}
 	log.Printf("wrote %s and %d images to %s", *catalogPath, len(images), *assetsDir)
+}
+
+// pruneOrphans deletes catalog-managed PNGs in dir that are absent from the
+// freshly built catalog (covers removed from Drive, or keys changed by a tag
+// folder rename). Non-PNG files and subdirectories are left untouched.
+func pruneOrphans(dir string, keep map[string]bool) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var removed []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(strings.ToLower(name), ".png") || keep[name] {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+			return removed, fmt.Errorf("remove %s: %w", name, err)
+		}
+		removed = append(removed, name)
+	}
+	return removed, nil
 }
 
 func fetchTree(client *http.Client, rootID string) ([]driveCategory, error) {
