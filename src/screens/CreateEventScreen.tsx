@@ -1,18 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-  Image,
-  Keyboard,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Image, Platform, useWindowDimensions, View } from 'react-native';
 
-import MaskedView from '@react-native-masked-view/masked-view';
 import {
   RouteProp,
   StackActions,
@@ -21,90 +10,74 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  AgeOption,
-  ageOptions,
-  GenderOption,
-  genderDisplayLabels,
-  genderOptions,
-  getAgeLabel,
-  GroupOption,
-  groupDisplayLabels,
-  groupOptions,
-} from '@constants/eventOptions';
+import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
+import { CoverKey } from '@constants/covers';
+import { genderDisplayLabels, getAgeLabel, groupDisplayLabels } from '@constants/eventOptions';
+import { useAuth } from '@context/AuthContext';
+import { useCovers } from '@context/CoversContext';
+import { UserEvent, useEvents } from '@context/EventsContext';
+import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
+import { RootStackParamList } from '@navigation/types';
+import { trackEvent } from '@services/analytics';
+import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
+import { spacing } from '@theme/index';
 import {
   formatPickerDateTimeValue,
   getMaxEventDateTime,
   isPastDateTimeSelection,
 } from '@utils/dateTime';
-import UploadIcon from '@assets/create-event/choose-cover.svg';
-import CloseIcon from '@assets/ui/close.svg';
-import WarningIcon from '@assets/ui/error.svg';
-import { SelectionModalContent } from '@components/SelectionModal';
-import { CoverPickerContent } from '@components/CoverPickerModal';
-import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
-import { EventDateTimePickerContent } from '@components/EventDateTimeModal';
-import { LocationPickerContent } from '@components/LocationPickerModal';
-import { CoverKey } from '@constants/covers';
-import { useAuth } from '@context/AuthContext';
-import { useCovers } from '@context/CoversContext';
-import { useEvents } from '@context/EventsContext';
-import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
-import { RootStackParamList } from '@navigation/types';
-import { trackEvent } from '@services/analytics';
-import { triggerHaptic } from '@services/haptics';
-import { colors, spacing } from '@theme/index';
-import { Springs } from '@theme/springs';
-
-import SignInButtons from '../components/SignInButtons';
 
 import {
   CreateEventFormState,
   buildCreateEventPayload,
   buildGuestEventDraft,
   buildUpdateEventPayload,
-  createEmptyFormState,
   createFormStateFromEvent,
   getFormLocationDisplayName,
   hasGuestDraftContent,
   hasSelectedPlaceLocation,
   normalizeCreateEventForm,
 } from './create-event/createEventForm';
+import CreateEventFormFields from './create-event/CreateEventFormFields';
+import CreateEventHeader from './create-event/CreateEventHeader';
+import CreateEventSheetContent, {
+  getCreateEventSheetTitle,
+} from './create-event/CreateEventSheetContent';
+import CreateEventSubmitButton, { ButtonLayout } from './create-event/CreateEventSubmitButton';
+import { useCreateEventForm } from './create-event/useCreateEventForm';
+import { useCreateEventSheets } from './create-event/useCreateEventSheets';
 import styles from './CreateEventScreen.styles';
-
-type ButtonLayout = { x: number; y: number; width: number; height: number };
-type CreateEventSheet =
-  | 'age'
-  | 'gender'
-  | 'groupType'
-  | 'cover'
-  | 'dateTime'
-  | 'location'
-  | 'signIn';
-
-const SHEET_CLOSE_DURATION_MS = 320;
-const KEYBOARD_SHEET_SETTLE_DELAY_MS = Platform.OS === 'ios' ? 90 : 140;
-const KEYBOARD_SHEET_OPEN_FALLBACK_MS = Platform.OS === 'ios' ? 420 : 360;
 
 type CreateNavigation = NativeStackNavigationProp<RootStackParamList, 'CreateEvent'>;
 
 type CreateRoute = RouteProp<RootStackParamList, 'CreateEvent'>;
 
 const EVENT_DATE_WINDOW_DAYS = 30;
+
+/** Shared date/time validation for submit and guest-draft flows. Returns an error message or null. */
+const getScheduleValidationError = (formState: CreateEventFormState): string | null => {
+  if (Number.isNaN(formState.selectedDateTime.getTime())) {
+    return 'Choose a valid date and time';
+  }
+
+  const now = new Date();
+  const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
+  const { normalizedDateTime } = normalizeCreateEventForm(formState);
+
+  if (isPastDateTimeSelection(normalizedDateTime, now)) {
+    return 'Choose a future date and time';
+  }
+
+  if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
+    return 'Choose a time within the next 30 days';
+  }
+
+  return null;
+};
 
 const CreateEventScreen = () => {
   const navigation = useNavigation<CreateNavigation>();
@@ -145,30 +118,31 @@ const CreateEventScreen = () => {
   }, [isEditing]);
 
   // Form state
-  const [eventName, setEventName] = useState(initialFormState.eventName);
-  const [description, setDescription] = useState(initialFormState.description);
-  const [groupType, setGroupType] = useState<GroupOption>(initialFormState.groupType);
-  const [gender, setGender] = useState<GenderOption>(initialFormState.gender);
-  const [ageRange, setAgeRange] = useState<[number, number]>(initialFormState.ageRange);
-  const [selectedDateTime, setSelectedDateTime] = useState<Date>(
-    () => initialFormState.selectedDateTime,
-  );
-  const [location, setLocation] = useState(initialFormState.location);
-  const [locationDisplayName, setLocationDisplayName] = useState(initialLocationDisplayName);
-  const [placeId, setPlaceId] = useState(initialFormState.placeId ?? '');
-  const [latitude, setLatitude] = useState<number | undefined>(initialFormState.latitude);
-  const [longitude, setLongitude] = useState<number | undefined>(initialFormState.longitude);
-  const [coverKey, setCoverKey] = useState<CoverKey>(initialFormState.coverKey);
+  const {
+    form,
+    locationDisplayName,
+    tempAgeRange,
+    tempGender,
+    tempGroupType,
+    setEventName,
+    setDescription,
+    setGroupType,
+    setGender,
+    setAgeRange,
+    setSelectedDateTime,
+    setCoverKey,
+    selectLocation,
+    setTempAgeRange,
+    setTempGender,
+    setTempGroupType,
+    resetForm: resetFormFields,
+    applyEventToForm: applyEventToFormFields,
+    getCurrentFormState,
+  } = useCreateEventForm(initialFormState, initialLocationDisplayName);
 
   // Sheet state
-  const [activeSheet, setActiveSheet] = useState<CreateEventSheet | null>(null);
-  const [renderedSheet, setRenderedSheet] = useState<CreateEventSheet | null>(null);
-  const renderedSheetRef = useRef<CreateEventSheet | null>(null);
-  const keyboardVisibleRef = useRef(false);
-  const pendingSheetRef = useRef<CreateEventSheet | null>(null);
-  const pendingSheetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const keyboardSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const renderedSheetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { activeSheet, renderedSheet, openSheet, closeActiveSheet, closeSheetImmediately } =
+    useCreateEventSheets();
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -181,36 +155,6 @@ const CreateEventScreen = () => {
     width: 0,
     height: 0,
   });
-  const primaryButtonRef = useRef<View>(null);
-
-  // Shimmer animation for "Creating event..." state
-  const shimmerX = useSharedValue(-160);
-  const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmerX.value }],
-  }));
-
-  const buttonScale = useSharedValue(1);
-  const buttonScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: buttonScale.value }],
-  }));
-
-  useEffect(() => {
-    if (isSubmitting && !isEditing) {
-      shimmerX.value = -160;
-      shimmerX.value = withRepeat(
-        withSequence(
-          withTiming(360, { duration: 1100, easing: Easing.linear }),
-          withTiming(-160, { duration: 0 }),
-        ),
-        -1,
-      );
-    }
-  }, [isSubmitting]);
-
-  // Temporary selection states for modal confirmation
-  const [tempAgeRange, setTempAgeRange] = useState<[number, number]>(ageRange);
-  const [tempGender, setTempGender] = useState<GenderOption>(gender);
-  const [tempGroupType, setTempGroupType] = useState<GroupOption>(groupType);
 
   const pickerMinDate = useMemo(() => new Date(), [activeSheet]);
 
@@ -219,178 +163,20 @@ const CreateEventScreen = () => {
     [activeSheet],
   );
 
-  useEffect(() => {
-    renderedSheetRef.current = renderedSheet;
-  }, [renderedSheet]);
-
-  const clearPendingSheetOpen = useCallback(() => {
-    if (pendingSheetTimerRef.current) {
-      clearTimeout(pendingSheetTimerRef.current);
-      pendingSheetTimerRef.current = null;
-    }
-    if (keyboardSettleTimerRef.current) {
-      clearTimeout(keyboardSettleTimerRef.current);
-      keyboardSettleTimerRef.current = null;
-    }
-    pendingSheetRef.current = null;
-  }, []);
-
-  const clearRenderedSheetClose = useCallback(() => {
-    if (renderedSheetTimerRef.current) {
-      clearTimeout(renderedSheetTimerRef.current);
-      renderedSheetTimerRef.current = null;
-    }
-  }, []);
-
-  const presentSheet = useCallback(
-    (sheet: CreateEventSheet) => {
-      clearRenderedSheetClose();
-      setRenderedSheet(sheet);
-      setActiveSheet(sheet);
-    },
-    [clearRenderedSheetClose],
-  );
-
-  const closeSheetImmediately = useCallback(() => {
-    clearPendingSheetOpen();
-    clearRenderedSheetClose();
-    setActiveSheet(null);
-    setRenderedSheet(null);
-  }, [clearPendingSheetOpen, clearRenderedSheetClose]);
-
-  const closeActiveSheet = useCallback(() => {
-    clearPendingSheetOpen();
-    Keyboard.dismiss();
-    setActiveSheet(null);
-    clearRenderedSheetClose();
-    const sheetToUnmount = renderedSheetRef.current;
-    renderedSheetTimerRef.current = setTimeout(() => {
-      setRenderedSheet(null);
-      if (renderedSheetRef.current === sheetToUnmount) {
-        renderedSheetRef.current = null;
-      }
-      renderedSheetTimerRef.current = null;
-    }, SHEET_CLOSE_DURATION_MS);
-  }, [clearPendingSheetOpen, clearRenderedSheetClose]);
-
-  const openSheet = useCallback(
-    (sheet: CreateEventSheet) => {
-      clearPendingSheetOpen();
-      Keyboard.dismiss();
-
-      if (keyboardVisibleRef.current) {
-        pendingSheetRef.current = sheet;
-        pendingSheetTimerRef.current = setTimeout(() => {
-          if (pendingSheetRef.current !== sheet) {
-            return;
-          }
-          pendingSheetRef.current = null;
-          pendingSheetTimerRef.current = null;
-          keyboardSettleTimerRef.current = setTimeout(() => {
-            keyboardSettleTimerRef.current = null;
-            presentSheet(sheet);
-          }, KEYBOARD_SHEET_SETTLE_DELAY_MS);
-        }, KEYBOARD_SHEET_OPEN_FALLBACK_MS);
-        return;
-      }
-
-      presentSheet(sheet);
-    },
-    [clearPendingSheetOpen, presentSheet],
-  );
-
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-      keyboardVisibleRef.current = true;
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      keyboardVisibleRef.current = false;
-      const pendingSheet = pendingSheetRef.current;
-      if (!pendingSheet) {
-        return;
-      }
-      if (pendingSheetTimerRef.current) {
-        clearTimeout(pendingSheetTimerRef.current);
-        pendingSheetTimerRef.current = null;
-      }
-      pendingSheetRef.current = null;
-      keyboardSettleTimerRef.current = setTimeout(() => {
-        keyboardSettleTimerRef.current = null;
-        presentSheet(pendingSheet);
-      }, KEYBOARD_SHEET_SETTLE_DELAY_MS);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, [clearPendingSheetOpen, presentSheet]);
-
-  useEffect(() => {
-    return () => {
-      clearPendingSheetOpen();
-      clearRenderedSheetClose();
-    };
-  }, [clearPendingSheetOpen, clearRenderedSheetClose]);
-
-  const applyFormState = useCallback((form: CreateEventFormState, displayLocationName = '') => {
-    setEventName(form.eventName);
-    setDescription(form.description);
-    setGroupType(form.groupType);
-    setGender(form.gender);
-    setAgeRange(form.ageRange);
-    setSelectedDateTime(form.selectedDateTime);
-    setLocation(form.location);
-    setLocationDisplayName(displayLocationName);
-    setPlaceId(form.placeId ?? '');
-    setLatitude(form.latitude);
-    setLongitude(form.longitude);
-    setCoverKey(form.coverKey);
-  }, []);
-
   const resetForm = useCallback(() => {
-    applyFormState(createEmptyFormState());
+    resetFormFields();
     closeSheetImmediately();
     setSubmitError(null);
     setIsSubmitting(false);
-  }, [applyFormState, closeSheetImmediately]);
+  }, [closeSheetImmediately, resetFormFields]);
 
   const applyEventToForm = useCallback(
-    (current: NonNullable<typeof editEvent>) => {
-      applyFormState(createFormStateFromEvent(current), getFormLocationDisplayName(current));
+    (current: UserEvent) => {
+      applyEventToFormFields(current);
       closeSheetImmediately();
       setSubmitError(null);
     },
-    [applyFormState, closeSheetImmediately],
-  );
-
-  const getCurrentFormState = useCallback(
-    (): CreateEventFormState => ({
-      eventName,
-      description,
-      groupType,
-      gender,
-      ageRange,
-      selectedDateTime,
-      location,
-      placeId,
-      latitude,
-      longitude,
-      coverKey,
-    }),
-    [
-      ageRange,
-      coverKey,
-      description,
-      eventName,
-      gender,
-      groupType,
-      location,
-      placeId,
-      latitude,
-      longitude,
-      selectedDateTime,
-    ],
+    [applyEventToFormFields, closeSheetImmediately],
   );
 
   useFocusEffect(
@@ -409,45 +195,63 @@ const CreateEventScreen = () => {
     }
   }, [activeSheet, closeActiveSheet, user]);
 
-  // Open modal handlers - set temp to current value
+  // Open sheet handlers - pickers set temp to current value first
+  const openCoverPicker = useCallback(() => {
+    triggerHaptic('light');
+    openSheet('cover');
+  }, [openSheet]);
+
   const openAgePicker = useCallback(() => {
     triggerHaptic('light');
-    setTempAgeRange(ageRange);
+    setTempAgeRange(form.ageRange);
     openSheet('age');
-  }, [ageRange, openSheet]);
+  }, [form.ageRange, openSheet, setTempAgeRange]);
 
   const openGenderPicker = useCallback(() => {
     triggerHaptic('light');
-    setTempGender(gender);
+    setTempGender(form.gender);
     openSheet('gender');
-  }, [gender, openSheet]);
+  }, [form.gender, openSheet, setTempGender]);
 
   const openGroupTypePicker = useCallback(() => {
     triggerHaptic('light');
-    setTempGroupType(groupType);
+    setTempGroupType(form.groupType);
     openSheet('groupType');
-  }, [groupType, openSheet]);
+  }, [form.groupType, openSheet, setTempGroupType]);
+
+  const openDateTimePicker = useCallback(() => {
+    triggerHaptic('light');
+    openSheet('dateTime');
+  }, [openSheet]);
+
+  const openLocationPicker = useCallback(() => {
+    triggerHaptic('light');
+    openSheet('location');
+  }, [openSheet]);
 
   // Confirm selection handlers
   const confirmAgeSelection = useCallback(() => {
     triggerHaptic('submit');
     setAgeRange(tempAgeRange);
     closeActiveSheet();
-  }, [closeActiveSheet, tempAgeRange]);
+  }, [closeActiveSheet, setAgeRange, tempAgeRange]);
 
   const confirmGenderSelection = useCallback(() => {
     triggerHaptic('submit');
     setGender(tempGender);
     closeActiveSheet();
-  }, [closeActiveSheet, tempGender]);
+  }, [closeActiveSheet, setGender, tempGender]);
 
   const confirmGroupTypeSelection = useCallback(() => {
     triggerHaptic('submit');
     setGroupType(tempGroupType);
     closeActiveSheet();
-  }, [closeActiveSheet, tempGroupType]);
+  }, [closeActiveSheet, setGroupType, tempGroupType]);
 
-  const selectedCoverUri = useMemo(() => resolveCover(coverKey), [coverKey, resolveCover]);
+  const selectedCoverUri = useMemo(
+    () => resolveCover(form.coverKey),
+    [form.coverKey, resolveCover],
+  );
 
   const contentContainerStyle = useMemo(
     () => [
@@ -467,7 +271,15 @@ const CreateEventScreen = () => {
       setCoverKey(key);
       closeActiveSheet();
     },
-    [closeActiveSheet],
+    [closeActiveSheet, setCoverKey],
+  );
+
+  const handleDateTimeConfirm = useCallback(
+    (value: Date) => {
+      setSelectedDateTime(value);
+      closeActiveSheet();
+    },
+    [closeActiveSheet, setSelectedDateTime],
   );
 
   const handleLocationSelect = useCallback(
@@ -478,14 +290,16 @@ const CreateEventScreen = () => {
         place.displayName && place.formattedAddress
           ? `${place.displayName}, ${place.formattedAddress}`
           : displayName;
-      setLocation(fullLocation);
-      setLocationDisplayName(displayName);
-      setPlaceId(place.placeId);
-      setLatitude(place.latitude);
-      setLongitude(place.longitude);
+      selectLocation({
+        location: fullLocation,
+        locationDisplayName: displayName,
+        placeId: place.placeId,
+        latitude: place.latitude,
+        longitude: place.longitude,
+      });
       closeActiveSheet();
     },
-    [closeActiveSheet],
+    [closeActiveSheet, selectLocation],
   );
 
   const handleSubmit = useCallback(
@@ -494,10 +308,10 @@ const CreateEventScreen = () => {
         return;
       }
 
-      const form = formOverride ?? getCurrentFormState();
-      const trimmedName = form.eventName.trim();
-      const trimmedDescription = form.description.trim();
-      const trimmedLocation = form.location.trim();
+      const formState = formOverride ?? getCurrentFormState();
+      const trimmedName = formState.eventName.trim();
+      const trimmedDescription = formState.description.trim();
+      const trimmedLocation = formState.location.trim();
 
       if (!trimmedName || !trimmedDescription || !trimmedLocation) {
         triggerHaptic('error');
@@ -505,34 +319,20 @@ const CreateEventScreen = () => {
         return;
       }
 
-      if (!hasSelectedPlaceLocation(form)) {
+      if (!hasSelectedPlaceLocation(formState)) {
         triggerHaptic('error');
         setSubmitError('Choose a location from search suggestions');
         return;
       }
 
-      if (Number.isNaN(form.selectedDateTime.getTime())) {
+      const scheduleError = getScheduleValidationError(formState);
+      if (scheduleError) {
         triggerHaptic('error');
-        setSubmitError('Choose a valid date and time');
+        setSubmitError(scheduleError);
         return;
       }
 
-      const now = new Date();
-      const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
-      const normalized = normalizeCreateEventForm(form);
-      const { normalizedDateTime } = normalized;
-
-      if (isPastDateTimeSelection(normalizedDateTime, now)) {
-        triggerHaptic('error');
-        setSubmitError('Choose a future date and time');
-        return;
-      }
-
-      if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
-        triggerHaptic('error');
-        setSubmitError('Choose a time within the next 30 days');
-        return;
-      }
+      const normalized = normalizeCreateEventForm(formState);
 
       if (!user) {
         triggerHaptic('error');
@@ -545,7 +345,7 @@ const CreateEventScreen = () => {
 
       try {
         if (isEditing && editEventId) {
-          await updateUserEvent(editEventId, buildUpdateEventPayload(form));
+          await updateUserEvent(editEventId, buildUpdateEventPayload(formState));
           triggerHaptic('success');
           navigation.dispatch(
             StackActions.popTo(
@@ -560,7 +360,7 @@ const CreateEventScreen = () => {
           );
         } else {
           const minDelay = new Promise<void>((r) => setTimeout(r, 1500));
-          await addUserEvent(buildCreateEventPayload(form, user));
+          await addUserEvent(buildCreateEventPayload(formState, user));
           await minDelay;
           triggerHaptic('success');
           resetForm();
@@ -574,7 +374,7 @@ const CreateEventScreen = () => {
           );
         }
       } catch (err) {
-        console.error('Failed to submit event', err);
+        logger.error('Failed to submit event', err);
         triggerHaptic('error');
         setSubmitError(`Unable to ${isEditing ? 'update' : 'publish'} the event. Please try again`);
       } finally {
@@ -606,21 +406,9 @@ const CreateEventScreen = () => {
 
       if (hasContent) {
         // Validate date/time only when there's content to publish
-        if (Number.isNaN(formState.selectedDateTime.getTime())) {
-          setSubmitError('Choose a valid date and time');
-          return;
-        }
-
-        const now = new Date();
-        const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
-        const { normalizedDateTime } = normalizeCreateEventForm(formState);
-        if (isPastDateTimeSelection(normalizedDateTime, now)) {
-          setSubmitError('Choose a future date and time');
-          return;
-        }
-
-        if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
-          setSubmitError('Choose a time within the next 30 days');
+        const scheduleError = getScheduleValidationError(formState);
+        if (scheduleError) {
+          setSubmitError(scheduleError);
           return;
         }
 
@@ -644,21 +432,9 @@ const CreateEventScreen = () => {
       return;
     }
 
-    if (Number.isNaN(formState.selectedDateTime.getTime())) {
-      setSubmitError('Choose a valid date and time');
-      return;
-    }
-
-    const now = new Date();
-    const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
-    const { normalizedDateTime } = normalizeCreateEventForm(formState);
-    if (isPastDateTimeSelection(normalizedDateTime, now)) {
-      setSubmitError('Choose a future date and time');
-      return;
-    }
-
-    if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
-      setSubmitError('Choose a time within the next 30 days');
+    const scheduleError = getScheduleValidationError(formState);
+    if (scheduleError) {
+      setSubmitError(scheduleError);
       return;
     }
 
@@ -675,302 +451,12 @@ const CreateEventScreen = () => {
         : 'Create Event'
     : 'Sign Up or Log In';
 
-  const ageLabel = useMemo(() => getAgeLabel(ageRange), [ageRange]);
+  const ageLabel = useMemo(() => getAgeLabel(form.ageRange), [form.ageRange]);
   const dateTimeLabel = useMemo(
-    () => formatPickerDateTimeValue(selectedDateTime),
-    [selectedDateTime],
+    () => formatPickerDateTimeValue(form.selectedDateTime),
+    [form.selectedDateTime],
   );
-  const selectedLocationLabel = locationDisplayName || location;
-
-  // Fixed header component (outside scroll view)
-  const renderHeader = () => (
-    <View style={styles.headerRow}>
-      <View style={styles.headerSpacer} />
-      <Text style={styles.pageTitle}>{isEditing ? 'Edit Details' : 'Create Event'}</Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {
-          triggerHaptic('light');
-          navigation.goBack();
-        }}
-        style={styles.dismissButton}
-      >
-        <CloseIcon width={24} height={24} color={colors.createTextPrimary} />
-      </Pressable>
-    </View>
-  );
-
-  // Shared form content to avoid iOS/Android duplication
-  const renderFormContent = () => (
-    <>
-      <Pressable
-        style={styles.coverCard}
-        onPress={() => {
-          triggerHaptic('light');
-          openSheet('cover');
-        }}
-        accessibilityRole="button"
-      >
-        <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
-        <BlurView intensity={60} tint="dark" style={styles.coverChip}>
-          <UploadIcon width={20} height={20} color="white" />
-        </BlurView>
-      </Pressable>
-
-      <View style={styles.fieldCard}>
-        <View style={styles.fieldCardInner}>
-          <TextInput
-            placeholder="Event Name"
-            value={eventName}
-            onChangeText={setEventName}
-            placeholderTextColor="rgba(255, 255, 255, 0.6)"
-            cursorColor="#FFFFFF"
-            selectionColor="#FFFFFF"
-            style={styles.textInput}
-          />
-          <View style={styles.fieldDivider} />
-          <TextInput
-            placeholder="Description"
-            value={description}
-            onChangeText={setDescription}
-            placeholderTextColor="rgba(255, 255, 255, 0.6)"
-            cursorColor="#FFFFFF"
-            selectionColor="#FFFFFF"
-            style={[styles.textInput, styles.descriptionInput]}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-      </View>
-
-      <View style={styles.fieldCard}>
-        <View style={styles.fieldCardInner}>
-          <Pressable style={styles.fieldRow} onPress={openGroupTypePicker}>
-            <Text style={styles.fieldLabel}>Group Type</Text>
-            <View style={styles.fieldValuePill}>
-              <Text style={styles.fieldValueText}>{groupDisplayLabels[groupType]}</Text>
-            </View>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.fieldCard}>
-        <View style={styles.fieldCardInner}>
-          <Pressable style={styles.fieldRow} onPress={openGenderPicker}>
-            <Text style={styles.fieldLabel}>Gender</Text>
-            <View style={styles.fieldValuePill}>
-              <Text style={styles.fieldValueText}>{genderDisplayLabels[gender]}</Text>
-            </View>
-          </Pressable>
-
-          <View style={styles.fieldDivider} />
-
-          <Pressable style={styles.fieldRow} onPress={openAgePicker}>
-            <Text style={styles.fieldLabel}>Age</Text>
-            <View style={styles.fieldValuePill}>
-              <Text style={styles.fieldValueText}>{ageLabel}</Text>
-            </View>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.fieldCard}>
-        <View style={styles.fieldCardInner}>
-          <Pressable
-            style={[styles.fieldRow, styles.dateRow]}
-            onPress={() => {
-              triggerHaptic('light');
-              openSheet('dateTime');
-            }}
-          >
-            <Text style={styles.fieldLabel}>Date & Time</Text>
-            <View style={[styles.fieldValuePill, styles.dateTimeValuePill]}>
-              <Text style={[styles.fieldValueText, styles.dateTimeValueText]} numberOfLines={1}>
-                {dateTimeLabel}
-              </Text>
-            </View>
-          </Pressable>
-
-          <View style={styles.fieldDivider} />
-
-          <Pressable
-            style={[styles.fieldRow, styles.locationRow]}
-            onPress={() => {
-              triggerHaptic('light');
-              openSheet('location');
-            }}
-          >
-            <Text style={styles.fieldLabel}>Location</Text>
-            <View style={[styles.fieldValuePill, styles.locationValuePill]}>
-              <Text
-                style={[
-                  styles.fieldValueText,
-                  !selectedLocationLabel && styles.locationPlaceholder,
-                ]}
-                numberOfLines={1}
-              >
-                {selectedLocationLabel || 'Select Location'}
-              </Text>
-            </View>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.spacer} />
-
-      <View style={styles.footer}>
-        {submitError ? (
-          <View style={styles.errorContainer}>
-            <WarningIcon width={14} height={14} style={{ alignSelf: 'center' }} />
-            <Text style={styles.errorText}>{submitError}</Text>
-          </View>
-        ) : null}
-
-        <Pressable
-          ref={primaryButtonRef as any}
-          onLayout={() => {
-            primaryButtonRef.current?.measureInWindow((x, y, w, h) => {
-              setButtonLayout({ x, y, width: w, height: h });
-            });
-          }}
-          style={{ width: '100%' }}
-          onPress={handlePrimaryAction}
-          onPressIn={() => {
-            if (!isSubmitting) buttonScale.value = withSpring(0.96, Springs.snappy);
-          }}
-          onPressOut={() => {
-            buttonScale.value = withSpring(1, Springs.press);
-          }}
-          disabled={isSubmitting}
-          accessibilityRole="button"
-          testID="create-event-submit"
-        >
-          <Animated.View
-            style={[
-              styles.primaryButton,
-              isSubmitting && styles.primaryButtonDisabled,
-              buttonScaleStyle,
-            ]}
-          >
-            {isSubmitting && !isEditing ? (
-              <MaskedView
-                style={shimmerStyles.root}
-                maskElement={
-                  <View style={shimmerStyles.mask}>
-                    <Text style={styles.primaryButtonText}>Creating event...</Text>
-                  </View>
-                }
-              >
-                <View style={shimmerStyles.mask}>
-                  <Text style={[styles.primaryButtonText, shimmerStyles.dimText]}>
-                    Creating event...
-                  </Text>
-                </View>
-                <Animated.View style={[shimmerStyles.strip, shimmerStyle]} pointerEvents="none">
-                  <LinearGradient
-                    colors={['transparent', 'rgba(255,255,255,0.8)', 'transparent']}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                </Animated.View>
-              </MaskedView>
-            ) : (
-              <Text style={styles.primaryButtonText}>{primaryButtonLabel}</Text>
-            )}
-          </Animated.View>
-        </Pressable>
-      </View>
-    </>
-  );
-
-  const sheetTitle = (() => {
-    switch (renderedSheet) {
-      case 'dateTime':
-        return 'When is your event?';
-      case 'cover':
-        return 'Choose a cover';
-      case 'groupType':
-        return 'Group Type';
-      case 'gender':
-        return 'Gender';
-      case 'age':
-        return 'Age';
-      case 'location':
-        return 'Select Location';
-      default:
-        return undefined;
-    }
-  })();
-
-  const renderSheetContent = () => {
-    switch (renderedSheet) {
-      case 'dateTime':
-        return (
-          <EventDateTimePickerContent
-            visible={activeSheet === 'dateTime'}
-            value={selectedDateTime}
-            minDate={pickerMinDate}
-            maxDate={pickerMaxDate}
-            onConfirm={(value) => {
-              setSelectedDateTime(value);
-              closeActiveSheet();
-            }}
-          />
-        );
-      case 'cover':
-        return <CoverPickerContent selectedCoverKey={coverKey} onSelect={handleCoverSelect} />;
-      case 'groupType':
-        return (
-          <SelectionModalContent
-            options={groupOptions}
-            selectedValue={tempGroupType}
-            onSelect={setTempGroupType}
-            onConfirm={confirmGroupTypeSelection}
-            getLabel={(opt) => groupDisplayLabels[opt]}
-            getKey={(opt) => opt}
-            isSelected={(opt, sel) => opt === sel}
-          />
-        );
-      case 'gender':
-        return (
-          <SelectionModalContent
-            options={genderOptions}
-            selectedValue={tempGender}
-            onSelect={setTempGender}
-            onConfirm={confirmGenderSelection}
-            getLabel={(opt) => genderDisplayLabels[opt]}
-            getKey={(opt) => opt}
-            isSelected={(opt, sel) => opt === sel}
-          />
-        );
-      case 'age':
-        return (
-          <SelectionModalContent<AgeOption>
-            options={ageOptions}
-            selectedValue={{ label: '', min: tempAgeRange[0], max: tempAgeRange[1] }}
-            onSelect={(opt) => setTempAgeRange([opt.min, opt.max])}
-            onConfirm={confirmAgeSelection}
-            getLabel={(opt) => opt.label}
-            getKey={(opt) => opt.label}
-            isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
-          />
-        );
-      case 'location':
-        return (
-          <LocationPickerContent
-            visible={activeSheet === 'location'}
-            onClose={closeActiveSheet}
-            onSelect={handleLocationSelect}
-            initialQuery={selectedLocationLabel}
-          />
-        );
-      case 'signIn':
-        return <SignInButtons />;
-      default:
-        return null;
-    }
-  };
+  const selectedLocationLabel = locationDisplayName || form.location;
 
   return (
     <View style={styles.root}>
@@ -982,7 +468,7 @@ const CreateEventScreen = () => {
       />
       <View style={styles.backgroundOverlay} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {renderHeader()}
+        <CreateEventHeader isEditing={isEditing} onClose={() => navigation.goBack()} />
         <View style={[styles.overlay, styles.contentWrapper]}>
           <KeyboardAwareScrollView
             ref={scrollViewRef}
@@ -998,41 +484,70 @@ const CreateEventScreen = () => {
             enableResetScrollToCoords={false}
             contentInsetAdjustmentBehavior="never"
           >
-            {renderFormContent()}
+            <CreateEventFormFields
+              selectedCoverUri={selectedCoverUri}
+              eventName={form.eventName}
+              description={form.description}
+              groupTypeLabel={groupDisplayLabels[form.groupType]}
+              genderLabel={genderDisplayLabels[form.gender]}
+              ageLabel={ageLabel}
+              dateTimeLabel={dateTimeLabel}
+              selectedLocationLabel={selectedLocationLabel}
+              onChangeEventName={setEventName}
+              onChangeDescription={setDescription}
+              onOpenCoverPicker={openCoverPicker}
+              onOpenGroupTypePicker={openGroupTypePicker}
+              onOpenGenderPicker={openGenderPicker}
+              onOpenAgePicker={openAgePicker}
+              onOpenDateTimePicker={openDateTimePicker}
+              onOpenLocationPicker={openLocationPicker}
+            />
+
+            <View style={styles.spacer} />
+
+            <CreateEventSubmitButton
+              label={primaryButtonLabel}
+              submitError={submitError}
+              isSubmitting={isSubmitting}
+              isEditing={isEditing}
+              onPress={handlePrimaryAction}
+              onMeasured={setButtonLayout}
+            />
           </KeyboardAwareScrollView>
         </View>
       </SafeAreaView>
 
       <CreateEventBottomSheet
         visible={activeSheet !== null}
-        title={sheetTitle}
+        title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
         snapHeight={renderedSheet === 'location' ? locationSheetHeight : undefined}
       >
-        {renderSheetContent()}
+        <CreateEventSheetContent
+          renderedSheet={renderedSheet}
+          activeSheet={activeSheet}
+          selectedDateTime={form.selectedDateTime}
+          pickerMinDate={pickerMinDate}
+          pickerMaxDate={pickerMaxDate}
+          onConfirmDateTime={handleDateTimeConfirm}
+          coverKey={form.coverKey}
+          onSelectCover={handleCoverSelect}
+          tempGroupType={tempGroupType}
+          onSelectTempGroupType={setTempGroupType}
+          onConfirmGroupType={confirmGroupTypeSelection}
+          tempGender={tempGender}
+          onSelectTempGender={setTempGender}
+          onConfirmGender={confirmGenderSelection}
+          tempAgeRange={tempAgeRange}
+          onSelectTempAgeRange={setTempAgeRange}
+          onConfirmAge={confirmAgeSelection}
+          selectedLocationLabel={selectedLocationLabel}
+          onSelectLocation={handleLocationSelect}
+          onClose={closeActiveSheet}
+        />
       </CreateEventBottomSheet>
     </View>
   );
 };
-
-const shimmerStyles = StyleSheet.create({
-  root: {
-    alignItems: 'center',
-  },
-  mask: {
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-  },
-  dimText: {
-    opacity: 0.45,
-  },
-  strip: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: 160,
-  },
-});
 
 export default CreateEventScreen;
