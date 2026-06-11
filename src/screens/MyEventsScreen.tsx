@@ -36,8 +36,10 @@ type MyEventsNavigation = CompositeNavigationProp<
 
 type MyEventsRoute = RouteProp<RootTabParamList, 'MyEvents'>;
 
-const MY_EVENTS_EMPTY_IMAGE_WIDTH = 216;
-const MY_EVENTS_EMPTY_IMAGE_HEIGHT = 205;
+// Match the shared empty-state illustration height (245) used by Discover,
+// Messages, and Past Events; width preserves the artwork's 1032x980 aspect.
+const MY_EVENTS_EMPTY_IMAGE_WIDTH = 258;
+const MY_EVENTS_EMPTY_IMAGE_HEIGHT = 245;
 
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();

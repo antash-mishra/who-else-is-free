@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import * as Location from "expo-location";
+import { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
 
-import { Coordinates } from "@utils/distance";
+import { logger } from '@services/logger';
+import { Coordinates } from '@utils/distance';
 
-type ViewerLocationPermission = "granted" | "denied" | "undetermined";
+type ViewerLocationPermission = 'granted' | 'denied' | 'undetermined';
 
 export type ViewerLocationState = {
   coords: Coordinates | null;
@@ -13,8 +14,7 @@ export type ViewerLocationState = {
 
 export const useViewerLocation = (): ViewerLocationState => {
   const [coords, setCoords] = useState<Coordinates | null>(null);
-  const [permission, setPermission] =
-    useState<ViewerLocationPermission | null>(null);
+  const [permission, setPermission] = useState<ViewerLocationPermission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -22,8 +22,7 @@ export const useViewerLocation = (): ViewerLocationState => {
 
     const loadLocation = async () => {
       try {
-        const permissionResult =
-          await Location.requestForegroundPermissionsAsync();
+        const permissionResult = await Location.requestForegroundPermissionsAsync();
         if (!isMounted) {
           return;
         }
@@ -34,9 +33,14 @@ export const useViewerLocation = (): ViewerLocationState => {
           return;
         }
 
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+        // Prefer the OS's cached fix: it resolves instantly and avoids the
+        // "current location is unavailable" failure when no fresh fix is ready
+        // (cold start, indoors, emulator). Fall back to requesting a new one.
+        const position =
+          (await Location.getLastKnownPositionAsync()) ??
+          (await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          }));
         if (!isMounted) {
           return;
         }
@@ -45,7 +49,7 @@ export const useViewerLocation = (): ViewerLocationState => {
           longitude: position.coords.longitude,
         });
       } catch (error) {
-        console.warn("Unable to resolve viewer location", error);
+        logger.warn('Unable to resolve viewer location', error);
         if (isMounted) {
           setCoords(null);
         }

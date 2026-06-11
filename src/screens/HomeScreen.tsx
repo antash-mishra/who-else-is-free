@@ -273,8 +273,6 @@ const HomeScreen = () => {
     />
   );
 
-  const emptyContentStyle = [styles.centerContent, { paddingTop: headerHeight }];
-
   return (
     <ScreenContainer edges={['bottom']}>
       <View style={styles.content}>
@@ -308,7 +306,6 @@ const HomeScreen = () => {
               headerPaddingTop={headerHeight}
               bottomInset={insets.bottom}
               emptyState={showUpcomingEmpty ? discoverEmptyState : null}
-              emptyContentStyle={emptyContentStyle}
               refreshing={isPullRefreshing}
               onRefresh={handleRefresh}
             />
@@ -319,7 +316,6 @@ const HomeScreen = () => {
                 headerPaddingTop={headerHeight}
                 bottomInset={insets.bottom}
                 emptyState={showNearestEmpty ? discoverEmptyState : null}
-                emptyContentStyle={emptyContentStyle}
                 refreshing={isPullRefreshing}
                 onRefresh={handleRefresh}
               />
@@ -330,7 +326,6 @@ const HomeScreen = () => {
               headerPaddingTop={headerHeight}
               bottomInset={insets.bottom}
               emptyState={showNewestEmpty ? discoverEmptyState : null}
-              emptyContentStyle={emptyContentStyle}
               refreshing={isPullRefreshing}
               onRefresh={handleRefresh}
             />
