@@ -28,31 +28,31 @@ In this React Native app, "shared CSS" means:
 
 ## Use This First
 
-| Need | Use | Current examples |
-| --- | --- | --- |
-| Primary, secondary, destructive, or ghost CTA | `AppButton` | `EmptyState`, `SignInButtons`, `HelpForm` |
-| Shared typography variant | `AppText` | `EmptyState`, help screens, UI primitives |
-| Text input | `TextField` | `HelpForm` |
-| Checkbox row | `CheckboxRow` | `HelpForm` |
-| Icon-only close/back/action button | `IconButton` | `ScreenHeader`, `SheetHeader` |
-| Tabs or segmented controls | `AppTabs`, `SegmentedControl` | Discover, My Events |
-| Sliding-underline tabs over a pager | `SlidingTabs` | Event Details requests/members tabs |
-| Numeric count badge in a header/row | `CountBadge` | Chat thread header, Join Requests header |
-| Unread indicator dot on a list row | `UnreadDot` | Messages rows, Join Requests 1:1 rows |
-| Join-request row with accept/decline | `EventRequestRow` | Event Details, Pending Requests |
-| Member row with menu or host label | `EventMemberRow` | Event Details members/accepted lists |
-| Press scale and haptics | `ScalePressable` | UI primitives, event rows, profile/menu rows |
-| Screen safe-area shell | `ScreenContainer` | Most app screens |
-| Standard back/title header | `ScreenHeader` | Help screens, Edit Profile, Past Events |
-| Empty state | `EmptyState` | Discover, My Events, Messages, Join Requests, Event Details |
-| Event card list | `EventListPage`, `EventSectionList` | Discover, My Events, Past Events |
-| Bottom sheet | `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modal coordination, create-event sheets, action overlays |
-| Sheet action menu | `SheetActionList` | event action menus and pending request menus |
-| Event action prompt | `EventActionOverlay` | Event Details, Chat Thread, Profile |
-| Avatar | `UserAvatar` | Profile, messages, chat, event members, onboarding |
-| Shared haptics | `triggerHaptic` or shared `haptic` props | navigation, forms, sheets, event actions |
-| Shared API timeout | `createRequestTimeout`, `isAbortError` | `ChatContext`, `EventsContext` |
-| Create/Edit Event mapping | `createEventForm.ts` helpers | `CreateEventScreen` |
+| Need                                          | Use                                                                                    | Current examples                                            |
+| --------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Primary, secondary, destructive, or ghost CTA | `AppButton`                                                                            | `EmptyState`, `SignInButtons`, `HelpForm`                   |
+| Shared typography variant                     | `AppText`                                                                              | `EmptyState`, help screens, UI primitives                   |
+| Text input                                    | `TextField`                                                                            | `HelpForm`                                                  |
+| Checkbox row                                  | `CheckboxRow`                                                                          | `HelpForm`                                                  |
+| Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`                               |
+| Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                         |
+| Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                         |
+| Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, Join Requests header                    |
+| Unread indicator dot on a list row            | `UnreadDot`                                                                            | Messages rows, Join Requests 1:1 rows                       |
+| Join-request row with accept/decline          | `EventRequestRow`                                                                      | Event Details, Pending Requests                             |
+| Member row with menu or host label            | `EventMemberRow`                                                                       | Event Details members/accepted lists                        |
+| Press scale and haptics                       | `ScalePressable`                                                                       | UI primitives, event rows, profile/menu rows                |
+| Screen safe-area shell                        | `ScreenContainer`                                                                      | Most app screens                                            |
+| Standard back/title header                    | `ScreenHeader`                                                                         | Help screens, Edit Profile, Past Events                     |
+| Empty state                                   | `EmptyState`                                                                           | Discover, My Events, Messages, Join Requests, Event Details |
+| Event card list                               | `EventListPage`, `EventSectionList`                                                    | Discover, My Events, Past Events                            |
+| Bottom sheet                                  | `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modal coordination, create-event sheets, action overlays    |
+| Sheet action menu                             | `SheetActionList`                                                                      | event action menus and pending request menus                |
+| Event action prompt                           | `EventActionOverlay`                                                                   | Event Details, Chat Thread, Profile                         |
+| Avatar                                        | `UserAvatar`                                                                           | Profile, messages, chat, event members, onboarding          |
+| Shared haptics                                | `triggerHaptic` or shared `haptic` props                                               | navigation, forms, sheets, event actions                    |
+| Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `ChatContext`, `EventsContext`                              |
+| Create/Edit Event mapping                     | `createEventForm.ts` helpers                                                           | `CreateEventScreen`                                         |
 
 ## Shared Styling System
 
@@ -260,14 +260,14 @@ Rule:
 
 These are not global theme tokens, but they are still shared style owners for complex components.
 
-| File | Owns styles for | Used by |
-| --- | --- | --- |
-| `src/components/CoverPickerModal.styles.ts` | cover picker grid/cards/search states | `CoverPickerModal` |
-| `src/components/EventActionOverlay.styles.ts` | event action prompts, confirm sheets, report/invite text fields | `EventActionOverlay.prompts`, `EventActionConfirm` |
-| `src/components/EventDateTimeModal.styles.ts` | date/time picker sheet content | `EventDateTimeModal` |
-| `src/components/LocationPickerModal.styles.ts` | location search/list/empty states | `LocationPickerModal` |
-| `src/components/SelectionModal.styles.ts` | generic option picker rows and selected states | `SelectionModal` |
-| `src/screens/CreateEventScreen.styles.ts` | Create/Edit Event screen-specific visual system | `CreateEventScreen` |
+| File                                           | Owns styles for                                                 | Used by                                            |
+| ---------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------- |
+| `src/components/CoverPickerModal.styles.ts`    | cover picker grid/cards/search states                           | `CoverPickerModal`                                 |
+| `src/components/EventActionOverlay.styles.ts`  | event action prompts, confirm sheets, report/invite text fields | `EventActionOverlay.prompts`, `EventActionConfirm` |
+| `src/components/EventDateTimeModal.styles.ts`  | date/time picker sheet content                                  | `EventDateTimeModal`                               |
+| `src/components/LocationPickerModal.styles.ts` | location search/list/empty states                               | `LocationPickerModal`                              |
+| `src/components/SelectionModal.styles.ts`      | generic option picker rows and selected states                  | `SelectionModal`                                   |
+| `src/screens/CreateEventScreen.styles.ts`      | Create/Edit Event screen-specific visual system                 | `CreateEventScreen`                                |
 
 Rule:
 
@@ -1163,11 +1163,90 @@ Exports:
 
 Where it is used:
 
-- `CreateEventScreen`
+- `CreateEventScreen` (via `useCreateEventForm`)
 
 Use it when:
 
 - Create/Edit Event form state or API payload behavior changes.
+
+### Create/Edit Event screen modules
+
+Files: `src/screens/create-event/`
+
+What they are:
+
+- `useCreateEventForm.ts` — reducer-backed form state built around `CreateEventFormState`
+  (fields, location display name, temp picker selections) with `applyFormState`, `resetForm`,
+  `applyEventToForm`, `selectLocation`, and `getCurrentFormState`.
+- `useCreateEventSheets.ts` — sheet routing state machine (`activeSheet`/`renderedSheet`,
+  keyboard-settle timers, `openSheet`/`closeActiveSheet`/`closeSheetImmediately`) and the
+  `CreateEventSheet` type.
+- `CreateEventHeader.tsx` — fixed title + close button.
+- `CreateEventFormFields.tsx` — cover card, name/description inputs, and option rows.
+- `CreateEventSubmitButton.tsx` — error row plus shimmer/scale submit button with typed `View`
+  ref measurement (`ButtonLayout`) for the EventCreated transition.
+- `CreateEventSheetContent.tsx` — sheet title (`getCreateEventSheetTitle`) and content switch.
+
+Styling:
+
+- These components intentionally share `src/screens/CreateEventScreen.styles.ts` (single styles
+  file for the screen family) and the `createField*` / `createText*` / `createError*` tokens in
+  `src/theme/colors.ts`.
+
+Where they are used:
+
+- `CreateEventScreen`, which stays a thin container for submission and navigation orchestration
+  (`handleSubmit` / `handlePrimaryAction`).
+
+Use them when:
+
+- Create/Edit Event layout, sheet timing, or form state behavior changes.
+
+### Event Details screen modules
+
+Files: `src/screens/event-details/`
+
+What they are:
+
+- `useEventDetailsData.ts` — event snapshot lookup/sync, conversation lookup, request store keys,
+  derived owner/member/request state (`pendingRequests`, `acceptedRequests`, `confirmedMembers`,
+  `overlayMembers`, going participants), host request polling, the read-only members fetch, and
+  the viewer's intro message fetch. Also exports the `EventDetailsRoute`/`EventDetailsNavigation`
+  types and the `EventDetailMember` shape.
+- `useEventDetailsActions.ts` — guest/owner actions: join request send/cancel (including the
+  sign-in redirect and auto-send-after-sign-in effect), edit, delete, report event, leave, CTA
+  press, open chat, and the three-dot `menuItems`. Owns the overlay/prompt visibility state those
+  flows drive (invite, report, manage, delete, leave, menu, badges).
+- `useHostRequestActions.ts` — host-side request/member actions: accept/decline join requests,
+  request row expansion, the member menu, remove member, and report member (shares the report
+  prompt state owned by `useEventDetailsActions`).
+- `EventDetailsHero.tsx` — blurred background image, dark/light overlays, elevated cover card.
+- `EventDetailsInfo.tsx` — title, host line, going avatars stack, detail rows, and the expandable
+  description (owns description measurement/expansion state).
+- `HostRequestTabs.tsx` — `SlidingTabs` header plus the animated two-page pager (both pages stay
+  rendered; 280ms slide) for request and accepted/member lists; owns the active tab state.
+- `EventDetailsMembers.tsx` — group overlay members list and read-only members list (with
+  loading/error states) under a static `SlidingTabs` header (`variant: 'overlay' | 'readOnly'`).
+- `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white
+  fade gradient.
+
+Styling:
+
+- These components intentionally share `src/screens/event-details/EventDetailsScreen.styles.ts`
+  (single styles file for the screen family); hardcoded colors with exact-match tokens were
+  replaced (`colors.subText`, `colors.iconColor`, `colors.text`, `colors.inputSurface`,
+  `colors.secondaryButtonBackground`, `colors.actionSurface`, `colors.background`,
+  `componentTokens.overlay.backdrop`).
+
+Where they are used:
+
+- `EventDetailsScreen`, which stays a thin container: the outer event fetch wrapper plus a content
+  component that composes the three hooks, the section components, and
+  `EventDetailsOverlayRoutes`.
+
+Use them when:
+
+- Event Details layout, request/member actions, or detail data derivation behavior changes.
 
 ### `request`
 
@@ -1236,17 +1315,53 @@ Rule:
 
 - Do not import `expo-haptics` outside this file.
 
+### `logger`
+
+File: `src/services/logger.ts`
+
+What it is:
+
+- Shared dev-only logging service. Forwards to `console` only when `__DEV__` is true.
+
+Exports:
+
+- `logger` (`logger.log`, `logger.warn`, `logger.error`)
+
+Where it is used:
+
+- Contexts (`AuthContext`, `EventsContext`, `ChatContext`, `PushContext`, `CoversContext`)
+- Screens and screen hooks (Event Details hooks, Create Event, Chat, Profile, Onboarding, sign-in)
+- `App.tsx`, `src/api/config.ts`, `src/services/analytics.ts`, shared components and hooks
+
+Use it when:
+
+- Code needs to report a non-fatal failure for debugging.
+
+Rule:
+
+- Do not call `console.*` directly in app code; use `logger` instead (tests may still spy on
+  `console`).
+
+## Artwork Palette Exceptions
+
+These files contain brand/artwork palette data and are documented exceptions to the
+theme-token rule (the eslint hardcoded-color warning is disabled for them):
+
+- `src/constants/covers.ts` — cover gradient pairs
+- `src/utils/avatar.ts` — avatar color palette
+- `src/components/ConfettiOverlay.tsx` — confetti palettes
+
 ## Visual References
 
 Screenshots captured during the shared-component review:
 
-| Surface | Screenshot |
-| --- | --- |
-| Discover event list and shared tabs | `report/screenshots/shared-components-discover-event-list.png` |
-| My Events shared tabs and event list | `report/screenshots/shared-components-my-events-tabs.png` |
-| Create Event sheet | `report/screenshots/shared-components-create-event-sheet.png` |
-| Help form primitives | `report/screenshots/shared-components-help-form.png` |
-| Event action confirmation sheet | `report/screenshots/shared-components-event-action-confirm.png` |
+| Surface                              | Screenshot                                                      |
+| ------------------------------------ | --------------------------------------------------------------- |
+| Discover event list and shared tabs  | `report/screenshots/shared-components-discover-event-list.png`  |
+| My Events shared tabs and event list | `report/screenshots/shared-components-my-events-tabs.png`       |
+| Create Event sheet                   | `report/screenshots/shared-components-create-event-sheet.png`   |
+| Help form primitives                 | `report/screenshots/shared-components-help-form.png`            |
+| Event action confirmation sheet      | `report/screenshots/shared-components-event-action-confirm.png` |
 
 ## Rules For New Work
 

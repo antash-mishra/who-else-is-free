@@ -49,12 +49,18 @@ Use shared primitives before local UI:
 - Event lists: `src/components/events`
 - Empty states: `EmptyState`
 - Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
+- Dev-only logging: `logger` in `src/services/logger.ts` (use it instead of `console.*`)
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
+- Create/Edit Event structure: `useCreateEventForm`, `useCreateEventSheets`, and the
+  `CreateEventHeader`/`CreateEventFormFields`/`CreateEventSubmitButton`/`CreateEventSheetContent`
+  components in `src/screens/create-event/` (all share `CreateEventScreen.styles.ts`)
+- API requests: `requestJson`/`ApiError` in `src/api/client.ts`, error extraction in `src/api/errors.ts`
+- API payload mappers: `src/api/mappers` (`events.ts`, `chat.ts`)
 - API timeout helpers: `src/api/request.ts`
 
 Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
 
-Do not import `expo-haptics` outside `src/services/haptics.ts`.
+Do not import `expo-haptics` outside `src/services/haptics.ts`. Do not call `console.*` directly in app code; use `logger` from `src/services/logger.ts`. Hardcoded hex colors outside `src/theme` are only allowed in the documented artwork-palette files (`src/constants/covers.ts`, `src/utils/avatar.ts`, `src/components/ConfettiOverlay.tsx`).
 
 ## Commands
 
