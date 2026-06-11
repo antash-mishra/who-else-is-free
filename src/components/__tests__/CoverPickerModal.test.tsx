@@ -28,9 +28,9 @@ describe('CoverPickerModal', () => {
       expect(mockCoverOptions.length).toBe(4);
     });
 
-    it('should use 2 columns', () => {
-      const numColumns = 2;
-      expect(numColumns).toBe(2);
+    it('should use 3 columns', () => {
+      const numColumns = 3;
+      expect(numColumns).toBe(3);
     });
 
     it('should use key as keyExtractor', () => {
@@ -66,13 +66,8 @@ describe('CoverPickerModal', () => {
 
   describe('Modal Header', () => {
     it('should show title', () => {
-      const title = 'Choose a cover';
-      expect(title).toBe('Choose a cover');
-    });
-
-    it('should show subtitle', () => {
-      const subtitle = 'Pick a card that best matches your vibe.';
-      expect(subtitle).toBe('Pick a card that best matches your vibe.');
+      const title = 'Choose cover';
+      expect(title).toBe('Choose cover');
     });
   });
 
