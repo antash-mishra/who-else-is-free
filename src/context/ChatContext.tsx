@@ -11,83 +11,23 @@ import {
 
 import { AppState, AppStateStatus } from 'react-native';
 
-import { API_BASE_URL, CHAT_ENABLED, WS_BASE_URL } from '@api/config';
-import { createRequestTimeout, isAbortError } from '@api/request';
+import { ApiError, requestJson } from '@api/client';
+import { CHAT_ENABLED, WS_BASE_URL } from '@api/config';
+import {
+  ChatConversation,
+  ChatJoinRequest,
+  ChatMessage,
+  normalizeConversation,
+  normalizeJoinRequest,
+  RawConversation,
+  RawJoinRequest,
+} from '@api/mappers/chat';
+import { isAbortError } from '@api/request';
 import { useAuth } from '@context/AuthContext';
 import { trackEvent } from '@services/analytics';
-import { getScheduleDisplay } from '@utils/dateTime';
+import { logger } from '@services/logger';
 
-type ConversationParticipant = {
-  id: number;
-  name: string;
-  avatar?: string;
-};
-
-type ConversationLastMessage = {
-  id: number;
-  sender_id: number;
-  body: string;
-  created_at: string;
-};
-
-type ConversationEventApi = {
-  id: number;
-  user_id: number;
-  title: string;
-  location: string;
-  time: string;
-  date_label: string;
-  event_date?: string;
-  group_type?: string;
-  cover_key?: string;
-  scheduled_at?: string;
-};
-
-export type ChatConversation = {
-  id: number;
-  createdBy: number;
-  title?: string | null;
-  memberIds: number[];
-  participants: ConversationParticipant[];
-  displayName: string;
-  lastMessage?: ChatMessage;
-  unreadCount: number;
-  eventId: number | null;
-  event?: {
-    id: number;
-    userId: number;
-    title: string;
-    location: string;
-    time: string;
-    dateLabel: string;
-    eventDate?: string;
-    groupType?: string;
-    coverKey?: string;
-    scheduledAt?: string;
-  };
-};
-
-export type ChatMessage = {
-  id: string;
-  conversationId: number;
-  senderId: number;
-  body: string;
-  createdAt: string;
-  pending?: boolean;
-  tempId?: string;
-  failed?: boolean;
-};
-
-export type ChatJoinRequest = {
-  id: number;
-  eventId: number;
-  userId: number;
-  message: string;
-  status: 'pending' | 'approved' | 'denied';
-  createdAt: string;
-  requester: ConversationParticipant;
-  conversationId?: number; // for 1:1 events
-};
+export type { ChatConversation, ChatJoinRequest, ChatMessage };
 
 interface ChatContextValue {
   conversations: ChatConversation[];
@@ -141,31 +81,11 @@ type ServerEnvelope = {
   conversationId?: number;
   userId?: number;
   action?: string;
-  request?: {
-    id: number;
-    eventId?: number;
-    event_id?: number;
-    userId?: number;
-    user_id?: number;
-    message?: string;
-    status?: string;
-    createdAt?: string;
-    created_at?: string;
-    requester?: ConversationParticipant;
-  };
+  request?: RawJoinRequest;
 };
 
 type ConversationsResponse = {
-  conversations: Array<{
-    id: number;
-    created_by: number;
-    title?: string | null;
-    member_ids: number[];
-    participants: ConversationParticipant[];
-    last_message?: ConversationLastMessage;
-    unread_count?: number;
-    event?: ConversationEventApi;
-  }>;
+  conversations: RawConversation[];
 };
 
 type MessagesResponse = {
@@ -246,36 +166,6 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const normalizeParticipant = useCallback(
-    (raw: any, fallbackID = 0): ConversationParticipant => ({
-      id: raw?.id ?? fallbackID,
-      name: raw?.name ?? raw?.full_name ?? '',
-      avatar: raw?.avatar ?? raw?.avatarUrl ?? raw?.avatar_url ?? undefined,
-    }),
-    [],
-  );
-
-  const normalizeJoinRequest = useCallback(
-    (raw: any): ChatJoinRequest => {
-      const eventId = raw.eventId ?? raw.event_id ?? 0;
-      const userId = raw.userId ?? raw.user_id ?? 0;
-      const createdAt = raw.createdAt ?? raw.created_at ?? new Date().toISOString();
-      const requester = raw.requester ?? {};
-      const conversationId = raw.conversationId ?? raw.conversation_id;
-      return {
-        id: raw.id,
-        eventId,
-        userId,
-        message: raw.message ?? '',
-        status: (raw.status ?? 'pending') as ChatJoinRequest['status'],
-        createdAt,
-        requester: normalizeParticipant(requester, userId),
-        conversationId,
-      };
-    },
-    [normalizeParticipant],
-  );
-
   useEffect(() => {
     if (!user || !token) {
       setConversations([]);
@@ -308,19 +198,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       try {
-        const response = await fetchClient(
-          `${API_BASE_URL}/api/conversations/${conversationId}/messages?limit=50`,
+        const payload = await requestJson<MessagesResponse>(
+          `/api/conversations/${conversationId}/messages?limit=50`,
           {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${activeToken}`,
-            },
+            headers: { 'Content-Type': 'application/json' },
+            token: activeToken,
+            timeoutMs: null,
+            fetchImpl: fetchClient,
+            errorMessage: 'Failed to load messages',
           },
         );
-        if (!response.ok) {
-          throw new Error('Failed to load messages');
-        }
-        const payload = (await response.json()) as MessagesResponse;
         const normalized = payload.messages
           .slice()
           .reverse()
@@ -343,7 +230,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           ),
         );
       } catch (err) {
-        console.error('Failed to refresh messages', err);
+        logger.error('Failed to refresh messages', err);
         setError((err as Error).message);
       }
     },
@@ -365,81 +252,21 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     const requestId = conversationsRefreshRequestIdRef.current + 1;
     conversationsRefreshRequestIdRef.current = requestId;
     setIsRefreshingConversations(true);
-    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
-      const response = await fetchClient(`${API_BASE_URL}/api/conversations`, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${activeToken}`,
-        },
-        signal: timeout.signal,
+      const payload = await requestJson<ConversationsResponse>('/api/conversations', {
+        headers: { 'Content-Type': 'application/json' },
+        token: activeToken,
+        timeoutMs: REFRESH_TIMEOUT_MS,
+        fetchImpl: fetchClient,
+        errorMessage: 'Unable to load conversations',
       });
-      if (!response.ok) {
-        throw new Error('Unable to load conversations');
-      }
-      const payload = (await response.json()) as ConversationsResponse;
       if (requestId !== conversationsRefreshRequestIdRef.current) {
         return;
       }
       setError(null);
-      const normalized = (payload.conversations ?? []).map((conversation) => {
-        const participants = (conversation.participants ?? []).map((participant) =>
-          normalizeParticipant(participant),
-        );
-        const counterpart = participants.find((participant) => participant.id !== user.id);
-        const event = conversation.event
-          ? (() => {
-              const schedule = getScheduleDisplay({
-                scheduledAt: conversation.event.scheduled_at,
-                eventDate: conversation.event.event_date,
-                time: conversation.event.time,
-                dateLabel: conversation.event.date_label,
-              });
-
-              return {
-                id: conversation.event.id,
-                userId: conversation.event.user_id,
-                title: conversation.event.title,
-                location: conversation.event.location,
-                time: schedule.displayTime,
-                dateLabel: schedule.displayLabel,
-                eventDate: schedule.displayDate,
-                groupType: conversation.event.group_type,
-                coverKey: conversation.event.cover_key,
-                scheduledAt: conversation.event.scheduled_at,
-              };
-            })()
-          : undefined;
-        const memberCount = conversation.member_ids?.length ?? participants.length;
-        const hasEvent = !!event;
-        const isGroup = hasEvent || memberCount > 2 || (!!conversation.title && memberCount > 1);
-        const fallbackName = conversation.title ?? participants[0]?.name ?? 'Conversation';
-        const displayName = hasEvent
-          ? (event?.title ?? fallbackName)
-          : (counterpart?.name ?? fallbackName);
-        const lastMessage = conversation.last_message
-          ? {
-              id: String(conversation.last_message.id),
-              conversationId: conversation.id,
-              senderId: conversation.last_message.sender_id,
-              body: conversation.last_message.body,
-              createdAt: conversation.last_message.created_at,
-            }
-          : undefined;
-
-        return {
-          id: conversation.id,
-          createdBy: conversation.created_by,
-          title: conversation.title ?? null,
-          memberIds: conversation.member_ids,
-          participants,
-          displayName,
-          lastMessage,
-          unreadCount: conversation.unread_count ?? 0,
-          eventId: event?.id ?? null,
-          event,
-        } as ChatConversation;
-      });
+      const normalized = (payload.conversations ?? []).map((conversation) =>
+        normalizeConversation(conversation, user.id),
+      );
 
       normalized.sort((a, b) => {
         const aTime = a.lastMessage ? Date.parse(a.lastMessage.createdAt) : 0;
@@ -478,14 +305,13 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== conversationsRefreshRequestIdRef.current) {
         return;
       }
-      console.error('Failed to load conversations', err);
+      logger.error('Failed to load conversations', err);
       if (isAbortError(err)) {
         setError('Unable to load conversations');
       } else {
         setError((err as Error).message);
       }
     } finally {
-      timeout.clear();
       if (requestId === conversationsRefreshRequestIdRef.current) {
         setIsRefreshingConversations(false);
       }
@@ -512,39 +338,17 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const query = includeApproved ? '?include_approved=1' : '';
       const requestId = (joinRequestsRefreshRequestIdRef.current[eventId] ?? 0) + 1;
       joinRequestsRefreshRequestIdRef.current[eventId] = requestId;
-      const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
       try {
-        const response = await fetchClient(
-          `${API_BASE_URL}/api/events/${eventId}/chat/requests${query}`,
+        const payload = await requestJson<{ requests?: RawJoinRequest[] }>(
+          `/api/events/${eventId}/chat/requests${query}`,
           {
-            headers: {
-              Authorization: `Bearer ${activeToken}`,
-            },
-            signal: timeout.signal,
+            token: activeToken,
+            timeoutMs: REFRESH_TIMEOUT_MS,
+            fetchImpl: fetchClient,
+            errorMessage: 'Failed to load join requests',
           },
         );
-        if (response.status === 404) {
-          // Event may have been deleted while polling host requests; treat as empty.
-          if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
-            return;
-          }
-          setJoinRequestsByConversation((prev) => ({
-            ...prev,
-            [conversationId]: [],
-          }));
-          return;
-        }
-        if (!response.ok) {
-          const error = new Error('Failed to load join requests') as Error & {
-            status?: number;
-          };
-          error.status = response.status;
-          throw error;
-        }
-        const payload = (await response.json().catch(() => ({}))) as {
-          requests?: any[];
-        };
-        const normalized = (payload.requests ?? []).map(normalizeJoinRequest);
+        const normalized = (payload?.requests ?? []).map(normalizeJoinRequest);
         if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
           return;
         }
@@ -557,21 +361,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         if (joinRequestsRefreshRequestIdRef.current[eventId] !== requestId) {
           return;
         }
-        console.error('Failed to load join requests', err);
+        if (err instanceof ApiError && err.status === 404) {
+          // Event may have been deleted while polling host requests; treat as empty.
+          setJoinRequestsByConversation((prev) => ({
+            ...prev,
+            [conversationId]: [],
+          }));
+          return;
+        }
+        logger.error('Failed to load join requests', err);
         throw err;
-      } finally {
-        timeout.clear();
       }
     },
-    [normalizeJoinRequest],
+    [],
   );
 
   const performJoinRequestAction = useCallback(
     async (conversationId: number, eventId: number, userId: number, action: 'approve' | 'deny') => {
       const path =
         action === 'approve'
-          ? `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/approve`
-          : `${API_BASE_URL}/api/events/${eventId}/chat/requests/${userId}/deny`;
+          ? `/api/events/${eventId}/chat/requests/${userId}/approve`
+          : `/api/events/${eventId}/chat/requests/${userId}/deny`;
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
         throw new Error('Not authenticated');
@@ -580,17 +390,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (!activeToken) {
         throw new Error('Not authenticated');
       }
-      const response = await fetchClient(path, {
+      await requestJson(path, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${activeToken}`,
-        },
+        token: activeToken,
+        timeoutMs: null,
+        fetchImpl: fetchClient,
+        errorMessage:
+          action === 'approve' ? 'Unable to approve join request.' : 'Unable to deny join request.',
       });
-      if (!response.ok) {
-        const message =
-          action === 'approve' ? 'Unable to approve join request.' : 'Unable to deny join request.';
-        throw new Error(message);
-      }
       setJoinRequestsByConversation((prev) => {
         const eventScopedKey = -eventId;
         const existingByConversation = prev[conversationId] ?? [];
@@ -637,21 +444,15 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       throw new Error('Not authenticated');
     }
 
-    const response = await fetchClient(
-      `${API_BASE_URL}/api/events/${eventId}/members/${userId}/report`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${activeToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reason }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Unable to report member');
-    }
+    await requestJson(`/api/events/${eventId}/members/${userId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+      token: activeToken,
+      timeoutMs: null,
+      fetchImpl: fetchClient,
+      errorMessage: 'Unable to report member',
+    });
 
     // The backend also denies the join request, so we need to update local state
     // This is similar to denyJoinRequest behavior
@@ -864,7 +665,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     },
-    [mapServerMessage, normalizeJoinRequest, refreshConversations],
+    [mapServerMessage, refreshConversations],
   );
 
   const connectSocket = useCallback(() => {
@@ -933,7 +734,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         const envelope = JSON.parse(String(event.data)) as ServerEnvelope;
         handleServerEnvelope(envelope);
       } catch (err) {
-        console.error('Failed to parse WS message', err);
+        logger.error('Failed to parse WS message', err);
       }
     };
   }, [

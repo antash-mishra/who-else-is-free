@@ -36,6 +36,7 @@ import { useEvents } from '@context/EventsContext';
 import { resolveCoverUri } from '@constants/covers';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 import { formatAbsoluteDateLabel } from '@utils/dateTime';
 import { formatEventLocationName } from '@utils/eventDisplay';
 
@@ -371,7 +372,7 @@ const ChatThreadScreen = () => {
       return;
     }
     await refreshConversations().catch((err) => {
-      console.error('Failed to refresh conversations after single chat action', err);
+      logger.error('Failed to refresh conversations after single chat action', err);
     });
     await refreshJoinRequests(
       activeConversationId ?? activeConversation.eventId,
@@ -380,7 +381,7 @@ const ChatThreadScreen = () => {
         includeApproved: true,
       },
     ).catch((err) => {
-      console.error('Failed to refresh join requests after single chat action', err);
+      logger.error('Failed to refresh join requests after single chat action', err);
     });
     setActiveConversation(null);
   }, [

@@ -17,11 +17,12 @@ import {
 } from '@react-native-firebase/messaging';
 import * as SecureStore from 'expo-secure-store';
 
-import { API_BASE_URL } from '@api/config';
+import { requestJson } from '@api/client';
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { handleNotificationTap, PushData } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
+import { logger } from '@services/logger';
 
 import type { FirebaseMessagingTypes, Messaging } from '@react-native-firebase/messaging';
 
@@ -45,35 +46,33 @@ const getOrCreateDeviceId = async (): Promise<string> => {
 
 const registerTokenOnServer = async (fcmToken: string, deviceId: string, authToken: string) => {
   try {
-    await fetch(`${API_BASE_URL}/api/push-tokens`, {
+    await requestJson('/api/push-tokens', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: fcmToken,
         device_id: deviceId,
         platform: Platform.OS as 'android' | 'ios',
       }),
+      token: authToken,
+      timeoutMs: null,
     });
   } catch (err) {
-    console.warn('Failed to register push token', err);
+    logger.warn('Failed to register push token', err);
   }
 };
 
 const deleteTokenFromServer = async (fcmToken: string, authToken: string) => {
   try {
-    await fetch(`${API_BASE_URL}/api/push-tokens`, {
+    await requestJson('/api/push-tokens', {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: fcmToken }),
+      token: authToken,
+      timeoutMs: null,
     });
   } catch (err) {
-    console.warn('Failed to delete push token', err);
+    logger.warn('Failed to delete push token', err);
   }
 };
 
@@ -109,7 +108,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       try {
         const msg = getMessagingInstance();
         if (!msg) {
-          console.warn('Firebase messaging not available, push notifications disabled');
+          logger.warn('Firebase messaging not available, push notifications disabled');
           return;
         }
 
@@ -127,7 +126,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           authStatus === AuthorizationStatus.EPHEMERAL;
 
         if (!enabled) {
-          console.warn('Push notification permission denied or restricted', {
+          logger.warn('Push notification permission denied or restricted', {
             authStatus,
           });
           return;
@@ -149,7 +148,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           }
         });
       } catch (err) {
-        console.warn('Push notification setup failed', err);
+        logger.warn('Push notification setup failed', err);
       }
     };
 

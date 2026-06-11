@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 
-import { API_BASE_URL } from '@api/config';
+import { ApiError, requestJson } from '@api/client';
 import { useAuth } from '@context/AuthContext';
 import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 
 export interface SingleEventMemberActionTarget {
   userId: number;
@@ -107,24 +108,18 @@ export const useSingleEventMemberActions = ({
     setShowMenu(false);
 
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/chat/members/${selectedTarget.userId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Unable to remove member.');
-      }
+      await requestJson(`/api/events/${eventId}/chat/members/${selectedTarget.userId}`, {
+        method: 'DELETE',
+        token,
+        timeoutMs: null,
+        fetchImpl: authFetch,
+        errorMessage: 'Unable to remove member.',
+      });
 
       await onSuccess?.();
       reset();
     } catch (err) {
-      console.error('Failed to remove member', err);
+      logger.error('Failed to remove member', err);
       Alert.alert(removeErrorTitle, err instanceof Error ? err.message : 'Please try again.');
     } finally {
       setIsRemovingMember(false);
@@ -156,30 +151,24 @@ export const useSingleEventMemberActions = ({
     setReportError(null);
 
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/members/${selectedTarget.userId}/report`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ reason: trimmed }),
-        },
-      );
-
-      if (response.status === 409) {
-        setReportError(errors.duplicate);
-        return;
-      }
-      if (!response.ok) {
-        throw new Error(errors.generic);
-      }
+      await requestJson(`/api/events/${eventId}/members/${selectedTarget.userId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: trimmed }),
+        token,
+        timeoutMs: null,
+        fetchImpl: authFetch,
+        errorMessage: errors.generic,
+      });
 
       await onSuccess?.();
       reset();
     } catch (err) {
-      console.error('Failed to submit member report', err);
+      if (err instanceof ApiError && err.status === 409) {
+        setReportError(errors.duplicate);
+        return;
+      }
+      logger.error('Failed to submit member report', err);
       setReportError(err instanceof Error ? err.message : errors.generic);
     } finally {
       setIsSubmittingReport(false);

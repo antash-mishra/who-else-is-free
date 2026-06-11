@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
+import { logger } from '@services/logger';
+
 const resolveApiBaseUrl = () => {
   const envUrl =
     (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) || undefined;
@@ -24,7 +26,7 @@ const resolveApiBaseUrl = () => {
         // return `http://${resolvedHost}:8080`;
       }
     } catch (error) {
-      console.warn('Failed to derive host from Expo metadata', error);
+      logger.warn('Failed to derive host from Expo metadata', error);
     }
   }
 
@@ -46,7 +48,7 @@ const resolveWsBaseUrl = () => {
     const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${apiUrl.host}`;
   } catch (error) {
-    console.warn('Failed to derive WS base URL, falling back to API base URL', error);
+    logger.warn('Failed to derive WS base URL, falling back to API base URL', error);
     return API_BASE_URL.replace(/^http/, 'ws');
   }
 };

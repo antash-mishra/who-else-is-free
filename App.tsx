@@ -24,7 +24,7 @@ import {
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppNavigator from '@navigation/AppNavigator';
-import { navigationRef } from '@navigation/navigationRef';
+import { navigationRef, resetToLogin } from '@navigation/navigationRef';
 import { colors } from '@theme/colors';
 import { BloomProvider } from '@context/BloomContext';
 import { EventsProvider } from '@context/EventsContext';
@@ -33,6 +33,7 @@ import { ChatProvider } from '@context/ChatContext';
 import { PushProvider } from '@context/PushContext';
 import { CoversProvider } from '@context/CoversContext';
 import { initializeAnalytics } from '@services/analytics';
+import { logger } from '@services/logger';
 
 // Prevent native splash from auto-hiding before fonts load
 SplashScreen.preventAutoHideAsync();
@@ -69,7 +70,7 @@ const App = () => {
               requestedStatus === AuthorizationStatus.PROVISIONAL ||
               requestedStatus === AuthorizationStatus.EPHEMERAL;
             if (!enabled) {
-              console.warn('iOS push permission was not granted', {
+              logger.warn('iOS push permission was not granted', {
                 authStatus: requestedStatus,
               });
             }
@@ -78,7 +79,7 @@ const App = () => {
             currentStatus !== AuthorizationStatus.PROVISIONAL &&
             currentStatus !== AuthorizationStatus.EPHEMERAL
           ) {
-            console.warn(
+            logger.warn(
               'iOS push permission already denied/restricted. System prompt will not show again until changed in Settings.',
               { authStatus: currentStatus },
             );
@@ -88,7 +89,7 @@ const App = () => {
 
         await requestMessagingPermission(msg);
       } catch (err) {
-        console.warn('Initial push permission request failed', err);
+        logger.warn('Initial push permission request failed', err);
       }
     };
     requestPermission();
@@ -103,6 +104,10 @@ const App = () => {
     }
   }, []);
 
+  const handleSessionExpired = useCallback(() => {
+    resetToLogin();
+  }, []);
+
   if (!fontsLoaded) {
     return null;
   }
@@ -113,7 +118,7 @@ const App = () => {
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <StatusBar style="dark" />
           <BloomProvider>
-            <AuthProvider>
+            <AuthProvider onSessionExpired={handleSessionExpired}>
               <CoversProvider>
                 <ChatProvider>
                   <PushProvider>

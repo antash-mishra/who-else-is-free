@@ -10,40 +10,17 @@ import {
 } from 'react';
 // TODO: replace in-memory state with persisted cache for offline support when API integration stabilises.
 
-import { API_BASE_URL } from '@api/config';
-import { createRequestTimeout, isAbortError } from '@api/request';
-import { EventItemProps } from '@components/EventCard';
-import { CoverKey, DEFAULT_COVER_KEY, resolveCoverUri } from '@constants/covers';
+import { ApiError, requestJson } from '@api/client';
+import { ApiEvent, DateLabel, mapApiEventToUserEvent, UserEvent } from '@api/mappers/events';
+import { isAbortError } from '@api/request';
+import { CoverKey, DEFAULT_COVER_KEY } from '@constants/covers';
 import { useAuth } from '@context/AuthContext';
 import { getEventAnalyticsParams, trackEvent } from '@services/analytics';
-import {
-  getLegacyDateLabel,
-  getScheduleDisplay,
-  parseDateKey,
-  timeStringToMinutes,
-} from '@utils/dateTime';
-import { formatAudienceLabel } from '@utils/eventDisplay';
+import { logger } from '@services/logger';
+import { getLegacyDateLabel, parseDateKey, timeStringToMinutes } from '@utils/dateTime';
 
-export type DateLabel = string;
-
-export interface UserEvent extends EventItemProps {
-  dateLabel: DateLabel;
-  eventDate: string;
-  description?: string;
-  ownerId: number;
-  hostName: string;
-  hostAvatar?: string;
-  gender: string;
-  minAge: number;
-  maxAge: number;
-  groupType: 'Single' | 'Group';
-  coverKey?: CoverKey | null;
-  scheduledAt?: string; // ISO 8601 UTC timestamp
-  createdAt?: string; // ISO 8601 UTC timestamp
-  placeId?: string;
-  latitude?: number;
-  longitude?: number;
-}
+export type { ApiEvent, DateLabel, UserEvent };
+export { mapApiEventToUserEvent };
 
 interface CreateEventInput {
   title: string;
@@ -125,29 +102,6 @@ interface EventsContextValue {
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
 
-export type ApiEvent = {
-  id: number;
-  title: string;
-  location: string;
-  time: string;
-  description?: string;
-  gender: string;
-  min_age: number;
-  max_age: number;
-  date_label: string;
-  event_date: string;
-  group_type?: 'Single' | 'Group';
-  user_id: number;
-  host_name: string;
-  host_avatar?: string | null;
-  cover_key?: CoverKey | null;
-  scheduled_at?: string; // ISO 8601 UTC timestamp
-  created_at?: string; // ISO 8601 UTC timestamp
-  place_id?: string;
-  latitude?: number;
-  longitude?: number;
-};
-
 interface EventMeta {
   badgeLabel?: string;
 }
@@ -199,46 +153,6 @@ const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
   return a.eventDate.localeCompare(b.eventDate);
 };
 
-export const mapApiEventToUserEvent = (event: ApiEvent, badgeLabel?: string): UserEvent => {
-  const groupType = event.group_type ?? 'Single';
-  const schedule = getScheduleDisplay({
-    scheduledAt: event.scheduled_at,
-    eventDate: event.event_date,
-    time: event.time,
-    dateLabel: event.date_label,
-  });
-
-  return {
-    id: String(event.id),
-    title: event.title,
-    location: event.location,
-    time: schedule.displayTime,
-    audience: formatAudienceLabel({
-      gender: event.gender,
-      minAge: event.min_age,
-      maxAge: event.max_age,
-    }),
-    imageUri: resolveCoverUri(event.cover_key),
-    badgeLabel: groupType === 'Group' ? 'Group' : badgeLabel,
-    dateLabel: schedule.displayLabel,
-    eventDate: schedule.displayDate,
-    description: event.description,
-    ownerId: event.user_id,
-    hostName: event.host_name,
-    hostAvatar: event.host_avatar ?? undefined,
-    gender: event.gender,
-    minAge: event.min_age,
-    maxAge: event.max_age,
-    groupType,
-    coverKey: event.cover_key ?? null,
-    scheduledAt: event.scheduled_at,
-    createdAt: event.created_at,
-    placeId: event.place_id,
-    latitude: event.latitude,
-    longitude: event.longitude,
-  };
-};
-
 export const EventsProvider = ({
   children,
   onGuestEventSubmitted,
@@ -285,21 +199,12 @@ export const EventsProvider = ({
       }
       return;
     }
-    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
-      const response = await fetchClient(`${API_BASE_URL}/api/events`, {
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-        signal: timeout.signal,
+      const payload = await requestJson<{ data: ApiEvent[] | null }>('/api/events', {
+        token,
+        timeoutMs: REFRESH_TIMEOUT_MS,
+        fetchImpl: fetchClient,
       });
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const payload: { data: ApiEvent[] | null } = await response.json();
       const nextEvents = (payload.data ?? [])
         .map((event) =>
           mapApiEventToUserEvent(event, metaRef.current[String(event.id)]?.badgeLabel),
@@ -314,14 +219,13 @@ export const EventsProvider = ({
       if (requestId !== eventsRequestIdRef.current) {
         return;
       }
-      console.error('Failed to fetch events', err);
+      logger.error('Failed to fetch events', err);
       if (isAbortError(err)) {
         setError('Unable to load events. Request timed out.');
       } else {
         setError('Unable to load events. Pull to refresh.');
       }
     } finally {
-      timeout.clear();
       if (requestId === eventsRequestIdRef.current) {
         setIsLoading(false);
       }
@@ -340,34 +244,16 @@ export const EventsProvider = ({
       resetRequestedEventIds();
       return;
     }
-    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
-      const response = await fetchClient(`${API_BASE_URL}/api/chat/requests/me`, {
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-        signal: timeout.signal,
-      });
-
-      if (response.status === 401) {
-        // authFetch already attempted refresh; treat remaining 401 as session transition.
-        if (requestId !== requestedEventsRequestIdRef.current) {
-          return;
-        }
-        resetRequestedEventIds();
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-      const payload = (await response.json().catch(() => ({}))) as {
+      const payload = await requestJson<{
         requests?: Array<{ eventId?: number; event_id?: number }>;
-      };
+      }>('/api/chat/requests/me', {
+        token,
+        timeoutMs: REFRESH_TIMEOUT_MS,
+        fetchImpl: fetchClient,
+      });
       const ids = new Set<string>();
-      (payload.requests ?? []).forEach((request) => {
+      (payload?.requests ?? []).forEach((request) => {
         const idValue = request.eventId ?? request.event_id;
         if (idValue != null) {
           ids.add(String(idValue));
@@ -381,10 +267,13 @@ export const EventsProvider = ({
       if (requestId !== requestedEventsRequestIdRef.current) {
         return;
       }
-      console.error('Failed to fetch requested events', err);
+      if (err instanceof ApiError && err.status === 401) {
+        // authFetch already attempted refresh; treat remaining 401 as session transition.
+        resetRequestedEventIds();
+        return;
+      }
+      logger.error('Failed to fetch requested events', err);
       resetRequestedEventIds();
-    } finally {
-      timeout.clear();
     }
   }, [resetRequestedEventIds, token, user]);
 
@@ -456,43 +345,33 @@ export const EventsProvider = ({
 
       trackEvent('event_create_submitted', analyticsParams).catch(() => undefined);
 
-      let response: Response;
+      let created: { id: number };
       try {
-        response = await fetchClient(`${API_BASE_URL}/api/events`, {
+        created = await requestJson<{ id: number }>('/api/events', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+          token,
+          timeoutMs: null,
+          fetchImpl: fetchClient,
         });
       } catch (error) {
-        trackEvent('event_create_failed', {
-          ...analyticsParams,
-          reason_category: 'network_error',
-        }).catch(() => undefined);
+        if (error instanceof ApiError) {
+          trackEvent('event_create_failed', {
+            ...analyticsParams,
+            status_code: error.status,
+            reason_category: 'api_error',
+          }).catch(() => undefined);
+        } else {
+          trackEvent('event_create_failed', {
+            ...analyticsParams,
+            reason_category: 'network_error',
+          }).catch(() => undefined);
+        }
         throw error;
       }
 
-      if (!response.ok) {
-        let message = `Request failed with status ${response.status}`;
-        try {
-          const data = (await response.json()) as { error?: string };
-          if (data?.error) {
-            message = data.error;
-          }
-        } catch {
-          // ignore JSON parse errors and fall back to generic message
-        }
-        trackEvent('event_create_failed', {
-          ...analyticsParams,
-          status_code: response.status,
-          reason_category: 'api_error',
-        }).catch(() => undefined);
-        throw new Error(message);
-      }
-
-      const { id } = (await response.json()) as { id: number };
+      const { id } = created;
       const eventId = String(id);
 
       trackEvent('event_create_succeeded', analyticsParams).catch(() => undefined);
@@ -575,19 +454,15 @@ export const EventsProvider = ({
         throw new Error('Unable to update event at this time.');
       }
 
-      const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
+      await requestJson(`/api/events/${eventId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        token,
+        timeoutMs: null,
+        fetchImpl: fetchClient,
+        errorMessage: (status) => `Request failed with status ${status}`,
       });
-
-      if (!response.ok) {
-        const message = `Request failed with status ${response.status}`;
-        throw new Error(message);
-      }
 
       metaRef.current = {
         ...metaRef.current,
@@ -617,19 +492,13 @@ export const EventsProvider = ({
         throw new Error('Unable to delete event at this time.');
       }
 
-      const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
+      await requestJson(`/api/events/${eventId}`, {
         method: 'DELETE',
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
+        token,
+        timeoutMs: null,
+        fetchImpl: fetchClient,
+        errorMessage: (status) => `Request failed with status ${status}`,
       });
-
-      if (!response.ok) {
-        const message = `Request failed with status ${response.status}`;
-        throw new Error(message);
-      }
 
       await refreshEvents();
     },
@@ -672,7 +541,7 @@ export const EventsProvider = ({
 
         onGuestEventSubmittedRef.current?.();
       } catch (err) {
-        console.error('Failed to submit queued guest event', err);
+        logger.error('Failed to submit queued guest event', err);
       } finally {
         if (!cancelled) {
           setPendingGuestEvent(null);
