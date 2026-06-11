@@ -37,6 +37,9 @@ const styles = StyleSheet.create({
         gap: spacing.xs,
         zIndex: 1,
     },
+    wheelPlaceholder: {
+        height: WHEEL_HEIGHT,
+    },
     wheelColumn: {
         height: WHEEL_HEIGHT,
     },

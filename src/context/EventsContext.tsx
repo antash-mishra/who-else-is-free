@@ -7,47 +7,20 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
+} from 'react';
 // TODO: replace in-memory state with persisted cache for offline support when API integration stabilises.
 
-import { EventItemProps } from "@components/EventCard";
-import { API_BASE_URL } from "@api/config";
-import { useAuth } from "@context/AuthContext";
-import { getEventAnalyticsParams, trackEvent } from "@services/analytics";
-import {
-  CoverKey,
-  DEFAULT_COVER_KEY,
-  resolveCoverUri,
-} from "@constants/covers";
-import {
-  getLegacyDateLabel,
-  getScheduleDisplay,
-  parseDateKey,
-  timeStringToMinutes,
-} from "@utils/dateTime";
-import { formatAudienceLabel } from "@utils/eventDisplay";
-import { navigationRef } from "../navigation/navigationRef";
+import { ApiError, requestJson } from '@api/client';
+import { ApiEvent, DateLabel, mapApiEventToUserEvent, UserEvent } from '@api/mappers/events';
+import { isAbortError } from '@api/request';
+import { CoverKey, DEFAULT_COVER_KEY } from '@constants/covers';
+import { useAuth } from '@context/AuthContext';
+import { getEventAnalyticsParams, trackEvent } from '@services/analytics';
+import { logger } from '@services/logger';
+import { getLegacyDateLabel, parseDateKey, timeStringToMinutes } from '@utils/dateTime';
 
-export type DateLabel = string;
-
-export interface UserEvent extends EventItemProps {
-  dateLabel: DateLabel;
-  eventDate: string;
-  description?: string;
-  ownerId: number;
-  hostName: string;
-  hostAvatar?: string;
-  gender: string;
-  minAge: number;
-  maxAge: number;
-  groupType: "Single" | "Group";
-  coverKey?: CoverKey | null;
-  scheduledAt?: string; // ISO 8601 UTC timestamp
-  createdAt?: string; // ISO 8601 UTC timestamp
-  placeId?: string;
-  latitude?: number;
-  longitude?: number;
-}
+export type { ApiEvent, DateLabel, UserEvent };
+export { mapApiEventToUserEvent };
 
 interface CreateEventInput {
   title: string;
@@ -59,7 +32,7 @@ interface CreateEventInput {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   badgeLabel?: string;
   coverKey: CoverKey;
   userId: number;
@@ -80,7 +53,7 @@ interface UpdateEventInput {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   badgeLabel?: string | null;
   coverKey?: CoverKey | null;
   scheduledAt?: string; // ISO 8601 UTC timestamp
@@ -99,7 +72,7 @@ export interface GuestEventDraft {
   gender: string;
   minAge: number;
   maxAge: number;
-  groupType: "Single" | "Group";
+  groupType: 'Single' | 'Group';
   badgeLabel?: string;
   coverKey: CoverKey;
   scheduledAt?: string; // ISO 8601 UTC timestamp
@@ -129,48 +102,11 @@ interface EventsContextValue {
 
 const EventsContext = createContext<EventsContextValue | undefined>(undefined);
 
-export type ApiEvent = {
-  id: number;
-  title: string;
-  location: string;
-  time: string;
-  description?: string;
-  gender: string;
-  min_age: number;
-  max_age: number;
-  date_label: string;
-  event_date: string;
-  group_type?: "Single" | "Group";
-  user_id: number;
-  host_name: string;
-  host_avatar?: string | null;
-  cover_key?: CoverKey | null;
-  scheduled_at?: string; // ISO 8601 UTC timestamp
-  created_at?: string; // ISO 8601 UTC timestamp
-  place_id?: string;
-  latitude?: number;
-  longitude?: number;
-};
-
 interface EventMeta {
   badgeLabel?: string;
 }
 
 const REFRESH_TIMEOUT_MS = 10_000;
-
-const createRequestTimeout = (timeoutMs: number) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-  return {
-    signal: controller.signal,
-    clear: () => clearTimeout(timeoutId),
-  };
-};
-
-const isAbortError = (err: unknown) =>
-  err instanceof Error && err.name === "AbortError";
 
 const deriveDateLabelFromDate = (eventDate: string): DateLabel => {
   return getLegacyDateLabel(eventDate);
@@ -217,63 +153,24 @@ const sortEventsBySchedule = (a: UserEvent, b: UserEvent) => {
   return a.eventDate.localeCompare(b.eventDate);
 };
 
-export const mapApiEventToUserEvent = (
-  event: ApiEvent,
-  badgeLabel?: string,
-): UserEvent => {
-  const groupType = event.group_type ?? "Single";
-  const schedule = getScheduleDisplay({
-    scheduledAt: event.scheduled_at,
-    eventDate: event.event_date,
-    time: event.time,
-    dateLabel: event.date_label,
-  });
-
-  return {
-    id: String(event.id),
-    title: event.title,
-    location: event.location,
-    time: schedule.displayTime,
-    audience: formatAudienceLabel({
-      gender: event.gender,
-      minAge: event.min_age,
-      maxAge: event.max_age,
-    }),
-    imageUri: resolveCoverUri(event.cover_key),
-    badgeLabel: groupType === "Group" ? "Group" : badgeLabel,
-    dateLabel: schedule.displayLabel,
-    eventDate: schedule.displayDate,
-    description: event.description,
-    ownerId: event.user_id,
-    hostName: event.host_name,
-    hostAvatar: event.host_avatar ?? undefined,
-    gender: event.gender,
-    minAge: event.min_age,
-    maxAge: event.max_age,
-    groupType,
-    coverKey: event.cover_key ?? null,
-    scheduledAt: event.scheduled_at,
-    createdAt: event.created_at,
-    placeId: event.place_id,
-    latitude: event.latitude,
-    longitude: event.longitude,
-  };
-};
-
-export const EventsProvider = ({ children }: { children: ReactNode }) => {
+export const EventsProvider = ({
+  children,
+  onGuestEventSubmitted,
+}: {
+  children: ReactNode;
+  /** Invoked after a queued guest event is submitted post sign-in. Navigation lives with the caller, not in this context. */
+  onGuestEventSubmitted?: () => void;
+}) => {
+  const onGuestEventSubmittedRef = useRef(onGuestEventSubmitted);
+  onGuestEventSubmittedRef.current = onGuestEventSubmitted;
   const { user, token, authFetch } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingGuestEvent, setPendingGuestEvent] =
-    useState<GuestEventDraft | null>(null);
+  const [pendingGuestEvent, setPendingGuestEvent] = useState<GuestEventDraft | null>(null);
   const metaRef = useRef<Record<string, EventMeta>>({});
-  const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(() => new Set());
+  const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(() => new Set());
   const eventsRequestIdRef = useRef(0);
   const requestedEventsRequestIdRef = useRef(0);
   const resetRequestedEventIds = useCallback(() => {
@@ -302,27 +199,15 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       }
       return;
     }
-    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
-      const response = await fetchClient(`${API_BASE_URL}/api/events`, {
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-        signal: timeout.signal,
+      const payload = await requestJson<{ data: ApiEvent[] | null }>('/api/events', {
+        token,
+        timeoutMs: REFRESH_TIMEOUT_MS,
+        fetchImpl: fetchClient,
       });
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const payload: { data: ApiEvent[] | null } = await response.json();
       const nextEvents = (payload.data ?? [])
         .map((event) =>
-          mapApiEventToUserEvent(
-            event,
-            metaRef.current[String(event.id)]?.badgeLabel,
-          ),
+          mapApiEventToUserEvent(event, metaRef.current[String(event.id)]?.badgeLabel),
         )
         .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
         .sort(sortEventsBySchedule);
@@ -334,14 +219,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== eventsRequestIdRef.current) {
         return;
       }
-      console.error("Failed to fetch events", err);
+      logger.error('Failed to fetch events', err);
       if (isAbortError(err)) {
-        setError("Unable to load events. Request timed out.");
+        setError('Unable to load events. Request timed out.');
       } else {
-        setError("Unable to load events. Pull to refresh.");
+        setError('Unable to load events. Pull to refresh.');
       }
     } finally {
-      timeout.clear();
       if (requestId === eventsRequestIdRef.current) {
         setIsLoading(false);
       }
@@ -360,34 +244,16 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       resetRequestedEventIds();
       return;
     }
-    const timeout = createRequestTimeout(REFRESH_TIMEOUT_MS);
     try {
-      const response = await fetchClient(`${API_BASE_URL}/api/chat/requests/me`, {
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-        signal: timeout.signal,
-      });
-
-      if (response.status === 401) {
-        // authFetch already attempted refresh; treat remaining 401 as session transition.
-        if (requestId !== requestedEventsRequestIdRef.current) {
-          return;
-        }
-        resetRequestedEventIds();
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-      const payload = (await response.json().catch(() => ({}))) as {
+      const payload = await requestJson<{
         requests?: Array<{ eventId?: number; event_id?: number }>;
-      };
+      }>('/api/chat/requests/me', {
+        token,
+        timeoutMs: REFRESH_TIMEOUT_MS,
+        fetchImpl: fetchClient,
+      });
       const ids = new Set<string>();
-      (payload.requests ?? []).forEach((request) => {
+      (payload?.requests ?? []).forEach((request) => {
         const idValue = request.eventId ?? request.event_id;
         if (idValue != null) {
           ids.add(String(idValue));
@@ -401,10 +267,13 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== requestedEventsRequestIdRef.current) {
         return;
       }
-      console.error("Failed to fetch requested events", err);
+      if (err instanceof ApiError && err.status === 401) {
+        // authFetch already attempted refresh; treat remaining 401 as session transition.
+        resetRequestedEventIds();
+        return;
+      }
+      logger.error('Failed to fetch requested events', err);
       resetRequestedEventIds();
-    } finally {
-      timeout.clear();
     }
   }, [resetRequestedEventIds, token, user]);
 
@@ -441,11 +310,11 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const addUserEvent = useCallback(
     async (event: CreateEventInput) => {
       if (!token) {
-        throw new Error("You must be signed in to create an event.");
+        throw new Error('You must be signed in to create an event.');
       }
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Unable to submit event at this time.");
+        throw new Error('Unable to submit event at this time.');
       }
 
       const derivedLabel = deriveDateLabelFromDate(event.eventDate);
@@ -453,7 +322,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         title: event.title,
         location: event.location,
         time: event.time,
-        description: event.description ?? "",
+        description: event.description ?? '',
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
@@ -474,57 +343,43 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         scheduledAt: event.scheduledAt,
       });
 
-      trackEvent("event_create_submitted", analyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('event_create_submitted', analyticsParams).catch(() => undefined);
 
-      let response: Response;
+      let created: { id: number };
       try {
-        response = await fetchClient(`${API_BASE_URL}/api/events`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
+        created = await requestJson<{ id: number }>('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
+          token,
+          timeoutMs: null,
+          fetchImpl: fetchClient,
         });
       } catch (error) {
-        trackEvent("event_create_failed", {
-          ...analyticsParams,
-          reason_category: "network_error",
-        }).catch(() => undefined);
+        if (error instanceof ApiError) {
+          trackEvent('event_create_failed', {
+            ...analyticsParams,
+            status_code: error.status,
+            reason_category: 'api_error',
+          }).catch(() => undefined);
+        } else {
+          trackEvent('event_create_failed', {
+            ...analyticsParams,
+            reason_category: 'network_error',
+          }).catch(() => undefined);
+        }
         throw error;
       }
 
-      if (!response.ok) {
-        let message = `Request failed with status ${response.status}`;
-        try {
-          const data = (await response.json()) as { error?: string };
-          if (data?.error) {
-            message = data.error;
-          }
-        } catch {
-          // ignore JSON parse errors and fall back to generic message
-        }
-        trackEvent("event_create_failed", {
-          ...analyticsParams,
-          status_code: response.status,
-          reason_category: "api_error",
-        }).catch(() => undefined);
-        throw new Error(message);
-      }
-
-      const { id } = (await response.json()) as { id: number };
+      const { id } = created;
       const eventId = String(id);
 
-      trackEvent("event_create_succeeded", analyticsParams).catch(
-        () => undefined,
-      );
+      trackEvent('event_create_succeeded', analyticsParams).catch(() => undefined);
 
       metaRef.current = {
         ...metaRef.current,
         [eventId]: {
-          badgeLabel: event.groupType === "Group" ? "Group" : event.badgeLabel,
+          badgeLabel: event.groupType === 'Group' ? 'Group' : event.badgeLabel,
         },
       };
 
@@ -576,7 +431,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
         title: event.title,
         location: event.location,
         time: event.time,
-        description: event.description ?? "",
+        description: event.description ?? '',
         gender: event.gender,
         min_age: event.minAge,
         max_age: event.maxAge,
@@ -591,27 +446,23 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
       };
 
       if (!token) {
-        throw new Error("You must be signed in to update an event.");
+        throw new Error('You must be signed in to update an event.');
       }
 
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Unable to update event at this time.");
+        throw new Error('Unable to update event at this time.');
       }
 
-      const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+      await requestJson(`/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        token,
+        timeoutMs: null,
+        fetchImpl: fetchClient,
+        errorMessage: (status) => `Request failed with status ${status}`,
       });
-
-      if (!response.ok) {
-        const message = `Request failed with status ${response.status}`;
-        throw new Error(message);
-      }
 
       metaRef.current = {
         ...metaRef.current,
@@ -619,10 +470,7 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           ...metaRef.current[eventId],
           ...(event.groupType !== undefined
             ? {
-                badgeLabel:
-                  event.groupType === "Group"
-                    ? "Group"
-                    : event.badgeLabel ?? undefined,
+                badgeLabel: event.groupType === 'Group' ? 'Group' : (event.badgeLabel ?? undefined),
               }
             : {}),
         },
@@ -636,27 +484,21 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
   const deleteUserEvent = useCallback(
     async (eventId: string) => {
       if (!token) {
-        throw new Error("You must be signed in to delete an event.");
+        throw new Error('You must be signed in to delete an event.');
       }
 
       const fetchClient = authFetchRef.current;
       if (!fetchClient) {
-        throw new Error("Unable to delete event at this time.");
+        throw new Error('Unable to delete event at this time.');
       }
 
-      const response = await fetchClient(`${API_BASE_URL}/api/events/${eventId}`, {
-        method: "DELETE",
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
+      await requestJson(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        token,
+        timeoutMs: null,
+        fetchImpl: fetchClient,
+        errorMessage: (status) => `Request failed with status ${status}`,
       });
-
-      if (!response.ok) {
-        const message = `Request failed with status ${response.status}`;
-        throw new Error(message);
-      }
 
       await refreshEvents();
     },
@@ -697,14 +539,9 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
           longitude: pendingGuestEvent.longitude,
         });
 
-        if (navigationRef.isReady()) {
-          (navigationRef as any).navigate("Main", {
-            screen: "MyEvents",
-            params: { showEventCreatedBadge: true },
-          });
-        }
+        onGuestEventSubmittedRef.current?.();
       } catch (err) {
-        console.error("Failed to submit queued guest event", err);
+        logger.error('Failed to submit queued guest event', err);
       } finally {
         if (!cancelled) {
           setPendingGuestEvent(null);
@@ -790,16 +627,14 @@ export const EventsProvider = ({ children }: { children: ReactNode }) => {
     ],
   );
 
-  return (
-    <EventsContext.Provider value={value}>{children}</EventsContext.Provider>
-  );
+  return <EventsContext.Provider value={value}>{children}</EventsContext.Provider>;
 };
 
 export const useEvents = () => {
   const context = useContext(EventsContext);
 
   if (!context) {
-    throw new Error("useEvents must be used within an EventsProvider");
+    throw new Error('useEvents must be used within an EventsProvider');
   }
 
   return context;

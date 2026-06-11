@@ -956,13 +956,15 @@ func (r *EventRepository) countUnreadMessages(ctx context.Context, conversationI
 		return 0, nil
 	}
 
+	// The viewer's own messages are never unread. Without this, host-authored
+	// system messages (e.g. event updates) show as unread to the host.
 	var count int
-	query := "SELECT COUNT(1) FROM messages WHERE conversation_id = ? AND id > ?"
+	query := "SELECT COUNT(1) FROM messages WHERE conversation_id = ? AND id > ? AND sender_id <> ?"
 	threshold := int64(0)
 	if lastReadID.Valid {
 		threshold = lastReadID.Int64
 	}
-	if err := r.db.QueryRowContext(ctx, query, conversationID, threshold).Scan(&count); err != nil {
+	if err := r.db.QueryRowContext(ctx, query, conversationID, threshold, userID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("count unread messages: %w", err)
 	}
 

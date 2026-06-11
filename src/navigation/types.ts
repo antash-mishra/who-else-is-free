@@ -1,6 +1,8 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type RootStackParamList = {
   Splash: undefined;
-  Main: any;
+  Main: NavigatorScreenParams<RootTabParamList> | undefined;
   Onboarding: undefined;
   EventDetails: {
     eventId: string;
@@ -16,7 +18,7 @@ export type RootStackParamList = {
     conversationId: number;
     eventId: number;
     title: string;
-    groupType?: "Single" | "Group";
+    groupType?: 'Single' | 'Group';
   };
   PendingRequests: {
     conversationId: number;
@@ -43,15 +45,19 @@ export type RootStackParamList = {
 };
 
 export type RootTabParamList = {
-  Events: {
-    showEventReportedBadge?: boolean;
-    showEventDeletedBadge?: boolean;
-    showEventLeftBadge?: boolean;
-  } | undefined;
-  MyEvents: {
-    showEventCreatedBadge?: boolean;
-    showEventDeletedBadge?: boolean;
-  } | undefined;
+  Events:
+    | {
+        showEventReportedBadge?: boolean;
+        showEventDeletedBadge?: boolean;
+        showEventLeftBadge?: boolean;
+      }
+    | undefined;
+  MyEvents:
+    | {
+        showEventCreatedBadge?: boolean;
+        showEventDeletedBadge?: boolean;
+      }
+    | undefined;
   Create: { editEventId?: string | null };
   Profile: undefined;
   Messages: undefined;

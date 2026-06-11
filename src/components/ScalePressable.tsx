@@ -1,6 +1,17 @@
 import { useRef } from 'react';
-import { AccessibilityRole, Insets, LayoutChangeEvent, Pressable, StyleProp, ViewStyle } from 'react-native';
+import {
+  AccessibilityRole,
+  AccessibilityState,
+  Insets,
+  LayoutChangeEvent,
+  Pressable,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
+
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+
+import { HapticFeedback, triggerHaptic } from '@services/haptics';
 import { Springs } from '@theme/springs';
 
 type ScalePressableProps = {
@@ -16,6 +27,9 @@ type ScalePressableProps = {
   /** Delay in ms before scale-down starts. Use 80 for event card rows. */
   delay?: number;
   accessibilityRole?: AccessibilityRole;
+  accessibilityLabel?: string;
+  accessibilityState?: AccessibilityState;
+  haptic?: HapticFeedback;
   testID?: string;
   onLayout?: (e: LayoutChangeEvent) => void;
 };
@@ -30,6 +44,9 @@ const ScalePressable = ({
   hitSlop,
   delay = 0,
   accessibilityRole = 'button',
+  accessibilityLabel,
+  accessibilityState,
+  haptic = 'none',
   testID,
   onLayout,
 }: ScalePressableProps) => {
@@ -39,10 +56,15 @@ const ScalePressable = ({
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        triggerHaptic(haptic);
+        onPress();
+      }}
       disabled={disabled}
       hitSlop={hitSlop}
       accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
       testID={testID}
       style={pressableStyle}
       onLayout={onLayout}
@@ -58,7 +80,10 @@ const ScalePressable = ({
         }
       }}
       onPressOut={() => {
-        if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+        if (pressTimer.current) {
+          clearTimeout(pressTimer.current);
+          pressTimer.current = null;
+        }
         scale.value = withSpring(1, Springs.press);
       }}
     >

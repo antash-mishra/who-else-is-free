@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Who Else Is Free - Shared Components And Styling Guide</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-muted: #f8fafb;
+      --text: #182027;
+      --muted: #5f6b75;
+      --border: #dce2e7;
+      --accent: #126a58;
+      --accent-soft: #e4f3ef;
+      --code: #eef2f4;
+      --shadow: 0 8px 28px rgba(25, 39, 52, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--code);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.88em;
+    }
+
+    header {
+      background: #172529;
+      color: #ffffff;
+      padding: 52px 24px 44px;
+    }
+
+    .header-inner,
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #9fd9ca;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 960px;
+      margin: 0;
+      font-size: clamp(32px, 6vw, 54px);
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+    }
+
+    .header-copy {
+      max-width: 880px;
+      margin: 20px 0 0;
+      color: #d4dedf;
+      font-size: 18px;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .header-meta span {
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #edf5f4;
+      font-size: 13px;
+    }
+
+    main {
+      padding: 28px 0 64px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .metric,
+    section {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .metric {
+      padding: 18px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 25px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 18px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    nav h2 {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+      color: var(--text);
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    nav a:first-of-type {
+      border-top: 0;
+    }
+
+    section {
+      margin-bottom: 22px;
+      padding: 22px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 26px;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+    }
+
+    h3 {
+      margin: 18px 0 8px;
+      font-size: 19px;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--surface-muted);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .note {
+      margin: 14px 0;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface-muted);
+      color: var(--muted);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface-muted);
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .pill {
+      padding: 5px 9px;
+      border: 1px solid rgba(18, 106, 88, 0.2);
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+      .summary-grid,
+      .layout,
+      .card-grid {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <p class="eyebrow">Developer Reference</p>
+      <h1>Shared Components And Shared Styling Guide</h1>
+      <p class="header-copy">
+        A catalog of the reusable React Native components, feature-level shared components,
+        theme tokens, and shared style files used by the code consistency branch.
+      </p>
+      <div class="header-meta">
+        <span>Updated: June 11, 2026</span>
+        <span>Branch: refactor/code-consistency-shared-components</span>
+        <span>Markdown source: report/shared-components-refactor-guide.md</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="summary-grid">
+      <div class="metric">
+        <strong>Shared UI</strong>
+        <span>Buttons, text, inputs, tabs, sheets, lists, avatars, headers.</span>
+      </div>
+      <div class="metric">
+        <strong>Shared CSS</strong>
+        <span>Theme tokens plus component-owned StyleSheet modules.</span>
+      </div>
+      <div class="metric">
+        <strong>Shared Motion</strong>
+        <span>Spring presets, press feedback, sheet animation, pager motion.</span>
+      </div>
+      <div class="metric">
+        <strong>Shared Helpers</strong>
+        <span>Haptics, dev logger, API client and mappers, Create/Edit Event mapping.</span>
+      </div>
+    </div>
+
+    <div class="layout">
+      <nav aria-label="Table of contents">
+        <h2>Contents</h2>
+        <a href="#purpose">Purpose</a>
+        <a href="#use-first">Use This First</a>
+        <a href="#shared-styling">Shared Styling</a>
+        <a href="#ui-primitives">UI Primitives</a>
+        <a href="#layout-components">Layout And Interaction</a>
+        <a href="#sheets">Sheets And Overlays</a>
+        <a href="#event-lists">Event Lists</a>
+        <a href="#feature-helpers">Feature Helpers</a>
+        <a href="#visuals">Visual References</a>
+        <a href="#rules">Rules For New Work</a>
+      </nav>
+
+      <div>
+        <section id="purpose">
+          <h2>Purpose</h2>
+          <p>
+            This document explains what each shared component is responsible for, where it is
+            currently used, and which styling files act as the app's shared CSS layer.
+          </p>
+          <p class="note">
+            In this React Native app, shared CSS means shared theme tokens in <code>src/theme</code>,
+            shared component styles owned by reusable components, and feature-level
+            <code>.styles.ts</code> files for complex components.
+          </p>
+        </section>
+
+        <section id="use-first">
+          <h2>Use This First</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Need</th>
+                <th>Use</th>
+                <th>Current Examples</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>CTA button</td><td><code>AppButton</code></td><td><code>EmptyState</code>, <code>SignInButtons</code>, <code>HelpForm</code></td></tr>
+              <tr><td>Text variant</td><td><code>AppText</code></td><td><code>EmptyState</code>, help screens, UI primitives</td></tr>
+              <tr><td>Input</td><td><code>TextField</code></td><td><code>HelpForm</code></td></tr>
+              <tr><td>Checkbox row</td><td><code>CheckboxRow</code></td><td><code>HelpForm</code></td></tr>
+              <tr><td>Icon-only button</td><td><code>IconButton</code></td><td><code>ScreenHeader</code>, <code>SheetHeader</code></td></tr>
+              <tr><td>Tabs</td><td><code>AppTabs</code>, <code>SegmentedControl</code></td><td>Discover, My Events</td></tr>
+              <tr><td>Sliding-underline tabs over a pager</td><td><code>SlidingTabs</code></td><td>Event Details requests/members tabs</td></tr>
+              <tr><td>Numeric count badge</td><td><code>CountBadge</code></td><td>Chat thread header, Join Requests header</td></tr>
+              <tr><td>Unread indicator dot</td><td><code>UnreadDot</code></td><td>Messages rows, Join Requests 1:1 rows</td></tr>
+              <tr><td>Join-request row with accept/decline</td><td><code>EventRequestRow</code></td><td>Event Details, Pending Requests</td></tr>
+              <tr><td>Member row with menu or host label</td><td><code>EventMemberRow</code></td><td>Event Details members/accepted lists</td></tr>
+              <tr><td>Press scale/haptics</td><td><code>ScalePressable</code></td><td>UI primitives, event rows, menus</td></tr>
+              <tr><td>Safe-area screen shell</td><td><code>ScreenContainer</code></td><td>Most app screens</td></tr>
+              <tr><td>Back/title header</td><td><code>ScreenHeader</code></td><td>Help screens, Edit Profile, Past Events</td></tr>
+              <tr><td>Empty state</td><td><code>EmptyState</code></td><td>Discover, My Events, Messages, Join Requests, Event Details</td></tr>
+              <tr><td>Event cards</td><td><code>EventListPage</code>, <code>EventSectionList</code></td><td>Discover, My Events, Past Events</td></tr>
+              <tr><td>Bottom sheet</td><td><code>BottomSheetHostProvider</code>, <code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code>, <code>BottomSheet</code></td><td>modal coordination, create-event sheets, overlays</td></tr>
+              <tr><td>Sheet action menu</td><td><code>SheetActionList</code></td><td>event action menus, pending request menus</td></tr>
+              <tr><td>Event prompt</td><td><code>EventActionOverlay</code></td><td>Event Details, Chat Thread, Profile</td></tr>
+              <tr><td>Avatar</td><td><code>UserAvatar</code></td><td>Profile, messages, chat, event members, onboarding</td></tr>
+              <tr><td>Haptics</td><td><code>triggerHaptic</code></td><td>navigation, forms, sheets, event actions</td></tr>
+              <tr><td>Dev-only logging</td><td><code>logger</code></td><td>contexts, screens, hooks (no direct <code>console.*</code>)</td></tr>
+              <tr><td>Shared API request</td><td><code>requestJson</code>, <code>ApiError</code> (<code>src/api/client.ts</code>)</td><td>Events/Chat/Push contexts, hooks</td></tr>
+              <tr><td>API payload normalization</td><td><code>src/api/mappers/events.ts</code>, <code>src/api/mappers/chat.ts</code></td><td>EventsContext, ChatContext</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="shared-styling">
+          <h2>Shared Styling</h2>
+          <div class="card-grid">
+            <div class="card">
+              <h3><code>src/theme/colors.ts</code></h3>
+              <p>Named palette and semantic colors for app surfaces, text, inputs, buttons, navigation, event details, create event, and overlays.</p>
+              <p><strong>Used by:</strong> almost all screens, UI primitives, sheets, navigation, event cards, help, profile, chat, create event, and modals.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/spacing.ts</code></h3>
+              <p>Shared spacing scale: <code>xs</code>, <code>sm</code>, <code>md</code>, <code>lg</code>, <code>xl</code>, <code>xxl</code>.</p>
+              <p><strong>Used by:</strong> screen headers, lists, sheets, help forms, profile, messages, create event, and modal styles.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/typography.ts</code></h3>
+              <p>Font families, sizes, line heights, and letter spacing.</p>
+              <p><strong>Used by:</strong> <code>AppText</code>, <code>AppButton</code>, <code>EventCard</code>, sheet headers, Help, Profile, Messages, Event Details, and Create Event.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/components.ts</code></h3>
+              <p>Component dimensions for buttons, inputs, checkbox, icon buttons, avatars, overlays, segmented controls, and event lists.</p>
+              <p><strong>Used by:</strong> UI primitives, sheets, event lists, and hold-to-confirm controls.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/radii.ts</code></h3>
+              <p>Shared radius scale including <code>pill</code> and <code>sheet</code>.</p>
+              <p><strong>Used by:</strong> buttons, icon buttons, sheet actions, bottom sheets, tabs, and modal surfaces.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/shadows.ts</code></h3>
+              <p>Shadow presets for card, floating, and sheet surfaces.</p>
+              <p><strong>Used by:</strong> <code>BottomSheet</code> and available for card/floating surfaces.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/layout.ts</code></h3>
+              <p>Screen padding, header height, tab height, sheet z-index, and hit slop values.</p>
+              <p><strong>Used by:</strong> <code>ScreenContainer</code>, <code>IconButton</code>, <code>BottomSheet</code>, navigation layout.</p>
+            </div>
+            <div class="card">
+              <h3><code>src/theme/springs.ts</code></h3>
+              <p>Motion presets for press feedback, navigation, tabs, sheets, badges, and pager motion.</p>
+              <p><strong>Used by:</strong> <code>ScalePressable</code>, <code>AnimatedPager</code>, <code>AppTabs</code>, <code>BottomSheet</code>, <code>AppNavigator</code>, <code>CreateEventScreen</code>.</p>
+            </div>
+          </div>
+
+          <h3>Component-Level Shared Style Files</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Owns Styles For</th>
+                <th>Used By</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>CoverPickerModal.styles.ts</code></td><td>cover picker grid/cards/search states</td><td><code>CoverPickerModal</code></td></tr>
+              <tr><td><code>EventActionOverlay.styles.ts</code></td><td>event prompts, confirm sheets, report/invite text fields</td><td><code>EventActionOverlay.prompts</code>, <code>EventActionConfirm</code></td></tr>
+              <tr><td><code>EventDateTimeModal.styles.ts</code></td><td>date/time picker sheet content</td><td><code>EventDateTimeModal</code></td></tr>
+              <tr><td><code>LocationPickerModal.styles.ts</code></td><td>location search/list/empty states</td><td><code>LocationPickerModal</code></td></tr>
+              <tr><td><code>SelectionModal.styles.ts</code></td><td>option picker rows and selected states</td><td><code>SelectionModal</code></td></tr>
+              <tr><td><code>CreateEventScreen.styles.ts</code></td><td>Create/Edit Event screen visual system</td><td><code>CreateEventScreen</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="ui-primitives">
+          <h2>UI Primitives</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>What It Is</th>
+                <th>Where Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>AppButton</code></td><td>CTA button with primary, secondary, destructive, ghost variants; loading, disabled state, icon, full-width, accessibility, and haptics.</td><td><code>EmptyState</code>, <code>SignInButtons</code>, <code>HelpForm</code></td></tr>
+              <tr><td><code>AppText</code></td><td>Text primitive with title, subtitle, body, caption, button, and error variants.</td><td><code>EmptyState</code>, <code>AppButton</code>, <code>TextField</code>, <code>SectionHeaderText</code>, help screens</td></tr>
+              <tr><td><code>TextField</code></td><td>TextInput wrapper for single-line and multiline fields with shared surface, padding, placeholder, and error text.</td><td><code>HelpForm</code></td></tr>
+              <tr><td><code>CheckboxRow</code></td><td>Checkbox row with label, selected state, disabled state, accessibility, and haptic feedback.</td><td><code>HelpForm</code></td></tr>
+              <tr><td><code>IconButton</code></td><td>Icon-only action with size, hit slop, rounded background, disabled state, haptics, and label.</td><td><code>ScreenHeader</code>, <code>SheetHeader</code></td></tr>
+              <tr><td><code>AppTabs</code></td><td>Pill/underline tab primitive with selected animation, count labels, haptics, and test IDs.</td><td><code>SegmentedControl</code></td></tr>
+              <tr><td><code>SlidingTabs</code></td><td>Tab bar with a sliding spring underline, count labels, haptics, and tab accessibility roles; omit <code>onChange</code> for a static single-tab header.</td><td>Event Details host tabs and Members headers</td></tr>
+              <tr><td><code>CountBadge</code></td><td>Numeric count pill (28pt, secondary surface) with built-in 99+ capping.</td><td>Chat Thread header, Join Requests header</td></tr>
+              <tr><td><code>UnreadDot</code></td><td>Shared unread indicator dot (8pt); parents own positioning only.</td><td>Messages rows, Join Requests 1:1 rows</td></tr>
+              <tr><td><code>ListSeparator</code></td><td>Tokenized list divider.</td><td><code>HelpScreen</code></td></tr>
+              <tr><td><code>SectionHeaderText</code></td><td>Small shared section label built on <code>AppText</code>.</td><td>Exported for new settings/list sections; not widely used yet.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="layout-components">
+          <h2>Layout And Interaction Components</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>What It Is</th>
+                <th>Where Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>ScreenContainer</code></td><td>Safe-area and screen gutter wrapper.</td><td>Most screens including Home, My Events, Messages, Profile, Chat, Help, Join Requests, Privacy Policy.</td></tr>
+              <tr><td><code>ScreenHeader</code></td><td>Title/back header using <code>IconButton</code>.</td><td>Edit Profile, Past Events, Help screens.</td></tr>
+              <tr><td><code>ScalePressable</code></td><td>Pressable with scale animation and optional semantic haptic.</td><td>UI primitives, event rows, Event Details, Profile, Messages, Help, Edit Profile.</td></tr>
+              <tr><td><code>AnimatedPager</code></td><td>Swipe/tap page transition container that hides inactive pages from accessibility and pointer events.</td><td>Home, My Events.</td></tr>
+              <tr><td><code>SegmentedControl</code></td><td>App-specific pill tabs wrapper around <code>AppTabs</code>.</td><td>Home, My Events.</td></tr>
+              <tr><td><code>EmptyState</code></td><td>Shared image/illustration/icon, title, description, and optional actions.</td><td>Home, My Events, Messages, Join Requests, Past Events, Event Details.</td></tr>
+              <tr><td><code>EventCard</code></td><td>Event preview card with cover, title, metadata, and badge.</td><td><code>EventSectionList</code>.</td></tr>
+              <tr><td><code>UserAvatar</code></td><td>Image avatar plus generated fallback initials.</td><td>Profile, Edit Profile, Messages, Chat, Join Requests, Pending Requests, Event Details, Onboarding.</td></tr>
+              <tr><td><code>SignInButtons</code></td><td>Shared auth action block using <code>AppButton</code>.</td><td>Create Event, My Events, Messages, Profile, Event Details overlays.</td></tr>
+              <tr><td><code>EventActionBadge</code></td><td>Transient event action result badge/toast.</td><td>Home, My Events, Event Details overlays.</td></tr>
+              <tr><td><code>ConfettiOverlay</code></td><td>Shared celebration overlay.</td><td>My Events.</td></tr>
+              <tr><td><code>ChatEventHeader</code></td><td>Event-aware chat/header row.</td><td>Chat Thread, Join Requests.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="sheets">
+          <h2>Sheets, Modals, And Overlays</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>What It Is</th>
+                <th>Where Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>BottomSheet</code></td><td>Low-level sheet foundation: modal/inline presentation, backdrop, animation, safe area, keyboard avoidance, max/snap height, styling.</td><td><code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code></td></tr>
+              <tr><td><code>BottomSheetHostProvider</code></td><td>App-level coordinator that keeps one native modal sheet mounted and swaps content, avoiding sibling native modal handoff bugs on iOS.</td><td><code>AppNavigator</code>, <code>BottomSheetModal</code></td></tr>
+              <tr><td><code>BottomSheetModal</code></td><td>Standard modal sheet wrapper around <code>BottomSheet</code>, hosted by <code>BottomSheetHostProvider</code> when available.</td><td>Selection, date/time, cover, location, event action, and sign-in sheets.</td></tr>
+              <tr><td><code>CreateEventBottomSheet</code></td><td>Modal sheet wrapper for Create/Edit Event on the shared host/transition system.</td><td><code>CreateEventScreen</code></td></tr>
+              <tr><td><code>SheetHeader</code></td><td>Sheet title and close button.</td><td><code>BottomSheet</code></td></tr>
+              <tr><td><code>SheetActionList</code></td><td>Vertical action rows with destructive/loading/disabled states and haptics.</td><td><code>EventActionOverlay.prompts</code></td></tr>
+              <tr><td><code>EventActionOverlay</code></td><td>Event-related overlay router rendered in <code>BottomSheetModal</code>.</td><td>Event Details overlays, Chat Thread, Profile.</td></tr>
+              <tr><td><code>EventActionOverlay.prompts</code></td><td>Prompt body implementations for invite, manage, confirm, result, pending request, report, menu, intro.</td><td><code>EventActionOverlay</code></td></tr>
+              <tr><td><code>EventActionConfirm</code></td><td>Shared confirmation prompt for event/profile actions.</td><td><code>EventActionOverlay.prompts</code></td></tr>
+              <tr><td><code>HoldToConfirmButton</code></td><td>Press-and-hold destructive confirmation with progress fill and haptics.</td><td><code>EventActionConfirm</code></td></tr>
+              <tr><td><code>SelectionModal</code></td><td>Generic option picker sheet/content.</td><td><code>CreateEventScreen</code></td></tr>
+              <tr><td><code>CoverPickerModal</code></td><td>Cover image picker sheet/content.</td><td><code>CreateEventScreen</code></td></tr>
+              <tr><td><code>EventDateTimeModal</code></td><td>Event date/time picker sheet/content.</td><td><code>CreateEventScreen</code></td></tr>
+              <tr><td><code>LocationPickerModal</code></td><td>Location search and selection sheet/content.</td><td><code>CreateEventScreen</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="event-lists">
+          <h2>Event List Foundations</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>What It Is</th>
+                <th>Where Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>EventListPage</code></td><td>Screen-level wrapper around <code>EventSectionList</code>.</td><td>Home, My Events.</td></tr>
+              <tr><td><code>EventSectionList</code></td><td>Section headers, event row press behavior, separators, empty wrapper, refresh control, footer spacing, list padding.</td><td>Home, My Events, Past Events.</td></tr>
+              <tr><td><code>eventListSections</code></td><td>Data mappers: <code>toEventCardItem</code>, <code>buildEventSections</code>, <code>buildSingleEventSection</code>, <code>buildEventItemSections</code>, <code>sortEventsByCreatedAtDesc</code>.</td><td>Home, My Events, Past Events.</td></tr>
+              <tr><td><code>EventRequestRow</code></td><td>Join-request row with avatar, expandable intro message, and accept/decline actions owning their haptics; exports <code>EventRequestRowSeparator</code>.</td><td>Event Details Requests tab, Pending Requests.</td></tr>
+              <tr><td><code>EventMemberRow</code></td><td>Member row with avatar, name, and optional trailing menu button or text label; optional whole-row press.</td><td>Event Details accepted/members/overlay/read-only lists.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="feature-helpers">
+          <h2>Feature Shared Components And Helpers</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>What It Is</th>
+                <th>Where Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>HelpForm</code></td><td>Shared contact/feedback form composed from <code>TextField</code>, <code>CheckboxRow</code>, and <code>AppButton</code>.</td><td>Help Contact, Help Feedback.</td></tr>
+              <tr><td><code>createEventForm.ts</code></td><td>Create/Edit Event form state, edit hydration, normalization, payload, guest draft mapping.</td><td>Create Event screen via <code>useCreateEventForm</code>.</td></tr>
+              <tr><td><code>src/screens/create-event/</code></td><td>Create/Edit Event screen modules: <code>useCreateEventForm</code> (reducer-backed form state), <code>useCreateEventSheets</code> (sheet routing and keyboard timing), and the Header/FormFields/SubmitButton/SheetContent components sharing <code>CreateEventScreen.styles.ts</code>.</td><td><code>CreateEventScreen</code> (thin container).</td></tr>
+              <tr><td><code>src/screens/event-details/</code></td><td>Event Details screen modules: <code>useEventDetailsData</code>, <code>useEventDetailsActions</code>, <code>useHostRequestActions</code> hooks plus Hero/Info/HostRequestTabs/Members/CTA components sharing <code>EventDetailsScreen.styles.ts</code>.</td><td><code>EventDetailsScreen</code> (thin container).</td></tr>
+              <tr><td><code>client.ts</code> / <code>errors.ts</code></td><td>Shared API client: <code>requestJson</code> with base URL, auth header, default 10s timeout, tolerant JSON parse, and typed <code>ApiError</code>; composes with <code>authFetch</code> via <code>fetchImpl</code>.</td><td>Events/Chat/Push/Covers contexts, AuthContext profile calls, member-action hooks.</td></tr>
+              <tr><td><code>api/mappers/</code></td><td>Typed payload normalization: <code>mapApiEventToUserEvent</code> (events) and participant/join-request/conversation normalizers (chat) built on typed raw-payload interfaces, no <code>any</code>.</td><td>EventsContext, ChatContext.</td></tr>
+              <tr><td><code>request.ts</code></td><td>Shared request timeout and abort helpers.</td><td><code>requestJson</code> default timeout; custom fetch flows.</td></tr>
+              <tr><td><code>haptics.ts</code></td><td>Semantic haptics service and only direct <code>expo-haptics</code> import location.</td><td>ScalePressable, AnimatedPager, sheets, forms, event actions, navigation.</td></tr>
+              <tr><td><code>logger.ts</code></td><td>Dev-only logging service; forwards to <code>console</code> only when <code>__DEV__</code> is true.</td><td>Contexts, screens, screen hooks, App.tsx, analytics, API config.</td></tr>
+            </tbody>
+          </table>
+          <p class="note">
+            Artwork palette exceptions: <code>src/constants/covers.ts</code>,
+            <code>src/utils/avatar.ts</code>, and <code>src/components/ConfettiOverlay.tsx</code>
+            hold brand/artwork color data and are documented exceptions to the theme-token rule
+            (the hardcoded-color lint warning is disabled for them).
+          </p>
+        </section>
+
+        <section id="visuals">
+          <h2>Visual References</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Surface</th>
+                <th>Screenshot</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Discover event list and shared tabs</td><td><a href="screenshots/shared-components-discover-event-list.png">shared-components-discover-event-list.png</a></td></tr>
+              <tr><td>My Events shared tabs and event list</td><td><a href="screenshots/shared-components-my-events-tabs.png">shared-components-my-events-tabs.png</a></td></tr>
+              <tr><td>Create Event sheet</td><td><a href="screenshots/shared-components-create-event-sheet.png">shared-components-create-event-sheet.png</a></td></tr>
+              <tr><td>Help form primitives</td><td><a href="screenshots/shared-components-help-form.png">shared-components-help-form.png</a></td></tr>
+              <tr><td>Event action confirmation sheet</td><td><a href="screenshots/shared-components-event-action-confirm.png">shared-components-event-action-confirm.png</a></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="rules">
+          <h2>Rules For New Work</h2>
+          <ul>
+            <li>Use shared components before adding local UI.</li>
+            <li>Add a theme token before repeating a raw color, radius, shadow, spacing value, or component size.</li>
+            <li>Shared components should own default, pressed, disabled, loading, selected, error, and destructive states.</li>
+            <li>Shared interactions should own motion, haptics, accessibility role/state, and hit slop.</li>
+            <li>Keep screen components focused on orchestration and composition.</li>
+            <li>Use <code>requestJson</code> for backend calls and <code>logger</code> instead of direct <code>console.*</code>.</li>
+            <li>Keep feature-specific style files next to their component until a pattern becomes broadly shared.</li>
+            <li>Keep <code>AGENTS.md</code> updated when adding a new shared primitive, token file, helper, or validation rule.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -16,12 +16,14 @@ module.exports = function (api) {
             '@theme': './src/theme',
             '@hooks': './src/hooks',
             '@utils': './src/utils',
+            '@api': './src/api',
             '@services': './src/services',
             '@assets': './assets',
-            '@context': './src/context'
-          }
-        }
-      ]
-    ]
+            '@context': './src/context',
+            '@constants': './src/constants',
+          },
+        },
+      ],
+    ],
   };
 };

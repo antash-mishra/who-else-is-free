@@ -1,158 +1,72 @@
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  SectionList,
-  SectionListRenderItemInfo,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import AnimatedPager from "@components/AnimatedPager";
-import ScalePressable from "@components/ScalePressable";
-import * as Haptics from "expo-haptics";
-import { useSharedValue } from "react-native-reanimated";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   useNavigation,
   useRoute,
   useIsFocused,
   CompositeNavigationProp,
   RouteProp,
-} from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import {
-  BottomTabNavigationProp,
-} from "@react-navigation/bottom-tabs";
+} from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSharedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import EmptyState from "@components/EmptyState";
-import EventActionBadge from "@components/EventActionBadge";
-import EventCard, { EventItemProps } from "@components/EventCard";
-import ScreenContainer from "@components/ScreenContainer";
-import SegmentedControl from "@components/SegmentedControl";
-import { colors, spacing, typography } from "@theme/index";
-import { UserEvent, useEvents } from "@context/EventsContext";
-import { useAuth } from "@context/AuthContext";
-import { useChat } from "@context/ChatContext";
-import { useBloom } from "@context/BloomContext";
-import { useViewerLocation } from "@hooks/useViewerLocation";
-import { RootStackParamList, RootTabParamList } from "@navigation/types";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AnimatedPager from '@components/AnimatedPager';
+import EmptyState from '@components/EmptyState';
+import EventActionBadge from '@components/EventActionBadge';
+import { EventItemProps } from '@components/EventCard';
 import {
-  formatEventCardMetaLine,
-  formatEventListSectionHeaderLabel,
-} from "@utils/eventDisplay";
+  EventListPage,
+  EventSection,
+  buildEventSections,
+  buildSingleEventSection,
+  sortEventsByCreatedAtDesc,
+} from '@components/events';
+import ScreenContainer from '@components/ScreenContainer';
+import SegmentedControl from '@components/SegmentedControl';
+import { useAuth } from '@context/AuthContext';
+import { useBloom } from '@context/BloomContext';
+import { useChat } from '@context/ChatContext';
+import { UserEvent, useEvents } from '@context/EventsContext';
+import { useViewerLocation } from '@hooks/useViewerLocation';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import { colors, spacing, typography } from '@theme/index';
 import {
   EventWithDistance,
   LOCAL_RADIUS_KM,
   sortByDistance,
   withEventDistances,
-} from "@utils/eventDiscovery";
+} from '@utils/eventDiscovery';
 
-type EventSection = {
-  title: string;
-  data: EventItemProps[];
-};
-
-const toEventCardItem = (
-  event: UserEvent,
-  badgeLabel: string | undefined,
-): EventItemProps => ({
-  id: event.id,
-  title: event.title,
-  location: event.location,
-  time: event.time,
-  audience: event.audience,
-  metaLine: formatEventCardMetaLine({
-    groupType: event.groupType,
-    gender: event.gender,
-    minAge: event.minAge,
-    maxAge: event.maxAge,
-  }),
-  imageUri: event.imageUri,
-  badgeLabel,
-});
-
-const buildSections = (
-  items: UserEvent[],
-  getBadgeLabel: (event: UserEvent) => string | undefined,
-): EventSection[] => {
-  const grouped = new Map<string, EventItemProps[]>();
-
-  items.forEach((event) => {
-    const { eventDate } = event;
-    const dateKey = eventDate || "";
-    if (!dateKey) {
-      return;
-    }
-    const sectionEvents = grouped.get(dateKey) ?? [];
-    sectionEvents.push(toEventCardItem(event, getBadgeLabel(event)));
-    grouped.set(dateKey, sectionEvents);
-  });
-
-  return Array.from(grouped.entries())
-    .sort(([leftDate], [rightDate]) => leftDate.localeCompare(rightDate))
-    .map(([eventDate, data]) => ({
-      title: formatEventListSectionHeaderLabel(eventDate),
-      data,
-    }))
-    .filter((section) => section.data.length > 0);
-};
-
-const buildSingleSection = (
-  title: string,
-  items: UserEvent[],
-  getBadgeLabel: (event: UserEvent) => string | undefined,
-): EventSection[] =>
-  items.length > 0
-    ? [{ title, data: items.map((event) => toEventCardItem(event, getBadgeLabel(event))) }]
-    : [];
-
-const sortEventsByCreatedAtDesc = (a: UserEvent, b: UserEvent) => {
-  const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-  const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-  return dateB - dateA;
-};
-
-const isLocalOrViewerOwnedEvent = (
-  event: EventWithDistance<UserEvent>,
-  viewerUserId?: number,
-) =>
+const isLocalOrViewerOwnedEvent = (event: EventWithDistance<UserEvent>, viewerUserId?: number) =>
   (event.distanceKm != null && event.distanceKm <= LOCAL_RADIUS_KM) ||
   (viewerUserId != null && event.ownerId === viewerUserId);
 
-type EventCardItemProps = {
-  item: EventItemProps;
-  onPress: () => void;
-};
-
-const EventCardItem = memo(({ item, onPress }: EventCardItemProps) => (
-  <ScalePressable onPress={onPress} delay={80}>
-    <EventCard {...item} />
-  </ScalePressable>
-));
-
-type SortOptionValue = "upcoming" | "nearest" | "newest";
+type SortOptionValue = 'upcoming' | 'nearest' | 'newest';
 
 const baseSortOptions: Array<{ label: string; value: SortOptionValue }> = [
-  { label: "Upcoming", value: "upcoming" },
-  { label: "Newest", value: "newest" },
+  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Newest', value: 'newest' },
 ];
 
 const locationSortOptions: Array<{ label: string; value: SortOptionValue }> = [
-  { label: "Upcoming", value: "upcoming" },
-  { label: "Nearest", value: "nearest" },
-  { label: "Newest", value: "newest" },
+  { label: 'Upcoming', value: 'upcoming' },
+  { label: 'Nearest', value: 'nearest' },
+  { label: 'Newest', value: 'newest' },
 ];
 
 const HomeScreen = () => {
   type HomeScreenNavigation = CompositeNavigationProp<
-    BottomTabNavigationProp<RootTabParamList, "Events">,
+    BottomTabNavigationProp<RootTabParamList, 'Events'>,
     NativeStackNavigationProp<RootStackParamList>
   >;
 
   const navigation = useNavigation<HomeScreenNavigation>();
-  const route = useRoute<RouteProp<RootTabParamList, "Events">>();
+  const route = useRoute<RouteProp<RootTabParamList, 'Events'>>();
   const {
     events: allEvents,
     isLoading,
@@ -167,11 +81,10 @@ const HomeScreen = () => {
   const viewerLocation = useViewerLocation();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const [selectedSort, setSelectedSort] =
-    useState<SortOptionValue>("upcoming");
+  const [selectedSort, setSelectedSort] = useState<SortOptionValue>('upcoming');
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const hasLoadedOnce = useRef(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const hasSignalledReady = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
@@ -212,9 +125,9 @@ const HomeScreen = () => {
   const getBadgeLabel = useCallback(
     (event: UserEvent): string | undefined => {
       if (!user) return undefined;
-      if (event.ownerId === user.id) return "Hosting";
-      if (joinedEventIds.has(event.id)) return "Joined";
-      if (isEventRequested(event.id)) return "Pending";
+      if (event.ownerId === user.id) return 'Hosting';
+      if (joinedEventIds.has(event.id)) return 'Joined';
+      if (isEventRequested(event.id)) return 'Pending';
       return undefined;
     },
     [user, joinedEventIds, isEventRequested],
@@ -231,16 +144,21 @@ const HomeScreen = () => {
   );
   const handlePageChange = useCallback(
     (index: number) => {
-      setSelectedSort(sortOptions[index]?.value ?? "upcoming");
+      setSelectedSort(sortOptions[index]?.value ?? 'upcoming');
     },
     [sortOptions],
   );
 
+  const resetUnavailableSort = useCallback(() => {
+    setSelectedSort('upcoming');
+  }, []);
+
   useEffect(() => {
-    if (!hasViewerLocation && selectedSort === "nearest") {
-      setSelectedSort("upcoming");
+    if (!hasViewerLocation && selectedSort === 'nearest') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Keep selected sort valid when the location-only option disappears.
+      resetUnavailableSort();
     }
-  }, [hasViewerLocation, selectedSort]);
+  }, [hasViewerLocation, resetUnavailableSort, selectedSort]);
 
   const discoverableEvents = useMemo(() => {
     if (viewerLocation.isLoading) {
@@ -256,56 +174,49 @@ const HomeScreen = () => {
   }, [allEvents, user?.id, viewerLocation.coords, viewerLocation.isLoading]);
 
   const upcomingSections = useMemo<EventSection[]>(() => {
-    if (viewerLocation.isLoading) {
-      return [];
-    }
-
     if (!discoverableEvents) {
-      return buildSections(allEvents, getBadgeLabel);
+      return buildEventSections(allEvents, getBadgeLabel);
     }
 
-    return buildSections(discoverableEvents, getBadgeLabel);
-  }, [allEvents, discoverableEvents, getBadgeLabel, viewerLocation.isLoading]);
+    return buildEventSections(discoverableEvents, getBadgeLabel);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
 
   const newestSections = useMemo<EventSection[]>(() => {
-    if (viewerLocation.isLoading) {
-      return [];
-    }
-
     if (discoverableEvents) {
-      return buildSingleSection(
-        "Newest",
+      return buildSingleEventSection(
+        'Newest',
         [...discoverableEvents].sort(sortEventsByCreatedAtDesc),
         getBadgeLabel,
       );
     }
 
     const sorted = [...allEvents].sort(sortEventsByCreatedAtDesc);
-    return sorted.length > 0
-      ? [{ title: "Newest created", data: sorted.map((e) => toEventCardItem(e, getBadgeLabel(e))) }]
-      : [];
-  }, [allEvents, discoverableEvents, getBadgeLabel, viewerLocation.isLoading]);
+    return buildSingleEventSection('Newest created', sorted, getBadgeLabel);
+  }, [allEvents, discoverableEvents, getBadgeLabel]);
 
   const nearestSections = useMemo<EventSection[]>(() => {
     if (!discoverableEvents) {
       return [];
     }
 
-    const knownDistanceEvents: Array<EventWithDistance<UserEvent>> = [
-      ...discoverableEvents,
-    ].sort(sortByDistance);
+    const knownDistanceEvents: Array<EventWithDistance<UserEvent>> = [...discoverableEvents].sort(
+      sortByDistance,
+    );
 
-    return [
-      ...buildSingleSection("Nearest", knownDistanceEvents, getBadgeLabel),
-    ];
+    return buildSingleEventSection('Nearest', knownDistanceEvents, getBadgeLabel);
   }, [discoverableEvents, getBadgeLabel]);
+
+  const markLoadedOnce = useCallback(() => {
+    setHasLoadedOnce(true);
+  }, []);
 
   // Track if initial load has completed
   useEffect(() => {
-    if (!isLoading && allEvents.length > 0) {
-      hasLoadedOnce.current = true;
+    if (!isLoading && allEvents.length > 0 && !hasLoadedOnce) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Preserve the existing "first loaded" gate for full-screen loading.
+      markLoadedOnce();
     }
-  }, [isLoading, allEvents.length]);
+  }, [hasLoadedOnce, isLoading, allEvents.length, markLoadedOnce]);
 
   useEffect(() => {
     if (!isLoading && !hasSignalledReady.current) {
@@ -314,14 +225,15 @@ const HomeScreen = () => {
     }
   }, [isLoading, signalReady]);
 
-  const showAllEventsLoading =
-    (isLoading && allEvents.length === 0 && !hasLoadedOnce.current) ||
-    viewerLocation.isLoading;
+  const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
   const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
-  const showUpcomingEmpty = showAllEventsEmpty || (!isLoading && !error && upcomingSections.length === 0);
-  const showNearestEmpty = showAllEventsEmpty || (!isLoading && !error && nearestSections.length === 0);
-  const showNewestEmpty = showAllEventsEmpty || (!isLoading && !error && newestSections.length === 0);
+  const showUpcomingEmpty =
+    showAllEventsEmpty || (!isLoading && !error && upcomingSections.length === 0);
+  const showNearestEmpty =
+    showAllEventsEmpty || (!isLoading && !error && nearestSections.length === 0);
+  const showNewestEmpty =
+    showAllEventsEmpty || (!isLoading && !error && newestSections.length === 0);
 
   const refreshAll = useCallback(
     async () => Promise.all([refreshEvents(), refreshRequestedEvents()]),
@@ -343,25 +255,26 @@ const HomeScreen = () => {
     return;
   }, [isFocused, refreshAll]);
 
-  const renderSectionHeader = ({ section }: { section: EventSection }) => (
-    <Text style={styles.sectionHeader}>{section.title}</Text>
+  const handleEventPress = useCallback(
+    (item: EventItemProps) => {
+      navigation.navigate('EventDetails', {
+        eventId: item.id,
+        origin: 'Events',
+      });
+    },
+    [navigation],
   );
 
-  const renderItem = ({ item }: SectionListRenderItemInfo<EventItemProps>) => (
-    <EventCardItem
-      item={item}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        navigation.navigate("EventDetails", {
-          eventId: item.id,
-          origin: "Events",
-        });
-      }}
+  const discoverEmptyState = (
+    <EmptyState
+      title="Nothing Happening Here (Yet!)"
+      description="There are currently no events available. Please check back later."
+      imageSource={require('@assets/illustration/discoverEvent-emptyState.png')}
     />
   );
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['bottom']}>
       <View style={styles.content}>
         {showAllEventsLoading ? (
           <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
@@ -370,7 +283,13 @@ const HomeScreen = () => {
         ) : showAllEventsError ? (
           <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
             <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleRefresh(); }}>
+            <Pressable
+              style={styles.retryButton}
+              onPress={() => {
+                triggerHaptic('light');
+                handleRefresh();
+              }}
+            >
               <Text style={styles.retryButtonText}>Try again</Text>
             </Pressable>
           </View>
@@ -381,61 +300,40 @@ const HomeScreen = () => {
             pageOffsetSV={pageOffset}
             style={styles.pager}
           >
-            <View style={{ flex: 1 }}>
-              <SectionList<EventItemProps, EventSection>
-                sections={upcomingSections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom }, upcomingSections.length === 0 && { flex: 1 }]}
-                SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showUpcomingEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
-                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-              />
-            </View>
+            <EventListPage
+              sections={upcomingSections}
+              onEventPress={handleEventPress}
+              headerPaddingTop={headerHeight}
+              bottomInset={insets.bottom}
+              emptyState={showUpcomingEmpty ? discoverEmptyState : null}
+              refreshing={isPullRefreshing}
+              onRefresh={handleRefresh}
+            />
             {hasViewerLocation ? (
-              <View style={{ flex: 1 }}>
-                <SectionList<EventItemProps, EventSection>
-                  sections={nearestSections}
-                  keyExtractor={(item) => item.id}
-                  renderItem={renderItem}
-                  renderSectionHeader={renderSectionHeader}
-                  stickySectionHeadersEnabled={false}
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom }, nearestSections.length === 0 && { flex: 1 }]}
-                  SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
-                  ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                  ListFooterComponent={<View style={styles.footerSpacing} />}
-                  ListEmptyComponent={showNearestEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
-                  refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-                />
-              </View>
-            ) : null}
-            <View style={{ flex: 1 }}>
-              <SectionList<EventItemProps, EventSection>
-                sections={newestSections}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: spacing.xl + insets.bottom }, newestSections.length === 0 && { flex: 1 }]}
-                SectionSeparatorComponent={({ leadingItem }) => leadingItem ? <View style={styles.sectionSeparator} /> : null}
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                ListFooterComponent={<View style={styles.footerSpacing} />}
-                ListEmptyComponent={showNewestEmpty ? <View style={[styles.centerContent, { paddingTop: headerHeight }]}><EmptyState title="Nothing Happening Here (Yet!)" description={"There are currently no events available. Please check back later."} imageSource={require('@assets/illustration/discoverEvent-emptyState.png')} /></View> : null}
-                refreshControl={<RefreshControl refreshing={isPullRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+              <EventListPage
+                sections={nearestSections}
+                onEventPress={handleEventPress}
+                headerPaddingTop={headerHeight}
+                bottomInset={insets.bottom}
+                emptyState={showNearestEmpty ? discoverEmptyState : null}
+                refreshing={isPullRefreshing}
+                onRefresh={handleRefresh}
               />
-            </View>
+            ) : null}
+            <EventListPage
+              sections={newestSections}
+              onEventPress={handleEventPress}
+              headerPaddingTop={headerHeight}
+              bottomInset={insets.bottom}
+              emptyState={showNewestEmpty ? discoverEmptyState : null}
+              refreshing={isPullRefreshing}
+              onRefresh={handleRefresh}
+            />
           </AnimatedPager>
         )}
         {/* Floating header */}
         <View
-          style={styles.floatingHeader}
+          style={[styles.floatingHeader, { paddingTop: insets.top }]}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
           <View style={styles.headerSpacing}>
@@ -447,7 +345,7 @@ const HomeScreen = () => {
               value={sortOptions[selectedPage].value}
               onChange={(value) => {
                 const index = sortOptions.findIndex((o) => o.value === value);
-                setSelectedSort(sortOptions[index]?.value ?? "upcoming");
+                setSelectedSort(sortOptions[index]?.value ?? 'upcoming');
               }}
             />
           </View>
@@ -486,7 +384,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   floatingHeader: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: -spacing.md,
     right: -spacing.md,
@@ -512,40 +410,18 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
   },
-  listContent: {
-    paddingHorizontal: spacing.md,
-  },
-  sectionHeader: {
-    fontSize: 15,
-    color: '#808080',
-    marginTop: 0,
-    marginBottom: 12,
-    fontFamily: typography.fontFamilyMedium,
-    flexShrink: 1,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-  },
-  sectionSeparator: {
-    height: 22,
-  },
-  itemSeparator: {
-    height: 14,
-  },
-  footerSpacing: {
-    height: spacing.xl,
-  },
   centerContent: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: spacing.xl,
     gap: spacing.md,
   },
   errorText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
-    color: "#B00020",
-    textAlign: "center",
+    color: colors.error,
+    textAlign: 'center',
   },
   retryButton: {
     paddingHorizontal: spacing.lg,

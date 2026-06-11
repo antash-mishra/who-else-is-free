@@ -6,9 +6,9 @@ import {
   useEffect,
   useMemo,
   useState,
-} from "react";
+} from 'react';
 
-import { API_BASE_URL } from "@api/config";
+import { requestJson } from '@api/client';
 import {
   ApiCoverOption,
   CoverOption,
@@ -16,33 +16,30 @@ import {
   DEFAULT_EVENT_IMAGE,
   mapApiCoverOption,
   resolveCoverUri,
-} from "@constants/covers";
+} from '@constants/covers';
+import { logger } from '@services/logger';
 
 type CoversContextValue = {
   covers: readonly CoverOption[];
   isLoading: boolean;
   refreshCovers: () => Promise<void>;
   resolveCover: (key?: string | null) => string;
-  getCoverSource: (key?: string | null) => CoverOption["source"];
+  getCoverSource: (key?: string | null) => CoverOption['source'];
 };
 
 const CoversContext = createContext<CoversContextValue | undefined>(undefined);
 
-const fallbackCoverOption =
-  (DEFAULT_COVER_OPTION as CoverOption | undefined) ?? {
-    key: "badminton",
-    label: "Badminton",
-    fileName: "badminton.png",
-    url: "https://example.com/cover.png",
-    source: { uri: "https://example.com/cover.png" },
-  };
+const fallbackCoverOption = (DEFAULT_COVER_OPTION as CoverOption | undefined) ?? {
+  key: 'badminton',
+  label: 'Badminton',
+  fileName: 'badminton.png',
+  url: 'https://example.com/cover.png',
+  source: { uri: 'https://example.com/cover.png' },
+};
 
 const fallbackEventImage = DEFAULT_EVENT_IMAGE || fallbackCoverOption.url;
 
-const safeResolveCoverUri = (
-  key?: string | null,
-  options?: readonly CoverOption[],
-) => {
+const safeResolveCoverUri = (key?: string | null, options?: readonly CoverOption[]) => {
   try {
     return resolveCoverUri(key, options);
   } catch {
@@ -67,19 +64,19 @@ export const CoversProvider = ({ children }: { children: ReactNode }) => {
   const refreshCovers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/covers`);
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-      const payload = (await response.json()) as { data?: unknown };
-      const nextCovers = Array.isArray(payload.data)
-        ? payload.data
+      const payload = await requestJson<{ data?: unknown }>('/api/covers', {
+        timeoutMs: null,
+        errorMessage: (status) => `Request failed with status ${status}`,
+      });
+      const data = payload?.data;
+      const nextCovers = Array.isArray(data)
+        ? data
             .map((item) => mapApiCoverOption(item as ApiCoverOption))
             .filter((item) => item.key.trim().length > 0)
         : [];
       setCovers(nextCovers.length > 0 ? nextCovers : [fallbackCoverOption]);
     } catch (err) {
-      console.warn("Failed to fetch cover catalog", err);
+      logger.warn('Failed to fetch cover catalog', err);
       setCovers((current) => (current.length > 0 ? current : [fallbackCoverOption]));
     } finally {
       setIsLoading(false);
@@ -105,11 +102,7 @@ export const CoversProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [covers, isLoading, refreshCovers]);
 
-  return (
-    <CoversContext.Provider value={value}>
-      {children}
-    </CoversContext.Provider>
-  );
+  return <CoversContext.Provider value={value}>{children}</CoversContext.Provider>;
 };
 
 export const useCovers = () => {

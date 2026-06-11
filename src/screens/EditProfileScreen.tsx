@@ -6,29 +6,28 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import { useCallback, useState } from "react";
-import { BlurView } from "expo-blur";
-import ScalePressable from "@components/ScalePressable";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import * as Haptics from "expo-haptics";
-import CloseIcon from "@assets/ui/close.svg";
+} from 'react-native';
+import { useCallback, useState } from 'react';
+import { BlurView } from 'expo-blur';
+import ScalePressable from '@components/ScalePressable';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import CloseIcon from '@assets/ui/close.svg';
 
+import ScreenContainer from '@components/ScreenContainer';
+import ScreenHeader from '@components/ScreenHeader';
+import UserAvatar from '@components/UserAvatar';
+import { colors, typography } from '@theme/index';
+import { useAuth, type ApiError } from '@context/AuthContext';
+import { RootStackParamList } from '@navigation/types';
+import { triggerHaptic } from '@services/haptics';
+import CameraIcon from '@assets/onboarding/camera.svg';
+import ProfileIcon from '@assets/onboarding/profile.svg';
+import { getAvatarColor } from '@utils/avatar';
 
-import ScreenContainer from "@components/ScreenContainer";
-import ScreenHeader from "@components/ScreenHeader";
-import UserAvatar from "@components/UserAvatar";
-import { colors, typography } from "@theme/index";
-import { useAuth, type ApiError } from "@context/AuthContext";
-import { RootStackParamList } from "@navigation/types";
-import CameraIcon from "@assets/onboarding/camera.svg";
-import ProfileIcon from "@assets/onboarding/profile.svg";
-import { getAvatarColor } from "@utils/avatar";
-
-let ImagePicker: typeof import("expo-image-picker") | null = null;
+let ImagePicker: typeof import('expo-image-picker') | null = null;
 try {
-  ImagePicker = require("expo-image-picker");
+  ImagePicker = require('expo-image-picker');
 } catch (e) {
   // expo-image-picker not available in Expo Go
 }
@@ -39,7 +38,7 @@ const EditProfileScreen = () => {
   const navigation = useNavigation<EditProfileNavigation>();
   const { user, updateProfile } = useAuth();
   const avatarColor = getAvatarColor(user?.id);
-  const [editName, setEditName] = useState(user?.name ?? "");
+  const [editName, setEditName] = useState(user?.name ?? '');
   const [editAvatarBase64, setEditAvatarBase64] = useState<string | null>(null);
   const [removedAvatar, setRemovedAvatar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,32 +52,29 @@ const EditProfileScreen = () => {
         : null;
 
   const editHasChanges =
-    editName.trim() !== (user?.name ?? "") ||
-    editAvatarBase64 !== null ||
-    removedAvatar;
+    editName.trim() !== (user?.name ?? '') || editAvatarBase64 !== null || removedAvatar;
 
   const pickImage = useCallback(async () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     if (!ImagePicker) {
       Alert.alert(
-        "Not Available",
-        "Image picker requires a native rebuild. Avatar upload is disabled.",
+        'Not Available',
+        'Image picker requires a native rebuild. Avatar upload is disabled.',
       );
       return;
     }
 
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       Alert.alert(
-        "Permission Required",
-        "Please allow access to your photo library to upload an avatar.",
+        'Permission Required',
+        'Please allow access to your photo library to upload an avatar.',
       );
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
@@ -92,7 +88,7 @@ const EditProfileScreen = () => {
   }, []);
 
   const handleRemoveAvatar = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     setEditAvatarBase64(null);
     setRemovedAvatar(true);
   }, []);
@@ -100,7 +96,7 @@ const EditProfileScreen = () => {
   const handleSave = useCallback(async () => {
     if (!editName.trim() || !user) return;
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('submit');
     setIsSubmitting(true);
     try {
       let avatarValue: string | undefined;
@@ -114,19 +110,15 @@ const EditProfileScreen = () => {
 
       await updateProfile({
         name: editName.trim(),
-        gender: user.gender ?? "Male",
+        gender: user.gender ?? 'Male',
         age: user.age ?? 18,
         avatar: avatarValue,
       });
       navigation.goBack();
     } catch (error) {
-      const status =
-        error instanceof Error ? (error as ApiError).status : undefined;
+      const status = error instanceof Error ? (error as ApiError).status : undefined;
       if (status === 401) return;
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to save profile.",
-      );
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save profile.');
     } finally {
       setIsSubmitting(false);
     }
@@ -156,7 +148,7 @@ const EditProfileScreen = () => {
               )}
               <View style={styles.cameraBadgeShadow}>
                 <BlurView style={styles.cameraBadge} intensity={15} tint="light">
-                  <CameraIcon width={20} height={20} color="#707070" />
+                  <CameraIcon width={20} height={20} color={colors.iconColor} />
                 </BlurView>
               </View>
             </TouchableOpacity>
@@ -167,7 +159,7 @@ const EditProfileScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Remove photo"
               >
-                <CloseIcon width={16} height={16} color="#FFFFFF" />
+                <CloseIcon width={16} height={16} color={colors.buttonText} />
               </TouchableOpacity>
             )}
           </View>
@@ -191,12 +183,20 @@ const EditProfileScreen = () => {
           <ScalePressable
             onPress={handleSave}
             disabled={!editHasChanges || isSubmitting}
-            style={[styles.saveButton, (!editHasChanges || isSubmitting) && styles.saveButtonDisabled]}
+            style={[
+              styles.saveButton,
+              (!editHasChanges || isSubmitting) && styles.saveButtonDisabled,
+            ]}
           >
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#9CA3AF" />
             ) : (
-              <Text style={[styles.saveButtonText, (!editHasChanges || isSubmitting) && styles.saveButtonTextDisabled]}>
+              <Text
+                style={[
+                  styles.saveButtonText,
+                  (!editHasChanges || isSubmitting) && styles.saveButtonTextDisabled,
+                ]}
+              >
                 Save
               </Text>
             )}
@@ -210,16 +210,16 @@ const EditProfileScreen = () => {
 const styles = StyleSheet.create({
   inner: {
     flex: 1,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   avatarSection: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 40,
   },
   avatarWrapper: {
-    position: "relative",
+    position: 'relative',
     marginBottom: 24,
   },
   avatarFrame: {
@@ -231,17 +231,17 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cameraBadgeShadow: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 4,
     right: -2,
     width: 40,
     height: 40,
     borderRadius: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -251,22 +251,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.6)",
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   removeBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     right: 2,
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#000000",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    backgroundColor: colors.primaryButtonBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
@@ -275,8 +275,8 @@ const styles = StyleSheet.create({
   nameInput: {
     fontFamily: typography.fontFamilyMedium,
     fontSize: 24,
-    color: "#000000",
-    textAlign: "center",
+    color: colors.text,
+    textAlign: 'center',
     paddingVertical: 12,
     minWidth: 200,
     letterSpacing: -0.5,
@@ -285,24 +285,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   saveButton: {
-    backgroundColor: "#000000",
+    backgroundColor: colors.primaryButtonBackground,
     borderRadius: 999,
-    borderCurve: "continuous",
+    borderCurve: 'continuous',
     height: 52,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: "#E5E5E5",
+    backgroundColor: '#E5E5E5',
   },
   saveButtonText: {
-    color: "#FFFFFF",
+    color: colors.buttonText,
     fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
-    textAlign: "center",
+    textAlign: 'center',
   },
   saveButtonTextDisabled: {
-    color: "#9CA3AF",
+    color: '#9CA3AF',
   },
 });
 

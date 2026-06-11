@@ -53,14 +53,24 @@ const mockPendingJoinRequest = {
 
 // Mock navigation
 const mockNavigate = jest.fn();
+const mockPush = jest.fn();
 const mockGoBack = jest.fn();
 const mockReset = jest.fn();
+let mockNavigationListeners: Record<string, (() => void) | undefined> = {};
 const mockNavigation = {
   navigate: mockNavigate,
+  push: mockPush,
   goBack: mockGoBack,
   reset: mockReset,
   setOptions: jest.fn(),
-  addListener: jest.fn(() => jest.fn()),
+  addListener: jest.fn((eventName: string, listener: () => void) => {
+    mockNavigationListeners[eventName] = listener;
+    return jest.fn(() => {
+      if (mockNavigationListeners[eventName] === listener) {
+        delete mockNavigationListeners[eventName];
+      }
+    });
+  }),
   removeListener: jest.fn(),
   isFocused: jest.fn(() => true),
   canGoBack: jest.fn(() => true),
@@ -303,6 +313,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     fetchMock.resetMocks();
+    mockNavigationListeners = {};
 
     // Reset to default states
     mockAuthState = {
@@ -444,12 +455,22 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-row')).toBeTruthy();
     });
 
-    it('shows "Event details updated" badge when route param is set', () => {
+    it('shows "Event details updated" badge after transition when route param is set', () => {
       const routeSpy = jest
         .spyOn(require('@react-navigation/native'), 'useRoute')
         .mockReturnValue(createMockRoute('1', 'MyEvents', true));
 
-      const { getByText } = render(<EventDetailsScreen />);
+      const { getByText, queryByText } = render(<EventDetailsScreen />);
+      expect(queryByText('Event details updated')).toBeNull();
+      expect(mockNavigation.addListener).toHaveBeenCalledWith(
+        'transitionEnd',
+        expect.any(Function),
+      );
+
+      act(() => {
+        mockNavigationListeners.transitionEnd?.();
+      });
+
       expect(getByText('Event details updated')).toBeTruthy();
 
       routeSpy.mockRestore();
@@ -462,7 +483,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(chatButton);
 
       expect(mockChatState.setActiveConversation).toHaveBeenCalledWith(mockEventConversation.id);
-      expect(mockNavigate).toHaveBeenCalledWith('ChatThread');
+      expect(mockPush).toHaveBeenCalledWith('ChatThread');
     });
 
     it('opens menu overlay when menu button is pressed', async () => {

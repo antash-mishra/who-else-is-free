@@ -1,38 +1,29 @@
-import { useCallback, useMemo, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { RouteProp, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import AcceptIcon from "@assets/event-details/accept.svg";
-import RejectIcon from "@assets/event-details/reject.svg";
-import EmptyAcceptedIcon from "@assets/event-details/empty-accepted.svg";
-import EmptyState from "@components/EmptyState";
+import { useCallback, useMemo, useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AcceptIcon from '@assets/event-details/accept.svg';
+import RejectIcon from '@assets/event-details/reject.svg';
+import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
+import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
+import EmptyState from '@components/EmptyState';
 
-import * as Haptics from "expo-haptics";
+import { colors, spacing, typography } from '@theme/index';
+import { useChat, ChatJoinRequest } from '@context/ChatContext';
+import { useAuth } from '@context/AuthContext';
+import { useEvents } from '@context/EventsContext';
+import { RootStackParamList } from '@navigation/types';
+import ScreenContainer from '@components/ScreenContainer';
+import ChatEventHeader from '@components/ChatEventHeader';
+import { CountBadge, UnreadDot } from '@components/ui';
+import UserAvatar from '@components/UserAvatar';
+import { useCovers } from '@context/CoversContext';
+import { triggerHaptic } from '@services/haptics';
+import { formatAbsoluteDateLabel } from '@utils/dateTime';
+import { formatEventLocationName } from '@utils/eventDisplay';
 
-import { colors, spacing, typography } from "@theme/index";
-import { useChat, ChatJoinRequest } from "@context/ChatContext";
-import { useAuth } from "@context/AuthContext";
-import { useEvents } from "@context/EventsContext";
-import { RootStackParamList } from "@navigation/types";
-import ScreenContainer from "@components/ScreenContainer";
-import ChatEventHeader from "@components/ChatEventHeader";
-import UserAvatar from "@components/UserAvatar";
-import { useCovers } from "@context/CoversContext";
-import { formatAbsoluteDateLabel } from "@utils/dateTime";
-import { formatEventLocationName } from "@utils/eventDisplay";
-
-type JoinRequestsRoute = RouteProp<RootStackParamList, "JoinRequests">;
-type JoinRequestsNavigation = NativeStackNavigationProp<
-  RootStackParamList,
-  "JoinRequests"
->;
+type JoinRequestsRoute = RouteProp<RootStackParamList, 'JoinRequests'>;
+type JoinRequestsNavigation = NativeStackNavigationProp<RootStackParamList, 'JoinRequests'>;
 
 const JoinRequestsScreen = () => {
   const navigation = useNavigation<JoinRequestsNavigation>();
@@ -68,13 +59,10 @@ const JoinRequestsScreen = () => {
   );
 
   const conversationEvent = conversation?.event ?? null;
-  const resolvedGroupType =
-    resolvedEvent?.groupType ?? conversationEvent?.groupType ?? groupType;
-  const is1to1Mode = resolvedGroupType === "Single";
-  const resolvedTitle =
-    resolvedEvent?.title ?? conversationEvent?.title ?? title;
-  const resolvedCoverKey =
-    resolvedEvent?.coverKey ?? conversationEvent?.coverKey ?? undefined;
+  const resolvedGroupType = resolvedEvent?.groupType ?? conversationEvent?.groupType ?? groupType;
+  const is1to1Mode = resolvedGroupType === 'Single';
+  const resolvedTitle = resolvedEvent?.title ?? conversationEvent?.title ?? title;
+  const resolvedCoverKey = resolvedEvent?.coverKey ?? conversationEvent?.coverKey ?? undefined;
   const resolvedSchedule = resolvedEvent ?? conversationEvent;
   const resolvedSubtitle = useMemo(() => {
     if (!resolvedSchedule?.time || !resolvedSchedule.location) {
@@ -86,20 +74,23 @@ const JoinRequestsScreen = () => {
     return `${datePart}, ${resolvedSchedule.time} at ${formatEventLocationName(resolvedSchedule.location)}`;
   }, [resolvedSchedule]);
 
-  const loadRequests = useCallback(async (showRefreshing: boolean) => {
-    if (showRefreshing) {
-      setIsRefreshing(true);
-    }
-    try {
-      await refreshJoinRequests(conversationId, eventId, {
-        includeApproved: is1to1Mode,
-      });
-    } finally {
+  const loadRequests = useCallback(
+    async (showRefreshing: boolean) => {
       if (showRefreshing) {
-        setIsRefreshing(false);
+        setIsRefreshing(true);
       }
-    }
-  }, [conversationId, eventId, refreshJoinRequests, is1to1Mode]);
+      try {
+        await refreshJoinRequests(conversationId, eventId, {
+          includeApproved: is1to1Mode,
+        });
+      } finally {
+        if (showRefreshing) {
+          setIsRefreshing(false);
+        }
+      }
+    },
+    [conversationId, eventId, refreshJoinRequests, is1to1Mode],
+  );
 
   const handleRefresh = useCallback(() => {
     loadRequests(true).catch(() => undefined);
@@ -112,9 +103,9 @@ const JoinRequestsScreen = () => {
   );
 
   const handleAction = useCallback(
-    async (_requestId: number, userId: number, action: "approve" | "deny") => {
+    async (_requestId: number, userId: number, action: 'approve' | 'deny') => {
       try {
-        if (action === "approve") {
+        if (action === 'approve') {
           await approveJoinRequest(conversationId, eventId, userId);
         } else {
           await denyJoinRequest(conversationId, eventId, userId);
@@ -124,27 +115,20 @@ const JoinRequestsScreen = () => {
         });
       } catch (err) {
         Alert.alert(
-          "Unable to update request",
-          err instanceof Error ? err.message : "Please try again.",
+          'Unable to update request',
+          err instanceof Error ? err.message : 'Please try again.',
         );
       }
     },
-    [
-      approveJoinRequest,
-      conversationId,
-      denyJoinRequest,
-      eventId,
-      is1to1Mode,
-      refreshJoinRequests,
-    ],
+    [approveJoinRequest, conversationId, denyJoinRequest, eventId, is1to1Mode, refreshJoinRequests],
   );
 
   const handleRequesterPress = useCallback(
     async (request: ChatJoinRequest & { conversationId?: number }) => {
-      if (request.status !== "approved" || !request.conversationId) return;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (request.status !== 'approved' || !request.conversationId) return;
+      triggerHaptic('light');
       setActiveConversation(request.conversationId);
-      (navigation as any).push("ChatThread");
+      navigation.push('ChatThread');
     },
     [navigation, setActiveConversation],
   );
@@ -159,13 +143,12 @@ const JoinRequestsScreen = () => {
           style={{ marginTop: 32 }}
         />
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No pending requests</Text>
-          <Text style={styles.emptySubtitle}>
-            You&apos;ll see new join requests here when attendees tap
-            Interested.
-          </Text>
-        </View>
+        <EmptyState
+          title="No pending requests"
+          description="You'll see new join requests here when attendees tap Interested."
+          icon={<EmptyRequestIcon width={64} height={64} />}
+          style={{ marginTop: 32 }}
+        />
       ),
     [is1to1Mode],
   );
@@ -178,7 +161,7 @@ const JoinRequestsScreen = () => {
       const lastMessage = conversation?.lastMessage;
       if (!lastMessage) {
         const intro = request.message.trim();
-        return intro.length > 0 ? intro : "No messages yet";
+        return intro.length > 0 ? intro : 'No messages yet';
       }
 
       if (lastMessage.senderId === user?.id) {
@@ -188,9 +171,9 @@ const JoinRequestsScreen = () => {
       const senderFirstName =
         conversation?.participants
           .find((participant) => participant.id === lastMessage.senderId)
-          ?.name?.split(" ")[0] ??
-        request.requester.name.split(" ")[0] ??
-        "";
+          ?.name?.split(' ')[0] ??
+        request.requester.name.split(' ')[0] ??
+        '';
 
       return `${senderFirstName}: ${lastMessage.body}`;
     },
@@ -202,14 +185,10 @@ const JoinRequestsScreen = () => {
       return requests;
     }
     return requests
-      .filter((request) => request.status === "approved")
+      .filter((request) => request.status === 'approved')
       .sort((a, b) => {
-        const aConvo = a.conversationId
-          ? conversationById.get(a.conversationId)
-          : undefined;
-        const bConvo = b.conversationId
-          ? conversationById.get(b.conversationId)
-          : undefined;
+        const aConvo = a.conversationId ? conversationById.get(a.conversationId) : undefined;
+        const bConvo = b.conversationId ? conversationById.get(b.conversationId) : undefined;
         const rawATime = aConvo?.lastMessage
           ? Date.parse(aConvo.lastMessage.createdAt)
           : Date.parse(a.createdAt);
@@ -223,7 +202,7 @@ const JoinRequestsScreen = () => {
   }, [conversationById, is1to1Mode, requests]);
 
   const pendingRequests = useMemo(
-    () => requests.filter((request) => request.status === "pending"),
+    () => requests.filter((request) => request.status === 'pending'),
     [requests],
   );
 
@@ -231,13 +210,16 @@ const JoinRequestsScreen = () => {
   const render1to1Header = () => {
     return (
       <ChatEventHeader
-        onBack={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
+        onBack={() => {
+          triggerHaptic('light');
+          navigation.goBack();
+        }}
         title={resolvedTitle}
         subtitle={resolvedSubtitle}
         coverSource={getCoverSource(resolvedCoverKey)}
         onTitlePress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          navigation.navigate("EventDetailsOverlay", {
+          triggerHaptic('light');
+          navigation.navigate('EventDetailsOverlay', {
             eventId: String(eventId),
             readOnly: true,
           });
@@ -248,8 +230,8 @@ const JoinRequestsScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="View pending requests"
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                navigation.navigate("PendingRequests", {
+                triggerHaptic('light');
+                navigation.navigate('PendingRequests', {
                   conversationId,
                   eventId,
                   includeApproved: is1to1Mode,
@@ -257,11 +239,7 @@ const JoinRequestsScreen = () => {
               }}
               style={styles.joinIconButton}
             >
-              <View style={styles.joinCountBadge}>
-                <Text style={styles.joinCountBadgeText}>
-                  {pendingRequests.length}
-                </Text>
-              </View>
+              <CountBadge count={pendingRequests.length} />
             </Pressable>
           ) : undefined
         }
@@ -277,20 +255,15 @@ const JoinRequestsScreen = () => {
     item: ChatJoinRequest & { conversationId?: number };
   }) => {
     const previewText = getApprovedPreview(item);
-    const convo = item.conversationId
-      ? conversationById.get(item.conversationId)
-      : undefined;
+    const convo = item.conversationId ? conversationById.get(item.conversationId) : undefined;
     const hasUnread = (convo?.unreadCount ?? 0) > 0;
 
     return (
       <Pressable
-        style={({ pressed }) => [
-          styles.requestRow1to1,
-          pressed && styles.requestRowPressed,
-        ]}
+        style={({ pressed }) => [styles.requestRow1to1, pressed && styles.requestRowPressed]}
         onPress={() => handleRequesterPress(item)}
       >
-        {hasUnread && <View style={styles.unreadDot1to1} />}
+        {hasUnread && <UnreadDot style={styles.unreadDot1to1} />}
         <UserAvatar
           avatar={item.requester.avatar}
           name={item.requester.name}
@@ -298,8 +271,13 @@ const JoinRequestsScreen = () => {
           size={40}
         />
         <View style={styles.requestInfo1to1}>
-          <Text style={[styles.requesterName1to1, hasUnread && styles.requesterName1to1Unread]}>{item.requester.name}</Text>
-          <Text style={[styles.introMessage1to1, hasUnread && styles.introMessage1to1Unread]} numberOfLines={1}>
+          <Text style={[styles.requesterName1to1, hasUnread && styles.requesterName1to1Unread]}>
+            {item.requester.name}
+          </Text>
+          <Text
+            style={[styles.introMessage1to1, hasUnread && styles.introMessage1to1Unread]}
+            numberOfLines={1}
+          >
             {previewText}
           </Text>
         </View>
@@ -310,12 +288,15 @@ const JoinRequestsScreen = () => {
   // Group mode header
   const renderGroupHeader = () => (
     <ChatEventHeader
-      onBack={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.goBack(); }}
+      onBack={() => {
+        triggerHaptic('light');
+        navigation.goBack();
+      }}
       title={resolvedTitle}
       subtitle="Join Requests"
       onTitlePress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        navigation.navigate("EventDetailsOverlay", {
+        triggerHaptic('light');
+        navigation.navigate('EventDetailsOverlay', {
           eventId: String(eventId),
           readOnly: true,
         });
@@ -336,15 +317,16 @@ const JoinRequestsScreen = () => {
         />
         <View style={styles.requestContent}>
           <Text style={styles.requestName}>{item.requester.name}</Text>
-          {item.message ? (
-            <Text style={styles.requestMessage}>{item.message}</Text>
-          ) : null}
+          {item.message ? <Text style={styles.requestMessage}>{item.message}</Text> : null}
         </View>
         <View style={styles.requestActions}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Decline request from ${item.requester.name}`}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleAction(item.id, item.userId, "deny"); }}
+            onPress={() => {
+              triggerHaptic('destructive');
+              handleAction(item.id, item.userId, 'deny');
+            }}
             style={styles.declineButton}
           >
             <RejectIcon width={30} height={30} />
@@ -352,7 +334,10 @@ const JoinRequestsScreen = () => {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Accept request from ${item.requester.name}`}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); handleAction(item.id, item.userId, "approve"); }}
+            onPress={() => {
+              triggerHaptic('submit');
+              handleAction(item.id, item.userId, 'approve');
+            }}
             style={styles.acceptButton}
           >
             <AcceptIcon width={30} height={30} />
@@ -363,7 +348,7 @@ const JoinRequestsScreen = () => {
   };
 
   return (
-    <ScreenContainer edges={["top", "bottom"]}>
+    <ScreenContainer edges={['top', 'bottom']}>
       <View style={styles.container}>
         {is1to1Mode ? render1to1Header() : renderGroupHeader()}
         <FlatList
@@ -371,15 +356,9 @@ const JoinRequestsScreen = () => {
           extraData={conversations}
           keyExtractor={(item) => String(item.id)}
           style={is1to1Mode ? styles.flatList1to1 : undefined}
-          renderItem={
-            is1to1Mode
-              ? render1to1RequestItem
-              : renderGroupRequestItem
-          }
+          renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
           ItemSeparatorComponent={() => (
-            <View
-              style={is1to1Mode ? styles.separator1to1 : styles.separator}
-            />
+            <View style={is1to1Mode ? styles.separator1to1 : styles.separator} />
           )}
           contentContainerStyle={
             displayRequests.length === 0
@@ -401,25 +380,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    overflow: "visible",
+    overflow: 'visible',
   },
   joinIconButton: {
     marginLeft: spacing.sm,
-  },
-  joinCountBadge: {
-    backgroundColor: "#E6E6E6",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  joinCountBadgeText: {
-    color: colors.text,
-    fontSize: 10,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 12,
+    padding: spacing.xs,
   },
   // List styles
   listContent: {
@@ -430,8 +395,8 @@ const styles = StyleSheet.create({
   },
   listEmptyContent: {
     flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   separator: {
     height: 1,
@@ -443,8 +408,8 @@ const styles = StyleSheet.create({
   },
   // Group mode request item styles
   requestItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     paddingVertical: spacing.sm,
     gap: spacing.sm,
   },
@@ -461,31 +426,31 @@ const styles = StyleSheet.create({
   requestMessage: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#000000",
+    color: '#000000',
     lineHeight: 22,
     letterSpacing: -0.3,
     marginTop: 2,
   },
   requestActions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
     marginTop: spacing.xs,
   },
   declineButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#E6E6E6",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E6E6E6',
   },
   acceptButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.text,
   },
   // 1:1 mode request row styles
@@ -493,31 +458,31 @@ const styles = StyleSheet.create({
     marginLeft: -spacing.md,
   },
   requestRow1to1: {
-    position: "relative",
-    flexDirection: "row",
-    alignItems: "center",
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: spacing.md,
     paddingLeft: spacing.md,
     gap: spacing.sm,
   },
   requestRowPressed: {
-    backgroundColor: "rgba(0,0,0,0.03)",
+    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   requestInfo1to1: {
     flex: 1,
   },
   pendingHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   requesterName1to1: {
     fontSize: 16,
     fontFamily: typography.fontFamilyMedium,
-    fontWeight: "500",
+    fontWeight: '500',
     lineHeight: 20,
     letterSpacing: -0.5,
-    color: "#000000",
+    color: '#000000',
   },
   requesterName1to1Unread: {
     fontFamily: typography.fontFamilySemiBold,
@@ -525,10 +490,10 @@ const styles = StyleSheet.create({
   introMessage1to1: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    fontWeight: "400",
+    fontWeight: '400',
     lineHeight: 20,
     letterSpacing: -0.5,
-    color: "#707070",
+    color: '#707070',
     marginTop: 2,
   },
   introMessage1to1Unread: {
@@ -536,29 +501,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
   },
   unreadDot1to1: {
-    position: "absolute",
+    position: 'absolute',
     left: 5,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#2F81E6",
-  },
-  // Empty state styles
-  emptyState: {
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  emptyTitle: {
-    fontFamily: typography.fontFamilySemiBold,
-    fontSize: typography.title,
-    color: colors.text,
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontFamily: typography.fontFamilyRegular,
-    fontSize: typography.body,
-    color: colors.subText,
-    textAlign: "center",
+    top: '50%',
+    marginTop: -4,
   },
 });
 

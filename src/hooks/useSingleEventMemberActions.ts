@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
-import { Alert } from "react-native";
-import * as Haptics from "expo-haptics";
+import { useCallback, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 
-import { API_BASE_URL } from "@api/config";
-import { useAuth } from "@context/AuthContext";
+import { ApiError, requestJson } from '@api/client';
+import { useAuth } from '@context/AuthContext';
+import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 
 export interface SingleEventMemberActionTarget {
   userId: number;
@@ -22,23 +23,22 @@ interface UseSingleEventMemberActionsOptions {
 }
 
 const DEFAULT_REPORT_ERRORS = {
-  empty: "Please tell us why you are reporting this member.",
-  duplicate: "You have already reported this member.",
-  generic: "Unable to submit report. Please try again.",
+  empty: 'Please tell us why you are reporting this member.',
+  duplicate: 'You have already reported this member.',
+  generic: 'Unable to submit report. Please try again.',
 };
 
 export const useSingleEventMemberActions = ({
   eventId,
   onSuccess,
-  removeErrorTitle = "Unable to remove member",
+  removeErrorTitle = 'Unable to remove member',
   reportErrorMessages,
 }: UseSingleEventMemberActionsOptions) => {
   const { authFetch, token } = useAuth();
-  const [selectedTarget, setSelectedTarget] =
-    useState<SingleEventMemberActionTarget | null>(null);
+  const [selectedTarget, setSelectedTarget] = useState<SingleEventMemberActionTarget | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showReportOverlay, setShowReportOverlay] = useState(false);
-  const [reportMessage, setReportMessage] = useState("");
+  const [reportMessage, setReportMessage] = useState('');
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
@@ -52,14 +52,14 @@ export const useSingleEventMemberActions = ({
     setSelectedTarget(null);
     setShowMenu(false);
     setShowReportOverlay(false);
-    setReportMessage("");
+    setReportMessage('');
     setReportError(null);
     setIsSubmittingReport(false);
     setIsRemovingMember(false);
   }, []);
 
   const openMenu = useCallback((target: SingleEventMemberActionTarget) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    triggerHaptic('light');
     setSelectedTarget(target);
     setShowMenu(true);
   }, []);
@@ -75,7 +75,7 @@ export const useSingleEventMemberActions = ({
   const openReportOverlay = useCallback(() => {
     setShowMenu(false);
     setReportError(null);
-    setReportMessage("");
+    setReportMessage('');
     setShowReportOverlay(true);
   }, []);
 
@@ -84,49 +84,43 @@ export const useSingleEventMemberActions = ({
       return;
     }
     setShowReportOverlay(false);
-    setReportMessage("");
+    setReportMessage('');
     setReportError(null);
   }, [isSubmittingReport]);
 
-  const updateReportMessage = useCallback((text: string) => {
-    if (reportError) {
-      setReportError(null);
-    }
-    setReportMessage(text);
-  }, [reportError]);
+  const updateReportMessage = useCallback(
+    (text: string) => {
+      if (reportError) {
+        setReportError(null);
+      }
+      setReportMessage(text);
+    },
+    [reportError],
+  );
 
   const handleRemoveMember = useCallback(async () => {
     if (!authFetch || !token || !eventId || !selectedTarget || isRemovingMember) {
       return;
     }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    triggerHaptic('destructive');
     setIsRemovingMember(true);
     setShowMenu(false);
 
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/chat/members/${selectedTarget.userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Unable to remove member.");
-      }
+      await requestJson(`/api/events/${eventId}/chat/members/${selectedTarget.userId}`, {
+        method: 'DELETE',
+        token,
+        timeoutMs: null,
+        fetchImpl: authFetch,
+        errorMessage: 'Unable to remove member.',
+      });
 
       await onSuccess?.();
       reset();
     } catch (err) {
-      console.error("Failed to remove member", err);
-      Alert.alert(
-        removeErrorTitle,
-        err instanceof Error ? err.message : "Please try again.",
-      );
+      logger.error('Failed to remove member', err);
+      Alert.alert(removeErrorTitle, err instanceof Error ? err.message : 'Please try again.');
     } finally {
       setIsRemovingMember(false);
     }
@@ -152,38 +146,30 @@ export const useSingleEventMemberActions = ({
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    triggerHaptic('submit');
     setIsSubmittingReport(true);
     setReportError(null);
 
     try {
-      const response = await authFetch(
-        `${API_BASE_URL}/api/events/${eventId}/members/${selectedTarget.userId}/report`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ reason: trimmed }),
-        },
-      );
-
-      if (response.status === 409) {
-        setReportError(errors.duplicate);
-        return;
-      }
-      if (!response.ok) {
-        throw new Error(errors.generic);
-      }
+      await requestJson(`/api/events/${eventId}/members/${selectedTarget.userId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: trimmed }),
+        token,
+        timeoutMs: null,
+        fetchImpl: authFetch,
+        errorMessage: errors.generic,
+      });
 
       await onSuccess?.();
       reset();
     } catch (err) {
-      console.error("Failed to submit member report", err);
-      setReportError(
-        err instanceof Error ? err.message : errors.generic,
-      );
+      if (err instanceof ApiError && err.status === 409) {
+        setReportError(errors.duplicate);
+        return;
+      }
+      logger.error('Failed to submit member report', err);
+      setReportError(err instanceof Error ? err.message : errors.generic);
     } finally {
       setIsSubmittingReport(false);
     }
@@ -201,8 +187,7 @@ export const useSingleEventMemberActions = ({
     token,
   ]);
 
-  const selectedTargetFirstName =
-    selectedTarget?.name.trim().split(/\s+/)[0] ?? "Member";
+  const selectedTargetFirstName = selectedTarget?.name.trim().split(/\s+/)[0] ?? 'Member';
 
   const menuItems = useMemo(
     () => [
@@ -217,12 +202,7 @@ export const useSingleEventMemberActions = ({
         destructive: true,
       },
     ],
-    [
-      handleRemoveMember,
-      isRemovingMember,
-      openReportOverlay,
-      selectedTargetFirstName,
-    ],
+    [handleRemoveMember, isRemovingMember, openReportOverlay, selectedTargetFirstName],
   );
 
   return {

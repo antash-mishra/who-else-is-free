@@ -1,3 +1,7 @@
+import type { RootStackParamList } from '@navigation/types';
+
+import type { NavigationContainerRefWithCurrent } from '@react-navigation/native';
+
 export type PushData = {
   type?: string;
   conversationId?: string;
@@ -8,10 +12,10 @@ export type PushData = {
   senderId?: string;
 };
 
-type PushNavigator = {
-  isReady: () => boolean;
-  navigate: (routeName: string, params?: unknown) => void;
-};
+type PushNavigator = Pick<
+  NavigationContainerRefWithCurrent<RootStackParamList>,
+  'isReady' | 'navigate'
+>;
 
 export const handleNotificationTap = (
   data: PushData,
@@ -22,61 +26,55 @@ export const handleNotificationTap = (
     return;
   }
 
-  const normalizedType = (data.type ?? "").trim().toLowerCase();
+  const normalizedType = (data.type ?? '').trim().toLowerCase();
 
   switch (normalizedType) {
-    case "chat.message": {
-      const conversationId = data.conversationId
-        ? Number(data.conversationId)
-        : null;
+    case 'chat.message': {
+      const conversationId = data.conversationId ? Number(data.conversationId) : null;
       if (conversationId) {
         setActiveConversation(conversationId);
-        navigator.navigate("ChatThread");
+        navigator.navigate('ChatThread');
       }
       break;
     }
-    case "join_request.created": {
-      const conversationId = data.conversationId
-        ? Number(data.conversationId)
-        : undefined;
+    case 'join_request.created': {
+      const conversationId = data.conversationId ? Number(data.conversationId) : undefined;
       const eventId = data.eventId ? Number(data.eventId) : undefined;
-      const title = data.title ?? "";
+      const title = data.title ?? '';
       if (conversationId && eventId) {
-        navigator.navigate("JoinRequests", {
+        navigator.navigate('JoinRequests', {
           conversationId,
           eventId,
           title,
         });
       } else if (eventId) {
-        navigator.navigate("EventDetails", {
+        navigator.navigate('EventDetails', {
           eventId: String(eventId),
-          origin: "MyEvents",
+          origin: 'MyEvents',
         });
       }
       break;
     }
-    case "join_request.approved": {
-      const conversationId = data.conversationId
-        ? Number(data.conversationId)
-        : null;
+    case 'join_request.approved': {
+      const conversationId = data.conversationId ? Number(data.conversationId) : null;
       if (conversationId) {
         setActiveConversation(conversationId);
-        navigator.navigate("ChatThread");
+        navigator.navigate('ChatThread');
       }
       break;
     }
-    case "join_request.denied": {
-      navigator.navigate("Main", {
-        screen: "Messages",
+    case 'join_request.denied': {
+      navigator.navigate('Main', {
+        screen: 'Messages',
       });
       break;
     }
-    case "event.deleted":
-    case "event_deleted":
-    case "event.member_removed":
-    case "event.member.removed": {
-      navigator.navigate("Main", {
-        screen: "Events",
+    case 'event.deleted':
+    case 'event_deleted':
+    case 'event.member_removed':
+    case 'event.member.removed': {
+      navigator.navigate('Main', {
+        screen: 'Events',
       });
       break;
     }

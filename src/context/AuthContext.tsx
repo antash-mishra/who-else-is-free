@@ -7,23 +7,24 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
+} from 'react';
 
-import { API_BASE_URL } from "@api/config";
-import { resetToLogin } from "@navigation/navigationRef";
-import { getAgeRangeBucket, trackEvent } from "@services/analytics";
+import { API_BASE_URL } from '@api/config';
+import { ApiError, extractServerErrorMessage } from '@api/errors';
+import { getAgeRangeBucket, trackEvent } from '@services/analytics';
+import { logger } from '@services/logger';
 
-import * as SecureStore from "expo-secure-store";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from "@constants/google";
+import * as SecureStore from 'expo-secure-store';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 
-type AuthProviderName = "google" | "apple";
+type AuthProviderName = 'google' | 'apple';
 
 type AuthUser = {
   id: number;
   name: string;
   email: string;
-  gender?: "Female" | "Male";
+  gender?: 'Female' | 'Male';
   age?: number;
   avatar?: string;
   profileComplete: boolean;
@@ -31,12 +32,12 @@ type AuthUser = {
 
 type ProfileUpdateData = {
   name: string;
-  gender: "Female" | "Male";
+  gender: 'Female' | 'Male';
   age: number;
   avatar?: string;
 };
 
-export type ApiError = Error & { status?: number };
+export type { ApiError } from '@api/errors';
 
 type AuthFetchOptions = {
   includeAuth?: boolean;
@@ -63,16 +64,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const TOKEN_KEY = "whoelseisfree.authToken";
-const USER_KEY = "whoelseisfree.authUser";
-const AUTH_PROVIDER_KEY = "whoelseisfree.authProvider";
+const TOKEN_KEY = 'whoelseisfree.authToken';
+const USER_KEY = 'whoelseisfree.authUser';
+const AUTH_PROVIDER_KEY = 'whoelseisfree.authProvider';
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({
+  children,
+  onSessionExpired,
+}: {
+  children: ReactNode;
+  /** Invoked after an expired session is cleared. Navigation lives with the caller, not in this context. */
+  onSessionExpired?: () => void;
+}) => {
+  const onSessionExpiredRef = useRef(onSessionExpired);
+  onSessionExpiredRef.current = onSessionExpired;
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [authProvider, setAuthProvider] = useState<AuthProviderName | null>(
-    null,
-  );
+  const [authProvider, setAuthProvider] = useState<AuthProviderName | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
 
@@ -85,14 +93,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           offlineAccess: true,
         });
       } catch (err) {
-        console.warn(
-          "Google Sign-In native module unavailable. Silent auth disabled.",
-          err,
-        );
+        logger.warn('Google Sign-In native module unavailable. Silent auth disabled.', err);
       }
     };
     configureGoogleSignIn().catch((err) => {
-      console.warn("Failed to configure Google Sign-In", err);
+      logger.warn('Failed to configure Google Sign-In', err);
     });
   }, []);
 
@@ -112,23 +117,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (storedToken && storedUser) {
           setToken(storedToken);
-          if (storedProvider === "google" || storedProvider === "apple") {
+          if (storedProvider === 'google' || storedProvider === 'apple') {
             setAuthProvider(storedProvider);
           } else {
             // Backward compatibility for existing Google-only sessions.
-            setAuthProvider("google");
+            setAuthProvider('google');
           }
 
           try {
             const parsedUser = JSON.parse(storedUser) as AuthUser;
             setUser(parsedUser);
           } catch (err) {
-            console.warn("Failed to parse stored user profile", err);
+            logger.warn('Failed to parse stored user profile', err);
             setUser(null);
           }
         }
       } catch (err) {
-        console.warn("Failed to restore auth session", err);
+        logger.warn('Failed to restore auth session', err);
       }
     };
 
@@ -142,16 +147,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithProvider = useCallback(
     async (
       provider: AuthProviderName,
-      endpoint: "google-login" | "apple-login",
+      endpoint: 'google-login' | 'apple-login',
       idToken: string,
       unauthorizedMessage: string,
     ) => {
       setIsSigningIn(true);
       try {
         const response = await fetch(`${API_BASE_URL}/api/${endpoint}`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ id_token: idToken }),
         });
@@ -169,7 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             id: number;
             name: string;
             email: string;
-            gender?: "Female" | "Male";
+            gender?: 'Female' | 'Male';
             age?: number;
             avatar?: string;
             profile_complete: boolean;
@@ -198,23 +203,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           SecureStore.setItemAsync(AUTH_PROVIDER_KEY, provider),
         ]);
 
-        trackEvent(
-          payload.is_new_user ? "signup_succeeded" : "login_succeeded",
-          {
-            provider,
-          },
-        ).catch(() => undefined);
+        trackEvent(payload.is_new_user ? 'signup_succeeded' : 'login_succeeded', {
+          provider,
+        }).catch(() => undefined);
 
         return authUser;
       } catch (error) {
-        trackEvent("login_failed", {
+        trackEvent('login_failed', {
           provider,
-          failure_stage: "server",
+          failure_stage: 'server',
         }).catch(() => undefined);
         if (error instanceof Error) {
           throw error;
         }
-        throw new Error("Unable to sign in. Please try again.");
+        throw new Error('Unable to sign in. Please try again.');
       } finally {
         setIsSigningIn(false);
       }
@@ -224,30 +226,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithGoogle = useCallback(
     async (idToken: string) =>
-      signInWithProvider(
-        "google",
-        "google-login",
-        idToken,
-        "Unable to sign in with Google.",
-      ),
+      signInWithProvider('google', 'google-login', idToken, 'Unable to sign in with Google.'),
     [signInWithProvider],
   );
 
   const signInWithApple = useCallback(
     async (idToken: string) =>
-      signInWithProvider(
-        "apple",
-        "apple-login",
-        idToken,
-        "Unable to sign in with Apple.",
-      ),
+      signInWithProvider('apple', 'apple-login', idToken, 'Unable to sign in with Apple.'),
     [signInWithProvider],
   );
 
-  const refreshSessionSilently = useCallback(async (): Promise<
-    string | null
-  > => {
-    if (authProvider !== "google") {
+  const refreshSessionSilently = useCallback(async (): Promise<string | null> => {
+    if (authProvider !== 'google') {
       return null;
     }
 
@@ -298,28 +288,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleSessionExpired = useCallback(() => {
     signOut();
-    resetToLogin();
+    onSessionExpiredRef.current?.();
   }, [signOut]);
 
   const authFetch = useCallback(
-    async (
-      input: RequestInfo | URL,
-      init: RequestInit = {},
-      options: AuthFetchOptions = {},
-    ) => {
+    async (input: RequestInfo | URL, init: RequestInit = {}, options: AuthFetchOptions = {}) => {
       const includeAuth = options.includeAuth ?? true;
       const retryOnUnauthorized = options.retryOnUnauthorized ?? true;
       const baseHeaders = new Headers(init.headers);
-      const hasAuthHeader = baseHeaders.has("Authorization");
+      const hasAuthHeader = baseHeaders.has('Authorization');
       const hasAuthToken = Boolean(token) || hasAuthHeader;
 
       const buildInit = (overrideToken?: string) => {
         const headers = new Headers(baseHeaders);
         if (includeAuth) {
           if (overrideToken) {
-            headers.set("Authorization", `Bearer ${overrideToken}`);
+            headers.set('Authorization', `Bearer ${overrideToken}`);
           } else if (!hasAuthHeader && token) {
-            headers.set("Authorization", `Bearer ${token}`);
+            headers.set('Authorization', `Bearer ${token}`);
           }
         }
         return {
@@ -329,12 +315,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
 
       let response = await fetch(input, buildInit());
-      if (
-        response.status === 401 &&
-        includeAuth &&
-        retryOnUnauthorized &&
-        hasAuthToken
-      ) {
+      if (response.status === 401 && includeAuth && retryOnUnauthorized && hasAuthToken) {
         const refreshedToken = await refreshSessionSilently();
         if (refreshedToken) {
           response = await fetch(input, buildInit(refreshedToken));
@@ -353,29 +334,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateProfile = useCallback(
     async (data: ProfileUpdateData): Promise<AuthUser> => {
       if (!token) {
-        throw new Error("Not authenticated");
+        throw new Error('Not authenticated');
       }
 
       const response = await authFetch(`${API_BASE_URL}/api/profile`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as {
-          error?: string;
-        };
-        const message =
-          errorData.error ||
-          (response.status === 401
-            ? "Session expired. Please sign in again."
-            : "Failed to update profile");
-        const apiError = new Error(message) as ApiError;
-        apiError.status = response.status;
-        throw apiError;
+        const message = await extractServerErrorMessage(
+          response,
+          response.status === 401
+            ? 'Session expired. Please sign in again.'
+            : 'Failed to update profile',
+        );
+        throw new ApiError(message, response.status);
       }
 
       const payload = (await response.json()) as {
@@ -383,7 +360,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: number;
           name: string;
           email: string;
-          gender?: "Female" | "Male";
+          gender?: 'Female' | 'Male';
           age?: number;
           avatar?: string;
           profile_complete: boolean;
@@ -403,7 +380,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser));
 
       if (!user?.profileComplete && authUser.profileComplete) {
-        trackEvent("profile_completed", {
+        trackEvent('profile_completed', {
           gender: authUser.gender,
           age_range_bucket: getAgeRangeBucket(authUser.age, authUser.age),
         }).catch(() => undefined);
@@ -416,25 +393,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteAccount = useCallback(async (): Promise<void> => {
     if (!token) {
-      throw new Error("Not authenticated");
+      throw new Error('Not authenticated');
     }
 
     const response = await authFetch(`${API_BASE_URL}/api/profile`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
 
     if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      const message =
-        errorData.error ||
-        (response.status === 401
-          ? "Session expired. Please sign in again."
-          : "Failed to delete account");
-      const apiError = new Error(message) as ApiError;
-      apiError.status = response.status;
-      throw apiError;
+      const message = await extractServerErrorMessage(
+        response,
+        response.status === 401
+          ? 'Session expired. Please sign in again.'
+          : 'Failed to delete account',
+      );
+      throw new ApiError(message, response.status);
     }
 
     // Clear local auth only after the server confirms the account was deleted.
@@ -477,7 +450,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
 
   return context;

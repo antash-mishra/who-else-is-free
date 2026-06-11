@@ -17,6 +17,7 @@ import {
     PlacePrediction,
     PlaceDetail,
 } from "@hooks/usePlacesAutocomplete";
+import { logger } from "@services/logger";
 import styles from "./LocationPickerModal.styles";
 
 export type LocationPickerModalProps = {
@@ -72,7 +73,7 @@ export const LocationPickerContent = ({
                 const details = await fetchPlaceDetails(prediction.placeId);
                 onSelect(details);
             } catch (error) {
-                console.warn("Failed to fetch place details", error);
+                logger.warn("Failed to fetch place details", error);
                 setSelectionError("Could not get coordinates for that place. Please try another result.");
             } finally {
                 setSelectingId(null);

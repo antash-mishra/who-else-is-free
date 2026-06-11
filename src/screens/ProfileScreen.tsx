@@ -1,42 +1,33 @@
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import ScalePressable from "@components/ScalePressable";
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import ScalePressable from '@components/ScalePressable';
 
-import { useCallback, useMemo, useState } from "react";
-import {
-  CompositeNavigationProp,
-  useNavigation,
-} from "@react-navigation/native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-import { StackNavigationProp } from "@react-navigation/stack";
-import ScreenContainer from "@components/ScreenContainer";
-import ChevronRightIcon from "@assets/ui/chevron-right.svg";
-import UserAvatar from "@components/UserAvatar";
-import { colors, spacing, typography } from "@theme/index";
-import { useAuth } from "@context/AuthContext";
-import { useEvents } from "@context/EventsContext";
-import { useChat } from "@context/ChatContext";
-import { RootStackParamList, RootTabParamList } from "@navigation/types";
-import BottomSheetModal from "@components/BottomSheetModal";
-import EventActionOverlay from "@components/EventActionOverlay";
-import SignInButtons from "@components/SignInButtons";
-import EditProfileIcon from "@assets/account-icons/edit.svg";
-import PastEventsIcon from "@assets/account-icons/past event.svg";
-import PrivacyPolicyIcon from "@assets/account-icons/privacy.svg";
-import HelpIcon from "@assets/account-icons/help.svg";
-import LogoutIcon from "@assets/account-icons/logout.svg";
-import TrashIcon from "@assets/account-icons/delete.svg";
-import * as Haptics from "expo-haptics";
-
+import { useCallback, useMemo, useState } from 'react';
+import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { StackNavigationProp } from '@react-navigation/stack';
+import ScreenContainer from '@components/ScreenContainer';
+import ChevronRightIcon from '@assets/ui/chevron-right.svg';
+import UserAvatar from '@components/UserAvatar';
+import { logger } from '@services/logger';
+import { colors, spacing, typography } from '@theme/index';
+import { useAuth } from '@context/AuthContext';
+import { useEvents } from '@context/EventsContext';
+import { useChat } from '@context/ChatContext';
+import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import BottomSheetModal from '@components/BottomSheetModal';
+import EventActionOverlay from '@components/EventActionOverlay';
+import SignInButtons from '@components/SignInButtons';
+import EditProfileIcon from '@assets/account-icons/edit.svg';
+import PastEventsIcon from '@assets/account-icons/past event.svg';
+import PrivacyPolicyIcon from '@assets/account-icons/privacy.svg';
+import HelpIcon from '@assets/account-icons/help.svg';
+import LogoutIcon from '@assets/account-icons/logout.svg';
+import TrashIcon from '@assets/account-icons/delete.svg';
+import { HapticFeedback, triggerHaptic } from '@services/haptics';
 
 type ProfileNavigation = CompositeNavigationProp<
-  BottomTabNavigationProp<RootTabParamList, "Profile">,
+  BottomTabNavigationProp<RootTabParamList, 'Profile'>,
   StackNavigationProp<RootStackParamList>
 >;
 
@@ -45,7 +36,7 @@ interface MenuItemProps {
   label: string;
   onPress: () => void;
   showChevron?: boolean;
-  haptic?: "light" | "medium" | "warning";
+  haptic?: HapticFeedback;
 }
 
 const MenuItem = ({
@@ -53,30 +44,24 @@ const MenuItem = ({
   label,
   onPress,
   showChevron = true,
-  haptic = "light",
+  haptic = 'light',
 }: MenuItemProps) => {
   const handlePress = () => {
-    if (haptic === "warning") {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } else if (haptic === "medium") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+    triggerHaptic(haptic);
     onPress();
   };
 
   return (
-    <ScalePressable pressableStyle={styles.menuItem} style={styles.menuItemInner} onPress={handlePress}>
+    <ScalePressable
+      pressableStyle={styles.menuItem}
+      style={styles.menuItemInner}
+      onPress={handlePress}
+    >
       <View style={styles.menuItemLeft}>
-        <View style={styles.menuIconContainer}>
-          {icon}
-        </View>
+        <View style={styles.menuIconContainer}>{icon}</View>
         <Text style={styles.menuItemText}>{label}</Text>
       </View>
-      {showChevron && (
-        <ChevronRightIcon width={20} height={20} color="#808080" />
-      )}
+      {showChevron && <ChevronRightIcon width={20} height={20} color={colors.subText} />}
     </ScalePressable>
   );
 };
@@ -127,19 +112,19 @@ const ProfileScreen = () => {
   }, [signOut]);
 
   const handleEditProfile = useCallback(() => {
-    navigation.navigate("EditProfile");
+    navigation.navigate('EditProfile');
   }, [navigation]);
 
   const handlePastEvents = useCallback(() => {
-    navigation.navigate("PastEvents");
+    navigation.navigate('PastEvents');
   }, [navigation]);
 
   const handlePrivacyPolicy = useCallback(() => {
-    navigation.navigate("PrivacyPolicy");
+    navigation.navigate('PrivacyPolicy');
   }, [navigation]);
 
   const handleHelp = useCallback(() => {
-    navigation.navigate("Help");
+    navigation.navigate('Help');
   }, [navigation]);
 
   const handleDelete = useCallback(() => {
@@ -166,11 +151,9 @@ const ProfileScreen = () => {
       await deleteAccount();
       setShowDeleteConfirm(false);
     } catch (error) {
-      console.error("Failed to delete account", error);
+      logger.error('Failed to delete account', error);
       setDeleteError(
-        error instanceof Error
-          ? error.message
-          : "Unable to delete account. Please try again.",
+        error instanceof Error ? error.message : 'Unable to delete account. Please try again.',
       );
     } finally {
       setIsDeletingAccount(false);
@@ -191,20 +174,22 @@ const ProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={['#E2E5FB', '#E2E5FB', '#B8DCFB']}
+            colors={[
+              colors.profileGradientStart,
+              colors.profileGradientStart,
+              colors.profileGradientEnd,
+            ]}
             locations={[0, 0.42, 1]}
             start={{ x: 0.25, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.guestCard}
           >
             <Text style={styles.guestTitle}>No profile to show</Text>
-            <Text style={styles.guestDescription}>
-              Sign in to view your account
-            </Text>
+            <Text style={styles.guestDescription}>Sign in to view your account</Text>
             <ScalePressable
               style={styles.guestButton}
+              haptic="light"
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSignInVisible(true);
               }}
             >
@@ -213,12 +198,12 @@ const ProfileScreen = () => {
           </LinearGradient>
           <View style={styles.menuSection}>
             <MenuItem
-              icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
+              icon={<PrivacyPolicyIcon width={20} height={20} color={colors.text} />}
               label="Privacy Policy"
               onPress={handlePrivacyPolicy}
             />
             <MenuItem
-              icon={<HelpIcon width={20} height={20} color="#000000" />}
+              icon={<HelpIcon width={20} height={20} color={colors.text} />}
               label="Help"
               onPress={handleHelp}
             />
@@ -244,13 +229,17 @@ const ProfileScreen = () => {
         {/* Profile Header Card with Gradient */}
         <ScalePressable
           style={styles.headerCard}
+          haptic="light"
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             handleEditProfile();
           }}
         >
           <LinearGradient
-            colors={['#E2E5FB', '#E2E5FB', '#B8DCFB']}
+            colors={[
+              colors.profileGradientStart,
+              colors.profileGradientStart,
+              colors.profileGradientEnd,
+            ]}
             locations={[0, 0.42, 1]}
             start={{ x: 0.25, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -264,8 +253,8 @@ const ProfileScreen = () => {
                 size={64}
                 style={styles.avatar}
               />
-              <Text style={styles.name}>{user?.name ?? "Your Profile"}</Text>
-              <Text style={styles.email}>{user?.email ?? ""}</Text>
+              <Text style={styles.name}>{user?.name ?? 'Your Profile'}</Text>
+              <Text style={styles.email}>{user?.email ?? ''}</Text>
 
               {/* Stats Row */}
               <View style={styles.statsRow}>
@@ -285,38 +274,38 @@ const ProfileScreen = () => {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <MenuItem
-            icon={<EditProfileIcon width={20} height={20} color="#000000" />}
+            icon={<EditProfileIcon width={20} height={20} color={colors.text} />}
             label="Edit Profile"
             onPress={handleEditProfile}
           />
           <MenuItem
-            icon={<PastEventsIcon width={20} height={20} color="#000000" />}
+            icon={<PastEventsIcon width={20} height={20} color={colors.text} />}
             label="Past Events"
             onPress={handlePastEvents}
           />
           <MenuItem
-            icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
+            icon={<PrivacyPolicyIcon width={20} height={20} color={colors.text} />}
             label="Privacy Policy"
             onPress={handlePrivacyPolicy}
           />
           <MenuItem
-            icon={<HelpIcon width={20} height={20} color="#000000" />}
+            icon={<HelpIcon width={20} height={20} color={colors.text} />}
             label="Help"
             onPress={handleHelp}
           />
           <MenuItem
-            icon={<LogoutIcon width={20} height={20} color="#000000" />}
+            icon={<LogoutIcon width={20} height={20} color={colors.text} />}
             label="Logout"
             onPress={handleSignOut}
             showChevron={false}
             haptic="medium"
           />
           <MenuItem
-            icon={<TrashIcon width={20} height={20} color="#000000" />}
+            icon={<TrashIcon width={20} height={20} color={colors.text} />}
             label="Delete"
             onPress={handleDelete}
             showChevron={false}
-            haptic="warning"
+            haptic="destructive"
           />
         </View>
       </ScrollView>
@@ -360,12 +349,12 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     borderRadius: 16,
-    borderCurve: "continuous",
-    overflow: "hidden",
+    borderCurve: 'continuous',
+    overflow: 'hidden',
   },
   headerCardGradient: {},
   headerContent: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingTop: 24,
     paddingBottom: 24,
     paddingHorizontal: spacing.md,
@@ -374,37 +363,37 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.md,
-    overflow: "hidden",
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   name: {
     fontSize: 20,
-    color: "#000000",
+    color: colors.text,
     fontFamily: typography.fontFamilyMedium,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   email: {
     fontSize: 14,
-    color: "rgba(0,0,0,0.5)",
+    color: 'rgba(0,0,0,0.5)',
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.5,
     marginBottom: 24,
   },
   statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   statDot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   statText: {
     fontSize: 16,
@@ -412,13 +401,13 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 16,
-    color: "#000000",
+    color: colors.text,
     fontFamily: typography.fontFamilyMedium,
     letterSpacing: -0.3,
   },
   statLabel: {
     fontSize: 16,
-    color: "rgba(0,0,0,0.5)",
+    color: 'rgba(0,0,0,0.5)',
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.3,
   },
@@ -427,36 +416,36 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E6E6E6",
+    borderBottomColor: colors.borderSubtle,
   },
   menuItemInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 17,
   },
   menuItemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
   },
   menuIconContainer: {
     width: 24,
     height: 24,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuItemText: {
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.4,
-    color: "#000000",
+    color: colors.text,
   },
   guestCard: {
     borderRadius: 20,
-    borderCurve: "continuous",
-    overflow: "hidden",
-    alignItems: "center",
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    alignItems: 'center',
     paddingVertical: 24,
     paddingHorizontal: spacing.md,
   },
@@ -464,7 +453,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: "#3345E9",
+    backgroundColor: '#3345E9',
     marginBottom: 12,
   },
   guestTitle: {
@@ -473,14 +462,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 20,
     letterSpacing: -0.5,
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: 6,
   },
   guestDescription: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: "#707070",
-    textAlign: "center",
+    color: colors.iconColor,
+    textAlign: 'center',
     lineHeight: 20,
     letterSpacing: -0.5,
     marginBottom: 16,
@@ -488,16 +477,16 @@ const styles = StyleSheet.create({
   guestButton: {
     height: 52,
     borderRadius: 26,
-    borderCurve: "continuous",
-    backgroundColor: "#000000",
+    borderCurve: 'continuous',
+    backgroundColor: colors.primaryButtonBackground,
     paddingHorizontal: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   guestButtonText: {
     fontSize: 16,
     fontFamily: typography.fontFamilyMedium,
-    color: "#FFFFFF",
+    color: colors.buttonText,
     lineHeight: 20,
     letterSpacing: -0.3,
   },
