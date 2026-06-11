@@ -148,7 +148,7 @@ const EditProfileScreen = () => {
               )}
               <View style={styles.cameraBadgeShadow}>
                 <BlurView style={styles.cameraBadge} intensity={15} tint="light">
-                  <CameraIcon width={20} height={20} color="#707070" />
+                  <CameraIcon width={20} height={20} color={colors.iconColor} />
                 </BlurView>
               </View>
             </TouchableOpacity>
@@ -159,7 +159,7 @@ const EditProfileScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Remove photo"
               >
-                <CloseIcon width={16} height={16} color="#FFFFFF" />
+                <CloseIcon width={16} height={16} color={colors.buttonText} />
               </TouchableOpacity>
             )}
           </View>
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#000000',
+    backgroundColor: colors.primaryButtonBackground,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   nameInput: {
     fontFamily: typography.fontFamilyMedium,
     fontSize: 24,
-    color: '#000000',
+    color: colors.text,
     textAlign: 'center',
     paddingVertical: 12,
     minWidth: 200,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   saveButton: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.primaryButtonBackground,
     borderRadius: 999,
     borderCurve: 'continuous',
     height: 52,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5E5',
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: colors.buttonText,
     fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
     textAlign: 'center',

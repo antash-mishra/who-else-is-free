@@ -7,6 +7,8 @@ import {
   setDefaultEventParameters,
 } from "@react-native-firebase/analytics";
 
+import { logger } from "./logger";
+
 type AnalyticsParamValue = string | number;
 
 export type AnalyticsParams = Record<
@@ -60,7 +62,7 @@ const normalizeParams = (params?: AnalyticsParams) => {
 
 const logAnalyticsWarning = (message: string, error: unknown) => {
   if (typeof __DEV__ !== "undefined" && __DEV__) {
-    console.warn(message, error);
+    logger.warn(message, error);
   }
 };
 

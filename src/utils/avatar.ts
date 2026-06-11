@@ -1,3 +1,4 @@
+// Hex values in this file are brand/artwork avatar palette data — an allowed exception to the theme-token rule.
 const AVATAR_COLORS = [
   "#4BBBA5",
   "#F07A38",

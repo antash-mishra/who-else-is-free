@@ -9,6 +9,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenContainer from '@components/ScreenContainer';
 import ChevronRightIcon from '@assets/ui/chevron-right.svg';
 import UserAvatar from '@components/UserAvatar';
+import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
 import { useAuth } from '@context/AuthContext';
 import { useEvents } from '@context/EventsContext';
@@ -60,7 +61,7 @@ const MenuItem = ({
         <View style={styles.menuIconContainer}>{icon}</View>
         <Text style={styles.menuItemText}>{label}</Text>
       </View>
-      {showChevron && <ChevronRightIcon width={20} height={20} color="#808080" />}
+      {showChevron && <ChevronRightIcon width={20} height={20} color={colors.subText} />}
     </ScalePressable>
   );
 };
@@ -150,7 +151,7 @@ const ProfileScreen = () => {
       await deleteAccount();
       setShowDeleteConfirm(false);
     } catch (error) {
-      console.error('Failed to delete account', error);
+      logger.error('Failed to delete account', error);
       setDeleteError(
         error instanceof Error ? error.message : 'Unable to delete account. Please try again.',
       );
@@ -173,7 +174,11 @@ const ProfileScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
-            colors={['#E2E5FB', '#E2E5FB', '#B8DCFB']}
+            colors={[
+              colors.profileGradientStart,
+              colors.profileGradientStart,
+              colors.profileGradientEnd,
+            ]}
             locations={[0, 0.42, 1]}
             start={{ x: 0.25, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -193,12 +198,12 @@ const ProfileScreen = () => {
           </LinearGradient>
           <View style={styles.menuSection}>
             <MenuItem
-              icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
+              icon={<PrivacyPolicyIcon width={20} height={20} color={colors.text} />}
               label="Privacy Policy"
               onPress={handlePrivacyPolicy}
             />
             <MenuItem
-              icon={<HelpIcon width={20} height={20} color="#000000" />}
+              icon={<HelpIcon width={20} height={20} color={colors.text} />}
               label="Help"
               onPress={handleHelp}
             />
@@ -230,7 +235,11 @@ const ProfileScreen = () => {
           }}
         >
           <LinearGradient
-            colors={['#E2E5FB', '#E2E5FB', '#B8DCFB']}
+            colors={[
+              colors.profileGradientStart,
+              colors.profileGradientStart,
+              colors.profileGradientEnd,
+            ]}
             locations={[0, 0.42, 1]}
             start={{ x: 0.25, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -265,34 +274,34 @@ const ProfileScreen = () => {
         {/* Menu Section */}
         <View style={styles.menuSection}>
           <MenuItem
-            icon={<EditProfileIcon width={20} height={20} color="#000000" />}
+            icon={<EditProfileIcon width={20} height={20} color={colors.text} />}
             label="Edit Profile"
             onPress={handleEditProfile}
           />
           <MenuItem
-            icon={<PastEventsIcon width={20} height={20} color="#000000" />}
+            icon={<PastEventsIcon width={20} height={20} color={colors.text} />}
             label="Past Events"
             onPress={handlePastEvents}
           />
           <MenuItem
-            icon={<PrivacyPolicyIcon width={20} height={20} color="#000000" />}
+            icon={<PrivacyPolicyIcon width={20} height={20} color={colors.text} />}
             label="Privacy Policy"
             onPress={handlePrivacyPolicy}
           />
           <MenuItem
-            icon={<HelpIcon width={20} height={20} color="#000000" />}
+            icon={<HelpIcon width={20} height={20} color={colors.text} />}
             label="Help"
             onPress={handleHelp}
           />
           <MenuItem
-            icon={<LogoutIcon width={20} height={20} color="#000000" />}
+            icon={<LogoutIcon width={20} height={20} color={colors.text} />}
             label="Logout"
             onPress={handleSignOut}
             showChevron={false}
             haptic="medium"
           />
           <MenuItem
-            icon={<TrashIcon width={20} height={20} color="#000000" />}
+            icon={<TrashIcon width={20} height={20} color={colors.text} />}
             label="Delete"
             onPress={handleDelete}
             showChevron={false}
@@ -363,7 +372,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 20,
-    color: '#000000',
+    color: colors.text,
     fontFamily: typography.fontFamilyMedium,
     letterSpacing: -0.5,
     marginBottom: 4,
@@ -392,7 +401,7 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     fontSize: 16,
-    color: '#000000',
+    color: colors.text,
     fontFamily: typography.fontFamilyMedium,
     letterSpacing: -0.3,
   },
@@ -407,7 +416,7 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6E6E6',
+    borderBottomColor: colors.borderSubtle,
   },
   menuItemInner: {
     flexDirection: 'row',
@@ -430,7 +439,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
     letterSpacing: -0.4,
-    color: '#000000',
+    color: colors.text,
   },
   guestCard: {
     borderRadius: 20,
@@ -459,7 +468,7 @@ const styles = StyleSheet.create({
   guestDescription: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: '#707070',
+    color: colors.iconColor,
     textAlign: 'center',
     lineHeight: 20,
     letterSpacing: -0.5,
@@ -469,7 +478,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderCurve: 'continuous',
-    backgroundColor: '#000000',
+    backgroundColor: colors.primaryButtonBackground,
     paddingHorizontal: 32,
     alignItems: 'center',
     justifyContent: 'center',
@@ -477,7 +486,7 @@ const styles = StyleSheet.create({
   guestButtonText: {
     fontSize: 16,
     fontFamily: typography.fontFamilyMedium,
-    color: '#FFFFFF',
+    color: colors.buttonText,
     lineHeight: 20,
     letterSpacing: -0.3,
   },

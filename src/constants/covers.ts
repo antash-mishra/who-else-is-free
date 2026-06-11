@@ -1,3 +1,4 @@
+// Hex values in this file are brand/artwork cover palette data — an allowed exception to the theme-token rule.
 import { ImageSourcePropType } from "react-native";
 
 import { API_BASE_URL } from "@api/config";

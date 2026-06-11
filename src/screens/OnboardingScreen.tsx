@@ -30,6 +30,7 @@ import CloseIcon from '@assets/ui/close.svg';
 import { useAuth, type ApiError } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 import UserAvatar from '@components/UserAvatar';
 import { AppButton, IconButton } from '@components/ui';
 import { colors, typography } from '@theme/index';
@@ -42,7 +43,7 @@ let ImagePicker: typeof import('expo-image-picker') | null = null;
 try {
   ImagePicker = require('expo-image-picker');
 } catch (e) {
-  console.warn('expo-image-picker not available:', e);
+  logger.warn('expo-image-picker not available:', e);
 }
 
 type OnboardingStep = 1 | 2 | 3;
@@ -188,7 +189,7 @@ const OnboardingScreen = () => {
         routes: [{ name: 'Main' }],
       });
     } catch (error) {
-      console.warn('Profile update failed', error);
+      logger.warn('Profile update failed', error);
       const status = error instanceof Error ? (error as ApiError).status : undefined;
       if (status === 401) {
         return;
@@ -226,8 +227,8 @@ const OnboardingScreen = () => {
             r={screenHeight}
             gradientUnits="userSpaceOnUse"
           >
-            <Stop offset="0.24" stopColor="#EAECFB" stopOpacity="1" />
-            <Stop offset="1" stopColor="#C4E4FB" stopOpacity="1" />
+            <Stop offset="0.24" stopColor={colors.onboardingGradientStart} stopOpacity="1" />
+            <Stop offset="1" stopColor={colors.onboardingGradientEnd} stopOpacity="1" />
           </RadialGradient>
         </Defs>
         <Rect width={width} height={screenHeight} fill="url(#onboardingBg)" opacity={0.7} />

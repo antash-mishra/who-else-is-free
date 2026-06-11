@@ -9,6 +9,7 @@ import { AppButton } from '@components/ui';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
+import { logger } from '@services/logger';
 import { colors, spacing } from '@theme/index';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from '@constants/featureFlags';
@@ -46,7 +47,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
           setIsNativeAvailable(true);
         }
       } catch (error) {
-        console.warn('Google Sign-In native module is unavailable.', error);
+        logger.warn('Google Sign-In native module is unavailable.', error);
         if (isActive) {
           setIsNativeAvailable(false);
         }
@@ -63,7 +64,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
           setIsAppleAvailable(available);
         }
       } catch (error) {
-        console.warn('Failed to determine Apple Sign-In availability', error);
+        logger.warn('Failed to determine Apple Sign-In availability', error);
         if (isActive) {
           setIsAppleAvailable(false);
         }
@@ -71,14 +72,14 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
     };
 
     configureClient().catch((error) => {
-      console.warn('Failed to initialise Google Sign-In', error);
+      logger.warn('Failed to initialise Google Sign-In', error);
       if (isActive) {
         setIsNativeAvailable(false);
       }
     });
 
     checkAppleAvailability().catch((error) => {
-      console.warn('Failed to initialise Apple Sign-In', error);
+      logger.warn('Failed to initialise Apple Sign-In', error);
       if (isActive) {
         setIsAppleAvailable(false);
       }
@@ -149,7 +150,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
             failure_stage: 'native',
           }).catch(() => undefined);
         }
-        console.warn('Google sign-in failed', error);
+        logger.warn('Google sign-in failed', error);
         Alert.alert('Unable to sign in with Google', 'Please try again.');
       }
     } finally {
@@ -224,7 +225,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
             failure_stage: 'native',
           }).catch(() => undefined);
         }
-        console.warn('Apple sign-in failed', error);
+        logger.warn('Apple sign-in failed', error);
         Alert.alert('Unable to sign in with Apple', 'Please try again.');
       }
     } finally {

@@ -18,7 +18,7 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Springs } from '@theme/springs';
-import { typography } from '@theme/index';
+import { colors, typography } from '@theme/index';
 import { RootStackParamList } from '@navigation/types';
 
 type EventCreatedRoute = RouteProp<RootStackParamList, 'EventCreated'>;
@@ -206,14 +206,14 @@ const EventCreatedScreen = () => {
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: '#111',
+    backgroundColor: colors.eventCreatedBackground,
   },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   whiteRect: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
     overflow: 'hidden',
   },
   contentLayer: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   creatingLabel: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
-    color: '#fff',
+    color: colors.buttonText,
     letterSpacing: 0.1,
   },
   dimGrey: {

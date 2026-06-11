@@ -1,3 +1,4 @@
+// Hex values in this file are brand/artwork confetti palette data — an allowed exception to the theme-token rule.
 import { useEffect, useMemo } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { Canvas, Circle, Group, Rect } from "@shopify/react-native-skia";

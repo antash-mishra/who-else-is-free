@@ -214,6 +214,13 @@ module.exports = tseslint.config(
     },
   },
   {
+    // Brand/artwork palette data — documented exception to the theme-token rule.
+    files: ['src/constants/covers.ts', 'src/utils/avatar.ts', 'src/components/ConfettiOverlay.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
+  {
     files: ['**/*.test.{ts,tsx}', 'jest.setup.ts'],
     languageOptions: {
       globals: testGlobals,
