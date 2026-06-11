@@ -1,6 +1,6 @@
 # Shared Components And Shared Styling Guide
 
-Updated: June 9, 2026
+Updated: June 11, 2026
 
 Branch: `refactor/code-consistency-shared-components`
 
@@ -51,7 +51,10 @@ In this React Native app, "shared CSS" means:
 | Event action prompt                           | `EventActionOverlay`                                                                   | Event Details, Chat Thread, Profile                         |
 | Avatar                                        | `UserAvatar`                                                                           | Profile, messages, chat, event members, onboarding          |
 | Shared haptics                                | `triggerHaptic` or shared `haptic` props                                               | navigation, forms, sheets, event actions                    |
-| Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `ChatContext`, `EventsContext`                              |
+| Dev-only logging                              | `logger`                                                                               | contexts, screens, hooks (no direct `console.*`)            |
+| Shared API request                            | `requestJson`, `ApiError` from `src/api/client.ts`                                     | `EventsContext`, `ChatContext`, `PushContext`, hooks        |
+| API payload normalization                     | `src/api/mappers/events.ts`, `src/api/mappers/chat.ts`                                 | `EventsContext`, `ChatContext`                              |
+| Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `requestJson` (default 10s), custom fetch flows             |
 | Create/Edit Event mapping                     | `createEventForm.ts` helpers                                                           | `CreateEventScreen`                                         |
 
 ## Shared Styling System
@@ -1248,6 +1251,54 @@ Use them when:
 
 - Event Details layout, request/member actions, or detail data derivation behavior changes.
 
+### API client and errors
+
+Files: `src/api/client.ts`, `src/api/errors.ts`
+
+What they are:
+
+- `requestJson<T>(path, options)` — the shared way to call the backend. Prefixes the API base
+  URL, injects `Authorization: Bearer <token>` when a `token` option is passed, applies a
+  default 10s timeout (`timeoutMs: null` disables it), parses JSON tolerantly, and throws a
+  typed `ApiError` on non-OK responses with the server-extracted message.
+- `fetchImpl` option lets call sites pass `AuthContext.authFetch` so its 401-retry/session-expiry
+  semantics are preserved; `errorMessage` (string or `(status) => string`) keeps user-facing error
+  strings stable at each call site.
+- `ApiError` carries `status` plus optional `code`/`data`; `extractServerErrorMessage` replaces
+  the repeated `response.json().catch(() => ({}))` + `data.error` pattern.
+
+Where they are used:
+
+- `EventsContext`, `ChatContext`, `PushContext`, `CoversContext`, `AuthContext` profile calls,
+  `useSingleEventMemberActions`.
+
+Use them when:
+
+- Any code calls the backend over HTTP. Do not hand-roll fetch + auth header + timeout + error
+  extraction. Raw `fetch` remains only in flows with bespoke semantics (sign-in, WebSocket,
+  places autocomplete, status-code-driven Event Details actions).
+
+### API mappers
+
+Files: `src/api/mappers/events.ts`, `src/api/mappers/chat.ts`
+
+What they are:
+
+- `mappers/events.ts` — `mapApiEventToUserEvent` plus the `ApiEvent`/`UserEvent`/`DateLabel`
+  types (re-exported from `@context/EventsContext` for existing imports).
+- `mappers/chat.ts` — `normalizeParticipant`, `normalizeJoinRequest`,
+  `normalizeConversationEvent`, `normalizeConversation`, and the chat domain types, built on
+  typed `Raw*` payload interfaces (snake_case and camelCase fields) instead of `any`.
+
+Where they are used:
+
+- `EventsContext` and `ChatContext`; unit-tested in `src/api/mappers/__tests__`.
+
+Use them when:
+
+- A server payload needs converting to app types. Keep normalization here, not in contexts or
+  screens, and extend the `Raw*` adapter types rather than casting.
+
 ### `request`
 
 File: `src/api/request.ts`
@@ -1263,12 +1314,12 @@ Exports:
 
 Where it is used:
 
-- `ChatContext`
-- `EventsContext`
+- `src/api/client.ts` (default timeout inside `requestJson`)
+- Custom fetch flows that bypass the client
 
 Use it when:
 
-- A context/service needs timeout and abort handling around fetch calls.
+- A custom fetch flow needs timeout and abort handling without the full client.
 
 ### `haptics`
 

@@ -299,7 +299,7 @@
         theme tokens, and shared style files used by the code consistency branch.
       </p>
       <div class="header-meta">
-        <span>Updated: June 8, 2026</span>
+        <span>Updated: June 11, 2026</span>
         <span>Branch: refactor/code-consistency-shared-components</span>
         <span>Markdown source: report/shared-components-refactor-guide.md</span>
       </div>
@@ -322,7 +322,7 @@
       </div>
       <div class="metric">
         <strong>Shared Helpers</strong>
-        <span>Haptics, API request timeouts, Create/Edit Event mapping.</span>
+        <span>Haptics, dev logger, API client and mappers, Create/Edit Event mapping.</span>
       </div>
     </div>
 
@@ -372,16 +372,24 @@
               <tr><td>Checkbox row</td><td><code>CheckboxRow</code></td><td><code>HelpForm</code></td></tr>
               <tr><td>Icon-only button</td><td><code>IconButton</code></td><td><code>ScreenHeader</code>, <code>SheetHeader</code></td></tr>
               <tr><td>Tabs</td><td><code>AppTabs</code>, <code>SegmentedControl</code></td><td>Discover, My Events</td></tr>
+              <tr><td>Sliding-underline tabs over a pager</td><td><code>SlidingTabs</code></td><td>Event Details requests/members tabs</td></tr>
+              <tr><td>Numeric count badge</td><td><code>CountBadge</code></td><td>Chat thread header, Join Requests header</td></tr>
+              <tr><td>Unread indicator dot</td><td><code>UnreadDot</code></td><td>Messages rows, Join Requests 1:1 rows</td></tr>
+              <tr><td>Join-request row with accept/decline</td><td><code>EventRequestRow</code></td><td>Event Details, Pending Requests</td></tr>
+              <tr><td>Member row with menu or host label</td><td><code>EventMemberRow</code></td><td>Event Details members/accepted lists</td></tr>
               <tr><td>Press scale/haptics</td><td><code>ScalePressable</code></td><td>UI primitives, event rows, menus</td></tr>
               <tr><td>Safe-area screen shell</td><td><code>ScreenContainer</code></td><td>Most app screens</td></tr>
               <tr><td>Back/title header</td><td><code>ScreenHeader</code></td><td>Help screens, Edit Profile, Past Events</td></tr>
               <tr><td>Empty state</td><td><code>EmptyState</code></td><td>Discover, My Events, Messages, Join Requests, Event Details</td></tr>
               <tr><td>Event cards</td><td><code>EventListPage</code>, <code>EventSectionList</code></td><td>Discover, My Events, Past Events</td></tr>
-              <tr><td>Bottom sheet</td><td><code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code>, <code>BottomSheet</code></td><td>modals, create-event sheets, overlays</td></tr>
+              <tr><td>Bottom sheet</td><td><code>BottomSheetHostProvider</code>, <code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code>, <code>BottomSheet</code></td><td>modal coordination, create-event sheets, overlays</td></tr>
               <tr><td>Sheet action menu</td><td><code>SheetActionList</code></td><td>event action menus, pending request menus</td></tr>
               <tr><td>Event prompt</td><td><code>EventActionOverlay</code></td><td>Event Details, Chat Thread, Profile</td></tr>
               <tr><td>Avatar</td><td><code>UserAvatar</code></td><td>Profile, messages, chat, event members, onboarding</td></tr>
               <tr><td>Haptics</td><td><code>triggerHaptic</code></td><td>navigation, forms, sheets, event actions</td></tr>
+              <tr><td>Dev-only logging</td><td><code>logger</code></td><td>contexts, screens, hooks (no direct <code>console.*</code>)</td></tr>
+              <tr><td>Shared API request</td><td><code>requestJson</code>, <code>ApiError</code> (<code>src/api/client.ts</code>)</td><td>Events/Chat/Push contexts, hooks</td></tr>
+              <tr><td>API payload normalization</td><td><code>src/api/mappers/events.ts</code>, <code>src/api/mappers/chat.ts</code></td><td>EventsContext, ChatContext</td></tr>
             </tbody>
           </table>
         </section>
@@ -468,6 +476,9 @@
               <tr><td><code>CheckboxRow</code></td><td>Checkbox row with label, selected state, disabled state, accessibility, and haptic feedback.</td><td><code>HelpForm</code></td></tr>
               <tr><td><code>IconButton</code></td><td>Icon-only action with size, hit slop, rounded background, disabled state, haptics, and label.</td><td><code>ScreenHeader</code>, <code>SheetHeader</code></td></tr>
               <tr><td><code>AppTabs</code></td><td>Pill/underline tab primitive with selected animation, count labels, haptics, and test IDs.</td><td><code>SegmentedControl</code></td></tr>
+              <tr><td><code>SlidingTabs</code></td><td>Tab bar with a sliding spring underline, count labels, haptics, and tab accessibility roles; omit <code>onChange</code> for a static single-tab header.</td><td>Event Details host tabs and Members headers</td></tr>
+              <tr><td><code>CountBadge</code></td><td>Numeric count pill (28pt, secondary surface) with built-in 99+ capping.</td><td>Chat Thread header, Join Requests header</td></tr>
+              <tr><td><code>UnreadDot</code></td><td>Shared unread indicator dot (8pt); parents own positioning only.</td><td>Messages rows, Join Requests 1:1 rows</td></tr>
               <tr><td><code>ListSeparator</code></td><td>Tokenized list divider.</td><td><code>HelpScreen</code></td></tr>
               <tr><td><code>SectionHeaderText</code></td><td>Small shared section label built on <code>AppText</code>.</td><td>Exported for new settings/list sections; not widely used yet.</td></tr>
             </tbody>
@@ -513,8 +524,9 @@
             </thead>
             <tbody>
               <tr><td><code>BottomSheet</code></td><td>Low-level sheet foundation: modal/inline presentation, backdrop, animation, safe area, keyboard avoidance, max/snap height, styling.</td><td><code>BottomSheetModal</code>, <code>CreateEventBottomSheet</code></td></tr>
-              <tr><td><code>BottomSheetModal</code></td><td>Standard modal sheet wrapper around <code>BottomSheet</code>.</td><td>Selection, date/time, cover, location, event action, and sign-in sheets.</td></tr>
-              <tr><td><code>CreateEventBottomSheet</code></td><td>Inline sheet wrapper for Create/Edit Event.</td><td><code>CreateEventScreen</code></td></tr>
+              <tr><td><code>BottomSheetHostProvider</code></td><td>App-level coordinator that keeps one native modal sheet mounted and swaps content, avoiding sibling native modal handoff bugs on iOS.</td><td><code>AppNavigator</code>, <code>BottomSheetModal</code></td></tr>
+              <tr><td><code>BottomSheetModal</code></td><td>Standard modal sheet wrapper around <code>BottomSheet</code>, hosted by <code>BottomSheetHostProvider</code> when available.</td><td>Selection, date/time, cover, location, event action, and sign-in sheets.</td></tr>
+              <tr><td><code>CreateEventBottomSheet</code></td><td>Modal sheet wrapper for Create/Edit Event on the shared host/transition system.</td><td><code>CreateEventScreen</code></td></tr>
               <tr><td><code>SheetHeader</code></td><td>Sheet title and close button.</td><td><code>BottomSheet</code></td></tr>
               <tr><td><code>SheetActionList</code></td><td>Vertical action rows with destructive/loading/disabled states and haptics.</td><td><code>EventActionOverlay.prompts</code></td></tr>
               <tr><td><code>EventActionOverlay</code></td><td>Event-related overlay router rendered in <code>BottomSheetModal</code>.</td><td>Event Details overlays, Chat Thread, Profile.</td></tr>
@@ -543,6 +555,8 @@
               <tr><td><code>EventListPage</code></td><td>Screen-level wrapper around <code>EventSectionList</code>.</td><td>Home, My Events.</td></tr>
               <tr><td><code>EventSectionList</code></td><td>Section headers, event row press behavior, separators, empty wrapper, refresh control, footer spacing, list padding.</td><td>Home, My Events, Past Events.</td></tr>
               <tr><td><code>eventListSections</code></td><td>Data mappers: <code>toEventCardItem</code>, <code>buildEventSections</code>, <code>buildSingleEventSection</code>, <code>buildEventItemSections</code>, <code>sortEventsByCreatedAtDesc</code>.</td><td>Home, My Events, Past Events.</td></tr>
+              <tr><td><code>EventRequestRow</code></td><td>Join-request row with avatar, expandable intro message, and accept/decline actions owning their haptics; exports <code>EventRequestRowSeparator</code>.</td><td>Event Details Requests tab, Pending Requests.</td></tr>
+              <tr><td><code>EventMemberRow</code></td><td>Member row with avatar, name, and optional trailing menu button or text label; optional whole-row press.</td><td>Event Details accepted/members/overlay/read-only lists.</td></tr>
             </tbody>
           </table>
         </section>
@@ -559,11 +573,22 @@
             </thead>
             <tbody>
               <tr><td><code>HelpForm</code></td><td>Shared contact/feedback form composed from <code>TextField</code>, <code>CheckboxRow</code>, and <code>AppButton</code>.</td><td>Help Contact, Help Feedback.</td></tr>
-              <tr><td><code>createEventForm.ts</code></td><td>Create/Edit Event form state, edit hydration, normalization, payload, guest draft mapping.</td><td>Create Event screen.</td></tr>
-              <tr><td><code>request.ts</code></td><td>Shared request timeout and abort helpers.</td><td>ChatContext, EventsContext.</td></tr>
+              <tr><td><code>createEventForm.ts</code></td><td>Create/Edit Event form state, edit hydration, normalization, payload, guest draft mapping.</td><td>Create Event screen via <code>useCreateEventForm</code>.</td></tr>
+              <tr><td><code>src/screens/create-event/</code></td><td>Create/Edit Event screen modules: <code>useCreateEventForm</code> (reducer-backed form state), <code>useCreateEventSheets</code> (sheet routing and keyboard timing), and the Header/FormFields/SubmitButton/SheetContent components sharing <code>CreateEventScreen.styles.ts</code>.</td><td><code>CreateEventScreen</code> (thin container).</td></tr>
+              <tr><td><code>src/screens/event-details/</code></td><td>Event Details screen modules: <code>useEventDetailsData</code>, <code>useEventDetailsActions</code>, <code>useHostRequestActions</code> hooks plus Hero/Info/HostRequestTabs/Members/CTA components sharing <code>EventDetailsScreen.styles.ts</code>.</td><td><code>EventDetailsScreen</code> (thin container).</td></tr>
+              <tr><td><code>client.ts</code> / <code>errors.ts</code></td><td>Shared API client: <code>requestJson</code> with base URL, auth header, default 10s timeout, tolerant JSON parse, and typed <code>ApiError</code>; composes with <code>authFetch</code> via <code>fetchImpl</code>.</td><td>Events/Chat/Push/Covers contexts, AuthContext profile calls, member-action hooks.</td></tr>
+              <tr><td><code>api/mappers/</code></td><td>Typed payload normalization: <code>mapApiEventToUserEvent</code> (events) and participant/join-request/conversation normalizers (chat) built on typed raw-payload interfaces, no <code>any</code>.</td><td>EventsContext, ChatContext.</td></tr>
+              <tr><td><code>request.ts</code></td><td>Shared request timeout and abort helpers.</td><td><code>requestJson</code> default timeout; custom fetch flows.</td></tr>
               <tr><td><code>haptics.ts</code></td><td>Semantic haptics service and only direct <code>expo-haptics</code> import location.</td><td>ScalePressable, AnimatedPager, sheets, forms, event actions, navigation.</td></tr>
+              <tr><td><code>logger.ts</code></td><td>Dev-only logging service; forwards to <code>console</code> only when <code>__DEV__</code> is true.</td><td>Contexts, screens, screen hooks, App.tsx, analytics, API config.</td></tr>
             </tbody>
           </table>
+          <p class="note">
+            Artwork palette exceptions: <code>src/constants/covers.ts</code>,
+            <code>src/utils/avatar.ts</code>, and <code>src/components/ConfettiOverlay.tsx</code>
+            hold brand/artwork color data and are documented exceptions to the theme-token rule
+            (the hardcoded-color lint warning is disabled for them).
+          </p>
         </section>
 
         <section id="visuals">
@@ -593,6 +618,7 @@
             <li>Shared components should own default, pressed, disabled, loading, selected, error, and destructive states.</li>
             <li>Shared interactions should own motion, haptics, accessibility role/state, and hit slop.</li>
             <li>Keep screen components focused on orchestration and composition.</li>
+            <li>Use <code>requestJson</code> for backend calls and <code>logger</code> instead of direct <code>console.*</code>.</li>
             <li>Keep feature-specific style files next to their component until a pattern becomes broadly shared.</li>
             <li>Keep <code>AGENTS.md</code> updated when adding a new shared primitive, token file, helper, or validation rule.</li>
           </ul>
