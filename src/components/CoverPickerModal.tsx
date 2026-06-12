@@ -26,7 +26,9 @@ export type CoverPickerModalProps = {
 
 type CoverPickerContentProps = Omit<CoverPickerModalProps, 'visible' | 'onClose'>;
 
-const LIST_MAX_HEIGHT = Dimensions.get('window').height * 0.5;
+// Content cap that lands the whole sheet (content + title chrome) at ~70%
+// of the screen, so more covers are visible per scroll.
+const LIST_MAX_HEIGHT = Dimensions.get('window').height * 0.63;
 
 export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
   selectedCoverKey,
