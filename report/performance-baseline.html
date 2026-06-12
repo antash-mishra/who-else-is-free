@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Who Else Is Free - Performance Baseline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f6f7;
+      --surface: #ffffff;
+      --ink: #172126;
+      --muted: #617078;
+      --line: #d9e1e4;
+      --accent: #08745d;
+      --accent-soft: #e5f4ef;
+      --warn: #a65b13;
+      --warn-soft: #fff1df;
+      --bad: #a43838;
+      --bad-soft: #fae9e9;
+      --info: #315f87;
+      --info-soft: #e8f1f8;
+      --shadow: 0 8px 24px rgba(28, 44, 52, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    a { color: var(--accent); }
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #edf1f2;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.88em;
+    }
+
+    header {
+      padding: 52px 22px 46px;
+      background: #15282a;
+      color: #fff;
+    }
+
+    .wrap {
+      width: min(1160px, calc(100% - 30px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #9cddca;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      max-width: 800px;
+      margin: 18px 0 0;
+      color: #d5e2e1;
+      font-size: 18px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 25px;
+    }
+
+    .meta span {
+      padding: 6px 9px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 5px;
+      font-size: 13px;
+    }
+
+    main { padding: 26px 0 64px; }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .score {
+      min-height: 120px;
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .score strong {
+      display: block;
+      font-size: 27px;
+      line-height: 1.05;
+    }
+
+    .score span {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 235px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 14px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    nav strong {
+      display: block;
+      margin: 3px 6px 9px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    nav a {
+      display: block;
+      padding: 7px 6px;
+      border-radius: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    nav a:hover { background: var(--accent-soft); color: var(--accent); }
+
+    section {
+      margin-bottom: 22px;
+      padding: 23px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    h2 { margin: 0 0 8px; font-size: 25px; }
+    h3 { margin: 0 0 6px; font-size: 18px; }
+    p { margin: 9px 0; }
+    .section-copy { margin: 0 0 18px; color: var(--muted); }
+
+    .callout {
+      margin: 14px 0;
+      padding: 13px 14px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+    .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+    .callout.info { border-color: var(--info); background: var(--info-soft); }
+    .callout strong { display: block; margin-bottom: 3px; font-size: 13px; text-transform: uppercase; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f7f9fa;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status.bad { color: var(--bad); background: var(--bad-soft); }
+    .status.warn { color: var(--warn); background: var(--warn-soft); }
+    .status.good { color: var(--accent); background: var(--accent-soft); }
+    .status.info { color: var(--info); background: var(--info-soft); }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr) 90px;
+      gap: 10px;
+      align-items: center;
+      margin: 11px 0;
+      font-size: 13px;
+    }
+
+    .bar-track {
+      height: 14px;
+      overflow: hidden;
+      border-radius: 3px;
+      background: #edf1f2;
+    }
+
+    .bar {
+      height: 100%;
+      min-width: 3px;
+      background: var(--accent);
+    }
+
+    .bar.warn { background: var(--warn); }
+    .bar.bad { background: var(--bad); }
+
+    .finding {
+      padding: 17px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .finding:first-of-type { padding-top: 0; border-top: 0; }
+    .finding-head {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .finding p { color: var(--muted); }
+    ul, ol { padding-left: 21px; }
+    li + li { margin-top: 6px; }
+
+    .gate {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 13px;
+      padding: 16px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .gate:first-of-type { border-top: 0; }
+    .gate-num {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 5px;
+      background: #15282a;
+      color: #fff;
+      font-weight: 800;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 13px;
+      border-radius: 6px;
+      background: #172126;
+      color: #eaf2f1;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    footer {
+      padding: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .layout { display: block; }
+      nav { position: static; margin-bottom: 22px; }
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 38px 15px 32px; }
+      .wrap { width: min(100% - 18px, 1160px); }
+      .score-grid { grid-template-columns: 1fr; }
+      section { padding: 17px; }
+      table { display: block; overflow-x: auto; }
+      .bar-row { grid-template-columns: 95px minmax(0, 1fr) 75px; }
+      .finding-head { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <p class="eyebrow">Measured Baseline</p>
+      <h1>Performance Baseline and Roadmap Gates</h1>
+      <p class="intro">
+        Reproducible measurements for pinpointing current bottlenecks and evaluating each optimization phase.
+        This report measures the current repository without changing application code.
+      </p>
+      <div class="meta">
+        <span>Measured: June 6-7, 2026, IST</span>
+        <span>Commit: 02a9736</span>
+        <span>macOS 14.4, Apple Silicon, 16 GB RAM</span>
+        <span>Android 16, 1080x2400, 120 Hz</span>
+        <span>Node 24.15.0</span>
+        <span>Go 1.22.1</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="score-grid">
+      <div class="score"><strong>43.86 ms</strong><span>conversation API median at 250 conversations</span></div>
+      <div class="score"><strong>1,001</strong><span>estimated SQL queries for that response</span></div>
+      <div class="score"><strong>6 lists</strong><span>event SectionLists mounted across the two pager screens</span></div>
+      <div class="score"><strong>84.1%</strong><span>legacy jank while switching Discover segments</span></div>
+      <div class="score"><strong>28 failed</strong><span>tests in the current Jest baseline</span></div>
+    </div>
+
+    <div class="layout">
+      <nav aria-label="Report contents">
+        <strong>Contents</strong>
+        <a href="#summary">Baseline Summary</a>
+        <a href="#environment">Environment</a>
+        <a href="#device">Connected Device</a>
+        <a href="#frontend">Frontend Workload</a>
+        <a href="#build">Build and Test</a>
+        <a href="#bundle">Bundle and Assets</a>
+        <a href="#api">API Latency</a>
+        <a href="#scale">Scale Curves</a>
+        <a href="#pinpoint">Pinpointed Issues</a>
+        <a href="#gates">Roadmap Gates</a>
+        <a href="#repeat">How to Repeat</a>
+        <a href="#limitations">Limitations</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Baseline Summary</h2>
+          <p class="section-copy">The current measurements support five primary conclusions.</p>
+
+          <div class="callout bad">
+            <strong>Primary backend bottleneck</strong>
+            Conversation summary loading scales through per-conversation hydration. The temporary-database test grows
+            from an estimated 41 SQL queries at 10 conversations to 1,001 queries at 250 conversations.
+          </div>
+
+          <div class="callout warn">
+            <strong>Primary frontend bottleneck</strong>
+            The navigation and pager configuration keeps more UI mounted than necessary. Six event lists are mounted
+            across Home and My Events before counting Messages, Chat Thread, Join Requests, or other screens.
+          </div>
+
+          <div class="callout bad">
+            <strong>Measured interaction bottleneck</strong>
+            On the connected 120 Hz Android device, representative animations have 11-13 ms median frame times and
+            17-31 ms p95 frame times. This exceeds the 8.33 ms frame budget needed to sustain 120 Hz and produces
+            60.8-88.6% legacy jank in the tested interaction windows.
+          </div>
+
+          <div class="callout warn">
+            <strong>Primary delivery risk</strong>
+            TypeScript validation and the Jest suite are not green. This makes performance refactors harder to validate
+            and slows safe iteration.
+          </div>
+
+          <div class="callout info">
+            <strong>Measurement interpretation</strong>
+            Local API timings are intentionally low because the server and SQLite database run on the same Apple Silicon
+            machine. The scale curves and query counts are more important than the absolute local milliseconds.
+          </div>
+        </section>
+
+        <section id="environment">
+          <h2>Environment</h2>
+          <table>
+            <thead><tr><th>Item</th><th>Measured value</th><th>Why it matters</th></tr></thead>
+            <tbody>
+              <tr><td>Operating system</td><td>macOS 14.4, arm64</td><td>Fast development machine; mobile devices will generally be slower.</td></tr>
+              <tr><td>Memory</td><td>16 GB</td><td>Does not reproduce low-memory mobile pressure.</td></tr>
+              <tr><td>Node / npm</td><td>Node 24.15.0 / npm 11.12.1</td><td>Records the toolchain used for frontend timings.</td></tr>
+              <tr><td>Go</td><td>Go 1.22.1</td><td>Records the backend test and build toolchain.</td></tr>
+              <tr><td>Repository revision</td><td><code>02a9736</code></td><td>Future runs should compare against a named revision.</td></tr>
+              <tr><td>API benchmark database</td><td>Temporary SQLite database in <code>/tmp</code></td><td>No repository or production data was modified.</td></tr>
+              <tr><td>API samples</td><td>50 requests for tiny baseline; 30 requests per scale point</td><td>Enough to expose trend direction, not production SLO confidence.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="device">
+          <h2>Connected Android Device Baseline</h2>
+          <p class="section-copy">
+            Measured through ADB and Mobile MCP on June 7, 2026. The installed package is a debuggable Expo development
+            build connected to Metro, so these values pinpoint relative hotspots but are not production-release SLOs.
+          </p>
+
+          <table>
+            <thead><tr><th>Device item</th><th>Measured value</th><th>Interpretation</th></tr></thead>
+            <tbody>
+              <tr><td>Device / OS</td><td>A015, Android 16 / API 36</td><td>Connected target reported as an emulator by Mobile MCP.</td></tr>
+              <tr><td>Display</td><td>1080x2400, active 120 Hz</td><td>One frame budget is 8.33 ms.</td></tr>
+              <tr><td>Package</td><td><code>com.whoelseisfree.app</code>, debuggable development build</td><td>Dev Launcher and Metro inflate startup and memory measurements.</td></tr>
+              <tr><td>Warm foreground resume</td><td>75 ms median, 67-79 ms range, 5 runs</td><td>Useful current reference; retest in release mode.</td></tr>
+              <tr><td>Development cold activity launch</td><td>1.36 s typical; 1.72 s first-run outlier</td><td>Does not reach app content automatically after force-stop, so it is not a valid production cold-start measurement.</td></tr>
+              <tr><td>Settled idle window</td><td>0 rendered frames over 30 seconds</td><td>No evidence of an idle render loop on the tested Discover state.</td></tr>
+              <tr><td>Fresh loaded-app memory</td><td>About 223 MB PSS / 316 MB RSS</td><td>Development-build reference only.</td></tr>
+              <tr><td>Loaded app plus Dev Launcher / Metro history</td><td>About 598-643 MB PSS / 710-752 MB RSS</td><td>Shows why release-build memory measurement is required before setting a target.</td></tr>
+            </tbody>
+          </table>
+
+          <h3 style="margin-top:22px">Interaction frame measurements</h3>
+          <table>
+            <thead><tr><th>Interaction window</th><th>Sample</th><th>Frame time</th><th>Jank indicators</th><th>Assessment</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Bottom-tab switching</td>
+                <td>10 cycles across Discover, My Events, Chat, and Account</td>
+                <td>11 ms median / 22 ms p95 / 46 ms p99</td>
+                <td>60.8% legacy jank; 1 deadline-missed frame</td>
+                <td><span class="status bad">Cannot sustain 120 Hz</span></td>
+              </tr>
+              <tr>
+                <td>Discover segment switching</td>
+                <td>10 cycles across Upcoming, Nearest, and Newest</td>
+                <td>12 ms median / 31 ms p95 / 42 ms p99</td>
+                <td>84.1% legacy jank</td>
+                <td><span class="status bad">Highest measured pager cost</span></td>
+              </tr>
+              <tr>
+                <td>Create Event open / close</td>
+                <td>10 open-close cycles</td>
+                <td>13 ms median / 17 ms p95 / 20 ms p99</td>
+                <td>88.6% legacy jank; 10 deadline-missed frames</td>
+                <td><span class="status bad">Consistently over 120 Hz budget</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout warn">
+            <strong>How to read Android's jank fields</strong>
+            Android 16 reported low values for the newer deadline-missed jank field while the legacy jank field was high.
+            The frame-time percentiles remove that ambiguity: all three tested interactions have a median above the
+            device's 8.33 ms 120 Hz budget, and segment switching reaches 31 ms at p95.
+          </div>
+        </section>
+
+        <section id="frontend">
+          <h2>Frontend Workload Baseline</h2>
+          <p class="section-copy">
+            Static workload measurements identify where hidden rendering and consistency drift are likely to originate.
+          </p>
+
+          <table>
+            <thead><tr><th>Measurement</th><th>Current</th><th>Assessment</th></tr></thead>
+            <tbody>
+              <tr><td>Production TypeScript/TSX lines</td><td>21,794</td><td><span class="status info">Reference</span></td></tr>
+              <tr><td>Screen lines</td><td>10,954</td><td><span class="status warn">High concentration</span></td></tr>
+              <tr><td>Context lines</td><td>3,048</td><td><span class="status warn">Broad state surface</span></td></tr>
+              <tr><td>Largest screen</td><td>Event Details, 2,734 lines</td><td><span class="status bad">Refactor priority</span></td></tr>
+              <tr><td>Largest provider</td><td>Chat Context, 1,273 lines</td><td><span class="status bad">Refactor priority</span></td></tr>
+              <tr><td><code>useEvents()</code> consumer modules</td><td>8</td><td><span class="status warn">Broad update reach</span></td></tr>
+              <tr><td><code>useChat()</code> consumer modules</td><td>9</td><td><span class="status warn">Broad update reach</span></td></tr>
+              <tr><td><code>useAuth()</code> consumer modules</td><td>16</td><td><span class="status info">Monitor</span></td></tr>
+              <tr><td>Event pager lists mounted</td><td>6 SectionLists</td><td><span class="status bad">Immediate target</span></td></tr>
+              <tr><td>Explicit list virtualization tuning props</td><td>0</td><td><span class="status warn">Needs profiling</span></td></tr>
+            </tbody>
+          </table>
+
+          <h3 style="margin-top:22px">Interaction implementation count</h3>
+          <div class="bar-row"><span>Pressable</span><div class="bar-track"><div class="bar bad" style="width:100%"></div></div><strong>82</strong></div>
+          <div class="bar-row"><span>ScalePressable</span><div class="bar-track"><div class="bar" style="width:31.7%"></div></div><strong>26</strong></div>
+          <div class="bar-row"><span>TouchableOpacity</span><div class="bar-track"><div class="bar warn" style="width:15.9%"></div></div><strong>13</strong></div>
+          <div class="bar-row"><span>Direct haptics</span><div class="bar-track"><div class="bar bad" style="width:100%"></div></div><strong>120</strong></div>
+
+          <h3 style="margin-top:24px">Motion and refresh surface</h3>
+          <table>
+            <thead><tr><th>Measurement</th><th>Current</th><th>Interpretation</th></tr></thead>
+            <tbody>
+              <tr><td>React Native Animated timing/spring calls</td><td>11</td><td>Second animation engine in user-facing paths.</td></tr>
+              <tr><td>Reanimated timing/spring calls</td><td>49</td><td>Primary motion engine, but behavior remains locally configured.</td></tr>
+              <tr><td>Local duration/timing declarations</td><td>41</td><td>High opportunity for motion-token standardization.</td></tr>
+              <tr><td><code>setTimeout</code> callsites</td><td>31</td><td>Review for lifecycle coordination and animation synchronization.</td></tr>
+              <tr><td><code>refreshConversations()</code> callsites</td><td>14</td><td>Strong signal of overlapping refresh triggers.</td></tr>
+              <tr><td><code>refreshEvents()</code> callsites</td><td>9</td><td>Candidate for freshness windows and request deduplication.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="build">
+          <h2>Build and Test Baseline</h2>
+          <table>
+            <thead><tr><th>Command</th><th>Wall time</th><th>Result</th><th>Measured detail</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>npx tsc --noEmit</code></td>
+                <td>2.43 s</td>
+                <td><span class="status bad">Failed</span></td>
+                <td>Syntax errors in Onboarding rendering tests at lines 71 and 184.</td>
+              </tr>
+              <tr>
+                <td><code>npm test -- --runInBand --silent</code></td>
+                <td>27.52 s wall<br>22.79 s Jest</td>
+                <td><span class="status bad">Failed</span></td>
+                <td>51 suites: 41 passed, 10 failed. 990 tests: 962 passed, 28 failed.</td>
+              </tr>
+              <tr>
+                <td><code>cd server &amp;&amp; go test ./...</code></td>
+                <td>17.97 s wall<br>13.03 s Go test</td>
+                <td><span class="status good">Passed</span></td>
+                <td>Backend test baseline is green.</td>
+              </tr>
+              <tr>
+                <td><code>npx expo export --platform web</code></td>
+                <td>24.95 s</td>
+                <td><span class="status warn">Exported with config warnings</span></td>
+                <td>Warnings for missing Google service files; output was still generated.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="callout bad">
+            <strong>Roadmap blocker</strong>
+            Before changing shared contexts, navigation mounting, or shared interaction primitives, restore TypeScript
+            and Jest to a green baseline. Otherwise, measured behavior improvements can arrive with unnoticed regressions.
+          </div>
+        </section>
+
+        <section id="bundle">
+          <h2>Bundle and Asset Baseline</h2>
+          <table>
+            <thead><tr><th>Measurement</th><th>Current value</th><th>Assessment</th></tr></thead>
+            <tbody>
+              <tr><td>Web export total</td><td>11 MB</td><td><span class="status warn">Investigate</span></td></tr>
+              <tr><td>Web JavaScript bundle</td><td>3.27 MB raw</td><td><span class="status warn">Track during roadmap</span></td></tr>
+              <tr><td>Web JavaScript gzip</td><td>764,561 bytes, about 747 KB</td><td><span class="status info">Reference</span></td></tr>
+              <tr><td>Bundled Inter font assets</td><td>18 files, 6.0 MB</td><td><span class="status bad">High-confidence opportunity</span></td></tr>
+              <tr><td>Application asset source folder</td><td>43 files, 3.0 MB</td><td><span class="status info">Reference</span></td></tr>
+              <tr><td>Largest source asset</td><td><code>assets/splash/VicarStreet.png</code>, about 1.27 MB</td><td><span class="status warn">Review compression</span></td></tr>
+              <tr><td>Installed dependencies</td><td><code>node_modules</code>, 6.6 GB</td><td><span class="status info">Developer storage only</span></td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout warn">
+            <strong>Pinpointed bundle issue</strong>
+            The app loads four Inter weights in <code>App.tsx</code>, but the web export contains 18 Inter font files.
+            Verify font-package import behavior and restrict exported weights. Font assets account for more than half of
+            the 11 MB web output.
+          </div>
+        </section>
+
+        <section id="api">
+          <h2>Local API Latency Baseline</h2>
+          <p class="section-copy">
+            Each endpoint was called 50 times against a fresh temporary seeded database. Times exclude real network latency.
+          </p>
+          <table>
+            <thead><tr><th>Endpoint</th><th>Dataset</th><th>Payload</th><th>Average</th><th>Median</th><th>P95</th><th>Max</th></tr></thead>
+            <tbody>
+              <tr><td><code>GET /health</code></td><td>n/a</td><td>small</td><td>0.75 ms</td><td>0.71 ms</td><td>0.93 ms</td><td>1.68 ms</td></tr>
+              <tr><td><code>GET /api/events</code></td><td>0 events</td><td>13 B</td><td>1.08 ms</td><td>0.93 ms</td><td>1.10 ms</td><td>7.94 ms</td></tr>
+              <tr><td><code>GET /api/conversations</code></td><td>4 visible conversations</td><td>1,249 B</td><td>1.76 ms</td><td>1.72 ms</td><td>2.01 ms</td><td>3.25 ms</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout info">
+            <strong>Database shape</strong>
+            The fresh seeded database contained 4 users, 7 total conversations, 15 memberships, 15 messages, and
+            15 read-state rows. Ava could see 4 conversations.
+          </div>
+        </section>
+
+        <section id="scale">
+          <h2>Scale Curves</h2>
+
+          <h3>Conversation summary endpoint</h3>
+          <p>
+            Synthetic conversations were inserted into the temporary SQLite database. Every row had two current
+            participants, one latest message, a current read cursor, and no linked event. Under this shape, the endpoint
+            performs approximately <code>1 + 4N</code> queries. Conversations with unread messages or linked events can
+            rise toward <code>1 + 6N</code>.
+          </p>
+          <table>
+            <thead><tr><th>Visible conversations</th><th>Estimated SQL queries</th><th>Payload</th><th>Average</th><th>Median</th><th>P95</th><th>Max</th></tr></thead>
+            <tbody>
+              <tr><td>10</td><td>41</td><td>3,109 B</td><td>3.17 ms</td><td>2.75 ms</td><td>7.25 ms</td><td>7.79 ms</td></tr>
+              <tr><td>50</td><td>201</td><td>15,546 B</td><td>10.34 ms</td><td>10.01 ms</td><td>12.72 ms</td><td>13.14 ms</td></tr>
+              <tr><td>100</td><td>401</td><td>31,096 B</td><td>34.36 ms</td><td>37.16 ms</td><td>42.80 ms</td><td>44.79 ms</td></tr>
+              <tr><td>250</td><td>1,001</td><td>77,893 B</td><td>44.75 ms</td><td>43.86 ms</td><td>51.33 ms</td><td>69.20 ms</td></tr>
+            </tbody>
+          </table>
+
+          <div class="bar-row"><span>10 conversations</span><div class="bar-track"><div class="bar" style="width:6.3%"></div></div><strong>2.75 ms</strong></div>
+          <div class="bar-row"><span>50 conversations</span><div class="bar-track"><div class="bar warn" style="width:22.8%"></div></div><strong>10.01 ms</strong></div>
+          <div class="bar-row"><span>100 conversations</span><div class="bar-track"><div class="bar bad" style="width:84.7%"></div></div><strong>37.16 ms</strong></div>
+          <div class="bar-row"><span>250 conversations</span><div class="bar-track"><div class="bar bad" style="width:100%"></div></div><strong>43.86 ms</strong></div>
+
+          <div class="callout bad">
+            <strong>Pinpointed backend issue</strong>
+            The conversation endpoint has a high-confidence N+1 query bottleneck. Because the client has 14
+            <code>refreshConversations()</code> callsites, this cost can be paid repeatedly during normal navigation,
+            reconnects, actions, focus changes, foregrounding, and polling.
+          </div>
+
+          <h3 style="margin-top:26px">Events endpoint</h3>
+          <p>
+            Synthetic future events were inserted into the temporary database. The endpoint returns the complete
+            collection without pagination.
+          </p>
+          <table>
+            <thead><tr><th>Events returned</th><th>Payload</th><th>Average</th><th>Median</th><th>P95</th><th>Max</th></tr></thead>
+            <tbody>
+              <tr><td>10</td><td>3,852 B</td><td>1.15 ms</td><td>1.06 ms</td><td>1.42 ms</td><td>2.75 ms</td></tr>
+              <tr><td>100</td><td>38,594 B</td><td>1.93 ms</td><td>1.90 ms</td><td>2.32 ms</td><td>2.33 ms</td></tr>
+              <tr><td>500</td><td>193,794 B</td><td>5.82 ms</td><td>5.75 ms</td><td>6.94 ms</td><td>7.10 ms</td></tr>
+              <tr><td>1,000</td><td>387,796 B</td><td>18.37 ms</td><td>16.27 ms</td><td>32.28 ms</td><td>32.84 ms</td></tr>
+            </tbody>
+          </table>
+
+          <div class="callout warn">
+            <strong>Pinpointed events issue</strong>
+            Server computation is reasonable locally, but payload size grows linearly and the mobile client then maps,
+            filters, sorts, derives distances, builds multiple section variants, and renders hidden pager lists. Pagination
+            and query-level filtering become important before the collection reaches this size.
+          </div>
+        </section>
+
+        <section id="pinpoint">
+          <h2>Pinpointed Issues</h2>
+          <p class="section-copy">Ranked using the measured evidence and expected user impact.</p>
+
+          <article class="finding">
+            <div class="finding-head"><h3>1. Conversation hydration and refresh amplification</h3><span class="status bad">Highest confidence</span></div>
+            <p>
+              The endpoint reaches an estimated 1,001 SQL queries for 250 conversations, while the frontend contains
+              14 conversation-refresh callsites. Fixing only one side leaves substantial wasted work.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>2. Interaction animations miss the 120 Hz frame budget</h3><span class="status bad">Measured on device</span></div>
+            <p>
+              Bottom-tab, segment, and Create Event transitions have 11-13 ms median frame times on an 8.33 ms display
+              budget. Discover segment switching is the strongest measured hotspot at 31 ms p95 and 84.1% legacy jank.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>3. Hidden-screen and hidden-list rendering</h3><span class="status bad">Highest frontend priority</span></div>
+            <p>
+              Native screens are disabled, all tabs are eager and attached, and the two main pagers mount six event lists.
+              Broad context updates therefore have a larger render audience than necessary.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>4. Broad context update reach</h3><span class="status warn">High priority</span></div>
+            <p>
+              Chat and Events contexts reach 9 and 8 consumer modules respectively. Their combined values include both
+              frequently changing data and stable actions.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>5. Missing list tuning and non-virtualized details collections</h3><span class="status warn">Profile next</span></div>
+            <p>
+              No explicit virtualization tuning props were found, while Event Details renders growing request/member
+              collections with <code>.map()</code> inside a ScrollView.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>6. Interaction and motion fragmentation</h3><span class="status warn">Consistency priority</span></div>
+            <p>
+              The codebase contains 82 Pressables, 26 ScalePressables, 13 TouchableOpacity instances, 120 direct haptic
+              calls, two animation engines, and 41 local timing declarations.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>7. Web font export overhead</h3><span class="status warn">Quick investigation</span></div>
+            <p>
+              Eighteen Inter files consume 6.0 MB of an 11 MB web export even though the app explicitly loads four weights.
+            </p>
+          </article>
+
+          <article class="finding">
+            <div class="finding-head"><h3>8. Broken validation baseline</h3><span class="status bad">Roadmap blocker</span></div>
+            <p>
+              TypeScript fails and Jest has 28 failures. This must be repaired before high-blast-radius performance work.
+            </p>
+          </article>
+        </section>
+
+        <section id="gates">
+          <h2>Roadmap Gates and Targets</h2>
+          <p class="section-copy">
+            Each phase has a measurable exit condition. Re-run this baseline after every phase.
+          </p>
+
+          <div class="gate">
+            <div class="gate-num">0</div>
+            <div>
+              <h3>Restore validation confidence</h3>
+              <ul>
+                <li><code>npx tsc --noEmit</code> passes.</li>
+                <li>Jest reaches 0 failed suites and 0 failed tests.</li>
+                <li>Backend tests remain green.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="gate">
+            <div class="gate-num">1</div>
+            <div>
+              <h3>Reduce mounted UI work</h3>
+              <ul>
+                <li>Inactive tabs are detached or frozen unless explicitly required.</li>
+                <li>Home and My Events mount at most the active page plus one adjacent page.</li>
+                <li>React Profiler confirms hidden pager pages do not rerender during active-page refreshes.</li>
+                <li>On the same 120 Hz device, bottom-tab and segment interactions reach at most 8.33 ms median and below 16.7 ms p95.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="gate">
+            <div class="gate-num">2</div>
+            <div>
+              <h3>Reduce state update reach</h3>
+              <ul>
+                <li>A new active-chat message does not rerender Home, My Events, or Profile.</li>
+                <li>Event refresh does not rerender unrelated chat-thread content.</li>
+                <li>Context consumer render counts are recorded before and after the split.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="gate">
+            <div class="gate-num">3</div>
+            <div>
+              <h3>Fix backend and refresh amplification</h3>
+              <ul>
+                <li>Conversation SQL query count becomes constant or near-constant instead of <code>1 + 4N</code> to <code>1 + 6N</code>.</li>
+                <li>At 250 conversations, local p95 is below 15 ms on the same machine.</li>
+                <li>Duplicate in-flight conversation refreshes are deduplicated.</li>
+                <li>Five-second host polling is removed or used only as a fallback.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="gate">
+            <div class="gate-num">4</div>
+            <div>
+              <h3>Standardize interaction primitives</h3>
+              <ul>
+                <li>One documented sheet transition system handles the main variants.</li>
+                <li>Primary, secondary, icon, row, and selection controls use shared primitives.</li>
+                <li>Direct haptic calls fall substantially and semantic haptic APIs are used.</li>
+                <li>Motion timings are selected from shared tokens.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="gate">
+            <div class="gate-num">5</div>
+            <div>
+              <h3>Control collection and bundle growth</h3>
+              <ul>
+                <li>Events and conversations use pagination or bounded fetching.</li>
+                <li>Event Details uses virtualized growing collections.</li>
+                <li>Web export no longer includes unused Inter font weights.</li>
+                <li>Bundle and asset sizes are compared against this report.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="repeat">
+          <h2>How to Repeat the Baseline</h2>
+          <p>
+            Run measurements on the same machine and record the Git revision. Use release builds on physical iOS and
+            Android devices for user-facing frame-rate, startup, memory, and interaction measurements.
+          </p>
+
+          <h3>Core validation commands</h3>
+          <pre>npx tsc --noEmit
+npm test -- --runInBand --silent
+cd server &amp;&amp; go test ./...
+npx expo export --platform web --output-dir /tmp/weif-web-baseline</pre>
+
+          <h3>Connected Android commands</h3>
+          <pre>adb devices -l
+adb shell dumpsys display
+adb shell dumpsys gfxinfo com.whoelseisfree.app reset
+# Perform one fixed interaction sequence, then:
+adb shell dumpsys gfxinfo com.whoelseisfree.app
+adb shell dumpsys meminfo com.whoelseisfree.app
+adb shell am start -W -n com.whoelseisfree.app/com.whoelseisfree.app.MainActivity</pre>
+
+          <h3>Metrics to record after every roadmap phase</h3>
+          <table>
+            <thead><tr><th>Metric</th><th>Current baseline</th><th>Desired direction</th></tr></thead>
+            <tbody>
+              <tr><td>Conversation endpoint at 250 conversations</td><td>43.86 ms median, 51.33 ms p95, about 1,001 queries</td><td>Strong reduction; near-constant query count</td></tr>
+              <tr><td>Events endpoint at 1,000 events</td><td>16.27 ms median, 32.28 ms p95, 387,796 B</td><td>Bound payload with pagination</td></tr>
+              <tr><td>Bottom-tab interaction frames</td><td>11 ms median / 22 ms p95 / 60.8% legacy jank</td><td>At most 8.33 ms median and below 16.7 ms p95 on the same device</td></tr>
+              <tr><td>Discover segment interaction frames</td><td>12 ms median / 31 ms p95 / 84.1% legacy jank</td><td>At most 8.33 ms median and below 16.7 ms p95 on the same device</td></tr>
+              <tr><td>Create open-close interaction frames</td><td>13 ms median / 17 ms p95 / 88.6% legacy jank</td><td>At most 8.33 ms median and below 16.7 ms p95 on the same device</td></tr>
+              <tr><td>Warm foreground resume</td><td>75 ms median</td><td>Retain or improve in release build</td></tr>
+              <tr><td>Event pager mounted lists</td><td>6</td><td>Active and adjacent only</td></tr>
+              <tr><td>Direct haptic calls</td><td>120</td><td>Substantially lower through semantic primitives</td></tr>
+              <tr><td>Local duration declarations</td><td>41</td><td>Lower through shared motion tokens</td></tr>
+              <tr><td>Web export total</td><td>11 MB</td><td>Lower, especially font assets</td></tr>
+              <tr><td>Web JS bundle</td><td>3.27 MB raw / about 747 KB gzip</td><td>Track and prevent regression</td></tr>
+              <tr><td>TypeScript / Jest failures</td><td>TypeScript failed / 28 Jest failures</td><td>Zero</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="limitations">
+          <h2>Limitations and Next Measurements</h2>
+          <p>
+            This baseline measures repository structure, build health, bundle output, backend tests, local endpoint
+            latency, payload growth, backend scale behavior, and connected Android development-build frame behavior.
+            It does not claim to measure production-release startup, memory, or production network latency.
+          </p>
+          <ul>
+            <li>Localhost API timings exclude mobile radio, TLS, production load, and remote database effects.</li>
+            <li>The temporary synthetic datasets are intentionally simple and isolate scaling behavior.</li>
+            <li>The connected Android package is debuggable and includes Expo Dev Launcher / Metro overhead.</li>
+            <li>A force-stopped development build opens Dev Launcher instead of app content, so production cold start remains unmeasured.</li>
+            <li>Release-build memory and React render counts remain unmeasured.</li>
+            <li>iOS and Android should be measured separately because keyboard, modal, navigation, and blur behavior differs.</li>
+          </ul>
+
+          <div class="callout info">
+            <strong>Next release-build baseline</strong>
+            Build a non-debuggable Android release, then repeat cold start, warm resume, the three interaction windows,
+            memory after visiting every tab, Home and My Events scrolling with populated data, Event Details open, sheet
+            open/close, and render counts while receiving a chat message. Repeat the same workflow on iOS.
+          </div>
+        </section>
+
+        <footer>
+          Originally generated from a read-only application audit and temporary-database benchmarks. No production data
+          was changed.
+        </footer>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
