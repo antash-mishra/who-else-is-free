@@ -12,7 +12,8 @@ and a 3-column image grid.
 
 - Drive source: https://drive.google.com/drive/folders/1deHHqGMy1DlKpyGoFIHGfRbOQWQuSYO0
 - Figma: https://www.figma.com/design/YzZToSdEenQCNTIV9OSRj2/WEIF-Cover?node-id=101-929
-  (reference screenshot: `report/cover-picker-figma-design.png`)
+  (reference screenshot kept locally as `report/cover-picker-figma-design.png`;
+  not committed — QA media stays out of the public repo)
 
 ## Source data model (Drive)
 
