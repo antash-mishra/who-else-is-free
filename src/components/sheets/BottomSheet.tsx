@@ -16,6 +16,7 @@ import {
 
 import Animated, {
   Easing,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -72,6 +73,10 @@ const BottomSheet = ({
   const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const [isMounted, setIsMounted] = useState(visible);
+  // Rasterize the sheet to a GPU texture only while it slides, so translating
+  // heavy content (e.g. the cover grid) stays cheap; off otherwise so inner
+  // scrolling is not re-rasterized every frame.
+  const [isAnimating, setIsAnimating] = useState(false);
   const isMountedRef = useRef(visible);
   const hasBeenVisible = useRef(visible);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -134,13 +139,25 @@ const BottomSheet = ({
   const startOpenAnimation = useCallback(() => {
     slideY.value = screenHeight;
     backdropOpacity.value = 0;
+    setIsAnimating(true);
+    const handleSettled = (finished?: boolean) => {
+      'worklet';
+
+      if (finished) {
+        runOnJS(setIsAnimating)(false);
+      }
+    };
     if (animation === 'spring') {
-      slideY.value = withSpring(0, Springs.bouncyUp);
+      slideY.value = withSpring(0, Springs.bouncyUp, handleSettled);
     } else {
-      slideY.value = withTiming(0, {
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
-      });
+      slideY.value = withTiming(
+        0,
+        {
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+        },
+        handleSettled,
+      );
     }
     backdropOpacity.value = withTiming(1, {
       duration: animation === 'spring' ? 100 : 140,
@@ -150,6 +167,7 @@ const BottomSheet = ({
 
   const startCloseAnimation = useCallback(() => {
     Keyboard.dismiss();
+    setIsAnimating(true);
     keyboardOffset.value = withTiming(0, {
       duration: Math.min(180, closeDuration),
       easing: Easing.out(Easing.cubic),
@@ -233,6 +251,7 @@ const BottomSheet = ({
           snapHeight ? { height: snapHeight } : null,
           sheetStyle,
         ]}
+        renderToHardwareTextureAndroid={isAnimating}
         testID={testID}
         onStartShouldSetResponder={() => true}
       >

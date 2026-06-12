@@ -64,6 +64,9 @@ const styles = StyleSheet.create({
   chipLabelActive: {
     color: colors.background,
   },
+  gridContainer: {
+    flex: 1,
+  },
   grid: {
     paddingBottom: spacing.sm,
   },
