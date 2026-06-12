@@ -73,7 +73,10 @@ func (h *EventHandler) listCovers(c *gin.Context) {
 	for i := range options {
 		options[i].URL = baseURL + "/assets/covers/" + options[i].FileName
 	}
-	c.JSON(http.StatusOK, gin.H{"data": options})
+	c.JSON(http.StatusOK, gin.H{
+		"data":       options,
+		"categories": listCoverCategories(),
+	})
 }
 
 func (h *EventHandler) listUserPastEvents(c *gin.Context) {

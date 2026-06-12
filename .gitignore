@@ -54,3 +54,12 @@ server/*.sqlite
 # Firebase client config (contains API keys)
 google-services.json
 GoogleService-Info.plist
+
+# Local QA media and design references (kept out of the public repo)
+report/mobile-qa-*
+report/cover-picker-figma-design.png
+privacy-policy-screen.png
+
+# Cover artwork is fetched at deploy time from the catalog (covers-sync -fetch);
+# the images themselves stay out of the public repo.
+server/assets/covers/*.png

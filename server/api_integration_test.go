@@ -233,7 +233,8 @@ type eventsResponse struct {
 }
 
 type coversResponse struct {
-	Data []CoverOption `json:"data"`
+	Data       []CoverOption   `json:"data"`
+	Categories []CoverCategory `json:"categories"`
 }
 
 type createEventResponse struct {
@@ -332,6 +333,12 @@ func TestAPIIntegration(t *testing.T) {
 		}
 		if !strings.Contains(payload.Data[0].URL, "/assets/covers/"+payload.Data[0].FileName) {
 			t.Fatalf("expected static cover URL, got %q", payload.Data[0].URL)
+		}
+		if len(payload.Categories) == 0 {
+			t.Fatal("expected cover categories")
+		}
+		if payload.Categories[0].Key != coverCatalog[0].Category {
+			t.Fatalf("expected first category %q, got %q", coverCatalog[0].Category, payload.Categories[0].Key)
 		}
 		staticResp, err := http.Get(payload.Data[0].URL)
 		if err != nil {

@@ -63,7 +63,8 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 - Session-expired navigation is wired via the `onSessionExpired` prop on `AuthProvider` (set in `App.tsx`); contexts must not import navigation directly.
 - Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
 - Logging goes through the dev-only `logger` in `src/services/logger.ts`; do not call `console.*` directly in app code (tests may still spy on `console`).
-- Hardcoded hex colors are only allowed in `src/theme` and the documented artwork-palette exceptions: `src/constants/covers.ts`, `src/utils/avatar.ts`, and `src/components/ConfettiOverlay.tsx`.
+- Hardcoded hex colors are only allowed in `src/theme` and the documented artwork-palette exceptions: `src/utils/avatar.ts` and `src/components/ConfettiOverlay.tsx`.
+- The event cover catalog is generated: `server/cmd/covers-sync` downloads the team Drive folder into `server/assets/covers/` and writes `server/covers_catalog.json` (embedded into the server binary). Re-run `cd server && go run ./cmd/covers-sync` when Drive contents change; do not hand-edit the catalog or assets. The images themselves are gitignored (public repo) — only the catalog is committed, and the Docker build runs `go run ./cmd/covers-sync -fetch` to download the cataloged images at deploy time. After a fresh clone, run that fetch command once to populate `server/assets/covers/`. Cover search/filtering in the app goes through `searchCovers` in `src/utils/coverSearch.ts`.
 - Keep navigation route params typed in `src/navigation/types.ts`; use `NavigatorScreenParams` for nested navigators and avoid `navigation as any` casts for route jumps.
 - Navigation-specific surfaces and status colors should use named tokens from `src/theme/colors.ts`, not local hex or rgba literals in `AppNavigator`.
 - Tests: Jest tests live near source files under `__tests__`.

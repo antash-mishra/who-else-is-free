@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS events (
     max_age INTEGER NOT NULL,
     date_label TEXT NOT NULL CHECK(date_label IN ('Today', 'Tmrw')),
     group_type TEXT NOT NULL DEFAULT 'Single',
-    cover_key TEXT NOT NULL DEFAULT 'badminton',
+    cover_key TEXT NOT NULL DEFAULT 'sports-badminton-1',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     CHECK (min_age >= 0),
@@ -873,7 +873,7 @@ func (r *EventRepository) ensureEventCoverKeyColumn(ctx context.Context) error {
 		return nil
 	}
 
-	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN cover_key TEXT NOT NULL DEFAULT 'badminton';`); err != nil {
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN cover_key TEXT NOT NULL DEFAULT 'sports-badminton-1';`); err != nil {
 		return fmt.Errorf("add cover_key column: %w", err)
 	}
 	return nil

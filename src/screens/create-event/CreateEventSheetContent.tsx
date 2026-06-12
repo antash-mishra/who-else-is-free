@@ -24,7 +24,7 @@ export const getCreateEventSheetTitle = (sheet: CreateEventSheet | null): string
     case 'dateTime':
       return 'When is your event?';
     case 'cover':
-      return 'Choose a cover';
+      return 'Choose cover';
     case 'groupType':
       return 'Group Type';
     case 'gender':
