@@ -54,9 +54,14 @@ describe('searchCovers', () => {
     expect(result.map((c) => c.key)).toEqual(['generic-1', 'generic-2']);
   });
 
-  it('filters by selected category and appends generic', () => {
+  it('filters by selected category only, without generic covers', () => {
     const result = searchCovers(covers, categories, { categoryKey: 'sports' });
-    expect(result.map((c) => c.key)).toEqual(['sports-badminton-1', 'generic-1', 'generic-2']);
+    expect(result.map((c) => c.key)).toEqual(['sports-badminton-1']);
+  });
+
+  it('shows only generic covers when the Generic category is selected', () => {
+    const result = searchCovers(covers, categories, { categoryKey: 'generic' });
+    expect(result.map((c) => c.key)).toEqual(['generic-1', 'generic-2']);
   });
 
   it('does not duplicate generic covers', () => {

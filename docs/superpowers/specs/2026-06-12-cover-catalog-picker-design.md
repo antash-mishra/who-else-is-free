@@ -39,9 +39,10 @@ and a 3-column image grid.
 3. **Old covers**: the 26 legacy images are deleted and their keys become invalid.
    The existing startup migration (`ensureValidEventCoverKeys`) remaps any invalid
    stored `cover_key` to the new default, so old events render the default cover.
-4. **Generic covers appear in every result set**: any search (and any category filter)
-   appends all Generic covers after the matching covers. A query with no tag/category
-   match still shows the Generic covers — the grid is never empty.
+4. **Generic covers appear in every search result**: a text search appends all
+   Generic covers after the matching covers, so a query with no tag/category match
+   still shows the Generic covers — the search grid is never empty. Selecting a
+   category chip shows only that category's covers (Generic has its own chip).
 
 ## Category order (from the Figma canvas taxonomy)
 
