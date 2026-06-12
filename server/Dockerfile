@@ -6,6 +6,11 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
+# Cover images are not committed (public repo); fetch the ones listed in
+# covers_catalog.json from Drive at build time. No-op when already present.
+RUN go run ./cmd/covers-sync -fetch
+
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server .
 
 FROM gcr.io/distroless/base-debian12

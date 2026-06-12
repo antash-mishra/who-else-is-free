@@ -98,10 +98,10 @@ func TestBuildCatalog(t *testing.T) {
 	}
 	// Generic: sorted by title, 1-based keys, empty tags.
 	g := catalog.Covers[3:]
-	if g[0].Key != "generic-1" || g[0].DriveID() != "g1" || len(g[0].Tags) != 0 {
+	if g[0].Key != "generic-1" || g[0].DriveID != "g1" || len(g[0].Tags) != 0 {
 		t.Fatalf("generic-1 wrong: %+v", g[0])
 	}
-	if g[1].Key != "generic-2" || g[1].DriveID() != "g2" {
+	if g[1].Key != "generic-2" || g[1].DriveID != "g2" {
 		t.Fatalf("generic-2 wrong: %+v", g[1])
 	}
 }

@@ -22,9 +22,17 @@ func main() {
 	root := flag.String("root", defaultRootFolderID, "Drive root folder id")
 	assetsDir := flag.String("assets", "assets/covers", "output directory for cover images")
 	catalogPath := flag.String("catalog", "covers_catalog.json", "output path for catalog JSON")
+	fetch := flag.Bool("fetch", false, "download the images listed in the existing catalog instead of re-discovering Drive (used at deploy time; images are not committed)")
 	flag.Parse()
 
 	client := &http.Client{Timeout: 60 * time.Second}
+
+	if *fetch {
+		if err := fetchFromCatalog(client, *catalogPath, *assetsDir); err != nil {
+			log.Fatalf("fetch covers from catalog: %v", err)
+		}
+		return
+	}
 
 	tree, err := fetchTree(client, *root)
 	if err != nil {
@@ -40,9 +48,9 @@ func main() {
 	// Download everything to memory first so a partial failure writes nothing.
 	images := make(map[string][]byte, len(catalog.Covers))
 	for i, cover := range catalog.Covers {
-		data, err := downloadFile(client, cover.DriveID())
+		data, err := downloadFileWithRetry(client, cover.DriveID)
 		if err != nil {
-			log.Fatalf("download %s (%s): %v", cover.Key, cover.DriveID(), err)
+			log.Fatalf("download %s (%s): %v", cover.Key, cover.DriveID, err)
 		}
 		images[cover.FileName] = data
 		log.Printf("[%d/%d] %s (%d KB)", i+1, len(catalog.Covers), cover.FileName, len(data)/1024)
@@ -74,6 +82,58 @@ func main() {
 		log.Fatalf("write catalog: %v", err)
 	}
 	log.Printf("wrote %s and %d images to %s", *catalogPath, len(images), *assetsDir)
+}
+
+// fetchFromCatalog downloads every cover listed in the committed catalog into
+// assetsDir, skipping files that are already present and valid. The Docker
+// build runs this so the public repo never has to host the images themselves.
+func fetchFromCatalog(client *http.Client, catalogPath, assetsDir string) error {
+	raw, err := os.ReadFile(catalogPath)
+	if err != nil {
+		return fmt.Errorf("read catalog: %w", err)
+	}
+	var catalog coverCatalogFile
+	if err := json.Unmarshal(raw, &catalog); err != nil {
+		return fmt.Errorf("parse catalog: %w", err)
+	}
+	if len(catalog.Covers) == 0 {
+		return fmt.Errorf("catalog has no covers")
+	}
+	if err := os.MkdirAll(assetsDir, 0o755); err != nil {
+		return fmt.Errorf("create assets dir: %w", err)
+	}
+
+	keep := make(map[string]bool, len(catalog.Covers))
+	downloaded := 0
+	for i, cover := range catalog.Covers {
+		keep[cover.FileName] = true
+		if cover.DriveID == "" {
+			return fmt.Errorf("cover %s has no drive_id; re-run covers-sync discovery", cover.Key)
+		}
+		path := filepath.Join(assetsDir, cover.FileName)
+		if existing, err := os.ReadFile(path); err == nil && bytes.HasPrefix(existing, pngMagic) {
+			continue
+		}
+		data, err := downloadFileWithRetry(client, cover.DriveID)
+		if err != nil {
+			return fmt.Errorf("download %s (%s): %w", cover.Key, cover.DriveID, err)
+		}
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", cover.FileName, err)
+		}
+		downloaded++
+		log.Printf("[%d/%d] fetched %s (%d KB)", i+1, len(catalog.Covers), cover.FileName, len(data)/1024)
+	}
+
+	removed, err := pruneOrphans(assetsDir, keep)
+	if err != nil {
+		return fmt.Errorf("prune orphans: %w", err)
+	}
+	for _, name := range removed {
+		log.Printf("pruned orphan %s", name)
+	}
+	log.Printf("fetch complete: %d covers (%d downloaded, %d already present)", len(catalog.Covers), downloaded, len(catalog.Covers)-downloaded)
+	return nil
 }
 
 // pruneOrphans deletes catalog-managed PNGs in dir that are absent from the
@@ -150,6 +210,21 @@ func listFolder(client *http.Client, folderID string) ([]driveEntry, error) {
 		return nil, err
 	}
 	return parseFolderListing(string(body)), nil
+}
+
+// downloadFileWithRetry retries transient Drive failures (sporadic 503s show
+// up roughly once per full sync) with a short backoff.
+func downloadFileWithRetry(client *http.Client, fileID string) ([]byte, error) {
+	var lastErr error
+	for attempt := 1; attempt <= 3; attempt++ {
+		data, err := downloadFile(client, fileID)
+		if err == nil {
+			return data, nil
+		}
+		lastErr = err
+		time.Sleep(time.Duration(attempt) * 2 * time.Second)
+	}
+	return nil, lastErr
 }
 
 func downloadFile(client *http.Client, fileID string) ([]byte, error) {

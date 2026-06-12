@@ -36,11 +36,10 @@ type catalogCover struct {
 	FileName string   `json:"file_name"`
 	Category string   `json:"category"`
 	Tags     []string `json:"tags"`
-	driveID  string
+	// DriveID is committed in the catalog so deploy-time builds can fetch the
+	// images without the repo hosting them (they are gitignored).
+	DriveID string `json:"drive_id"`
 }
-
-// DriveID exposes the unexported source-file id (kept out of the JSON output).
-func (c catalogCover) DriveID() string { return c.driveID }
 
 type coverCatalogFile struct {
 	Categories []catalogCategory `json:"categories"`
@@ -158,7 +157,7 @@ func buildCatalog(tree []driveCategory) coverCatalogFile {
 					FileName: key + ".png",
 					Category: catSlug,
 					Tags:     tags,
-					driveID:  file.ID,
+					DriveID:  file.ID,
 				})
 			}
 		}
@@ -174,7 +173,7 @@ func buildCatalog(tree []driveCategory) coverCatalogFile {
 				FileName: key + ".png",
 				Category: catSlug,
 				Tags:     []string{},
-				driveID:  file.ID,
+				DriveID:  file.ID,
 			})
 		}
 	}

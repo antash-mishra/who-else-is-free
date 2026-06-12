@@ -59,3 +59,7 @@ GoogleService-Info.plist
 report/mobile-qa-*
 report/cover-picker-figma-design.png
 privacy-policy-screen.png
+
+# Cover artwork is fetched at deploy time from the catalog (covers-sync -fetch);
+# the images themselves stay out of the public repo.
+server/assets/covers/*.png
