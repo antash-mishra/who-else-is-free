@@ -30,7 +30,10 @@ and a 3-column image grid.
 ## Decisions (confirmed)
 
 1. **Hosting**: images are downloaded by a re-runnable sync script into
-   `server/assets/covers/` and served statically, same as today. No Drive hotlinking.
+   `server/assets/covers/` and served statically, same as today. No Drive hotlinking
+   at runtime. The images are NOT committed (public repo): the catalog records each
+   cover's Drive file id and the Docker build runs `covers-sync -fetch` to download
+   them at deploy time.
 2. **Default cover**: the **first category's first tag's first image**
    (category order below → Sports → Badminton → its first image).
 3. **Old covers**: the 26 legacy images are deleted and their keys become invalid.
