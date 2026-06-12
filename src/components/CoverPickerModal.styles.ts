@@ -28,8 +28,9 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     flexGrow: 0,
-    // Horizontal ScrollView under-measures its cross axis and clips the
-    // pills' bottom edge; size it explicitly to the chip height.
+    // ScrollView's base style has flexShrink: 1, so the maxHeight-constrained
+    // overlay shrinks the row below the chip height and clips the pills.
+    flexShrink: 0,
     height: 36,
     marginBottom: 20,
   },
