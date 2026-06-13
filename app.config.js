@@ -8,9 +8,9 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
-      image: "./assets/splash/splash-launch.png",
-      resizeMode: "cover",
-      backgroundColor: "#019AFE",
+      image: "./assets/weif/splash-logo-white.png",
+      resizeMode: "contain",
+      backgroundColor: "#000000",
     },
     ios: {
       supportsTablet: true,
@@ -44,7 +44,20 @@ export default {
 
     plugins: [
       "./plugins/withModularHeaders",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          backgroundColor: "#000000",
+          image: "./assets/weif/splash-logo-white.png",
+          imageWidth: 184,
+          resizeMode: "contain",
+          dark: {
+            backgroundColor: "#000000",
+            image: "./assets/weif/splash-logo-white.png",
+            imageWidth: 184,
+          },
+        },
+      ],
       "expo-font",
       [
         "@react-native-google-signin/google-signin",
