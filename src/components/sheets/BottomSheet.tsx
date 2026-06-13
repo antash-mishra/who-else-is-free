@@ -234,15 +234,23 @@ const BottomSheet = ({
   }
 
   const sheet = (
-    <Pressable
-      style={StyleSheet.absoluteFill}
-      onPress={onClose}
-      testID={backdropTestID}
-      accessibilityRole="button"
-    >
+    <View style={StyleSheet.absoluteFill}>
       <Animated.View
         style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]}
         pointerEvents="none"
+      />
+      {/* Tap-to-close layer is a sibling BEHIND the sheet card, not a wrapper.
+          Touches that land on the sheet — including the whitespace between grid
+          items — hit the card on top and never reach this Pressable, so they
+          don't close the sheet AND nothing claims the JS responder on touch
+          start, leaving an inner FlatList/ScrollView free to scroll from
+          anywhere. A wrapping Pressable + onStartShouldSetResponder blocked that
+          scroll at the JS bridge (same fix already applied in SheetRoutes.tsx). */}
+      <Pressable
+        style={StyleSheet.absoluteFill}
+        onPress={onClose}
+        testID={backdropTestID}
+        accessibilityRole="button"
       />
       <Animated.View
         style={[
@@ -253,7 +261,6 @@ const BottomSheet = ({
         ]}
         renderToHardwareTextureAndroid={isAnimating}
         testID={testID}
-        onStartShouldSetResponder={() => true}
       >
         <Animated.View
           style={[
@@ -273,7 +280,7 @@ const BottomSheet = ({
           </View>
         </Animated.View>
       </Animated.View>
-    </Pressable>
+    </View>
   );
 
   if (presentation === 'inline') {
