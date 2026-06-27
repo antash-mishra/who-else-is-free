@@ -3,7 +3,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import ReplyIcon from '@assets/help/reply.svg';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import { RootStackParamList } from '@navigation/types';
@@ -235,7 +234,7 @@ const PolicyBullets = ({ items }: { items: string[] }) => (
         key={`${item}-${index}`}
         style={[styles.bulletRow, index === items.length - 1 && styles.lastListRow]}
       >
-        <ReplyIcon width={16} height={16} color="#828282" style={styles.bulletMark} />
+        <Text style={styles.bulletMark}>{'•'}</Text>
         <Text style={styles.bulletText}>
           <InlineText text={item} />
         </Text>
@@ -422,8 +421,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   bulletMark: {
-    marginRight: 14,
-    marginTop: 3,
+    color: '#828282',
+    fontFamily: typography.fontFamilyRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    marginRight: 10,
   },
   bulletText: {
     color: colors.text,

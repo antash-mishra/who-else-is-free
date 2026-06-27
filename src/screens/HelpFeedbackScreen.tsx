@@ -7,7 +7,6 @@ import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import HelpForm from '@components/help/HelpForm';
 import { AppText } from '@components/ui';
-import ReplyIcon from '@assets/help/reply.svg';
 import { API_BASE_URL } from '@api/config';
 import { useAuth, type ApiError } from '@context/AuthContext';
 import { colors, typography } from '@theme/index';
@@ -89,7 +88,9 @@ const HelpFeedbackScreen = () => {
           <View style={styles.bulletList}>
             {FEEDBACK_BULLETS.map((item) => (
               <View key={item} style={styles.bulletRow}>
-                <ReplyIcon width={16} height={16} />
+                <AppText variant="body" style={styles.bulletMark}>
+                  {'•'}
+                </AppText>
                 <AppText variant="body" style={styles.bulletText}>
                   {item}
                 </AppText>
@@ -135,12 +136,17 @@ const styles = StyleSheet.create({
   },
   bulletList: {
     marginTop: 12,
-    gap: 12,
+    gap: 6,
   },
   bulletRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
+  },
+  bulletMark: {
+    color: '#828282',
+    fontSize: 15,
+    lineHeight: 22,
   },
   bulletText: {
     flex: 1,
