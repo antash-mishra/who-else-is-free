@@ -30,11 +30,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: layout.headerHeight,
-    marginLeft: -8,
   },
   backButton: {
     width: layout.headerHeight,
     height: layout.headerHeight,
+    // Pull the button left so the chevron's tip (inset inside its icon)
+    // optically aligns with the page text's left margin, not the icon box.
+    // Kept on the button (not the header) so the centered title stays
+    // centered on the screen.
+    marginLeft: -18,
   },
   titleContainer: {
     position: 'absolute',
@@ -47,8 +51,8 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
-    fontSize: 18,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 22,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     letterSpacing: -0.4,
