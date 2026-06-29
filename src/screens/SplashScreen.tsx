@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import * as SplashScreenModule from "expo-splash-screen";
+import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -18,6 +19,31 @@ import { typography } from "@theme/index";
 import SplashLogo from "@assets/weif/splash-logo.svg";
 
 const DISPLAY_DURATION_MS = 1600;
+const LAST_SPLASH_INDEX_KEY = "whoelseisfree.splashIndex";
+
+// Each cold launch shows one of these venues. Photos are bundled
+// (portrait 1320x2868 JPGs) so the splash is instant and works offline.
+export const SPLASH_VARIANTS = [
+  { image: require("../../assets/splash/VicarStreet.jpg"), location: "Vicar Street" },
+  { image: require("../../assets/splash/CrokePark.jpg"), location: "Croke Park" },
+  { image: require("../../assets/splash/CapelStreet.jpg"), location: "Capel Street" },
+  { image: require("../../assets/splash/Blessington.jpg"), location: "Blessington" },
+  { image: require("../../assets/splash/Dunmore.jpg"), location: "Dunmore" },
+  { image: require("../../assets/splash/SheepsHead.jpg"), location: "Sheep's Head" },
+  { image: require("../../assets/splash/MagheramoreBeach.jpg"), location: "Magheramore Beach" },
+] as const;
+
+// Pick a random variant index, never repeating the previous launch's index.
+// Passing an out-of-range index (e.g. -1 on first launch) picks fully at random.
+export const pickSplashIndex = (excludeIndex: number): number => {
+  const count = SPLASH_VARIANTS.length;
+  if (excludeIndex < 0 || excludeIndex >= count) {
+    return Math.floor(Math.random() * count);
+  }
+  // Choose uniformly among the other count - 1 venues, no rejection loop.
+  const offset = 1 + Math.floor(Math.random() * (count - 1));
+  return (excludeIndex + offset) % count;
+};
 
 const SplashScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -26,11 +52,32 @@ const SplashScreen = () => {
   const [isReady, setIsReady] = useState(false);
   const didNavigate = useRef(false);
 
+  // Seed with a random pick so there is always something to render; the final
+  // no-repeat choice is resolved in onLayoutRootView before the native splash
+  // hides, so this seed is never actually shown.
+  const [variant, setVariant] = useState(
+    () => SPLASH_VARIANTS[pickSplashIndex(-1)],
+  );
+
   const logoScale = useRef(new Animated.Value(1)).current;
 
   const onLayoutRootView = useCallback(async () => {
     if (!isReady) {
       setIsReady(true);
+
+      // Resolve the venue while the native splash still covers the screen so
+      // the swap is never visible. Persist the choice to avoid repeating it
+      // on the next cold launch. Any storage failure falls back to the seed.
+      try {
+        const storedRaw = await SecureStore.getItemAsync(LAST_SPLASH_INDEX_KEY);
+        const lastIndex = storedRaw != null ? parseInt(storedRaw, 10) : -1;
+        const nextIndex = pickSplashIndex(Number.isNaN(lastIndex) ? -1 : lastIndex);
+        setVariant(SPLASH_VARIANTS[nextIndex]);
+        await SecureStore.setItemAsync(LAST_SPLASH_INDEX_KEY, String(nextIndex));
+      } catch {
+        // Keep the seeded random variant.
+      }
+
       await new Promise((r) => setTimeout(r, 50));
       await SplashScreenModule.hideAsync();
     }
@@ -75,7 +122,7 @@ const SplashScreen = () => {
       testID="splash-container"
     >
       <Image
-        source={require("../../assets/splash/VicarStreet.png")}
+        source={variant.image}
         style={styles.image}
         resizeMode="cover"
       />
@@ -86,7 +133,7 @@ const SplashScreen = () => {
           </Animated.View>
           <Text style={styles.tagline}>Who Else Is Free</Text>
         </View>
-        <Text style={styles.location}>Vicar Street, Dublin</Text>
+        <Text style={styles.location}>{variant.location}</Text>
       </View>
     </View>
   );
@@ -124,7 +171,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     fontSize: 13,
     color: "#FFFFFF",
-    opacity: 0.6,
+    opacity: 0.85,
     letterSpacing: -0.3,
   },
 });

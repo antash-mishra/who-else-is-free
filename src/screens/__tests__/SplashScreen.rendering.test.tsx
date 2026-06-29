@@ -7,7 +7,7 @@ import React from "react";
 import { act, render, waitFor } from "@testing-library/react-native";
 import { Animated, Image } from "react-native";
 
-import SplashScreen from "../SplashScreen";
+import SplashScreen, { SPLASH_VARIANTS } from "../SplashScreen";
 
 const mockReset = jest.fn();
 
@@ -30,6 +30,13 @@ jest.mock("expo-splash-screen", () => ({
   get hideAsync() {
     return mockHideAsync;
   },
+}));
+
+const mockGetItemAsync = jest.fn();
+const mockSetItemAsync = jest.fn().mockResolvedValue(undefined);
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: (...args: unknown[]) => mockGetItemAsync(...args),
+  setItemAsync: (...args: unknown[]) => mockSetItemAsync(...args),
 }));
 
 jest.mock("@assets/weif/splash-logo.svg", () => {
@@ -92,6 +99,8 @@ describe("SplashScreen Rendering", () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockUser = null;
+    mockGetItemAsync.mockResolvedValue(null);
+    mockSetItemAsync.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -100,14 +109,18 @@ describe("SplashScreen Rendering", () => {
 
   describe("Initial Rendering", () => {
     it("renders the splash container, image, logo, tagline, and location", () => {
-      const { getByTestId, getByText, UNSAFE_getByType } = render(
+      const { getByTestId, getByText, queryByText, UNSAFE_getByType } = render(
         <SplashScreen />,
       );
 
       expect(getByTestId("splash-container")).toBeTruthy();
       expect(getByTestId("splash-logo")).toBeTruthy();
       expect(getByText("Who Else Is Free")).toBeTruthy();
-      expect(getByText("Vicar Street, Dublin")).toBeTruthy();
+      // One of the rotating venue captions is shown (chosen at random per launch).
+      const shownLocation = SPLASH_VARIANTS.some((variant) =>
+        queryByText(variant.location),
+      );
+      expect(shownLocation).toBe(true);
       expect(UNSAFE_getByType(Image).props.resizeMode).toBe("cover");
     });
 
@@ -116,6 +129,39 @@ describe("SplashScreen Rendering", () => {
       const logo = getByTestId("splash-logo");
 
       expect(logo.props.style).toEqual({ width: 184, height: 67 });
+    });
+  });
+
+  describe("Venue Rotation", () => {
+    it("never shows the venue stored from the previous launch", async () => {
+      // Stored index 0 = Vicar Street; the next launch must pick another venue.
+      mockGetItemAsync.mockResolvedValue("0");
+
+      const { queryByText } = await renderReadySplash();
+
+      expect(queryByText(SPLASH_VARIANTS[0].location)).toBeNull();
+    });
+
+    it("persists the chosen index for the next launch", async () => {
+      mockGetItemAsync.mockResolvedValue("0");
+
+      await renderReadySplash();
+
+      expect(mockSetItemAsync).toHaveBeenCalledWith(
+        "whoelseisfree.splashIndex",
+        expect.not.stringMatching(/^0$/),
+      );
+    });
+
+    it("falls back to a random venue on first launch (no stored index)", async () => {
+      mockGetItemAsync.mockResolvedValue(null);
+
+      const { queryByText } = await renderReadySplash();
+
+      const shownLocation = SPLASH_VARIANTS.some((variant) =>
+        queryByText(variant.location),
+      );
+      expect(shownLocation).toBe(true);
     });
   });
 
