@@ -4,14 +4,17 @@ import { View } from 'react-native';
 
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
-import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
 import EmptyState from '@components/EmptyState';
 import { EventMemberRow, EventRequestRow, EventRequestRowSeparator } from '@components/events';
 import { SlidingTabs } from '@components/ui';
 import { ChatJoinRequest } from '@context/ChatContext';
 
 import styles from './EventDetailsScreen.styles';
+
+// Shared illustration for both the Requests and Accepted/Members empty states.
+const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
+const EMPTY_ILLUSTRATION_WIDTH = 293;
+const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
 type MemberLike = {
   id: number;
@@ -121,7 +124,9 @@ const HostRequestTabs = ({
               <EmptyState
                 title="No requests yet"
                 description="Join requests will appear here"
-                icon={<EmptyRequestIcon width={64} height={64} />}
+                imageSource={EMPTY_ILLUSTRATION}
+                imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+                imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
                 style={{ marginTop: 32 }}
               />
             ) : (
@@ -150,7 +155,9 @@ const HostRequestTabs = ({
                 <EmptyState
                   title="No accepted members yet"
                   description="Members you accept will appear here"
-                  icon={<EmptyAcceptedIcon width={64} height={64} />}
+                  imageSource={EMPTY_ILLUSTRATION}
+                  imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+                  imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
                   style={{ marginTop: 32 }}
                 />
               ) : (
@@ -167,7 +174,9 @@ const HostRequestTabs = ({
               <EmptyState
                 title="No members yet"
                 description="Members who join will appear here"
-                icon={<EmptyAcceptedIcon width={64} height={64} />}
+                imageSource={EMPTY_ILLUSTRATION}
+                imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+                imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
                 style={{ marginTop: 32 }}
               />
             ) : (
