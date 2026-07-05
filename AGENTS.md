@@ -15,6 +15,7 @@ Project guide for coding agents and contributors working in this repository.
 - Refactor roadmap and rationale: `report/code-refactoring-consistency-plan.md`.
 - Performance reports: `report/performance-consistency-audit.html` and `report/performance-baseline.html`.
 - Google EAS/Fly secret runbook: `docs/google-build-and-places-secrets.md`.
+- Sign-in modes (Google/Apple vs dev-login bypass): `docs/dev-login.md`.
 - Mobile QA history reports belong in `report/`; keep QA history separate from evergreen component/style references.
 
 Read `report/shared-components-refactor-guide.md` before adding or refactoring UI. It explains what each shared component is, where it is used, and which theme/style files act as shared CSS.
@@ -220,7 +221,7 @@ Pi's documented way to connect to MCP servers is via **extensions** (pi has no b
 
 ### Dev-Login Bypass For Emulator Testing
 
-For testing on the emulator without going through Google/Apple sign-in, the backend exposes a dev-login route and the client a `__DEV__`-gated button:
+For testing on the emulator without going through Google/Apple sign-in, the backend exposes a dev-login route and the client a `__DEV__`-gated button. **See [`docs/dev-login.md`](docs/dev-login.md) for the full setup, the three preset test users, switching between normal and dev-login modes, and the end-to-end emulator recipe.** Quick recap:
 
 - **Server** (`server/auth_handler.go`): `POST /api/dev-login` registered ONLY when `DEV_LOGIN_ENABLED=1` (env flag, off by default, logs a loud `WARNING` when on). It reuses `getOrCreateUserByEmail` + `respondWithIssuedSession`, so the returned token is a real session JWT accepted by every authenticated endpoint and the WebSocket. Request body: `{"email":"tester@who-else-is-free.test","name":"Tester","profile_complete":true}`. The fixed email keeps a stable, reproducible seed user across sessions. **Never enable `DEV_LOGIN_ENABLED` in production or commit it to `.env` / `Dockerfile` / EAS build config.**
 - **Client** (`src/components/DevLoginButton.tsx`): `__DEV__`-gated button that calls `useAuth().signInWithDevUser(...)` on tap, mounting inside `SignInButtons` so it appears on every unauthenticated surface. In release builds (`__DEV__ === false`) the default export is `() => null`, so the button can never render regardless of the backend flag.

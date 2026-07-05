@@ -35,6 +35,12 @@ You can also use:
 npm test
 ```
 
+### Sign-in modes
+- **Normal login (Google/Apple)** — the production flow. No special flags; just run the backend and Metro normally.
+- **Dev-login (bypass)** — for local emulator testing only. Backend: `cd server && DEV_LOGIN_ENABLED=1 go run .`. Frontend: the `__DEV__`-gated "Dev Login" button appears on the sign-in screen in dev builds.
+
+See [`docs/dev-login.md`](docs/dev-login.md) for the full setup, the three preset test users, switching between modes, and the end-to-end emulator recipe.
+
 ### iOS builds
 For step‑by‑step instructions to build and run the app on a physical iPhone using Expo + EAS, see:
 - `IOS-BUILD-GUIDE.md`
