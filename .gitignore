@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# pi: per-issue git worktrees (fix-issues-on-device skill)
+_worktrees/
+
 # Expo
 .expo/
 dist/
