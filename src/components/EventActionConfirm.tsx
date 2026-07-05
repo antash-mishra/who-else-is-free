@@ -14,6 +14,7 @@ export type EventActionConfirmProps = {
   onConfirm: () => void;
   onCancel: () => void;
   confirmTone?: 'default' | 'destructive';
+  holdToConfirm?: boolean;
   isConfirmLoading?: boolean;
   errorMessage?: string | null;
 };
@@ -26,6 +27,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
   onConfirm,
   onCancel,
   confirmTone = 'default',
+  holdToConfirm = false,
   isConfirmLoading,
   errorMessage,
 }) => (
@@ -46,7 +48,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
       >
         <Text style={styles.secondaryLabel}>{cancelLabel}</Text>
       </Pressable>
-      {confirmTone === 'destructive' ? (
+      {holdToConfirm ? (
         <HoldToConfirmButton
           label={confirmLabel}
           onConfirm={onConfirm}
@@ -55,22 +57,27 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
       ) : (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={confirmLabel}
+          accessibilityState={{ disabled: !!isConfirmLoading }}
           onPress={
             isConfirmLoading
               ? undefined
               : () => {
-                  triggerHaptic('submit');
+                  triggerHaptic(confirmTone === 'destructive' ? 'destructive' : 'submit');
                   onConfirm();
                 }
           }
           disabled={isConfirmLoading}
           style={({ pressed }) => [
             styles.primaryButton,
+            confirmTone === 'destructive' && styles.destructiveButton,
             pressed && !isConfirmLoading && styles.primaryButtonPressed,
             isConfirmLoading && styles.primaryButtonDisabled,
           ]}
         >
-          <Text style={styles.primaryLabel}>{confirmLabel}</Text>
+          <Text style={[styles.primaryLabel, confirmTone === 'destructive' && styles.destructiveLabel]}>
+            {isConfirmLoading ? 'Deleting...' : confirmLabel}
+          </Text>
         </Pressable>
       )}
     </View>

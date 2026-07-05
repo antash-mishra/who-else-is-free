@@ -318,6 +318,7 @@ const ProfileScreen = () => {
         confirmLabel="Delete account"
         cancelLabel="Keep account"
         confirmTone="destructive"
+        holdToConfirm
         onConfirm={handleDeleteAccount}
         onCancel={handleDeleteCancel}
         isConfirmLoading={isDeletingAccount}
