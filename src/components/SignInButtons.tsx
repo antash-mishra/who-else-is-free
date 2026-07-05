@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { ActivityIndicator, Alert, Platform, StyleSheet, View } from 'react-native';
+
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
+import AppleLogo from '@assets/ui/apple-logo.svg';
+import GoogleLogo from '@assets/ui/google-logo.svg';
+import DevLoginButton from '@components/DevLoginButton';
 import { AppButton } from '@components/ui';
+import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from '@constants/featureFlags';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
-import { colors, spacing } from '@theme/index';
-import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
-import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from '@constants/featureFlags';
-import GoogleLogo from '@assets/ui/google-logo.svg';
-import AppleLogo from '@assets/ui/apple-logo.svg';
+import { colors } from '@theme/index';
 
 type SignInProvider = 'google' | 'apple';
 
@@ -266,6 +269,14 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
           style={styles.button}
         />
       ) : null}
+
+      {/*
+        DEV ONLY. The DevLoginButton itself short-circuits to a no-op render
+        in release builds (__DEV__ === false), so this is always safe to mount.
+        Kept inside SignInButtons so it appears on every unauthenticated
+        surface (Profile, Messages, My Events, Create Event) for easy access.
+      */}
+      <DevLoginButton />
     </View>
   );
 };

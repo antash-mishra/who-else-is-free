@@ -1,0 +1,32 @@
+# TEST_RUNS.md
+
+Live status board for on-device (Android emulator) verification runs. Appended per skill `test-on-device`.
+
+## 2026-07-05 — dev-login bypass for emulator testing
+- Change: Add `POST /api/dev-login` (env-gated `DEV_LOGIN_ENABLED=1`) on the backend + `__DEV__`-gated `DevLoginButton` mounted in part of `SignInButtons`. Test user `tester@who-else-is-free.test` (id 5) gets a real session JWT and `profile_complete: true`.
+- Flow: Sign out → Profile "Continue" → "Dev Login (tester)" → Discover → Profile.
+- Attempt 1: FAIL — DevLoginButton fired correctly, but `EXPO_PUBLIC_API_BASE_URL` was unset so the app's bundle pointed at the production backend (`https://who-else-is-free-server.fly.dev`), which correctly doesn't have the dev-login route → 404 → "Dev login is not enabled on the server." error caption. This validated the **error path**.
+- Attempt 2: PASS — Restarted Metro with `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080 EXPO_PUBLIC_CHAT_ENABLED=true`, reloaded the bundle, tapped "Dev Login (tester)". Backend log shows `POST /api/dev-login` from `127.0.0.1` returned 200, then the WS connected with the test user's JWT, plus authenticated `/api/conversations` and `/api/push-tokens` calls. App navigated to Discover; Profile screen shows "Tester / tester@who-else-is-free.test / 0 Hosted, 0 Joined".
+- Final: PASS — dev-login bypass is wired end-to-end and signed in the test user on the emulator.
+
+## Environment notes (for repro)
+- AVD: `WEIF_API_36` (started via `~/Library/Android/sdk/emulator/emulator -avd WEIF_API_36 -no-snapshot-load`).
+- Backend: `cd server && DEV_LOGIN_ENABLED=1 go run .` (listens on `:8080`).
+- Metro: `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080 EXPO_PUBLIC_CHAT_ENABLED=true npm start`.
+- Physical device unplugged (otherwise `mobile_init` fails with `adb: more than one device/emulator`).
+- App launch: `adb shell am start -n com.whoelseisfree.app/.MainActivity`. If it lands on Expo Dev Launcher, tap the `http://10.0.2.2:8081` row.
+
+## 2026-07-06 — stop badging system messages as unread (kind taxonomy)
+- Change: Add `messages.kind` ('user' | 'system') schema + migration backfill; tag `postJoinAnnouncement` and `emitEventUpdateChatMessages` as `kind=system`; exclude `kind='system'` from `countUnreadMessages`; client `message:new` handler skips `unreadCount++` for `kind==='system'`. See `docs/system-message-unread-plan.md` and `report/system-message-unread-fix-verification.html`.
+- Flow: Discover → (curl setup: Host creates group event + approves Tester join + edits event) → Messages (Tester) → ChatThread → back to Messages → (DB insert real user message) → refresh Messages.
+- Attempt 1: FAIL — `ensureMessageKindColumn`'s follow-up `ExecContext` for the backfill UPDATE deadlocked on the held PRAGMA rows cursor (5s test timeout). Fixed by mirroring `ensureEventGroupTypeColumn`: call `rows.Close()` before `ExecContext`, and early-return when `hasKind` is already true (so the backfill only runs once, immediately after ALTER).
+- Attempt 2: FAIL — `approveSingleJoinRequest`'s manual `insertMessage`/`Scan` had 6 columns but the SQL now returns 7 (added `kind`). Fixed by passing `string(MessageKindUser)` and scanning `&msg.Kind`.
+- Attempt 3: FAIL — `TestSystemMessageKindExcludedFromUnreadCount` asserted `last_message.body == "Updated Event Detail"` but SQLite `selectLatestMessageForConversation` had only `ORDER BY created_at DESC` — when approve + edit landed in the same second, the tiebreak was unspecified and sometimes returned the join announcement instead. Fixed by adding `, id DESC` to the ORDER BY so the most-recently-inserted row wins deterministically.
+- Attempt 4: PASS — server tests green (`go test ./...` 8s; new `TestSystemMessageKindExcludedFromUnreadCount` 5 sub-tests pass); frontend `npm run typecheck` clean, `npm test` 70 suites / 1154 tests pass. On emulator: after Host edits a Group event, the Tester's Messages screen shows NO red UnreadDot on the conversation whose last message is "Host: Updated Event Detail" (resource-id `conversation-unread-dot-8` absent). Chat thread shows "Updated Event Detail" + "Tester joined the chat" inline. After Host sends a real user message (`kind=user`), the red UnreadDot reappears (resource-id `conversation-unread-dot-8` present) — regression guard confirmed.
+- Final: PASS — system messages no longer badge; real user messages still badge. Full HTML report at `report/system-message-unread-fix-verification.html` with embedded screenshots, DB queries, and API payloads.
+
+## 2026-07-06 — full 4-cell verification matrix (host × member × group × 1:1)
+- Change: extended the system-message unread fix verification across all 4 cells — Group × {Host, Member} and 1:1 × {Host, Member} — to confirm no inconsistencies. Added three preset dev-login identities (Tester, Host, Member2) to DevLoginButton so cross-user flows can be exercised on the emulator.
+- Flow: curl setup (3 events: Group Event A host=Host+members Tester/Member2; 1:1 Event B host=Host+member Tester; 1:1 Event C host=Tester+member Member2) → cycle through Host/Tester/Member2 sign-ins on the emulator (via DevLoginButton presets) → Messages screen for each POV → chat thread screenshots showing system messages inline.
+- Attempt 1: PASS — Host POV: Event A (Group) + Event B (1:1) both unread=0, no red dots. Tester POV: Event A (Group, member) + Event B (1:1, member) + Event C (1:1, host) all unread=0, no red dots; old Emulator Test Group Event still has a red dot for the real kind=user message ("Hey Tester, see you there!") — regression guard. Member2 POV: Event A (Group, member) + Event C (1:1, member) both unread=0, no red dots. API confirmation across all 3 users: every conversation whose last_message is `kind='system'` returns `unread_count: 0`. Chat threads show system messages ("Updated Event Detail", "Tester joined the chat", "Member2 joined the chat") inline — fix only suppresses the badge, not the message.
+- Final: PASS — no inconsistencies across the 4-cell matrix. System messages never badge; real user messages still badge. Full HTML report at `report/system-message-unread-fix-verification.html` with the 2x2 matrix screenshot grid + API proofs + chat-thread screenshots.

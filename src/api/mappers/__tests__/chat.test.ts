@@ -163,6 +163,7 @@ describe('normalizeConversation', () => {
         conversationId: 50,
         senderId: 2,
         body: 'See you there',
+        kind: 'user',
         createdAt: '2026-06-11T10:00:00Z',
       },
       unreadCount: 3,

@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS messages (
     body TEXT NOT NULL,
     attachment_url TEXT,
     delivery_status TEXT NOT NULL DEFAULT 'sent',
+    kind TEXT NOT NULL DEFAULT 'user',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
     FOREIGN KEY (sender_id) REFERENCES users(id)
@@ -170,9 +171,9 @@ VALUES (?, ?, ?);
 `
 
 const insertMessage = `
-INSERT INTO messages (conversation_id, sender_id, body, attachment_url, delivery_status)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, conversation_id, sender_id, body, attachment_url, delivery_status, created_at;
+INSERT INTO messages (conversation_id, sender_id, body, attachment_url, delivery_status, kind)
+VALUES (?, ?, ?, ?, ?, ?)
+RETURNING id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, created_at;
 `
 
 const upsertReadState = `
@@ -220,7 +221,7 @@ ORDER BY m.sender_id ASC;
 `
 
 const selectMessagesForConversation = `
-SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, created_at
+SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, created_at
 FROM messages
 WHERE conversation_id = ?
 ORDER BY created_at DESC
@@ -228,10 +229,10 @@ LIMIT ? OFFSET ?;
 `
 
 const selectLatestMessageForConversation = `
-SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, created_at
+SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, created_at
 FROM messages
 WHERE conversation_id = ?
-ORDER BY created_at DESC
+ORDER BY created_at DESC, id DESC
 LIMIT 1;
 `
 
@@ -410,6 +411,12 @@ WHERE apple_sub = ?;
 const updateUserProfile = `
 UPDATE users
 SET name = ?, gender = ?, age = ?, avatar = ?, profile_complete = ?
+WHERE id = ?;
+`
+
+const markProfileComplete = `
+UPDATE users
+SET profile_complete = ?
 WHERE id = ?;
 `
 
@@ -718,6 +725,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createMessagesIndex); err != nil {
 		return fmt.Errorf("create messages index: %w", err)
 	}
+	if err := r.ensureMessageKindColumn(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createTableConversationReadState); err != nil {
 		return fmt.Errorf("create conversation read state table: %w", err)
 	}
@@ -979,6 +989,76 @@ func (r *EventRepository) ensureEventGroupTypeColumn(ctx context.Context) error 
 
 	if _, err := r.db.ExecContext(ctx, `ALTER TABLE events ADD COLUMN group_type TEXT NOT NULL DEFAULT 'Single';`); err != nil {
 		return fmt.Errorf("add group_type column: %w", err)
+	}
+	return nil
+}
+
+// ensureMessageKindColumn adds the `kind` column to messages for distinguishing
+// user-authored messages ('user') from system-generated messages ('system'),
+// such as join announcements ("X joined the chat") and event-update notices
+// ("Updated Event Detail"). The column defaults to 'user', and existing system
+// rows are backfilled so the unread-count exclusion (see countUnreadMessages)
+// applies retroactively — clearing phantom badges left over from before the
+// migration.
+//
+// The backfill runs ONCE, immediately after the ALTER. On subsequent starts
+// the column exists and we early-return; that's safe because each row already
+// has its correct kind (system rows got 'system' on the first migration, and
+// new rows get the right value at insert time). We must call rows.Close()
+// before any subsequent ExecContext on this db — the rows iterator holds a
+// connection, and SQLite serialises writes on the same DB, so an in-flight
+// rows cursor over a PRAGMA result blocks the follow-up ALTER/UPDATE. See
+// the matching pattern in ensureEventGroupTypeColumn.
+func (r *EventRepository) ensureMessageKindColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(messages);`)
+	if err != nil {
+		return fmt.Errorf("inspect messages table: %w", err)
+	}
+
+	hasKind := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan messages schema: %w", err)
+		}
+		if name == "kind" {
+			hasKind = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return fmt.Errorf("iterate messages schema: %w", err)
+	}
+	rows.Close()
+
+	if hasKind {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'user';`); err != nil {
+		return fmt.Errorf("add kind column: %w", err)
+	}
+
+	// Backfill existing system rows now that every row has kind='user' (the
+	// column default). Both patterns are server-authored constants (no
+	// user-controllable path produces these bodies), so pattern matching is
+	// safe. 'Updated Event Detail' is exact-matched because it is a fixed
+	// constant; the join announcement is "<Name> joined the chat".
+	if _, err := r.db.ExecContext(ctx, `
+UPDATE messages SET kind = 'system'
+WHERE kind = 'user'
+  AND (body = 'Updated Event Detail' OR body LIKE '% joined the chat');
+`); err != nil {
+		return fmt.Errorf("backfill system message kinds: %w", err)
 	}
 	return nil
 }

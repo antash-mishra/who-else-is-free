@@ -444,6 +444,7 @@ func (h *EventHandler) emitEventUpdateChatMessages(ctx context.Context, eventID,
 			SenderID:       hostUserID,
 			Body:           updatedEventDetailMessage,
 			DeliveryStatus: "sent",
+			Kind:           MessageKindSystem,
 		})
 		if err != nil {
 			log.Printf(

@@ -155,6 +155,20 @@ func (r *EventRepository) UpdateUserProfile(ctx context.Context, userID int64, p
 	return r.GetUserByID(ctx, userID)
 }
 
+// MarkProfileComplete flips the profile_complete flag for a user. Used by the
+// dev-login flow to mark a freshly created test user as onboarding-complete so
+// the client skips the Onboarding screen. No-op safe: setting true->true.
+func (r *EventRepository) MarkProfileComplete(ctx context.Context, userID int64, complete bool) error {
+	value := 0
+	if complete {
+		value = 1
+	}
+	if _, err := r.db.ExecContext(ctx, markProfileComplete, value, userID); err != nil {
+		return fmt.Errorf("mark profile complete: %w", err)
+	}
+	return nil
+}
+
 func (r *EventRepository) DeleteUserAccount(ctx context.Context, userID int64) (*DeleteUserAccountResult, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {

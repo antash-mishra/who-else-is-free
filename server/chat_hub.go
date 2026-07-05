@@ -115,6 +115,7 @@ type messagePayload struct {
 	ConversationID int64  `json:"conversationId"`
 	SenderID       int64  `json:"senderId"`
 	Body           string `json:"body"`
+	Kind           string `json:"kind"`
 	CreatedAt      string `json:"createdAt"`
 }
 
@@ -485,6 +486,7 @@ func (c *ChatClient) handleSend(inbound inboundEnvelope) {
 		SenderID:       c.userID,
 		Body:           inbound.Body,
 		DeliveryStatus: "sent",
+		Kind:           MessageKindUser,
 	}
 
 	msg, err := c.hub.repo.CreateMessage(ctx, params)
@@ -731,6 +733,7 @@ func (h *ChatHTTPHandler) listMessages(c *gin.Context) {
 			ConversationID: msg.ConversationID,
 			SenderID:       msg.SenderID,
 			Body:           msg.Body,
+			Kind:           string(msg.Kind),
 			CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
 		})
 	}
@@ -1256,6 +1259,7 @@ func (h *ChatHub) emitChatMessage(msg *Message, tempID string) {
 			ConversationID: msg.ConversationID,
 			SenderID:       msg.SenderID,
 			Body:           msg.Body,
+			Kind:           string(msg.Kind),
 			CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
 		},
 	}
@@ -1441,6 +1445,7 @@ func (h *ChatHTTPHandler) postJoinAnnouncement(ctx context.Context, conversation
 		SenderID:       view.UserID,
 		Body:           msgBody,
 		DeliveryStatus: "sent",
+		Kind:           MessageKindSystem,
 	})
 	if err != nil {
 		return err

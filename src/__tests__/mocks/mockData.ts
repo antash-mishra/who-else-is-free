@@ -187,6 +187,7 @@ export const mockMessages: ChatMessage[] = [
     conversationId: 1,
     senderId: 1,
     body: 'Hello everyone!',
+    kind: 'user',
     createdAt: new Date(Date.now() - 3600000).toISOString(),
   },
   {
@@ -194,6 +195,7 @@ export const mockMessages: ChatMessage[] = [
     conversationId: 1,
     senderId: 2,
     body: 'Hi there! Looking forward to the meetup.',
+    kind: 'user',
     createdAt: new Date(Date.now() - 1800000).toISOString(),
   },
   {
@@ -201,6 +203,7 @@ export const mockMessages: ChatMessage[] = [
     conversationId: 1,
     senderId: 1,
     body: 'See you soon!',
+    kind: 'user',
     createdAt: new Date().toISOString(),
   },
 ];
@@ -211,6 +214,7 @@ export const mockPendingMessage: ChatMessage = {
   conversationId: 1,
   senderId: 1,
   body: 'Sending...',
+  kind: 'user',
   createdAt: new Date().toISOString(),
   pending: true,
   tempId: 'temp-123',
@@ -222,6 +226,7 @@ export const mockFailedMessage: ChatMessage = {
   conversationId: 1,
   senderId: 1,
   body: 'Failed to send',
+  kind: 'user',
   createdAt: new Date().toISOString(),
   pending: false,
   tempId: 'temp-456',

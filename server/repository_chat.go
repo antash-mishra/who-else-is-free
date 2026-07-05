@@ -202,7 +202,7 @@ func (r *EventRepository) ListMessages(ctx context.Context, conversationID int64
 	for rows.Next() {
 		var msg Message
 		var attachment sql.NullString
-		if err := rows.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan message: %w", err)
 		}
 		if attachment.Valid {
@@ -224,11 +224,14 @@ func (r *EventRepository) CreateMessage(ctx context.Context, params CreateMessag
 	if params.AttachmentURL != nil {
 		attachment = sql.NullString{String: *params.AttachmentURL, Valid: true}
 	}
+	if params.Kind == "" {
+		params.Kind = MessageKindUser
+	}
 
 	var msg Message
-	row := r.db.QueryRowContext(ctx, insertMessage, params.ConversationID, params.SenderID, params.Body, attachment, params.DeliveryStatus)
+	row := r.db.QueryRowContext(ctx, insertMessage, params.ConversationID, params.SenderID, params.Body, attachment, params.DeliveryStatus, string(params.Kind))
 	var attachmentOut sql.NullString
-	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
+	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
 		return nil, fmt.Errorf("insert message: %w", err)
 	}
 	if attachmentOut.Valid {
@@ -482,8 +485,8 @@ func (r *EventRepository) approveSingleJoinRequest(ctx context.Context, event *E
 		// Persist the request intro as the first message in the approved private chat.
 		var msg Message
 		var attachmentOut sql.NullString
-		row := tx.QueryRowContext(ctx, insertMessage, convoID, userID, trimmedMessage, sql.NullString{}, "sent")
-		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
+		row := tx.QueryRowContext(ctx, insertMessage, convoID, userID, trimmedMessage, sql.NullString{}, "sent", string(MessageKindUser))
+		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("insert approved single intro message: %w", err)
 		}
@@ -923,7 +926,7 @@ func (r *EventRepository) fetchLatestMessage(ctx context.Context, conversationID
 
 	var msg Message
 	var attachment sql.NullString
-	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.CreatedAt); err != nil {
+	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
@@ -934,6 +937,7 @@ func (r *EventRepository) fetchLatestMessage(ctx context.Context, conversationID
 		ID:        msg.ID,
 		SenderID:  msg.SenderID,
 		Body:      msg.Body,
+		Kind:      msg.Kind,
 		CreatedAt: msg.CreatedAt,
 	}
 
@@ -956,10 +960,12 @@ func (r *EventRepository) countUnreadMessages(ctx context.Context, conversationI
 		return 0, nil
 	}
 
-	// The viewer's own messages are never unread. Without this, host-authored
-	// system messages (e.g. event updates) show as unread to the host.
+	// The viewer's own messages are never unread. System messages (join
+	// announcements, event-update notices) are server-generated and are never
+	// something the recipient needs to "read", so they are excluded from the
+	// unread count regardless of sender.
 	var count int
-	query := "SELECT COUNT(1) FROM messages WHERE conversation_id = ? AND id > ? AND sender_id <> ?"
+	query := "SELECT COUNT(1) FROM messages WHERE conversation_id = ? AND id > ? AND sender_id <> ? AND kind <> 'system'"
 	threshold := int64(0)
 	if lastReadID.Valid {
 		threshold = lastReadID.Int64

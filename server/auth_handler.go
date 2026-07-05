@@ -28,24 +28,33 @@ func (liveGoogleTokenVerifier) Validate(ctx context.Context, idToken, audience s
 }
 
 type AuthHandler struct {
-	repo           *EventRepository
-	signer         *tokenSigner
-	googleVerifier googleTokenVerifier
-	appleVerifier  appleTokenVerifier
+	repo            *EventRepository
+	signer          *tokenSigner
+	googleVerifier  googleTokenVerifier
+	appleVerifier   appleTokenVerifier
+	devLoginEnabled bool
 }
 
 func NewAuthHandler(repo *EventRepository, signer *tokenSigner) *AuthHandler {
+	devLoginEnabled := strings.TrimSpace(os.Getenv("DEV_LOGIN_ENABLED")) == "1"
+	if devLoginEnabled {
+		log.Printf("WARNING: DEV_LOGIN_ENABLED is on — /api/dev-login will issue real session tokens for a fixed test user. Never enable in production.")
+	}
 	return &AuthHandler{
-		repo:           repo,
-		signer:         signer,
-		googleVerifier: liveGoogleTokenVerifier{},
-		appleVerifier:  newLiveAppleTokenVerifier(),
+		repo:            repo,
+		signer:          signer,
+		googleVerifier:  liveGoogleTokenVerifier{},
+		appleVerifier:   newLiveAppleTokenVerifier(),
+		devLoginEnabled: devLoginEnabled,
 	}
 }
 
 func (h *AuthHandler) RegisterRoutes(group *gin.RouterGroup) {
 	group.POST("/google-login", h.googleLogin)
 	group.POST("/apple-login", h.appleLogin)
+	if h.devLoginEnabled {
+		group.POST("/dev-login", h.devLogin)
+	}
 }
 
 type googleLoginRequest struct {
@@ -101,6 +110,55 @@ func (h *AuthHandler) googleLogin(c *gin.Context) {
 	}
 
 	h.respondWithIssuedSession(c, user, "google-login", isNewUser)
+}
+
+// devLogin issues a real session token for a fixed test user without going
+// through Google/Apple. It is registered ONLY when DEV_LOGIN_ENABLED=1 and
+// must never be enabled in production.
+//
+// Request:  POST /api/dev-login  {"email":"...","name":"Tester","profile_complete":true}
+// Response: same shape as /api/google-login (user, token, is_new_user)
+func (h *AuthHandler) devLogin(c *gin.Context) {
+	if !h.devLoginEnabled {
+		c.JSON(http.StatusNotFound, gin.H{"error": "dev-login disabled"})
+		return
+	}
+	var payload devLoginRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	email := strings.TrimSpace(payload.Email)
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+		return
+	}
+	name := strings.TrimSpace(payload.Name)
+	if name == "" {
+		name = "Tester"
+	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+	user, _, err := h.getOrCreateUserByEmail(ctx, email, name)
+	if err != nil {
+		log.Printf("dev-login: failed to upsert user %s: %v", email, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load user"})
+		return
+	}
+	if payload.ProfileComplete != nil && *payload.ProfileComplete && !user.ProfileComplete {
+		if err := h.repo.MarkProfileComplete(ctx, user.ID, true); err != nil {
+			log.Printf("dev-login: failed to mark profile complete for %d: %v", user.ID, err)
+		} else {
+			user.ProfileComplete = true
+		}
+	}
+	h.respondWithIssuedSession(c, user, "dev-login", false)
+}
+
+type devLoginRequest struct {
+	Email           string `json:"email" binding:"required,email"`
+	Name            string `json:"name"`
+	ProfileComplete *bool  `json:"profile_complete"`
 }
 
 func (h *AuthHandler) appleLogin(c *gin.Context) {

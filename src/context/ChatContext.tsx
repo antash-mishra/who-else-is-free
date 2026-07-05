@@ -76,6 +76,7 @@ type ServerEnvelope = {
     conversationId: number;
     senderId: number;
     body: string;
+    kind?: 'user' | 'system';
     createdAt: string;
   };
   conversationId?: number;
@@ -94,6 +95,7 @@ type MessagesResponse = {
     conversationId: number;
     senderId: number;
     body: string;
+    kind?: 'user' | 'system';
     createdAt: string;
   }>;
 };
@@ -162,6 +164,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       conversationId: payload.conversationId,
       senderId: payload.senderId,
       body: payload.body,
+      kind: payload.kind === 'system' ? 'system' : 'user',
       createdAt: payload.createdAt,
     };
   }, []);
@@ -216,6 +219,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             conversationId: message.conversationId,
             senderId: message.senderId,
             body: message.body,
+            kind: (message.kind === 'system' ? 'system' : 'user') as ChatMessage['kind'],
             createdAt: message.createdAt,
           }));
 
@@ -541,6 +545,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
                   ...conversation,
                   lastMessage: preview,
                   unreadCount:
+                    message.kind === 'system' ||
                     message.senderId === currentUserId ||
                     conversation.id === currentActiveConversationId
                       ? 0
@@ -817,6 +822,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           senderId: user?.id ?? 0,
           body: trimmed,
           createdAt: timestamp,
+          kind: 'user',
           pending: false,
           tempId,
           failed: true,
@@ -850,6 +856,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         senderId: user?.id ?? 0,
         body: trimmed,
         createdAt: timestamp,
+        kind: 'user',
         pending: true,
         tempId,
       };

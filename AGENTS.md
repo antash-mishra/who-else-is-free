@@ -14,6 +14,7 @@ Project guide for coding agents and contributors working in this repository.
 - Shared components and shared styling catalog: `report/shared-components-refactor-guide.md`.
 - Refactor roadmap and rationale: `report/code-refactoring-consistency-plan.md`.
 - Performance reports: `report/performance-consistency-audit.html` and `report/performance-baseline.html`.
+- Google EAS/Fly secret runbook: `docs/google-build-and-places-secrets.md`.
 - Mobile QA history reports belong in `report/`; keep QA history separate from evergreen component/style references.
 
 Read `report/shared-components-refactor-guide.md` before adding or refactoring UI. It explains what each shared component is, where it is used, and which theme/style files act as shared CSS.
@@ -208,6 +209,35 @@ For visual or interaction refactors, manually smoke test on the connected mobile
 - Event Details
 - Bottom sheets and action menus
 - Back navigation
+
+### Emulator Verification With mobile-mcp
+
+Pi's documented way to connect to MCP servers is via **extensions** (pi has no built-in MCP support; see its README philosophy: "Build CLI tools with READMEs (Skills), or build an extension that adds MCP support"). Both pieces below are **project-local** under `.pi/` so they travel with the repo and load after project trust:
+
+- `.pi/extensions/mobile-mcp/` — a bridge extension that spawns the `mobile-mcp` server as a stdio subprocess and exposes the Android emulator/device as pi tools: `mobile_init`, `mobile_open_app`, `mobile_dump_ui`, `mobile_tap`, `mobile_swipe`, `mobile_type`, `mobile_key_press`, `mobile_screenshot`, `mobile_list_packages`. `mobile_screenshot` returns a real PNG that vision-capable models can see, so fixes can be visually verified. After a fresh clone, run `cd .pi/extensions/mobile-mcp && npm install` once (its `node_modules` is gitignored).
+- `.pi/skills/fix-issues-on-device/SKILL.md` — the batch workflow: implement a fix, run typecheck/tests, rebuild and install via `npm run android`, navigate to the issue's screen with `mobile_dump_ui`/`mobile_tap`, capture `mobile_screenshot`, inspect it, and retry up to 5 times per issue, using `ISSUES.md` as the live status board.
+- `.pi/skills/test-on-device/SKILL.md` — the single-change verification workflow: after implementing a feature/fix, prove it works on the Android emulator by bypassing Google/Apple sign-in with a dev-login dummy user and driving the app with the `mobile_*` tools. Covers starting an AVD, env wiring for emulator builds (`EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080`), Metro preconditions, handling the Expo Dev Launcher screen, signing in via the `DevLoginButton` (testID `dev-login-button`, mounted inside `SignInButtons` behind `__DEV__`), reproducing the changed flow, and recording a pass/fail verdict on `TEST_RUNS.md`. Emulator-only — never targets a physical device.
+
+### Dev-Login Bypass For Emulator Testing
+
+For testing on the emulator without going through Google/Apple sign-in, the backend exposes a dev-login route and the client a `__DEV__`-gated button:
+
+- **Server** (`server/auth_handler.go`): `POST /api/dev-login` registered ONLY when `DEV_LOGIN_ENABLED=1` (env flag, off by default, logs a loud `WARNING` when on). It reuses `getOrCreateUserByEmail` + `respondWithIssuedSession`, so the returned token is a real session JWT accepted by every authenticated endpoint and the WebSocket. Request body: `{"email":"tester@who-else-is-free.test","name":"Tester","profile_complete":true}`. The fixed email keeps a stable, reproducible seed user across sessions. **Never enable `DEV_LOGIN_ENABLED` in production or commit it to `.env` / `Dockerfile` / EAS build config.**
+- **Client** (`src/components/DevLoginButton.tsx`): `__DEV__`-gated button that calls `useAuth().signInWithDevUser(...)` on tap, mounting inside `SignInButtons` so it appears on every unauthenticated surface. In release builds (`__DEV__ === false`) the default export is `() => null`, so the button can never render regardless of the backend flag.
+- **Two independent switches, both off in production:** the server env flag AND the client `__DEV__` gate. Either alone is enough to keep dev-login out of release builds.
+
+### Emulator Test Session Setup
+
+When running the `test-on-device` skill, the per-session environment is:
+
+- **Emulator AVD:** `WEIF_API_36` (launched via `~/Library/Android/sdk/emulator/emulator -avd WEIF_API_36 -no-snapshot-load`). The `emulator` binary is not on `$PATH` by default; use the absolute path.
+- **Targeting:** if a physical device is also connected over USB, `mobile-mcp` fails with `adb: more than one device/emulator` (it runs bare `adb shell` with no `-s <serial>`). Either unplug the physical device, OR start pi with `ANDROID_SERIAL=emulator-5554` so the mobile-mcp subprocess inherits it. Verify the target is an emulator (`emulator-<port>` + `product:sdk_gphone*`) via `adb devices -l`.
+- **Backend:** `cd server && DEV_LOGIN_ENABLED=1 go run .` (listens on `:8080`).
+- **Metro:** `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080 EXPO_PUBLIC_CHAT_ENABLED=true npm start`. The `10.0.2.2` alias is the emulator's special route to the host loopback — it does NOT exist on physical devices.
+- **App launch:** `adb shell am start -n com.whoelseisfree.app/.MainActivity` (the `mobile_open_app` `monkey` invocation silently no-ops on this Expo Dev Launcher build). If the app lands on the Dev Launcher screen listing dev servers, tap the `http://10.0.2.2:8081` row to connect to Metro.
+- **Status board:** keep `TEST_RUNS.md` in the project root as the durable log of every device-test verdict.
+
+One emulator is a shared device, so verify changes sequentially, never call `mobile_*` tools in parallel. Trust the project with `/trust` (or `pi -a`) so `.pi/` resources load.
 
 ## Known Quality Gates To Improve
 

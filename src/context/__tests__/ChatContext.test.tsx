@@ -54,6 +54,7 @@ describe('ChatContext', () => {
         conversationId: 1,
         senderId: 1,
         body: 'Old message',
+        kind: 'user',
         createdAt: new Date(Date.now() - 3600000).toISOString(),
       };
       conversations[1].lastMessage = {
@@ -61,6 +62,7 @@ describe('ChatContext', () => {
         conversationId: 2,
         senderId: 2,
         body: 'New message',
+        kind: 'user',
         createdAt: new Date().toISOString(),
       };
 

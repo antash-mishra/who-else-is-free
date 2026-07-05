@@ -6630,3 +6630,228 @@ func TestPushPresenceSuppression(t *testing.T) {
 		}
 	})
 }
+
+// TestSystemMessageKindExcludedFromUnreadCount proves the core fix: server-
+// generated system messages ("Updated Event Detail" on event edit, "X joined
+// the chat" on join approval) must be tagged kind='system' at insert time and
+// excluded from the recipient's unread_count — both for group events and for
+// 1:1 (Single) event private conversations. Real user messages must still bump
+// unread_count (regression guard).
+
+// TestSystemMessageKindExcludedFromUnreadCount proves the core fix: server-
+// generated system messages ("Updated Event Detail" on event edit, "X joined
+// the chat" on join approval) must be tagged kind='system' at insert time and
+// excluded from the recipient's unread_count — both for group events and for
+// 1:1 (Single) event private conversations. Real user messages must still bump
+// unread_count (regression guard).
+func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
+	env := setupAPITestEnv(t)
+
+	avaToken := env.issueTokenForEmail(t, "ava@example.com")   // host, user id 1
+	noahToken := env.issueTokenForEmail(t, "noah@example.com") // requester, user id 4
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	noahUser, err := env.repo.GetUserByEmail(ctx, "noah@example.com")
+	if err != nil {
+		t.Fatalf("load noah: %v", err)
+	}
+
+	// 1) Group event — edit emits "Updated Event Detail" (kind=system).
+	var groupEventID int64
+	t.Run("group event edit does not badge non-host members for the update message", func(t *testing.T) {
+		body := CreateEventParams{
+			Title:     "Group System Msg Test",
+			Location:  "Original",
+			Time:      "18:00",
+			EventDate: time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Gender:    "Any", MinAge: 18, MaxAge: 50,
+			GroupType: "Group", CoverKey: defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("create event: got %d", resp.StatusCode)
+		}
+		groupEventID = decodeJSON[createEventResponse](t, resp).ID
+
+		// Noah requests + Ava approves.
+		joinBody := map[string]string{"message": "host me"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", groupEventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("join request: got %d", resp.StatusCode)
+		}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", groupEventID, noahUser.ID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("approve join: got %d", resp.StatusCode)
+		}
+
+		// Ava edits the event.
+		editBody := UpdateEventParams{
+			Title: "Group System Msg Test (Edited)", Location: "Edited", Time: "19:00",
+			EventDate: time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Gender:    "Any", MinAge: 18, MaxAge: 50, GroupType: "Group",
+		}
+		resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", groupEventID), avaToken, editBody)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("edit event: got %d", resp.StatusCode)
+		}
+
+		// Noah (non-host, not the editor) lists his conversations. The group convo's
+		// "Updated Event Detail" must NOT contribute to unread_count.
+		resp = env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("list noah conversations: got %d", resp.StatusCode)
+		}
+		convos := decodeJSON[listConversationResponse](t, resp).Conversations
+		var groupConvo *ConversationSummary
+		for i := range convos {
+			if convos[i].Event != nil && convos[i].Event.ID == groupEventID {
+				groupConvo = &convos[i]
+				break
+			}
+		}
+		if groupConvo == nil {
+			t.Fatalf("noah did not see the group conversation for event %d", groupEventID)
+		}
+		if groupConvo.UnreadCount != 0 {
+			t.Fatalf("group: expected unread_count 0 for non-host after event edit, got %d", groupConvo.UnreadCount)
+		}
+		if groupConvo.LastMessage == nil || groupConvo.LastMessage.Body != "Updated Event Detail" {
+			t.Fatalf("group: expected last_message 'Updated Event Detail', got %+v", groupConvo.LastMessage)
+		}
+	})
+
+	// 2) The persisted row for "Updated Event Detail" has kind='system'.
+	t.Run("persisted update message row is tagged kind=system", func(t *testing.T) {
+		var kind string
+		err := env.db.QueryRowContext(ctx,
+			`SELECT kind FROM messages WHERE body = 'Updated Event Detail' AND conversation_id IN (SELECT id FROM conversations WHERE event_id = ?) LIMIT 1;`,
+			groupEventID,
+		).Scan(&kind)
+		if err != nil {
+			t.Fatalf("query kind: %v", err)
+		}
+		if kind != "system" {
+			t.Fatalf("expected kind 'system' for Updated Event Detail, got %q", kind)
+		}
+	})
+
+	// 3) Join announcement "X joined the chat" is tagged kind='system'.
+	t.Run("persisted join announcement row is tagged kind=system", func(t *testing.T) {
+		var kind string
+		err := env.db.QueryRowContext(ctx,
+			`SELECT kind FROM messages WHERE body LIKE '% joined the chat' AND conversation_id IN (SELECT id FROM conversations WHERE event_id = ?) LIMIT 1;`,
+			groupEventID,
+		).Scan(&kind)
+		if err != nil {
+			t.Fatalf("query kind: %v", err)
+		}
+		if kind != "system" {
+			t.Fatalf("expected kind 'system' for join announcement, got %q", kind)
+		}
+	})
+
+	// 4) Single (1:1) event edit still emits the update message to each approved
+	// private conversation, and that message is unread=0 for the requester.
+	var singleEventID int64
+	t.Run("single event edit does not badge approved requesters", func(t *testing.T) {
+		body := CreateEventParams{
+			Title: "Single System Msg Test", Location: "Original", Time: "18:00",
+			EventDate: time.Now().Add(48 * time.Hour).Format("2006-01-02"),
+			Gender:    "Any", MinAge: 18, MaxAge: 50, GroupType: "Single", CoverKey: defaultCoverKey,
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/events", avaToken, body)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("create event: got %d", resp.StatusCode)
+		}
+		singleEventID = decodeJSON[createEventResponse](t, resp).ID
+
+		joinBody := map[string]string{"message": "let me in please"}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", singleEventID), noahToken, joinBody)
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("join request: got %d", resp.StatusCode)
+		}
+		resp = env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests/%d/approve", singleEventID, noahUser.ID), avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("approve join: got %d", resp.StatusCode)
+		}
+
+		editBody := UpdateEventParams{
+			Title: "Single System Msg Test (Edited)", Location: "Edited", Time: "19:00",
+			EventDate: time.Now().Add(72 * time.Hour).Format("2006-01-02"),
+			Gender:    "Any", MinAge: 18, MaxAge: 50, GroupType: "Single",
+		}
+		resp = env.doRequest(t, http.MethodPut, fmt.Sprintf("/api/events/%d", singleEventID), avaToken, editBody)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("edit event: got %d", resp.StatusCode)
+		}
+
+		// Noah lists conversations; the 1:1 conversation's last message should be
+		// "Updated Event Detail" with unread_count == 0 (kind=system is excluded).
+		resp = env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("list noah conversations: got %d", resp.StatusCode)
+		}
+		convos := decodeJSON[listConversationResponse](t, resp).Conversations
+		var private *ConversationSummary
+		for i := range convos {
+			if convos[i].Event != nil && convos[i].Event.ID == singleEventID {
+				private = &convos[i]
+				break
+			}
+		}
+		if private == nil {
+			t.Fatalf("noah did not see the 1:1 conversation for single event %d", singleEventID)
+		}
+		if private.UnreadCount != 0 {
+			t.Fatalf("single: expected unread_count 0 for approved requester after event edit, got %d", private.UnreadCount)
+		}
+		if private.LastMessage == nil || private.LastMessage.Body != "Updated Event Detail" {
+			t.Fatalf("single: expected last_message 'Updated Event Detail', got %+v", private.LastMessage)
+		}
+	})
+
+	// 5) Regression guard: a real user message in the group conversation still
+	// bumps unread_count for the other participant.
+	t.Run("real user message still bumps unread_count for the other participant", func(t *testing.T) {
+		// Noah sends a real message in the group conversation.
+		var groupConvoID int64
+		if err := env.db.QueryRowContext(ctx, `SELECT id FROM conversations WHERE event_id = ? AND title IS NOT NULL ORDER BY id ASC LIMIT 1;`, groupEventID).Scan(&groupConvoID); err != nil {
+			t.Fatalf("find group conversation: %v", err)
+		}
+		msg, err := env.repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: groupConvoID,
+			SenderID:       noahUser.ID,
+			Body:           "Hey everyone, is this still on?",
+			DeliveryStatus: "sent",
+			Kind:           MessageKindUser,
+		})
+		if err != nil {
+			t.Fatalf("create user message: %v", err)
+		}
+		if msg.Kind != MessageKindUser {
+			t.Fatalf("expected user message kind 'user', got %q", msg.Kind)
+		}
+
+		// Ava (host, not the sender) lists conversations; that group convo's
+		// unread_count must be >= 1 from Noah's real message.
+		resp := env.doRequest(t, http.MethodGet, "/api/conversations", avaToken, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("list ava conversations: got %d", resp.StatusCode)
+		}
+		convos := decodeJSON[listConversationResponse](t, resp).Conversations
+		var groupConvo *ConversationSummary
+		for i := range convos {
+			if convos[i].ID == groupConvoID {
+				groupConvo = &convos[i]
+				break
+			}
+		}
+		if groupConvo == nil {
+			t.Fatalf("ava did not see group conversation %d", groupConvoID)
+		}
+		if groupConvo.UnreadCount < 1 {
+			t.Fatalf("real user message must bump unread_count, got %d", groupConvo.UnreadCount)
+		}
+	})
+}

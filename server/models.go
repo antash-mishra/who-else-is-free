@@ -54,14 +54,27 @@ type ConversationMember struct {
 	Role           string    `json:"role"`
 }
 
+type MessageKind string
+
+const (
+	// MessageKindUser is the default kind for messages authored by a user.
+	MessageKindUser MessageKind = "user"
+	// MessageKindSystem marks server-generated messages such as join
+	// announcements ("X joined the chat") and event-update notices
+	// ("Updated Event Detail"). They show inline in the thread and as the
+	// last-message preview, but must NOT bump unread counts.
+	MessageKindSystem MessageKind = "system"
+)
+
 type Message struct {
-	ID             int64     `json:"id"`
-	ConversationID int64     `json:"conversation_id"`
-	SenderID       int64     `json:"sender_id"`
-	Body           string    `json:"body"`
-	AttachmentURL  *string   `json:"attachment_url,omitempty"`
-	DeliveryStatus string    `json:"delivery_status"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID             int64       `json:"id"`
+	ConversationID int64       `json:"conversation_id"`
+	SenderID       int64       `json:"sender_id"`
+	Body           string      `json:"body"`
+	AttachmentURL  *string     `json:"attachment_url,omitempty"`
+	DeliveryStatus string      `json:"delivery_status"`
+	Kind           MessageKind `json:"kind"`
+	CreatedAt      time.Time   `json:"created_at"`
 }
 
 type ConversationSummary struct {
@@ -79,6 +92,7 @@ type CreateMessageParams struct {
 	Body           string
 	AttachmentURL  *string
 	DeliveryStatus string
+	Kind           MessageKind
 }
 
 type ConversationParticipant struct {
@@ -101,10 +115,11 @@ type ConversationEventMeta struct {
 }
 
 type MessageSummary struct {
-	ID        int64     `json:"id"`
-	SenderID  int64     `json:"sender_id"`
-	Body      string    `json:"body"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64       `json:"id"`
+	SenderID  int64       `json:"sender_id"`
+	Body      string      `json:"body"`
+	Kind      MessageKind `json:"kind"`
+	CreatedAt time.Time   `json:"created_at"`
 }
 
 type ConversationJoinRequest struct {

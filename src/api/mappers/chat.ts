@@ -12,6 +12,7 @@ export type ChatMessage = {
   senderId: number;
   body: string;
   createdAt: string;
+  kind: 'user' | 'system';
   pending?: boolean;
   tempId?: string;
   failed?: boolean;
@@ -84,6 +85,7 @@ export type RawConversationLastMessage = {
   id: number;
   sender_id: number;
   body: string;
+  kind?: 'user' | 'system';
   created_at: string;
 };
 
@@ -180,6 +182,7 @@ export const normalizeConversation = (
         conversationId: conversation.id,
         senderId: conversation.last_message.sender_id,
         body: conversation.last_message.body,
+        kind: (conversation.last_message.kind === 'system' ? 'system' : 'user') as ChatMessage['kind'],
         createdAt: conversation.last_message.created_at,
       }
     : undefined;

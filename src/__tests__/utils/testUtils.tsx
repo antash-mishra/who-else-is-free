@@ -710,6 +710,7 @@ export const createMockMessage = (
   senderId: 1,
   body: 'Test message',
   createdAt: new Date().toISOString(),
+  kind: 'user',
   ...overrides,
 });
 

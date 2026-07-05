@@ -50,6 +50,9 @@ interface AuthContextValue {
   isSigningIn: boolean;
   signInWithGoogle: (idToken: string) => Promise<AuthUser>;
   signInWithApple: (idToken: string) => Promise<AuthUser>;
+  /** DEV ONLY. Issues a real session token for a fixed test user via /api/dev-login.
+   *  Requires the backend to be started with DEV_LOGIN_ENABLED=1. */
+  signInWithDevUser: (email: string, name?: string) => Promise<AuthUser>;
   signOut: () => void;
   refreshSessionSilently: () => Promise<string | null>;
   updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
@@ -234,6 +237,74 @@ export const AuthProvider = ({
     async (idToken: string) =>
       signInWithProvider('apple', 'apple-login', idToken, 'Unable to sign in with Apple.'),
     [signInWithProvider],
+  );
+
+  // DEV ONLY: signs in a fixed test user without going through Google/Apple.
+  // The route only exists on the backend when DEV_LOGIN_ENABLED=1, so in any
+  // release or non-dev server this call fails with 404 and surfaces an error
+  // Alert. Gated client-side, this is safe to always be present in the bundle:
+  // the worst case in prod is a 404 nobody can reach because the button that
+  // calls it is __DEV__-only.
+  const signInWithDevUser = useCallback(
+    async (email: string, name: string = 'Tester'): Promise<AuthUser> => {
+      setIsSigningIn(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/dev-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name, profile_complete: true }),
+        });
+        if (response.status === 404) {
+          throw new Error('Dev login is not enabled on the server. Start the backend with DEV_LOGIN_ENABLED=1.');
+        }
+        if (!response.ok) {
+          throw new Error(`Unable to dev-login. Server responded with status ${response.status}.`);
+        }
+        const payload = (await response.json()) as {
+          user: {
+            id: number;
+            name: string;
+            email: string;
+            gender?: 'Female' | 'Male';
+            age?: number;
+            avatar?: string;
+            profile_complete: boolean;
+          };
+          token: string;
+          is_new_user?: boolean;
+        };
+        const authUser: AuthUser = {
+          id: payload.user.id,
+          name: payload.user.name,
+          email: payload.user.email,
+          gender: payload.user.gender,
+          age: payload.user.age,
+          avatar: payload.user.avatar,
+          profileComplete: payload.user.profile_complete,
+        };
+        setUser(authUser);
+        setToken(payload.token);
+        setAuthProvider('google');
+        await Promise.all([
+          SecureStore.setItemAsync(TOKEN_KEY, payload.token),
+          SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser)),
+          SecureStore.setItemAsync(AUTH_PROVIDER_KEY, 'google'),
+        ]);
+        trackEvent('login_succeeded', { provider: 'dev' }).catch(() => undefined);
+        return authUser;
+      } catch (error) {
+        trackEvent('login_failed', { provider: 'dev', failure_stage: 'server' }).catch(
+          () => undefined,
+        );
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error('Unable to sign in via dev-login. Please try again.');
+      } finally {
+        setIsSigningIn(false);
+      }
+    },
+    [],
   );
 
   const refreshSessionSilently = useCallback(async (): Promise<string | null> => {
@@ -422,6 +493,7 @@ export const AuthProvider = ({
       isSigningIn,
       signInWithGoogle,
       signInWithApple,
+      signInWithDevUser,
       signOut,
       refreshSessionSilently,
       updateProfile,
@@ -435,6 +507,7 @@ export const AuthProvider = ({
       isSigningIn,
       signInWithGoogle,
       signInWithApple,
+      signInWithDevUser,
       signOut,
       refreshSessionSilently,
       updateProfile,
