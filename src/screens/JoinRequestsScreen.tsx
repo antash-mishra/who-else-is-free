@@ -171,6 +171,15 @@ const JoinRequestsScreen = () => {
         return intro.length > 0 ? intro : 'No messages yet';
       }
 
+      // System messages (event-update notices, join announcements) are
+      // server-generated and already self-describing ("X joined the chat",
+      // "Updated Event Detail"). Show the body as-is without a "Sender: "
+      // prefix, which would otherwise produce awkward duplicates like
+      // "Sumit: Sumit Narang joined the chat".
+      if (lastMessage.kind === 'system') {
+        return lastMessage.body;
+      }
+
       if (lastMessage.senderId === user?.id) {
         return `You: ${lastMessage.body}`;
       }

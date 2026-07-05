@@ -61,8 +61,11 @@ const ConversationRow = ({
     item.lastMessage?.body ??
     (isPendingSingleHostPlaceholder(item, userId) ? 'No accepted members yet' : 'No messages yet');
   const isOwnMessage = item.lastMessage?.senderId === userId;
+  const isSystemMessage = item.lastMessage?.kind === 'system';
   const previewText = item.lastMessage
-    ? `${isOwnMessage ? 'You' : (counterpart?.name?.split(' ')[0] ?? '')}: ${lastMessageBody}`
+    ? isSystemMessage
+      ? lastMessageBody
+      : `${isOwnMessage ? 'You' : (counterpart?.name?.split(' ')[0] ?? '')}: ${lastMessageBody}`
     : lastMessageBody;
   const timestampLabel = item.lastMessage?.createdAt
     ? formatCompactRelativeTime(item.lastMessage.createdAt, nowMs)
