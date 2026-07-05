@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     top: 12,
     right: 16,
     zIndex: 10,
+    elevation: 10,
   },
   backButton: {
     position: 'absolute',
@@ -293,6 +294,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.lg,
     left: spacing.lg,
+  },
+  fallbackCloseButton: {
+    position: 'absolute',
+    top: spacing.lg,
+    right: spacing.lg,
   },
 
   // Separator bar before tabs (host only)

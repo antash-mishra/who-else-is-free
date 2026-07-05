@@ -15,6 +15,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { API_BASE_URL } from '@api/config';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
+import CloseIcon from '@assets/ui/close.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import { useAuth } from '@context/AuthContext';
 import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
@@ -41,13 +42,16 @@ import { useHostRequestActions } from './event-details/useHostRequestActions';
 
 const EventDetailsScreenContent = ({
   initialEventSnapshot,
+  onOverlayClose,
 }: {
   initialEventSnapshot: UserEvent;
+  onOverlayClose?: () => void;
 }) => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
   const isOverlay = route.name === 'EventDetailsOverlay';
+  const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -204,13 +208,25 @@ const EventDetailsScreenContent = ({
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.fallbackContainer}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={navigation.goBack}
-            style={styles.fallbackBackButton}
-          >
-            <ChevronLeftIcon width={24} height={24} color={colors.text} />
-          </Pressable>
+          {isOverlay ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close event details"
+              onPress={handleOverlayClose}
+              style={styles.fallbackCloseButton}
+            >
+              <CloseIcon width={24} height={24} color={colors.text} />
+            </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={navigation.goBack}
+              style={styles.fallbackBackButton}
+            >
+              <ChevronLeftIcon width={24} height={24} color={colors.text} />
+            </Pressable>
+          )}
           <Text style={styles.fallbackText}>We couldn't find that event.</Text>
         </View>
       </SafeAreaView>
@@ -240,6 +256,8 @@ const EventDetailsScreenContent = ({
     ? isSingleEvent || !!eventConversation
     : isConversationMember && !!eventConversation;
   const shouldPinBottomCTA = !readOnly && (showStandardCTA || showOpenChatCTA);
+  const heroTopInset = isOverlay ? 0 : insets.top;
+  const floatingButtonTop = isOverlay ? 12 : insets.top + 10;
   const overlayBottomPadding = isOverlay ? Math.max(insets.bottom + spacing.lg, spacing.xl) : 0;
   const pageScrollContentStyle = [
     styles.pageScrollContent,
@@ -257,25 +275,41 @@ const EventDetailsScreenContent = ({
       />
 
       <View style={styles.contentWrapper}>
-        {!readOnly ? (
+        {isOverlay ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close event details"
+            onPress={handleOverlayClose}
+            style={[
+              styles.overlayCloseButton,
+              styles.overlayCloseButtonFixed,
+              { top: floatingButtonTop },
+            ]}
+            hitSlop={12}
+          >
+            <CloseIcon width={24} height={24} color={colors.buttonText} />
+          </Pressable>
+        ) : !readOnly ? (
           <>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Go back"
               onPress={() => {
                 triggerHaptic('light');
                 navigation.goBack();
               }}
-              style={[styles.backButton, { top: insets.top + 10 }]}
+              style={[styles.backButton, { top: floatingButtonTop }]}
             >
               <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="More event actions"
               onPress={() => {
                 triggerHaptic('light');
                 setShowMenuOverlay(true);
               }}
-              style={[styles.menuButton, { top: insets.top + 10 }]}
+              style={[styles.menuButton, { top: floatingButtonTop }]}
             >
               <MoreHorizontalIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
@@ -283,12 +317,13 @@ const EventDetailsScreenContent = ({
         ) : (
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Go back"
             onPress={() => {
               triggerHaptic('light');
               navigation.goBack();
             }}
             hitSlop={12}
-            style={[styles.backButton, { top: insets.top + 10 }]}
+            style={[styles.backButton, { top: floatingButtonTop }]}
           >
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
@@ -299,7 +334,7 @@ const EventDetailsScreenContent = ({
           alwaysBounceVertical={false}
           contentContainerStyle={pageScrollContentStyle}
         >
-          <EventDetailsHero imageUri={event.imageUri} topInset={insets.top} />
+          <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} />
           <View style={styles.card}>
             <EventDetailsInfo
               title={event.title}
@@ -481,11 +516,17 @@ const EventDetailsScreenContent = ({
   );
 };
 
-const EventDetailsScreen = () => {
+type EventDetailsScreenProps = {
+  onOverlayClose?: () => void;
+};
+
+const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
   const { events } = useEvents();
   const { token, authFetch } = useAuth();
+  const isOverlay = route.name === 'EventDetailsOverlay';
+  const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const routeEventId = route.params.eventId;
   const rawEvent = useMemo(
     () => events.find((item) => item.id === routeEventId),
@@ -561,13 +602,25 @@ const EventDetailsScreen = () => {
             <ActivityIndicator size="large" color={colors.primary} />
           ) : (
             <>
-              <Pressable
-                accessibilityRole="button"
-                onPress={navigation.goBack}
-                style={styles.fallbackBackButton}
-              >
-                <ChevronLeftIcon width={24} height={24} color={colors.text} />
-              </Pressable>
+              {isOverlay ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close event details"
+                  onPress={handleOverlayClose}
+                  style={styles.fallbackCloseButton}
+                >
+                  <CloseIcon width={24} height={24} color={colors.text} />
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  onPress={navigation.goBack}
+                  style={styles.fallbackBackButton}
+                >
+                  <ChevronLeftIcon width={24} height={24} color={colors.text} />
+                </Pressable>
+              )}
               <Text style={styles.fallbackText}>We couldn't find that event.</Text>
             </>
           )}
@@ -576,7 +629,12 @@ const EventDetailsScreen = () => {
     );
   }
 
-  return <EventDetailsScreenContent initialEventSnapshot={eventSnapshot} />;
+  return (
+    <EventDetailsScreenContent
+      initialEventSnapshot={eventSnapshot}
+      onOverlayClose={onOverlayClose}
+    />
+  );
 };
 
 export default EventDetailsScreen;

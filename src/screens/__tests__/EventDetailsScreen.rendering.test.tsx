@@ -1639,6 +1639,26 @@ describe('EventDetailsScreen Rendering Tests', () => {
         }),
       );
     });
+
+    it('keeps the back action for read-only EventDetails routes', () => {
+      mockAuthState.user = mockUser;
+      mockAuthState.token = null;
+      mockAuthState.authFetch = jest.fn();
+      mockEventsState.events = [mockOwnedEvent];
+      mockChatState.conversations = [];
+
+      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
+        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetails', true)
+      );
+
+      const { getByLabelText, queryByLabelText } = render(<EventDetailsScreen />);
+
+      expect(queryByLabelText('Close event details')).toBeNull();
+
+      fireEvent.press(getByLabelText('Go back'));
+
+      expect(mockGoBack).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Overlay Members Tab', () => {
@@ -1771,6 +1791,46 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(queryAllByText('Members')).toHaveLength(1);
       expect(mockAuthState.authFetch).not.toHaveBeenCalled();
+    });
+
+    it('uses a right-side close action instead of a back action for read-only overlays', () => {
+      mockAuthState.user = mockOtherUser;
+      mockEventsState.events = [mockOwnedEvent];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockOwnedEvent.id),
+          memberIds: [1, 2],
+          participants: [
+            { id: 1, name: 'Ava Test' },
+            { id: 2, name: 'Liam Test' },
+          ],
+        },
+      ];
+
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
+        );
+
+      const { getByLabelText, queryByLabelText } = render(<EventDetailsScreen />);
+      const closeButton = getByLabelText('Close event details');
+
+      expect(queryByLabelText('Go back')).toBeNull();
+      expect(closeButton.props.style).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            position: 'absolute',
+            top: 12,
+            right: 16,
+          }),
+        ]),
+      );
+
+      fireEvent.press(closeButton);
+
+      expect(mockGoBack).toHaveBeenCalledTimes(1);
     });
   });
 });
