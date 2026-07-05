@@ -3,7 +3,6 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CloseIcon from '@assets/ui/close.svg';
-import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
 
 import { colors, spacing, typography } from '@theme/index';
 import { useChat, ChatJoinRequest } from '@context/ChatContext';
@@ -12,6 +11,11 @@ import EmptyState from '@components/EmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import { EventRequestRow, EventRequestRowSeparator } from '@components/events';
 import { IconButton } from '@components/ui';
+
+// Shared illustration for the request empty state.
+const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
+const EMPTY_ILLUSTRATION_WIDTH = 293;
+const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
 type PendingRequestsRoute = RouteProp<RootStackParamList, 'PendingRequests'>;
 type PendingRequestsNavigation = NativeStackNavigationProp<RootStackParamList, 'PendingRequests'>;
@@ -116,7 +120,9 @@ const PendingRequestsScreen = () => {
             <EmptyState
               title="No pending requests"
               description="Join requests will appear here"
-              icon={<EmptyRequestIcon width={64} height={64} />}
+              imageSource={EMPTY_ILLUSTRATION}
+              imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+              imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
             />
           ) : (
             pendingRequests.map((item, index) => (

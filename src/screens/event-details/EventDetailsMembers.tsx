@@ -1,6 +1,5 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 
-import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
 import EmptyState from '@components/EmptyState';
 import { EventMemberRow } from '@components/events';
 import { SlidingTabs } from '@components/ui';
@@ -8,6 +7,11 @@ import { colors } from '@theme/index';
 
 import styles from './EventDetailsScreen.styles';
 import { EventDetailMember } from './useEventDetailsData';
+
+// Shared illustration for the members empty state.
+const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
+const EMPTY_ILLUSTRATION_WIDTH = 293;
+const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
 type MemberLike = {
   id: number;
@@ -56,7 +60,9 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
             <EmptyState
               title="No members yet"
               description="Members who join will appear here"
-              icon={<EmptyAcceptedIcon width={64} height={64} />}
+              imageSource={EMPTY_ILLUSTRATION}
+              imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+              imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
               style={{ marginTop: 32 }}
             />
           ) : (
@@ -98,7 +104,9 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
           <EmptyState
             title="No members yet"
             description="Members who join will appear here"
-            icon={<EmptyAcceptedIcon width={64} height={64} />}
+            imageSource={EMPTY_ILLUSTRATION}
+            imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+            imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
             style={{ marginTop: 32 }}
           />
         ) : (

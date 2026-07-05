@@ -4,8 +4,6 @@ import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navig
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AcceptIcon from '@assets/event-details/accept.svg';
 import RejectIcon from '@assets/event-details/reject.svg';
-import EmptyAcceptedIcon from '@assets/event-details/empty-accepted.svg';
-import EmptyRequestIcon from '@assets/event-details/empty-request.svg';
 import EmptyState from '@components/EmptyState';
 
 import { colors, spacing, typography } from '@theme/index';
@@ -21,6 +19,11 @@ import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
 import { formatAbsoluteDateLabel } from '@utils/dateTime';
 import { formatEventLocationName } from '@utils/eventDisplay';
+
+// Shared illustration for the request/accepted empty states.
+const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
+const EMPTY_ILLUSTRATION_WIDTH = 293;
+const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, 'JoinRequests'>;
 type JoinRequestsNavigation = NativeStackNavigationProp<RootStackParamList, 'JoinRequests'>;
@@ -139,14 +142,18 @@ const JoinRequestsScreen = () => {
         <EmptyState
           title="No accepted members yet"
           description="Chats from accepted members will appear here"
-          icon={<EmptyAcceptedIcon width={64} height={64} />}
+          imageSource={EMPTY_ILLUSTRATION}
+          imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+          imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
           style={{ marginTop: 32 }}
         />
       ) : (
         <EmptyState
           title="No pending requests"
           description="You'll see new join requests here when attendees tap Interested."
-          icon={<EmptyRequestIcon width={64} height={64} />}
+          imageSource={EMPTY_ILLUSTRATION}
+          imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+          imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
           style={{ marginTop: 32 }}
         />
       ),
