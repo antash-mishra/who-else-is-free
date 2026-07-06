@@ -532,7 +532,6 @@ const ChatThreadScreen = () => {
               name={senderName}
               seed={item.senderId}
               size={30}
-              maxInitials={2}
               style={styles.avatarCircle}
             />
           ) : (
