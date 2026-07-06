@@ -124,6 +124,10 @@ describe('ChatThreadScreen Rendering', () => {
   const mockRefreshJoinRequests = jest.fn().mockResolvedValue(undefined);
   const mockRefreshConversations = jest.fn().mockResolvedValue(undefined);
 
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayAbsoluteLabel = `${String(today.getDate()).padStart(2, '0')} ${today.toLocaleString('en-US', { month: 'short' })} ${today.toLocaleString('en-US', { weekday: 'short' })}`;
+
   const setupMocks = (overrides: {
     authOverrides?: object;
     chatOverrides?: object;
@@ -175,7 +179,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('Coffee Meetup Chat')).toBeTruthy();
     });
 
-    it('should render display-ready schedule text without reformatting it again', () => {
+    it('should render member count and date subtitle in group mode using dateLabel as-is', () => {
       setupMocks({
         chatOverrides: {
           conversations: [
@@ -183,8 +187,6 @@ describe('ChatThreadScreen Rendering', () => {
               ...mockConversations[0],
               event: {
                 ...mockConversations[0].event!,
-                time: '7:30 PM',
-                location: 'Central Park',
                 dateLabel: 'Today',
                 eventDate: undefined,
               },
@@ -195,9 +197,31 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      expect(
-        getByText(/7:30 PM at Central Park/),
-      ).toBeTruthy();
+      // 2 members (memberIds: [1, 2]) + legacy date label, no time/location reformatting
+      expect(getByText('2 Members, Today')).toBeTruthy();
+    });
+
+    it('should render counterpart name and "One to one, <date>" subtitle in 1:1 mode', () => {
+      setupMocks({
+        chatOverrides: {
+          conversations: [
+            {
+              ...mockConversations[0],
+              event: {
+                ...mockConversations[0].event!,
+                groupType: 'Single',
+                dateLabel: 'Today',
+                eventDate: undefined,
+              },
+            },
+          ],
+        },
+        eventsOverrides: { events: [] },
+      });
+      const { getByText } = render(<ChatThreadScreen />);
+
+      expect(getByText('Liam Test')).toBeTruthy();
+      expect(getByText('One to one, Today')).toBeTruthy();
     });
 
     it('should render own messages with appropriate styling', () => {
@@ -346,13 +370,24 @@ describe('ChatThreadScreen Rendering', () => {
   });
 
   describe('Loading and Connection States', () => {
-    it('should display "Connecting…" when isConnecting is true', () => {
+    it('should show the connection status indicator when isConnecting is true', () => {
+      setupMocks({
+        chatOverrides: { isConnecting: true },
+      });
+      const { getByTestId, getByText } = render(<ChatThreadScreen />);
+
+      expect(getByTestId('chat-connection-status')).toBeTruthy();
+      expect(getByText('Connecting')).toBeTruthy();
+    });
+
+    it('should keep the member/date subtitle visible while connecting', () => {
       setupMocks({
         chatOverrides: { isConnecting: true },
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      expect(getByText('Connecting…')).toBeTruthy();
+      // Subtitle is NOT replaced by the connecting indicator
+      expect(getByText(`2 Members, ${todayAbsoluteLabel}`)).toBeTruthy();
     });
 
     it('should display error message when error exists', () => {
@@ -368,9 +403,10 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks({
         chatOverrides: { isConnecting: false },
       });
-      const { queryByText } = render(<ChatThreadScreen />);
+      const { queryByTestId, queryByText } = render(<ChatThreadScreen />);
 
-      expect(queryByText('Connecting…')).toBeNull();
+      expect(queryByTestId('chat-connection-status')).toBeNull();
+      expect(queryByText('Connecting')).toBeNull();
     });
   });
 

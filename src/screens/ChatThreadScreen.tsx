@@ -24,6 +24,7 @@ import {
 import SendIcon from '@assets/chat/send.svg';
 import ScreenContainer from '@components/ScreenContainer';
 import ChatEventHeader from '@components/ChatEventHeader';
+import ConnectionStatusIndicator from '@components/ConnectionStatusIndicator';
 import { CountBadge } from '@components/ui';
 import EventActionOverlay from '@components/EventActionOverlay';
 import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
@@ -37,8 +38,7 @@ import { resolveCoverUri } from '@constants/covers';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import { formatAbsoluteDateLabel } from '@utils/dateTime';
-import { formatEventLocationName } from '@utils/eventDisplay';
+import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHeaderSubtitle';
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
@@ -221,22 +221,18 @@ const ChatThreadScreen = () => {
   }, [activeConversation, activeEventGroupType, counterpart, isSingleEventConversation, user]);
 
   const headerSubtitle = useMemo(() => {
-    if (isConnecting) return 'Connecting\u2026';
-    if (activeEventGroupType === 'Single' && activeEventDetails) {
-      const title = activeEventDetails.title;
-      const datePart = activeEventDetails.eventDate
-        ? formatAbsoluteDateLabel(activeEventDetails.eventDate)
-        : activeEventDetails.dateLabel;
-      return datePart ? `${title}, ${datePart}` : title;
+    if (isSingleEventConversation) {
+      return buildOneToOneSubtitle({ schedule: activeEventDetails });
     }
-    if (activeEventDetails?.time && activeEventDetails?.location) {
-      const datePart = activeEventDetails.eventDate
-        ? formatAbsoluteDateLabel(activeEventDetails.eventDate)
-        : activeEventDetails.dateLabel;
-      return `${datePart}, ${activeEventDetails.time} at ${formatEventLocationName(activeEventDetails.location)}`;
+    if (isGroupEventConversation) {
+      return buildEventMemberSubtitle({
+        groupType: 'Group',
+        memberCount: activeConversation?.memberIds.length ?? 0,
+        schedule: activeEventDetails,
+      });
     }
     return undefined;
-  }, [isConnecting, activeEventDetails, activeEventGroupType]);
+  }, [activeEventDetails, activeConversation, isGroupEventConversation, isSingleEventConversation]);
 
   const joinRequests = useMemo(() => {
     if (activeConversationId == null) {
@@ -589,16 +585,21 @@ const ChatThreadScreen = () => {
           canOpenSingleChatActions ? 'Open member actions' : 'View event details'
         }
         rightElement={
-          canViewJoinRequests && pendingJoinRequestCount > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="View join requests"
-              onPress={handleOpenJoinRequests}
-              style={styles.joinIconButton}
-            >
-              <CountBadge count={pendingJoinRequestCount} />
-            </Pressable>
-          ) : undefined
+          <>
+            {isConnecting ? (
+              <ConnectionStatusIndicator visible testID="chat-connection-status" />
+            ) : null}
+            {canViewJoinRequests && pendingJoinRequestCount > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="View join requests"
+                onPress={handleOpenJoinRequests}
+                style={styles.joinIconButton}
+              >
+                <CountBadge count={pendingJoinRequestCount} />
+              </Pressable>
+            ) : null}
+          </>
         }
         testID="chat-event-info-button"
       />

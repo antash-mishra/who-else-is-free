@@ -17,8 +17,7 @@ import { CountBadge, UnreadDot } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
-import { formatAbsoluteDateLabel } from '@utils/dateTime';
-import { formatEventLocationName } from '@utils/eventDisplay';
+import { buildEventMemberSubtitle } from '@utils/chatHeaderSubtitle';
 
 // Shared illustration for the request/accepted empty states.
 const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
@@ -67,15 +66,6 @@ const JoinRequestsScreen = () => {
   const resolvedTitle = resolvedEvent?.title ?? conversationEvent?.title ?? title;
   const resolvedCoverKey = resolvedEvent?.coverKey ?? conversationEvent?.coverKey ?? undefined;
   const resolvedSchedule = resolvedEvent ?? conversationEvent;
-  const resolvedSubtitle = useMemo(() => {
-    if (!resolvedSchedule?.time || !resolvedSchedule.location) {
-      return undefined;
-    }
-    const datePart = resolvedSchedule.eventDate
-      ? formatAbsoluteDateLabel(resolvedSchedule.eventDate)
-      : resolvedSchedule.dateLabel;
-    return `${datePart}, ${resolvedSchedule.time} at ${formatEventLocationName(resolvedSchedule.location)}`;
-  }, [resolvedSchedule]);
 
   const loadRequests = useCallback(
     async (showRefreshing: boolean) => {
@@ -231,7 +221,11 @@ const JoinRequestsScreen = () => {
           navigation.goBack();
         }}
         title={resolvedTitle}
-        subtitle={resolvedSubtitle}
+        subtitle={buildEventMemberSubtitle({
+          groupType: 'Single',
+          memberCount: displayRequests.length + 1,
+          schedule: resolvedSchedule,
+        })}
         coverSource={getCoverSource(resolvedCoverKey)}
         onTitlePress={() => {
           triggerHaptic('light');
@@ -309,7 +303,11 @@ const JoinRequestsScreen = () => {
         navigation.goBack();
       }}
       title={resolvedTitle}
-      subtitle="Join Requests"
+      subtitle={buildEventMemberSubtitle({
+        groupType: 'Group',
+        memberCount: conversation?.memberIds.length ?? 0,
+        schedule: resolvedSchedule,
+      })}
       onTitlePress={() => {
         triggerHaptic('light');
         navigation.navigate('EventDetailsOverlay', {

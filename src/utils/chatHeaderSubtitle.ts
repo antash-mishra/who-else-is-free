@@ -1,0 +1,69 @@
+import { formatAbsoluteDateLabel } from '@utils/dateTime';
+
+interface EventScheduleLike {
+  eventDate?: string;
+  dateLabel?: string;
+}
+
+/**
+ * Resolve a display-ready absolute date label for a header subtitle.
+ *
+ * Prefers a compact absolute label (e.g. "08 Jun Mon") derived from the
+ * event date; falls back to the legacy short label (e.g. "Today"/"Tmrw")
+ * when no event date is available.
+ */
+const resolveDateLabel = (schedule: EventScheduleLike | null | undefined): string | null => {
+  if (!schedule) {
+    return null;
+  }
+  if (schedule.eventDate) {
+    return formatAbsoluteDateLabel(schedule.eventDate);
+  }
+  return schedule.dateLabel ?? null;
+};
+
+export interface EventMemberSubtitleOptions {
+  /** Event group type; controls "People" (Single) vs "Members" (Group) wording. */
+  groupType: 'Single' | 'Group' | undefined;
+  /** Count shown in the subtitle (already includes the host if desired). */
+  memberCount: number;
+  /** Schedule used to derive the date portion. */
+  schedule: EventScheduleLike | null | undefined;
+}
+
+/**
+ * Build the event-level subtitle shared by JoinRequestsScreen and the group
+ * chat window:
+ *
+ *   Single → "3 People, 08 Jun Mon"
+ *   Group  → "3 Members, 08 Jun Mon"
+ *
+ * Falls back to just the date (or an empty string) when no schedule exists.
+ */
+export const buildEventMemberSubtitle = ({
+  groupType,
+  memberCount,
+  schedule,
+}: EventMemberSubtitleOptions): string => {
+  const dateLabel = resolveDateLabel(schedule);
+  const noun = groupType === 'Single' ? 'People' : 'Members';
+  const countPart = `${memberCount} ${noun}`;
+  return dateLabel ? `${countPart}, ${dateLabel}` : countPart;
+};
+
+export interface OneToOneSubtitleOptions {
+  /** Schedule used to derive the date portion. */
+  schedule: EventScheduleLike | null | undefined;
+}
+
+/**
+ * Build the 1:1 chat window subtitle:
+ *
+ *   "One to one, 08 Jun Mon"
+ *
+ * Falls back to just "One to one" when no schedule exists.
+ */
+export const buildOneToOneSubtitle = ({ schedule }: OneToOneSubtitleOptions): string => {
+  const dateLabel = resolveDateLabel(schedule);
+  return dateLabel ? `One to one, ${dateLabel}` : 'One to one';
+};

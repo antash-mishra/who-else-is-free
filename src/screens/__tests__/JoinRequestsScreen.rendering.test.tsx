@@ -127,7 +127,7 @@ let mockChatValue = {
   approveJoinRequest: mockApproveJoinRequest,
   denyJoinRequest: mockDenyJoinRequest,
   setActiveConversation: mockSetActiveConversation,
-  conversations: [],
+  conversations: [] as ChatConversation[],
   activeConversationId: null,
   isConnecting: false,
   error: null,
@@ -143,6 +143,35 @@ jest.mock('@context/ChatContext', () => ({
   useChat: () => mockChatValue,
   ChatJoinRequest: {},
 }));
+
+import type { ChatConversation } from '@context/ChatContext';
+
+const mockConversation = (overrides: Partial<ChatConversation> = {}): ChatConversation => ({
+  id: 1,
+  createdBy: 1,
+  title: 'Coffee Meetup Chat',
+  memberIds: [1, 2, 3],
+  participants: [
+    { id: 1, name: 'Test User' },
+    { id: 2, name: 'Jane Doe' },
+    { id: 3, name: 'John Smith' },
+  ],
+  displayName: 'Coffee Meetup Chat',
+  unreadCount: 0,
+  eventId: 1,
+  event: {
+    id: 1,
+    userId: 1,
+    title: 'Coffee Meetup',
+    location: 'Central Park',
+    time: '10:00 AM',
+    dateLabel: 'Today',
+    eventDate: todayKey,
+    groupType: 'Group',
+    coverKey: 'coffee',
+  },
+  ...overrides,
+});
 
 let mockEventsValue = {
   events: [
@@ -270,7 +299,7 @@ describe('JoinRequestsScreen Rendering', () => {
       approveJoinRequest: mockApproveJoinRequest,
       denyJoinRequest: mockDenyJoinRequest,
       setActiveConversation: mockSetActiveConversation,
-      conversations: [],
+      conversations: [] as ChatConversation[],
       activeConversationId: null,
       isConnecting: false,
       error: null,
@@ -310,9 +339,10 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(getByText('Coffee Meetup')).toBeTruthy();
     });
 
-    it('should render "Join Requests" subtitle', () => {
+    it('should render member count and date subtitle in group mode', () => {
+      mockChatValue.conversations = [mockConversation()];
       const { getByText } = render(<JoinRequestsScreen />);
-      expect(getByText('Join Requests')).toBeTruthy();
+      expect(getByText(`3 Members, ${todayAbsoluteLabel}`)).toBeTruthy();
     });
 
     it('should render back button', () => {
@@ -449,10 +479,11 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(getByTestId('screen-container')).toBeTruthy();
     });
 
-    it('should render event subtitle with details in 1:1 mode', () => {
+    it('should render people count and date subtitle in 1:1 mode', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
-      expect(getByText(`${todayAbsoluteLabel}, 10:00 AM at Central Park`)).toBeTruthy();
+      // 2 approved members + 1 host
+      expect(getByText(`3 People, ${todayAbsoluteLabel}`)).toBeTruthy();
     });
 
     it('should render pending requests icon with count badge in 1:1 mode', () => {
