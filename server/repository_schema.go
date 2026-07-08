@@ -594,6 +594,69 @@ FROM push_tokens
 WHERE user_id IN (%s);
 `
 
+const createTableNotifications = `
+CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    event_id INTEGER,
+    conversation_id INTEGER,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    payload TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`
+
+const createNotificationsUserCreatedIndex = `
+CREATE INDEX IF NOT EXISTS notifications_user_created_idx
+ON notifications (user_id, created_at DESC, id DESC);
+`
+
+const createNotificationsUserReadIndex = `
+CREATE INDEX IF NOT EXISTS notifications_user_read_idx
+ON notifications (user_id, read);
+`
+
+const insertNotification = `
+INSERT INTO notifications (user_id, type, event_id, conversation_id, title, body, payload, read)
+VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+RETURNING id, user_id, type, event_id, conversation_id, title, body, payload, read, created_at;
+`
+
+const selectNotificationsForUser = `
+SELECT id, user_id, type, event_id, conversation_id, title, body, payload, read, created_at
+FROM notifications
+WHERE user_id = ?
+ORDER BY created_at DESC, id DESC
+LIMIT ? OFFSET ?;
+`
+
+const countUnreadNotificationsForUser = `
+SELECT COUNT(1)
+FROM notifications
+WHERE user_id = ? AND read = 0;
+`
+
+const markNotificationReadForUser = `
+UPDATE notifications
+SET read = 1
+WHERE id = ? AND user_id = ? AND read = 0;
+`
+
+const markAllNotificationsReadForUser = `
+UPDATE notifications
+SET read = 1
+WHERE user_id = ? AND read = 0;
+`
+
+const deleteAllNotificationsForUser = `
+DELETE FROM notifications
+WHERE user_id = ?;
+`
+
 const selectConversationMemberIDs = `
 SELECT user_id
 FROM conversation_members
@@ -784,6 +847,15 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createPushTokensTokenUniqueIndex); err != nil {
 		return fmt.Errorf("create push_tokens token unique index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableNotifications); err != nil {
+		return fmt.Errorf("create notifications table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createNotificationsUserCreatedIndex); err != nil {
+		return fmt.Errorf("create notifications user_created index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createNotificationsUserReadIndex); err != nil {
+		return fmt.Errorf("create notifications user_read index: %w", err)
 	}
 	if err := r.cleanupDuplicateSingleEventConversations(ctx); err != nil {
 		return err

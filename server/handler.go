@@ -527,7 +527,7 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 			h.hub.NotifyMembership(member.ConversationID, member.UserID, "removed")
 		}
 		if len(recipientIDs) > 0 {
-			h.hub.sendPushToUsers(recipientIDs, map[string]string{
+			h.hub.recordAndSendPushToUsers(recipientIDs, map[string]string{
 				"type":    "event.deleted",
 				"eventId": strconv.FormatInt(id, 10),
 				"title":   event.Title,

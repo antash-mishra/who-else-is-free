@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedPager from '@components/AnimatedPager';
 import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
+import NotificationAccessModal from '@components/NotificationAccessModal';
 import { EventItemProps } from '@components/EventCard';
 import {
   EventListPage,
@@ -34,6 +35,7 @@ import { UserEvent, useEvents } from '@context/EventsContext';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
 import {
   EventWithDistance,
@@ -90,6 +92,7 @@ const HomeScreen = () => {
   const [showReportedBadge, setShowReportedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
+  const [showNoAccessModal, setShowNoAccessModal] = useState(false);
 
   useEffect(() => {
     if (!route.params?.showEventReportedBadge) return;
@@ -108,6 +111,12 @@ const HomeScreen = () => {
     const t = setTimeout(() => setShowEventLeftBadge(true), 350);
     return () => clearTimeout(t);
   }, [route.params?.showEventLeftBadge]);
+
+  useEffect(() => {
+    if (!route.params?.showNoAccessModal) return;
+    logger.log(`HomeScreen: setShowNoAccessModal(true) at ${Date.now()}`);
+    setShowNoAccessModal(true);
+  }, [route.params?.showNoAccessModal]);
 
   // Set of event IDs user has joined (is a member of conversation but not owner)
   const joinedEventIds = useMemo(() => {
@@ -373,6 +382,14 @@ const HomeScreen = () => {
         onHidden={() => {
           setShowEventLeftBadge(false);
           navigation.setParams({ showEventLeftBadge: false });
+        }}
+      />
+      <NotificationAccessModal
+        visible={showNoAccessModal}
+        message="You no longer have access to this event. Explore other events nearby."
+        onDismiss={() => {
+          setShowNoAccessModal(false);
+          navigation.setParams({ showNoAccessModal: false });
         }}
       />
     </ScreenContainer>

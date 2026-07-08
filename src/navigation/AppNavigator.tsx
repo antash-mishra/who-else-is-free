@@ -51,6 +51,7 @@ import HomeScreen from '@screens/HomeScreen';
 import JoinRequestsScreen from '@screens/JoinRequestsScreen';
 import MessagesScreen from '@screens/MessagesScreen';
 import MyEventsScreen from '@screens/MyEventsScreen';
+import NotificationsScreen from '@screens/NotificationsScreen';
 import OnboardingScreen from '@screens/OnboardingScreen';
 import PastEventsScreen from '@screens/PastEventsScreen';
 import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
@@ -379,6 +380,14 @@ const AppNavigator = () => {
           <Stack.Screen
             name="PastEvents"
             component={PastEventsScreen}
+            options={{
+              cardStyleInterpolator: slideFromRightInterpolator,
+              transitionSpec: slideFromRightTransitionSpec,
+            }}
+          />
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsScreen}
             options={{
               cardStyleInterpolator: slideFromRightInterpolator,
               transitionSpec: slideFromRightTransitionSpec,

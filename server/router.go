@@ -45,6 +45,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	RegisterChatRoutes(protected, eventHandler.repo, chatHub)
 	protected.POST("/push-tokens", pushHandler.registerPushToken)
 	protected.DELETE("/push-tokens", pushHandler.deletePushToken)
+	NewNotificationHandler(eventHandler.repo).RegisterRoutes(protected)
 	if os.Getenv("PUSH_ENABLED") == "true" {
 		protected.POST("/push-tokens/test", pushHandler.testPush)
 	}

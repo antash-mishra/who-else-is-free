@@ -48,11 +48,13 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 
 ## Architecture
 
+- Notifications inbox: server-side notification history is persisted in the `notifications` table (one row per recipient per push) by `recordAndSendPushToUser`/`recordAndSendPushToUsers` on `*ChatHub` (`server/notification_recorder.go`). Persistence is best-effort — a row-insert failure logs and still sends the FCM push, so push delivery is never degraded. The inbox-display body is owned server-side in `server/notification_payloads.go` (friendlier text for the three "harsh" override types: `join_request.denied`, `event.member_removed`, `event.deleted`); the raw FCM push-payload strings stay unchanged. The `NotificationHandler` (`server/notification_handler.go`) exposes `GET /api/notifications`, `POST /api/notifications/:id/read`, `POST /api/notifications/read-all`, and `GET /api/notifications/unread-count`. On the client, `NotificationsContext` (`src/context/NotificationsContext.tsx`) holds the paginated list + unread count (foreground push `onMessage` does a cheap count-only refresh, not a full list reload); the bell `IconButton` + `CountBadge` live in the Profile header and navigate to the `Notifications` route. The bell is hidden for signed-out users.
+
 - Frontend: React Native Expo app in `src/`, with root app setup in `App.tsx` and root registration in `index.ts`.
 - Backend: Go Gin HTTP server in `server/` using SQLite.
 - API: REST endpoints plus WebSocket chat at `/api/ws`.
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`.
-- State: React Context providers currently handle auth, events, chat, push, covers, and bloom state.
+- State: React Context providers currently handle auth, events, chat, push, covers, bloom, and notifications state.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
 - Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
 - Shared sheet primitives live in `src/components/sheets`; use `BottomSheetHostProvider` for modal-sheet coordination and `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
@@ -61,13 +63,13 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 - Shared component/style documentation lives in `report/shared-components-refactor-guide.md`; update it when shared components, shared style files, or theme-token ownership changes.
 - Create/Edit Event form mapping lives in `src/screens/create-event/createEventForm.ts`; keep payload construction, edit hydration, guest draft mapping, and date normalization there instead of rebuilding them in `CreateEventScreen`.
 - Create/Edit Event screen structure lives in `src/screens/create-event/`: form state in `useCreateEventForm` (reducer over `CreateEventFormState`), sheet routing/keyboard-settle timing in `useCreateEventSheets`, and render pieces in `CreateEventHeader`, `CreateEventFormFields`, `CreateEventSubmitButton`, and `CreateEventSheetContent`. `CreateEventScreen` stays composition plus submission/navigation orchestration; the pieces share `CreateEventScreen.styles.ts` and the `createField*`/`createText*` theme tokens.
-- Shared request helpers live in `src/api`: `requestJson` and `ApiError` in `src/api/client.ts` (base-URL prefixing, auth header, timeout, JSON fallback, typed errors), error extraction in `src/api/errors.ts`, timeout/abort primitives in `src/api/request.ts`, and API payload mappers in `src/api/mappers` (`events.ts`, `chat.ts`). Use them instead of duplicating fetch/auth-header/error boilerplate inside contexts and hooks.
-- Session-expired navigation is wired via the `onSessionExpired` prop on `AuthProvider` (set in `App.tsx`); contexts must not import navigation directly.
+- Shared request helpers live in `src/api`: `requestJson` and `ApiError` in `src/api/client.ts` (base-URL prefixing, auth header, timeout, JSON fallback, typed errors), error extraction in `src/api/errors.ts`, timeout/abort primitives in `src/api/request.ts`, and API payload mappers in `src/api/mappers` (`events.ts`, `chat.ts`, `notifications.ts`). Use them instead of duplicating fetch/auth-header/error boilerplate inside contexts and hooks.
+- Session-expired navigation is wired via the `onSessionExpired` prop on `AuthProvider` (set in `App.tsx`); contexts must not import navigation directly. Inbox-tab and bell routing goes through `routeFromNotification` in `src/context/pushRouting.ts` (inbox-only; the OS push-tap `handleNotificationTap` is a separate, frozen path).
 - Haptics are centralized in `src/services/haptics.ts`; no other source file should import `expo-haptics`.
 - Logging goes through the dev-only `logger` in `src/services/logger.ts`; do not call `console.*` directly in app code (tests may still spy on `console`).
 - Hardcoded hex colors are only allowed in `src/theme` and the documented artwork-palette exceptions: `src/utils/avatar.ts` and `src/components/ConfettiOverlay.tsx`.
 - The event cover catalog is generated: `server/cmd/covers-sync` downloads the team Drive folder into `server/assets/covers/` and writes `server/covers_catalog.json` (embedded into the server binary). Re-run `cd server && go run ./cmd/covers-sync` when Drive contents change; do not hand-edit the catalog or assets. The images themselves are gitignored (public repo) — only the catalog is committed, and the Docker build runs `go run ./cmd/covers-sync -fetch` to download the cataloged images at deploy time. After a fresh clone, run that fetch command once to populate `server/assets/covers/`. Cover search/filtering in the app goes through `searchCovers` in `src/utils/coverSearch.ts`.
-- Keep navigation route params typed in `src/navigation/types.ts`; use `NavigatorScreenParams` for nested navigators and avoid `navigation as any` casts for route jumps.
+- Keep navigation route params typed in `src/navigation/types.ts`; use `NavigatorScreenParams` for nested navigators and avoid `navigation as any` casts for route jumps. The `Notifications` route (`NotificationsScreen`) is a top-level stack screen reachable from the Profile header bell.
 - Navigation-specific surfaces and status colors should use named tokens from `src/theme/colors.ts`, not local hex or rgba literals in `AppNavigator`.
 - Tests: Jest tests live near source files under `__tests__`.
 
@@ -255,3 +257,4 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 - Keep backend changes inside `server/` unless frontend API types must be updated too.
 - Run `cd server && go test ./...` after backend changes.
 - Keep endpoint behavior and payload shape documented in frontend mappers when they are introduced.
+- Notification inbox display text is owned server-side in `server/notification_payloads.go` (`notificationDisplayTexts` map); do not duplicate or override the three "harsh"-type bodies on the client. The raw FCM push-payload strings sent to the OS must stay unchanged — only the persisted inbox `Notification.Body` may differ.

@@ -30,6 +30,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
 
   PastEvents: undefined;
+  Notifications: undefined;
   PrivacyPolicy: undefined;
   Help: undefined;
   HelpContact: undefined;
@@ -50,6 +51,7 @@ export type RootTabParamList = {
         showEventReportedBadge?: boolean;
         showEventDeletedBadge?: boolean;
         showEventLeftBadge?: boolean;
+        showNoAccessModal?: boolean;
       }
     | undefined;
   MyEvents:

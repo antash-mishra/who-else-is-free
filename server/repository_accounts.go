@@ -281,6 +281,9 @@ func (r *EventRepository) DeleteUserAccount(ctx context.Context, userID int64) (
 	if _, err := tx.ExecContext(ctx, `DELETE FROM push_tokens WHERE user_id = ?;`, userID); err != nil {
 		return nil, fmt.Errorf("delete user push tokens: %w", err)
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM notifications WHERE user_id = ?;`, userID); err != nil {
+		return nil, fmt.Errorf("delete user notifications: %w", err)
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM apple_accounts WHERE user_id = ?;`, userID); err != nil {
 		return nil, fmt.Errorf("delete apple account links: %w", err)
 	}

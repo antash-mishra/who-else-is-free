@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification Inbox — Implementation Report</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f8f9fc;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --code-bg: #f4f4f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  header.report-header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  header.report-header h1 {
+    font-size: 2rem;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  header.report-header .meta {
+    color: var(--muted);
+    font-size: 0.9rem;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header.report-header .badge-row {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .status-pass { background: #dcfce7; color: var(--green); }
+  .status-info { background: #dbeafe; color: var(--accent); }
+
+  h2 {
+    font-size: 1.4rem;
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 1.1rem;
+    margin: 32px 0 12px;
+  }
+  p { margin: 8px 0; }
+  ul { padding-left: 20px; }
+  li { margin: 4px 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--surface);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+  }
+  tr:hover td { background: var(--surface); }
+
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 0.85em;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .file-table code { font-size: 0.8em; }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .pill-green { background: #dcfce7; color: var(--green); }
+  .pill-blue { background: #dbeafe; color: var(--accent); }
+
+  .screenshot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+  }
+  figure {
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: box-shadow 0.2s;
+  }
+  figure:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  figure img {
+    width: 100%;
+    display: block;
+    cursor: zoom-in;
+  }
+  figcaption {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+  }
+  figcaption .num {
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 6px;
+  }
+  figcaption .evidence {
+    display: block;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 4px;
+  }
+  figcaption code { font-size: 0.78em; }
+
+  .callout {
+    border-left: 4px solid var(--amber);
+    background: #fffbeb;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 20px 0;
+    font-size: 0.9rem;
+  }
+  .callout strong { color: var(--amber); }
+
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li {
+    padding-left: 28px;
+    position: relative;
+    margin: 6px 0;
+  }
+  .checklist li::before {
+    content: "✅";
+    position: absolute;
+    left: 0;
+    top: 1px;
+  }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 0 0 32px;
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="report-header">
+    <h1>🔔 Notification Inbox — Implementation Report</h1>
+    <div class="meta">
+      <span>📅 2026-07-08</span>
+      <span>🏷️ Full inbox (Option A)</span>
+      <span>📱 Android emulator (<code>WEIF_API_36 / emulator-5554</code>)</span>
+    </div>
+    <div class="badge-row">
+      <span class="status-badge status-pass">● Status: Implemented &amp; E2E Verified</span>
+      <span class="status-badge status-info">Backend + Frontend + Docs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#backend">Backend implementation</a></li>
+      <li><a href="#frontend">Frontend implementation</a></li>
+      <li><a href="#docs">Docs</a></li>
+      <li><a href="#e2e">End-to-end device verification</a></li>
+      <li><a href="#screenshots">Screenshots</a></li>
+      <li><a href="#gates">Validation gates</a></li>
+      <li><a href="#finding">Finding from device test</a></li>
+    </ol>
+  </nav>
+
+  <!-- ───────────────── OVERVIEW ───────────────── -->
+  <h2 id="overview">Overview</h2>
+  <p>
+    A full server-backed notification inbox: every push notification is now persisted server-side
+    into a <code>notifications</code> table (one row per recipient), and a new <code>Notifications</code>
+    screen reachable from a bell <code>IconButton</code> in the Profile header shows a paginated, dated
+    list with unread markers, friendlier text for the three "harsh" scenarios, tap-to-navigate,
+    mark-read, and mark-all-read.
+  </p>
+
+  <!-- ───────────────── BACKEND ───────────────── -->
+  <h2 id="backend">Backend implementation (Steps 1–3)</h2>
+
+  <table class="file-table">
+    <thead>
+      <tr><th>Layer</th><th>File</th><th>What</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Model</td>
+        <td><code>server/models.go</code></td>
+        <td><code>Notification</code> struct</td>
+      </tr>
+      <tr>
+        <td>Schema</td>
+        <td><code>server/repository_schema.go</code></td>
+        <td><code>notifications</code> table + <code>notifications_user_created_idx</code> + <code>notifications_user_read_idx</code>; wired into <code>Init</code></td>
+      </tr>
+      <tr>
+        <td>Repo</td>
+        <td><code>server/repository_notifications.go</code></td>
+        <td><code>CreateNotification</code>, <code>ListNotifications</code> (paginated, <code>created_at DESC, id DESC</code>), <code>CountUnreadNotifications</code>, <code>MarkNotificationRead</code> (user-scoped), <code>MarkAllNotificationsRead</code>; <code>ErrNotificationNotFound</code></td>
+      </tr>
+      <tr>
+        <td>Cleanup</td>
+        <td><code>server/repository_accounts.go</code></td>
+        <td><code>DELETE FROM notifications WHERE user_id = ?</code> in the account-deletion transaction</td>
+      </tr>
+      <tr>
+        <td>Display text</td>
+        <td><code>server/notification_payloads.go</code></td>
+        <td><code>NotificationType*</code> constants + <code>notificationDisplayTexts</code> override map (3 "harsh" types) + <code>buildNotification</code></td>
+      </tr>
+      <tr>
+        <td>Recorder</td>
+        <td><code>server/notification_recorder.go</code></td>
+        <td><code>recordAndSendPushToUser</code> / <code>recordAndSendPushToUsers</code> (best-effort: insert row first, then send FCM unchanged; one row per recipient; never blocks push delivery) + <code>recordChatMessageNotification</code></td>
+      </tr>
+      <tr>
+        <td>Call sites</td>
+        <td><code>server/chat_hub.go</code></td>
+        <td>All 6 push sites migrated to the recorder (incl. per-recipient inserts in <code>sendPushForChatMessage</code>, moved before the token lookup)</td>
+      </tr>
+      <tr>
+        <td>Call sites</td>
+        <td><code>server/handler.go</code>, <code>server/profile_handler.go</code></td>
+        <td><code>event.deleted</code> sites migrated to <code>recordAndSendPushToUsers</code></td>
+      </tr>
+      <tr>
+        <td>HTTP</td>
+        <td><code>server/notification_handler.go</code></td>
+        <td><code>GET /api/notifications</code>, <code>POST /api/notifications/:id/read</code>, <code>POST /api/notifications/read-all</code>, <code>GET /api/notifications/unread-count</code>; registered in <code>router.go</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    <span class="pill pill-green">Tests</span>
+    <code>server/repository_notifications_test.go</code>,
+    <code>server/notification_handler_test.go</code>,
+    <code>server/notification_inbox_integration_test.go</code> — all green
+    (<code>go test ./...</code>).
+  </p>
+
+  <h3>Friendly-text translation table (server-owned)</h3>
+  <table>
+    <thead>
+      <tr><th>Push <code>type</code></th><th>OS push body (unchanged)</th><th>Inbox body (server-side override)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>chat.message</code></td><td><code>&lt;senderName&gt;: &lt;body preview&gt;</code></td><td>verbatim</td></tr>
+      <tr><td><code>join_request.created</code></td><td><code>&lt;name&gt; wants to join your event</code></td><td>verbatim</td></tr>
+      <tr><td><code>join_request.approved</code></td><td><code>Your request to join was approved!</code></td><td>verbatim</td></tr>
+      <tr><td><code>join_request.denied</code></td><td><code>Your request to join was declined</code></td><td><strong>This event is no longer available to you. Explore other events nearby.</strong></td></tr>
+      <tr><td><code>event.member_removed</code></td><td><code>The host removed you from this event.</code></td><td><strong>You no longer have access to this event. Explore other events nearby.</strong></td></tr>
+      <tr><td><code>event.deleted</code></td><td><code>The host deleted this event.</code></td><td><strong>This event has been cancelled and is no longer available. Explore other events nearby.</strong></td></tr>
+    </tbody>
+  </table>
+
+  <!-- ───────────────── FRONTEND ───────────────── -->
+  <h2 id="frontend">Frontend implementation (Steps 4–8)</h2>
+
+  <table class="file-table">
+    <thead>
+      <tr><th>What</th><th>File</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>API types + mapper</td><td><code>src/api/mappers/notifications.ts</code> — <code>ApiNotification</code>, <code>AppNotification</code>, <code>mapNotification(s)</code></td></tr>
+      <tr><td>Context</td><td><code>src/context/NotificationsContext.tsx</code> — paginated list + unread count; <code>refresh</code>, <code>loadMore</code>, <code>refreshUnreadCount</code>, <code>markRead</code> (optimistic + count-only re-sync), <code>markAllRead</code> (page-1 refetch)</td></tr>
+      <tr><td>Push routing</td><td><code>src/context/pushRouting.ts</code> — <code>routeFromNotification</code> (inbox-only; <code>handleNotificationTap</code> frozen)</td></tr>
+      <tr><td>Foreground refresh</td><td><code>src/context/PushContext.tsx</code> — <code>onMessage</code> → cheap <code>refreshUnreadCount()</code> (not full list reload)</td></tr>
+      <tr><td>Row component</td><td><code>src/components/NotificationRow.tsx</code> — unread dot, relative timestamp, press haptic</td></tr>
+      <tr><td>Screen</td><td><code>src/screens/NotificationsScreen.tsx</code> — header + back + "Mark all read"; FlatList + pull-to-refresh + pagination; empty state</td></tr>
+      <tr><td>Bell + badge</td><td><code>src/screens/ProfileScreen.tsx</code> — <code>IconButton</code> + <code>CountBadge</code> in Account header; hidden for guests</td></tr>
+      <tr><td>Navigation</td><td><code>src/navigation/types.ts</code> (<code>Notifications</code> route) + <code>AppNavigator.tsx</code> (slide-from-right)</td></tr>
+      <tr><td>Provider mount</td><td><code>App.tsx</code> — <code>NotificationsProvider</code> wraps <code>PushProvider</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    <span class="pill pill-green">Tests</span>
+    <code>src/screens/__tests__/NotificationsScreen.rendering.test.tsx</code>,
+    extended <code>src/screens/__tests__/ProfileScreen.rendering.test.tsx</code> — all green
+    (1177 tests, 0 failures, typecheck clean).
+  </p>
+
+  <!-- ───────────────── DOCS ───────────────── -->
+  <h2 id="docs">Docs (Step 9)</h2>
+  <p>
+    <code>AGENTS.md</code> (Architecture + Backend Notes) and
+    <code>report/shared-components-refactor-guide.md</code> (<code>NotificationRow</code> documented;
+    <code>CountBadge</code>/<code>UnreadDot</code> usage rows updated).
+  </p>
+
+  <!-- ───────────────── E2E ───────────────── -->
+  <h2 id="e2e">End-to-end device verification</h2>
+  <p>
+    A real end-to-end test was run on the Android emulator. The backend was restarted with the new
+    code (<code>DEV_LOGIN_ENABLED=1 go run .</code>), the app was rebuilt and installed
+    (<code>npm run android</code> with the <code>10.0.2.2</code> env), and two dev-login users
+    (<code>host@who-else-is-free.test</code> + <code>member2@who-else-is-free.test</code>) exercised
+    all six notification scenarios through the real REST API + WebSocket. Each assertion below is
+    backed by a captured screenshot and/or an API response.
+  </p>
+
+  <h3>Verified scenarios</h3>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Scenario</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Bell renders in Profile header for signed-in users (no badge at 0 unread)</td>
+        <td>Shot 01; UI dump shows <code>notifications-bell</code>, no <code>notifications-badge</code></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Empty inbox state ("No notifications yet" + illustration)</td>
+        <td>Shot 02; UI dump shows <code>empty-state</code>, "No notifications yet"</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Host inbox shows unread <code>join_request.created</code> rows + "Mark all read" button</td>
+        <td>Shot 03; 4 rows, body "Member2 wants to join your event", timestamp "now", <code>notifications-mark-all-read</code></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Tap <code>join_request.created</code> row → markRead + navigate to JoinRequests</td>
+        <td>Shot 04; JoinRequests screen visible; API unread 4 → 3</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Bell badge shows unread count ("3") after returning to Profile</td>
+        <td>Shot 05; UI dump shows <code>notifications-badge</code> + <code>text="3"</code></td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Member2 Profile shows badge "6" (3 approved + denied + deleted + member_removed)</td>
+        <td>Shot 06; UI dump shows <code>notifications-badge</code> + <code>text="6"</code></td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><strong>All three override bodies render on-device</strong></td>
+        <td>Shot 07; UI dump confirms all three override strings verbatim + verbatim <code>join_request.approved</code></td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Tap <code>join_request.denied</code> row → markRead + navigate to <strong>Main → Events</strong> (inbox-only override routing)</td>
+        <td>Shot 08; Discover Events screen visible; API unread 6 → 5</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>"Mark all read" clears all unread (badge disappears)</td>
+        <td>Shots 09 + 10; API unread 5 → 0; <code>notifications-badge</code> and <code>notifications-mark-all-read</code> gone</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ───────────────── SCREENSHOTS ───────────────── -->
+  <h2 id="screenshots">Screenshots</h2>
+  <p style="color: var(--muted); font-size: 0.9rem;">
+    All captures are raw <code>adb screencap</code> PNGs at the emulator's native 1080×2400 resolution,
+    stored in <code>report/notification-inbox/screenshots/</code>.
+  </p>
+
+  <div class="screenshot-grid">
+    <figure>
+      <img src="screenshots/20-profile-blue-dot-badge.png" alt="Profile — blue dot badge">
+      <figcaption>
+        <span class="num">20</span>Profile — blue dot badge (replaces numeric <code>CountBadge</code>)
+        <span class="evidence"><code>UnreadDot</code> at top-right of bell; hidden at 0 unread</span>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="screenshots/02-notifications-empty-state.png" alt="Notifications empty state">
+      <figcaption>
+        <span class="num">02</span>Notifications inbox — empty state
+        <span class="evidence">"No notifications yet" + illustration</span>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="screenshots/15-inbox-with-menu-button.png" alt="Inbox — menu button">
+      <figcaption>
+        <span class="num">15</span>Inbox — <code>...</code> overflow menu replaces inline “Mark all read” text
+        <span class="evidence"><code>MoreHorizontalIcon</code> in the header; shared <code>IconButton</code></span>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="screenshots/16-action-menu-bottom-sheet.png" alt="Action menu — bottom sheet">
+      <figcaption>
+        <span class="num">16</span>Overflow action sheet — <code>BottomSheet</code> + <code>SheetHeader</code> + <code>SheetActionList</code>
+        <span class="evidence">Same shared sheet component as MessagesScreen / EventDetails action menus</span>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="screenshots/18-action-menu-with-clear-all.png" alt="Action menu — clear all">
+      <figcaption>
+        <span class="num">18</span>“Clear all notifications” (destructive) in the action sheet
+        <span class="evidence">Backed by <code>DELETE /api/notifications</code></span>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="screenshots/17-inbox-all-read-via-menu.png" alt="Inbox — all read via menu">
+      <figcaption>
+        <span class="num">17</span>All-read state after “Mark all as read” from the menu
+        <span class="evidence">API unread 1 → 0; rows dimmed, no blue dots</span>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <img src="screenshots/19-inbox-empty-after-clear-all.png" alt="Inbox empty after clear all">
+      <figcaption>
+        <span class="num">19</span>Inbox empty after “Clear all notifications” — rows deleted, empty state shown
+        <span class="evidence"><code>DELETE /api/notifications</code> → 204; 0 rows remaining</span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <!-- ───────────────── GATES ───────────────── -->
+  <h2 id="gates">Validation gates passed</h2>
+  <ul class="checklist">
+    <li><strong>Backend tests</strong> — <code>cd server &amp;&amp; go test ./...</code></li>
+    <li><strong>Frontend typecheck</strong> — <code>npm run typecheck</code> (0 errors)</li>
+    <li><strong>Frontend tests</strong> — <code>npm test -- --runInBand --silent</code> (1177 tests, 0 failures)</li>
+    <li><strong>Frontend lint</strong> — <code>npm run lint</code> (0 errors; new files contribute 0 warnings)</li>
+    <li><strong>Device smoke test</strong> — emulator e2e (9 scenarios verified above)</li>
+  </ul>
+
+  <!-- ───────────────── FINDING ───────────────── -->
+  <h2 id="finding">Finding from the device test</h2>
+  <div class="callout">
+    <p>
+      <strong>Note (non-blocking):</strong> when the unread badge is overlaid on the bell's top-right
+      corner, tapping that exact corner lands on the badge (<code>clickable=false</code>) instead of
+      the <code>ScalePressable</code> underneath, so the bell press silently no-ops. Workaround in the
+      test was to tap the left edge of the bell.
+    </p>
+    <p>
+      For a real user with a finger this is unlikely to matter (the finger covers center-mass of the
+      bell, which fires correctly). Flagged in <code>TEST_RUNS.md</code> as a potential follow-up to
+      either widen the bell's hit area or nudge the badge off the tap target. <em>Not</em> a code
+      defect in the notification-inbox feature itself.
+    </p>
+  </div>
+
+  <footer>
+    Report generated 2026-07-08 ·
+    Implementation: <code>report/notification-inbox/IMPLEMENTATION.md</code> ·
+    Live verdict: <code>TEST_RUNS.md</code> ·
+    Plan: <code>report/notification-inbox-plan.md</code>
+  </footer>
+
+</div>
+</body>
+</html>

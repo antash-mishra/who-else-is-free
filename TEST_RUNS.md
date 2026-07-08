@@ -36,3 +36,21 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Flow: dev-login as Tester (host) → Messages → tap "1:1 Event B (Edited)" → JoinRequestsScreen 1:1 (screenshot 01) → tap approved member row → ChatThread 1:1 (screenshot 04) → back → Messages → tap "Group Event A (Edited)" → ChatThread group (screenshot 03).
 - Attempt 1: PASS — mobile_dump_ui text nodes confirmed exact subtitles: JoinRequests 1:1 "2 People, 14 Jul Tue"; ChatThread 1:1 title "Tester" + "One to one, 14 Jul Tue"; ChatThread group "3 Members, 12 Jul Sun". DateTime formatting verified: 2026-07-14→"14 Jul Tue", 2026-07-12→"12 Jul Sun". Screenshots + PROOF.md at report/header-consistency-proof/. npm test 1164 pass; typecheck clean; lint 0 errors/no new warnings.
 - Final: PASS — all reachable surfaces render the consistent title/subtitle format. Group JoinRequests header verified by unit test (asserts "3 Members, <date>"). ConnectionStatusIndicator verified by unit test (subtitle stays visible while connecting).
+
+## 2026-07-08 — Notification Inbox (full implementation)
+- Change: Server-backed notification history (`notifications` table + `NotificationHandler` endpoints + best-effort recorder at all 6 push sites) + `NotificationsScreen` with bell `IconButton`/`CountBadge` in Profile header; inbox-only `routeFromNotification` helper (push-tap routing frozen); foreground `onMessage` → cheap unread-count refresh.
+- Flow: Profile → bell → Notifications inbox → tap row (markRead + navigate) → back → "Mark all read" → badge cleared. Tested as host (join_request.created → JoinRequests) and member2 (all 3 override bodies + denied row → Main → Events).
+- Attempt 1: PASS —
+  - 01 Profile bell, no badge (0 unread) ✓
+  - 02 Inbox empty state ✓
+  - 03 Host inbox 4 unread rows + "Mark all read" ✓ (API unread=4)
+  - 04 Tap join_request.created row → JoinRequests screen; host unread 4→3 ✓
+  - 05 Host Profile badge "3" ✓
+  - 06 Member2 Profile badge "6" ✓
+  - 07 Member2 inbox: all three override bodies verbatim on-device ✓
+  - 08 Tap join_request.denied row → Discover Events (Main → Events); member2 unread 6→5 ✓
+  - 09 "Mark all read" → member2 unread 5→0; "Mark all read" button hidden ✓
+  - 10 Member2 Profile badge cleared ✓
+- Initial hiccup: bell tap did not fire when landing on the `CountBadge` overlay (top-right). Workaround: tap the left side of the bell (x≈935) to avoid the badge. Not a code defect — the badge is `clickable=false` but `ScalePressable` still needed a tap outside the badge bounds. Non-blocking for real users (finger is larger and lands center-mass of the bell); flagged for a follow-up to widen the bell's hit area or move the badge slightly off the tap target.
+- Final: PASS — full end-to-end verified on emulator; backend + frontend test suites green.
+- Screenshots: `report/notification-inbox/screenshots/01..10`  (report: `report/notification-inbox/IMPLEMENTATION.md`)

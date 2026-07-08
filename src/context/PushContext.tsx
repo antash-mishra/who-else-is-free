@@ -20,6 +20,7 @@ import * as SecureStore from 'expo-secure-store';
 import { requestJson } from '@api/client';
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
+import { useNotifications } from '@context/NotificationsContext';
 import { handleNotificationTap, PushData } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
 import { logger } from '@services/logger';
@@ -88,6 +89,7 @@ const getMessagingInstance = (): Messaging | null => {
 export const PushProvider = ({ children }: { children: ReactNode }) => {
   const { user, token } = useAuth();
   const { setActiveConversation, activeConversationId } = useChat();
+  const { refreshUnreadCount } = useNotifications();
   const fcmTokenRef = useRef<string | null>(null);
   const authTokenRef = useRef<string | null>(null);
   const prevUserIdRef = useRef<number | null>(null);
@@ -225,7 +227,15 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [setActiveConversation]);
 
-  // Foreground message handling (silent for MVP - just update unread counts)
+  // Foreground message handling: refresh the unread count so the bell badge
+  // updates live. The full inbox list is NOT reloaded here (avoids list churn
+  // on every in-app chat message); it loads on inbox open / pull-to-refresh.
+  // (notification-inbox-plan.md Confirmed Decisions #9 + #10.)
+  const refreshUnreadCountRef = useRef(refreshUnreadCount);
+  useEffect(() => {
+    refreshUnreadCountRef.current = refreshUnreadCount;
+  }, [refreshUnreadCount]);
+
   useEffect(() => {
     const msg = getMessagingInstance();
     if (!msg) return;
@@ -233,10 +243,11 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onMessage(
       msg,
       async (_remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
-        // MVP: silently update unread counts via existing WS connection.
-        // The ChatContext already handles WS message:new events which update
-        // unread counts. No additional action needed here.
-        // Future: display in-app banner for messages in other conversations.
+        // Cheap count-only refresh; the ChatContext still handles WS message:new
+        // events for conversation unread counts separately.
+        refreshUnreadCountRef.current().catch((err) => {
+          logger.warn('notifications: foreground refresh unread count failed', err);
+        });
       },
     );
 

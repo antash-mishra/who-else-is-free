@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScalePressable from '@components/ScalePressable';
+import BellIcon from '@assets/notification/bell.svg';
 
 import { useCallback, useMemo, useState } from 'react';
 import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
@@ -8,12 +9,14 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenContainer from '@components/ScreenContainer';
 import ChevronRightIcon from '@assets/ui/chevron-right.svg';
+import { UnreadDot, IconButton } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
 import { useAuth } from '@context/AuthContext';
 import { useEvents } from '@context/EventsContext';
 import { useChat } from '@context/ChatContext';
+import { useNotifications } from '@context/NotificationsContext';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import BottomSheetModal from '@components/BottomSheetModal';
 import EventActionOverlay from '@components/EventActionOverlay';
@@ -70,6 +73,7 @@ const ProfileScreen = () => {
   const { user, signOut, deleteAccount } = useAuth();
   const { events, userEvents } = useEvents();
   const { conversations } = useChat();
+  const { unreadCount } = useNotifications();
   const navigation = useNavigation<ProfileNavigation>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -219,7 +223,20 @@ const ProfileScreen = () => {
   return (
     <ScreenContainer>
       <View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>Account</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Account</Text>
+          <View style={styles.bellContainer}>
+            <IconButton
+              accessibilityLabel="Notifications"
+              testID="notifications-bell"
+              icon={<BellIcon width={24} height={24} color={colors.text} />}
+              onPress={() => navigation.navigate('Notifications')}
+            />
+            {unreadCount > 0 ? (
+              <UnreadDot style={styles.bellBadge} testID="notifications-badge" />
+            ) : null}
+          </View>
+        </View>
       </View>
       <ScrollView
         style={styles.scrollView}
@@ -340,6 +357,22 @@ const styles = StyleSheet.create({
   headerSpacing: {
     paddingTop: spacing.lg - spacing.md,
     paddingBottom: spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bellContainer: {
+    position: 'relative',
+  },
+  bellBadge: {
+    position: 'absolute',
+    // The IconButton is 44x44; the 24x24 bell SVG is centered inside it.
+    // Position the dot at the top-right corner of the SVG icon, not the
+    // button container, so it visually sits on the bell's upper-right.
+    top: 10,
+    right: 10,
   },
   headerTitle: {
     fontSize: typography.header,

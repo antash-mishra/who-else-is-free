@@ -832,7 +832,7 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		h.hub.emitJoinRequestEvent(convo.ID, "created", view)
 
 		// Push: notify host about new join request (includes conversation context).
-		h.hub.sendPushToUser(event.UserID, map[string]string{
+		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
 			"type":           "join_request.created",
 			"eventId":        strconv.FormatInt(eventID, 10),
 			"conversationId": strconv.FormatInt(convo.ID, 10),
@@ -841,7 +841,7 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		})
 	} else {
 		// For 1:1 events, the request remains pending until host approval.
-		h.hub.sendPushToUser(event.UserID, map[string]string{
+		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
 			"type":    "join_request.created",
 			"eventId": strconv.FormatInt(eventID, 10),
 			"title":   event.Title,
@@ -1026,7 +1026,7 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 	}
 
 	// Push: notify the requester they were approved
-	h.hub.sendPushToUser(userID, map[string]string{
+	h.hub.recordAndSendPushToUser(userID, map[string]string{
 		"type":           "join_request.approved",
 		"eventId":        strconv.FormatInt(eventID, 10),
 		"conversationId": strconv.FormatInt(convo.ID, 10),
@@ -1106,7 +1106,7 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 	if event != nil {
 		eventTitle = event.Title
 	}
-	h.hub.sendPushToUser(userID, map[string]string{
+	h.hub.recordAndSendPushToUser(userID, map[string]string{
 		"type":    "join_request.denied",
 		"eventId": strconv.FormatInt(eventID, 10),
 		"title":   eventTitle,
@@ -1226,7 +1226,7 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 		h.hub.NotifyMembership(convo.ID, userID, "removed")
 	}
 	if h.hub != nil && claims.UserID == event.UserID && userID != claims.UserID {
-		h.hub.sendPushToUser(userID, map[string]string{
+		h.hub.recordAndSendPushToUser(userID, map[string]string{
 			"type":            "event.member_removed",
 			"eventId":         strconv.FormatInt(eventID, 10),
 			"title":           event.Title,
@@ -1313,15 +1313,6 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 			return
 		}
 
-		tokens, err := h.repo.ListPushTokensByUserIDs(ctx, recipientIDs)
-		if err != nil {
-			log.Printf("push: list push tokens failed: %v", err)
-			return
-		}
-		if len(tokens) == 0 {
-			return
-		}
-
 		title := eventTitle
 		if title == "" {
 			title = senderName
@@ -1332,19 +1323,37 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 		}
 		body := fmt.Sprintf("%s: %s", senderName, bodyPreview)
 
+		data := map[string]string{
+			"type":           "chat.message",
+			"conversationId": strconv.FormatInt(msg.ConversationID, 10),
+			"senderId":       strconv.FormatInt(msg.SenderID, 10),
+			"senderName":     senderName,
+			"title":          title,
+			"body":           body,
+		}
+
+		// Persist one inbox row per recipient (best-effort, before the token
+		// lookup so a recipient with no registered push token still sees the
+		// message in their inbox).
+		for _, recipientID := range recipientIDs {
+			h.recordChatMessageNotification(recipientID, msg.ConversationID, senderName, title, body, data)
+		}
+
+		tokens, err := h.repo.ListPushTokensByUserIDs(ctx, recipientIDs)
+		if err != nil {
+			log.Printf("push: list push tokens failed: %v", err)
+			return
+		}
+		if len(tokens) == 0 {
+			return
+		}
+
 		var notifications []PushNotification
 		for _, t := range tokens {
 			notifications = append(notifications, PushNotification{
 				Token: t.Token,
-				Data: map[string]string{
-					"type":           "chat.message",
-					"conversationId": strconv.FormatInt(msg.ConversationID, 10),
-					"senderId":       strconv.FormatInt(msg.SenderID, 10),
-					"senderName":     senderName,
-					"title":          title,
-					"body":           body,
-				},
-			})
+				Data:  data,
+		})
 		}
 
 		if err := h.pushSender.SendBatch(ctx, notifications); err != nil {

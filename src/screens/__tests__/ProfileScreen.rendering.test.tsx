@@ -29,6 +29,10 @@ jest.mock('@context/EventsContext', () => ({
   useEvents: jest.fn(),
 }));
 
+jest.mock('@context/NotificationsContext', () => ({
+  useNotifications: jest.fn(),
+}));;
+
 jest.mock('react-native-reanimated', () => {
   const { View } = require('react-native');
   return {
@@ -98,6 +102,7 @@ jest.mock('@assets/privacy-policy-icon-profile.svg', () => 'PrivacyPolicyIconSvg
 jest.mock('@assets/help-icon-profile.svg', () => 'HelpIconSvg');
 jest.mock('@assets/logout-icon-profile.svg', () => 'LogoutIconSvg');
 jest.mock('@assets/trash-icon-profile.svg', () => 'TrashIconSvg');
+jest.mock('@assets/notification/bell.svg', () => 'BellIconSvg');
 
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => ({
@@ -111,10 +116,12 @@ jest.mock('expo-linear-gradient', () => ({
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
+import { useNotifications } from '@context/NotificationsContext';
 
 const mockedUseAuth = useAuth as jest.Mock;
 const mockedUseChat = useChat as jest.Mock;
 const mockedUseEvents = useEvents as jest.Mock;
+const mockedUseNotifications = useNotifications as jest.Mock;
 
 describe('ProfileScreen Rendering', () => {
   const mockSignOut = jest.fn();
@@ -124,6 +131,8 @@ describe('ProfileScreen Rendering', () => {
     authOverrides?: object;
     chatOverrides?: object;
     eventsOverrides?: object;
+    unreadCount?: number;
+    notificationsOverrides?: object;
   } = {}) => {
     mockedUseAuth.mockReturnValue(
       createMockUseAuth({
@@ -145,6 +154,10 @@ describe('ProfileScreen Rendering', () => {
         ...overrides.eventsOverrides,
       })()
     );
+    mockedUseNotifications.mockReturnValue({
+      unreadCount: overrides.unreadCount ?? 0,
+      ...overrides.notificationsOverrides,
+    });
   };
 
   beforeEach(() => {
@@ -409,12 +422,47 @@ describe('ProfileScreen Rendering', () => {
       setupMocks({
         authOverrides: { user: null },
       });
-      const { queryByText } = render(<ProfileScreen />);
+      const { queryByText, queryByTestId } = render(<ProfileScreen />);
 
       expect(queryByText('Edit Profile')).toBeNull();
       expect(queryByText('Past Events')).toBeNull();
       expect(queryByText('Logout')).toBeNull();
       expect(queryByText('Delete')).toBeNull();
+      // Bell is hidden for guests.
+      expect(queryByTestId('notifications-bell')).toBeNull();
+      expect(queryByTestId('notifications-badge')).toBeNull();
+    });
+  });
+
+  describe('Notifications Bell', () => {
+    it('renders the bell in the Account header for signed-in users', () => {
+      setupMocks();
+      const { getByTestId } = render(<ProfileScreen />);
+
+      expect(getByTestId('notifications-bell')).toBeTruthy();
+    });
+
+    it('hides the badge when unread count is 0', () => {
+      setupMocks({ unreadCount: 0 });
+      const { queryByTestId } = render(<ProfileScreen />);
+
+      expect(queryByTestId('notifications-badge')).toBeNull();
+    });
+
+    it('shows the blue dot badge when unread count is greater than 0', () => {
+      setupMocks({ unreadCount: 5 });
+      const { getByTestId } = render(<ProfileScreen />);
+
+      expect(getByTestId('notifications-badge')).toBeTruthy();
+    });
+
+    it('navigates to Notifications when the bell is pressed', () => {
+      setupMocks();
+      const { getByTestId } = render(<ProfileScreen />);
+
+      fireEvent.press(getByTestId('notifications-bell'));
+
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Notifications');
     });
   });
 

@@ -31,6 +31,7 @@ import { EventsProvider } from '@context/EventsContext';
 import { AuthProvider } from '@context/AuthContext';
 import { ChatProvider } from '@context/ChatContext';
 import { PushProvider } from '@context/PushContext';
+import { NotificationsProvider } from '@context/NotificationsContext';
 import { CoversProvider } from '@context/CoversContext';
 import { initializeAnalytics } from '@services/analytics';
 import { logger } from '@services/logger';
@@ -121,11 +122,13 @@ const App = () => {
             <AuthProvider onSessionExpired={handleSessionExpired}>
               <CoversProvider>
                 <ChatProvider>
-                  <PushProvider>
-                    <EventsProvider onGuestEventSubmitted={handleGuestEventSubmitted}>
-                      <AppNavigator />
-                    </EventsProvider>
-                  </PushProvider>
+                  <NotificationsProvider>
+                    <PushProvider>
+                      <EventsProvider onGuestEventSubmitted={handleGuestEventSubmitted}>
+                        <AppNavigator />
+                      </EventsProvider>
+                    </PushProvider>
+                  </NotificationsProvider>
                 </ChatProvider>
               </CoversProvider>
             </AuthProvider>

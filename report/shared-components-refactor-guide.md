@@ -37,8 +37,8 @@ In this React Native app, "shared CSS" means:
 | Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`                               |
 | Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                         |
 | Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                         |
-| Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, Join Requests header                    |
-| Unread indicator dot on a list row            | `UnreadDot`                                                                            | Messages rows, Join Requests 1:1 rows                       |
+| Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, Join Requests header, Profile notifications bell |
+| Unread indicator dot on a list row            | `UnreadDot`                                                                            | Messages rows, Join Requests 1:1 rows, Notifications rows   |
 | Join-request row with accept/decline          | `EventRequestRow`                                                                      | Event Details, Pending Requests                             |
 | Member row with menu or host label            | `EventMemberRow`                                                                       | Event Details members/accepted lists                        |
 | Press scale and haptics                       | `ScalePressable`                                                                       | UI primitives, event rows, profile/menu rows                |
@@ -1134,6 +1134,23 @@ Use it when:
 - A screen needs event cards grouped by date, sorted, or converted into `EventCard` props.
 
 ## Feature Shared Components And Helpers
+
+### `NotificationRow`
+
+File: `src/components/NotificationRow.tsx`
+
+What it is:
+
+- Feature row for the Notifications inbox. Owns its visual states (unread `UnreadDot` vs read/dimmed body) and press haptic (`triggerHaptic('light')`).
+- Renders the server-supplied inbox body verbatim (override text is finalized in `server/notification_payloads.go`, never on the client).
+
+Where it is used:
+
+- `NotificationsScreen`
+
+Use it when:
+
+- A notifications-list row is needed. Keep it a feature row (not promoted to `src/components/ui`) until it repeats across screens.
 
 ### `HelpForm`
 

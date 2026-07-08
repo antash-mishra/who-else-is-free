@@ -173,6 +173,25 @@ type PushToken struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Notification is a persisted server-side notification row shown in the
+// in-app Notifications inbox. Unlike the raw FCM push payload (which is
+// fire-and-forget data-only), a Notification row is durable, paginated,
+// and carries the inbox-display body. The push body string sent to the OS
+// is unchanged; only the inbox body may differ for the three "harsh"
+// override types (see server/notification_payloads.go).
+type Notification struct {
+	ID             int64     `json:"id"`
+	UserID         int64     `json:"user_id"`
+	Type           string    `json:"type"`
+	EventID        *int64    `json:"event_id,omitempty"`
+	ConversationID *int64    `json:"conversation_id,omitempty"`
+	Title          string    `json:"title"`
+	Body           string    `json:"body"`
+	Payload        string    `json:"payload,omitempty"`
+	Read           bool      `json:"read"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type CreateEventParams struct {
 	Title       string  `json:"title" binding:"required,min=1"`
 	Location    string  `json:"location" binding:"required,min=1"`

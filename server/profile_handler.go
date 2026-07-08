@@ -133,7 +133,7 @@ func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
 			if len(event.RecipientIDs) == 0 {
 				continue
 			}
-			h.hub.sendPushToUsers(event.RecipientIDs, map[string]string{
+			h.hub.recordAndSendPushToUsers(event.RecipientIDs, map[string]string{
 				"type":    "event.deleted",
 				"eventId": strconv.FormatInt(event.ID, 10),
 				"title":   event.Title,
