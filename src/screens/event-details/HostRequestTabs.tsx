@@ -5,7 +5,12 @@ import { View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import EmptyState from '@components/EmptyState';
-import { EventMemberRow, EventRequestRow, EventRequestRowSeparator } from '@components/events';
+import {
+  EventMemberRow,
+  EventMemberRowSeparator,
+  EventRequestRow,
+  EventRequestRowSeparator,
+} from '@components/events';
 import { SlidingTabs } from '@components/ui';
 import { ChatJoinRequest } from '@context/ChatContext';
 
@@ -161,13 +166,15 @@ const HostRequestTabs = ({
                   style={{ marginTop: 32 }}
                 />
               ) : (
-                acceptedRequests.map((request) => (
-                  <EventMemberRow
-                    key={request.id}
-                    member={request.requester}
-                    onPress={() => onRequesterPress(request)}
-                    onMenuPress={() => onOpenMemberMenu(request.requester)}
-                  />
+                acceptedRequests.map((request, index) => (
+                  <View key={request.id}>
+                    <EventMemberRow
+                      member={request.requester}
+                      onPress={() => onRequesterPress(request)}
+                      onMenuPress={() => onOpenMemberMenu(request.requester)}
+                    />
+                    {index < acceptedRequests.length - 1 && <EventMemberRowSeparator />}
+                  </View>
                 ))
               )
             ) : confirmedMembers.length === 0 ? (
@@ -180,12 +187,11 @@ const HostRequestTabs = ({
                 style={{ marginTop: 32 }}
               />
             ) : (
-              confirmedMembers.map((member) => (
-                <EventMemberRow
-                  key={member.id}
-                  member={member}
-                  onMenuPress={() => onOpenMemberMenu(member)}
-                />
+              confirmedMembers.map((member, index) => (
+                <View key={member.id}>
+                  <EventMemberRow member={member} onMenuPress={() => onOpenMemberMenu(member)} />
+                  {index < confirmedMembers.length - 1 && <EventMemberRowSeparator />}
+                </View>
               ))
             )}
           </View>

@@ -1,5 +1,5 @@
 export { default as EventListPage } from './EventListPage';
-export { default as EventMemberRow } from './EventMemberRow';
+export { default as EventMemberRow, EventMemberRowSeparator } from './EventMemberRow';
 export type { EventMemberRowProps } from './EventMemberRow';
 export { default as EventRequestRow, EventRequestRowSeparator } from './EventRequestRow';
 export type { EventRequestRowProps } from './EventRequestRow';
