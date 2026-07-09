@@ -83,7 +83,14 @@ jest.mock('@context/NotificationsContext', () => ({
 const mockSetActiveConversation = jest.fn();
 let mockConversations: Array<{ id: number }> = [{ id: 10 }];
 jest.mock('@context/ChatContext', () => ({
-  useChat: () => ({ setActiveConversation: mockSetActiveConversation, conversations: mockConversations }),
+  useChat: () => ({
+    setActiveConversation: mockSetActiveConversation,
+    conversations: mockConversations,
+  }),
+}));
+
+jest.mock('@context/EventsContext', () => ({
+  useEvents: () => ({ events: [] }),
 }));
 
 // Mock haptics so the press handler doesn't reach for native modules.
@@ -97,16 +104,19 @@ jest.mock('@components/sheets', () => {
   return {
     BottomSheet: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
       visible ? <View testID="notifications-menu-sheet">{children}</View> : null,
-    SheetActionList: ({ items }: { items: Array<{ label: string; onPress: () => void; testID?: string }> }) =>
-      (
-        <View>
-          {items.map((item) => (
-            <Pressable key={item.label} testID={item.testID} onPress={item.onPress}>
-              <Text>{item.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ),
+    SheetActionList: ({
+      items,
+    }: {
+      items: Array<{ label: string; onPress: () => void; testID?: string }>;
+    }) => (
+      <View>
+        {items.map((item) => (
+          <Pressable key={item.label} testID={item.testID} onPress={item.onPress}>
+            <Text>{item.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    ),
   };
 });
 
@@ -262,8 +272,9 @@ describe('NotificationsScreen Rendering', () => {
     expect(mockNavRefNavigate).toHaveBeenCalledWith('Main', { screen: 'Events' });
   });
 
-  it('navigates to Discover Events + shows access modal when conversation no longer exists', async () => {
-    // Remove conversation 10 from the mock -> the chat.message row's conversation is gone.
+  it('routes from the notification payload even when conversations are stale', async () => {
+    // The conversations list can still be loading when the inbox is tapped; the
+    // persisted notification payload is the source of truth for routing.
     mockConversations = [];
     mockNotificationsValue = {
       ...mockNotificationsValue,
@@ -276,11 +287,9 @@ describe('NotificationsScreen Rendering', () => {
       fireEvent.press(getByLabelText('Alice'));
     });
 
-    // Should NOT navigate to ChatThread.
-    expect(mockSetActiveConversation).not.toHaveBeenCalledWith(10);
-    expect(mockNavRefNavigate).not.toHaveBeenCalledWith('ChatThread');
-    // Should navigate to Discover Events with the no-access modal param.
-    expect(mockNavigate).toHaveBeenCalledWith('Main', {
+    expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
+    expect(mockNavRefNavigate).toHaveBeenCalledWith('ChatThread');
+    expect(mockNavigate).not.toHaveBeenCalledWith('Main', {
       screen: 'Events',
       params: { showNoAccessModal: true },
     });

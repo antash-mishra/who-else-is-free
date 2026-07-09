@@ -22,6 +22,7 @@ import ScreenContainer from '@components/ScreenContainer';
 import { BottomSheet, SheetActionList } from '@components/sheets';
 import { AppText, IconButton } from '@components/ui';
 import { useChat } from '@context/ChatContext';
+import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
 import { routeFromNotification, PushData } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
@@ -58,7 +59,8 @@ const NotificationsScreen = () => {
     markAllRead,
     clearAll,
   } = useNotifications();
-  const { conversations, setActiveConversation } = useChat();
+  const { setActiveConversation } = useChat();
+  const { events } = useEvents();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -87,40 +89,22 @@ const NotificationsScreen = () => {
       logger.log(`notifications: tap at ${tapTime}`);
       const data = pushDataFromNotification(notification);
 
-      // For chat-thread routing (chat.message, join_request.approved), verify
-      // the conversation still exists before navigating. If the user was
-      // removed after the notification was generated, the conversation will
-      // be absent from ChatContext — navigate to Discover Events and show
-      // an access modal instead of landing on a blank ChatThread.
-      const needsConversation = data.type === 'chat.message' || data.type === 'join_request.approved';
-      if (needsConversation && data.conversationId) {
-        const convId = Number(data.conversationId);
-        const stillExists = conversations.some((c) => c.id === convId);
-        if (!stillExists) {
-          logger.log(`notifications: navigating to Main/Events (no access) at ${Date.now()} (+${Date.now() - tapTime}ms)`);
-          navigation.navigate('Main', { screen: 'Events', params: { showNoAccessModal: true } });
-          if (!notification.read) {
-            InteractionManager.runAfterInteractions(() => {
-              logger.log(`notifications: markRead deferred callback fired at ${Date.now()} (+${Date.now() - tapTime}ms)`);
-              markRead(notification.id).catch(() => undefined);
-            });
-          }
-          return;
-        }
-      }
-
       // Navigate first so the transition starts immediately, then mark read
       // after the navigation animation finishes — avoids blocking the JS thread
-      // with an optimistic state update + network call before navigation.
+      // with an optimistic state update + network call before navigation. Do
+      // not pre-check ChatContext.conversations here; that list can be stale or
+      // still loading, while the persisted notification payload has the route.
       routeFromNotification(data, setActiveConversation, navigationRef);
       if (!notification.read) {
         InteractionManager.runAfterInteractions(() => {
-          logger.log(`notifications: markRead deferred callback fired at ${Date.now()} (+${Date.now() - tapTime}ms)`);
+          logger.log(
+            `notifications: markRead deferred callback fired at ${Date.now()} (+${Date.now() - tapTime}ms)`,
+          );
           markRead(notification.id).catch(() => undefined);
         });
       }
     },
-    [markRead, setActiveConversation, conversations, navigation],
+    [markRead, setActiveConversation],
   );
 
   const handleMarkAllRead = useCallback(() => {
@@ -187,10 +171,7 @@ const NotificationsScreen = () => {
           <AppText variant="body" style={styles.errorText}>
             {error}
           </AppText>
-          <Pressable
-            hitSlop={layout.hitSlop.md}
-            onPress={() => refresh().catch(() => undefined)}
-          >
+          <Pressable hitSlop={layout.hitSlop.md} onPress={() => refresh().catch(() => undefined)}>
             <AppText variant="button" style={styles.retryText}>
               Try again
             </AppText>
@@ -201,7 +182,16 @@ const NotificationsScreen = () => {
           data={notifications}
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
-            <NotificationRow notification={item} onPress={handleRowPress} nowMs={nowMs} />
+            <NotificationRow
+              notification={item}
+              onPress={handleRowPress}
+              nowMs={nowMs}
+              eventImageUri={
+                item.eventId != null
+                  ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
+                  : undefined
+              }
+            />
           )}
           style={styles.list}
           contentContainerStyle={[
@@ -209,7 +199,10 @@ const NotificationsScreen = () => {
             { paddingBottom: spacing.xl + safeBottom },
           ]}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => refresh().catch(() => undefined)} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => refresh().catch(() => undefined)}
+            />
           }
           onEndReached={() => {
             loadMore().catch(() => undefined);

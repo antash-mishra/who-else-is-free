@@ -1,11 +1,11 @@
 import { memo } from 'react';
-
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 
 import { AppNotification } from '@api/mappers/notifications';
 import ScalePressable from '@components/ScalePressable';
-import { AppText, UnreadDot } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
+import { UnreadDot } from '@components/ui';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing, typography } from '@theme/index';
 import { formatCompactRelativeTime } from '@utils/relativeTime';
@@ -14,16 +14,19 @@ export interface NotificationRowProps {
   notification: AppNotification;
   onPress: (notification: AppNotification) => void;
   nowMs: number;
+  eventImageUri?: string;
 }
 
 /**
- * NotificationRow mirrors the MessagesScreen ConversationRow layout so the
- * inbox feels consistent with the chat list: circular avatar on the left,
- * blue unread dot at the left edge, semibold for unread, and a thin divider
- * ("dash") after every row. Reuses UserAvatar + ScalePressable from the
- * shared component catalog.
+ * NotificationRow mirrors the MessagesScreen ConversationRow layout and
+ * styles exactly so the inbox list looks identical to the chat list:
+ * 52×52 circular avatar/cover, blue unread dot at the left edge,
+ * semibold for unread, thin divider after every row.
+ *
+ * Shows the event cover image when the notification has an associated event
+ * (same as ConversationRow); falls back to a UserAvatar otherwise.
  */
-const NotificationRow = ({ notification, onPress, nowMs }: NotificationRowProps) => {
+const NotificationRow = ({ notification, onPress, nowMs, eventImageUri }: NotificationRowProps) => {
   const hasUnread = !notification.read;
   const timestampLabel = formatCompactRelativeTime(notification.createdAt, nowMs);
 
@@ -41,34 +44,40 @@ const NotificationRow = ({ notification, onPress, nowMs }: NotificationRowProps)
       {hasUnread && <UnreadDot style={styles.unreadDot} />}
       <View style={styles.rowContent}>
         <View style={styles.avatar}>
-          <UserAvatar name={notification.title} seed={notification.id} size={52} />
+          {eventImageUri ? (
+            <Image
+              source={{ uri: eventImageUri }}
+              style={styles.avatarImage}
+              contentFit="cover"
+              transition={150}
+            />
+          ) : (
+            <UserAvatar name={notification.title} seed={notification.id} size={52} />
+          )}
         </View>
         <View style={styles.copyInner}>
           <View style={styles.titleRow}>
-            <AppText
-              variant="subtitle"
-              numberOfLines={1}
+            <Text
               style={[styles.title, hasUnread && styles.titleUnread]}
+              numberOfLines={1}
             >
               {notification.title}
-            </AppText>
+            </Text>
             {timestampLabel ? (
-              <AppText
-                variant="caption"
-                numberOfLines={1}
+              <Text
                 style={[styles.timestamp, hasUnread && styles.timestampUnread]}
+                numberOfLines={1}
               >
                 {timestampLabel}
-              </AppText>
+              </Text>
             ) : null}
           </View>
-          <AppText
-            variant="body"
-            numberOfLines={2}
+          <Text
             style={[styles.body, hasUnread && styles.bodyUnread]}
+            numberOfLines={2}
           >
             {notification.body}
-          </AppText>
+          </Text>
         </View>
       </View>
       <View style={styles.divider} />
@@ -76,6 +85,8 @@ const NotificationRow = ({ notification, onPress, nowMs }: NotificationRowProps)
   );
 };
 
+// These styles are copied verbatim from MessagesScreen's ConversationRow
+// styles so both lists render identically.
 const styles = StyleSheet.create({
   row: {
     position: 'relative',
@@ -100,6 +111,11 @@ const styles = StyleSheet.create({
     marginRight: 12,
     overflow: 'hidden',
   },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
   copyInner: {
     flex: 1,
     minWidth: 0,
@@ -113,21 +129,34 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+    fontSize: 17,
+    lineHeight: 20,
+    letterSpacing: -0.5,
     color: colors.text,
+    fontFamily: typography.fontFamilyMedium,
   },
   titleUnread: {
     fontFamily: typography.fontFamilySemiBold,
   },
   timestamp: {
     marginLeft: spacing.sm,
-    color: colors.mutedText,
+    fontSize: 13,
+    lineHeight: 16,
+    letterSpacing: -0.2,
+    color: '#8B8B8B',
+    fontFamily: typography.fontFamilyRegular,
+    textAlign: 'right',
   },
   timestampUnread: {
-    color: colors.muted,
+    color: '#5E5E5E',
     fontFamily: typography.fontFamilyMedium,
   },
   body: {
-    color: colors.iconColor,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: -0.5,
+    color: '#707070',
+    fontFamily: typography.fontFamilyRegular,
   },
   bodyUnread: {
     color: colors.text,

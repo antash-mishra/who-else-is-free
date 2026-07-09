@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   FlatList,
@@ -141,6 +142,7 @@ const ChatThreadScreen = () => {
     sendMessage,
     retryMessage,
     isConnecting,
+    isRefreshingConversations,
     error,
     joinRequestsByConversation,
     refreshJoinRequests,
@@ -154,6 +156,15 @@ const ChatThreadScreen = () => {
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
     [conversations, activeConversationId],
   );
+
+  useEffect(() => {
+    if (activeConversationId == null || activeConversation || isRefreshingConversations) {
+      return;
+    }
+    refreshConversations().catch((err) => {
+      logger.error('Failed to refresh missing active conversation', err);
+    });
+  }, [activeConversation, activeConversationId, isRefreshingConversations, refreshConversations]);
 
   const activeEvent = useMemo(() => {
     if (!activeConversation?.eventId) {
@@ -424,7 +435,13 @@ const ChatThreadScreen = () => {
     isConversationHost && isGroupEventConversation && !!activeConversation?.eventId;
 
   if (!activeConversation) {
-    return null;
+    return (
+      <ScreenContainer>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </ScreenContainer>
+    );
   }
 
   const handleOpenJoinRequests = () => {
@@ -679,6 +696,11 @@ const styles = StyleSheet.create({
   },
   threadBody: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   messagesList: {
     flexGrow: 1,
