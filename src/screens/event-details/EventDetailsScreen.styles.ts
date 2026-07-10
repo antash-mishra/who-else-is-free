@@ -143,7 +143,13 @@ const styles = StyleSheet.create({
     lineHeight: typography.titleLineHeight,
     letterSpacing: typography.letterSpacing,
   },
+  // Groups title + host + going with NO gap, so each gap below is exactly the
+  // child's marginTop (no hidden card gap). Tune the two gaps via:
+  //   Gap A (title → host):   hostedBy.marginTop
+  //   Gap B (host → going):   goingRow.marginTop / goingLabelStandalone.marginTop
+  headerBlock: {},
   hostedBy: {
+    marginTop: spacing.xs, // Gap A: title → "Hosted by"
     fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
     color: colors.subText,
@@ -151,9 +157,13 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   goingRow: {
+    marginTop: spacing.sm, // Gap B: host → "N Going" (group)
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  goingLabelStandalone: {
+    marginTop: spacing.sm, // Gap B: host → "1:1" (single event)
   },
   goingAvatarStack: {
     flexDirection: 'row',
