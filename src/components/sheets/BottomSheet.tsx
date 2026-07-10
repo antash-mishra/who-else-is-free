@@ -96,7 +96,14 @@ const BottomSheet = ({
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
-  const keyboardContentStyle = { paddingBottom: BASE_PADDING_BOTTOM + safeBottom };
+  const keyboardContentStyle = useAnimatedStyle(() => ({
+    // The home-indicator inset is only needed while the sheet is attached to
+    // the bottom of the screen. Subtract the keyboard translation so iOS does
+    // not leave that inset as a white strip above the keyboard.
+    paddingBottom: avoidKeyboard
+      ? Math.max(0, BASE_PADDING_BOTTOM + safeBottom - keyboardOffset.value)
+      : BASE_PADDING_BOTTOM + safeBottom,
+  }));
 
   useEffect(() => {
     onClosedRef.current = onClosed;
