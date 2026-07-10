@@ -93,6 +93,13 @@ const HomeScreen = () => {
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
   const [showNoAccessModal, setShowNoAccessModal] = useState(false);
+  const [showWelcomeBadge, setShowWelcomeBadge] = useState(false);
+
+  useEffect(() => {
+    if (!route.params?.showWelcomeBadge) return;
+    const t = setTimeout(() => setShowWelcomeBadge(true), 350);
+    return () => clearTimeout(t);
+  }, [route.params?.showWelcomeBadge]);
 
   useEffect(() => {
     if (!route.params?.showEventReportedBadge) return;
@@ -360,6 +367,14 @@ const HomeScreen = () => {
           </View>
         </View>
       </View>
+      <EventActionBadge
+        visible={showWelcomeBadge}
+        label="Welcome to WEIF"
+        onHidden={() => {
+          setShowWelcomeBadge(false);
+          navigation.setParams({ showWelcomeBadge: false });
+        }}
+      />
       <EventActionBadge
         visible={showReportedBadge}
         label="Event Reported, Admins are looking into it"

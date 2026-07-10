@@ -455,25 +455,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-row')).toBeTruthy();
     });
 
-    it('shows "Event details updated" badge after transition when route param is set', () => {
+    it('shows "Event details updated" badge after a short delay when route param is set', () => {
+      jest.useFakeTimers();
       const routeSpy = jest
         .spyOn(require('@react-navigation/native'), 'useRoute')
         .mockReturnValue(createMockRoute('1', 'MyEvents', true));
 
       const { getByText, queryByText } = render(<EventDetailsScreen />);
       expect(queryByText('Event details updated')).toBeNull();
-      expect(mockNavigation.addListener).toHaveBeenCalledWith(
-        'transitionEnd',
-        expect.any(Function),
-      );
 
       act(() => {
-        mockNavigationListeners.transitionEnd?.();
+        jest.advanceTimersByTime(350);
       });
 
       expect(getByText('Event details updated')).toBeTruthy();
 
       routeSpy.mockRestore();
+      jest.useRealTimers();
     });
 
     it('opens chat when "Go to Chat" is pressed', () => {

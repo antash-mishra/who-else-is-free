@@ -186,7 +186,12 @@ const OnboardingScreen = () => {
       });
       navigation.reset({
         index: 0,
-        routes: [{ name: 'Main' }],
+        routes: [
+          {
+            name: 'Main',
+            params: { screen: 'Events', params: { showWelcomeBadge: true } },
+          },
+        ],
       });
     } catch (error) {
       logger.warn('Profile update failed', error);

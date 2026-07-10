@@ -93,11 +93,11 @@ export const useEventDetailsActions = ({
     if (!showEventUpdatedBadgeParam) {
       return;
     }
-    const unsubscribe = navigation.addListener('transitionEnd', () => {
-      setShowEventUpdatedBadge(true);
-      unsubscribe();
-    });
-    return unsubscribe;
+    // Delay so the badge appears after the pop-to-EventDetails transition
+    // settles. A prior `transitionEnd` listener missed the event because it
+    // attached after `popTo` had already fired it, so no toast showed.
+    const timer = setTimeout(() => setShowEventUpdatedBadge(true), 350);
+    return () => clearTimeout(timer);
   }, [showEventUpdatedBadgeParam]);
 
   const shouldShowInvitePrompt = showInvitePrompt && !isOwner;

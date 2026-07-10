@@ -3,6 +3,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import EventActionBadge from '@components/EventActionBadge';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import HelpForm from '@components/help/HelpForm';
@@ -24,6 +25,7 @@ const HelpContactScreen = () => {
   const [replyEmail, setReplyEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkedOptions, setCheckedOptions] = useState<string[]>([]);
+  const [showSentBadge, setShowSentBadge] = useState(false);
 
   const toggleOption = useCallback((value: string) => {
     setCheckedOptions((current) =>
@@ -76,7 +78,7 @@ const HelpContactScreen = () => {
         wants_reply: wantsReply,
         reply_email: wantsReply ? email : undefined,
       });
-      Alert.alert('Message sent', 'Thanks. We will get back to you as soon as we can.');
+      setShowSentBadge(true);
       setContactMessage('');
       setReplyEmail('');
       setCheckedOptions([]);
@@ -122,6 +124,11 @@ const HelpContactScreen = () => {
           />
         </View>
       </ScrollView>
+      <EventActionBadge
+        visible={showSentBadge}
+        label="Message sent"
+        onHidden={() => setShowSentBadge(false)}
+      />
     </ScreenContainer>
   );
 };
