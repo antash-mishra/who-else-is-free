@@ -66,12 +66,24 @@ const EventMemberRow: React.FC<EventMemberRowProps> = ({
   );
 };
 
+/**
+ * Divider between member rows. Tighter than the request-row separator since
+ * member rows are compact; the row's own paddingBottom provides the top gap.
+ */
+export const EventMemberRowSeparator: React.FC = () => <View style={styles.separator} />;
+
 const styles = StyleSheet.create({
   memberItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     paddingBottom: 12,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: 48, // avatar (40) + gap (8)
+    marginBottom: 12,
   },
   memberName: {
     flex: 1,

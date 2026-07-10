@@ -1,7 +1,7 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 
 import EmptyState from '@components/EmptyState';
-import { EventMemberRow } from '@components/events';
+import { EventMemberRow, EventMemberRowSeparator } from '@components/events';
 import { SlidingTabs } from '@components/ui';
 import { colors } from '@theme/index';
 
@@ -66,17 +66,19 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
               style={{ marginTop: 32 }}
             />
           ) : (
-            members.map((member) => (
-              <EventMemberRow
-                key={member.id}
-                member={member}
-                trailingLabel={member.id === currentUserId && isOwner ? 'Host' : undefined}
-                onMenuPress={
-                  isOwner && member.id !== currentUserId
-                    ? () => onOpenMemberMenu(member)
-                    : undefined
-                }
-              />
+            members.map((member, index) => (
+              <View key={member.id}>
+                <EventMemberRow
+                  member={member}
+                  trailingLabel={member.id === currentUserId && isOwner ? 'Host' : undefined}
+                  onMenuPress={
+                    isOwner && member.id !== currentUserId
+                      ? () => onOpenMemberMenu(member)
+                      : undefined
+                  }
+                />
+                {index < members.length - 1 && <EventMemberRowSeparator />}
+              </View>
             ))
           )}
         </View>
@@ -110,12 +112,11 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
             style={{ marginTop: 32 }}
           />
         ) : (
-          members.map((member) => (
-            <EventMemberRow
-              key={member.id}
-              member={member}
-              trailingLabel={member.id === hostId ? 'Host' : undefined}
-            />
+          members.map((member, index) => (
+            <View key={member.id}>
+              <EventMemberRow member={member} trailingLabel={member.id === hostId ? 'Host' : undefined} />
+              {index < members.length - 1 && <EventMemberRowSeparator />}
+            </View>
           ))
         )}
       </View>
