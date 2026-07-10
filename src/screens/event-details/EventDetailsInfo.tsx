@@ -69,31 +69,35 @@ const EventDetailsInfo = ({
 
   return (
     <>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.hostedBy}>{hostLine}</Text>
-      {!readOnly && isSingleEvent && (
-        <Text style={styles.goingLabel} testID="going-count-label">
-          1:1
-        </Text>
-      )}
-      {!readOnly && !isSingleEvent && (
-        <View style={styles.goingRow} testID="going-row">
-          <View style={styles.goingAvatarStack}>
-            {goingParticipants.slice(0, 4).map((participant, index) => (
-              <View
-                key={`${participant.id}-${index}`}
-                style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
-                testID={`going-avatar-${index}`}
-              >
-                {renderAvatar(participant, 28)}
-              </View>
-            ))}
-          </View>
-          <Text style={styles.goingLabel} testID="going-count-label">
-            {`${goingCount} Going`}
+      {/* Header block has no gap; each row's vertical spacing is its own
+          marginTop (styles.hostedBy / styles.goingRow / styles.goingLabelStandalone). */}
+      <View style={styles.headerBlock}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.hostedBy}>{hostLine}</Text>
+        {!readOnly && isSingleEvent && (
+          <Text style={[styles.goingLabel, styles.goingLabelStandalone]} testID="going-count-label">
+            1:1
           </Text>
-        </View>
-      )}
+        )}
+        {!readOnly && !isSingleEvent && (
+          <View style={styles.goingRow} testID="going-row">
+            <View style={styles.goingAvatarStack}>
+              {goingParticipants.slice(0, 4).map((participant, index) => (
+                <View
+                  key={`${participant.id}-${index}`}
+                  style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
+                  testID={`going-avatar-${index}`}
+                >
+                  {renderAvatar(participant, 28)}
+                </View>
+              ))}
+            </View>
+            <Text style={styles.goingLabel} testID="going-count-label">
+              {`${goingCount} Going`}
+            </Text>
+          </View>
+        )}
+      </View>
 
       <View style={[styles.divider, { marginTop: 12, marginBottom: 12 }]} />
 
