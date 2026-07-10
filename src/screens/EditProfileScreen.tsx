@@ -114,7 +114,10 @@ const EditProfileScreen = () => {
         age: user.age ?? 18,
         avatar: avatarValue,
       });
-      navigation.goBack();
+      navigation.navigate('Main', {
+        screen: 'Profile',
+        params: { showProfileUpdatedBadge: true },
+      });
     } catch (error) {
       const status = error instanceof Error ? (error as ApiError).status : undefined;
       if (status === 401) return;

@@ -3,6 +3,7 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import EventActionBadge from '@components/EventActionBadge';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import HelpForm from '@components/help/HelpForm';
@@ -24,6 +25,7 @@ const HelpFeedbackScreen = () => {
   const { authFetch } = useAuth();
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSentBadge, setShowSentBadge] = useState(false);
 
   const submitHelpRequest = useCallback(
     async (body: Record<string, unknown>) => {
@@ -57,7 +59,7 @@ const HelpFeedbackScreen = () => {
     setIsSubmitting(true);
     try {
       await submitHelpRequest({ type: 'feedback', message });
-      Alert.alert('Feedback sent', 'Thanks for helping us improve Who else is free.');
+      setShowSentBadge(true);
       setFeedbackMessage('');
     } catch (error) {
       Alert.alert(
@@ -107,6 +109,11 @@ const HelpFeedbackScreen = () => {
           />
         </View>
       </ScrollView>
+      <EventActionBadge
+        visible={showSentBadge}
+        label="Feedback sent"
+        onHidden={() => setShowSentBadge(false)}
+      />
     </ScreenContainer>
   );
 };

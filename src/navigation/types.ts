@@ -52,6 +52,7 @@ export type RootTabParamList = {
         showEventDeletedBadge?: boolean;
         showEventLeftBadge?: boolean;
         showNoAccessModal?: boolean;
+        showWelcomeBadge?: boolean;
       }
     | undefined;
   MyEvents:
@@ -61,6 +62,6 @@ export type RootTabParamList = {
       }
     | undefined;
   Create: { editEventId?: string | null };
-  Profile: undefined;
+  Profile: { showProfileUpdatedBadge?: boolean } | undefined;
   Messages: undefined;
 };

@@ -3,10 +3,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ScalePressable from '@components/ScalePressable';
 import BellIcon from '@assets/notification/bell.svg';
 
-import { useCallback, useMemo, useState } from 'react';
-import { CompositeNavigationProp, useNavigation } from '@react-navigation/native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  CompositeNavigationProp,
+  RouteProp,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
+import EventActionBadge from '@components/EventActionBadge';
 import ScreenContainer from '@components/ScreenContainer';
 import ChevronRightIcon from '@assets/ui/chevron-right.svg';
 import { UnreadDot, IconButton } from '@components/ui';
@@ -75,9 +81,17 @@ const ProfileScreen = () => {
   const { conversations } = useChat();
   const { unreadCount } = useNotifications();
   const navigation = useNavigation<ProfileNavigation>();
+  const route = useRoute<RouteProp<RootTabParamList, 'Profile'>>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showProfileUpdatedBadge, setShowProfileUpdatedBadge] = useState(false);
+
+  useEffect(() => {
+    if (route.params?.showProfileUpdatedBadge) {
+      setShowProfileUpdatedBadge(true);
+    }
+  }, [route.params?.showProfileUpdatedBadge]);
 
   // Calculate stats
   const hostedCount = userEvents.length;
@@ -340,6 +354,14 @@ const ProfileScreen = () => {
         onCancel={handleDeleteCancel}
         isConfirmLoading={isDeletingAccount}
         errorMessage={deleteError}
+      />
+      <EventActionBadge
+        visible={showProfileUpdatedBadge}
+        label="Profile updated"
+        onHidden={() => {
+          setShowProfileUpdatedBadge(false);
+          navigation.setParams({ showProfileUpdatedBadge: false });
+        }}
       />
     </ScreenContainer>
   );

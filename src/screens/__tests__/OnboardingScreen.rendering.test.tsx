@@ -269,7 +269,12 @@ describe('OnboardingScreen Rendering', () => {
       await waitFor(() => {
         expect(mockReset).toHaveBeenCalledWith({
           index: 0,
-          routes: [{ name: 'Main' }],
+          routes: [
+            {
+              name: 'Main',
+              params: { screen: 'Events', params: { showWelcomeBadge: true } },
+            },
+          ],
         });
       });
     });
