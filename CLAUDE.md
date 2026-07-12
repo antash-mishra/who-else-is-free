@@ -64,7 +64,7 @@ Use shared primitives before local UI:
   hand-editing covers. Cover images are gitignored; deploys (and fresh clones)
   populate them with `cd server && go run ./cmd/covers-sync -fetch`
 
-Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
+Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
 
 Do not import `expo-haptics` outside `src/services/haptics.ts`. Do not call `console.*` directly in app code; use `logger` from `src/services/logger.ts`. Hardcoded hex colors outside `src/theme` are only allowed in the documented artwork-palette files (`src/utils/avatar.ts`, `src/components/ConfettiOverlay.tsx`).
 

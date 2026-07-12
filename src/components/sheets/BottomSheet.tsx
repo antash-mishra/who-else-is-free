@@ -54,6 +54,16 @@ const MIN_TOP_GUTTER = 96;
 const MODAL_CLOSE_DURATION_MS = 300;
 const INLINE_CLOSE_DURATION_MS = 220;
 
+export const getKeyboardTranslation = (
+  keyboardHeight: number,
+  safeAreaBottomInset: number,
+  platform: typeof Platform.OS,
+) => {
+  'worklet';
+
+  return platform === 'ios' ? Math.max(0, keyboardHeight - safeAreaBottomInset) : keyboardHeight;
+};
+
 const BottomSheet = ({
   visible,
   onClose,
@@ -85,25 +95,28 @@ const BottomSheet = ({
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
   const keyboardOffset = useSharedValue(0);
+  const restingBottomInset = BASE_PADDING_BOTTOM + safeBottom;
   const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
   const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
   const closeDuration =
     presentation === 'modal' ? MODAL_CLOSE_DURATION_MS : INLINE_CLOSE_DURATION_MS;
 
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: slideY.value - (avoidKeyboard ? keyboardOffset.value : 0) }],
-  }));
+  const sheetStyle = useAnimatedStyle(() => {
+    const keyboardTranslation = avoidKeyboard
+      ? getKeyboardTranslation(keyboardOffset.value, safeBottom, Platform.OS)
+      : 0;
+
+    return {
+      transform: [{ translateY: slideY.value - keyboardTranslation }],
+    };
+  });
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
-  const keyboardContentStyle = useAnimatedStyle(() => ({
-    // The home-indicator inset is only needed while the sheet is attached to
-    // the bottom of the screen. Subtract the keyboard translation so iOS does
-    // not leave that inset as a white strip above the keyboard.
-    paddingBottom: avoidKeyboard
-      ? Math.max(0, BASE_PADDING_BOTTOM + safeBottom - keyboardOffset.value)
-      : BASE_PADDING_BOTTOM + safeBottom,
-  }));
+  // Keep the resting inset stable. On iOS only the home-indicator safe-area
+  // portion sits behind the keyboard, preserving the intentional base spacing
+  // between the final control and the keyboard.
+  const keyboardContentStyle = { paddingBottom: restingBottomInset };
 
   useEffect(() => {
     onClosedRef.current = onClosed;

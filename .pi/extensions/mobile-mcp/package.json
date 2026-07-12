@@ -2,8 +2,8 @@
   "name": "pi-mobile-mcp-bridge",
   "version": "1.0.0",
   "private": true,
-  "description": "Pi extension that bridges the mobile-mcp MCP server (Android emulator control) into pi tools.",
+  "description": "Pi extension that bridges Mobile Next MCP for iOS and Android automation into pi tools.",
   "dependencies": {
-    "mobile-mcp": "^0.0.7"
+    "@mobilenext/mobile-mcp": "^0.0.62"
   }
 }
