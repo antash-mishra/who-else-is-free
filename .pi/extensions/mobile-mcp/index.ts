@@ -1,8 +1,8 @@
 /**
  * mobile-mcp bridge extension
  *
- * Bridges the `mobile-mcp` MCP server (Android emulator/device automation) into
- * pi as native tools, with zero runtime dependencies beyond mobile-mcp itself.
+ * Bridges the Mobile Next MCP server (iOS and Android automation) into pi as
+ * native tools, with zero runtime dependencies beyond the MCP server itself.
  *
  * It speaks the minimal MCP JSON-RPC 2.0 subset over stdio:
  *   - initialize
@@ -225,7 +225,14 @@ export default function (pi: ExtensionAPI) {
 	// do not start background resources from the factory).
 	pi.on("session_start", async (_event, ctx) => {
 		const extDir = path.dirname(new URL(import.meta.url).pathname);
-		const serverPath = path.join(extDir, "node_modules", "mobile-mcp", "dist", "index.js");
+		const serverPath = path.join(
+			extDir,
+			"node_modules",
+			"@mobilenext",
+			"mobile-mcp",
+			"lib",
+			"index.js",
+		);
 
 		if (!fs.existsSync(serverPath)) {
 			ctx.ui.notify(
@@ -243,7 +250,7 @@ export default function (pi: ExtensionAPI) {
 			const msg = (e as Error).message;
 			ctx.ui.notify(`mobile-mcp failed to start: ${msg.split("\n")[0]}`, "error");
 			client = null;
-			registerStatusTool(pi, () => `mobile-mcp is not running.\n\nError: ${msg}\n\nMake sure adb is installed and an Android emulator/device is connected, then restart pi or run /reload.`);
+			registerStatusTool(pi, () => `mobile-mcp is not running.\n\nError: ${msg}\n\nMake sure an Android emulator/device or iOS simulator/device is available, then restart pi or run /reload.`);
 			return;
 		}
 
@@ -270,7 +277,7 @@ export default function (pi: ExtensionAPI) {
 				description: tool.description ?? `mobile-mcp tool: ${name}`,
 				parameters: schemaFromMcp(tool.inputSchema),
 				promptGuidelines: [
-					`Use ${name} for Android emulator interaction via mobile-mcp. Call mobile_init once before any other mobile_* tool.`,
+					`Use ${name} for iOS or Android interaction via mobile-mcp. Select the target returned by mobile_list_available_devices and pass its device identifier to device-specific tools.`,
 				],
 				async execute(_toolCallId, params, signal, onUpdate) {
 					if (!client) {
@@ -341,7 +348,7 @@ function registerStatusTool(pi: ExtensionAPI, message: () => string): void {
 	pi.registerTool({
 		name: "mobile_mcp_status",
 		label: "mobile-mcp status",
-		description: "Report why the mobile-mcp Android bridge is unavailable and how to fix it.",
+		description: "Report why the mobile-mcp iOS/Android bridge is unavailable and how to fix it.",
 		parameters: Type.Object({}),
 		async execute() {
 			return { content: [{ type: "text", text: message() }], details: {} };

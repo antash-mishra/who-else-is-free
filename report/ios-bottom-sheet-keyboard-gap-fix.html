@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iOS Bottom Sheet Keyboard Gap — Fix Verification</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18221b;
+        --muted: #667168;
+        --line: #dce4dd;
+        --paper: #ffffff;
+        --wash: #f3f7f3;
+        --success: #176b3a;
+        --success-wash: #e7f6ec;
+        --code: #17201a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font:
+          16px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        width: min(1080px, calc(100% - 32px));
+        margin: 40px auto 72px;
+      }
+      header,
+      section {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 28px;
+        margin-bottom: 20px;
+      }
+      h1 {
+        max-width: 760px;
+        margin: 8px 0 12px;
+        font-size: clamp(32px, 5vw, 54px);
+        line-height: 1.06;
+      }
+      h2 {
+        margin: 0 0 14px;
+        font-size: 24px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .eyebrow {
+        color: var(--success);
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .lead {
+        max-width: 780px;
+        color: var(--muted);
+        font-size: 19px;
+      }
+      .status {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 18px;
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: var(--success-wash);
+        color: var(--success);
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      figure {
+        margin: 0;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        max-height: 720px;
+        object-fit: contain;
+        background: #edf1ed;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+      figcaption {
+        margin-top: 10px;
+        color: var(--muted);
+      }
+      code {
+        color: var(--code);
+        background: #edf1ed;
+        border-radius: 5px;
+        padding: 2px 5px;
+      }
+      pre {
+        overflow-x: auto;
+        background: var(--code);
+        color: #eaf4eb;
+        border-radius: 14px;
+        padding: 18px;
+      }
+      pre code {
+        color: inherit;
+        background: none;
+        padding: 0;
+      }
+      ul {
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+      li + li {
+        margin-top: 7px;
+      }
+      .metric {
+        font-size: 28px;
+        font-weight: 780;
+      }
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        header,
+        section {
+          padding: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Fix verification · July 13, 2026</div>
+        <h1>iOS bottom sheet now meets the keyboard edge</h1>
+        <p class="lead">
+          The introduction-message modal previously exposed its resting safe-area inset as a white
+          strip above the iOS keyboard. The shared bottom-sheet geometry has been corrected and
+          verified on an iPhone 15 Pro simulator.
+        </p>
+        <div class="status">✓ Verified fixed on iOS 17.4</div>
+      </header>
+
+      <section>
+        <h2>Before and after</h2>
+        <div class="grid">
+          <figure>
+            <img
+              src="assets/ios-keyboard-gap-before.jpeg"
+              alt="Before: white gap between the introduction modal and iOS keyboard"
+            />
+            <figcaption>
+              <strong>Before.</strong> The full keyboard height was translated while the sheet
+              retained approximately 42 points of bottom inset, exposing the white strip.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="assets/ios-keyboard-gap-fixed.png"
+              alt="After: introduction modal meeting the iOS keyboard"
+            />
+            <figcaption>
+              <strong>After.</strong> Mobile MCP screenshot from the iPhone 15 Pro simulator. The
+              sheet surface reaches the keyboard boundary with no exposed safe-area strip, while
+              retaining the intentional 8-point spacing below the button.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>Root cause</h2>
+        <p>
+          The sheet had a resting bottom inset of <code>BASE_PADDING_BOTTOM + safeBottom</code>. On
+          this simulator that is approximately <code>8 + 34 = 42</code> points. Keyboard avoidance
+          translated the outer sheet by the complete keyboard height, so those 42 points became
+          visible above the keyboard.
+        </p>
+        <p>
+          The previous attempted fix animated padding on the inner content view. The visible
+          keyboard boundary, however, is controlled by the transformed outer sheet, making that
+          approach dependent on an additional layout pass.
+        </p>
+      </section>
+
+      <section>
+        <h2>Implemented geometry</h2>
+        <p>
+          The resting inset remains stable. On iOS, only the 34-point home-indicator safe-area inset
+          is subtracted from the keyboard translation. It sits behind the keyboard, while the
+          8-point base padding remains visible as intentional internal spacing. Android keeps its
+          existing translation behavior.
+        </p>
+        <pre><code>iOS translation = max(0, keyboard height - safe-area bottom inset)
+Android translation = keyboard height</code></pre>
+        <div class="grid">
+          <div class="metric">336pt<span>example keyboard height</span></div>
+          <div class="metric">
+            302pt<span>iOS translation after subtracting a 34pt safe-area inset</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Validation</h2>
+        <ul>
+          <li>
+            Reproduced the real
+            <strong>Interested → Send Introduction → focus text input</strong> flow with Mobile MCP.
+          </li>
+          <li>Captured the fixed state on an iPhone 15 Pro simulator running iOS 17.4.</li>
+          <li>
+            Targeted Jest suite: <strong>5 tests passed</strong>, including iOS, minimum-zero, and
+            unchanged Android geometry.
+          </li>
+          <li>
+            Strict TypeScript validation: <strong>passed</strong> with
+            <code>npm run typecheck</code>.
+          </li>
+          <li>
+            Temporary test database and simulator-location changes were restored after verification.
+          </li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
