@@ -1238,7 +1238,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       fireMeasurementLayouts(getByTestId);
 
-      expect(getByText('...See more')).toBeTruthy();
+      expect(getByText('See more')).toBeTruthy();
     });
 
     it('expands description when See more is pressed', () => {
@@ -1246,23 +1246,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       fireMeasurementLayouts(getByTestId);
 
-      fireEvent.press(getByText('...See more'));
+      fireEvent.press(getByText('See more'));
 
       // After expansion, "See more" should not be visible
-      expect(queryByText('...See more')).toBeNull();
-      expect(getByText('Show less')).toBeTruthy();
+      expect(queryByText('See more')).toBeNull();
+      expect(getByText('See less')).toBeTruthy();
     });
 
-    it('collapses description when Show less is pressed', () => {
+    it('collapses description when See less is pressed', () => {
       const { getByText, queryByText, getByTestId } = render(<EventDetailsScreen />);
 
       fireMeasurementLayouts(getByTestId);
 
-      fireEvent.press(getByText('...See more'));
-      fireEvent.press(getByText('Show less'));
+      fireEvent.press(getByText('See more'));
+      fireEvent.press(getByText('See less'));
 
-      expect(queryByText('Show less')).toBeNull();
-      expect(getByText('...See more')).toBeTruthy();
+      expect(queryByText('See less')).toBeNull();
+      expect(getByText('See more')).toBeTruthy();
     });
 
     it('does not show toggle for short descriptions', () => {
@@ -1280,8 +1280,8 @@ describe('EventDetailsScreen Rendering Tests', () => {
         nativeEvent: { layout: { height: 22 } },
       });
 
-      expect(queryByText('...See more')).toBeNull();
-      expect(queryByText('Show less')).toBeNull();
+      expect(queryByText('See more')).toBeNull();
+      expect(queryByText('See less')).toBeNull();
     });
   });
 
