@@ -4,6 +4,8 @@
  */
 
 import React from 'react';
+import { StyleSheet } from 'react-native';
+
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 
@@ -59,9 +61,7 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
     SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
-    SafeAreaView: ({ children }: { children: React.ReactNode }) => (
-      <View>{children}</View>
-    ),
+    SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
   };
 });
 
@@ -69,14 +69,12 @@ jest.mock('react-native-safe-area-context', () => {
 import MyEventsScreen from '../MyEventsScreen';
 
 const renderWithNav = (component: React.ReactElement) => {
-  return render(
-    <NavigationContainer>{component}</NavigationContainer>
-  );
+  return render(<NavigationContainer>{component}</NavigationContainer>);
 };
 
 describe('MyEventsScreen Rendering', () => {
   const defaultUser = mockUsers[0];
-  const userHostedEvents = mockEvents.filter(e => e.ownerId === defaultUser.id);
+  const userHostedEvents = mockEvents.filter((e) => e.ownerId === defaultUser.id);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -128,10 +126,12 @@ describe('MyEventsScreen Rendering', () => {
 
     it('switches to Joined filter when pressed', () => {
       mockUseChat.mockReturnValue({
-        conversations: [{
-          ...mockConversations[0],
-          createdBy: 2, // Different user created, so user 1 "joined"
-        }],
+        conversations: [
+          {
+            ...mockConversations[0],
+            createdBy: 2, // Different user created, so user 1 "joined"
+          },
+        ],
       });
       renderWithNav(<MyEventsScreen />);
       const joinedButton = screen.getByTestId('segment-joined');
@@ -186,7 +186,7 @@ describe('MyEventsScreen Rendering', () => {
     it('renders section headers for Tomorrow events', () => {
       mockUseEvents.mockReturnValue({
         events: mockEvents,
-        userEvents: mockEvents.filter(e => e.dateLabel === 'Tmrw'),
+        userEvents: mockEvents.filter((e) => e.dateLabel === 'Tmrw'),
         requestedEvents: [],
         isLoading: false,
         refreshEvents: jest.fn(),
@@ -216,8 +216,10 @@ describe('MyEventsScreen Rendering', () => {
     it('shows login prompt for guest users', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
+      const emptyState = screen.getByTestId('empty-state');
       expect(screen.getByText('No events to show')).toBeTruthy();
       expect(screen.getByText('Continue')).toBeTruthy();
+      expect(StyleSheet.flatten(emptyState.props.style).flex).toBe(1);
     });
 
     it('opens sign-in modal when Continue pressed', () => {
@@ -238,9 +240,12 @@ describe('MyEventsScreen Rendering', () => {
         fireEvent.press(pressable);
       }
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('EventDetails', expect.objectContaining({
-          origin: 'MyEvents',
-        }));
+        expect(mockNavigate).toHaveBeenCalledWith(
+          'EventDetails',
+          expect.objectContaining({
+            origin: 'MyEvents',
+          }),
+        );
       });
     });
   });
@@ -272,15 +277,17 @@ describe('MyEventsScreen Rendering', () => {
   describe('Joined Events from Conversations', () => {
     it('shows joined events based on conversations', () => {
       mockUseChat.mockReturnValue({
-        conversations: [{
-          id: 1,
-          eventId: 2,
-          createdBy: 2, // Different from current user
-          memberIds: [1, 2],
-          participants: [],
-          displayName: 'Test',
-          unreadCount: 0,
-        }],
+        conversations: [
+          {
+            id: 1,
+            eventId: 2,
+            createdBy: 2, // Different from current user
+            memberIds: [1, 2],
+            participants: [],
+            displayName: 'Test',
+            unreadCount: 0,
+          },
+        ],
       });
       renderWithNav(<MyEventsScreen />);
       const joinedButton = screen.getByTestId('segment-joined');

@@ -4,8 +4,10 @@
  */
 
 import React from 'react';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+
 import { act, render, fireEvent, waitFor } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+
 import { typography } from '@theme/index';
 import MessagesScreen from '../MessagesScreen';
 
@@ -267,6 +269,7 @@ jest.mock('@components/EmptyState', () => {
     onActionPress,
     secondaryActionLabel,
     onSecondaryActionPress,
+    style,
   }: {
     title: string;
     description: string;
@@ -274,8 +277,9 @@ jest.mock('@components/EmptyState', () => {
     onActionPress?: () => void;
     secondaryActionLabel?: string;
     onSecondaryActionPress?: () => void;
+    style?: StyleProp<ViewStyle>;
   }) => (
-    <View testID="empty-state">
+    <View testID="empty-state" style={style}>
       <Text testID="empty-state-title">{title}</Text>
       <Text testID="empty-state-description">{description}</Text>
       {actionLabel && (
@@ -461,15 +465,13 @@ describe('MessagesScreen Rendering', () => {
                 createdAt: new Date().toISOString(),
               },
             }
-          : conversation
+          : conversation,
       );
 
       const { getByText } = render(<MessagesScreen />);
 
       const titleStyle = StyleSheet.flatten(getByText('One-on-One Event').props.style);
-      const previewStyle = StyleSheet.flatten(
-        getByText('Alex: See you there').props.style
-      );
+      const previewStyle = StyleSheet.flatten(getByText('Alex: See you there').props.style);
 
       expect(titleStyle.fontFamily).toBe(typography.fontFamilySemiBold);
       expect(previewStyle.fontFamily).toBe(typography.fontFamilyMedium);
@@ -485,8 +487,10 @@ describe('MessagesScreen Rendering', () => {
 
       const { getByTestId, getByText } = render(<MessagesScreen />);
 
-      expect(getByTestId('empty-state')).toBeTruthy();
+      const emptyState = getByTestId('empty-state');
+      expect(emptyState).toBeTruthy();
       expect(getByText('No Messages Yet')).toBeTruthy();
+      expect(StyleSheet.flatten(emptyState.props.style).flex).toBe(1);
     });
 
     it('should not show empty state while connecting', () => {
@@ -515,9 +519,11 @@ describe('MessagesScreen Rendering', () => {
 
       const { getByTestId, getByText } = render(<MessagesScreen />);
 
-      expect(getByTestId('empty-state')).toBeTruthy();
+      const emptyState = getByTestId('empty-state');
+      expect(emptyState).toBeTruthy();
       expect(getByText('No messages to show')).toBeTruthy();
       expect(getByText('Continue')).toBeTruthy();
+      expect(StyleSheet.flatten(emptyState.props.style).flex).toBe(1);
     });
 
     it('should open sign-in modal when Continue button is pressed', () => {
@@ -554,12 +560,15 @@ describe('MessagesScreen Rendering', () => {
 
       fireEvent.press(getByText('One-on-One Event'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('JoinRequests', expect.objectContaining({
-        conversationId: 3,
-        eventId: 3,
-        title: 'One-on-One Event',
-        groupType: 'Single',
-      }));
+      expect(mockNavigate).toHaveBeenCalledWith(
+        'JoinRequests',
+        expect.objectContaining({
+          conversationId: 3,
+          eventId: 3,
+          title: 'One-on-One Event',
+          groupType: 'Single',
+        }),
+      );
     });
 
     it('should show host-owned 1:1 events without a conversation', () => {

@@ -150,6 +150,7 @@ const MyEventsScreen = () => {
           imageSource={require('@assets/illustration/myEvent-emptyState.png')}
           imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
           imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
+          style={styles.fillEmptyState}
         />
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
@@ -286,6 +287,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   content: {
+    flex: 1,
+  },
+  fillEmptyState: {
     flex: 1,
   },
   headerTitle: {

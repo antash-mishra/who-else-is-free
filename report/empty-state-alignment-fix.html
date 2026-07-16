@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Empty-State Alignment — Fix Verification</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #171a18;
+        --muted: #687069;
+        --line: #dce3dd;
+        --paper: #ffffff;
+        --wash: #f3f6f3;
+        --success: #176b3a;
+        --success-wash: #e7f6ec;
+        --code: #17201a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font:
+          16px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 40px auto 72px;
+      }
+      header,
+      section {
+        margin-bottom: 20px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--paper);
+      }
+      h1 {
+        max-width: 780px;
+        margin: 8px 0 12px;
+        font-size: clamp(32px, 5vw, 54px);
+        line-height: 1.06;
+      }
+      h2 {
+        margin: 0 0 14px;
+        font-size: 24px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      .eyebrow {
+        color: var(--success);
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .lead {
+        max-width: 820px;
+        color: var(--muted);
+        font-size: 19px;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 18px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--success-wash);
+        color: var(--success);
+        font-weight: 700;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      .screens {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+      figure {
+        margin: 0;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        max-height: 760px;
+        object-fit: contain;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #eef2ee;
+      }
+      figcaption {
+        margin-top: 10px;
+        color: var(--muted);
+      }
+      code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: #edf1ed;
+        color: var(--code);
+      }
+      pre {
+        overflow-x: auto;
+        padding: 18px;
+        border-radius: 14px;
+        background: var(--code);
+        color: #eaf4eb;
+      }
+      pre code {
+        padding: 0;
+        background: none;
+        color: inherit;
+      }
+      ul {
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+      li + li {
+        margin-top: 7px;
+      }
+      .metric {
+        font-size: 28px;
+        font-weight: 780;
+      }
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      @media (max-width: 900px) {
+        .screens {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .grid,
+        .screens {
+          grid-template-columns: 1fr;
+        }
+        header,
+        section {
+          padding: 22px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Fix verification · July 16, 2026</div>
+        <h1>Empty states now align consistently</h1>
+        <p class="lead">
+          My Events and Chat previously positioned some empty states inside content-height wrappers,
+          leaving them visibly too high. The affected signed-out and signed-in paths now fill their
+          available content area and center the illustration-and-copy group consistently.
+        </p>
+        <div class="status">✓ Verified fixed while signed out and signed in</div>
+      </header>
+
+      <section>
+        <h2>Reported state</h2>
+        <figure>
+          <img
+            src="empty-state-alignment/before-user-report.png"
+            alt="User report comparing empty-state positions across Discover, My Events, and Chat"
+          />
+          <figcaption>
+            <strong>Before.</strong> The user report shows different vertical anchors for otherwise
+            equivalent full-screen empty states. Reproduction confirmed the signed-out My Events
+            wrapper stopped at y=1469 instead of filling to the tab boundary at y=2337.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Fixed states</h2>
+        <div class="screens">
+          <figure>
+            <img
+              src="empty-state-alignment/after-logged-out-discover.png"
+              alt="Centered Discover Events empty state after the fix"
+            />
+            <figcaption>
+              <strong>Signed out · Discover.</strong> Empty-data alignment reference.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="empty-state-alignment/after-logged-out-my-events.png"
+              alt="Centered My Events empty state while signed out"
+            />
+            <figcaption><strong>Signed out · My Events.</strong> Centered with the CTA.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="empty-state-alignment/after-logged-out-chat.png"
+              alt="Centered Chat empty state while signed out"
+            />
+            <figcaption><strong>Signed out · Chat.</strong> Centered with the CTA.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="empty-state-alignment/after-logged-in-my-events.png"
+              alt="Centered My Events empty state while signed in"
+            />
+            <figcaption><strong>Signed in · My Events.</strong> Zero hosted events.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="empty-state-alignment/after-logged-in-chat.png"
+              alt="Centered Chat empty state while signed in"
+            />
+            <figcaption><strong>Signed in · Chat.</strong> Zero conversations.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>Exact issue and root cause</h2>
+        <p>
+          The shared <code>EmptyState</code> intentionally sizes to its content. Full-screen callers
+          must therefore provide the available height. Discover and signed-in My Events already did
+          this through <code>EventSectionList</code>; signed-out My Events, signed-out Chat, and the
+          signed-in Chat <code>FlatList</code> empty component did not. Those three paths
+          consequently used intrinsic height and were top-biased.
+        </p>
+        <p>
+          The fix is deliberately scoped to those full-screen call sites: each passes a
+          <code>flex: 1</code> style to <code>EmptyState</code>. This preserves compact empty states
+          in sheets and cards while restoring full-height centering where the screen owns the space.
+        </p>
+        <pre><code>&lt;EmptyState
+  ...
+  style={styles.fillEmptyState}
+/&gt;
+
+fillEmptyState: { flex: 1 }</code></pre>
+      </section>
+
+      <section>
+        <h2>Measured reproduction</h2>
+        <div class="grid">
+          <div class="metric">1170 → 2038 px<span>signed-out My Events wrapper height</span></div>
+          <div class="metric">
+            +434 px<span>title moved down into the true content center</span>
+          </div>
+        </div>
+        <p>
+          On the 1080 × 2400 emulator, the signed-out My Events wrapper changed from
+          <code>[42,299]–[1038,1469]</code> to <code>[42,299]–[1038,2337]</code>. Its title moved
+          from y=1047 to y=1481. Signed-out Chat now fills <code>[42,278]–[1038,2337]</code>; the
+          signed-in Chat title is centered at y=1487 within the same screen region.
+        </p>
+      </section>
+
+      <section>
+        <h2>Validation</h2>
+        <ul>
+          <li>
+            Android emulator <code>WEIF_API_36</code>, 1080 × 2400: Discover and all four
+            authentication-specific states passed visual inspection.
+          </li>
+          <li>
+            Discover was captured against an isolated API returning an empty event list, without
+            altering the shared development database.
+          </li>
+          <li>
+            Authenticated proof used a fresh zero-data dev identity; the temporary preset was
+            reverted after capture.
+          </li>
+          <li>Targeted Jest validation: <strong>4 suites and 104 tests passed</strong>.</li>
+          <li>Strict TypeScript validation: <strong>passed</strong>.</li>
+          <li>Lint: <strong>0 errors</strong>; 899 pre-existing baseline warnings.</li>
+          <li>Touched-file Prettier validation: <strong>passed</strong>.</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

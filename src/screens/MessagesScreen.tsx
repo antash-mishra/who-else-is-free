@@ -340,6 +340,7 @@ const MessagesScreen = () => {
           imageSource={require('@assets/illustration/chat-emptyState.png')}
           imageWidth={279}
           imageHeight={245}
+          style={styles.fillEmptyState}
         />
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
@@ -371,6 +372,7 @@ const MessagesScreen = () => {
                 imageSource={require('@assets/illustration/chat-emptyState.png')}
                 imageWidth={279}
                 imageHeight={245}
+                style={styles.fillEmptyState}
               />
             )
           }
@@ -417,6 +419,9 @@ const styles = StyleSheet.create({
 
   flatList: {
     marginLeft: -spacing.md,
+  },
+  fillEmptyState: {
+    flex: 1,
   },
   conversationRow: {
     position: 'relative',
