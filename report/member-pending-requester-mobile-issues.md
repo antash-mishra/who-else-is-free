@@ -98,6 +98,8 @@
 
 **Likely area to inspect:** Bottom tab navigator screen mounting behavior and whether inactive screen roots need `accessibilityElementsHidden`, `importantForAccessibility`, or a navigation-level option.
 
+**Resolution:** `TabAccessibilityBoundary` always isolates inactive scenes with accessibility and pointer-event props, but applies `display: none` only on Android so its accessibility tree does not expose hidden controls. iOS keeps the native scene mounted so pan recognizers survive tab revisits. `HomeScreen` and `MyEventsScreen` also pass navigation focus to `AnimatedPager.isActive`; the pager rebuilds the gesture on the next frame for Android re-registration without remounting list content.
+
 ### 5. Chat header event-details overlay is cramped near the bottom gesture area
 
 **Impact level:** App-level overlay/safe-area issue.

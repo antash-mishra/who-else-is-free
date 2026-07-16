@@ -315,6 +315,7 @@ const HomeScreen = () => {
             onPageChange={handlePageChange}
             pageOffsetSV={pageOffset}
             style={styles.pager}
+            isActive={isFocused}
           >
             <EventListPage
               sections={upcomingSections}

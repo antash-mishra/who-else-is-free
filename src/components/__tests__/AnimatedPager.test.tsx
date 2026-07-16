@@ -2,13 +2,14 @@ import React from 'react';
 
 import { Text } from 'react-native';
 
-import { render } from '@testing-library/react-native';
+import { render, waitFor } from '@testing-library/react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import * as Reanimated from 'react-native-reanimated';
 
 import AnimatedPager from '../AnimatedPager';
 
 type MockPanGesture = {
+  enabled: jest.Mock;
   onUpdate: jest.Mock;
   onEnd: jest.Mock;
 };
@@ -85,5 +86,29 @@ describe('AnimatedPager', () => {
 
     expect(onPageChange.mock.calls).toEqual([[1], [0]]);
     expect(withSpringSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('refreshes the native gesture enabled state after tab focus changes', async () => {
+    const { rerender } = render(
+      <AnimatedPager selectedIndex={0} onPageChange={jest.fn()} isActive={false}>
+        <Text>Upcoming</Text>
+        <Text>Newest</Text>
+      </AnimatedPager>,
+    );
+    const inactiveGesture = latestPanGesture();
+
+    expect(inactiveGesture.enabled).toHaveBeenCalledWith(false);
+
+    rerender(
+      <AnimatedPager selectedIndex={0} onPageChange={jest.fn()} isActive>
+        <Text>Upcoming</Text>
+        <Text>Newest</Text>
+      </AnimatedPager>,
+    );
+    await waitFor(() => {
+      const activeGesture = latestPanGesture();
+      expect(activeGesture).not.toBe(inactiveGesture);
+      expect(activeGesture.enabled).toHaveBeenCalledWith(true);
+    });
   });
 });

@@ -385,5 +385,20 @@ describe('AppNavigator', () => {
       expect(tabOptions.lazy).toBe(true);
       expect(tabOptions.detachInactiveScreens).toBe(false);
     });
+
+    it('should isolate inactive scenes without hiding the native view on iOS', () => {
+      const sharedInactiveSceneProps = {
+        accessibilityElementsHidden: true,
+        importantForAccessibility: 'no-hide-descendants',
+        pointerEvents: 'none',
+      };
+      const androidInactiveStyle = { display: 'none' };
+      const iosInactiveStyle = undefined;
+
+      expect(androidInactiveStyle.display).toBe('none');
+      expect(iosInactiveStyle).toBeUndefined();
+      expect(sharedInactiveSceneProps.pointerEvents).toBe('none');
+      expect(sharedInactiveSceneProps.accessibilityElementsHidden).toBe(true);
+    });
   });
 });

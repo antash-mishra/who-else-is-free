@@ -12,6 +12,7 @@ Who Else Is Free is an event discovery and social coordination app.
 - Backend: Go Gin server in `server/`
 - API: REST plus WebSocket chat at `/api/ws`
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`
+- Inactive bottom-tab scenes always use `pointerEvents` and accessibility props. Apply `display: 'none'` only on Android so hidden controls stay out of its accessibility tree; iOS must keep the native scene mounted so nested pan recognizers survive tab revisits. Pagers receive navigation focus through `AnimatedPager.isActive` and rebuild their gesture on the next frame for Android re-registration without remounting list content.
 - State: React Context providers for auth, events, chat, push, covers, and bloom state
 
 ## Working References

@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useRef } from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import {
   createBottomTabNavigator,
@@ -81,7 +81,10 @@ const TabAccessibilityBoundary = ({ routeName, children }: TabAccessibilityBound
 
   return (
     <View
-      style={[tabBarStyles.tabScene, !isFocused && tabBarStyles.tabSceneHidden]}
+      style={[
+        tabBarStyles.tabScene,
+        !isFocused && Platform.OS === 'android' && tabBarStyles.tabSceneHidden,
+      ]}
       collapsable={false}
       accessibilityElementsHidden={!isFocused}
       importantForAccessibility={isFocused ? 'auto' : 'no-hide-descendants'}

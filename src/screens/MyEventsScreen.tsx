@@ -8,6 +8,7 @@ import {
   CompositeNavigationProp,
   RouteProp,
   useRoute,
+  useIsFocused,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSharedValue } from 'react-native-reanimated';
@@ -44,6 +45,7 @@ const MY_EVENTS_EMPTY_IMAGE_HEIGHT = 245;
 const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
   const route = useRoute<MyEventsRoute>();
+  const isFocused = useIsFocused();
   const { events, userEvents, requestedEvents, refreshEvents, refreshRequestedEvents } =
     useEvents();
   const { conversations } = useChat();
@@ -168,6 +170,7 @@ const MyEventsScreen = () => {
             onPageChange={setSelectedPage}
             pageOffsetSV={pageOffset}
             style={styles.pager}
+            isActive={isFocused}
           >
             <EventListPage
               sections={hostingSections}

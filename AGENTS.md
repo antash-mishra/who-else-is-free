@@ -54,6 +54,7 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 - Backend: Go Gin HTTP server in `server/` using SQLite.
 - API: REST endpoints plus WebSocket chat at `/api/ws`.
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`.
+- Inactive bottom-tab scenes always use `pointerEvents` and accessibility props. Apply `display: 'none'` only on Android so hidden controls stay out of its accessibility tree; iOS must keep the native scene mounted so nested pan recognizers survive tab revisits. Pagers receive navigation focus through `AnimatedPager.isActive` and rebuild their gesture on the next frame for Android re-registration without remounting list content.
 - State: React Context providers currently handle auth, events, chat, push, covers, bloom, and notifications state.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
 - User-profile gender values and their onboarding order live in `src/constants/profileOptions.ts`; keep them ordered as `Male`, `Female`, `Other` and separate from the event-audience options in `src/constants/eventOptions.ts`.

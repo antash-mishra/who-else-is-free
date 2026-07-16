@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useEffect, useReducer, useRef } from 'react';
 
 import { StyleSheet, useWindowDimensions, View, ViewStyle } from 'react-native';
 
@@ -39,6 +39,7 @@ type AnimatedPagerProps = {
   children: React.ReactNode;
   style?: ViewStyle;
   swipeEnabled?: boolean;
+  isActive?: boolean;
 };
 
 // Supports up to 4 pages. Shared values must be created unconditionally.
@@ -50,6 +51,7 @@ const AnimatedPager = ({
   children,
   style,
   swipeEnabled = true,
+  isActive = true,
 }: AnimatedPagerProps) => {
   const { width } = useWindowDimensions();
   const childArray = React.Children.toArray(children);
@@ -80,6 +82,7 @@ const AnimatedPager = ({
   const widthSV = useSharedValue(width);
   const dragFrom = useSharedValue(-1);
   const dragTo = useSharedValue(-1);
+  const [, refreshGestureRegistration] = useReducer((generation: number) => generation + 1, 0);
 
   useEffect(() => {
     selectedIndexSV.value = selectedIndex;
@@ -87,6 +90,14 @@ const AnimatedPager = ({
   useEffect(() => {
     widthSV.value = width;
   }, [width]);
+  useEffect(() => {
+    if (!isActive) return;
+
+    // TabAccessibilityBoundary restores the native view in the current commit.
+    // Rebuild the gesture on the next frame, after that view is visible again.
+    const frame = requestAnimationFrame(refreshGestureRegistration);
+    return () => cancelAnimationFrame(frame);
+  }, [isActive]);
 
   const notifyPageChange = (index: number) => {
     swipeCommittedRef.current = true;
@@ -100,7 +111,9 @@ const AnimatedPager = ({
   };
 
   const pan = Gesture.Pan()
-    .enabled(swipeEnabled)
+    // Rebuilding this enabled state on tab focus re-registers the native pan
+    // recognizer after an accessibility-isolated tab returns to the hierarchy.
+    .enabled(swipeEnabled && isActive)
     .activeOffsetX([-10, 10])
     .failOffsetY([-25, 25])
     .onUpdate((e) => {
