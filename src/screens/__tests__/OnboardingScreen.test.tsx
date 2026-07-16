@@ -4,6 +4,9 @@
  */
 
 import fetchMock from 'jest-fetch-mock';
+
+import { userGenderOptions, type UserGender } from '@constants/profileOptions';
+
 import { mockUsers, mockApiResponses } from '../../__tests__/mocks/mockData';
 
 const BASE_URL = 'http://localhost:8080';
@@ -76,7 +79,11 @@ describe('OnboardingScreen', () => {
   });
 
   describe('Gender Selection', () => {
-    const genders = ['Female', 'Male'] as const;
+    const genders = userGenderOptions;
+
+    it('should show genders in the required order', () => {
+      expect(genders).toEqual(['Male', 'Female', 'Other']);
+    });
 
     it('should have Female option', () => {
       expect(genders).toContain('Female');
@@ -86,15 +93,19 @@ describe('OnboardingScreen', () => {
       expect(genders).toContain('Male');
     });
 
+    it('should have Other option', () => {
+      expect(genders).toContain('Other');
+    });
+
     it('should require gender selection', () => {
-      let selectedGender: 'Female' | 'Male' | null = null;
+      const selectedGender: UserGender | null = null;
       const isValid = selectedGender !== null;
 
       expect(isValid).toBe(false);
     });
 
     it('should accept valid gender selection', () => {
-      let selectedGender: 'Female' | 'Male' | null = 'Female';
+      const selectedGender: UserGender | null = 'Other';
       const isValid = selectedGender !== null;
 
       expect(isValid).toBe(true);

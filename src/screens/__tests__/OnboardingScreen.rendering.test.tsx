@@ -4,9 +4,10 @@
  */
 
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+
 import { Alert } from 'react-native';
 
+import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { mockUsers } from '../../__tests__/mocks/mockData';
 
 // Mock Alert
@@ -153,6 +154,17 @@ describe('OnboardingScreen Rendering', () => {
       expect(screen.getByText('Male')).toBeTruthy();
     });
 
+    it('renders gender options in the required order', () => {
+      goToStep2();
+      const labels = screen.getAllByRole('radio').map((option) => option.props.accessibilityLabel);
+      expect(labels).toEqual(['Male', 'Female', 'Other']);
+    });
+
+    it('renders Other option', () => {
+      goToStep2();
+      expect(screen.getByText('Other')).toBeTruthy();
+    });
+
     it('renders back button', () => {
       goToStep2();
       // Back button should be present (chevron-left icon)
@@ -170,6 +182,14 @@ describe('OnboardingScreen Rendering', () => {
       goToStep2();
       fireEvent.press(screen.getByText('Male'));
       expect(screen.getByText('Male')).toBeTruthy();
+    });
+
+    it('selects Other when pressed', () => {
+      goToStep2();
+      fireEvent.press(screen.getByText('Other'));
+      expect(screen.getByRole('radio', { name: 'Other' }).props.accessibilityState).toEqual({
+        checked: true,
+      });
     });
 
     it('does not advance when Continue pressed without selection', () => {
@@ -259,6 +279,23 @@ describe('OnboardingScreen Rendering', () => {
           age: 25,
           avatar: undefined,
         });
+      });
+    });
+
+    it('submits Other as the selected gender', async () => {
+      mockUpdateProfile.mockResolvedValue({});
+      render(<OnboardingScreen />);
+      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'Taylor');
+      pressStep1Continue();
+      fireEvent.press(screen.getByText('Other'));
+      pressStep2Continue();
+      selectAge(25);
+      pressDone();
+
+      await waitFor(() => {
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({ gender: 'Other' }),
+        );
       });
     });
 

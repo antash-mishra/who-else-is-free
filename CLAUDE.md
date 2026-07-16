@@ -51,6 +51,7 @@ Use shared primitives before local UI:
 - Empty states: `EmptyState`
 - Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
 - Dev-only logging: `logger` in `src/services/logger.ts` (use it instead of `console.*`)
+- User-profile gender values and onboarding order: `src/constants/profileOptions.ts` (`Male`, `Female`, `Other`); keep these separate from event-audience gender options.
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
 - Create/Edit Event structure: `useCreateEventForm`, `useCreateEventSheets`, and the
   `CreateEventHeader`/`CreateEventFormFields`/`CreateEventSubmitButton`/`CreateEventSheetContent`

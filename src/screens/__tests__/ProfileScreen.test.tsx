@@ -3,6 +3,8 @@
  * Covers profile display, sign out
  */
 
+import { userGenderOptions } from '@constants/profileOptions';
+
 import { mockUsers } from '../../__tests__/mocks/mockData';
 import { mockSecureStore } from '../../__tests__/mocks/mockModules';
 
@@ -29,7 +31,7 @@ describe('ProfileScreen', () => {
 
     it('should display user gender when available', () => {
       expect(user.gender).toBeDefined();
-      expect(['Female', 'Male']).toContain(user.gender);
+      expect(userGenderOptions).toContain(user.gender);
     });
 
     it('should display user age when available', () => {
