@@ -28,9 +28,9 @@ export const SPLASH_VARIANTS = [
   { image: require("../../assets/splash/CrokePark.jpg"), location: "Croke Park" },
   { image: require("../../assets/splash/CapelStreet.jpg"), location: "Capel Street" },
   { image: require("../../assets/splash/Blessington.jpg"), location: "Blessington" },
-  { image: require("../../assets/splash/Dunmore.jpg"), location: "Dunmore" },
   { image: require("../../assets/splash/SheepsHead.jpg"), location: "Sheep's Head" },
-  { image: require("../../assets/splash/MagheramoreBeach.jpg"), location: "Magheramore Beach" },
+  { image: require("../../assets/splash/MulrannyBeach.jpg"), location: "Mulranny Beach" },
+  { image: require("../../assets/splash/RossCastle.jpg"), location: "Ross Castle" },
 ] as const;
 
 // Pick a random variant index, never repeating the previous launch's index.
