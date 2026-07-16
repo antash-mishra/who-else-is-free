@@ -54,3 +54,13 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Initial hiccup: bell tap did not fire when landing on the `CountBadge` overlay (top-right). Workaround: tap the left side of the bell (x≈935) to avoid the badge. Not a code defect — the badge is `clickable=false` but `ScalePressable` still needed a tap outside the badge bounds. Non-blocking for real users (finger is larger and lands center-mass of the bell); flagged for a follow-up to widen the bell's hit area or move the badge slightly off the tap target.
 - Final: PASS — full end-to-end verified on emulator; backend + frontend test suites green.
 - Screenshots: `report/notification-inbox/screenshots/01..10`  (report: `report/notification-inbox/IMPLEMENTATION.md`)
+
+## 2026-07-16 — Empty-state vertical alignment
+
+- Change: make the signed-out My Events and Chat empty states, plus the signed-in Chat list empty state, fill their available content area.
+- Device: Android emulator `WEIF_API_36`, 1080 × 2400, package `com.whoelseisfree.app`.
+- Signed-out flow: opened Discover against an isolated empty API, then opened My Events and Chat with no session; all empty-state content rendered vertically centered and the affected wrappers extended to the bottom-tab boundary.
+- Signed-in flow: used a temporary zero-data dev identity, then opened Hosting in My Events and Chat; both empty states rendered vertically centered. The temporary preset was reverted after capture.
+- Evidence: `report/empty-state-alignment-fix.html` and screenshots under `report/empty-state-alignment/`.
+- Automated checks: 4 Jest suites / 104 tests passed; TypeScript passed; lint completed with 0 errors (899 existing baseline warnings); touched-file formatting passed.
+- Final verdict: **PASS**.
