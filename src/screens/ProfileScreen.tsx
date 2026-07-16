@@ -394,7 +394,14 @@ const styles = StyleSheet.create({
     // Position the dot at the top-right corner of the SVG icon, not the
     // button container, so it visually sits on the bell's upper-right.
     top: 10,
-    right: 10,
+    right: 11,
+    // White ring around the dot. RN draws borders inside the box, so bump the
+    // size to 12 (8px blue fill + 2px ring on each side) to keep the blue 8px.
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.background,
   },
   headerTitle: {
     fontSize: typography.header,
