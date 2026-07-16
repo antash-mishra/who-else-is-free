@@ -1,5 +1,8 @@
 import React, { useLayoutEffect, useEffect, useRef } from 'react';
+
 import { StyleSheet, useWindowDimensions, View, ViewStyle } from 'react-native';
+
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,7 +13,6 @@ import Animated, {
   Easing,
   type SharedValue,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { triggerHaptic as triggerSemanticHaptic } from '@services/haptics';
 import { colors } from '@theme/colors';
@@ -21,8 +23,13 @@ const SWIPE_VELOCITY = 500; // px/s — meaningful flick threshold
 const TAP_TIMING = { duration: 280, easing: Easing.out(Easing.cubic) } as const;
 // Cancelled swipe snapback
 const SNAPBACK_TIMING = { duration: 180, easing: Easing.out(Easing.cubic) } as const;
-// Committed swipe settle: spring driven by finger velocity, no overshoot
-const COMMIT_SPRING = { mass: 1, stiffness: 300, damping: 40, overshootClamping: true } as const;
+// Committed swipe settle: responsive near-critical spring, driven by finger velocity.
+const COMMIT_SPRING = {
+  mass: 0.85,
+  stiffness: 340,
+  damping: 30,
+  overshootClamping: true,
+} as const;
 
 type AnimatedPagerProps = {
   selectedIndex: number;
@@ -71,7 +78,6 @@ const AnimatedPager = ({
 
   const selectedIndexSV = useSharedValue(selectedIndex);
   const widthSV = useSharedValue(width);
-  const isAnimating = useSharedValue(false);
   const dragFrom = useSharedValue(-1);
   const dragTo = useSharedValue(-1);
 
@@ -98,7 +104,6 @@ const AnimatedPager = ({
     .activeOffsetX([-10, 10])
     .failOffsetY([-25, 25])
     .onUpdate((e) => {
-      if (isAnimating.value) return;
       const dx = e.translationX;
       const current = selectedIndexSV.value;
       const w = widthSV.value;
@@ -115,11 +120,17 @@ const AnimatedPager = ({
         } else {
           return;
         }
+
+        cancelAnimation(slides[dragFrom.value]);
+        cancelAnimation(slides[dragTo.value]);
+        if (pageOffsetSV) {
+          cancelAnimation(pageOffsetSV);
+        }
       }
 
       const from = dragFrom.value;
       const to = dragTo.value;
-      // 1:1 finger tracking — both pages move together like a belt
+      // The new swipe owns both pages immediately; they then track like a belt.
       slides[from].value = dx;
       slides[to].value = to > from ? dx + w : dx - w;
 
@@ -145,7 +156,6 @@ const AnimatedPager = ({
         : dx > SWIPE_DISTANCE || vx > SWIPE_VELOCITY;
 
       if (committed) {
-        isAnimating.value = true;
         runOnJS(triggerHaptic)();
         runOnJS(notifyPageChange)(to);
         selectedIndexSV.value = to;
@@ -155,9 +165,7 @@ const AnimatedPager = ({
         }
         // Spring with finger velocity — carries momentum naturally, no overshoot
         slides[from].value = withSpring(toIsNext ? -w : w, { ...COMMIT_SPRING, velocity: vx });
-        slides[to].value = withSpring(0, { ...COMMIT_SPRING, velocity: vx }, (finished) => {
-          isAnimating.value = false;
-        });
+        slides[to].value = withSpring(0, { ...COMMIT_SPRING, velocity: vx });
       } else {
         // Not committed — snap back with timing
         if (pageOffsetSV) {
@@ -211,9 +219,7 @@ const AnimatedPager = ({
     // Start incoming page from full off-screen edge
     slides[to].value = toIsRight ? width : -width;
 
-    isAnimating.value = true;
     slides[to].value = withTiming(0, TAP_TIMING, (finished) => {
-      isAnimating.value = false;
       if (finished) {
         slides[from].value = toIsRight ? -width : width;
       }
