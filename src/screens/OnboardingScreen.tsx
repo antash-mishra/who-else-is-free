@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+
 import {
   View,
   Text,
@@ -13,30 +14,32 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   Easing,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
+
+import CameraIcon from '@assets/onboarding/camera.svg';
+import ProfileIcon from '@assets/onboarding/profile.svg';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
-
+import { AppButton, IconButton } from '@components/ui';
+import UserAvatar from '@components/UserAvatar';
+import { userGenderOptions, type UserGender } from '@constants/profileOptions';
 import { useAuth, type ApiError } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import UserAvatar from '@components/UserAvatar';
-import { AppButton, IconButton } from '@components/ui';
 import { colors, typography } from '@theme/index';
 import { getAvatarColor } from '@utils/avatar';
-import CameraIcon from '@assets/onboarding/camera.svg';
-import ProfileIcon from '@assets/onboarding/profile.svg';
 
 // Lazy import to handle missing native module gracefully
 let ImagePicker: typeof import('expo-image-picker') | null = null;
@@ -94,7 +97,7 @@ const OnboardingScreen = () => {
     undefined,
   );
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
-  const [gender, setGender] = useState<'Female' | 'Male' | null>(null);
+  const [gender, setGender] = useState<UserGender | null>(null);
   const [age, setAge] = useState('30');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -349,40 +352,32 @@ const OnboardingScreen = () => {
             {/* Gender Options */}
             <View style={styles.genderSection}>
               <View style={styles.genderOptions}>
-                <TouchableOpacity
-                  style={[styles.genderButton, gender === 'Female' && styles.genderButtonSelected]}
-                  onPress={() => {
-                    triggerHaptic('selection');
-                    setGender('Female');
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      gender === 'Female' && styles.genderButtonTextSelected,
-                    ]}
-                  >
-                    Female
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.genderButton, gender === 'Male' && styles.genderButtonSelected]}
-                  onPress={() => {
-                    triggerHaptic('selection');
-                    setGender('Male');
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.genderButtonText,
-                      gender === 'Male' && styles.genderButtonTextSelected,
-                    ]}
-                  >
-                    Male
-                  </Text>
-                </TouchableOpacity>
+                {userGenderOptions.map((option) => {
+                  const isSelected = gender === option;
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[styles.genderButton, isSelected && styles.genderButtonSelected]}
+                      onPress={() => {
+                        triggerHaptic('selection');
+                        setGender(option);
+                      }}
+                      activeOpacity={0.8}
+                      accessibilityRole="radio"
+                      accessibilityLabel={option}
+                      accessibilityState={{ checked: isSelected }}
+                    >
+                      <Text
+                        style={[
+                          styles.genderButtonText,
+                          isSelected && styles.genderButtonTextSelected,
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           </View>

@@ -9,14 +9,15 @@ import {
   useState,
 } from 'react';
 
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as SecureStore from 'expo-secure-store';
+
 import { API_BASE_URL } from '@api/config';
 import { ApiError, extractServerErrorMessage } from '@api/errors';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
+import type { UserGender } from '@constants/profileOptions';
 import { getAgeRangeBucket, trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
-
-import * as SecureStore from 'expo-secure-store';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 
 type AuthProviderName = 'google' | 'apple';
 
@@ -24,7 +25,7 @@ type AuthUser = {
   id: number;
   name: string;
   email: string;
-  gender?: 'Female' | 'Male';
+  gender?: UserGender;
   age?: number;
   avatar?: string;
   profileComplete: boolean;
@@ -32,7 +33,7 @@ type AuthUser = {
 
 type ProfileUpdateData = {
   name: string;
-  gender: 'Female' | 'Male';
+  gender: UserGender;
   age: number;
   avatar?: string;
 };
@@ -177,7 +178,7 @@ export const AuthProvider = ({
             id: number;
             name: string;
             email: string;
-            gender?: 'Female' | 'Male';
+            gender?: UserGender;
             age?: number;
             avatar?: string;
             profile_complete: boolean;
@@ -265,7 +266,7 @@ export const AuthProvider = ({
             id: number;
             name: string;
             email: string;
-            gender?: 'Female' | 'Male';
+            gender?: UserGender;
             age?: number;
             avatar?: string;
             profile_complete: boolean;
@@ -431,7 +432,7 @@ export const AuthProvider = ({
           id: number;
           name: string;
           email: string;
-          gender?: 'Female' | 'Male';
+          gender?: UserGender;
           age?: number;
           avatar?: string;
           profile_complete: boolean;

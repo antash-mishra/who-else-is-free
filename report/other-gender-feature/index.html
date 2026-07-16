@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Other Gender Onboarding — Implementation Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #64748b;
+        --line: #dce4ee;
+        --panel: #ffffff;
+        --wash: #f3f7fb;
+        --accent: #111827;
+        --pass: #087f5b;
+        --pass-bg: #e8f7f1;
+        --note: #9a6700;
+        --note-bg: #fff8db;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: linear-gradient(145deg, #eef3ff 0%, #f8fbff 42%, #eef8ff 100%);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 44px auto;
+      }
+
+      .hero,
+      .card {
+        border: 1px solid rgba(191, 205, 222, 0.82);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 18px 50px rgba(35, 55, 85, 0.09);
+      }
+
+      .hero {
+        padding: 38px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #53657e;
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(34px, 5vw, 58px);
+        line-height: 1.04;
+        letter-spacing: -0.045em;
+      }
+
+      .lede {
+        max-width: 760px;
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .chip {
+        border-radius: 999px;
+        padding: 8px 13px;
+        background: var(--pass-bg);
+        color: var(--pass);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 20px;
+        margin-top: 20px;
+      }
+
+      .card {
+        padding: 26px;
+      }
+
+      .summary {
+        grid-column: span 5;
+      }
+
+      .tests {
+        grid-column: span 7;
+      }
+
+      .visuals {
+        grid-column: 1 / -1;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      code {
+        border-radius: 6px;
+        background: #edf2f7;
+        padding: 2px 6px;
+        font-size: 0.92em;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 11px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .status-pass {
+        color: var(--pass);
+        font-weight: 750;
+      }
+
+      .status-note {
+        color: var(--note);
+        font-weight: 750;
+      }
+
+      .screens {
+        display: grid;
+        grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+        gap: 28px;
+        align-items: start;
+      }
+
+      figure {
+        margin: 0;
+        border-radius: 20px;
+        background: var(--wash);
+        padding: 18px;
+      }
+
+      figure img {
+        display: block;
+        width: 100%;
+        max-height: 760px;
+        border-radius: 14px;
+        object-fit: contain;
+      }
+
+      figcaption {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .note {
+        margin-top: 16px;
+        border-radius: 14px;
+        background: var(--note-bg);
+        padding: 13px 15px;
+        color: #6f5100;
+        font-size: 14px;
+      }
+
+      footer {
+        padding: 24px 8px 8px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      @media (max-width: 800px) {
+        .summary,
+        .tests {
+          grid-column: 1 / -1;
+        }
+
+        .screens {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          padding: 28px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">Feature verification · 16 July 2026</p>
+        <h1>“Other” gender option added to onboarding</h1>
+        <p class="lede">
+          The onboarding gender step now presents <strong>Male</strong>, <strong>Female</strong>,
+          and <strong>Other</strong> in the required order. The value is typed through the client,
+          accepted by the profile API, persisted as profile data, and retains the existing
+          immutable-gender behavior.
+        </p>
+        <div class="chips">
+          <span class="chip">UI order verified</span>
+          <span class="chip">Other selection verified</span>
+          <span class="chip">API acceptance verified</span>
+          <span class="chip">Typecheck passed</span>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card summary">
+          <h2>Implementation</h2>
+          <ul>
+            <li>
+              Added a shared <code>UserGender</code> type inferred from
+              <code>['Male', 'Female', 'Other']</code>.
+            </li>
+            <li>Rendered the onboarding controls from that ordered source.</li>
+            <li>Added radio accessibility state and labels to each option.</li>
+            <li>Extended authentication/profile payload types to preserve <code>Other</code>.</li>
+            <li>Extended Go API validation to accept <code>Other</code>.</li>
+            <li>No database migration was required; the column is unconstrained text.</li>
+          </ul>
+        </article>
+
+        <article class="card tests">
+          <h2>Validation results</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Result</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Onboarding rendering and interaction</td>
+                <td class="status-pass">Pass</td>
+                <td>Order, selection state, and profile submission covered by Jest.</td>
+              </tr>
+              <tr>
+                <td>Frontend typecheck</td>
+                <td class="status-pass">Pass</td>
+                <td><code>npm run typecheck</code></td>
+              </tr>
+              <tr>
+                <td>Frontend lint</td>
+                <td class="status-pass">Pass</td>
+                <td>Exited successfully with the repository's existing warning baseline.</td>
+              </tr>
+              <tr>
+                <td>Backend profile and immutability tests</td>
+                <td class="status-pass">Pass</td>
+                <td>Accepts and returns <code>Other</code>; rejects an unknown value.</td>
+              </tr>
+              <tr>
+                <td>Full backend test suite</td>
+                <td class="status-pass">Pass</td>
+                <td><code>go test ./...</code></td>
+              </tr>
+              <tr>
+                <td>Full frontend test suite</td>
+                <td class="status-note">Baseline failures</td>
+                <td>
+                  70 of 72 suites passed. Existing Event Details and Chat Thread rendering tests
+                  failed outside this feature; all feature-relevant suites passed.
+                </td>
+              </tr>
+              <tr>
+                <td>iOS Simulator smoke test</td>
+                <td class="status-pass">Pass</td>
+                <td>
+                  iPhone 15 Pro, iOS 17.4: order confirmed; <code>Other</code> reported checked and
+                  Continue became enabled.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="card visuals">
+          <h2>Visual evidence</h2>
+          <div class="screens">
+            <figure>
+              <img
+                src="onboarding-gender-options.png"
+                alt="Onboarding gender options in Male, Female, Other order"
+              />
+              <figcaption>
+                Default state in the iOS Simulator. The three controls appear in the required Male →
+                Female → Other order.
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="onboarding-other-selected.png"
+                alt="Onboarding gender screen with Other selected"
+              />
+              <figcaption>
+                Selected state from the device display. <strong>Other</strong> is checked and the
+                Continue action is enabled.
+              </figcaption>
+            </figure>
+          </div>
+          <p class="note">
+            Event audience options remain a separate domain concept and were intentionally left
+            unchanged.
+          </p>
+        </article>
+      </section>
+
+      <footer>
+        Branch <code>codex/add-other-gender</code> · Worktree
+        <code>/Users/antash/workspace/who-else-is-free-other-gender</code>
+      </footer>
+    </main>
+  </body>
+</html>

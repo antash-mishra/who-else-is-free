@@ -56,6 +56,7 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`.
 - State: React Context providers currently handle auth, events, chat, push, covers, bloom, and notifications state.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.
+- User-profile gender values and their onboarding order live in `src/constants/profileOptions.ts`; keep them ordered as `Male`, `Female`, `Other` and separate from the event-audience options in `src/constants/eventOptions.ts`.
 - Shared UI primitives live in `src/components/ui`; use them before adding local button, icon button, text field, checkbox, separator, section header, or tab implementations.
 - Shared sheet primitives live in `src/components/sheets`; use `BottomSheetHostProvider` for modal-sheet coordination and `BottomSheet`, `SheetHeader`, and `SheetActionList` for sheet surfaces and action menus before adding local sheet chrome.
 - Modal bottom sheets should go through `BottomSheetModal` so iOS uses the shared host instead of stacking sibling native modals. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.

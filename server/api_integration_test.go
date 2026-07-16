@@ -3121,6 +3121,33 @@ func TestUpdateProfile(t *testing.T) {
 		}
 	})
 
+	t.Run("Other gender profile update", func(t *testing.T) {
+		ctx := context.Background()
+		_, err := env.db.ExecContext(ctx, `
+			INSERT INTO users (name, email, password, created_at)
+			VALUES ('Other Gender Test', 'other-gender@example.com', '', datetime('now'))
+		`)
+		if err != nil {
+			t.Fatalf("create test user: %v", err)
+		}
+
+		token := env.issueTokenForEmail(t, "other-gender@example.com")
+		body := map[string]any{
+			"name":   "Other Gender User",
+			"gender": "Other",
+			"age":    25,
+		}
+		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200, got %d", resp.StatusCode)
+		}
+
+		payload := decodeJSON[profileResponse](t, resp)
+		if payload.User.Gender != "Other" {
+			t.Fatalf("expected gender 'Other', got %s", payload.User.Gender)
+		}
+	})
+
 	t.Run("missing name returns 400", func(t *testing.T) {
 		ctx := context.Background()
 		_, err := env.db.ExecContext(ctx, `
@@ -3157,7 +3184,7 @@ func TestUpdateProfile(t *testing.T) {
 
 		body := map[string]any{
 			"name":   "Test User",
-			"gender": "Other", // Invalid - only Female or Male allowed
+			"gender": "Unknown",
 			"age":    25,
 		}
 		resp := env.doRequest(t, http.MethodPut, "/api/profile", token, body)

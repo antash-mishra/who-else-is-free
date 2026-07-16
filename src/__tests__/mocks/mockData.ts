@@ -2,6 +2,7 @@
  * Mock data for tests
  */
 
+import type { UserGender } from '@constants/profileOptions';
 import type { ChatConversation, ChatMessage, ChatJoinRequest } from '@context/ChatContext';
 
 const formatLocalDate = (offsetDays = 0) => {
@@ -19,7 +20,7 @@ export interface MockAuthUser {
   id: number;
   name: string;
   email: string;
-  gender?: 'Female' | 'Male';
+  gender?: UserGender;
   age?: number;
   avatar?: string;
   profileComplete: boolean;

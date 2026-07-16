@@ -25,7 +25,7 @@ func NewProfileHandler(repo *EventRepository, hub ...*ChatHub) *ProfileHandler {
 
 type updateProfileRequest struct {
 	Name   string  `json:"name" binding:"required,min=1"`
-	Gender string  `json:"gender" binding:"required,oneof=Female Male"`
+	Gender string  `json:"gender" binding:"required,oneof=Female Male Other"`
 	Age    int     `json:"age" binding:"required,gte=13,lte=120"`
 	Avatar *string `json:"avatar"`
 }
