@@ -51,6 +51,7 @@ interface MenuItemProps {
   showChevron?: boolean;
   haptic?: HapticFeedback;
   testID?: string;
+  isLast?: boolean;
 }
 
 const MenuItem = ({
@@ -60,6 +61,7 @@ const MenuItem = ({
   showChevron = true,
   haptic = 'light',
   testID,
+  isLast = false,
 }: MenuItemProps) => {
   const handlePress = () => {
     triggerHaptic(haptic);
@@ -68,7 +70,7 @@ const MenuItem = ({
 
   return (
     <ScalePressable
-      pressableStyle={styles.menuItem}
+      pressableStyle={[styles.menuItem, isLast && styles.menuItemLast]}
       style={styles.menuItemInner}
       onPress={handlePress}
       testID={testID}
@@ -236,6 +238,7 @@ const ProfileScreen = () => {
               icon={<HelpIcon width={20} height={20} color={colors.text} />}
               label="Help"
               onPress={handleHelp}
+              isLast
             />
           </View>
         </ScrollView>
@@ -357,6 +360,7 @@ const ProfileScreen = () => {
             onPress={handleDelete}
             showChevron={false}
             haptic="destructive"
+            isLast
           />
         </View>
       </ScrollView>
@@ -498,8 +502,11 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   menuItem: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderSubtle,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuItemInner: {
     flexDirection: 'row',

@@ -378,11 +378,6 @@ const JoinRequestsScreen = () => {
           ItemSeparatorComponent={() => (
             <View style={is1to1Mode ? styles.separator1to1 : styles.separator} />
           )}
-          ListFooterComponent={
-            displayRequests.length > 0 ? (
-              <View style={is1to1Mode ? styles.separator1to1 : styles.separator} />
-            ) : null
-          }
           contentContainerStyle={
             displayRequests.length === 0
               ? styles.listEmptyContent
@@ -423,12 +418,12 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.divider,
     marginLeft: 48, // avatar (40) + gap (8) — align after the avatar
   },
   separator1to1: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.divider,
     marginLeft: 64, // avatar (40) + gap (8) + list marginLeft offset (16)
   },
   // Group mode request item styles

@@ -25,6 +25,7 @@ export const colors = {
   subText: '#808080',
   border: '#E5E7EB',
   borderSubtle: '#E6E6E6',
+  divider: '#F5F5F5', // subtle row divider / line separator (1px) — chat, member/request lists, account, help
   checkboxBorder: '#D0D0D0',
   inputSurface: '#F4F4F4',
   error: '#FF383C',

@@ -15,6 +15,7 @@ export interface NotificationRowProps {
   onPress: (notification: AppNotification) => void;
   nowMs: number;
   eventImageUri?: string;
+  isLast?: boolean;
 }
 
 /**
@@ -26,7 +27,13 @@ export interface NotificationRowProps {
  * Shows the event cover image when the notification has an associated event
  * (same as ConversationRow); falls back to a UserAvatar otherwise.
  */
-const NotificationRow = ({ notification, onPress, nowMs, eventImageUri }: NotificationRowProps) => {
+const NotificationRow = ({
+  notification,
+  onPress,
+  nowMs,
+  eventImageUri,
+  isLast,
+}: NotificationRowProps) => {
   const hasUnread = !notification.read;
   const timestampLabel = formatCompactRelativeTime(notification.createdAt, nowMs);
 
@@ -80,7 +87,7 @@ const NotificationRow = ({ notification, onPress, nowMs, eventImageUri }: Notifi
           </Text>
         </View>
       </View>
-      <View style={styles.divider} />
+      {!isLast && <View style={styles.divider} />}
     </ScalePressable>
   );
 };
@@ -164,7 +171,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.divider,
     marginLeft: spacing.md + 52 + 12,
   },
 });

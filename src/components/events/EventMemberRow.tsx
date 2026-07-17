@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.divider,
     marginLeft: 48, // avatar (40) + gap (8)
     marginBottom: 12,
   },
