@@ -19,6 +19,7 @@ var ErrNotConversationMember = errors.New("user is not a conversation member")
 var ErrReportAlreadyExists = errors.New("report already exists")
 var ErrUsersBlocked = errors.New("users are blocked")
 var ErrAppleAccountLinkedToDifferentUser = errors.New("apple account is already linked to a different user")
+var ErrHelpSubmissionNotFound = errors.New("help submission not found")
 
 type rowQuery interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row

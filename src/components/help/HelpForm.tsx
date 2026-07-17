@@ -1,4 +1,5 @@
 import { memo } from 'react';
+
 import { StyleSheet, View } from 'react-native';
 
 import { AppButton, CheckboxRow, TextField } from '@components/ui';
@@ -22,6 +23,8 @@ interface HelpFormProps {
   checkboxOptions?: HelpCheckboxOption[];
   onToggleCheckbox?: (value: string) => void;
   isSubmitting?: boolean;
+  messageMaxLength?: number;
+  replyEmailMaxLength?: number;
 }
 
 const HelpForm = ({
@@ -37,6 +40,8 @@ const HelpForm = ({
   checkboxOptions = [],
   onToggleCheckbox,
   isSubmitting = false,
+  messageMaxLength,
+  replyEmailMaxLength,
 }: HelpFormProps) => (
   <View>
     <TextField
@@ -46,6 +51,7 @@ const HelpForm = ({
       onChangeText={onMessageChange}
       placeholder={placeholder}
       style={styles.messageInput}
+      maxLength={messageMaxLength}
     />
 
     {checkboxOptions.length > 0 && (
@@ -75,6 +81,7 @@ const HelpForm = ({
         autoCorrect={false}
         keyboardType="email-address"
         textContentType="emailAddress"
+        maxLength={replyEmailMaxLength}
       />
     )}
 

@@ -48,6 +48,15 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 
 ## Architecture
 
+- Admin Support Inbox: Contact Us and Feedback submissions remain in `help_submissions`. Sensitive
+  reads and status changes go through the session- and database-role-protected `/api/admin` group;
+  runtime authorization checks `admin_users.user_id`, never a client-provided email or embedded admin
+  secret. `ADMIN_BOOTSTRAP_EMAILS` is provisioning-only: matching verified accounts receive a
+  persistent user-ID grant and the secret can then be removed. Client transport/mapping lives in
+  `src/api/adminHelp.ts`, list state in `useAdminHelpSubmissions`, access discovery in
+  `useAdminAccess`, and the Profile-only routes are `AdminSupportInbox` and
+  `AdminSupportSubmission`. Keep support content out of analytics and routine logs; retention rules
+  are in `docs/support-data-retention.md`.
 - Notifications inbox: server-side notification history is persisted in the `notifications` table (one row per recipient per push) by `recordAndSendPushToUser`/`recordAndSendPushToUsers` on `*ChatHub` (`server/notification_recorder.go`). Persistence is best-effort — a row-insert failure logs and still sends the FCM push, so push delivery is never degraded. The inbox-display body is owned server-side in `server/notification_payloads.go` (friendlier text for the three "harsh" override types: `join_request.denied`, `event.member_removed`, `event.deleted`); the raw FCM push-payload strings stay unchanged. The `NotificationHandler` (`server/notification_handler.go`) exposes `GET /api/notifications`, `POST /api/notifications/:id/read`, `POST /api/notifications/read-all`, and `GET /api/notifications/unread-count`. On the client, `NotificationsContext` (`src/context/NotificationsContext.tsx`) holds the paginated list + unread count (foreground push `onMessage` does a cheap count-only refresh, not a full list reload); the bell `IconButton` + `CountBadge` live in the Profile header and navigate to the `Notifications` route. The bell is hidden for signed-out users.
 
 - Frontend: React Native Expo app in `src/`, with root app setup in `App.tsx` and root registration in `index.ts`.

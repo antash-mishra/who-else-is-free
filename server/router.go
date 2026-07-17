@@ -46,12 +46,15 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	protected.POST("/push-tokens", pushHandler.registerPushToken)
 	protected.DELETE("/push-tokens", pushHandler.deletePushToken)
 	NewNotificationHandler(eventHandler.repo).RegisterRoutes(protected)
+	protected.GET("/admin-access", NewAdminAccessHandler(eventHandler.repo).access)
 	if os.Getenv("PUSH_ENABLED") == "true" {
 		protected.POST("/push-tokens/test", pushHandler.testPush)
 	}
 
 	admin := api.Group("/admin")
+	admin.Use(sessionMiddleware(signer, eventHandler.repo), adminMiddleware(eventHandler.repo))
 	NewAnalyticsHandler(eventHandler.repo, collector).RegisterRoutes(admin)
+	NewAdminHelpHandler(eventHandler.repo).RegisterRoutes(admin)
 
 	api.GET("/ws", chatHub.handleWebSocket)
 

@@ -93,6 +93,7 @@ func setupAPITestEnv(t *testing.T) *apiTestEnv {
 
 func setupAPITestEnvWithPush(t *testing.T, pushSender PushSender) *apiTestEnv {
 	t.Helper()
+	t.Setenv("ADMIN_BOOTSTRAP_EMAILS", "")
 
 	tmpFile, err := os.CreateTemp("", "who-else-is-free-*.sqlite")
 	if err != nil {

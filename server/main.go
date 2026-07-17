@@ -49,6 +49,16 @@ func main() {
 		log.Printf("failed to seed database: %v", err)
 	}
 
+	bootstrapEmails := parseAdminBootstrapEmails(os.Getenv("ADMIN_BOOTSTRAP_EMAILS"))
+	if len(bootstrapEmails) > 0 {
+		granted, err := repo.BootstrapAdmins(ctx, bootstrapEmails)
+		if err != nil {
+			log.Printf("failed to bootstrap admin users: %v", err)
+		} else if granted > 0 {
+			log.Printf("bootstrapped %d admin user(s)", granted)
+		}
+	}
+
 	pushSender := InitPushSender(ctx)
 	chatHub := NewChatHub(repo, signer, pushSender)
 

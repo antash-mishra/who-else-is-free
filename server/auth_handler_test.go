@@ -56,6 +56,7 @@ func setupAuthTestEnv(t *testing.T, googleVerifier googleTokenVerifier, appleVer
 
 	gin.SetMode(gin.TestMode)
 	t.Setenv("CHAT_SESSION_SECRET", "test-session-secret")
+	t.Setenv("ADMIN_BOOTSTRAP_EMAILS", "")
 
 	tmpFile, err := os.CreateTemp("", "who-else-is-free-auth-*.sqlite")
 	if err != nil {
@@ -347,6 +348,7 @@ func setupAuthTestEnvWithDevLogin(t *testing.T, googleVerifier googleTokenVerifi
 	gin.SetMode(gin.TestMode)
 	t.Setenv("CHAT_SESSION_SECRET", "test-session-secret")
 	t.Setenv("DEV_LOGIN_ENABLED", "1")
+	t.Setenv("ADMIN_BOOTSTRAP_EMAILS", "")
 
 	tmpFile, err := os.CreateTemp("", "who-else-is-free-auth-dev-*.sqlite")
 	if err != nil {
@@ -446,6 +448,32 @@ func TestDevLoginIssuesSession(t *testing.T) {
 	}
 	if !payload.User.ProfileComplete {
 		t.Fatal("dev-login should mark profile_complete=true when profile_complete:true was requested")
+	}
+}
+
+func TestLoginPersistsBootstrapAdminGrant(t *testing.T) {
+	env := setupAuthTestEnvWithDevLogin(t, fakeGoogleVerifier{}, nil)
+	t.Setenv("ADMIN_BOOTSTRAP_EMAILS", "tester@who-else-is-free.test")
+
+	rec := env.postJSON(t, "/api/dev-login", map[string]any{
+		"email":            "tester@who-else-is-free.test",
+		"name":             "Tester",
+		"profile_complete": true,
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	user, err := env.repo.GetUserByEmail(context.Background(), "tester@who-else-is-free.test")
+	if err != nil {
+		t.Fatalf("get bootstrap user: %v", err)
+	}
+	isAdmin, err := env.repo.IsAdmin(context.Background(), user.ID)
+	if err != nil {
+		t.Fatalf("check bootstrap admin: %v", err)
+	}
+	if !isAdmin {
+		t.Fatal("expected login to persist the bootstrap admin grant")
 	}
 }
 

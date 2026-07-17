@@ -4,11 +4,62 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"strings"
 	"testing"
 )
 
 type helpSubmissionResponse struct {
 	Submission HelpSubmission `json:"submission"`
+}
+
+func TestCreateHelpSubmissionHardening(t *testing.T) {
+	t.Run("rejects oversized messages", func(t *testing.T) {
+		env := setupAPITestEnv(t)
+		resp := env.doRequest(t, http.MethodPost, "/api/help-submissions", "", map[string]any{
+			"type":    "feedback",
+			"message": strings.Repeat("a", maxHelpMessageLength+1),
+		})
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("rejects invalid reply emails", func(t *testing.T) {
+		env := setupAPITestEnv(t)
+		resp := env.doRequest(t, http.MethodPost, "/api/help-submissions", "", map[string]any{
+			"type":        "contact",
+			"message":     "Please reply.",
+			"wants_reply": true,
+			"reply_email": "not-an-email",
+		})
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected 400, got %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("rate limits anonymous submissions", func(t *testing.T) {
+		env := setupAPITestEnv(t)
+		for index := 0; index < 5; index++ {
+			resp := env.doRequest(t, http.MethodPost, "/api/help-submissions", "", map[string]any{
+				"type":    "feedback",
+				"message": "Anonymous feedback",
+			})
+			if resp.StatusCode != http.StatusCreated {
+				t.Fatalf("request %d: expected 201, got %d", index+1, resp.StatusCode)
+			}
+			resp.Body.Close()
+		}
+		resp := env.doRequest(t, http.MethodPost, "/api/help-submissions", "", map[string]any{
+			"type":    "feedback",
+			"message": "One too many",
+		})
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusTooManyRequests {
+			t.Fatalf("expected 429, got %d", resp.StatusCode)
+		}
+	})
 }
 
 func TestCreateHelpSubmission(t *testing.T) {

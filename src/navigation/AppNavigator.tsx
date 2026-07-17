@@ -37,6 +37,8 @@ import {
   slideFromRightTransitionSpec,
 } from '@navigation/transitions';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
+import AdminSupportInboxScreen from '@screens/AdminSupportInboxScreen';
+import AdminSupportSubmissionScreen from '@screens/AdminSupportSubmissionScreen';
 import ChatThreadScreen from '@screens/ChatThreadScreen';
 import CreateEventScreen from '@screens/CreateEventScreen';
 import EditProfileScreen from '@screens/EditProfileScreen';
@@ -391,6 +393,22 @@ const AppNavigator = () => {
           <Stack.Screen
             name="Notifications"
             component={NotificationsScreen}
+            options={{
+              cardStyleInterpolator: slideFromRightInterpolator,
+              transitionSpec: slideFromRightTransitionSpec,
+            }}
+          />
+          <Stack.Screen
+            name="AdminSupportInbox"
+            component={AdminSupportInboxScreen}
+            options={{
+              cardStyleInterpolator: slideFromRightInterpolator,
+              transitionSpec: slideFromRightTransitionSpec,
+            }}
+          />
+          <Stack.Screen
+            name="AdminSupportSubmission"
+            component={AdminSupportSubmissionScreen}
             options={{
               cardStyleInterpolator: slideFromRightInterpolator,
               transitionSpec: slideFromRightTransitionSpec,

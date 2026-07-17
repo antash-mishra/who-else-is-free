@@ -261,6 +261,17 @@ func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, d
 }
 
 func (h *AuthHandler) respondWithIssuedSession(c *gin.Context, user *User, logPrefix string, isNewUser bool) {
+	bootstrapEmails := parseAdminBootstrapEmails(os.Getenv("ADMIN_BOOTSTRAP_EMAILS"))
+	if isBootstrapAdminEmail(user.Email, bootstrapEmails) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+		defer cancel()
+		if err := h.repo.GrantAdmin(ctx, user.ID, nil); err != nil {
+			log.Printf("%s: failed to persist bootstrap admin grant for user %d: %v", logPrefix, user.ID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to provision account access"})
+			return
+		}
+	}
+
 	token, claims, err := h.signer.issue(user.ID, user.Email)
 	if err != nil {
 		log.Printf("%s: failed to issue token for %d: %v", logPrefix, user.ID, err)

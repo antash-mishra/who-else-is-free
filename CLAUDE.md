@@ -14,6 +14,10 @@ Who Else Is Free is an event discovery and social coordination app.
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`
 - Inactive bottom-tab scenes always use `pointerEvents` and accessibility props. Apply `display: 'none'` only on Android so hidden controls stay out of its accessibility tree; iOS must keep the native scene mounted so nested pan recognizers survive tab revisits. Pagers receive navigation focus through `AnimatedPager.isActive` and rebuild their gesture on the next frame for Android re-registration without remounting list content.
 - State: React Context providers for auth, events, chat, push, covers, and bloom state
+- Admin support: persistent authorization lives in `admin_users` by immutable user ID;
+  `ADMIN_BOOTSTRAP_EMAILS` only provisions verified initial accounts. Support Inbox API mapping is
+  in `src/api/adminHelp.ts`, feature state is in `useAdminAccess`/`useAdminHelpSubmissions`, and
+  support content must stay out of analytics and routine logs.
 
 ## Working References
 

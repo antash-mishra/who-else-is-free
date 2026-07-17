@@ -4,17 +4,10 @@
  */
 
 import React from 'react';
+
 import { fireEvent, waitFor } from '@testing-library/react-native';
 
 import ProfileScreen from '../ProfileScreen';
-import {
-  render,
-  createMockUseAuth,
-  createMockUseChat,
-  createMockUseEvents,
-} from '../../__tests__/utils/testUtils';
-import { mockUsers, mockConversations, mockEvents } from '../../__tests__/mocks/mockData';
-import { mockNavigation } from '../../__tests__/mocks/mockModules';
 
 // Mock the context hooks
 jest.mock('@context/AuthContext', () => ({
@@ -31,7 +24,11 @@ jest.mock('@context/EventsContext', () => ({
 
 jest.mock('@context/NotificationsContext', () => ({
   useNotifications: jest.fn(),
-}));;
+}));
+
+jest.mock('@hooks/useAdminAccess', () => ({
+  useAdminAccess: jest.fn(),
+}));
 
 jest.mock('react-native-reanimated', () => {
   const { View } = require('react-native');
@@ -47,7 +44,9 @@ jest.mock('react-native-reanimated', () => {
 // Mock components
 jest.mock('@components/ScreenContainer', () => {
   const { View } = require('react-native');
-  return ({ children }: { children: React.ReactNode }) => <View testID="screen-container">{children}</View>;
+  return ({ children }: { children: React.ReactNode }) => (
+    <View testID="screen-container">{children}</View>
+  );
 });
 
 jest.mock('@components/BottomSheetModal', () => {
@@ -79,11 +78,7 @@ jest.mock('@components/EventActionOverlay', () => {
         <Text>{title}</Text>
         <Text>{description}</Text>
         {errorMessage ? <Text>{errorMessage}</Text> : null}
-        <Pressable
-          testID="confirm-delete-account"
-          onPress={onConfirm}
-          disabled={isConfirmLoading}
-        >
+        <Pressable testID="confirm-delete-account" onPress={onConfirm} disabled={isConfirmLoading}>
           <Text>{isConfirmLoading ? 'Deleting...' : confirmLabel}</Text>
         </Pressable>
         <Pressable testID="cancel-delete-account" onPress={onCancel}>
@@ -117,42 +112,55 @@ import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
+import { useAdminAccess } from '@hooks/useAdminAccess';
+
+import { mockUsers, mockConversations, mockEvents } from '../../__tests__/mocks/mockData';
+import { mockNavigation } from '../../__tests__/mocks/mockModules';
+import {
+  render,
+  createMockUseAuth,
+  createMockUseChat,
+  createMockUseEvents,
+} from '../../__tests__/utils/testUtils';
 
 const mockedUseAuth = useAuth as jest.Mock;
 const mockedUseChat = useChat as jest.Mock;
 const mockedUseEvents = useEvents as jest.Mock;
 const mockedUseNotifications = useNotifications as jest.Mock;
+const mockedUseAdminAccess = useAdminAccess as jest.Mock;
 
 describe('ProfileScreen Rendering', () => {
   const mockSignOut = jest.fn();
   const mockDeleteAccount = jest.fn();
 
-  const setupMocks = (overrides: {
-    authOverrides?: object;
-    chatOverrides?: object;
-    eventsOverrides?: object;
-    unreadCount?: number;
-    notificationsOverrides?: object;
-  } = {}) => {
+  const setupMocks = (
+    overrides: {
+      authOverrides?: object;
+      chatOverrides?: object;
+      eventsOverrides?: object;
+      unreadCount?: number;
+      notificationsOverrides?: object;
+    } = {},
+  ) => {
     mockedUseAuth.mockReturnValue(
       createMockUseAuth({
         user: mockUsers[0],
         signOut: mockSignOut,
         deleteAccount: mockDeleteAccount,
         ...overrides.authOverrides,
-      })()
+      })(),
     );
     mockedUseChat.mockReturnValue(
       createMockUseChat({
         conversations: mockConversations,
         ...overrides.chatOverrides,
-      })()
+      })(),
     );
     mockedUseEvents.mockReturnValue(
       createMockUseEvents({
         userEvents: mockEvents.filter((e) => e.ownerId === 1),
         ...overrides.eventsOverrides,
-      })()
+      })(),
     );
     mockedUseNotifications.mockReturnValue({
       unreadCount: overrides.unreadCount ?? 0,
@@ -162,6 +170,7 @@ describe('ProfileScreen Rendering', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedUseAdminAccess.mockReturnValue({ isAdmin: false, loading: false, refresh: jest.fn() });
   });
 
   afterEach(() => {
@@ -285,6 +294,23 @@ describe('ProfileScreen Rendering', () => {
       const { getByText } = render(<ProfileScreen />);
 
       expect(getByText('Delete')).toBeTruthy();
+    });
+
+    it('shows Support Inbox only for admins and navigates to it', () => {
+      mockedUseAdminAccess.mockReturnValue({ isAdmin: true, loading: false, refresh: jest.fn() });
+      setupMocks();
+      const { getByText } = render(<ProfileScreen />);
+
+      fireEvent.press(getByText('Support Inbox'));
+
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('AdminSupportInbox');
+    });
+
+    it('hides Support Inbox from non-admin users', () => {
+      setupMocks();
+      const { queryByText } = render(<ProfileScreen />);
+
+      expect(queryByText('Support Inbox')).toBeNull();
     });
 
     it('should navigate to EditProfile when Edit Profile is pressed', () => {

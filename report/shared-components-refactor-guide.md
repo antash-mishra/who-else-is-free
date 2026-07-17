@@ -1155,6 +1155,25 @@ Use it when:
 
 - A notifications-list row is needed. Keep it a feature row (not promoted to `src/components/ui`) until it repeats across screens.
 
+### `SupportSubmissionRow`
+
+File: `src/components/admin/SupportSubmissionRow.tsx`
+
+What it is:
+
+- Admin Support Inbox feature row built from `ScalePressable` and shared text/theme primitives.
+- Owns the type, status, urgent-safety, sender, preview, timestamp, press motion, and accessibility
+  presentation for a support submission.
+
+Where it is used:
+
+- `AdminSupportInboxScreen`
+
+Use it when:
+
+- Rendering Contact Us or Feedback records in the admin inbox. Keep it feature-scoped; it is not a
+  general settings or notification row.
+
 ### `HelpForm`
 
 File: `src/components/help/HelpForm.tsx`
@@ -1163,6 +1182,7 @@ What it is:
 
 - Shared help/contact/feedback form layout.
 - Composes `TextField`, `CheckboxRow`, and `AppButton`.
+- Accepts server-aligned message and reply-email maximum lengths from `src/api/adminHelp.ts`.
 
 Where it is used:
 
@@ -1305,6 +1325,24 @@ Use them when:
 - Any code calls the backend over HTTP. Do not hand-roll fetch + auth header + timeout + error
   extraction. Raw `fetch` remains only in flows with bespoke semantics (sign-in, WebSocket,
   places autocomplete, status-code-driven Event Details actions).
+
+### Admin help API and hooks
+
+Files: `src/api/adminHelp.ts`, `src/hooks/useAdminAccess.ts`,
+`src/hooks/useAdminHelpSubmissions.ts`
+
+What they are:
+
+- Typed transport and snake_case-to-app mapping for help submission creation, admin access, inbox
+  pagination, detail reads, and status changes.
+- `useAdminAccess` controls Profile menu visibility; it is never the server authorization boundary.
+- `useAdminHelpSubmissions` owns filter-aware refresh, cursor pagination, de-duplication, and error
+  state without adding a global context for a single admin surface.
+
+Use them when:
+
+- Extending the admin Support Inbox. Keep all sensitive endpoints protected by both session and
+  database-backed admin middleware.
 
 ### API mappers
 

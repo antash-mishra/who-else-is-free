@@ -36,6 +36,8 @@ export type RootStackParamList = {
   HelpContact: undefined;
   HelpFAQ: undefined;
   HelpFeedback: undefined;
+  AdminSupportInbox: undefined;
+  AdminSupportSubmission: { submissionId: number };
   Login: undefined;
   EventCreated: {
     eventTitle: string;

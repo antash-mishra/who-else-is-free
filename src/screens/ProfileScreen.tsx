@@ -1,39 +1,43 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import ScalePressable from '@components/ScalePressable';
-import BellIcon from '@assets/notification/bell.svg';
-
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
   CompositeNavigationProp,
   RouteProp,
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import TrashIcon from '@assets/account-icons/delete.svg';
+import EditProfileIcon from '@assets/account-icons/edit.svg';
+import HelpIcon from '@assets/account-icons/help.svg';
+import LogoutIcon from '@assets/account-icons/logout.svg';
+import PastEventsIcon from '@assets/account-icons/past event.svg';
+import BellIcon from '@assets/notification/bell.svg';
+import ScalePressable from '@components/ScalePressable';
+
 import EventActionBadge from '@components/EventActionBadge';
 import ScreenContainer from '@components/ScreenContainer';
 import ChevronRightIcon from '@assets/ui/chevron-right.svg';
+import SignInButtons from '@components/SignInButtons';
 import { UnreadDot, IconButton } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
+import { useAuth } from '@context/AuthContext';
+import { useChat } from '@context/ChatContext';
+import { useEvents } from '@context/EventsContext';
+import { useNotifications } from '@context/NotificationsContext';
 import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
-import { useAuth } from '@context/AuthContext';
-import { useEvents } from '@context/EventsContext';
-import { useChat } from '@context/ChatContext';
-import { useNotifications } from '@context/NotificationsContext';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import BottomSheetModal from '@components/BottomSheetModal';
 import EventActionOverlay from '@components/EventActionOverlay';
-import SignInButtons from '@components/SignInButtons';
-import EditProfileIcon from '@assets/account-icons/edit.svg';
-import PastEventsIcon from '@assets/account-icons/past event.svg';
 import PrivacyPolicyIcon from '@assets/account-icons/privacy.svg';
-import HelpIcon from '@assets/account-icons/help.svg';
-import LogoutIcon from '@assets/account-icons/logout.svg';
-import TrashIcon from '@assets/account-icons/delete.svg';
 import { HapticFeedback, triggerHaptic } from '@services/haptics';
+import { useAdminAccess } from '@hooks/useAdminAccess';
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Profile'>,
@@ -46,6 +50,7 @@ interface MenuItemProps {
   onPress: () => void;
   showChevron?: boolean;
   haptic?: HapticFeedback;
+  testID?: string;
 }
 
 const MenuItem = ({
@@ -54,6 +59,7 @@ const MenuItem = ({
   onPress,
   showChevron = true,
   haptic = 'light',
+  testID,
 }: MenuItemProps) => {
   const handlePress = () => {
     triggerHaptic(haptic);
@@ -65,6 +71,7 @@ const MenuItem = ({
       pressableStyle={styles.menuItem}
       style={styles.menuItemInner}
       onPress={handlePress}
+      testID={testID}
     >
       <View style={styles.menuItemLeft}>
         <View style={styles.menuIconContainer}>{icon}</View>
@@ -80,6 +87,7 @@ const ProfileScreen = () => {
   const { events, userEvents } = useEvents();
   const { conversations } = useChat();
   const { unreadCount } = useNotifications();
+  const { isAdmin } = useAdminAccess();
   const navigation = useNavigation<ProfileNavigation>();
   const route = useRoute<RouteProp<RootTabParamList, 'Profile'>>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -143,6 +151,10 @@ const ProfileScreen = () => {
 
   const handleHelp = useCallback(() => {
     navigation.navigate('Help');
+  }, [navigation]);
+
+  const handleSupportInbox = useCallback(() => {
+    navigation.navigate('AdminSupportInbox');
   }, [navigation]);
 
   const handleDelete = useCallback(() => {
@@ -324,6 +336,14 @@ const ProfileScreen = () => {
             label="Help"
             onPress={handleHelp}
           />
+          {isAdmin ? (
+            <MenuItem
+              icon={<HelpIcon width={20} height={20} color={colors.text} />}
+              label="Support Inbox"
+              onPress={handleSupportInbox}
+              testID="admin-support-inbox-menu-item"
+            />
+          ) : null}
           <MenuItem
             icon={<LogoutIcon width={20} height={20} color={colors.text} />}
             label="Logout"

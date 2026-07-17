@@ -1,17 +1,19 @@
 import { useCallback, useState } from 'react';
+
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { MAX_HELP_MESSAGE_LENGTH, submitHelpSubmission } from '@api/adminHelp';
 import EventActionBadge from '@components/EventActionBadge';
+import HelpForm from '@components/help/HelpForm';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
-import HelpForm from '@components/help/HelpForm';
 import { AppText } from '@components/ui';
-import { API_BASE_URL } from '@api/config';
-import { useAuth, type ApiError } from '@context/AuthContext';
-import { colors, typography } from '@theme/index';
+import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
+import { colors, typography } from '@theme/index';
 
 const FEEDBACK_BULLETS = [
   'Ideas for new features',
@@ -27,28 +29,6 @@ const HelpFeedbackScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSentBadge, setShowSentBadge] = useState(false);
 
-  const submitHelpRequest = useCallback(
-    async (body: Record<string, unknown>) => {
-      const response = await authFetch(`${API_BASE_URL}/api/help-submissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const errorData = (await response.json().catch(() => ({}))) as { error?: string };
-        const message =
-          errorData.error ||
-          (response.status === 401
-            ? 'Session expired. Please sign in again.'
-            : 'Unable to submit right now. Please try again.');
-        const apiError = new Error(message) as ApiError;
-        apiError.status = response.status;
-        throw apiError;
-      }
-    },
-    [authFetch],
-  );
-
   const handleSubmit = useCallback(async () => {
     const message = feedbackMessage.trim();
     if (!message) {
@@ -58,7 +38,7 @@ const HelpFeedbackScreen = () => {
 
     setIsSubmitting(true);
     try {
-      await submitHelpRequest({ type: 'feedback', message });
+      await submitHelpSubmission(authFetch, { type: 'feedback', message });
       setShowSentBadge(true);
       setFeedbackMessage('');
     } catch (error) {
@@ -69,7 +49,7 @@ const HelpFeedbackScreen = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [feedbackMessage, submitHelpRequest]);
+  }, [authFetch, feedbackMessage]);
 
   return (
     <ScreenContainer edges={['top']}>
@@ -106,6 +86,7 @@ const HelpFeedbackScreen = () => {
             buttonLabel="Send feedback"
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
+            messageMaxLength={MAX_HELP_MESSAGE_LENGTH}
           />
         </View>
       </ScrollView>

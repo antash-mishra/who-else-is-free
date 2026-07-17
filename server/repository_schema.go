@@ -34,6 +34,16 @@ CREATE INDEX IF NOT EXISTS apple_accounts_user_idx
 ON apple_accounts (user_id);
 `
 
+const createTableAdminUsers = `
+CREATE TABLE IF NOT EXISTS admin_users (
+    user_id INTEGER PRIMARY KEY,
+    granted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    granted_by INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL
+);
+`
+
 const createTableEvents = `
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -363,6 +373,11 @@ CREATE TABLE IF NOT EXISTS help_submissions (
 const createHelpSubmissionsUserIndex = `
 CREATE INDEX IF NOT EXISTS help_submissions_user_idx
 ON help_submissions (user_id, created_at DESC);
+`
+
+const createHelpSubmissionsAdminIndex = `
+CREATE INDEX IF NOT EXISTS help_submissions_admin_idx
+ON help_submissions (status, urgent_safety_issue, created_at DESC, id DESC);
 `
 
 const selectAllUsers = `
@@ -752,6 +767,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createAppleAccountsUserIDIndex); err != nil {
 		return fmt.Errorf("create apple_accounts user index: %w", err)
 	}
+	if _, err := r.db.ExecContext(ctx, createTableAdminUsers); err != nil {
+		return fmt.Errorf("create admin_users table: %w", err)
+	}
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)
 	}
@@ -832,6 +850,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createHelpSubmissionsUserIndex); err != nil {
 		return fmt.Errorf("create help_submissions user index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createHelpSubmissionsAdminIndex); err != nil {
+		return fmt.Errorf("create help_submissions admin index: %w", err)
 	}
 	if _, err := r.db.ExecContext(ctx, createUserBlocksBlockedIndex); err != nil {
 		return fmt.Errorf("create user_blocks blocked index: %w", err)
