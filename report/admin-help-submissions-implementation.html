@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Support Inbox — Implementation Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #111111;
+        --muted: #666970;
+        --line: #e6e7ea;
+        --surface: #f7f8fb;
+        --surface-strong: #eef0f5;
+        --accent: #3159e8;
+        --accent-soft: #e9eeff;
+        --success: #17643a;
+        --success-soft: #e9f7ee;
+        --warning: #8a4b00;
+        --warning-soft: #fff4df;
+        --urgent: #d9252a;
+        --urgent-soft: #ffe9ea;
+        --radius: 22px;
+        --shadow: 0 18px 55px rgba(20, 24, 35, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: #f0f1f4;
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.58;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      code {
+        padding: 0.15em 0.38em;
+        border-radius: 6px;
+        background: var(--surface-strong);
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 0.88em;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 28px auto 64px;
+        overflow: hidden;
+        border: 1px solid #dedfe3;
+        border-radius: 28px;
+        background: white;
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        position: relative;
+        padding: 72px 72px 62px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 82% 20%, rgba(70, 101, 244, 0.2), transparent 32%),
+          linear-gradient(135deg, #101216 0%, #202535 100%);
+        color: white;
+      }
+
+      .hero::after {
+        position: absolute;
+        right: -120px;
+        bottom: -170px;
+        width: 420px;
+        height: 420px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 50%;
+        content: '';
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: #bfcaff;
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(40px, 6vw, 72px);
+        font-weight: 720;
+        letter-spacing: -0.055em;
+        line-height: 0.99;
+      }
+
+      .hero-lead {
+        max-width: 760px;
+        margin: 25px 0 0;
+        color: #d9dce6;
+        font-size: 20px;
+        line-height: 1.52;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 30px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .content {
+        padding: 20px 72px 72px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin: -26px 0 62px;
+      }
+
+      .summary-card {
+        position: relative;
+        padding: 23px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+        box-shadow: 0 10px 32px rgba(20, 24, 35, 0.06);
+      }
+
+      .summary-card strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 28px;
+        letter-spacing: -0.04em;
+      }
+
+      .summary-card span {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      section {
+        padding: 54px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      section:first-of-type {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: 34px;
+        letter-spacing: -0.04em;
+        line-height: 1.12;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+
+      p {
+        margin: 0 0 16px;
+      }
+
+      .section-lead {
+        max-width: 830px;
+        margin-bottom: 30px;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .decision {
+        display: grid;
+        grid-template-columns: 0.85fr 1.4fr;
+        gap: 26px;
+        padding: 28px;
+        border-radius: var(--radius);
+        background: var(--accent-soft);
+      }
+
+      .decision-label {
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .decision p:last-child {
+        margin-bottom: 0;
+      }
+
+      .architecture {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .arch-node {
+        position: relative;
+        min-height: 170px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .arch-node:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: -13px;
+        z-index: 2;
+        width: 14px;
+        height: 14px;
+        border-top: 2px solid #9a9da6;
+        border-right: 2px solid #9a9da6;
+        background: white;
+        content: '';
+        transform: translateY(-50%) rotate(45deg);
+      }
+
+      .arch-index {
+        display: inline-grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        margin-bottom: 34px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .arch-node p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .phase-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .phase {
+        display: grid;
+        grid-template-columns: 116px 1fr auto;
+        gap: 20px;
+        align-items: start;
+        padding: 22px 24px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+
+      .phase-number {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .phase p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .status {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--success-soft);
+        color: var(--success);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .feature-grid,
+      .security-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .feature-card {
+        padding: 24px;
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .feature-card p,
+      .feature-card li {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 19px;
+      }
+
+      li + li {
+        margin-top: 7px;
+      }
+
+      .endpoint-table {
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 16px;
+      }
+
+      .endpoint-table th,
+      .endpoint-table td {
+        padding: 15px 17px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .endpoint-table th {
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .endpoint-table tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .endpoint-table td:first-child {
+        white-space: nowrap;
+        font-weight: 750;
+      }
+
+      .screenshots {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+      }
+
+      figure {
+        margin: 0;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--surface);
+      }
+
+      figure img {
+        display: block;
+        width: min(100%, 340px);
+        max-height: 720px;
+        margin: 0 auto;
+        border: 1px solid #d9dae0;
+        border-radius: 18px;
+        background: white;
+        object-fit: contain;
+        box-shadow: 0 13px 36px rgba(20, 24, 35, 0.12);
+      }
+
+      figcaption {
+        margin-top: 17px;
+      }
+
+      figcaption strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      figcaption span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .qa-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .qa-item {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 13px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+
+      .qa-mark {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--success-soft);
+        color: var(--success);
+        font-weight: 900;
+      }
+
+      .qa-item strong {
+        display: block;
+      }
+
+      .qa-item span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .notice {
+        margin-top: 18px;
+        padding: 20px 22px;
+        border-left: 4px solid #e89220;
+        border-radius: 10px;
+        background: var(--warning-soft);
+        color: #633700;
+      }
+
+      .notice strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .release-steps {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        counter-reset: release;
+      }
+
+      .release-step {
+        position: relative;
+        min-height: 118px;
+        padding: 20px 20px 20px 66px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        counter-increment: release;
+      }
+
+      .release-step::before {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        content: counter(release);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .release-step p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .footer {
+        padding: 28px 72px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .footer strong {
+        color: var(--ink);
+      }
+
+      @media (max-width: 860px) {
+        .hero,
+        .content,
+        .footer {
+          padding-right: 28px;
+          padding-left: 28px;
+        }
+
+        .summary-grid,
+        .architecture,
+        .feature-grid,
+        .security-grid,
+        .screenshots,
+        .qa-list,
+        .release-steps {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .decision {
+          grid-template-columns: 1fr;
+        }
+
+        .arch-node:not(:last-child)::after {
+          display: none;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .page {
+          width: 100%;
+          margin: 0;
+          border: 0;
+          border-radius: 0;
+        }
+
+        .hero {
+          padding-top: 52px;
+        }
+
+        .summary-grid,
+        .architecture,
+        .feature-grid,
+        .security-grid,
+        .screenshots,
+        .qa-list,
+        .release-steps {
+          grid-template-columns: 1fr;
+        }
+
+        .phase {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .endpoint-table {
+          font-size: 13px;
+        }
+
+        .endpoint-table th,
+        .endpoint-table td {
+          padding: 11px;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .page {
+          width: 100%;
+          margin: 0;
+          border: 0;
+          box-shadow: none;
+        }
+
+        section,
+        figure,
+        .feature-card,
+        .phase {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Who Else Is Free · Implementation Report</p>
+        <h1>Admin Support Inbox</h1>
+        <p class="hero-lead">
+          A secure, scalable way for approved admins to review Contact Us and Feedback records
+          directly in the app—without sharing database access or trusting an email address at
+          request time.
+        </p>
+        <div class="hero-meta">
+          <span class="pill">Completed 17 Jul 2026</span>
+          <span class="pill">Branch codex/admin-support-inbox</span>
+          <span class="pill">Android verified</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <div class="summary-grid" aria-label="Implementation summary">
+          <div class="summary-card"><strong>4/4</strong><span>delivery phases complete</span></div>
+          <div class="summary-card"><strong>3</strong><span>protected admin endpoints</span></div>
+          <div class="summary-card">
+            <strong>46</strong><span>targeted frontend tests passed</span>
+          </div>
+          <div class="summary-card">
+            <strong>PASS</strong><span>end-to-end emulator verdict</span>
+          </div>
+        </div>
+
+        <section id="outcome">
+          <h2>Outcome</h2>
+          <p class="section-lead">
+            Admins now have a Profile → Support Inbox entry that lists existing and new Contact Us
+            and Feedback submissions, prioritizes new urgent safety reports, exposes full details
+            and reply information, and supports New, Reviewed, and Closed workflow states.
+          </p>
+          <div class="decision">
+            <div>
+              <p class="decision-label">Admin identity decision</p>
+              <h3>Email provisions; user ID authorizes.</h3>
+            </div>
+            <div>
+              <p>
+                The scalable solution is a persistent <code>admin_users</code> table keyed by the
+                immutable account <code>users.id</code>. Exact verified account emails in
+                <code>ADMIN_BOOTSTRAP_EMAILS</code> are used only to create the first grants.
+              </p>
+              <p>
+                Every runtime request checks the signed-in session’s user ID against the database. A
+                client-supplied email, hidden menu, or shared secret never proves admin access.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <h2>Authorization and data flow</h2>
+          <p class="section-lead">
+            The production database remains the source of truth. The mobile client can discover
+            access, but sensitive data is released only after both session and database-role checks.
+          </p>
+          <div class="architecture" aria-label="Admin support architecture">
+            <article class="arch-node">
+              <span class="arch-index">1</span>
+              <h3>Verified sign-in</h3>
+              <p>Google or Apple establishes the account and immutable user ID.</p>
+            </article>
+            <article class="arch-node">
+              <span class="arch-index">2</span>
+              <h3>Persistent grant</h3>
+              <p><code>admin_users.user_id</code> stores membership after bootstrap.</p>
+            </article>
+            <article class="arch-node">
+              <span class="arch-index">3</span>
+              <h3>Server boundary</h3>
+              <p>Session middleware runs first; admin middleware checks the DB second.</p>
+            </article>
+            <article class="arch-node">
+              <span class="arch-index">4</span>
+              <h3>Support workflow</h3>
+              <p>Admins list, filter, inspect, reply, and update status in the app.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="phases">
+          <h2>Implementation by phase</h2>
+          <p class="section-lead">
+            All planned phases are implemented. Provider-specific Slack/email alerts remain an
+            explicitly optional future integration and are not required for secure in-app access.
+          </p>
+          <div class="phase-list">
+            <article class="phase">
+              <div class="phase-number">Phase 1</div>
+              <div>
+                <h3>Secure admin foundation</h3>
+                <p>
+                  Added schema/repository grants, exact-email bootstrap, session-protected
+                  <code>/api/admin</code>, DB-backed middleware, and a safe access-discovery route.
+                </p>
+              </div>
+              <span class="status">Complete</span>
+            </article>
+            <article class="phase">
+              <div class="phase-number">Phase 2</div>
+              <div>
+                <h3>Admin help API</h3>
+                <p>
+                  Added bounded filters, opaque cursor pagination, deterministic urgent/new
+                  ordering, nullable submitters, detail reads, and validated status updates.
+                </p>
+              </div>
+              <span class="status">Complete</span>
+            </article>
+            <article class="phase">
+              <div class="phase-number">Phase 3</div>
+              <div>
+                <h3>Consistent admin UI</h3>
+                <p>
+                  Added admin-only Profile entry, inbox and detail routes, filters, pagination,
+                  refresh/retry states, reply action, and status workflow using shared primitives.
+                </p>
+              </div>
+              <span class="status">Complete</span>
+            </article>
+            <article class="phase">
+              <div class="phase-number">Phase 4</div>
+              <div>
+                <h3>Release hardening</h3>
+                <p>
+                  Enforced 4,000-character messages and valid reply addresses, rate-limited
+                  anonymous traffic, avoided sensitive logging/analytics, and documented retention
+                  and operations.
+                </p>
+              </div>
+              <span class="status">Complete</span>
+            </article>
+          </div>
+        </section>
+
+        <section id="features">
+          <h2>Delivered capabilities</h2>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <h3>Inbox operations</h3>
+              <ul>
+                <li>Contact, Feedback, and status segmented filters</li>
+                <li>New urgent safety reports ranked first</li>
+                <li>Pull-to-refresh and opaque cursor pagination</li>
+                <li>Empty, loading, retry, and revoked-access states</li>
+              </ul>
+            </article>
+            <article class="feature-card">
+              <h3>Submission detail</h3>
+              <ul>
+                <li>Full message and creation time</li>
+                <li>Account identity when the submitter still exists</li>
+                <li>Reply preference/address and safe mail composer action</li>
+                <li>New → Reviewed → Closed and reopen controls</li>
+              </ul>
+            </article>
+            <article class="feature-card">
+              <h3>Input protection</h3>
+              <ul>
+                <li>Shared 4,000-character client/server maximum</li>
+                <li>254-character validated reply email</li>
+                <li>Bounded anonymous rate limiter: five per ten minutes per IP</li>
+                <li>No submission bodies or reply addresses in routine logs</li>
+              </ul>
+            </article>
+            <article class="feature-card">
+              <h3>Operations</h3>
+              <ul>
+                <li>Initial grants through a temporary Fly bootstrap secret</li>
+                <li>Immediate server-side revocation from <code>admin_users</code></li>
+                <li>12-month general / reviewed urgent up-to-24-month retention policy</li>
+                <li>No delete API in the first release</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="api">
+          <h2>API surface</h2>
+          <p class="section-lead">
+            All help-data routes below require a valid session and a persistent admin grant.
+            <code>GET /api/admin-access</code> requires a session and returns only a boolean.
+          </p>
+          <table class="endpoint-table">
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Route</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>GET</td>
+                <td><code>/api/admin/help-submissions</code></td>
+                <td>Filtered, cursor-paginated inbox; defaults to 25 records.</td>
+              </tr>
+              <tr>
+                <td>GET</td>
+                <td><code>/api/admin/help-submissions/:id</code></td>
+                <td>Full message, reply metadata, status, and nullable submitter.</td>
+              </tr>
+              <tr>
+                <td>PUT</td>
+                <td><code>/api/admin/help-submissions/:id/status</code></td>
+                <td>
+                  Accepts only <code>new</code>, <code>reviewed</code>, or <code>closed</code>.
+                </td>
+              </tr>
+              <tr>
+                <td>GET</td>
+                <td><code>/api/admin-access</code></td>
+                <td>Lets the signed-in client decide whether to show the Profile entry.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="screenshots">
+          <h2>Android implementation evidence</h2>
+          <p class="section-lead">
+            Captured from the <code>WEIF_API_36</code> emulator using this worktree’s Metro bundle
+            and isolated backend. Test content is synthetic.
+          </p>
+          <div class="screenshots">
+            <figure>
+              <img
+                src="admin-support-assets/profile-entry.png"
+                alt="Profile showing Support Inbox"
+              />
+              <figcaption>
+                <strong>1. Admin-only entry point</strong>
+                <span
+                  >Support Inbox appears in the existing Profile menu after access discovery.</span
+                >
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="admin-support-assets/support-inbox.png"
+                alt="Support Inbox with urgent contact first"
+              />
+              <figcaption>
+                <strong>2. Prioritized unified inbox</strong>
+                <span
+                  >Labeled Message type and Status controls clarify the two independent
+                  filters.</span
+                >
+              </figcaption>
+            </figure>
+            <figure>
+              <img src="admin-support-assets/support-message.png" alt="Support message detail" />
+              <figcaption>
+                <strong>3. Full detail and reply metadata</strong>
+                <span
+                  >Message, submitter, account/reply email, and workflow action are visible.</span
+                >
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="admin-support-assets/support-message-reviewed.png"
+                alt="Reviewed support message"
+              />
+              <figcaption>
+                <strong>4. Persisted status transition</strong>
+                <span>After marking Reviewed, the badge and next actions update immediately.</span>
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="admin-support-assets/reviewed-filter.png"
+                alt="Reviewed Support Inbox filter"
+              />
+              <figcaption>
+                <strong>5. Server-backed filtering</strong>
+                <span>The Reviewed filter returns only the transitioned urgent contact.</span>
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section id="security">
+          <h2>Security properties</h2>
+          <div class="security-grid">
+            <article class="feature-card">
+              <h3>What grants access</h3>
+              <p>
+                A valid bearer session whose immutable user ID exists in
+                <code>admin_users</code>. The check happens on every protected request.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>What does not grant access</h3>
+              <p>
+                A displayed email, client menu visibility, request body, bootstrap list, shared API
+                key, or direct knowledge of the endpoint.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Expected boundary responses</h3>
+              <p>
+                No session returns 401; signed-in non-admin returns 403; granted admin returns 200.
+              </p>
+            </article>
+            <article class="feature-card">
+              <h3>Data minimization</h3>
+              <p>
+                Submission contents remain in the existing database and protected UI. They are not
+                copied to analytics, push notifications, or default alerts.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="qa">
+          <h2>Validation summary</h2>
+          <div class="qa-list">
+            <div class="qa-item">
+              <span class="qa-mark">✓</span>
+              <div>
+                <strong>Backend suite</strong><span><code>go test ./...</code> passed.</span>
+              </div>
+            </div>
+            <div class="qa-item">
+              <span class="qa-mark">✓</span>
+              <div><strong>Targeted frontend</strong><span>46 Jest tests passed.</span></div>
+            </div>
+            <div class="qa-item">
+              <span class="qa-mark">✓</span>
+              <div>
+                <strong>Strict types</strong><span><code>npm run typecheck</code> passed.</span>
+              </div>
+            </div>
+            <div class="qa-item">
+              <span class="qa-mark">✓</span>
+              <div>
+                <strong>Lint</strong><span>Green exit; 866 existing baseline warnings.</span>
+              </div>
+            </div>
+            <div class="qa-item">
+              <span class="qa-mark">✓</span>
+              <div>
+                <strong>Patch hygiene</strong><span><code>git diff --check</code> passed.</span>
+              </div>
+            </div>
+            <div class="qa-item">
+              <span class="qa-mark">✓</span>
+              <div>
+                <strong>Android flow</strong
+                ><span>List/detail/filter/status passed end-to-end.</span>
+              </div>
+            </div>
+          </div>
+          <div class="notice">
+            <strong>Transparent baseline notes</strong>
+            The full Jest command still reproduces 24 failures in untouched legacy suites (23 in
+            Event Details and one Chat Thread); all new and directly affected suites pass. A clean
+            Expo native prebuild also reaches an existing missing <code>color/iconBackground</code>
+            launcher resource. The installed compatible development client loaded the current JS
+            bundle through Metro, so device verification of this feature is complete.
+          </div>
+        </section>
+
+        <section id="release">
+          <h2>Release checklist</h2>
+          <p class="section-lead">
+            The code is ready for integration. Production provisioning should follow this order.
+          </p>
+          <div class="release-steps">
+            <article class="release-step">
+              <h3>Deploy server first</h3>
+              <p>Apply the schema and protected routes before releasing the client menu.</p>
+            </article>
+            <article class="release-step">
+              <h3>Set bootstrap emails</h3>
+              <p>Use exact verified account emails in <code>ADMIN_BOOTSTRAP_EMAILS</code>.</p>
+            </article>
+            <article class="release-step">
+              <h3>Sign in and verify</h3>
+              <p>Each intended admin signs in; confirm the persistent grant and inbox access.</p>
+            </article>
+            <article class="release-step">
+              <h3>Remove bootstrap secret</h3>
+              <p>The DB grants remain; removing the secret closes automatic provisioning.</p>
+            </article>
+            <article class="release-step">
+              <h3>Check the boundary</h3>
+              <p>Verify production 401 / 403 / 200 behavior for anonymous, user, and admin.</p>
+            </article>
+            <article class="release-step">
+              <h3>Release the client</h3>
+              <p>Ship the Profile entry, inbox, detail, and workflow after server verification.</p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <footer class="footer">
+        <strong>Primary references:</strong> <code>docs/admin-help-submissions-plan.md</code>,
+        <code>docs/admin-support-operations.md</code>, <code>docs/support-data-retention.md</code>,
+        and <code>TEST_RUNS.md</code>. Generated from the isolated
+        <code>codex/admin-support-inbox</code> worktree implementation.
+      </footer>
+    </main>
+  </body>
+</html>

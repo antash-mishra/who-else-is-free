@@ -4,19 +4,34 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/mail"
 	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 )
 
 type HelpHandler struct {
-	repo   *EventRepository
-	signer *tokenSigner
+	repo    *EventRepository
+	signer  *tokenSigner
+	limiter *anonymousHelpRateLimiter
+	now     func() time.Time
 }
 
 func NewHelpHandler(repo *EventRepository, signer *tokenSigner) *HelpHandler {
-	return &HelpHandler{repo: repo, signer: signer}
+	return &HelpHandler{
+		repo:    repo,
+		signer:  signer,
+		limiter: newAnonymousHelpRateLimiter(5, 10*time.Minute),
+		now:     time.Now,
+	}
 }
+
+const (
+	maxHelpMessageLength = 4000
+	maxReplyEmailLength  = 254
+)
 
 type createHelpSubmissionRequest struct {
 	Type              string  `json:"type" binding:"required,oneof=contact feedback"`
@@ -42,12 +57,25 @@ func (h *HelpHandler) createHelpSubmission(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "message is required"})
 		return
 	}
+	if utf8.RuneCountInString(message) > maxHelpMessageLength {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "message must be 4000 characters or fewer"})
+		return
+	}
 
 	var replyEmail *string
 	if req.ReplyEmail != nil {
 		trimmed := strings.TrimSpace(*req.ReplyEmail)
 		if trimmed != "" {
-			replyEmail = &trimmed
+			if len(trimmed) > maxReplyEmailLength {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "reply_email is too long"})
+				return
+			}
+			parsed, parseErr := mail.ParseAddress(trimmed)
+			if parseErr != nil || parsed.Address != trimmed {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "reply_email must be a valid email address"})
+				return
+			}
+			replyEmail = &parsed.Address
 		}
 	}
 	if req.WantsReply && replyEmail == nil {
@@ -58,6 +86,11 @@ func (h *HelpHandler) createHelpSubmission(c *gin.Context) {
 	userID, err := h.optionalUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	if userID == nil && !h.limiter.Allow(c.ClientIP(), h.now()) {
+		c.Header("Retry-After", "600")
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many submissions, please try again later"})
 		return
 	}
 

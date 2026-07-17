@@ -18,6 +18,13 @@ func TestAdminAnalyticsSummaryEndpoint(t *testing.T) {
 
 	avaToken := env.issueTokenForEmail(t, "ava@example.com")
 	noahToken := env.issueTokenForEmail(t, "noah@example.com")
+	ava, err := env.repo.GetUserByEmail(context.Background(), "ava@example.com")
+	if err != nil {
+		t.Fatalf("get admin user: %v", err)
+	}
+	if err := env.repo.GrantAdmin(context.Background(), ava.ID, nil); err != nil {
+		t.Fatalf("grant admin: %v", err)
+	}
 	today := time.Now().UTC().Format("2006-01-02")
 
 	notFoundResp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/missing", "", nil)
@@ -84,7 +91,7 @@ func TestAdminAnalyticsSummaryEndpoint(t *testing.T) {
 		t.Fatalf("create event message: %v", err)
 	}
 
-	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary?from="+today+"&to="+today, "", nil)
+	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary?from="+today+"&to="+today, avaToken, nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected analytics status 200, got %d", resp.StatusCode)
 	}
@@ -107,12 +114,19 @@ func TestAdminAnalyticsSummaryEndpoint(t *testing.T) {
 	}
 }
 
-func TestAdminAnalyticsSummaryDoesNotRequireAuthorization(t *testing.T) {
+func TestAdminAnalyticsSummaryRequiresAuthorization(t *testing.T) {
 	env := setupAPITestEnv(t)
 
 	resp := env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary", "", nil)
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	nonAdminToken := env.issueTokenForEmail(t, "noah@example.com")
+	resp = env.doRequest(t, http.MethodGet, "/api/admin/analytics/summary", nonAdminToken, nil)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", resp.StatusCode)
 	}
 	resp.Body.Close()
 }
