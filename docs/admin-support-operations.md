@@ -24,6 +24,48 @@ verified account during initial provisioning.
 
 Removing the secret does not remove existing database grants.
 
+## Add an Administrator After Launch
+
+This workflow requires the server release that creates `admin_users` and supports
+`ADMIN_BOOTSTRAP_EMAILS`. If the deployment still uses only the legacy `ADMIN_USER_IDS` secret,
+deploy the admin-support migration before using this procedure.
+
+1. Confirm the intended person's exact Google or Apple account email. Have them sign in once so the
+   account exists and its verified email is stored. Do not use an alias or an unverified address.
+2. Review the address carefully, then temporarily set the bootstrap secret with only the new
+   administrator or administrators. Existing grants are already stored in the database and do not
+   need to be repeated.
+
+   ```bash
+   fly secrets set ADMIN_BOOTSTRAP_EMAILS="new-admin@example.com" \
+     -a who-else-is-free-server
+   ```
+
+   For several new administrators, use a comma-separated list:
+
+   ```bash
+   fly secrets set ADMIN_BOOTSTRAP_EMAILS="new-one@example.com,new-two@example.com" \
+     -a who-else-is-free-server
+   ```
+
+3. Wait for Fly to restart the server. Startup grants any existing matching accounts. If the person
+   had not signed in yet, their first successful sign-in while the secret is present grants access.
+4. Ask the person to reopen the app and verify that **Profile → Support Inbox** appears and loads.
+   Also verify that a normal account still cannot access the inbox.
+5. Remove the bootstrap secret immediately after verification:
+
+   ```bash
+   fly secrets unset ADMIN_BOOTSTRAP_EMAILS -a who-else-is-free-server
+   ```
+
+6. Record the administrator's user ID, email, grant date, and approver in the team's approved access
+   record. Do not commit the administrator list or personal email addresses to this repository.
+
+`fly secrets list` shows whether the secret name exists, but it does not reveal its value. The
+`admin_users` table—not the bootstrap secret—is the source of truth for current administrators.
+Removing the secret prevents future email matches; it does not revoke grants that were already
+persisted.
+
 ## Verify the Authorization Boundary
 
 Before release, confirm all three cases against production or staging:

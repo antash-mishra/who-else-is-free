@@ -16,6 +16,7 @@ Project guide for coding agents and contributors working in this repository.
 - Performance reports: `report/performance-consistency-audit.html` and `report/performance-baseline.html`.
 - Google EAS/Fly secret runbook: `docs/google-build-and-places-secrets.md`.
 - Sign-in modes (Google/Apple vs dev-login bypass): `docs/dev-login.md`.
+- Admin provisioning, verification, and revocation: `docs/admin-support-operations.md`.
 - Mobile QA history reports belong in `report/`; keep QA history separate from evergreen component/style references.
 
 Read `report/shared-components-refactor-guide.md` before adding or refactoring UI. It explains what each shared component is, where it is used, and which theme/style files act as shared CSS.
