@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Accepted Members Overlay — Implementation Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17201d;
+        --muted: #63706b;
+        --line: #dce4e0;
+        --paper: #ffffff;
+        --wash: #eef4f0;
+        --accent: #167a62;
+        --accent-soft: #dff4ec;
+        --before: #9c5c2e;
+        --before-soft: #fff0e3;
+        --shadow: 0 20px 50px rgba(22, 51, 42, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 8% 0%, rgba(69, 159, 126, 0.16), transparent 34rem),
+          linear-gradient(180deg, #f8fbf9 0%, var(--wash) 100%);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 64px 0 88px;
+      }
+
+      .eyebrow,
+      .pill,
+      .shot-label {
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow {
+        color: var(--accent);
+      }
+
+      h1 {
+        max-width: 820px;
+        margin: 12px 0 18px;
+        font-size: clamp(38px, 6vw, 72px);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      .lede {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(17px, 2vw, 21px);
+      }
+
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 6px 12px;
+        border: 1px solid #b9dfd1;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #0c654f;
+      }
+
+      section {
+        margin-top: 68px;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: clamp(27px, 4vw, 42px);
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 19px;
+        letter-spacing: -0.02em;
+      }
+
+      .section-copy {
+        max-width: 780px;
+        margin: 0 0 28px;
+        color: var(--muted);
+      }
+
+      .summary-grid,
+      .validation-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 28px rgba(22, 51, 42, 0.06);
+      }
+
+      .card p,
+      .card ul {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .card ul {
+        padding-left: 20px;
+      }
+
+      .comparison {
+        overflow: hidden;
+        margin-top: 28px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+      }
+
+      .comparison + .comparison {
+        margin-top: 32px;
+      }
+
+      .comparison-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 26px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .comparison-header h3 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .comparison-header span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .shots {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .shot {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        padding: 28px;
+      }
+
+      .shot + .shot {
+        border-left: 1px solid var(--line);
+      }
+
+      .shot-label {
+        justify-self: stretch;
+        padding: 8px 12px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .before .shot-label {
+        background: var(--before-soft);
+        color: var(--before);
+      }
+
+      .after .shot-label {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .phone-link {
+        display: block;
+        width: min(100%, 340px);
+        padding: 8px;
+        border: 1px solid #cad6d1;
+        border-radius: 28px;
+        background: #18201e;
+        box-shadow: 0 22px 45px rgba(20, 39, 33, 0.2);
+        transition: transform 160ms ease;
+      }
+
+      .phone-link:hover {
+        transform: translateY(-3px);
+      }
+
+      .phone-link img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 20px;
+      }
+
+      .shot p {
+        max-width: 360px;
+        margin: 0;
+        color: var(--muted);
+        text-align: center;
+        font-size: 14px;
+      }
+
+      .reference-card {
+        display: grid;
+        grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+        gap: 40px;
+        align-items: center;
+        padding: 32px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
+      }
+
+      .reference-visual {
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+      }
+
+      .reference-crop {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        width: min(100%, 340px);
+        aspect-ratio: 234 / 502;
+        border: 1px solid #cad6d1;
+        border-radius: 28px;
+        background: #bdbdbd;
+        box-shadow: 0 22px 45px rgba(20, 39, 33, 0.2);
+        transition: transform 160ms ease;
+      }
+
+      .reference-crop:hover {
+        transform: translateY(-3px);
+      }
+
+      .reference-crop img {
+        position: absolute;
+        top: -1.8%;
+        left: -200.4%;
+        width: 306.8%;
+        max-width: none;
+      }
+
+      .reference-copy h3 {
+        font-size: 27px;
+      }
+
+      .reference-copy p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .reference-copy ul {
+        margin: 20px 0 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #edf2ef;
+        color: #275247;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.9em;
+      }
+
+      .result {
+        color: var(--accent);
+        font-size: 31px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .note {
+        margin-top: 24px;
+        padding: 18px 20px;
+        border-left: 4px solid #d49252;
+        border-radius: 4px 14px 14px 4px;
+        background: #fff8ee;
+        color: #6d5135;
+      }
+
+      footer {
+        margin-top: 72px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media (max-width: 780px) {
+        main {
+          padding-top: 40px;
+        }
+
+        .summary-grid,
+        .validation-grid,
+        .shots,
+        .reference-card {
+          grid-template-columns: 1fr;
+        }
+
+        .reference-card {
+          gap: 28px;
+          padding: 24px;
+        }
+
+        .shot + .shot {
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .comparison-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Implementation report · 17 July 2026</div>
+        <h1>Accepted members, now visible in the 1:1 event overlay.</h1>
+        <p class="lede">
+          The 1:1 host overlay now uses the same roster design as a group event overlay. It shows
+          approved requesters under an <strong>Accepted</strong> tab, keeps the existing member
+          action menu, and deliberately excludes the host.
+        </p>
+        <div class="meta-row">
+          <span class="pill">Branch · codex/reproduce-accepted-members-tab</span>
+          <span class="pill">Android verified</span>
+          <span class="pill">iOS verified</span>
+          <span class="pill">No backend change</span>
+        </div>
+      </header>
+
+      <section aria-labelledby="implementation-heading">
+        <h2 id="implementation-heading">What changed</h2>
+        <p class="section-copy">
+          The change stays inside the existing Event Details feature and reuses its shared overlay
+          primitives. No new visual tokens or one-off row styles were introduced.
+        </p>
+        <div class="summary-grid">
+          <article class="card">
+            <h3>Same presentation</h3>
+            <p>
+              The new state goes through <code>EventDetailsMembers</code>, using the same static
+              tab, divider, <code>EventMemberRow</code>, separators, avatar, and more-actions
+              affordance as the group roster.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Correct population</h3>
+            <p>
+              The list is built from approved join-request requesters, not the active private
+              conversation. That supports every accepted person across separate 1:1 chats and
+              excludes the host by construction.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Fresh on open</h3>
+            <p>
+              Read-only 1:1 host overlays now refresh requests with
+              <code>includeApproved: true</code>. The existing host-only endpoint and event-scoped
+              cache are reused, so no server work was required.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="group-reference-heading">
+        <h2 id="group-reference-heading">Group overlay reference</h2>
+        <p class="section-copy">
+          This is the existing group-event overlay used as the design source for the new 1:1
+          Accepted state. Select the screenshot to open the complete original reference.
+        </p>
+        <article class="reference-card">
+          <div class="reference-visual">
+            <div class="shot-label">Existing group event</div>
+            <a
+              class="reference-crop"
+              href="accepted-members-overlay-assets/group-event-overlay-reference.png"
+              aria-label="Open the complete group-event design reference"
+            >
+              <img
+                src="accepted-members-overlay-assets/group-event-overlay-reference.png"
+                alt="Group event details overlay showing a Members tab, host row, and member row"
+              />
+            </a>
+          </div>
+          <div class="reference-copy">
+            <h3>The shared roster design</h3>
+            <p>
+              The implementation reuses this exact overlay structure. The 1:1 version changes the
+              tab label to <strong>Accepted</strong> and removes the host row, while keeping the
+              roster spacing, divider, avatar row, and member action affordance consistent.
+            </p>
+            <ul>
+              <li>Static roster tab with the member count</li>
+              <li>Consistent avatar, name, divider, and row spacing</li>
+              <li>Host marker remains group-only</li>
+              <li>More-actions menu remains available for eligible non-host members</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <section aria-labelledby="evidence-heading">
+        <h2 id="evidence-heading">Before and after</h2>
+        <p class="section-copy">
+          Both comparisons follow the same flow: Chat → 1:1 event → event header → details overlay.
+          Select any screenshot to view it at full resolution.
+        </p>
+
+        <article class="comparison">
+          <div class="comparison-header">
+            <h3>iOS · iPhone 15 Pro simulator</h3>
+            <span>1178 × 2556 capture</span>
+          </div>
+          <div class="shots">
+            <div class="shot before">
+              <div class="shot-label">Before</div>
+              <a class="phone-link" href="accepted-members-overlay-assets/ios-before.png">
+                <img
+                  src="accepted-members-overlay-assets/ios-before.png"
+                  alt="iOS event details overlay before implementation, ending after the event details"
+                />
+              </a>
+              <p>The card ends after Details even though “Guest One” is accepted.</p>
+            </div>
+            <div class="shot after">
+              <div class="shot-label">After</div>
+              <a class="phone-link" href="accepted-members-overlay-assets/ios-after.png">
+                <img
+                  src="accepted-members-overlay-assets/ios-after.png"
+                  alt="iOS event details overlay after implementation with Accepted 1 and Guest One"
+                />
+              </a>
+              <p>
+                <strong>Accepted 1</strong> and the accepted member row appear; no host row is
+                present.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article class="comparison">
+          <div class="comparison-header">
+            <h3>Android · WEIF API 36 emulator</h3>
+            <span>1080 × 2400 capture</span>
+          </div>
+          <div class="shots">
+            <div class="shot before">
+              <div class="shot-label">Before</div>
+              <a class="phone-link" href="accepted-members-overlay-assets/android-before.png">
+                <img
+                  src="accepted-members-overlay-assets/android-before.png"
+                  alt="Android event details overlay before implementation, ending after the event details"
+                />
+              </a>
+              <p>
+                The 1:1 overlay has no accepted roster while the accepted user is visible behind it.
+              </p>
+            </div>
+            <div class="shot after">
+              <div class="shot-label">After</div>
+              <a class="phone-link" href="accepted-members-overlay-assets/android-after.png">
+                <img
+                  src="accepted-members-overlay-assets/android-after.png"
+                  alt="Android event details overlay after implementation with Accepted 1 and Guest One"
+                />
+              </a>
+              <p>The group-overlay layout is reproduced with the 1:1-specific Accepted label.</p>
+            </div>
+          </div>
+        </article>
+
+        <aside class="note">
+          <strong>QA data note:</strong> “Coffee Catchup” was moved from 16 July to 18 July through
+          the normal update-event API before the after captures. This kept the seeded event visible
+          after a fresh app session; it is unrelated to the UI implementation.
+        </aside>
+      </section>
+
+      <section aria-labelledby="files-heading">
+        <h2 id="files-heading">Implementation map</h2>
+        <div class="summary-grid">
+          <article class="card">
+            <h3>EventDetailsScreen.tsx</h3>
+            <p>
+              Composes the new accepted overlay only for a host-owned 1:1 event, passing approved
+              requesters into the shared roster surface.
+            </p>
+          </article>
+          <article class="card">
+            <h3>EventDetailsMembers.tsx</h3>
+            <p>
+              Adds an <code>accepted</code> variant while sharing the group overlay’s structure and
+              styles. It changes only the label, empty copy, host marker, and menu eligibility.
+            </p>
+          </article>
+          <article class="card">
+            <h3>useEventDetailsData.ts</h3>
+            <p>
+              Permits approved-request refreshes for the otherwise read-only 1:1 overlay, including
+              cold navigation where no request cache has been populated yet.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="validation-heading">
+        <h2 id="validation-heading">Validation</h2>
+        <div class="validation-grid">
+          <article class="card">
+            <div class="result">7 / 7</div>
+            <h3>Focused overlay tests</h3>
+            <p>
+              Covers approved members, host exclusion, action-menu presence, empty state, cold-data
+              refresh, and unchanged group behavior.
+            </p>
+          </article>
+          <article class="card">
+            <div class="result">Pass</div>
+            <h3>TypeScript + formatting</h3>
+            <p><code>npm run typecheck</code> and Prettier checks completed successfully.</p>
+          </article>
+          <article class="card">
+            <div class="result">0 errors</div>
+            <h3>Lint</h3>
+            <p>
+              Lint exited successfully with the repository’s documented warning baseline (899
+              warnings); this change introduced no lint errors.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        Generated from worktree
+        <code>/Users/antash/workspace/who-else-is-free-accepted-tab</code> at commit base
+        <code>29376fb</code>.
+      </footer>
+    </main>
+  </body>
+</html>

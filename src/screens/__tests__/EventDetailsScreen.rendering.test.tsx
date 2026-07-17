@@ -1720,29 +1720,71 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(queryByText('Requests')).toBeNull();
     });
 
-    it('does NOT show overlay Members section for 1:1 events', () => {
-      // Host viewing 1:1 event overlay
+    it('shows approved members in an Accepted tab for a 1:1 host overlay and omits the host', async () => {
       mockAuthState.user = mockOtherUser; // Liam, id: 2 (owner of single event)
       mockEventsState.events = [mockSingleEvent]; // ownerId: 2, Single
 
+      const approvedRequest = {
+        ...mockPendingJoinRequest,
+        eventId: Number(mockSingleEvent.id),
+        userId: mockUser.id,
+        status: 'approved' as const,
+        requester: { id: mockUser.id, name: mockUser.name },
+      };
+
       routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay')
+        createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
       );
 
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockSingleEvent.id),
-        memberIds: [2],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockSingleEvent.id),
+          memberIds: [mockOtherUser.id, mockUser.id],
+          participants: [
+            { id: mockOtherUser.id, name: mockOtherUser.name },
+            { id: mockUser.id, name: mockUser.name },
+          ],
+        },
+      ];
+      mockChatState.joinRequestsByConversation = {
+        [mockEventConversation.id]: [approvedRequest],
+      };
 
-      const { queryAllByText } = render(<EventDetailsScreen />);
+      const { getByLabelText, getByText, queryByText } = render(<EventDetailsScreen />);
 
-      // The overlay Members section should not render for 1:1 events
-      // (the count text like " 1" from overlay Members tab should not be present)
-      const membersLabels = queryAllByText('Members');
-      // Members tab from host-only section may appear, but not overlay Members
-      // Since host tabs for 1:1 in overlay still show, check that Requests/Accepted tabs render
-      // (This means existing host tabs are preserved, not the overlay Members section)
+      expect(getByText('Accepted')).toBeTruthy();
+      expect(getByText(mockUser.name)).toBeTruthy();
+      expect(getByLabelText(`Open actions for ${mockUser.name}`)).toBeTruthy();
+      expect(queryByText(mockOtherUser.name)).toBeNull();
+      expect(queryByText('Host')).toBeNull();
+      expect(queryByText('Members')).toBeNull();
+      expect(queryByText('Requests')).toBeNull();
+
+      await waitFor(() => {
+        expect(mockChatState.refreshJoinRequests).toHaveBeenCalledWith(
+          mockEventConversation.id,
+          Number(mockSingleEvent.id),
+          { includeApproved: true },
+        );
+      });
+    });
+
+    it('shows the Accepted empty state for a 1:1 host overlay with no approved members', () => {
+      mockAuthState.user = mockOtherUser;
+      mockEventsState.events = [mockSingleEvent];
+      mockChatState.conversations = [];
+
+      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
+        createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
+      );
+
+      const { getByText, queryByText } = render(<EventDetailsScreen />);
+
+      expect(getByText('Accepted')).toBeTruthy();
+      expect(getByText('No accepted members yet')).toBeTruthy();
+      expect(getByText('Members you accept will appear here')).toBeTruthy();
+      expect(queryByText('Host')).toBeNull();
     });
 
     it('regular EventDetails keeps existing host Requests + Members tabs for group events', () => {

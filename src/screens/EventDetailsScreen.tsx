@@ -378,6 +378,15 @@ const EventDetailsScreenContent = ({
               />
             )}
 
+            {/* Overlay: Accepted tab for 1:1 hosts (approved requesters only; no host row) */}
+            {isSingleEvent && isOverlay && isOwner && (
+              <EventDetailsMembers
+                variant="accepted"
+                members={acceptedRequests.map((request) => request.requester)}
+                onOpenMemberMenu={openMemberMenu}
+              />
+            )}
+
             {readOnly && !isOverlay && (
               <EventDetailsMembers
                 variant="readOnly"

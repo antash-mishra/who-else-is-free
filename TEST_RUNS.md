@@ -81,3 +81,14 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Native build note: a clean Expo prebuild could not link the generated launcher because existing app config references missing Android resource `color/iconBackground`. The installed compatible development client loaded this worktree's current JavaScript bundle through Metro, so the feature itself was fully exercised. This is unrelated native-build infrastructure debt.
 - Evidence: `report/admin-support-assets/profile-entry.png`, `support-inbox.png`, `support-message.png`, `support-message-reviewed.png`, and `reviewed-filter.png`.
 - Final: **PASS** — admin authorization, list/detail rendering, prioritization, filtering, reply information, and status mutation work end-to-end on the emulator.
+
+## 2026-07-17 — Accepted members in the 1:1 event overlay
+
+- Change: reuse the group-event overlay roster design for a host-owned 1:1 event, label it `Accepted`, populate it from approved join-request requesters, omit the host, and refresh approved requests when the read-only overlay opens.
+- Flow: Chat → Coffee Catchup (1:1 host row) → event header → Event Details overlay on Android `WEIF_API_36` and iOS iPhone 15 Pro simulator.
+- Attempt 1: PASS — iOS rendered `Accepted 1`, `Guest One`, and the existing member actions affordance with no host row.
+- Attempt 2: PASS — Android rendered the same tab, count, row, divider, and actions affordance with no host row.
+- Automated checks: focused Event Details overlay suite passed 7/7; TypeScript passed; Prettier passed; lint completed with 0 errors and the existing 899-warning baseline.
+- Evidence: `report/accepted-members-overlay-implementation.html` and four before/after screenshots under `report/accepted-members-overlay-assets/`.
+- QA data note: Coffee Catchup was moved from 16 July to 18 July through `PUT /api/events/7` so it remained visible after a fresh app session.
+- Final verdict: **PASS**.

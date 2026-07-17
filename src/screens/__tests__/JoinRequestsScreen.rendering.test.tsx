@@ -479,11 +479,11 @@ describe('JoinRequestsScreen Rendering', () => {
       expect(getByTestId('screen-container')).toBeTruthy();
     });
 
-    it('should render people count and date subtitle in 1:1 mode', () => {
+    it('should render accepted count and date subtitle in 1:1 mode', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
-      // 2 approved members + 1 host
-      expect(getByText(`3 People, ${todayAbsoluteLabel}`)).toBeTruthy();
+      // Only the 2 approved requesters are counted; the host is excluded.
+      expect(getByText(`2 Accepted, ${todayAbsoluteLabel}`)).toBeTruthy();
     });
 
     it('should render pending requests icon with count badge in 1:1 mode', () => {
@@ -667,6 +667,7 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should show empty accepted state by default', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
+      expect(getByText(`0 Accepted, ${todayAbsoluteLabel}`)).toBeTruthy();
       expect(getByText('No accepted members yet')).toBeTruthy();
     });
 
