@@ -226,6 +226,21 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     letterSpacing: -0.4,
   },
+  descriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start', // top-aligned so the icon can center on the first line
+    gap: 6,
+    paddingVertical: 4, // match the other detail rows' rhythm
+  },
+  descriptionIconContainer: {
+    width: 24,
+    height: 22, // = description line-height, centers the icon on the first line
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  descriptionContent: {
+    flex: 1,
+  },
   measureContainer: {
     position: 'absolute',
     top: -9999,
@@ -326,13 +341,16 @@ const styles = StyleSheet.create({
   },
 
   // See more text
+  seeMoreButton: {
+    alignSelf: 'flex-start', // hug the text so the press-scale is tight, not full-width
+    marginTop: 2,
+  },
   seeMoreText: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
     color: colors.iconColor,
     lineHeight: 20,
     letterSpacing: -0.3,
-    marginTop: 2,
   },
 
   // Empty state text

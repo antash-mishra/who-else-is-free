@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 
 import { Text, View } from 'react-native';
 
+import DescriptionIcon from '@assets/event-details/description.svg';
 import PeopleIcon from '@assets/event-details/group-type.svg';
 import LocationIcon from '@assets/event-details/location.svg';
 import TimeIcon from '@assets/event-details/time.svg';
+import ScalePressable from '@components/ScalePressable';
 import UserAvatar from '@components/UserAvatar';
-import { triggerHaptic } from '@services/haptics';
 import { colors } from '@theme/index';
 
 import styles from './EventDetailsScreen.styles';
@@ -121,43 +122,50 @@ const EventDetailsInfo = ({
           </View>
           <Text style={styles.detailText}>{audienceLine}</Text>
         </View>
-      </View>
-
-      {!!description && (
-        <View style={{ marginTop: 6 }}>
-          <View style={styles.measureContainer}>
-            <Text
-              style={styles.description}
-              onLayout={(e) => setFullDescHeight(e.nativeEvent.layout.height)}
-              testID="description-full-measure"
-            >
-              {description}
-            </Text>
-            <Text
-              style={styles.description}
-              numberOfLines={2}
-              onLayout={(e) => setTruncatedDescHeight(e.nativeEvent.layout.height)}
-              testID="description-truncated-measure"
-            >
-              {description}
-            </Text>
+        {!!description && (
+          <View style={styles.descriptionRow}>
+            {/* Icon container height = description line-height, so with the row
+                top-aligned the icon centers on the FIRST line: it reads centered
+                on a single line and top-aligned once the text wraps. */}
+            <View style={styles.descriptionIconContainer}>
+              <DescriptionIcon width={20} height={20} color={colors.iconColor} />
+            </View>
+            <View style={styles.descriptionContent}>
+              <View style={styles.measureContainer}>
+                <Text
+                  style={styles.description}
+                  onLayout={(e) => setFullDescHeight(e.nativeEvent.layout.height)}
+                  testID="description-full-measure"
+                >
+                  {description}
+                </Text>
+                <Text
+                  style={styles.description}
+                  numberOfLines={2}
+                  onLayout={(e) => setTruncatedDescHeight(e.nativeEvent.layout.height)}
+                  testID="description-truncated-measure"
+                >
+                  {description}
+                </Text>
+              </View>
+              <Text style={styles.description} numberOfLines={descriptionExpanded ? undefined : 2}>
+                {description}
+              </Text>
+              {descriptionHasMore && (
+                <ScalePressable
+                  haptic="light"
+                  onPress={() => setDescriptionExpanded((prev) => !prev)}
+                  style={styles.seeMoreButton}
+                >
+                  <Text style={styles.seeMoreText}>
+                    {descriptionExpanded ? 'See less' : 'See more'}
+                  </Text>
+                </ScalePressable>
+              )}
+            </View>
           </View>
-          <Text style={styles.description} numberOfLines={descriptionExpanded ? undefined : 2}>
-            {description}
-          </Text>
-          {descriptionHasMore && (
-            <Text
-              style={styles.seeMoreText}
-              onPress={() => {
-                triggerHaptic('light');
-                setDescriptionExpanded((prev) => !prev);
-              }}
-            >
-              {descriptionExpanded ? 'Show less' : '...See more'}
-            </Text>
-          )}
-        </View>
-      )}
+        )}
+      </View>
     </>
   );
 };
