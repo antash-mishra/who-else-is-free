@@ -30,9 +30,9 @@ const HelpScreen = () => {
       <ScreenHeader title="Help" onBack={navigation.goBack} />
       <View style={styles.menuList}>
         <MenuItem label="Contact us" onPress={() => navigation.navigate('HelpContact')} />
-        <ListSeparator />
+        <ListSeparator style={styles.separator} />
         <MenuItem label="FAQ" onPress={() => navigation.navigate('HelpFAQ')} />
-        <ListSeparator />
+        <ListSeparator style={styles.separator} />
         <MenuItem label="Feedback" onPress={() => navigation.navigate('HelpFeedback')} />
       </View>
     </ScreenContainer>
@@ -42,6 +42,10 @@ const HelpScreen = () => {
 const styles = StyleSheet.create({
   menuList: {
     paddingTop: 15,
+  },
+  separator: {
+    height: 1, // match the account page divider thickness
+    backgroundColor: colors.divider, // match the app-wide line separator color
   },
   menuItem: {},
   menuItemInner: {

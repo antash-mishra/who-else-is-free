@@ -42,6 +42,7 @@ const ConversationRow = ({
   events,
   userId,
   nowMs,
+  isLast,
 }: {
   item: ChatConversation;
   onPress: (item: ChatConversation) => void;
@@ -49,6 +50,7 @@ const ConversationRow = ({
   events: { id: string; imageUri: string }[];
   userId?: number;
   nowMs: number;
+  isLast: boolean;
 }) => {
   const { participants = [] } = item;
   const counterpart = participants.find((p) => p.id !== userId) ?? participants[0];
@@ -133,7 +135,7 @@ const ConversationRow = ({
           </Text>
         </View>
       </View>
-      <View style={styles.conversationDivider} />
+      {!isLast && <View style={styles.conversationDivider} />}
     </ScalePressable>
   );
 };
@@ -311,7 +313,7 @@ const MessagesScreen = () => {
     }
   };
 
-  const renderConversation = ({ item }: { item: ChatConversation }) => {
+  const renderConversation = ({ item, index }: { item: ChatConversation; index: number }) => {
     return (
       <ConversationRow
         item={item}
@@ -320,6 +322,7 @@ const MessagesScreen = () => {
         events={events}
         userId={user?.id}
         nowMs={relativeTimeNow}
+        isLast={index === displayConversations.length - 1}
       />
     );
   };
@@ -467,7 +470,7 @@ const styles = StyleSheet.create({
   },
   conversationDivider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: colors.divider,
     marginLeft: spacing.md + 52 + 12,
   },
   conversationName: {

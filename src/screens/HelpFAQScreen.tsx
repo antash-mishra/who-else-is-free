@@ -141,13 +141,15 @@ const FaqAccordionItem = ({
   answer,
   isExpanded,
   onPress,
+  isLast,
 }: {
   title: string;
   answer: FaqAnswerBlock[];
   isExpanded: boolean;
   onPress: () => void;
+  isLast: boolean;
 }) => (
-  <View style={styles.faqItem}>
+  <View style={[styles.faqItem, isLast && styles.faqItemLast]}>
     <ScalePressable
       accessibilityRole="button"
       accessibilityState={{ expanded: isExpanded }}
@@ -209,6 +211,7 @@ const HelpFAQScreen = () => {
             key={item.title}
             title={item.title}
             answer={item.answer}
+            isLast={index === FAQ_ITEMS.length - 1}
             isExpanded={expandedIndices.has(index)}
             onPress={() => {
               setExpandedIndices((current) => {
@@ -232,7 +235,10 @@ const styles = StyleSheet.create({
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
+    borderBottomColor: colors.divider,
+  },
+  faqItemLast: {
+    borderBottomWidth: 0,
   },
   faqRow: {
     paddingVertical: 20,

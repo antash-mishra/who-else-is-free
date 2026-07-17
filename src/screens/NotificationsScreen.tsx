@@ -181,11 +181,12 @@ const NotificationsScreen = () => {
         <FlatList
           data={notifications}
           keyExtractor={(item) => String(item.id)}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <NotificationRow
               notification={item}
               onPress={handleRowPress}
               nowMs={nowMs}
+              isLast={index === notifications.length - 1}
               eventImageUri={
                 item.eventId != null
                   ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
