@@ -23,7 +23,7 @@ const resolveDateLabel = (schedule: EventScheduleLike | null | undefined): strin
 };
 
 export interface EventMemberSubtitleOptions {
-  /** Event group type; controls "People" (Single) vs "Members" (Group) wording. */
+  /** Event group type; controls "Accepted" (Single) vs "Members" (Group) wording. */
   groupType: 'Single' | 'Group' | undefined;
   /** Count shown in the subtitle (already includes the host if desired). */
   memberCount: number;
@@ -35,7 +35,7 @@ export interface EventMemberSubtitleOptions {
  * Build the event-level subtitle shared by JoinRequestsScreen and the group
  * chat window:
  *
- *   Single → "3 People, 08 Jun Mon"
+ *   Single → "3 Accepted, 08 Jun Mon"
  *   Group  → "3 Members, 08 Jun Mon"
  *
  * Falls back to just the date (or an empty string) when no schedule exists.
@@ -46,7 +46,7 @@ export const buildEventMemberSubtitle = ({
   schedule,
 }: EventMemberSubtitleOptions): string => {
   const dateLabel = resolveDateLabel(schedule);
-  const noun = groupType === 'Single' ? 'People' : 'Members';
+  const noun = groupType === 'Single' ? 'Accepted' : 'Members';
   const countPart = `${memberCount} ${noun}`;
   return dateLabel ? `${countPart}, ${dateLabel}` : countPart;
 };

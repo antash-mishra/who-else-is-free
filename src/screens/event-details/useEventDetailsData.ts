@@ -228,6 +228,7 @@ export const useEventDetailsData = ({
 
   // Keep host-side requests fresh while viewing details.
   useEffect(() => {
+    const shouldLoadAcceptedOverlay = isOverlay && isSingleEvent;
     if (
       !isFocused ||
       !rawEvent ||
@@ -236,7 +237,7 @@ export const useEventDetailsData = ({
       hostRequestStoreKey == null ||
       eventNumericId == null ||
       disableHostRequestPolling ||
-      readOnly
+      (readOnly && !shouldLoadAcceptedOverlay)
     ) {
       return;
     }
@@ -275,6 +276,7 @@ export const useEventDetailsData = ({
     eventNumericId,
     refreshJoinRequests,
     refreshConversations,
+    isOverlay,
     isSingleEvent,
     disableHostRequestPolling,
     readOnly,

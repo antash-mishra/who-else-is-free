@@ -19,14 +19,14 @@ describe('buildEventMemberSubtitle', () => {
   const eventDate = todayKey();
   const absoluteLabel = absoluteFor(eventDate);
 
-  it('uses "People" wording for Single group type', () => {
+  it('uses "Accepted" wording for Single group type', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: 'Single',
         memberCount: 3,
         schedule: { eventDate },
       }),
-    ).toBe(`3 People, ${absoluteLabel}`);
+    ).toBe(`3 Accepted, ${absoluteLabel}`);
   });
 
   it('uses "Members" wording for Group group type', () => {
@@ -56,7 +56,7 @@ describe('buildEventMemberSubtitle', () => {
         memberCount: 2,
         schedule: null,
       }),
-    ).toBe('2 People');
+    ).toBe('2 Accepted');
 
     expect(
       buildEventMemberSubtitle({

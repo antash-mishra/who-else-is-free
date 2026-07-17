@@ -29,6 +29,12 @@ type EventDetailsMembersProps =
       onOpenMemberMenu: (member: MemberLike) => void;
     }
   | {
+      /** 1:1 host overlay: approved requesters only; the host is intentionally omitted. */
+      variant: 'accepted';
+      members: MemberLike[];
+      onOpenMemberMenu: (member: MemberLike) => void;
+    }
+  | {
       /** Read-only details: members fetched from the API with loading/error states. */
       variant: 'readOnly';
       members: EventDetailMember[];
@@ -38,28 +44,39 @@ type EventDetailsMembersProps =
     };
 
 /**
- * Members section for Event Details: the group overlay members list and the
- * read-only members list (with loading/error states) under a static
+ * Members section for Event Details: group and accepted-member overlay lists,
+ * plus the read-only members list (with loading/error states), under a static
  * `SlidingTabs` header.
  */
 const EventDetailsMembers = (props: EventDetailsMembersProps) => {
-  if (props.variant === 'overlay') {
-    const { members, currentUserId, isOwner, onOpenMemberMenu } = props;
+  if (props.variant === 'overlay' || props.variant === 'accepted') {
+    const isAccepted = props.variant === 'accepted';
+    const { members, onOpenMemberMenu } = props;
+    const currentUserId = props.variant === 'overlay' ? props.currentUserId : undefined;
+    const isOwner = props.variant === 'overlay' ? props.isOwner : true;
+    const tabLabel = isAccepted ? 'Accepted' : 'Members';
+    const tabValue = isAccepted ? 'accepted' : 'members';
     return (
       <>
         <View>
           <SlidingTabs
-            options={[{ label: 'Members', value: 'members', count: members.length }]}
-            value="members"
-            testIDPrefix="event-details-overlay-tab"
+            options={[{ label: tabLabel, value: tabValue, count: members.length }]}
+            value={tabValue}
+            testIDPrefix={
+              isAccepted ? 'event-details-accepted-overlay-tab' : 'event-details-overlay-tab'
+            }
           />
           <View style={[styles.divider, { marginVertical: 0 }]} />
         </View>
         <View style={styles.listContainer}>
           {members.length === 0 ? (
             <EmptyState
-              title="No members yet"
-              description="Members who join will appear here"
+              title={isAccepted ? 'No accepted members yet' : 'No members yet'}
+              description={
+                isAccepted
+                  ? 'Members you accept will appear here'
+                  : 'Members who join will appear here'
+              }
               imageSource={EMPTY_ILLUSTRATION}
               imageWidth={EMPTY_ILLUSTRATION_WIDTH}
               imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
@@ -70,9 +87,11 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
               <View key={member.id}>
                 <EventMemberRow
                   member={member}
-                  trailingLabel={member.id === currentUserId && isOwner ? 'Host' : undefined}
+                  trailingLabel={
+                    !isAccepted && member.id === currentUserId && isOwner ? 'Host' : undefined
+                  }
                   onMenuPress={
-                    isOwner && member.id !== currentUserId
+                    isOwner && (isAccepted || member.id !== currentUserId)
                       ? () => onOpenMemberMenu(member)
                       : undefined
                   }
@@ -114,7 +133,10 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
         ) : (
           members.map((member, index) => (
             <View key={member.id}>
-              <EventMemberRow member={member} trailingLabel={member.id === hostId ? 'Host' : undefined} />
+              <EventMemberRow
+                member={member}
+                trailingLabel={member.id === hostId ? 'Host' : undefined}
+              />
               {index < members.length - 1 && <EventMemberRowSeparator />}
             </View>
           ))

@@ -223,7 +223,7 @@ const JoinRequestsScreen = () => {
         title={resolvedTitle}
         subtitle={buildEventMemberSubtitle({
           groupType: 'Single',
-          memberCount: displayRequests.length + 1,
+          memberCount: displayRequests.length,
           schedule: resolvedSchedule,
         })}
         coverSource={getCoverSource(resolvedCoverKey)}
