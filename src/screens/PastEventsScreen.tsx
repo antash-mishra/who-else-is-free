@@ -174,7 +174,7 @@ const PastEventsScreen = () => {
           />
         )}
       </ScreenContainer>
-      <FullPageEmptyState visible={showEmpty}>
+      <FullPageEmptyState visible={showEmpty} imageHeight={245}>
         <EmptyState
           title="No Past Events"
           description="Events you've hosted or joined will appear here after they end."

@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPager from '@components/AnimatedPager';
 import EmptyState from '@components/EmptyState';
-import { EMPTY_STATE_TOP_FRACTION } from '@components/FullPageEmptyState';
+import { emptyStateAnchorTop } from '@components/FullPageEmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import NotificationAccessModal from '@components/NotificationAccessModal';
 import { EventItemProps } from '@components/EventCard';
@@ -88,7 +88,7 @@ const HomeScreen = () => {
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
-  const emptyStateTopPadding = windowHeight * EMPTY_STATE_TOP_FRACTION;
+  const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, 245);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const hasSignalledReady = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);

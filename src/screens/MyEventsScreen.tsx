@@ -19,8 +19,8 @@ import BottomSheetModal from '@components/BottomSheetModal';
 import ConfettiOverlay from '@components/ConfettiOverlay';
 import EmptyState from '@components/EmptyState';
 import FullPageEmptyState, {
-  EMPTY_STATE_TOP_FRACTION,
-  EMPTY_STATE_TOP_FRACTION_SIGNED_OUT,
+  EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
+  emptyStateAnchorTop,
 } from '@components/FullPageEmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import { EventItemProps } from '@components/EventCard';
@@ -56,7 +56,7 @@ const MyEventsScreen = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const emptyStateTopPadding = windowHeight * EMPTY_STATE_TOP_FRACTION;
+  const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, MY_EVENTS_EMPTY_IMAGE_HEIGHT);
   const [selectedPage, setSelectedPage] = useState(0);
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -152,7 +152,11 @@ const MyEventsScreen = () => {
             <Text style={styles.headerTitle}>My Events</Text>
           </View>
         </ScreenContainer>
-        <FullPageEmptyState visible topFraction={EMPTY_STATE_TOP_FRACTION_SIGNED_OUT}>
+        <FullPageEmptyState
+          visible
+          imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
+          titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
+        >
           <EmptyState
             title="No events to show"
             description={"Sign in to see the events you've created or joined"}

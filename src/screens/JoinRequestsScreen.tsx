@@ -390,7 +390,9 @@ const JoinRequestsScreen = () => {
           />
         </View>
       </ScreenContainer>
-      <FullPageEmptyState visible={displayRequests.length === 0}>{listEmpty}</FullPageEmptyState>
+      <FullPageEmptyState visible={displayRequests.length === 0} imageHeight={EMPTY_ILLUSTRATION_HEIGHT}>
+        {listEmpty}
+      </FullPageEmptyState>
     </View>
   );
 };

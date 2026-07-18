@@ -11,7 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ScreenContainer from '@components/ScreenContainer';
 import EmptyState from '@components/EmptyState';
 import FullPageEmptyState, {
-  EMPTY_STATE_TOP_FRACTION_SIGNED_OUT,
+  EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
 } from '@components/FullPageEmptyState';
 import UserAvatar from '@components/UserAvatar';
 import { UnreadDot } from '@components/ui';
@@ -340,7 +340,11 @@ const MessagesScreen = () => {
             <Text style={styles.headerTitle}>Chat</Text>
           </View>
         </ScreenContainer>
-        <FullPageEmptyState visible topFraction={EMPTY_STATE_TOP_FRACTION_SIGNED_OUT}>
+        <FullPageEmptyState
+          visible
+          imageHeight={245}
+          titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
+        >
           <EmptyState
             title="No messages to show"
             description={"Sign in to view conversations from events you've created or joined"}
@@ -386,7 +390,10 @@ const MessagesScreen = () => {
           />
         </View>
       </ScreenContainer>
-      <FullPageEmptyState visible={displayConversations.length === 0 && !isConversationListBusy}>
+      <FullPageEmptyState
+        visible={displayConversations.length === 0 && !isConversationListBusy}
+        imageHeight={245}
+      >
         <EmptyState
           title="No Messages Yet"
           description={'Messages from your events will appear here'}
