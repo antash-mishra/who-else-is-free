@@ -5,10 +5,12 @@ import {
   Pressable,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   View,
   useWindowDimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -300,6 +302,7 @@ const EventDetailsScreenContent = ({
               }}
               style={[styles.backButton, { top: floatingButtonTop }]}
             >
+              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
               <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
             <Pressable
@@ -311,6 +314,7 @@ const EventDetailsScreenContent = ({
               }}
               style={[styles.menuButton, { top: floatingButtonTop }]}
             >
+              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
               <MoreHorizontalIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
           </>
@@ -325,6 +329,7 @@ const EventDetailsScreenContent = ({
             hitSlop={12}
             style={[styles.backButton, { top: floatingButtonTop }]}
           >
+            <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}

@@ -83,7 +83,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    // Frosted glass: BlurView fills the circle; overflow clips it to the round
+    // shape. Faint tint keeps the white icon readable if blur is unavailable.
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -95,7 +98,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
