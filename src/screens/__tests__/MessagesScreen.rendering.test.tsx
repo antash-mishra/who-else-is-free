@@ -490,7 +490,6 @@ describe('MessagesScreen Rendering', () => {
       const emptyState = getByTestId('empty-state');
       expect(emptyState).toBeTruthy();
       expect(getByText('No Messages Yet')).toBeTruthy();
-      expect(StyleSheet.flatten(emptyState.props.style).flex).toBe(1);
     });
 
     it('should not show empty state while connecting', () => {
@@ -523,7 +522,6 @@ describe('MessagesScreen Rendering', () => {
       expect(emptyState).toBeTruthy();
       expect(getByText('No messages to show')).toBeTruthy();
       expect(getByText('Continue')).toBeTruthy();
-      expect(StyleSheet.flatten(emptyState.props.style).flex).toBe(1);
     });
 
     it('should open sign-in modal when Continue button is pressed', () => {

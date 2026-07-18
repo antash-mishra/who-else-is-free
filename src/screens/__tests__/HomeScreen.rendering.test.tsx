@@ -110,7 +110,7 @@ jest.mock('@components/SegmentedControl', () => {
   );
 });
 
-jest.mock('@assets/illustration/discoverEvent-emptyState.png', () => 'mock-empty-state-image');
+jest.mock('@assets/empty-state/discover.png', () => 'mock-empty-state-image');
 
 describe('HomeScreen Rendering', () => {
   beforeEach(() => {

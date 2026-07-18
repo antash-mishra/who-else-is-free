@@ -9,9 +9,9 @@ import styles from './EventDetailsScreen.styles';
 import { EventDetailMember } from './useEventDetailsData';
 
 // Shared illustration for the members empty state.
-const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
-const EMPTY_ILLUSTRATION_WIDTH = 293;
-const EMPTY_ILLUSTRATION_HEIGHT = 245;
+const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
+const EMPTY_ILLUSTRATION_WIDTH = 149;
+const EMPTY_ILLUSTRATION_HEIGHT = 160;
 
 type MemberLike = {
   id: number;

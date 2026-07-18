@@ -31,6 +31,12 @@ export type EventSectionListProps<TItem extends EventItemProps = EventItemProps>
   contentHorizontalPadding?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
   emptyContentStyle?: StyleProp<ViewStyle>;
+  /**
+   * When set and the list is empty, the empty state is top-anchored at this
+   * padding from the top of the list content (instead of `headerPaddingTop`),
+   * so it lands at a consistent screen position across screens.
+   */
+  emptyStateTopPadding?: number;
 };
 
 type EventCardRowProps<TItem extends EventItemProps> = {
@@ -66,9 +72,15 @@ const EventSectionList = <TItem extends EventItemProps>({
   contentHorizontalPadding = true,
   contentContainerStyle,
   emptyContentStyle,
+  emptyStateTopPadding,
 }: EventSectionListProps<TItem>) => {
   const resolvedBottomPadding = bottomPadding ?? spacing.xl + bottomInset;
   const shouldShowFooterSpacing = sections.length > 0 && footerSpacingHeight > 0;
+  const isEmpty = sections.length === 0;
+  // When empty, top-anchor the empty state at a fixed offset instead of pushing
+  // it below the header, so it lands at a consistent screen position.
+  const resolvedTopPadding =
+    isEmpty && emptyStateTopPadding != null ? emptyStateTopPadding : headerPaddingTop;
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: EventSection<TItem> }) => (
@@ -95,7 +107,7 @@ const EventSectionList = <TItem extends EventItemProps>({
       contentContainerStyle={[
         contentHorizontalPadding && styles.horizontalPadding,
         {
-          paddingTop: headerPaddingTop,
+          paddingTop: resolvedTopPadding,
           paddingBottom: resolvedBottomPadding,
         },
         sections.length === 0 && styles.emptyList,
@@ -138,7 +150,6 @@ const styles = StyleSheet.create({
   emptyStateWrapper: {
     flexGrow: 1,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   sectionHeader: {
     fontSize: 15,

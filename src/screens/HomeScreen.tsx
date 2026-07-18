@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPager from '@components/AnimatedPager';
 import EmptyState from '@components/EmptyState';
+import { EMPTY_STATE_TOP_FRACTION } from '@components/FullPageEmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import NotificationAccessModal from '@components/NotificationAccessModal';
 import { EventItemProps } from '@components/EventCard';
@@ -86,6 +87,8 @@ const HomeScreen = () => {
   const [selectedSort, setSelectedSort] = useState<SortOptionValue>('upcoming');
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
+  const { height: windowHeight } = useWindowDimensions();
+  const emptyStateTopPadding = windowHeight * EMPTY_STATE_TOP_FRACTION;
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const hasSignalledReady = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
@@ -285,7 +288,7 @@ const HomeScreen = () => {
     <EmptyState
       title="Nothing Happening Here (Yet!)"
       description="There are currently no events available. Please check back later."
-      imageSource={require('@assets/illustration/discoverEvent-emptyState.png')}
+      imageSource={require('@assets/empty-state/discover.png')}
     />
   );
 
@@ -321,6 +324,7 @@ const HomeScreen = () => {
               sections={upcomingSections}
               onEventPress={handleEventPress}
               headerPaddingTop={headerHeight}
+              emptyStateTopPadding={emptyStateTopPadding}
               bottomInset={insets.bottom}
               emptyState={showUpcomingEmpty ? discoverEmptyState : null}
               refreshing={isPullRefreshing}
@@ -331,6 +335,7 @@ const HomeScreen = () => {
                 sections={nearestSections}
                 onEventPress={handleEventPress}
                 headerPaddingTop={headerHeight}
+              emptyStateTopPadding={emptyStateTopPadding}
                 bottomInset={insets.bottom}
                 emptyState={showNearestEmpty ? discoverEmptyState : null}
                 refreshing={isPullRefreshing}
@@ -341,6 +346,7 @@ const HomeScreen = () => {
               sections={newestSections}
               onEventPress={handleEventPress}
               headerPaddingTop={headerHeight}
+              emptyStateTopPadding={emptyStateTopPadding}
               bottomInset={insets.bottom}
               emptyState={showNewestEmpty ? discoverEmptyState : null}
               refreshing={isPullRefreshing}
