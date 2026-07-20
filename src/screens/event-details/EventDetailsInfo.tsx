@@ -71,15 +71,10 @@ const EventDetailsInfo = ({
   return (
     <>
       {/* Header block has no gap; each row's vertical spacing is its own
-          marginTop (styles.hostedBy / styles.goingRow / styles.goingLabelStandalone). */}
+          marginTop (styles.hostedBy / styles.goingRow). */}
       <View style={styles.headerBlock}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.hostedBy}>{hostLine}</Text>
-        {!readOnly && isSingleEvent && (
-          <Text style={[styles.goingLabel, styles.goingLabelStandalone]} testID="going-count-label">
-            1:1
-          </Text>
-        )}
         {!readOnly && !isSingleEvent && (
           <View style={styles.goingRow} testID="going-row">
             <View style={styles.goingAvatarStack}>
@@ -100,12 +95,12 @@ const EventDetailsInfo = ({
         )}
       </View>
 
-      <View style={[styles.divider, { marginTop: 12, marginBottom: 12 }]} />
+      <View style={[styles.divider, { marginTop: 20, marginBottom: 24 }]} />
 
       <Text style={styles.sectionHeading}>Details</Text>
       <View style={styles.detailDiv}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailIconContainer}>
+        <View style={styles.detailRowTop}>
+          <View style={styles.detailIconContainerTop}>
             <LocationIcon width={20} height={20} color={colors.iconColor} />
           </View>
           <Text style={styles.detailText}>{location}</Text>

@@ -73,7 +73,7 @@ const EventRequestRow: React.FC<EventRequestRowProps> = ({
           {isDeclining ? (
             <ActivityIndicator size="small" color={colors.text} />
           ) : (
-            <RejectIcon width={30} height={30} />
+            <RejectIcon width={30} height={30} color={colors.iconColor} />
           )}
         </ScalePressable>
 

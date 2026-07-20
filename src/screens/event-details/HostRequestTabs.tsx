@@ -104,6 +104,9 @@ const HostRequestTabs = ({
             setActiveTab(nextTab as 'requests' | 'accepted' | 'members');
           }}
           testIDPrefix="event-details-tab"
+          // Local trim (default 20) so the gap above the tabs is a 32px section
+          // break (row paddingBottom 4 + 28) matching the rest of the card.
+          style={{ paddingTop: 28 }}
         />
         <View style={[styles.divider, { marginVertical: 0 }]} />
       </View>

@@ -710,7 +710,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-avatar-0')).toBeTruthy();
     });
 
-    it('shows 1:1 label for non-host single events', () => {
+    it('shows no going-line label for single events', () => {
       mockEventsState.events = [mockSingleEvent];
       mockChatState.conversations = [
         {
@@ -727,10 +727,10 @@ describe('EventDetailsScreen Rendering Tests', () => {
         .spyOn(require('@react-navigation/native'), 'useRoute')
         .mockReturnValue(createMockRoute(mockSingleEvent.id));
 
-      const { getByTestId, queryByTestId } = render(<EventDetailsScreen />);
+      const { queryByTestId } = render(<EventDetailsScreen />);
 
       expect(queryByTestId('going-row')).toBeNull();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1:1');
+      expect(queryByTestId('going-count-label')).toBeNull();
 
       routeSpy.mockRestore();
     });

@@ -138,7 +138,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     paddingBottom: 20,
-    gap: spacing.sm,
+    // No gap: every vertical gap is controlled explicitly by the block's own
+    // margin/padding so the number written is the number rendered (a shared
+    // card gap would silently compound onto each block's margin). Rhythm:
+    //   section break = 20 · heading→content / row→row = 12 · tight pair = 4
+    gap: 0,
   },
   title: {
     fontSize: 29,
@@ -150,24 +154,21 @@ const styles = StyleSheet.create({
   // Groups title + host + going with NO gap, so each gap below is exactly the
   // child's marginTop (no hidden card gap). Tune the two gaps via:
   //   Gap A (title → host):   hostedBy.marginTop
-  //   Gap B (host → going):   goingRow.marginTop / goingLabelStandalone.marginTop
+  //   Gap B (host → going):   goingRow.marginTop (group only; 1:1 has no going line)
   headerBlock: {},
   hostedBy: {
-    marginTop: spacing.xs, // Gap A: title → "Hosted by"
-    fontSize: 16,
+    marginTop: 6, // Gap A: title → "Hosted by"
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.subText,
+    color: colors.iconColor,
     lineHeight: 20,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.3,
   },
   goingRow: {
     marginTop: spacing.sm, // Gap B: host → "N Going" (group)
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  goingLabelStandalone: {
-    marginTop: spacing.sm, // Gap B: host → "1:1" (single event)
   },
   goingAvatarStack: {
     flexDirection: 'row',
@@ -184,17 +185,17 @@ const styles = StyleSheet.create({
   goingLabel: {
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.iconColor,
+    color: colors.iconColor, // match "Hosted by" — same secondary-metadata tier
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.borderSubtle, // neutral grey (#E6E6E6); colors.border reads bluish
     marginVertical: spacing.xs,
   },
   sectionHeading: {
-    fontSize: typography.body,
+    fontSize: 17,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     lineHeight: 20,
@@ -202,29 +203,52 @@ const styles = StyleSheet.create({
   },
   detailDiv: {
     flexDirection: 'column',
-    paddingTop: 6,
+    paddingTop: 12, // + first row's paddingTop 4 = 16 "Details" → first row
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    gap: 6,
+    paddingVertical: 4, // → 8px between adjacent rows
+    gap: 4,
+  },
+  // Location can wrap to a second line, so top-align it (like the description
+  // row) and center the icon on the first line via the line-height-tall icon box.
+  detailRowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 4, // → 8px between adjacent rows
+    gap: 4,
   },
   detailIconContainer: {
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    // Pull the icon's visible artwork left edge onto the content-left line
+    // (aligns with "Details"/tabs). 24px box at line + 2px SVG centering +
+    // ~2.4px internal artwork pad ≈ 4.4px; visual-only, doesn't reflow text.
+    transform: [{ translateX: -4.4 }],
+  },
+  detailIconContainerTop: {
+    width: 24,
+    height: 22, // = detailText line-height, centers the icon on the first line
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Pull the icon's visible artwork left edge onto the content-left line
+    // (aligns with "Details"/tabs). 24px box at line + 2px SVG centering +
+    // ~2.4px internal artwork pad ≈ 4.4px; visual-only, doesn't reflow text.
+    transform: [{ translateX: -4.4 }],
   },
   detailText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
     color: colors.text,
+    lineHeight: 22,
     letterSpacing: -0.4,
     flex: 1,
   },
   description: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
     color: colors.text,
     lineHeight: 22,
@@ -233,14 +257,18 @@ const styles = StyleSheet.create({
   descriptionRow: {
     flexDirection: 'row',
     alignItems: 'flex-start', // top-aligned so the icon can center on the first line
-    gap: 6,
-    paddingVertical: 4, // match the other detail rows' rhythm
+    gap: 4,
+    paddingVertical: 4, // match the other detail rows' rhythm (→ 8px between rows)
   },
   descriptionIconContainer: {
     width: 24,
     height: 22, // = description line-height, centers the icon on the first line
     alignItems: 'center',
     justifyContent: 'center',
+    // Pull the icon's visible artwork left edge onto the content-left line
+    // (aligns with "Details"/tabs). 24px box at line + 2px SVG centering +
+    // ~2.4px internal artwork pad ≈ 4.4px; visual-only, doesn't reflow text.
+    transform: [{ translateX: -4.4 }],
   },
   descriptionContent: {
     flex: 1,
@@ -338,10 +366,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
 
-  // List container for requests/members
+  // List container for requests/members. marginTop is the full section break
+  // (20) below the tabs divider now that the card adds no gap.
   listContainer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: 20,
+    paddingTop: 0,
   },
 
   // See more text
