@@ -504,7 +504,10 @@ const styles = StyleSheet.create({
   backButtonWrapper: {
     position: 'absolute',
     top: 0,
-    left: 24,
+    // Align the *visible* chevron with the bottom button's left edge (16). The
+    // IconButton (44) centers the 28px chevron and the chevron glyph is inset
+    // inside its SVG, so the wrapper needs a negative offset to compensate.
+    left: -2,
   },
   backButtonWrapperRaised: {
     zIndex: 10,
