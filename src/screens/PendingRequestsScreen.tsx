@@ -13,8 +13,8 @@ import { EventRequestRow, EventRequestRowSeparator } from '@components/events';
 import { IconButton } from '@components/ui';
 
 // Shared illustration for the request empty state.
-const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
-const EMPTY_ILLUSTRATION_WIDTH = 293;
+const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
+const EMPTY_ILLUSTRATION_WIDTH = 227;
 const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
 type PendingRequestsRoute = RouteProp<RootStackParamList, 'PendingRequests'>;
@@ -174,6 +174,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    // Shift the centered empty state up so it sits higher in the tall sheet.
+    paddingBottom: 120,
   },
 });
 

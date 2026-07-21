@@ -97,6 +97,9 @@ const styles = StyleSheet.create({
     maxWidth: '82%',
   },
   textContainer: {
+    // Pull the text block up so the image→title gap is spacing.xs (4) while the
+    // container's other gaps (title block → buttons) stay spacing.md.
+    marginTop: spacing.xs - spacing.md,
     gap: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',

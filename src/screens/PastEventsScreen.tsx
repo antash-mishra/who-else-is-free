@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '@api/config';
 import EmptyState from '@components/EmptyState';
+import FullPageEmptyState from '@components/FullPageEmptyState';
 import { EventItemProps } from '@components/EventCard';
 import { EventSectionList, buildEventItemSections } from '@components/events';
 import ScreenContainer from '@components/ScreenContainer';
@@ -146,48 +147,50 @@ const PastEventsScreen = () => {
   const showEmpty = !isLoading && events.length === 0 && !error;
 
   return (
-    <ScreenContainer edges={['top']}>
-      <ScreenHeader title="Past Events" onBack={navigation.goBack} />
-      {showLoading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : showError ? (
-        <View style={styles.centerContent}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Pressable style={styles.retryButton} onPress={handleRefresh}>
-            <Text style={styles.retryButtonText}>Try again</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <EventSectionList
-          sections={sections}
-          onEventPress={handleEventPress}
-          contentHorizontalPadding={false}
-          headerPaddingTop={showEmpty ? 0 : componentTokens.eventList.topPadding}
-          bottomPadding={safeBottom}
-          footerSpacingHeight={0}
-          emptyState={
-            showEmpty ? (
-              <EmptyState
-                title="No Past Events"
-                description="Events you've hosted or joined will appear here after they end."
-                imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-                imageWidth={258}
-                imageHeight={245}
-              />
-            ) : null
-          }
-          emptyContentStyle={styles.centerContent}
-          refreshing={isPullRefreshing}
-          onRefresh={handleRefresh}
+    <View style={styles.screenRoot}>
+      <ScreenContainer edges={['top']}>
+        <ScreenHeader title="Past Events" onBack={navigation.goBack} />
+        {showLoading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : showError ? (
+          <View style={styles.centerContent}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable style={styles.retryButton} onPress={handleRefresh}>
+              <Text style={styles.retryButtonText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <EventSectionList
+            sections={sections}
+            onEventPress={handleEventPress}
+            contentHorizontalPadding={false}
+            headerPaddingTop={showEmpty ? 0 : componentTokens.eventList.topPadding}
+            bottomPadding={safeBottom}
+            footerSpacingHeight={0}
+            refreshing={isPullRefreshing}
+            onRefresh={handleRefresh}
+          />
+        )}
+      </ScreenContainer>
+      <FullPageEmptyState visible={showEmpty} imageHeight={245}>
+        <EmptyState
+          title="No Past Events"
+          description="Events you've hosted or joined will appear here after they end."
+          imageSource={require('@assets/empty-state/past-events.png')}
+          imageWidth={219}
+          imageHeight={245}
         />
-      )}
-    </ScreenContainer>
+      </FullPageEmptyState>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   centerContent: {
     flex: 1,
     alignItems: 'center',

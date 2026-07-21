@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AcceptIcon from '@assets/event-details/accept.svg';
 import RejectIcon from '@assets/event-details/reject.svg';
 import EmptyState from '@components/EmptyState';
+import FullPageEmptyState from '@components/FullPageEmptyState';
 
 import { colors, spacing, typography } from '@theme/index';
 import { useChat, ChatJoinRequest } from '@context/ChatContext';
@@ -20,8 +21,8 @@ import { triggerHaptic } from '@services/haptics';
 import { buildEventMemberSubtitle } from '@utils/chatHeaderSubtitle';
 
 // Shared illustration for the request/accepted empty states.
-const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
-const EMPTY_ILLUSTRATION_WIDTH = 293;
+const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
+const EMPTY_ILLUSTRATION_WIDTH = 227;
 const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
 type JoinRequestsRoute = RouteProp<RootStackParamList, 'JoinRequests'>;
@@ -135,7 +136,6 @@ const JoinRequestsScreen = () => {
           imageSource={EMPTY_ILLUSTRATION}
           imageWidth={EMPTY_ILLUSTRATION_WIDTH}
           imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-          style={{ marginTop: 32 }}
         />
       ) : (
         <EmptyState
@@ -144,7 +144,6 @@ const JoinRequestsScreen = () => {
           imageSource={EMPTY_ILLUSTRATION}
           imageWidth={EMPTY_ILLUSTRATION_WIDTH}
           imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-          style={{ marginTop: 32 }}
         />
       ),
     [is1to1Mode],
@@ -366,35 +365,42 @@ const JoinRequestsScreen = () => {
   };
 
   return (
-    <ScreenContainer edges={['top', 'bottom']}>
-      <View style={styles.container}>
-        {is1to1Mode ? render1to1Header() : renderGroupHeader()}
-        <FlatList
-          data={displayRequests}
-          extraData={conversations}
-          keyExtractor={(item) => String(item.id)}
-          style={is1to1Mode ? styles.flatList1to1 : undefined}
-          renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
-          ItemSeparatorComponent={() => (
-            <View style={is1to1Mode ? styles.separator1to1 : styles.separator} />
-          )}
-          contentContainerStyle={
-            displayRequests.length === 0
-              ? styles.listEmptyContent
-              : is1to1Mode
-                ? styles.listContent1to1
-                : styles.listContent
-          }
-          ListEmptyComponent={listEmpty}
-          onRefresh={handleRefresh}
-          refreshing={isRefreshing}
-        />
-      </View>
-    </ScreenContainer>
+    <View style={styles.screenRoot}>
+      <ScreenContainer edges={['top', 'bottom']}>
+        <View style={styles.container}>
+          {is1to1Mode ? render1to1Header() : renderGroupHeader()}
+          <FlatList
+            data={displayRequests}
+            extraData={conversations}
+            keyExtractor={(item) => String(item.id)}
+            style={is1to1Mode ? styles.flatList1to1 : undefined}
+            renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
+            ItemSeparatorComponent={() => (
+              <View style={is1to1Mode ? styles.separator1to1 : styles.separator} />
+            )}
+            contentContainerStyle={
+              displayRequests.length === 0
+                ? styles.listEmptyContent
+                : is1to1Mode
+                  ? styles.listContent1to1
+                  : styles.listContent
+            }
+            onRefresh={handleRefresh}
+            refreshing={isRefreshing}
+          />
+        </View>
+      </ScreenContainer>
+      <FullPageEmptyState visible={displayRequests.length === 0} imageHeight={EMPTY_ILLUSTRATION_HEIGHT}>
+        {listEmpty}
+      </FullPageEmptyState>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { InteractionManager, StyleSheet, Text, View } from 'react-native';
+import { InteractionManager, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
@@ -18,6 +18,10 @@ import AnimatedPager from '@components/AnimatedPager';
 import BottomSheetModal from '@components/BottomSheetModal';
 import ConfettiOverlay from '@components/ConfettiOverlay';
 import EmptyState from '@components/EmptyState';
+import FullPageEmptyState, {
+  EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
+  emptyStateAnchorTop,
+} from '@components/FullPageEmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import { EventItemProps } from '@components/EventCard';
 import { EventListPage, buildEventSections } from '@components/events';
@@ -51,6 +55,8 @@ const MyEventsScreen = () => {
   const { conversations } = useChat();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, MY_EVENTS_EMPTY_IMAGE_HEIGHT);
   const [selectedPage, setSelectedPage] = useState(0);
   const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -138,26 +144,33 @@ const MyEventsScreen = () => {
 
   if (!user) {
     return (
-      <ScreenContainer edges={['bottom']}>
-        <View
-          style={[styles.headerSpacing, { paddingTop: insets.top + (spacing.lg - spacing.md) }]}
-        >
-          <Text style={styles.headerTitle}>My Events</Text>
-        </View>
-        <EmptyState
-          title="No events to show"
-          description={"Sign in to see the events you've created or joined"}
-          actionLabel="Continue"
-          onActionPress={() => setSignInVisible(true)}
-          imageSource={require('@assets/illustration/myEvent-emptyState.png')}
-          imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+      <View style={styles.root}>
+        <ScreenContainer edges={['bottom']}>
+          <View
+            style={[styles.headerSpacing, { paddingTop: insets.top + (spacing.lg - spacing.md) }]}
+          >
+            <Text style={styles.headerTitle}>My Events</Text>
+          </View>
+        </ScreenContainer>
+        <FullPageEmptyState
+          visible
           imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
-          style={styles.fillEmptyState}
-        />
+          titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
+        >
+          <EmptyState
+            title="No events to show"
+            description={"Sign in to see the events you've created or joined"}
+            actionLabel="Continue"
+            onActionPress={() => setSignInVisible(true)}
+            imageSource={require('@assets/empty-state/my-events.png')}
+            imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+            imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
+          />
+        </FullPageEmptyState>
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
         </BottomSheetModal>
-      </ScreenContainer>
+      </View>
     );
   }
 
@@ -177,11 +190,12 @@ const MyEventsScreen = () => {
               onEventPress={handleEventPress}
               headerPaddingTop={headerHeight}
               bottomInset={insets.bottom}
+              emptyStateTopPadding={emptyStateTopPadding}
               emptyState={
                 <EmptyState
                   title="No events yet"
                   description="Events you host will appear here"
-                  imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                  imageSource={require('@assets/empty-state/my-events.png')}
                   imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
                   imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
                 />
@@ -194,11 +208,12 @@ const MyEventsScreen = () => {
               onEventPress={handleEventPress}
               headerPaddingTop={headerHeight}
               bottomInset={insets.bottom}
+              emptyStateTopPadding={emptyStateTopPadding}
               emptyState={
                 <EmptyState
                   title="No events yet"
                   description="Events you join will appear here"
-                  imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                  imageSource={require('@assets/empty-state/my-events.png')}
                   imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
                   imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
                 />
@@ -211,11 +226,12 @@ const MyEventsScreen = () => {
               onEventPress={handleEventPress}
               headerPaddingTop={headerHeight}
               bottomInset={insets.bottom}
+              emptyStateTopPadding={emptyStateTopPadding}
               emptyState={
                 <EmptyState
                   title="No events yet"
                   description="Events you request to join will appear here"
-                  imageSource={require('@assets/illustration/myEvent-emptyState.png')}
+                  imageSource={require('@assets/empty-state/my-events.png')}
                   imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
                   imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
                 />
@@ -290,9 +306,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   content: {
-    flex: 1,
-  },
-  fillEmptyState: {
     flex: 1,
   },
   headerTitle: {

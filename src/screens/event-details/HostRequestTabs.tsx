@@ -17,9 +17,9 @@ import { ChatJoinRequest } from '@context/ChatContext';
 import styles from './EventDetailsScreen.styles';
 
 // Shared illustration for both the Requests and Accepted/Members empty states.
-const EMPTY_ILLUSTRATION = require('@assets/illustration/empty-requested-accepted.png');
-const EMPTY_ILLUSTRATION_WIDTH = 293;
-const EMPTY_ILLUSTRATION_HEIGHT = 245;
+const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
+const EMPTY_ILLUSTRATION_WIDTH = 149;
+const EMPTY_ILLUSTRATION_HEIGHT = 160;
 
 type MemberLike = {
   id: number;
@@ -132,7 +132,7 @@ const HostRequestTabs = ({
                 imageSource={EMPTY_ILLUSTRATION}
                 imageWidth={EMPTY_ILLUSTRATION_WIDTH}
                 imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-                style={{ marginTop: 32 }}
+                style={{ marginTop: -12 }}
               />
             ) : (
               pendingRequests.map((request, index) => (
@@ -163,7 +163,7 @@ const HostRequestTabs = ({
                   imageSource={EMPTY_ILLUSTRATION}
                   imageWidth={EMPTY_ILLUSTRATION_WIDTH}
                   imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-                  style={{ marginTop: 32 }}
+                  style={{ marginTop: -12 }}
                 />
               ) : (
                 acceptedRequests.map((request, index) => (
@@ -184,7 +184,7 @@ const HostRequestTabs = ({
                 imageSource={EMPTY_ILLUSTRATION}
                 imageWidth={EMPTY_ILLUSTRATION_WIDTH}
                 imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-                style={{ marginTop: 32 }}
+                style={{ marginTop: -12 }}
               />
             ) : (
               confirmedMembers.map((member, index) => (

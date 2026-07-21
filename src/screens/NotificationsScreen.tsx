@@ -17,6 +17,7 @@ import { AppNotification } from '@api/mappers/notifications';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import EmptyState from '@components/EmptyState';
+import FullPageEmptyState from '@components/FullPageEmptyState';
 import NotificationRow from '@components/NotificationRow';
 import ScreenContainer from '@components/ScreenContainer';
 import { BottomSheet, SheetActionList } from '@components/sheets';
@@ -141,6 +142,7 @@ const NotificationsScreen = () => {
   ];
 
   return (
+    <View style={styles.screenRoot}>
     <ScreenContainer edges={['top']}>
       <View style={styles.header}>
         <IconButton
@@ -209,17 +211,6 @@ const NotificationsScreen = () => {
             loadMore().catch(() => undefined);
           }}
           onEndReachedThreshold={0.5}
-          ListEmptyComponent={
-            showEmpty ? (
-              <EmptyState
-                title="No notifications yet"
-                description="You don't have any notifications."
-                imageSource={require('@assets/notification/emptystate_notificationinbox.png')}
-                imageWidth={245}
-                imageHeight={245}
-              />
-            ) : null
-          }
         />
       )}
 
@@ -232,10 +223,23 @@ const NotificationsScreen = () => {
         <SheetActionList items={menuActions} />
       </BottomSheet>
     </ScreenContainer>
+      <FullPageEmptyState visible={showEmpty} imageHeight={245}>
+        <EmptyState
+          title="No notifications yet"
+          description="You don't have any notifications."
+          imageSource={require('@assets/empty-state/notifications.png')}
+          imageWidth={245}
+          imageHeight={245}
+        />
+      </FullPageEmptyState>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

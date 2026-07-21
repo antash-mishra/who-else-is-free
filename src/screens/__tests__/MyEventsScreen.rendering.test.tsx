@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { StyleSheet } from 'react-native';
 
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -216,10 +215,9 @@ describe('MyEventsScreen Rendering', () => {
     it('shows login prompt for guest users', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
-      const emptyState = screen.getByTestId('empty-state');
+      expect(screen.getByTestId('empty-state')).toBeTruthy();
       expect(screen.getByText('No events to show')).toBeTruthy();
       expect(screen.getByText('Continue')).toBeTruthy();
-      expect(StyleSheet.flatten(emptyState.props.style).flex).toBe(1);
     });
 
     it('opens sign-in modal when Continue pressed', () => {

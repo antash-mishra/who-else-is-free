@@ -10,6 +10,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import ScreenContainer from '@components/ScreenContainer';
 import EmptyState from '@components/EmptyState';
+import FullPageEmptyState, {
+  EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
+} from '@components/FullPageEmptyState';
 import UserAvatar from '@components/UserAvatar';
 import { UnreadDot } from '@components/ui';
 import { colors, spacing, typography } from '@theme/index';
@@ -331,70 +334,82 @@ const MessagesScreen = () => {
 
   if (!user) {
     return (
-      <ScreenContainer>
-        <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Chat</Text>
-        </View>
-        <EmptyState
-          title="No messages to show"
-          description={"Sign in to view conversations from events you've created or joined"}
-          actionLabel="Continue"
-          onActionPress={() => setSignInVisible(true)}
-          imageSource={require('@assets/illustration/chat-emptyState.png')}
-          imageWidth={279}
+      <View style={styles.screenRoot}>
+        <ScreenContainer>
+          <View style={styles.headerSpacing}>
+            <Text style={styles.headerTitle}>Chat</Text>
+          </View>
+        </ScreenContainer>
+        <FullPageEmptyState
+          visible
           imageHeight={245}
-          style={styles.fillEmptyState}
-        />
+          titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
+        >
+          <EmptyState
+            title="No messages to show"
+            description={"Sign in to view conversations from events you've created or joined"}
+            actionLabel="Continue"
+            onActionPress={() => setSignInVisible(true)}
+            imageSource={require('@assets/empty-state/chat.png')}
+            imageWidth={279}
+            imageHeight={245}
+          />
+        </FullPageEmptyState>
         <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
           <SignInButtons />
         </BottomSheetModal>
-      </ScreenContainer>
+      </View>
     );
   }
 
   return (
-    <ScreenContainer>
-      <View style={styles.headerSpacing}>
-        <Text style={styles.headerTitle}>Chat</Text>
-      </View>
-      <View style={styles.container}>
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {isConnecting ? <Text style={styles.helperText}>Connecting to chat…</Text> : null}
-        <FlatList
-          data={displayConversations}
-          extraData={displayConversations}
-          keyExtractor={(conversation) => String(conversation.id)}
-          renderItem={renderConversation}
-          style={styles.flatList}
-          contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
-          ListEmptyComponent={
-            isConversationListBusy ? null : (
-              <EmptyState
-                title="No Messages Yet"
-                description={'Messages from your events will appear here'}
-                imageSource={require('@assets/illustration/chat-emptyState.png')}
-                imageWidth={279}
-                imageHeight={245}
-                style={styles.fillEmptyState}
+    <View style={styles.screenRoot}>
+      <ScreenContainer>
+        <View style={styles.headerSpacing}>
+          <Text style={styles.headerTitle}>Chat</Text>
+        </View>
+        <View style={styles.container}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {isConnecting ? <Text style={styles.helperText}>Connecting to chat…</Text> : null}
+          <FlatList
+            data={displayConversations}
+            extraData={displayConversations}
+            keyExtractor={(conversation) => String(conversation.id)}
+            renderItem={renderConversation}
+            style={styles.flatList}
+            contentContainerStyle={{ paddingBottom: spacing.xl + insets.bottom, flexGrow: 1 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={isPullRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.primary}
               />
-            )
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isPullRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={colors.primary}
-            />
-          }
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+            }
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
+      </ScreenContainer>
+      <FullPageEmptyState
+        visible={displayConversations.length === 0 && !isConversationListBusy}
+        imageHeight={245}
+      >
+        <EmptyState
+          title="No Messages Yet"
+          description={'Messages from your events will appear here'}
+          imageSource={require('@assets/empty-state/chat.png')}
+          imageWidth={279}
+          imageHeight={245}
         />
-      </View>
-    </ScreenContainer>
+      </FullPageEmptyState>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     gap: spacing.md,
@@ -422,9 +437,6 @@ const styles = StyleSheet.create({
 
   flatList: {
     marginLeft: -spacing.md,
-  },
-  fillEmptyState: {
-    flex: 1,
   },
   conversationRow: {
     position: 'relative',
