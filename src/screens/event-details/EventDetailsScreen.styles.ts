@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   goingRow: {
-    marginTop: spacing.sm, // Gap B: host → "N Going" (group)
+    marginTop: 10, // Gap B: host → "N Going" (group)
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
@@ -182,8 +182,25 @@ const styles = StyleSheet.create({
   goingAvatarOverlap: {
     marginLeft: -9,
   },
+  // "+N" overflow circle at the end of the avatar stack (same size as an avatar).
+  goingOverflowBadge: {
+    // 24 avatar + 2×1.5 border so the badge's footprint matches an avatar item
+    // (RN is border-box, so the goingAvatarItem border is inside this width).
+    width: 27,
+    height: 27,
+    borderRadius: 999,
+    backgroundColor: colors.avatarOverflowBadge,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goingOverflowText: {
+    fontSize: 11,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.buttonText, // white on the grey badge
+    letterSpacing: -0.2,
+  },
   goingLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: typography.fontFamilyRegular,
     color: colors.iconColor, // match "Hosted by" — same secondary-metadata tier
     lineHeight: 20,

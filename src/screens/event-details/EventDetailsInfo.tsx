@@ -98,15 +98,28 @@ const EventDetailsInfo = ({
         {!readOnly && !isSingleEvent && (
           <View style={styles.goingRow} testID="going-row">
             <View style={styles.goingAvatarStack}>
-              {goingParticipants.slice(0, 4).map((participant, index) => (
+              {goingParticipants.slice(0, 3).map((participant, index) => (
                 <View
                   key={`${participant.id}-${index}`}
                   style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
                   testID={`going-avatar-${index}`}
                 >
-                  {renderAvatar(participant, 28)}
+                  {renderAvatar(participant, 24)}
                 </View>
               ))}
+              {/* "+N" overflow badge when more than 3 people are going. */}
+              {goingCount > 3 && (
+                <View
+                  style={[
+                    styles.goingAvatarItem,
+                    styles.goingAvatarOverlap,
+                    styles.goingOverflowBadge,
+                  ]}
+                  testID="going-avatar-overflow"
+                >
+                  <Text style={styles.goingOverflowText}>{`+${goingCount - 3}`}</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.goingLabel} testID="going-count-label">
               {`${goingCount} Going`}

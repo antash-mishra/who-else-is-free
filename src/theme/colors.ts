@@ -27,6 +27,7 @@ export const colors = {
   borderSubtle: '#E6E6E6',
   divider: '#F2F2F2', // subtle row divider / line separator (1px) — chat, member/request lists, account, help
   checkboxBorder: '#D0D0D0',
+  avatarOverflowBadge: '#A3A3A3', // "+N" circle at the end of the going avatar stack
   inputSurface: '#F4F4F4',
   error: '#FF383C',
   tabInactive: '#A3A3A3',
