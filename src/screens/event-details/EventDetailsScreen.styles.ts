@@ -273,12 +273,22 @@ const styles = StyleSheet.create({
   descriptionContent: {
     flex: 1,
   },
+  // In-flow (height 0, clipped) so the hidden measure wraps at the same width
+  // as the visible description text.
   measureContainer: {
-    position: 'absolute',
-    top: -9999,
-    left: 0,
-    right: 0,
-    opacity: 0,
+    height: 0,
+    overflow: 'hidden',
+  },
+  // Line 2 of a truncated description: text ellipsizes to fill, "See more" pins right.
+  descriptionSecondLine: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  descriptionSecondLineText: {
+    flex: 1,
+  },
+  seeMoreInlineGap: {
+    marginLeft: 2,
   },
   ctaContainer: {
     paddingHorizontal: spacing.md,
@@ -373,16 +383,13 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
 
-  // See more text
-  seeMoreButton: {
-    alignSelf: 'flex-start', // hug the text so the press-scale is tight, not full-width
-    marginTop: 2,
-  },
+  // Inline "See more" / "See less" link (matches the description's size/line-height
+  // so it aligns on the baseline row).
   seeMoreText: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
     color: colors.iconColor,
-    lineHeight: 20,
+    lineHeight: 22,
     letterSpacing: -0.3,
   },
 
