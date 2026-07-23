@@ -65,7 +65,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    // Frosted glass to match the back/menu buttons: BlurView fills the circle;
+    // overflow clips it round, faint tint keeps the white ✕ readable.
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -17,54 +17,53 @@ const absoluteFor = (eventDate: string) => {
 
 describe('buildEventMemberSubtitle', () => {
   const eventDate = todayKey();
-  const absoluteLabel = absoluteFor(eventDate);
 
-  it('uses "Accepted" wording for Single group type', () => {
+  it('leads with "1:1" then the accepted count for Single', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: 'Single',
         memberCount: 3,
         schedule: { eventDate },
       }),
-    ).toBe(`3 Accepted, ${absoluteLabel}`);
+    ).toBe('1:1, 3 Accepted');
   });
 
-  it('uses "Members" wording for Group group type', () => {
+  it('leads with "Group" then the member count for Group', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: 'Group',
         memberCount: 3,
         schedule: { eventDate },
       }),
-    ).toBe(`3 Members, ${absoluteLabel}`);
+    ).toBe('Group, 3 Members');
   });
 
-  it('falls back to the legacy dateLabel when no eventDate is present', () => {
+  it('ignores the schedule (no date in the subtitle)', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: 'Group',
         memberCount: 5,
         schedule: { dateLabel: 'Today' },
       }),
-    ).toBe('5 Members, Today');
-  });
+    ).toBe('Group, 5 Members');
 
-  it('returns only the count part when no schedule is available', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: 'Single',
         memberCount: 2,
         schedule: null,
       }),
-    ).toBe('2 Accepted');
+    ).toBe('1:1, 2 Accepted');
+  });
 
+  it('treats undefined group type as Group', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: undefined,
         memberCount: 2,
         schedule: undefined,
       }),
-    ).toBe('2 Members');
+    ).toBe('Group, 2 Members');
   });
 
   it('handles a zero count', () => {
@@ -74,7 +73,7 @@ describe('buildEventMemberSubtitle', () => {
         memberCount: 0,
         schedule: { dateLabel: 'Today' },
       }),
-    ).toBe('0 Members, Today');
+    ).toBe('Group, 0 Members');
   });
 });
 

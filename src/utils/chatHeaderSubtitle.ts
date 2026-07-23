@@ -35,20 +35,18 @@ export interface EventMemberSubtitleOptions {
  * Build the event-level subtitle shared by JoinRequestsScreen and the group
  * chat window:
  *
- *   Single → "3 Accepted, 08 Jun Mon"
- *   Group  → "3 Members, 08 Jun Mon"
+ *   Single → "1:1, 3 Accepted"
+ *   Group  → "Group, 3 Members"
  *
- * Falls back to just the date (or an empty string) when no schedule exists.
+ * (The comma is rendered as a dot separator by ChatEventHeader.)
  */
 export const buildEventMemberSubtitle = ({
   groupType,
   memberCount,
-  schedule,
 }: EventMemberSubtitleOptions): string => {
-  const dateLabel = resolveDateLabel(schedule);
+  const typeLabel = groupType === 'Single' ? '1:1' : 'Group';
   const noun = groupType === 'Single' ? 'Accepted' : 'Members';
-  const countPart = `${memberCount} ${noun}`;
-  return dateLabel ? `${countPart}, ${dateLabel}` : countPart;
+  return `${typeLabel}, ${memberCount} ${noun}`;
 };
 
 export interface OneToOneSubtitleOptions {

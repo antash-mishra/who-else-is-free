@@ -214,7 +214,10 @@ const EventDetailsScreenContent = ({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close event details"
-              onPress={handleOverlayClose}
+              onPress={() => {
+                triggerHaptic('light');
+                handleOverlayClose();
+              }}
               style={styles.fallbackCloseButton}
             >
               <CloseIcon width={24} height={24} color={colors.text} />
@@ -281,7 +284,10 @@ const EventDetailsScreenContent = ({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close event details"
-            onPress={handleOverlayClose}
+            onPress={() => {
+              triggerHaptic('light');
+              handleOverlayClose();
+            }}
             style={[
               styles.overlayCloseButton,
               styles.overlayCloseButtonFixed,
@@ -289,6 +295,7 @@ const EventDetailsScreenContent = ({
             ]}
             hitSlop={12}
           >
+            <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
             <CloseIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         ) : !readOnly ? (
@@ -623,7 +630,10 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close event details"
-                  onPress={handleOverlayClose}
+                  onPress={() => {
+                    triggerHaptic('light');
+                    handleOverlayClose();
+                  }}
                   style={styles.fallbackCloseButton}
                 >
                   <CloseIcon width={24} height={24} color={colors.text} />

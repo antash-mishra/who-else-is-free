@@ -25,7 +25,6 @@ const mockRouteParams = {
 
 const today = new Date();
 const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-const todayAbsoluteLabel = `${String(today.getDate()).padStart(2, '0')} ${today.toLocaleString('en-US', { month: 'short' })} ${today.toLocaleString('en-US', { weekday: 'short' })}`;
 
 jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native');
@@ -342,7 +341,9 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should render member count and date subtitle in group mode', () => {
       mockChatValue.conversations = [mockConversation()];
       const { getByText } = render(<JoinRequestsScreen />);
-      expect(getByText(`3 Members, ${todayAbsoluteLabel}`)).toBeTruthy();
+      // Subtitle: "Group · 3 Members" (two parts, dot separator).
+      expect(getByText('Group')).toBeTruthy();
+      expect(getByText('3 Members')).toBeTruthy();
     });
 
     it('should render back button', () => {
@@ -483,7 +484,9 @@ describe('JoinRequestsScreen Rendering', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
       // Only the 2 approved requesters are counted; the host is excluded.
-      expect(getByText(`2 Accepted, ${todayAbsoluteLabel}`)).toBeTruthy();
+      // Subtitle: "1:1 · 2 Accepted" (two parts, dot separator).
+      expect(getByText('1:1')).toBeTruthy();
+      expect(getByText('2 Accepted')).toBeTruthy();
     });
 
     it('should render pending requests icon with count badge in 1:1 mode', () => {
@@ -667,7 +670,9 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should show empty accepted state by default', () => {
       const { getByText } = render(<JoinRequestsScreen />);
 
-      expect(getByText(`0 Accepted, ${todayAbsoluteLabel}`)).toBeTruthy();
+      // Subtitle: "1:1 · 0 Accepted" (two parts, dot separator).
+      expect(getByText('1:1')).toBeTruthy();
+      expect(getByText('0 Accepted')).toBeTruthy();
       expect(getByText('No accepted members yet')).toBeTruthy();
     });
 

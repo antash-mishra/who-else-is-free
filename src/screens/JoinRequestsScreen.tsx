@@ -6,6 +6,7 @@ import AcceptIcon from '@assets/event-details/accept.svg';
 import RejectIcon from '@assets/event-details/reject.svg';
 import EmptyState from '@components/EmptyState';
 import FullPageEmptyState from '@components/FullPageEmptyState';
+import ScalePressable from '@components/ScalePressable';
 
 import { colors, spacing, typography } from '@theme/index';
 import { useChat, ChatJoinRequest } from '@context/ChatContext';
@@ -268,9 +269,10 @@ const JoinRequestsScreen = () => {
     const hasUnread = (convo?.unreadCount ?? 0) > 0;
 
     return (
-      <Pressable
-        style={({ pressed }) => [styles.requestRow1to1, pressed && styles.requestRowPressed]}
+      <ScalePressable
+        style={styles.requestRow1to1}
         onPress={() => handleRequesterPress(item)}
+        accessibilityLabel={`Open chat with ${item.requester.name}`}
       >
         {hasUnread && (
           <View style={styles.unreadDot1to1Wrap}>
@@ -294,7 +296,7 @@ const JoinRequestsScreen = () => {
             {previewText}
           </Text>
         </View>
-      </Pressable>
+      </ScalePressable>
     );
   };
 
@@ -337,28 +339,22 @@ const JoinRequestsScreen = () => {
           {item.message ? <Text style={styles.requestMessage}>{item.message}</Text> : null}
         </View>
         <View style={styles.requestActions}>
-          <Pressable
-            accessibilityRole="button"
+          <ScalePressable
+            haptic="destructive"
             accessibilityLabel={`Decline request from ${item.requester.name}`}
-            onPress={() => {
-              triggerHaptic('destructive');
-              handleAction(item.id, item.userId, 'deny');
-            }}
+            onPress={() => handleAction(item.id, item.userId, 'deny')}
             style={styles.declineButton}
           >
             <RejectIcon width={30} height={30} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
+          </ScalePressable>
+          <ScalePressable
+            haptic="submit"
             accessibilityLabel={`Accept request from ${item.requester.name}`}
-            onPress={() => {
-              triggerHaptic('submit');
-              handleAction(item.id, item.userId, 'approve');
-            }}
+            onPress={() => handleAction(item.id, item.userId, 'approve')}
             style={styles.acceptButton}
           >
             <AcceptIcon width={30} height={30} />
-          </Pressable>
+          </ScalePressable>
         </View>
       </View>
     );
@@ -490,9 +486,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingLeft: spacing.md,
     gap: spacing.sm,
-  },
-  requestRowPressed: {
-    backgroundColor: 'rgba(0,0,0,0.03)',
   },
   requestInfo1to1: {
     flex: 1,
