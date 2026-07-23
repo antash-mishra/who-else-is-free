@@ -34,7 +34,7 @@ const SheetHeader = ({ title, onClose, closeTestID }: SheetHeaderProps) => (
 
 const styles = StyleSheet.create({
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: typography.fontFamilySemiBold,
     color: colors.text,
     lineHeight: 24,

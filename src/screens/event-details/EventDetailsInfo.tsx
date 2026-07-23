@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { Text, View } from 'react-native';
+import { NativeSyntheticEvent, Text, TextLayoutEventData, View } from 'react-native';
 
 import DescriptionIcon from '@assets/event-details/description.svg';
 import PeopleIcon from '@assets/event-details/group-type.svg';
 import LocationIcon from '@assets/event-details/location.svg';
 import TimeIcon from '@assets/event-details/time.svg';
-import ScalePressable from '@components/ScalePressable';
 import UserAvatar from '@components/UserAvatar';
+import { triggerHaptic } from '@services/haptics';
 import { colors } from '@theme/index';
 
 import styles from './EventDetailsScreen.styles';
+
+type DescriptionTruncation = { firstLine: string; rest: string };
 
 type GoingParticipant = {
   id: number;
@@ -58,15 +60,33 @@ const EventDetailsInfo = ({
   description,
 }: EventDetailsInfoProps) => {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [descriptionHasMore, setDescriptionHasMore] = useState(false);
-  const [fullDescHeight, setFullDescHeight] = useState(0);
-  const [truncatedDescHeight, setTruncatedDescHeight] = useState(0);
+  // First line + remainder when the description spills past two lines (null = fits).
+  const [descriptionTruncation, setDescriptionTruncation] = useState<DescriptionTruncation | null>(
+    null,
+  );
 
-  useEffect(() => {
-    if (fullDescHeight > 0 && truncatedDescHeight > 0) {
-      setDescriptionHasMore(fullDescHeight > truncatedDescHeight + 1);
-    }
-  }, [fullDescHeight, truncatedDescHeight]);
+  const handleDescriptionTextLayout = useCallback(
+    (event: NativeSyntheticEvent<TextLayoutEventData>) => {
+      const { lines } = event.nativeEvent;
+      if (lines.length > 2) {
+        setDescriptionTruncation({
+          firstLine: lines[0].text,
+          rest: lines
+            .slice(1)
+            .map((line) => line.text)
+            .join(''),
+        });
+      } else {
+        setDescriptionTruncation(null);
+      }
+    },
+    [],
+  );
+
+  const toggleDescription = useCallback(() => {
+    triggerHaptic('light');
+    setDescriptionExpanded((prev) => !prev);
+  }, []);
 
   return (
     <>
@@ -78,15 +98,28 @@ const EventDetailsInfo = ({
         {!readOnly && !isSingleEvent && (
           <View style={styles.goingRow} testID="going-row">
             <View style={styles.goingAvatarStack}>
-              {goingParticipants.slice(0, 4).map((participant, index) => (
+              {goingParticipants.slice(0, 3).map((participant, index) => (
                 <View
                   key={`${participant.id}-${index}`}
                   style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
                   testID={`going-avatar-${index}`}
                 >
-                  {renderAvatar(participant, 28)}
+                  {renderAvatar(participant, 24)}
                 </View>
               ))}
+              {/* "+N" overflow badge when more than 3 people are going. */}
+              {goingCount > 3 && (
+                <View
+                  style={[
+                    styles.goingAvatarItem,
+                    styles.goingAvatarOverlap,
+                    styles.goingOverflowBadge,
+                  ]}
+                  testID="going-avatar-overflow"
+                >
+                  <Text style={styles.goingOverflowText}>{`+${goingCount - 3}`}</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.goingLabel} testID="going-count-label">
               {`${goingCount} Going`}
@@ -126,36 +159,51 @@ const EventDetailsInfo = ({
               <DescriptionIcon width={20} height={20} color={colors.iconColor} />
             </View>
             <View style={styles.descriptionContent}>
-              <View style={styles.measureContainer}>
+              {/* Hidden full render to measure wrapped lines (in-flow so it wraps
+                  at the same width as the visible text). */}
+              <View style={styles.measureContainer} pointerEvents="none">
                 <Text
                   style={styles.description}
-                  onLayout={(e) => setFullDescHeight(e.nativeEvent.layout.height)}
+                  onTextLayout={handleDescriptionTextLayout}
                   testID="description-full-measure"
                 >
                   {description}
                 </Text>
-                <Text
-                  style={styles.description}
-                  numberOfLines={2}
-                  onLayout={(e) => setTruncatedDescHeight(e.nativeEvent.layout.height)}
-                  testID="description-truncated-measure"
-                >
-                  {description}
-                </Text>
               </View>
-              <Text style={styles.description} numberOfLines={descriptionExpanded ? undefined : 2}>
-                {description}
-              </Text>
-              {descriptionHasMore && (
-                <ScalePressable
-                  haptic="light"
-                  onPress={() => setDescriptionExpanded((prev) => !prev)}
-                  style={styles.seeMoreButton}
-                >
-                  <Text style={styles.seeMoreText}>
-                    {descriptionExpanded ? 'See less' : 'See more'}
+
+              {descriptionExpanded ? (
+                <Text style={styles.description}>
+                  {description}
+                  {'  '}
+                  <Text style={styles.seeMoreText} onPress={toggleDescription}>
+                    See less
                   </Text>
-                </ScalePressable>
+                </Text>
+              ) : descriptionTruncation ? (
+                // Line 2 is a flex row so "See more" pins to the far right while
+                // the remaining text ellipsizes to fill.
+                <>
+                  <Text style={styles.description} numberOfLines={1}>
+                    {descriptionTruncation.firstLine}
+                  </Text>
+                  <View style={styles.descriptionSecondLine}>
+                    <Text
+                      style={[styles.description, styles.descriptionSecondLineText]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {descriptionTruncation.rest}
+                    </Text>
+                    <Text
+                      style={[styles.seeMoreText, styles.seeMoreInlineGap]}
+                      onPress={toggleDescription}
+                    >
+                      See more
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.description}>{description}</Text>
               )}
             </View>
           </View>

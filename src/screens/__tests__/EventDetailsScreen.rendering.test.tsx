@@ -1224,19 +1224,18 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }];
     });
 
-    const fireMeasurementLayouts = (getByTestId: (id: string) => any) => {
-      fireEvent(getByTestId('description-full-measure'), 'layout', {
-        nativeEvent: { layout: { height: 60 } },
-      });
-      fireEvent(getByTestId('description-truncated-measure'), 'layout', {
-        nativeEvent: { layout: { height: 40 } },
+    // Fire an onTextLayout with `lineCount` wrapped lines; >2 triggers truncation.
+    const fireTextLayout = (getByTestId: (id: string) => any, lineCount: number) => {
+      const lines = Array.from({ length: lineCount }, (_, i) => ({ text: `line${i} ` }));
+      fireEvent(getByTestId('description-full-measure'), 'textLayout', {
+        nativeEvent: { lines },
       });
     };
 
     it('shows "See more" for long descriptions', () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
-      fireMeasurementLayouts(getByTestId);
+      fireTextLayout(getByTestId, 3);
 
       expect(getByText('See more')).toBeTruthy();
     });
@@ -1244,7 +1243,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('expands description when See more is pressed', () => {
       const { getByText, queryByText, getByTestId } = render(<EventDetailsScreen />);
 
-      fireMeasurementLayouts(getByTestId);
+      fireTextLayout(getByTestId, 3);
 
       fireEvent.press(getByText('See more'));
 
@@ -1256,7 +1255,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('collapses description when See less is pressed', () => {
       const { getByText, queryByText, getByTestId } = render(<EventDetailsScreen />);
 
-      fireMeasurementLayouts(getByTestId);
+      fireTextLayout(getByTestId, 3);
 
       fireEvent.press(getByText('See more'));
       fireEvent.press(getByText('See less'));
@@ -1273,12 +1272,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const { queryByText, getByTestId } = render(<EventDetailsScreen />);
 
-      fireEvent(getByTestId('description-full-measure'), 'layout', {
-        nativeEvent: { layout: { height: 22 } },
-      });
-      fireEvent(getByTestId('description-truncated-measure'), 'layout', {
-        nativeEvent: { layout: { height: 22 } },
-      });
+      fireTextLayout(getByTestId, 2);
 
       expect(queryByText('See more')).toBeNull();
       expect(queryByText('See less')).toBeNull();

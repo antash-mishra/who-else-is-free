@@ -1,4 +1,5 @@
 import { CoverPickerContent } from '@components/CoverPickerModal';
+import { DescriptionEditorContent } from '@components/DescriptionEditorModal';
 import { EventDateTimePickerContent } from '@components/EventDateTimeModal';
 import { LocationPickerContent } from '@components/LocationPickerModal';
 import { SelectionModalContent } from '@components/SelectionModal';
@@ -33,6 +34,8 @@ export const getCreateEventSheetTitle = (sheet: CreateEventSheet | null): string
       return 'Age';
     case 'location':
       return 'Select Location';
+    case 'description':
+      return 'Description';
     default:
       return undefined;
   }
@@ -58,6 +61,8 @@ type CreateEventSheetContentProps = {
   onConfirmAge: () => void;
   selectedLocationLabel: string;
   onSelectLocation: (place: PlaceDetail) => void;
+  description: string;
+  onDescriptionDone: (text: string) => void;
   onClose: () => void;
 };
 
@@ -82,6 +87,8 @@ const CreateEventSheetContent = ({
   onConfirmAge,
   selectedLocationLabel,
   onSelectLocation,
+  description,
+  onDescriptionDone,
   onClose,
 }: CreateEventSheetContentProps) => {
   switch (renderedSheet) {
@@ -140,6 +147,14 @@ const CreateEventSheetContent = ({
           onClose={onClose}
           onSelect={onSelectLocation}
           initialQuery={selectedLocationLabel}
+        />
+      );
+    case 'description':
+      return (
+        <DescriptionEditorContent
+          visible={activeSheet === 'description'}
+          initialValue={description}
+          onDone={onDescriptionDone}
         />
       );
     case 'signIn':

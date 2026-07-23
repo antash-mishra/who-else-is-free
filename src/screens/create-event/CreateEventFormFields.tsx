@@ -6,6 +6,7 @@ import UploadIcon from '@assets/create-event/choose-cover.svg';
 import { colors } from '@theme/index';
 
 import styles from '../CreateEventScreen.styles';
+import DescriptionPreview from './DescriptionPreview';
 
 type CreateEventFormFieldsProps = {
   selectedCoverUri: string;
@@ -17,7 +18,7 @@ type CreateEventFormFieldsProps = {
   dateTimeLabel: string;
   selectedLocationLabel: string;
   onChangeEventName: (value: string) => void;
-  onChangeDescription: (value: string) => void;
+  onOpenDescription: () => void;
   onOpenCoverPicker: () => void;
   onOpenGroupTypePicker: () => void;
   onOpenGenderPicker: () => void;
@@ -37,7 +38,7 @@ const CreateEventFormFields = ({
   dateTimeLabel,
   selectedLocationLabel,
   onChangeEventName,
-  onChangeDescription,
+  onOpenDescription,
   onOpenCoverPicker,
   onOpenGroupTypePicker,
   onOpenGenderPicker,
@@ -48,8 +49,8 @@ const CreateEventFormFields = ({
   <>
     <Pressable style={styles.coverCard} onPress={onOpenCoverPicker} accessibilityRole="button">
       <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
-      <BlurView intensity={60} tint="dark" style={styles.coverChip}>
-        <UploadIcon width={20} height={20} color="white" />
+      <BlurView intensity={45} tint="dark" style={styles.coverChip}>
+        <UploadIcon width={20} height={20} color="white" style={{ opacity: 0.9 }} />
       </BlurView>
     </Pressable>
 
@@ -65,17 +66,14 @@ const CreateEventFormFields = ({
           style={styles.textInput}
         />
         <View style={styles.fieldDivider} />
-        <TextInput
-          placeholder="Description"
-          value={description}
-          onChangeText={onChangeDescription}
-          placeholderTextColor={colors.createTextFaint}
-          cursorColor={colors.selectedTextOnDark}
-          selectionColor={colors.selectedTextOnDark}
-          style={[styles.textInput, styles.descriptionInput]}
-          multiline
-          textAlignVertical="top"
-        />
+        <Pressable
+          style={styles.descriptionRow}
+          onPress={onOpenDescription}
+          accessibilityRole="button"
+          accessibilityLabel="Edit description"
+        >
+          <DescriptionPreview description={description} />
+        </Pressable>
       </View>
     </View>
 

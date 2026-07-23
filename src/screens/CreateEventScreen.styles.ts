@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilySemiBold,
     color: colors.card,
     lineHeight: typography.header,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.3,
   },
   // ✕ close button (top-right corner)
   dismissButton: {
@@ -122,11 +122,14 @@ const styles = StyleSheet.create({
   // Upload icon badge (bottom-right of cover card)
   coverChip: {
     position: 'absolute',
-    bottom: 6,
-    right: 6,
+    bottom: 10,
+    right: 10,
     padding: spacing.sm,
     borderRadius: 999,
     overflow: 'hidden',
+    // Faint dark tint over the (lighter) blur so the white icon keeps contrast
+    // on bright covers.
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
@@ -184,19 +187,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.fontFamilyMedium,
     color: 'rgba(255, 255, 255, 1)',
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.3,
     lineHeight: 22,
     paddingVertical: 12,
     paddingRight: 10,
   },
-  // Description-specific overrides (applied on top of textInput)
-  descriptionInput: {
-    fontSize: 17,
-    lineHeight: 20,
+  // Description is now a tappable preview row that opens the editor sheet
+  // (not an inline input), so it matches the other option rows.
+  descriptionRow: {
     paddingVertical: 13,
-    minHeight: 46,
-    maxHeight: undefined,
     paddingRight: 10,
+    minHeight: 46,
+    justifyContent: 'center',
+  },
+  descriptionValue: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyRegular,
+    color: 'rgba(255, 255, 255, 0.9)', // softened body without thinning the strokes
+    lineHeight: 22,
+    letterSpacing: -0.3,
+  },
+  // Empty state matches the old "Description" placeholder look (Medium/17/faint).
+  descriptionPlaceholder: {
+    fontSize: 16, // match the field labels (Gender / Age) — 16 Medium faint
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.createTextFaint,
   },
 
   // ┌─────────────────────────────────────────────────────────────┐
@@ -218,7 +233,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: colors.createTextFaint,
     lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.3,
   },
   // Right-side pill showing current value ("Single", "Any", etc.)
   fieldValuePill: {
@@ -238,7 +253,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     lineHeight: typography.lineHeight,
     color: colors.createTextPrimary,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.3,
   },
 
   // ┌─────────────────────────────────────────────────────────────┐
@@ -354,9 +369,14 @@ const styles = StyleSheet.create({
   },
   // "Create Event" / "Update Event" / "Sign Up or Log In" button
   primaryButton: {
-    backgroundColor: colors.createButtonBackground,
+    // Frosted glass: translucent white fill over a BlurView (see CreateEventSubmitButton).
+    // overflow clips the blur to the pill; hairline border defines the edge.
+    backgroundColor: colors.createButtonGlass,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.createButtonGlassBorder,
     borderRadius: 999,
     borderCurve: 'continuous',
+    overflow: 'hidden',
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
@@ -372,7 +392,7 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilySemiBold,
     lineHeight: 24,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: -0.3,
   },
 });
 

@@ -137,6 +137,13 @@ describe('CreateEventScreen Rendering', () => {
     });
   };
 
+  // Description is edited in its own sheet: tap the row, type, press Done (commit).
+  const fillDescription = (text: string) => {
+    fireEvent.press(screen.getByLabelText('Edit description'));
+    fireEvent.changeText(screen.getByPlaceholderText('Write a description'), text);
+    fireEvent.press(screen.getByLabelText('Done editing description'));
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     currentRouteParams = {};
@@ -151,7 +158,7 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     expect(screen.getByPlaceholderText('Event Name')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Description')).toBeTruthy();
+    expect(screen.getByLabelText('Edit description')).toBeTruthy();
     expect(screen.getByText('Select Location')).toBeTruthy();
     expect(screen.getByText('Date & Time')).toBeTruthy();
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
@@ -172,14 +179,14 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     const titleInput = screen.getByPlaceholderText('Event Name');
-    const descriptionInput = screen.getByPlaceholderText('Description');
 
     fireEvent.changeText(titleInput, 'Coffee Meetup');
-    fireEvent.changeText(descriptionInput, 'Casual chat');
+    fillDescription('Casual chat');
     fireEvent.press(screen.getByText('Gender'));
 
     expect(screen.getByPlaceholderText('Event Name').props.value).toBe('Coffee Meetup');
-    expect(screen.getByPlaceholderText('Description').props.value).toBe('Casual chat');
+    // DescriptionPreview renders a hidden measure copy + the visible text.
+    expect(screen.getAllByText('Casual chat').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Gender').length).toBeGreaterThan(0);
   });
 
@@ -197,7 +204,7 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Coffee Meetup');
-    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Casual chat');
+    fillDescription('Casual chat');
     await selectMockLocation();
 
     fireEvent.press(screen.getByTestId('create-event-submit'));
@@ -226,7 +233,7 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Create From Null');
-    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Casual chat');
+    fillDescription('Casual chat');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
@@ -242,7 +249,7 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Guest Event');
-    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Guest description');
+    fillDescription('Guest description');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
@@ -319,7 +326,7 @@ describe('CreateEventScreen Rendering', () => {
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Past Event');
-    fireEvent.changeText(screen.getByPlaceholderText('Description'), 'Past description');
+    fillDescription('Past description');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
 

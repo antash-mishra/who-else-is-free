@@ -92,6 +92,7 @@ const CreateEventScreen = () => {
   // Responsive gap for spacing between form elements
   const responsiveGap = spacing.xs;
   const locationSheetHeight = useMemo(() => Math.round(windowHeight * 0.9), [windowHeight]);
+  const descriptionSheetHeight = useMemo(() => Math.round(windowHeight * 0.5), [windowHeight]);
 
   const editEventIdParam = route.params?.editEventId;
   const editEventId =
@@ -228,6 +229,21 @@ const CreateEventScreen = () => {
     triggerHaptic('light');
     openSheet('location');
   }, [openSheet]);
+
+  const openDescriptionEditor = useCallback(() => {
+    triggerHaptic('light');
+    openSheet('description');
+  }, [openSheet]);
+
+  // Commit the draft from the Description sheet, then close. (Dismiss without
+  // Done keeps the draft local, so it is discarded.)
+  const handleDescriptionDone = useCallback(
+    (text: string) => {
+      setDescription(text);
+      closeActiveSheet();
+    },
+    [closeActiveSheet, setDescription],
+  );
 
   // Confirm selection handlers
   const confirmAgeSelection = useCallback(() => {
@@ -478,7 +494,11 @@ const CreateEventScreen = () => {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             enableOnAndroid={true}
-            enableAutomaticScroll={true}
+            // Disable auto-scroll while a sheet is open: its focused TextInput
+            // (Description / Location) lives in a separate Modal hierarchy, so
+            // measuring it against this scroll view fails and logs
+            // "Error measuring text field." The sheet handles its own keyboard.
+            enableAutomaticScroll={activeSheet === null}
             extraScrollHeight={0}
             extraHeight={0}
             enableResetScrollToCoords={false}
@@ -494,7 +514,7 @@ const CreateEventScreen = () => {
               dateTimeLabel={dateTimeLabel}
               selectedLocationLabel={selectedLocationLabel}
               onChangeEventName={setEventName}
-              onChangeDescription={setDescription}
+              onOpenDescription={openDescriptionEditor}
               onOpenCoverPicker={openCoverPicker}
               onOpenGroupTypePicker={openGroupTypePicker}
               onOpenGenderPicker={openGenderPicker}
@@ -521,7 +541,14 @@ const CreateEventScreen = () => {
         visible={activeSheet !== null}
         title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
-        snapHeight={renderedSheet === 'location' ? locationSheetHeight : undefined}
+        avoidKeyboard={renderedSheet === 'description'}
+        snapHeight={
+          renderedSheet === 'location'
+            ? locationSheetHeight
+            : renderedSheet === 'description'
+              ? descriptionSheetHeight
+              : undefined
+        }
       >
         <CreateEventSheetContent
           renderedSheet={renderedSheet}
@@ -543,6 +570,8 @@ const CreateEventScreen = () => {
           onConfirmAge={confirmAgeSelection}
           selectedLocationLabel={selectedLocationLabel}
           onSelectLocation={handleLocationSelect}
+          description={form.description}
+          onDescriptionDone={handleDescriptionDone}
           onClose={closeActiveSheet}
         />
       </CreateEventBottomSheet>

@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   goingRow: {
-    marginTop: spacing.sm, // Gap B: host → "N Going" (group)
+    marginTop: 10, // Gap B: host → "N Going" (group)
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
@@ -182,8 +182,25 @@ const styles = StyleSheet.create({
   goingAvatarOverlap: {
     marginLeft: -9,
   },
+  // "+N" overflow circle at the end of the avatar stack (same size as an avatar).
+  goingOverflowBadge: {
+    // 24 avatar + 2×1.5 border so the badge's footprint matches an avatar item
+    // (RN is border-box, so the goingAvatarItem border is inside this width).
+    width: 27,
+    height: 27,
+    borderRadius: 999,
+    backgroundColor: colors.avatarOverflowBadge,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goingOverflowText: {
+    fontSize: 11,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.buttonText, // white on the grey badge
+    letterSpacing: -0.2,
+  },
   goingLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: typography.fontFamilyRegular,
     color: colors.iconColor, // match "Hosted by" — same secondary-metadata tier
     lineHeight: 20,
@@ -273,12 +290,22 @@ const styles = StyleSheet.create({
   descriptionContent: {
     flex: 1,
   },
+  // In-flow (height 0, clipped) so the hidden measure wraps at the same width
+  // as the visible description text.
   measureContainer: {
-    position: 'absolute',
-    top: -9999,
-    left: 0,
-    right: 0,
-    opacity: 0,
+    height: 0,
+    overflow: 'hidden',
+  },
+  // Line 2 of a truncated description: text ellipsizes to fill, "See more" pins right.
+  descriptionSecondLine: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  descriptionSecondLineText: {
+    flex: 1,
+  },
+  seeMoreInlineGap: {
+    marginLeft: 2,
   },
   ctaContainer: {
     paddingHorizontal: spacing.md,
@@ -373,16 +400,13 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
 
-  // See more text
-  seeMoreButton: {
-    alignSelf: 'flex-start', // hug the text so the press-scale is tight, not full-width
-    marginTop: 2,
-  },
+  // Inline "See more" / "See less" link (matches the description's size/line-height
+  // so it aligns on the baseline row).
   seeMoreText: {
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
     color: colors.iconColor,
-    lineHeight: 20,
+    lineHeight: 22,
     letterSpacing: -0.3,
   },
 

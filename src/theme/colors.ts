@@ -27,6 +27,7 @@ export const colors = {
   borderSubtle: '#E6E6E6',
   divider: '#F2F2F2', // subtle row divider / line separator (1px) — chat, member/request lists, account, help
   checkboxBorder: '#D0D0D0',
+  avatarOverflowBadge: '#A3A3A3', // "+N" circle at the end of the going avatar stack
   inputSurface: '#F4F4F4',
   error: '#FF383C',
   tabInactive: '#A3A3A3',
@@ -70,6 +71,10 @@ export const colors = {
   createChipActiveBackground: '#FFFFFF',
   createChipActiveText: '#1A1E2E',
   createButtonBackground: '#FFFFFF',
+  // Frosted-glass primary button: translucent white over a light BlurView so the
+  // CTA reads bright/white but lets the background through (matches the frosted UI).
+  createButtonGlass: 'rgba(255, 255, 255, 0.85)',
+  createButtonGlassBorder: 'rgba(255, 255, 255, 0.7)',
   createButtonText: '#1A1E2E',
   createOverlay: 'rgba(10, 18, 40, 0.45)',
   coverCardBase: '#FFFFFF',

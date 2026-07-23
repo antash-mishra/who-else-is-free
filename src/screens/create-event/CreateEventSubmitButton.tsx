@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import MaskedView from '@react-native-masked-view/masked-view';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -104,6 +105,9 @@ const CreateEventSubmitButton = ({
             buttonScaleStyle,
           ]}
         >
+          {/* Frosted-glass backing: light blur lets the content behind show through,
+              the translucent white fill (primaryButton bg) keeps it reading as white. */}
+          <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
           {isSubmitting && !isEditing ? (
             <MaskedView
               style={shimmerStyles.root}

@@ -9,6 +9,7 @@ export type CreateEventSheet =
   | 'cover'
   | 'dateTime'
   | 'location'
+  | 'description'
   | 'signIn';
 
 const SHEET_CLOSE_DURATION_MS = 320;
