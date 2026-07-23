@@ -126,7 +126,6 @@ describe('ChatThreadScreen Rendering', () => {
 
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const todayAbsoluteLabel = `${String(today.getDate()).padStart(2, '0')} ${today.toLocaleString('en-US', { month: 'short' })} ${today.toLocaleString('en-US', { weekday: 'short' })}`;
 
   const setupMocks = (overrides: {
     authOverrides?: object;
@@ -167,9 +166,10 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks();
       const { getByText } = render(<ChatThreadScreen />);
 
-      expect(getByText('Hello everyone!')).toBeTruthy();
-      expect(getByText('Hi there! Looking forward to the meetup.')).toBeTruthy();
-      expect(getByText('See you soon!')).toBeTruthy();
+      // Body shares its Text node with the inline timestamp, so match a substring.
+      expect(getByText(/Hello everyone!/)).toBeTruthy();
+      expect(getByText(/Hi there! Looking forward to the meetup/)).toBeTruthy();
+      expect(getByText(/See you soon!/)).toBeTruthy();
     });
 
     it('should display conversation title in header', () => {
@@ -179,7 +179,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('Coffee Meetup Chat')).toBeTruthy();
     });
 
-    it('should render member count and date subtitle in group mode using dateLabel as-is', () => {
+    it('should render "Group" and the member count subtitle in group mode', () => {
       setupMocks({
         chatOverrides: {
           conversations: [
@@ -197,8 +197,9 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      // 2 members (memberIds: [1, 2]) + legacy date label, no time/location reformatting
-      expect(getByText('2 Members, Today')).toBeTruthy();
+      // Subtitle: "Group · 2 Members" (memberIds: [1, 2]) — two parts, dot separator.
+      expect(getByText('Group')).toBeTruthy();
+      expect(getByText('2 Members')).toBeTruthy();
     });
 
     it('should render counterpart name and "One to one, <date>" subtitle in 1:1 mode', () => {
@@ -221,7 +222,8 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByText } = render(<ChatThreadScreen />);
 
       expect(getByText('Liam Test')).toBeTruthy();
-      expect(getByText('One to one, Today')).toBeTruthy();
+      expect(getByText('One to one')).toBeTruthy();
+      expect(getByText('Today')).toBeTruthy();
     });
 
     it('should render own messages with appropriate styling', () => {
@@ -229,7 +231,7 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByText } = render(<ChatThreadScreen />);
 
       // Messages from current user (id: 1)
-      const ownMessage = getByText('Hello everyone!');
+      const ownMessage = getByText(/Hello everyone!/);
       expect(ownMessage).toBeTruthy();
     });
 
@@ -238,7 +240,7 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByText } = render(<ChatThreadScreen />);
 
       // Message from user id: 2
-      const otherMessage = getByText('Hi there! Looking forward to the meetup.');
+      const otherMessage = getByText(/Hi there! Looking forward to the meetup/);
       expect(otherMessage).toBeTruthy();
     });
 
@@ -353,7 +355,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      const failedMessageText = getByText('Failed to send');
+      const failedMessageText = getByText(/Failed to send/);
       fireEvent.press(failedMessageText);
 
       expect(mockRetryMessage).toHaveBeenCalledWith(1, mockFailedMessage);
@@ -387,7 +389,8 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByText } = render(<ChatThreadScreen />);
 
       // Subtitle is NOT replaced by the connecting indicator
-      expect(getByText(`2 Members, ${todayAbsoluteLabel}`)).toBeTruthy();
+      expect(getByText('Group')).toBeTruthy();
+      expect(getByText('2 Members')).toBeTruthy();
     });
 
     it('should display error message when error exists', () => {

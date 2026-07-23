@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     letterSpacing: -0.5,
     color: colors.fieldLabel,
+    marginRight: 8, // match the menu button's padding so "Host" aligns with the "…" icons
   },
 });
 

@@ -70,7 +70,7 @@ const ChatComposer = ({
         value={draft}
         onChangeText={onDraftChange}
         style={styles.composerInput}
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={colors.tabInactive}
         multiline
       />
       <Pressable
@@ -484,8 +484,18 @@ const ChatThreadScreen = () => {
         prevMessage.body.toLowerCase() === 'updated event detail'
       : false;
     const isFirstInRun = !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
+
+    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
+    const nextIsSystem = nextMessage
+      ? nextMessage.body.toLowerCase().endsWith('joined the chat') ||
+        nextMessage.body.toLowerCase() === 'updated event detail'
+      : false;
+    const isLastInRun = !nextMessage || nextMessage.senderId !== item.senderId || nextIsSystem;
+
     const showAvatar = !isOwn;
     const showName = showAvatar && isFirstInRun;
+    // Every message shows its own inline timestamp (kept compact by being inline).
+    const showMeta = true;
 
     const timeText = item.pending
       ? 'Sending…'
@@ -504,21 +514,22 @@ const ChatThreadScreen = () => {
           item.failed ? styles.messageBubbleFailed : undefined,
         ]}
       >
-        {showName && firstName ? <Text style={styles.senderName}>{firstName}</Text> : null}
         <Text style={[styles.messageText, isOwn ? styles.messageTextOwn : styles.messageTextOther]}>
           {item.body}
-        </Text>
-        <Text
-          style={[
-            styles.messageMeta,
-            item.failed
-              ? styles.messageMetaFailed
-              : isOwn
-                ? styles.messageMetaOwn
-                : styles.messageMetaOther,
-          ]}
-        >
-          {timeText}
+          {showMeta ? (
+            <Text
+              style={[
+                styles.messageMeta,
+                item.failed
+                  ? styles.messageMetaFailed
+                  : isOwn
+                    ? styles.messageMetaOwn
+                    : styles.messageMetaOther,
+              ]}
+            >
+              {`  ${timeText}`}
+            </Text>
+          ) : null}
         </Text>
       </View>
     );
@@ -537,9 +548,16 @@ const ChatThreadScreen = () => {
     );
 
     return (
-      <View style={[styles.messageRow, isOwn ? styles.messageRowOwn : styles.messageRowOther]}>
+      <View
+        style={[
+          styles.messageRow,
+          isOwn ? styles.messageRowOwn : styles.messageRowOther,
+          // Tight gap within a run, full gap between senders (grouping).
+          { marginBottom: isLastInRun ? spacing.sm : 3 },
+        ]}
+      >
         {showAvatar ? (
-          isFirstInRun ? (
+          isLastInRun ? (
             <UserAvatar
               avatar={participant?.avatar}
               name={senderName}
@@ -551,13 +569,17 @@ const ChatThreadScreen = () => {
             <View style={styles.avatarSpacer} />
           )
         ) : null}
-        <View style={styles.messageBubbleContainer}>{bubbleContent}</View>
+        <View style={styles.messageBubbleContainer}>
+          {showName && firstName ? <Text style={styles.senderName}>{firstName}</Text> : null}
+          {bubbleContent}
+        </View>
       </View>
     );
   };
 
   const composerProps: ComposerProps = {
-    activeConversationName: activeConversation.displayName,
+    // Placeholder name matches the header title: counterpart in 1:1, group/event name otherwise.
+    activeConversationName: headerTitle,
     composerBottomPadding,
     draft,
     isSendDisabled,
@@ -734,21 +756,22 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
     flexShrink: 0,
   },
+  // Sender label above the bubble: distinct from the smaller, centered system notices.
   senderName: {
-    fontSize: 17,
-    fontFamily: typography.fontFamilyMedium,
-    fontWeight: '500',
-    lineHeight: 22,
-    letterSpacing: -0.5,
-    color: colors.text,
-    marginBottom: 2,
+    fontSize: 13,
+    fontFamily: typography.fontFamilyRegular,
+    lineHeight: 16,
+    letterSpacing: -0.3,
+    color: colors.subText,
+    marginBottom: 4,
+    marginLeft: spacing.md, // = messageBubble paddingLeft, so the name lines up with the text
   },
   messageBubble: {
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingLeft: 16,
-    paddingRight: 16,
-    borderRadius: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingLeft: 14,
+    paddingRight: 14,
+    borderRadius: 18,
     borderCurve: 'continuous',
   },
   messageBubbleOwn: {
@@ -763,7 +786,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   messageText: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: typography.fontFamilyRegular,
     fontWeight: '400',
     lineHeight: 22,
@@ -775,14 +798,12 @@ const styles = StyleSheet.create({
   messageTextOther: {
     color: colors.text,
   },
+  // Inline timestamp appended to the message text (nested Text).
   messageMeta: {
-    marginTop: 4,
     fontSize: 11,
     fontFamily: typography.fontFamilyRegular,
     fontWeight: '400',
-    lineHeight: 11,
     letterSpacing: -0.3,
-    textAlign: 'right',
   },
   messageMetaOwn: {
     color: colors.buttonText,
@@ -797,11 +818,12 @@ const styles = StyleSheet.create({
   systemMessageRow: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     paddingHorizontal: spacing.lg,
   },
+  // Quiet system notices: small (12) keeps them recessive; grey stays readable.
   systemMessageText: {
-    fontSize: typography.caption,
+    fontSize: 12,
     color: colors.subText,
     textAlign: 'center',
     letterSpacing: -0.3,
@@ -826,7 +848,7 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: spacing.sm,
     fontFamily: typography.fontFamilyRegular,
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: -0.3,
   },
   sendIconButton: {
