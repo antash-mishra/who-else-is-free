@@ -65,6 +65,7 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
             testIDPrefix={
               isAccepted ? 'event-details-accepted-overlay-tab' : 'event-details-overlay-tab'
             }
+            style={{ paddingTop: 28 }}
           />
           <View style={[styles.divider, { marginVertical: 0 }]} />
         </View>
@@ -113,6 +114,7 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
           options={[{ label: 'Members', value: 'members', count: members.length }]}
           value="members"
           testIDPrefix="event-details-readonly-tab"
+          style={{ paddingTop: 28 }}
         />
         <View style={[styles.divider, { marginVertical: 0 }]} />
       </View>

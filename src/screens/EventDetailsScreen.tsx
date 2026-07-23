@@ -404,9 +404,12 @@ const EventDetailsScreenContent = ({
 
             {userIntroMessage && !readOnly && isConversationMember ? (
               <>
-                <View style={styles.divider} />
+                {/* Card has no gap: set section break (20) + heading→text (12) explicitly. */}
+                <View style={[styles.divider, { marginTop: 20, marginBottom: 20 }]} />
                 <Text style={styles.sectionHeading}>Introduction</Text>
-                <Text style={styles.introMessageText}>"{userIntroMessage}"</Text>
+                <Text style={[styles.introMessageText, { marginTop: 12 }]}>
+                  "{userIntroMessage}"
+                </Text>
               </>
             ) : null}
           </View>
