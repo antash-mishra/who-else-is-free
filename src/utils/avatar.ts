@@ -21,6 +21,24 @@ const AVATAR_COLORS = [
   "#F07878",
 ] as const;
 
+// Gradient backgrounds for no-photo avatars, as [startColor, endColor] pairs
+// (0% → 100%). Rendered diagonally by AvatarBackground. Hex values are
+// brand/artwork palette data — an allowed exception to the theme-token rule.
+const AVATAR_GRADIENTS = [
+  ["#FEC1C2", "#F83134"], // red
+  ["#F1E0C1", "#FF4010"], // orange
+  ["#F8CDEE", "#FF22C8"], // magenta
+  ["#FFFFA7", "#F2A900"], // yellow
+  ["#CDFAF0", "#00B8A0"], // teal
+  ["#E9E1F9", "#7731F8"], // purple
+  ["#CED2F7", "#313CF8"], // indigo
+  ["#D1ECF8", "#0193D7"], // blue
+  ["#CEF5BC", "#38BB00"], // green
+  ["#C5F7E4", "#00A767"], // emerald
+] as const;
+
+export type AvatarGradient = readonly [string, string];
+
 const URI_PREFIXES = [
   "data:",
   "http://",
@@ -75,4 +93,16 @@ export const getAvatarColor = (
 ): string => {
   const baseSeed = seed ?? fallbackName ?? 0;
   return AVATAR_COLORS[hashSeed(baseSeed) % AVATAR_COLORS.length];
+};
+
+/**
+ * Deterministically maps a seed to one of the gradient backgrounds, so a given
+ * user always resolves to the same [start, end] pair.
+ */
+export const getAvatarGradient = (
+  seed?: number | string | null,
+  fallbackName?: string | null,
+): AvatarGradient => {
+  const baseSeed = seed ?? fallbackName ?? 0;
+  return AVATAR_GRADIENTS[hashSeed(baseSeed) % AVATAR_GRADIENTS.length];
 };

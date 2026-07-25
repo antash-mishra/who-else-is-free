@@ -23,6 +23,7 @@ import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import CameraIcon from '@assets/onboarding/camera.svg';
 import ProfileIcon from '@assets/onboarding/profile.svg';
+import AvatarBackground from '@components/AvatarBackground';
 import { getAvatarColor } from '@utils/avatar';
 
 let ImagePicker: typeof import('expo-image-picker') | null = null;
@@ -138,6 +139,7 @@ const EditProfileScreen = () => {
             <TouchableOpacity onPress={pickImage} accessibilityRole="button">
               {!editAvatarValue && !editName.trim() ? (
                 <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+                  <AvatarBackground seed={user?.id} name={editName.trim() || user?.name} />
                   <ProfileIcon width={52} height={52} />
                 </View>
               ) : (
@@ -236,6 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden', // clip the gradient background to the circle
   },
   cameraBadgeShadow: {
     position: 'absolute',

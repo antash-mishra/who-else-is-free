@@ -1,5 +1,6 @@
 import {
   getAvatarColor,
+  getAvatarGradient,
   getAvatarInitials,
   resolveAvatarUri,
 } from "../avatar";
@@ -49,6 +50,23 @@ describe("avatar utils", () => {
 
     it("falls back to the name when no explicit seed is provided", () => {
       expect(getAvatarColor(undefined, "Ada")).toBe(getAvatarColor(undefined, "Ada"));
+    });
+  });
+
+  describe("getAvatarGradient", () => {
+    it("is stable for the same seed", () => {
+      expect(getAvatarGradient(42)).toEqual(getAvatarGradient(42));
+      expect(getAvatarGradient("Ada")).toEqual(getAvatarGradient("Ada"));
+    });
+
+    it("falls back to the name when no explicit seed is provided", () => {
+      expect(getAvatarGradient(undefined, "Ada")).toEqual(getAvatarGradient(undefined, "Ada"));
+    });
+
+    it("resolves to a [start, end] color pair", () => {
+      const [start, end] = getAvatarGradient("someone");
+      expect(start).toMatch(/^#[0-9A-F]{6}$/i);
+      expect(end).toMatch(/^#[0-9A-F]{6}$/i);
     });
   });
 });
