@@ -132,8 +132,9 @@ const sampleNotifications = (): AppNotification[] => [
     id: 1,
     type: 'chat.message',
     conversationId: 10,
-    title: 'Alice',
+    title: 'Dancing',
     body: 'Alice: hey',
+    payload: JSON.stringify({ senderName: 'Alice' }),
     read: false,
     createdAt: new Date(Date.now() - 5 * 60_000).toISOString(),
   },
@@ -213,7 +214,7 @@ describe('NotificationsScreen Rendering', () => {
     expect(mockClearAll).toHaveBeenCalledTimes(1);
   });
 
-  it('renders notification rows with title, body, and unread dot', () => {
+  it('renders the composed notification copy and unread dot', () => {
     mockNotificationsValue = {
       ...mockNotificationsValue,
       notifications: sampleNotifications(),
@@ -221,9 +222,11 @@ describe('NotificationsScreen Rendering', () => {
     };
     const { getByText } = render(<NotificationsScreen />);
 
-    expect(getByText('Alice: hey')).toBeTruthy();
+    // Chat: composed sentence with the message preview inline.
+    expect(getByText('New message from Alice in Dancing: hey')).toBeTruthy();
+    // Declined: event name leads the softened sentence.
     expect(
-      getByText('This event is no longer available to you. Explore other events nearby.'),
+      getByText('Hike is no longer available to you. Explore other events nearby.'),
     ).toBeTruthy();
   });
 
@@ -247,7 +250,7 @@ describe('NotificationsScreen Rendering', () => {
     const { getByLabelText } = render(<NotificationsScreen />);
 
     await act(async () => {
-      fireEvent.press(getByLabelText('Alice'));
+      fireEvent.press(getByLabelText(/New message from Alice/));
     });
 
     expect(mockMarkRead).toHaveBeenCalledWith(1);
@@ -264,7 +267,7 @@ describe('NotificationsScreen Rendering', () => {
     const { getByLabelText } = render(<NotificationsScreen />);
 
     await act(async () => {
-      fireEvent.press(getByLabelText('Hike'));
+      fireEvent.press(getByLabelText(/Hike is no longer available/));
     });
 
     // Read row => markRead NOT called for id 2.
@@ -284,7 +287,7 @@ describe('NotificationsScreen Rendering', () => {
     const { getByLabelText } = render(<NotificationsScreen />);
 
     await act(async () => {
-      fireEvent.press(getByLabelText('Alice'));
+      fireEvent.press(getByLabelText(/New message from Alice/));
     });
 
     expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
