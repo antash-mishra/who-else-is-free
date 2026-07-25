@@ -419,13 +419,15 @@ const styles = StyleSheet.create({
     // button container, so it visually sits on the bell's upper-right.
     top: 10,
     right: 11,
-    // White ring around the dot. RN draws borders inside the box, so bump the
-    // size to 12 (8px blue fill + 2px ring on each side) to keep the blue 8px.
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    // Match the chat tab-bar unread dot: red fill with a white ring. RN draws
+    // borders inside the box, so 10px outer (6px red fill + 2px ring each side)
+    // keeps it the same size as the chat dot.
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     borderWidth: 2,
     borderColor: colors.background,
+    backgroundColor: colors.tabBarUnreadDot,
   },
   headerTitle: {
     fontSize: typography.header,

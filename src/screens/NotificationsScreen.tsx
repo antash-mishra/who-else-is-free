@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   ActivityIndicator,
-  FlatList,
   InteractionManager,
   Pressable,
   RefreshControl,
+  SectionList,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
@@ -28,9 +29,11 @@ import { useNotifications } from '@context/NotificationsContext';
 import { routeFromNotification, PushData } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
 import { RootStackParamList } from '@navigation/types';
+import { ChatGroup, InboxItem, JoinGroup, collapseNotifications } from '@utils/notificationCollapse';
+import { groupNotificationsByDate } from '@utils/notificationSections';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import { colors, layout, spacing } from '@theme/index';
+import { colors, layout, spacing, typography } from '@theme/index';
 import { getNextCompactRelativeTimeUpdateMs } from '@utils/relativeTime';
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -64,6 +67,28 @@ const NotificationsScreen = () => {
   const { events } = useEvents();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [menuVisible, setMenuVisible] = useState(false);
+  // Collapse chat messages per conversation, then bucket into time sections.
+  const inboxItems = useMemo(() => collapseNotifications(notifications), [notifications]);
+  // Event cover for singles + join groups (chat groups fall back to a monogram).
+  const resolveEventImageUri = useCallback(
+    (item: InboxItem): string | undefined => {
+      let eventId: number | undefined;
+      if (item.kind === 'single') {
+        eventId = item.notification.eventId ?? undefined;
+      } else if (item.kind === 'joinGroup') {
+        eventId = item.group.eventId;
+      }
+      if (eventId == null) {
+        return undefined;
+      }
+      return events.find((event) => Number(event.id) === eventId)?.imageUri;
+    },
+    [events],
+  );
+  const sections = useMemo(
+    () => groupNotificationsByDate(inboxItems, nowMs),
+    [inboxItems, nowMs],
+  );
 
   // Reload page 1 + count whenever the inbox is focused so it's fresh on open.
   useFocusEffect(
@@ -108,6 +133,46 @@ const NotificationsScreen = () => {
     [markRead, setActiveConversation],
   );
 
+  // Tapping a collapsed group: route, then mark all of the group's underlying
+  // notifications read (so the row clears).
+  const markGroupRead = useCallback(
+    (ids: number[]) => {
+      InteractionManager.runAfterInteractions(() => {
+        ids.forEach((id) => markRead(id).catch(() => undefined));
+      });
+    },
+    [markRead],
+  );
+
+  const handleChatGroupPress = useCallback(
+    (group: ChatGroup) => {
+      routeFromNotification(
+        { type: 'chat.message', conversationId: String(group.conversationId) },
+        setActiveConversation,
+        navigationRef,
+      );
+      markGroupRead(group.ids);
+    },
+    [markGroupRead, setActiveConversation],
+  );
+
+  const handleJoinGroupPress = useCallback(
+    (group: JoinGroup) => {
+      routeFromNotification(
+        {
+          type: 'join_request.created',
+          eventId: String(group.eventId),
+          conversationId: group.conversationId != null ? String(group.conversationId) : undefined,
+          title: group.eventName,
+        },
+        setActiveConversation,
+        navigationRef,
+      );
+      markGroupRead(group.ids);
+    },
+    [markGroupRead, setActiveConversation],
+  );
+
   const handleMarkAllRead = useCallback(() => {
     setMenuVisible(false);
     if (unreadCount === 0) return;
@@ -123,7 +188,8 @@ const NotificationsScreen = () => {
 
   const showInitialLoading = loading && notifications.length === 0 && !refreshing;
   const showError = !!error && !loading && notifications.length === 0;
-  const showEmpty = !loading && notifications.length === 0 && !error;
+  // Empty when nothing is left to show after collapse (e.g. all chat rows read).
+  const showEmpty = !loading && inboxItems.length === 0 && !error;
 
   const menuActions = [
     {
@@ -180,23 +246,25 @@ const NotificationsScreen = () => {
           </Pressable>
         </View>
       ) : (
-        <FlatList
-          data={notifications}
-          keyExtractor={(item) => String(item.id)}
-          renderItem={({ item, index }) => (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.key}
+          renderItem={({ item }) => (
             <NotificationRow
-              notification={item}
-              onPress={handleRowPress}
+              item={item}
+              onPressSingle={handleRowPress}
+              onPressChatGroup={handleChatGroupPress}
+              onPressJoinGroup={handleJoinGroupPress}
               nowMs={nowMs}
-              isLast={index === notifications.length - 1}
-              eventImageUri={
-                item.eventId != null
-                  ? events.find((event) => Number(event.id) === item.eventId)?.imageUri
-                  : undefined
-              }
+              eventImageUri={resolveEventImageUri(item)}
             />
           )}
+          renderSectionHeader={({ section }) => (
+            <Text style={styles.sectionHeader}>{section.title}</Text>
+          )}
+          stickySectionHeadersEnabled={false}
           style={styles.list}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             showEmpty ? styles.emptyList : styles.listContent,
             { paddingBottom: spacing.xl + safeBottom },
@@ -282,6 +350,20 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
+    // Restore the first section's original distance from the title bar, since
+    // sectionHeader.marginTop is now reduced for the between-section gaps.
+    paddingTop: spacing.sm,
+  },
+  // Time-section header — matches the Discover event-list section headers.
+  sectionHeader: {
+    paddingLeft: spacing.md, // align with the row avatars
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+    fontSize: 15,
+    lineHeight: typography.body + spacing.xs,
+    letterSpacing: typography.detailLetterSpacing,
+    color: colors.cardMeta,
+    fontFamily: typography.fontFamilyMedium,
   },
   emptyList: {
     flex: 1,

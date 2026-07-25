@@ -8,44 +8,81 @@ import UserAvatar from '@components/UserAvatar';
 import { UnreadDot } from '@components/ui';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing, typography } from '@theme/index';
+import { ChatGroup, InboxItem, JoinGroup } from '@utils/notificationCollapse';
+import {
+  buildChatGroupDisplay,
+  buildJoinGroupDisplay,
+  buildNotificationDisplay,
+  chatGroupPlainText,
+  joinGroupPlainText,
+  notificationPlainText,
+} from '@utils/notificationDisplay';
 import { formatCompactRelativeTime } from '@utils/relativeTime';
 
 export interface NotificationRowProps {
-  notification: AppNotification;
-  onPress: (notification: AppNotification) => void;
+  item: InboxItem;
+  onPressSingle: (notification: AppNotification) => void;
+  onPressChatGroup: (group: ChatGroup) => void;
+  onPressJoinGroup: (group: JoinGroup) => void;
   nowMs: number;
+  /** Event cover for rows with an associated event (singles + join groups). */
   eventImageUri?: string;
-  isLast?: boolean;
 }
 
 /**
- * NotificationRow mirrors the MessagesScreen ConversationRow layout and
- * styles exactly so the inbox list looks identical to the chat list:
- * 52×52 circular avatar/cover, blue unread dot at the left edge,
- * semibold for unread, thin divider after every row.
- *
- * Shows the event cover image when the notification has an associated event
- * (same as ConversationRow); falls back to a UserAvatar otherwise.
+ * NotificationRow: 40px circular avatar/cover, blue unread dot at the left edge,
+ * and the composed notification sentence (SemiBold spans for the event/person).
+ * Renders either a single notification or a collapsed chat group.
  */
 const NotificationRow = ({
-  notification,
-  onPress,
+  item,
+  onPressSingle,
+  onPressChatGroup,
+  onPressJoinGroup,
   nowMs,
   eventImageUri,
-  isLast,
 }: NotificationRowProps) => {
-  const hasUnread = !notification.read;
-  const timestampLabel = formatCompactRelativeTime(notification.createdAt, nowMs);
+  const hasUnread = item.kind === 'single' ? !item.notification.read : true;
+  const timestampLabel = formatCompactRelativeTime(item.createdAt, nowMs);
+
+  let segments;
+  let a11yLabel: string;
+  let avatarName: string;
+  let avatarSeed: number;
+  if (item.kind === 'chatGroup') {
+    segments = buildChatGroupDisplay(item.group).segments;
+    a11yLabel = chatGroupPlainText(item.group);
+    avatarName = item.group.eventName;
+    avatarSeed = item.group.conversationId;
+  } else if (item.kind === 'joinGroup') {
+    segments = buildJoinGroupDisplay(item.group).segments;
+    a11yLabel = joinGroupPlainText(item.group);
+    avatarName = item.group.eventName;
+    avatarSeed = item.group.eventId;
+  } else {
+    segments = buildNotificationDisplay(item.notification).segments;
+    a11yLabel = notificationPlainText(item.notification);
+    avatarName = item.notification.title;
+    avatarSeed = item.notification.id;
+  }
+
+  const handlePress = () => {
+    triggerHaptic('light');
+    if (item.kind === 'chatGroup') {
+      onPressChatGroup(item.group);
+    } else if (item.kind === 'joinGroup') {
+      onPressJoinGroup(item.group);
+    } else {
+      onPressSingle(item.notification);
+    }
+  };
 
   return (
     <ScalePressable
-      onPress={() => {
-        triggerHaptic('light');
-        onPress(notification);
-      }}
+      onPress={handlePress}
       delay={80}
       accessibilityRole="button"
-      accessibilityLabel={notification.title}
+      accessibilityLabel={a11yLabel}
       style={styles.row}
     >
       {hasUnread && <UnreadDot style={styles.unreadDot} />}
@@ -59,35 +96,36 @@ const NotificationRow = ({
               transition={150}
             />
           ) : (
-            <UserAvatar name={notification.title} seed={notification.id} size={52} />
+            <UserAvatar name={avatarName} seed={avatarSeed} size={40} />
           )}
         </View>
         <View style={styles.copyInner}>
           <View style={styles.titleRow}>
             <Text
-              style={[styles.title, hasUnread && styles.titleUnread]}
-              numberOfLines={1}
+              style={[styles.message, !hasUnread && styles.messageRead]}
+              numberOfLines={3}
+              ellipsizeMode="tail"
             >
-              {notification.title}
+              {segments.map((segment, index) => (
+                <Text
+                  key={index}
+                  style={[
+                    segment.bold ? styles.messageBold : undefined,
+                    segment.muted && hasUnread ? styles.messagePreview : undefined,
+                  ]}
+                >
+                  {segment.text}
+                </Text>
+              ))}
             </Text>
             {timestampLabel ? (
-              <Text
-                style={[styles.timestamp, hasUnread && styles.timestampUnread]}
-                numberOfLines={1}
-              >
+              <Text style={styles.timestamp} numberOfLines={1}>
                 {timestampLabel}
               </Text>
             ) : null}
           </View>
-          <Text
-            style={[styles.body, hasUnread && styles.bodyUnread]}
-            numberOfLines={2}
-          >
-            {notification.body}
-          </Text>
         </View>
       </View>
-      {!isLast && <View style={styles.divider} />}
     </ScalePressable>
   );
 };
@@ -102,6 +140,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: spacing.md,
+    // 10 = the header ⋯ icon's inset inside its 44px button ((44-24)/2), so the
+    // timestamp's right edge lines up with the ⋯ icon above it.
+    paddingRight: 10,
   },
   unreadDot: {
     position: 'absolute',
@@ -110,9 +151,9 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -127,52 +168,46 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 4,
-    paddingVertical: spacing.md,
+    // 12 (not md/16) → ~24px between rows, a tighter inbox rhythm than the
+    // MessagesScreen row this was cloned from (notifications carry more text).
+    paddingVertical: spacing.sm + spacing.xs,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  title: {
+  // Composed sentence: 15px Regular, with SemiBold spans for the event/person.
+  message: {
     flex: 1,
-    fontSize: 17,
+    fontSize: 15,
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
     color: colors.text,
-    fontFamily: typography.fontFamilyMedium,
+    fontFamily: typography.fontFamilyRegular,
   },
-  titleUnread: {
+  messageBold: {
     fontFamily: typography.fontFamilySemiBold,
+  },
+  // Read rows read "quieter": the whole sentence (incl. its SemiBold spans, which
+  // inherit this color) softens from near-black to a medium grey. The blue dot
+  // stays the primary unread flag; the avatar/cover keep full strength.
+  messageRead: {
+    color: colors.cardMeta,
+  },
+  // Inline chat preview ("Sender: “message”") — dark grey, one step off black so
+  // the message reads as a quieted preview without competing with the header.
+  messagePreview: {
+    color: colors.muted,
   },
   timestamp: {
     marginLeft: spacing.sm,
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.2,
-    color: '#8B8B8B',
+    color: '#8B8B8B', // same as the chat list timestamp
     fontFamily: typography.fontFamilyRegular,
     textAlign: 'right',
-  },
-  timestampUnread: {
-    color: '#5E5E5E',
-    fontFamily: typography.fontFamilyMedium,
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: -0.5,
-    color: '#707070',
-    fontFamily: typography.fontFamilyRegular,
-  },
-  bodyUnread: {
-    color: colors.text,
-    fontFamily: typography.fontFamilyMedium,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginLeft: spacing.md + 52 + 12,
   },
 });
 
