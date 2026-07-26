@@ -39,6 +39,7 @@ import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { colors, typography } from '@theme/index';
+import AvatarBackground from '@components/AvatarBackground';
 import { getAvatarColor } from '@utils/avatar';
 
 // Lazy import to handle missing native module gracefully
@@ -265,6 +266,7 @@ const OnboardingScreen = () => {
                   >
                     {!avatarBase64 && !name.trim() ? (
                       <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+                        <AvatarBackground seed={user?.id} name={name.trim()} />
                         <ProfileIcon width={52} height={52} />
                       </View>
                     ) : (
@@ -562,6 +564,7 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden', // clip the gradient background to the circle
   },
   cameraBadgeShadow: {
     position: 'absolute',

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 
+import AvatarBackground from "@components/AvatarBackground";
 import { typography } from "@theme/index";
 import {
   getAvatarColor,
@@ -61,6 +62,7 @@ const UserAvatar = ({
         />
       ) : (
         <View style={styles.initialsFrame}>
+          <AvatarBackground seed={seed} name={name} />
           <Text
             style={[styles.initials, { fontSize, lineHeight: size }, textStyle]}
             numberOfLines={1}
