@@ -118,8 +118,8 @@ const PendingRequestsScreen = () => {
         >
           {pendingRequests.length === 0 ? (
             <EmptyState
-              title="No pending requests"
-              description="Join requests will appear here"
+              title="No requests"
+              description="Join requests will appear here."
               imageSource={EMPTY_ILLUSTRATION}
               imageWidth={EMPTY_ILLUSTRATION_WIDTH}
               imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
