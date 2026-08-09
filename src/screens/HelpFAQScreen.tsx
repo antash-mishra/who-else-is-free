@@ -19,7 +19,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
     answer: [
       {
         type: 'paragraph',
-        text: 'WEIF (Who Else Is Free) helps you find people to do spontaneous plans with - like coffee, gigs, walks, drinks, cinema, or anything last-minute.',
+        text: 'WEIF (Who Else Is Free) helps you find people to make spontaneous plans with, like coffee, gigs, walks, drinks, cinema, or anything last-minute.',
       },
     ],
   },
@@ -28,7 +28,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
     answer: [
       {
         type: 'paragraph',
-        text: "Anything social or activity-based. If it's something you can do with others, you can post it, for example:",
+        text: "Anything social or activity-based. If it's something you can do with others, you can post it. For example:",
       },
       {
         type: 'bullets',
@@ -36,7 +36,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
           'Coffee or food',
           'Drinks',
           'Walks or runs',
-          'Events, gigs, cinema',
+          'Gigs, cinema or other events',
           'Classes or activities',
         ],
       },
@@ -47,7 +47,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
     answer: [
       {
         type: 'paragraph',
-        text: 'WEIF is designed for spontaneous plans, like today, tomorrow, but you can also post slightly future events if you want to get early interest.',
+        text: 'WEIF is designed for spontaneous plans, like today or tomorrow, but you can also post plans slightly further in the future if you want to get early interest.',
       },
     ],
   },
@@ -67,26 +67,26 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
       { type: 'paragraph', text: 'Once you join a plan, you can chat with other people involved.' },
       {
         type: 'paragraph',
-        text: 'Chats are temporary and disappear 24 hours after the event ends to keep things simple and low-pressure.',
+        text: 'Chats are temporary and disappear 24 hours after the plan ends to keep things simple and low-pressure.',
       },
     ],
   },
   {
     title: 'What happens after I join a plan?',
     answer: [
-      { type: 'paragraph', text: "You'll be added to the event and can:" },
+      { type: 'paragraph', text: "You'll be added to the plan and can:" },
       {
         type: 'bullets',
-        items: ['See who else is going', 'Chat with participants', 'Get event details'],
+        items: ['See who else is going', 'Chat with participants', 'View plan details'],
       },
     ],
   },
   {
-    title: "Why don't I see many events?",
+    title: "Why don't I see many plans?",
     answer: [
       {
         type: 'paragraph',
-        text: 'WEIF depends on what people around you are posting. Be default, we only show events within 50 Km radius.',
+        text: 'WEIF depends on what people around you are posting. By default, we only show plans within a 50 km radius.',
       },
     ],
   },
@@ -97,7 +97,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
       {
         type: 'bullets',
         items: [
-          'Report users or events',
+          'Report users or plans',
           "Block people you don't want to interact with",
           'Contact us if something feels wrong',
         ],
@@ -107,8 +107,8 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
   {
     title: 'How do I report someone?',
     answer: [
-      { type: 'paragraph', text: 'Tap the event → select Report' },
-      { type: 'paragraph', text: 'Or go to Contact Us and choose safety issue.' },
+      { type: 'paragraph', text: 'Tap the plan and select Report.' },
+      { type: 'paragraph', text: 'Or go to Contact us and choose Urgent safety issue.' },
     ],
   },
   {
@@ -119,8 +119,8 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
         type: 'bullets',
         items: [
           'Making the plan more specific',
-          'Posting earlier in the day',
-          'Adding clearer details (time, vibe, location)',
+          'Posting earlier',
+          'Adding clearer details, such as the time, vibe or location',
         ],
       },
     ],
@@ -130,7 +130,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
     answer: [
       {
         type: 'paragraph',
-        text: 'Go to the Contact Us tab and send us a message. We usually respond within 24 hours.',
+        text: 'Go to Contact us and send us a message. We usually respond within 24 hours.',
       },
     ],
   },
