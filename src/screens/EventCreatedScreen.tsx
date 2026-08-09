@@ -76,7 +76,7 @@ const EventCreatedScreen = () => {
         ),
       );
 
-      // 4 · Looping AI-thinking shimmer on "Creating event..."
+      // 4 · Looping AI-thinking shimmer on "Creating..."
       shimmerX.value = -200;
       shimmerX.value = withRepeat(
         withSequence(
@@ -176,17 +176,17 @@ const EventCreatedScreen = () => {
             {/* Event name */}
             <Text style={styles.eventName}>{eventTitle}</Text>
 
-            {/* "Creating event..." — looping shimmer */}
+            {/* "Creating..." — looping shimmer */}
             <MaskedView
               style={styles.maskedRoot}
               maskElement={
                 <View style={styles.maskShape}>
-                  <Text style={styles.creatingLabel}>Creating event...</Text>
+                  <Text style={styles.creatingLabel}>Creating...</Text>
                 </View>
               }
             >
               <View style={styles.maskShape}>
-                <Text style={[styles.creatingLabel, styles.dimGrey]}>Creating event...</Text>
+                <Text style={[styles.creatingLabel, styles.dimGrey]}>Creating...</Text>
               </View>
               <Animated.View style={[styles.shimmerStrip, sShimmer]} pointerEvents="none">
                 <LinearGradient
