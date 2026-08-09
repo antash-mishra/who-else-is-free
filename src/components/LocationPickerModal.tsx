@@ -119,7 +119,7 @@ export const LocationPickerContent = ({
                 {loading && (
                     <View style={styles.inlineLoadingContainer}>
                         <ActivityIndicator size="small" color="#8E8E93" />
-                        <Text style={styles.inlineHintNopad}>Searching places...</Text>
+                        <Text style={styles.inlineHintNopad}>Searching for places...</Text>
                     </View>
                 )}
 
@@ -133,7 +133,7 @@ export const LocationPickerContent = ({
                 )}
 
                 {showEmpty && (
-                    <Text style={styles.inlineHint}>No places with this name found</Text>
+                    <Text style={styles.inlineHint}>No places found</Text>
                 )}
 
                 {showTypingHint && (

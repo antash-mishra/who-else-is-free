@@ -166,11 +166,11 @@ describe('SelectionModal', () => {
   });
 
   describe('Confirm Behavior', () => {
-    it('should call onConfirm when Select button is pressed', () => {
+    it('should call onConfirm when Done button is pressed', () => {
       const onConfirm = jest.fn();
       render(<SelectionModal {...defaultProps} onConfirm={onConfirm} />);
 
-      fireEvent.press(screen.getByText('Select'));
+      fireEvent.press(screen.getByText('Done'));
 
       // Run animation timers
       act(() => {
@@ -180,10 +180,10 @@ describe('SelectionModal', () => {
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
 
-    it('should show Select button text', () => {
+    it('should show Done button text', () => {
       render(<SelectionModal {...defaultProps} />);
 
-      expect(screen.getByText('Select')).toBeTruthy();
+      expect(screen.getByText('Done')).toBeTruthy();
     });
   });
 
@@ -370,7 +370,7 @@ describe('SelectionModal', () => {
       const onConfirm = jest.fn();
       render(<SelectionModal {...defaultProps} onConfirm={onConfirm} />);
 
-      fireEvent.press(screen.getByText('Select'));
+      fireEvent.press(screen.getByText('Done'));
 
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });

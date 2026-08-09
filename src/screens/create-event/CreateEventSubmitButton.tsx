@@ -33,7 +33,7 @@ type CreateEventSubmitButtonProps = {
 
 /**
  * Create/Edit Event footer: error row plus the primary submit button with
- * press-scale motion, the "Creating event..." shimmer, and window-position
+ * press-scale motion, the "Creating..." shimmer, and window-position
  * measurement used by the EventCreated wow transition.
  */
 const CreateEventSubmitButton = ({
@@ -46,7 +46,7 @@ const CreateEventSubmitButton = ({
 }: CreateEventSubmitButtonProps) => {
   const primaryButtonRef = useRef<View>(null);
 
-  // Shimmer animation for "Creating event..." state
+  // Shimmer animation for "Creating..." state
   const shimmerX = useSharedValue(-160);
   const shimmerStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shimmerX.value }],
@@ -113,13 +113,13 @@ const CreateEventSubmitButton = ({
               style={shimmerStyles.root}
               maskElement={
                 <View style={shimmerStyles.mask}>
-                  <Text style={styles.primaryButtonText}>Creating event...</Text>
+                  <Text style={styles.primaryButtonText}>Creating...</Text>
                 </View>
               }
             >
               <View style={shimmerStyles.mask}>
                 <Text style={[styles.primaryButtonText, shimmerStyles.dimText]}>
-                  Creating event...
+                  Creating...
                 </Text>
               </View>
               <Animated.View style={[shimmerStyles.strip, shimmerStyle]} pointerEvents="none">

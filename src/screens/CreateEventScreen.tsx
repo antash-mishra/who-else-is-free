@@ -460,12 +460,12 @@ const CreateEventScreen = () => {
   const primaryButtonLabel = user
     ? isSubmitting
       ? isEditing
-        ? 'Updating...'
+        ? 'Saving...'
         : 'Creating...'
       : isEditing
-        ? 'Update Event'
-        : 'Create Event'
-    : 'Sign Up or Log In';
+        ? 'Save'
+        : 'Create'
+    : 'Get started';
 
   const ageLabel = useMemo(() => getAgeLabel(form.ageRange), [form.ageRange]);
   const dateTimeLabel = useMemo(

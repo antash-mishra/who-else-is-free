@@ -139,8 +139,8 @@ describe('CreateEventScreen Rendering', () => {
 
   // Description is edited in its own sheet: tap the row, type, press Done (commit).
   const fillDescription = (text: string) => {
-    fireEvent.press(screen.getByLabelText('Edit description'));
-    fireEvent.changeText(screen.getByPlaceholderText('Write a description'), text);
+    fireEvent.press(screen.getByLabelText('Add details'));
+    fireEvent.changeText(screen.getByPlaceholderText('Add details'), text);
     fireEvent.press(screen.getByLabelText('Done editing description'));
   };
 
@@ -157,34 +157,35 @@ describe('CreateEventScreen Rendering', () => {
   it('renders core fields and current datetime value', () => {
     render(<CreateEventScreen />);
 
-    expect(screen.getByPlaceholderText('Event Name')).toBeTruthy();
-    expect(screen.getByLabelText('Edit description')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Event name')).toBeTruthy();
+    expect(screen.getByLabelText('Add details')).toBeTruthy();
     expect(screen.getByText('Select Location')).toBeTruthy();
-    expect(screen.getByText('Date & Time')).toBeTruthy();
+    expect(screen.getByText('Date & time')).toBeTruthy();
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
-    expect(screen.getByText('All Gender')).toBeTruthy();
-    expect(screen.getByText('All Age')).toBeTruthy();
+    expect(screen.getByText('All genders')).toBeTruthy();
+    expect(screen.getByText('All ages')).toBeTruthy();
   });
 
-  it('opens datetime modal from Date & Time row', () => {
+  it('opens datetime modal from Date & time row', () => {
     render(<CreateEventScreen />);
 
-    fireEvent.press(screen.getByText('Date & Time'));
+    fireEvent.press(screen.getByText('Date & time'));
 
-    expect(screen.getByText('When is your event?')).toBeTruthy();
-    expect(screen.getByText('Update Time')).toBeTruthy();
+    // Sheet title "Date & time" now matches the form-row label too, so both are present.
+    expect(screen.getAllByText('Date & time').length).toBeGreaterThan(1);
+    expect(screen.getByText('Done')).toBeTruthy();
   });
 
   it('preserves typed text when opening a sheet field', () => {
     render(<CreateEventScreen />);
 
-    const titleInput = screen.getByPlaceholderText('Event Name');
+    const titleInput = screen.getByPlaceholderText('Event name');
 
     fireEvent.changeText(titleInput, 'Coffee Meetup');
     fillDescription('Casual chat');
     fireEvent.press(screen.getByText('Gender'));
 
-    expect(screen.getByPlaceholderText('Event Name').props.value).toBe('Coffee Meetup');
+    expect(screen.getByPlaceholderText('Event name').props.value).toBe('Coffee Meetup');
     // DescriptionPreview renders a hidden measure copy + the visible text.
     expect(screen.getAllByText('Casual chat').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Gender').length).toBeGreaterThan(0);
@@ -203,7 +204,7 @@ describe('CreateEventScreen Rendering', () => {
   it('submits create payload with derived schedule fields', async () => {
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Coffee Meetup');
+    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Coffee Meetup');
     fillDescription('Casual chat');
     await selectMockLocation();
 
@@ -232,7 +233,7 @@ describe('CreateEventScreen Rendering', () => {
     currentRouteParams = { editEventId: null };
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Create From Null');
+    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Create From Null');
     fillDescription('Casual chat');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
@@ -248,7 +249,7 @@ describe('CreateEventScreen Rendering', () => {
     isGuestMode = true;
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Guest Event');
+    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Guest Event');
     fillDescription('Guest description');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
@@ -280,7 +281,7 @@ describe('CreateEventScreen Rendering', () => {
     }];
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Updated Name');
+    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Updated Name');
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
@@ -325,7 +326,7 @@ describe('CreateEventScreen Rendering', () => {
     mockIsPastDateTime = true;
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event Name'), 'Past Event');
+    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Past Event');
     fillDescription('Past description');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
