@@ -307,7 +307,7 @@ const PrivacyPolicyScreen = () => {
 
   return (
     <ScreenContainer edges={['top']}>
-      <ScreenHeader title="Privacy Policy" onBack={navigation.goBack} />
+      <ScreenHeader title="Privacy policy" onBack={navigation.goBack} />
 
       <ScrollView
         ref={scrollViewRef}

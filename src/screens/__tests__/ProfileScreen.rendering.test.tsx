@@ -246,14 +246,14 @@ describe('ProfileScreen Rendering', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Logout')).toBeTruthy();
+      expect(getByText('Log out')).toBeTruthy();
     });
 
     it('should call signOut when Logout is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      const logoutButton = getByText('Logout');
+      const logoutButton = getByText('Log out');
       fireEvent.press(logoutButton);
 
       expect(mockSignOut).toHaveBeenCalled();
@@ -261,25 +261,25 @@ describe('ProfileScreen Rendering', () => {
   });
 
   describe('Profile Menu Items', () => {
-    it('should display Edit Profile option', () => {
+    it('should display Edit profile option', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Edit Profile')).toBeTruthy();
+      expect(getByText('Edit profile')).toBeTruthy();
     });
 
-    it('should display Past Events option', () => {
+    it('should display Past plans option', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Past Events')).toBeTruthy();
+      expect(getByText('Past plans')).toBeTruthy();
     });
 
-    it('should display Privacy Policy option', () => {
+    it('should display Privacy policy option', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Privacy Policy')).toBeTruthy();
+      expect(getByText('Privacy policy')).toBeTruthy();
     });
 
     it('should display Help option', () => {
@@ -291,51 +291,51 @@ describe('ProfileScreen Rendering', () => {
 
     it('should display Delete option', () => {
       setupMocks();
-      const { getByText } = render(<ProfileScreen />);
+      const { getAllByText } = render(<ProfileScreen />);
 
-      expect(getByText('Delete')).toBeTruthy();
+      expect(getAllByText('Delete account').length).toBeGreaterThan(0);
     });
 
-    it('shows Support Inbox only for admins and navigates to it', () => {
+    it('shows Support inbox only for admins and navigates to it', () => {
       mockedUseAdminAccess.mockReturnValue({ isAdmin: true, loading: false, refresh: jest.fn() });
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Support Inbox'));
+      fireEvent.press(getByText('Support inbox'));
 
       expect(mockNavigation.navigate).toHaveBeenCalledWith('AdminSupportInbox');
     });
 
-    it('hides Support Inbox from non-admin users', () => {
+    it('hides Support inbox from non-admin users', () => {
       setupMocks();
       const { queryByText } = render(<ProfileScreen />);
 
-      expect(queryByText('Support Inbox')).toBeNull();
+      expect(queryByText('Support inbox')).toBeNull();
     });
 
-    it('should navigate to EditProfile when Edit Profile is pressed', () => {
+    it('should navigate to EditProfile when Edit profile is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Edit Profile'));
+      fireEvent.press(getByText('Edit profile'));
 
       expect(mockNavigation.navigate).toHaveBeenCalledWith('EditProfile');
     });
 
-    it('should navigate to PastEvents when Past Events is pressed', () => {
+    it('should navigate to PastEvents when Past plans is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Past Events'));
+      fireEvent.press(getByText('Past plans'));
 
       expect(mockNavigation.navigate).toHaveBeenCalledWith('PastEvents');
     });
 
-    it('should navigate to PrivacyPolicy when Privacy Policy is pressed', () => {
+    it('should navigate to PrivacyPolicy when Privacy policy is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Privacy Policy'));
+      fireEvent.press(getByText('Privacy policy'));
 
       expect(mockNavigation.navigate).toHaveBeenCalledWith('PrivacyPolicy');
     });
@@ -351,21 +351,21 @@ describe('ProfileScreen Rendering', () => {
 
     it('should show account delete confirmation when Delete is pressed', () => {
       setupMocks();
-      const { getByText, getByTestId } = render(<ProfileScreen />);
+      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Delete'));
+      fireEvent.press(getAllByText('Delete account')[0]);
 
       expect(getByTestId('delete-account-confirm')).toBeTruthy();
       expect(getByText('Delete your account?')).toBeTruthy();
-      expect(getByText('Delete account')).toBeTruthy();
+      expect(getAllByText('Delete account').length).toBeGreaterThan(0);
       expect(getByText('Keep account')).toBeTruthy();
     });
 
     it('should close delete confirmation without calling API when cancelled', () => {
       setupMocks();
-      const { getByText, getByTestId, queryByTestId } = render(<ProfileScreen />);
+      const { getByText, getAllByText, getByTestId, queryByTestId } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Delete'));
+      fireEvent.press(getAllByText('Delete account')[0]);
       expect(getByTestId('delete-account-confirm')).toBeTruthy();
 
       fireEvent.press(getByTestId('cancel-delete-account'));
@@ -377,9 +377,9 @@ describe('ProfileScreen Rendering', () => {
     it('should call deleteAccount when delete confirmation is confirmed', async () => {
       mockDeleteAccount.mockResolvedValueOnce(undefined);
       setupMocks();
-      const { getByText, getByTestId } = render(<ProfileScreen />);
+      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Delete'));
+      fireEvent.press(getAllByText('Delete account')[0]);
       fireEvent.press(getByTestId('confirm-delete-account'));
 
       await waitFor(() => {
@@ -391,9 +391,9 @@ describe('ProfileScreen Rendering', () => {
       jest.spyOn(console, 'error').mockImplementation(() => {});
       mockDeleteAccount.mockRejectedValueOnce(new Error('Unable to delete account'));
       setupMocks();
-      const { getByText, getByTestId } = render(<ProfileScreen />);
+      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Delete'));
+      fireEvent.press(getAllByText('Delete account')[0]);
       fireEvent.press(getByTestId('confirm-delete-account'));
 
       await waitFor(() => {
@@ -410,8 +410,8 @@ describe('ProfileScreen Rendering', () => {
       });
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('No profile to show')).toBeTruthy();
-      expect(getByText('Sign in to view your account')).toBeTruthy();
+      expect(getByText('No profile')).toBeTruthy();
+      expect(getByText('Get started to view your profile.')).toBeTruthy();
     });
 
     it('should display Continue button for guest users', () => {
@@ -420,40 +420,40 @@ describe('ProfileScreen Rendering', () => {
       });
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Continue')).toBeTruthy();
+      expect(getByText('Get started')).toBeTruthy();
     });
 
     it('should open sign-in modal when Continue is pressed', () => {
       setupMocks({
         authOverrides: { user: null },
       });
-      const { getByText, getByTestId } = render(<ProfileScreen />);
+      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
 
-      fireEvent.press(getByText('Continue'));
+      fireEvent.press(getByText('Get started'));
 
       expect(getByTestId('bottom-sheet-modal')).toBeTruthy();
     });
 
-    it('should show Privacy Policy and Help menu items for guest users', () => {
+    it('should show Privacy policy and Help menu items for guest users', () => {
       setupMocks({
         authOverrides: { user: null },
       });
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Privacy Policy')).toBeTruthy();
+      expect(getByText('Privacy policy')).toBeTruthy();
       expect(getByText('Help')).toBeTruthy();
     });
 
-    it('should NOT show Edit Profile, Past Events, Logout, Delete for guest users', () => {
+    it('should NOT show Edit profile, Past plans, Logout, Delete for guest users', () => {
       setupMocks({
         authOverrides: { user: null },
       });
       const { queryByText, queryByTestId } = render(<ProfileScreen />);
 
-      expect(queryByText('Edit Profile')).toBeNull();
-      expect(queryByText('Past Events')).toBeNull();
-      expect(queryByText('Logout')).toBeNull();
-      expect(queryByText('Delete')).toBeNull();
+      expect(queryByText('Edit profile')).toBeNull();
+      expect(queryByText('Past plans')).toBeNull();
+      expect(queryByText('Log out')).toBeNull();
+      expect(queryByText('Delete account')).toBeNull();
       // Bell is hidden for guests.
       expect(queryByTestId('notifications-bell')).toBeNull();
       expect(queryByTestId('notifications-badge')).toBeNull();

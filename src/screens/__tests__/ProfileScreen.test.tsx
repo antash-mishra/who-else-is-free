@@ -115,7 +115,7 @@ describe('ProfileScreen', () => {
   describe('Profile Menu Items', () => {
     it('should include sign out option', () => {
       const menuItems = [
-        { label: 'Edit Profile', action: 'edit' },
+        { label: 'Edit profile', action: 'edit' },
         { label: 'Sign Out', action: 'signOut' },
       ];
 

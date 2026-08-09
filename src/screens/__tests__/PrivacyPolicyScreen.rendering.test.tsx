@@ -11,7 +11,7 @@ describe('PrivacyPolicyScreen', () => {
   it('renders the privacy policy content from the markdown source', () => {
     const { getAllByText, getByLabelText, getByText } = render(<PrivacyPolicyScreen />);
 
-    expect(getByText('Privacy Policy')).toBeTruthy();
+    expect(getByText('Privacy policy')).toBeTruthy();
     expect(getByText('WEIF PRIVACY POLICY')).toBeTruthy();
     expect(getByText('Last updated June 15, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();

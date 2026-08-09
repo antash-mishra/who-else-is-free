@@ -185,7 +185,7 @@ const ProfileScreen = () => {
     } catch (error) {
       logger.error('Failed to delete account', error);
       setDeleteError(
-        error instanceof Error ? error.message : 'Unable to delete account. Please try again.',
+        error instanceof Error ? error.message : "Couldn't delete account. Please try again.",
       );
     } finally {
       setIsDeletingAccount(false);
@@ -216,8 +216,8 @@ const ProfileScreen = () => {
             end={{ x: 1, y: 1 }}
             style={styles.guestCard}
           >
-            <Text style={styles.guestTitle}>No profile to show</Text>
-            <Text style={styles.guestDescription}>Sign in to view your account</Text>
+            <Text style={styles.guestTitle}>No profile</Text>
+            <Text style={styles.guestDescription}>Get started to view your profile.</Text>
             <ScalePressable
               style={styles.guestButton}
               haptic="light"
@@ -225,13 +225,13 @@ const ProfileScreen = () => {
                 setSignInVisible(true);
               }}
             >
-              <Text style={styles.guestButtonText}>Continue</Text>
+              <Text style={styles.guestButtonText}>Get started</Text>
             </ScalePressable>
           </LinearGradient>
           <View style={styles.menuSection}>
             <MenuItem
               icon={<PrivacyPolicyIcon width={20} height={20} color={colors.text} />}
-              label="Privacy Policy"
+              label="Privacy policy"
               onPress={handlePrivacyPolicy}
             />
             <MenuItem
@@ -253,7 +253,7 @@ const ProfileScreen = () => {
     <ScreenContainer>
       <View style={styles.headerSpacing}>
         <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Account</Text>
+          <Text style={styles.headerTitle}>Profile</Text>
           <View style={styles.bellContainer}>
             <IconButton
               accessibilityLabel="Notifications"
@@ -321,17 +321,17 @@ const ProfileScreen = () => {
         <View style={styles.menuSection}>
           <MenuItem
             icon={<EditProfileIcon width={20} height={20} color={colors.text} />}
-            label="Edit Profile"
+            label="Edit profile"
             onPress={handleEditProfile}
           />
           <MenuItem
             icon={<PastEventsIcon width={20} height={20} color={colors.text} />}
-            label="Past Events"
+            label="Past plans"
             onPress={handlePastEvents}
           />
           <MenuItem
             icon={<PrivacyPolicyIcon width={20} height={20} color={colors.text} />}
-            label="Privacy Policy"
+            label="Privacy policy"
             onPress={handlePrivacyPolicy}
           />
           <MenuItem
@@ -342,21 +342,21 @@ const ProfileScreen = () => {
           {isAdmin ? (
             <MenuItem
               icon={<HelpIcon width={20} height={20} color={colors.text} />}
-              label="Support Inbox"
+              label="Support inbox"
               onPress={handleSupportInbox}
               testID="admin-support-inbox-menu-item"
             />
           ) : null}
           <MenuItem
             icon={<LogoutIcon width={20} height={20} color={colors.text} />}
-            label="Logout"
+            label="Log out"
             onPress={handleSignOut}
             showChevron={false}
             haptic="medium"
           />
           <MenuItem
             icon={<TrashIcon width={20} height={20} color={colors.text} />}
-            label="Delete"
+            label="Delete account"
             onPress={handleDelete}
             showChevron={false}
             haptic="destructive"
@@ -369,7 +369,7 @@ const ProfileScreen = () => {
         onBackdropPress={handleDeleteCancel}
         type="confirm"
         title="Delete your account?"
-        description="This will permanently delete your profile, hosted events, event memberships, and chats. This can't be undone."
+        description="This will permanently delete your profile, created plans, joined plans, and chats. This action can't be undone."
         confirmLabel="Delete account"
         cancelLabel="Keep account"
         confirmTone="destructive"
