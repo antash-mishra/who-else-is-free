@@ -27,11 +27,12 @@ export interface EventItemProps {
 }
 
 const BADGE_ICON_SIZE = 10;
-const VALID_BADGES = ['Pending', 'Hosting', 'Joined'];
+const VALID_BADGES = ['Pending', 'Requested', 'Hosting', 'Joined'];
 
 const getBadgeIcon = (badgeLabel: string) => {
   switch (badgeLabel) {
     case 'Pending':
+    case 'Requested':
       return <PendingIcon width={9.5} height={9.5} />;
     case 'Hosting':
       return <HostingIcon width={BADGE_ICON_SIZE} height={BADGE_ICON_SIZE} />;

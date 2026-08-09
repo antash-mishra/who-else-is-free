@@ -162,9 +162,9 @@ describe('HomeScreen Rendering', () => {
     it('displays error message and retry button', () => {
       mockEventsValue.isLoading = false;
       mockEventsValue.events = [];
-      mockEventsValue.error = 'Unable to load events.';
+      mockEventsValue.error = 'Unable to load plans.';
       const { getByText } = render(<HomeScreen />);
-      expect(getByText('Unable to load events.')).toBeTruthy();
+      expect(getByText('Unable to load plans.')).toBeTruthy();
       expect(getByText('Try again')).toBeTruthy();
     });
 
@@ -182,9 +182,9 @@ describe('HomeScreen Rendering', () => {
       mockEventsValue.events = [];
       const { getByTestId } = render(<HomeScreen />);
       expect(getByTestId('empty-state')).toBeTruthy();
-      expect(getByTestId('empty-state-title').props.children).toBe('Nothing Happening Here (Yet!)');
+      expect(getByTestId('empty-state-title').props.children).toBe('Nothing happening yet');
       expect(getByTestId('empty-state-description').props.children).toContain(
-        'no events available',
+        'Create a plan',
       );
     });
   });
@@ -442,7 +442,7 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('event-card-badge')).toBeTruthy();
     });
 
-    it('shows Pending badge for requested events', () => {
+    it('shows Requested badge for requested events', () => {
       mockEventsValue.events = [createTodayEvent({ id: '99', ownerId: 999 })];
       mockEventsValue.isEventRequested = jest.fn().mockReturnValue(true);
       const { getByTestId } = render(<HomeScreen />);
@@ -458,9 +458,9 @@ describe('HomeScreen Rendering', () => {
   });
 
   describe('Header', () => {
-    it('renders Discover Events header', () => {
+    it('renders Discover header', () => {
       const { getByText } = render(<HomeScreen />);
-      expect(getByText('Discover Events')).toBeTruthy();
+      expect(getByText('Discover')).toBeTruthy();
     });
   });
 

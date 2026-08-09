@@ -994,7 +994,7 @@ describe('EventsContext - Rendering Tests', () => {
 
       await waitFor(() => {
         expect(capturedCtx).not.toBeNull();
-        expect(capturedCtx!.error).toBe('Unable to load events. Pull to refresh.');
+        expect(capturedCtx!.error).toBe('Unable to load plans.');
       });
     });
 
