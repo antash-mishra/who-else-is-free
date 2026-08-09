@@ -44,7 +44,6 @@ import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHead
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
 interface ComposerProps {
-  activeConversationName: string;
   composerBottomPadding: number;
   draft: string;
   isSendDisabled: boolean;
@@ -53,7 +52,6 @@ interface ComposerProps {
 }
 
 const ChatComposer = ({
-  activeConversationName,
   composerBottomPadding,
   draft,
   isSendDisabled,
@@ -66,7 +64,7 @@ const ChatComposer = ({
   >
     <View style={styles.composerInputWrapper}>
       <TextInput
-        placeholder={`Message ${activeConversationName}`}
+        placeholder="Write a message"
         value={draft}
         onChangeText={onDraftChange}
         style={styles.composerInput}
@@ -500,7 +498,7 @@ const ChatThreadScreen = () => {
     const timeText = item.pending
       ? 'Sending…'
       : item.failed
-        ? 'Failed. Tap to retry.'
+        ? "Couldn't send. Tap to retry."
         : new Date(item.createdAt).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
@@ -578,8 +576,6 @@ const ChatThreadScreen = () => {
   };
 
   const composerProps: ComposerProps = {
-    // Placeholder name matches the header title: counterpart in 1:1, group/event name otherwise.
-    activeConversationName: headerTitle,
     composerBottomPadding,
     draft,
     isSendDisabled,
@@ -621,7 +617,7 @@ const ChatThreadScreen = () => {
           }
         }}
         titleAccessibilityLabel={
-          canOpenSingleChatActions ? 'Open member actions' : 'View event details'
+          canOpenSingleChatActions ? 'Open actions' : 'View plan details'
         }
         rightElement={
           <>
@@ -631,7 +627,7 @@ const ChatThreadScreen = () => {
             {canViewJoinRequests && pendingJoinRequestCount > 0 ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="View join requests"
+                accessibilityLabel="View requests"
                 onPress={handleOpenJoinRequests}
                 style={styles.joinIconButton}
               >

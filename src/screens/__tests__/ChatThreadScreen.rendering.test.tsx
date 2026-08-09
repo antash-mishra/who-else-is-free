@@ -197,9 +197,9 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      // Subtitle: "Group · 2 Members" (memberIds: [1, 2]) — two parts, dot separator.
+      // Subtitle: "Group · 2 members" (memberIds: [1, 2]) — two parts, dot separator.
       expect(getByText('Group')).toBeTruthy();
-      expect(getByText('2 Members')).toBeTruthy();
+      expect(getByText('2 members')).toBeTruthy();
     });
 
     it('should render counterpart name and "One to one, <date>" subtitle in 1:1 mode', () => {
@@ -282,7 +282,7 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks();
       const { getByPlaceholderText } = render(<ChatThreadScreen />);
 
-      expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
+      expect(getByPlaceholderText('Write a message')).toBeTruthy();
     });
 
     it('should render send button', () => {
@@ -296,7 +296,7 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks();
       const { getByPlaceholderText } = render(<ChatThreadScreen />);
 
-      const input = getByPlaceholderText('Message Coffee Meetup Chat');
+      const input = getByPlaceholderText('Write a message');
       fireEvent.changeText(input, 'Test message');
 
       expect(input.props.value).toBe('Test message');
@@ -306,7 +306,7 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks();
       const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
 
-      const input = getByPlaceholderText('Message Coffee Meetup Chat');
+      const input = getByPlaceholderText('Write a message');
       fireEvent.changeText(input, 'Hello!');
 
       const sendButton = getByLabelText('Send message');
@@ -329,7 +329,7 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks();
       const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
 
-      const input = getByPlaceholderText('Message Coffee Meetup Chat');
+      const input = getByPlaceholderText('Write a message');
       fireEvent.changeText(input, 'Hello!');
 
       const sendButton = getByLabelText('Send message');
@@ -340,13 +340,13 @@ describe('ChatThreadScreen Rendering', () => {
   });
 
   describe('Message Retry on Failed Messages', () => {
-    it('should display "Failed. Tap to retry." for failed messages', () => {
+    it('should display "Couldn\'t send. Tap to retry." for failed messages', () => {
       setupMocks({
         chatOverrides: { messages: [mockFailedMessage] },
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      expect(getByText('Failed. Tap to retry.')).toBeTruthy();
+      expect(getByText("Couldn't send. Tap to retry.")).toBeTruthy();
     });
 
     it('should call retryMessage when tapping on failed message', () => {
@@ -390,7 +390,7 @@ describe('ChatThreadScreen Rendering', () => {
 
       // Subtitle is NOT replaced by the connecting indicator
       expect(getByText('Group')).toBeTruthy();
-      expect(getByText('2 Members')).toBeTruthy();
+      expect(getByText('2 members')).toBeTruthy();
     });
 
     it('should display error message when error exists', () => {
@@ -421,7 +421,7 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByPlaceholderText } = render(<ChatThreadScreen />);
 
       // Should still show input field
-      expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
+      expect(getByPlaceholderText('Write a message')).toBeTruthy();
     });
   });
 
@@ -527,7 +527,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByLabelText, getByText } = render(<ChatThreadScreen />);
 
-      expect(getByLabelText('View join requests')).toBeTruthy();
+      expect(getByLabelText('View requests')).toBeTruthy();
       expect(getByText('1')).toBeTruthy();
     });
 
@@ -544,7 +544,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByLabelText, getByText } = render(<ChatThreadScreen />);
 
-      expect(getByLabelText('View join requests')).toBeTruthy();
+      expect(getByLabelText('View requests')).toBeTruthy();
       expect(getByText('1')).toBeTruthy();
     });
 
@@ -559,7 +559,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { queryByLabelText } = render(<ChatThreadScreen />);
 
-      expect(queryByLabelText('View join requests')).toBeNull();
+      expect(queryByLabelText('View requests')).toBeNull();
     });
 
     it('should not display join request icon inside a 1:1 private chat', () => {
@@ -591,7 +591,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { queryByLabelText, queryByText } = render(<ChatThreadScreen />);
 
-      expect(queryByLabelText('View join requests')).toBeNull();
+      expect(queryByLabelText('View requests')).toBeNull();
       expect(queryByText('2')).toBeNull();
     });
 
@@ -623,7 +623,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { queryByLabelText, queryByText } = render(<ChatThreadScreen />);
 
-      expect(queryByLabelText('View join requests')).toBeNull();
+      expect(queryByLabelText('View requests')).toBeNull();
       expect(queryByText('1')).toBeNull();
     });
 
@@ -654,7 +654,7 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { queryByLabelText } = render(<ChatThreadScreen />);
 
-      expect(queryByLabelText('View join requests')).toBeNull();
+      expect(queryByLabelText('View requests')).toBeNull();
     });
   });
 
@@ -805,7 +805,7 @@ describe('ChatThreadScreen Rendering', () => {
 
       const { getByPlaceholderText, getByLabelText, getByTestId } = render(<ChatThreadScreen />);
 
-      expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
+      expect(getByPlaceholderText('Write a message')).toBeTruthy();
       expect(getByLabelText('Send message')).toBeTruthy();
       expect(
         StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
@@ -819,7 +819,7 @@ describe('ChatThreadScreen Rendering', () => {
 
       const { getByPlaceholderText, getByLabelText } = render(<ChatThreadScreen />);
 
-      expect(getByPlaceholderText('Message Coffee Meetup Chat')).toBeTruthy();
+      expect(getByPlaceholderText('Write a message')).toBeTruthy();
       expect(getByLabelText('Send message')).toBeTruthy();
     });
   });

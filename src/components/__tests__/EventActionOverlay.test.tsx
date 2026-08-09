@@ -424,20 +424,20 @@ describe('EventActionOverlay', () => {
     it('should render text input for reason', () => {
       render(<EventActionOverlay {...reportProps} />);
 
-      expect(screen.getByPlaceholderText('Tell us why you are reporting this event')).toBeTruthy();
+      expect(screen.getByPlaceholderText("Tell us why you're reporting this plan")).toBeTruthy();
     });
 
-    it('should show "Submit Report" button text', () => {
+    it('should show "Submit report" button text', () => {
       render(<EventActionOverlay {...reportProps} />);
 
-      expect(screen.getByText('Submit Report')).toBeTruthy();
+      expect(screen.getByText('Submit report')).toBeTruthy();
     });
 
     it('should call onReportMessageChange when text changes', () => {
       const onReportMessageChange = jest.fn();
       render(<EventActionOverlay {...reportProps} onReportMessageChange={onReportMessageChange} />);
 
-      const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
+      const input = screen.getByPlaceholderText("Tell us why you're reporting this plan");
       fireEvent.changeText(input, 'This event is spam');
 
       expect(onReportMessageChange).toHaveBeenCalledWith('This event is spam');
@@ -481,7 +481,7 @@ describe('EventActionOverlay', () => {
     it('should display current report message value', () => {
       render(<EventActionOverlay {...reportProps} reportMessage="This is inappropriate content" />);
 
-      const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
+      const input = screen.getByPlaceholderText("Tell us why you're reporting this plan");
       expect(input.props.value).toBe('This is inappropriate content');
     });
   });
@@ -747,7 +747,7 @@ describe('EventActionOverlay', () => {
         />,
       );
 
-      const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
+      const input = screen.getByPlaceholderText("Tell us why you're reporting this plan");
 
       // Type a report reason
       fireEvent.changeText(input, 'This event contains inappropriate content');
@@ -839,8 +839,8 @@ describe('EventActionOverlay', () => {
         />,
       );
 
-      const input = screen.getByPlaceholderText('Tell us why you are reporting this event');
-      expect(input.props.accessibilityLabel).toBe('Tell us why you are reporting this event');
+      const input = screen.getByPlaceholderText("Tell us why you're reporting this plan");
+      expect(input.props.accessibilityLabel).toBe("Tell us why you're reporting this plan");
     });
   });
 });

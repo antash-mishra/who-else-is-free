@@ -35,7 +35,7 @@ describe('buildEventMemberSubtitle', () => {
         memberCount: 3,
         schedule: { eventDate },
       }),
-    ).toBe('Group, 3 Members');
+    ).toBe('Group, 3 members');
   });
 
   it('ignores the schedule (no date in the subtitle)', () => {
@@ -45,7 +45,7 @@ describe('buildEventMemberSubtitle', () => {
         memberCount: 5,
         schedule: { dateLabel: 'Today' },
       }),
-    ).toBe('Group, 5 Members');
+    ).toBe('Group, 5 members');
 
     expect(
       buildEventMemberSubtitle({
@@ -63,7 +63,7 @@ describe('buildEventMemberSubtitle', () => {
         memberCount: 2,
         schedule: undefined,
       }),
-    ).toBe('Group, 2 Members');
+    ).toBe('Group, 2 members');
   });
 
   it('handles a zero count', () => {
@@ -73,7 +73,7 @@ describe('buildEventMemberSubtitle', () => {
         memberCount: 0,
         schedule: { dateLabel: 'Today' },
       }),
-    ).toBe('Group, 0 Members');
+    ).toBe('Group, 0 members');
   });
 });
 

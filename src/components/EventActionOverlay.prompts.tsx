@@ -198,8 +198,8 @@ export const ReportPrompt = ({
   return (
     <View style={styles.prompt}>
       <TextInput
-        accessibilityLabel="Tell us why you are reporting this event"
-        placeholder="Tell us why you are reporting this event"
+        accessibilityLabel="Tell us why you're reporting this plan"
+        placeholder="Tell us why you're reporting this plan"
         placeholderTextColor={colors.subText}
         multiline
         value={reportMessage}
@@ -224,7 +224,7 @@ export const ReportPrompt = ({
         ]}
         testID="action-item-submit-report"
       >
-        <Text style={styles.sendLabel}>{reportSubmitting ? 'Submitting…' : 'Submit Report'}</Text>
+        <Text style={styles.sendLabel}>{reportSubmitting ? 'Submitting…' : 'Submit report'}</Text>
       </Pressable>
     </View>
   );

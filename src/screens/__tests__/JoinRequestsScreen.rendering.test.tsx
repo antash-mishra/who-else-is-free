@@ -341,9 +341,9 @@ describe('JoinRequestsScreen Rendering', () => {
     it('should render member count and date subtitle in group mode', () => {
       mockChatValue.conversations = [mockConversation()];
       const { getByText } = render(<JoinRequestsScreen />);
-      // Subtitle: "Group · 3 Members" (two parts, dot separator).
+      // Subtitle: "Group · 3 members" (two parts, dot separator).
       expect(getByText('Group')).toBeTruthy();
-      expect(getByText('3 Members')).toBeTruthy();
+      expect(getByText('3 members')).toBeTruthy();
     });
 
     it('should render back button', () => {
