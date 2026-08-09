@@ -9,7 +9,7 @@ describe('MyEventsScreen', () => {
   const user = mockUsers[0];
 
   describe('Tab Types', () => {
-    const tabs = ['Hosting', 'Joined', 'Requested'] as const;
+    const tabs = ['Hosting', 'Joined', 'Requests'] as const;
 
     it('should have three tabs', () => {
       expect(tabs.length).toBe(3);
@@ -23,8 +23,8 @@ describe('MyEventsScreen', () => {
       expect(tabs).toContain('Joined');
     });
 
-    it('should include Requested tab', () => {
-      expect(tabs).toContain('Requested');
+    it('should include Requests tab', () => {
+      expect(tabs).toContain('Requests');
     });
   });
 
@@ -94,14 +94,14 @@ describe('MyEventsScreen', () => {
       expect(requestedEvents.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should add "Pending" badge to requested events', () => {
+    it('should add "Requested" badge to requested events', () => {
       const requestedEventIds = new Set(['3']);
       const requestedEvents = mockEvents
         .filter((e) => requestedEventIds.has(e.id))
-        .map((e) => ({ ...e, badgeLabel: 'Pending' }));
+        .map((e) => ({ ...e, badgeLabel: 'Requested' }));
 
       requestedEvents.forEach((event) => {
-        expect(event.badgeLabel).toBe('Pending');
+        expect(event.badgeLabel).toBe('Requested');
       });
     });
 
@@ -115,15 +115,15 @@ describe('MyEventsScreen', () => {
 
   describe('Tab Switching', () => {
     it('should track active tab state', () => {
-      let activeTab: 'Hosting' | 'Joined' | 'Requested' = 'Hosting';
+      let activeTab: 'Hosting' | 'Joined' | 'Requests' = 'Hosting';
 
       expect(activeTab).toBe('Hosting');
 
       activeTab = 'Joined';
       expect(activeTab).toBe('Joined');
 
-      activeTab = 'Requested';
-      expect(activeTab).toBe('Requested');
+      activeTab = 'Requests';
+      expect(activeTab).toBe('Requests');
     });
   });
 

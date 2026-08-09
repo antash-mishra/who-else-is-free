@@ -100,7 +100,7 @@ const MyEventsScreen = () => {
     [joinedEvents],
   );
   const requestedSections = useMemo(
-    () => buildEventSections(requestedEvents, () => 'Pending'),
+    () => buildEventSections(requestedEvents, () => 'Requested'),
     [requestedEvents],
   );
 
@@ -137,7 +137,7 @@ const MyEventsScreen = () => {
   const filterOptions: SegmentedOption[] = [
     { label: 'Hosting', value: 'hosting', count: counts.hosting },
     { label: 'Joined', value: 'joined', count: counts.joined },
-    { label: 'Requested', value: 'requested', count: counts.requested },
+    { label: 'Requests', value: 'requested', count: counts.requested },
   ];
 
   const [signInVisible, setSignInVisible] = useState(false);
@@ -149,7 +149,7 @@ const MyEventsScreen = () => {
           <View
             style={[styles.headerSpacing, { paddingTop: insets.top + (spacing.lg - spacing.md) }]}
           >
-            <Text style={styles.headerTitle}>My Events</Text>
+            <Text style={styles.headerTitle}>My plans</Text>
           </View>
         </ScreenContainer>
         <FullPageEmptyState
@@ -158,9 +158,9 @@ const MyEventsScreen = () => {
           titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
         >
           <EmptyState
-            title="No events to show"
-            description={"Sign in to see the events you've created or joined"}
-            actionLabel="Continue"
+            title="No plans yet"
+            description={"Sign in to see the plans you've created or joined"}
+            actionLabel="Get started"
             onActionPress={() => setSignInVisible(true)}
             imageSource={require('@assets/empty-state/my-events.png')}
             imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
@@ -193,8 +193,8 @@ const MyEventsScreen = () => {
               emptyStateTopPadding={emptyStateTopPadding}
               emptyState={
                 <EmptyState
-                  title="No events yet"
-                  description="Events you host will appear here"
+                  title="No plans hosted"
+                  description="Create a plan and get things started."
                   imageSource={require('@assets/empty-state/my-events.png')}
                   imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
                   imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
@@ -211,8 +211,8 @@ const MyEventsScreen = () => {
               emptyStateTopPadding={emptyStateTopPadding}
               emptyState={
                 <EmptyState
-                  title="No events yet"
-                  description="Events you join will appear here"
+                  title="No plans joined"
+                  description="Your joined plans will appear here."
                   imageSource={require('@assets/empty-state/my-events.png')}
                   imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
                   imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
@@ -229,8 +229,8 @@ const MyEventsScreen = () => {
               emptyStateTopPadding={emptyStateTopPadding}
               emptyState={
                 <EmptyState
-                  title="No events yet"
-                  description="Events you request to join will appear here"
+                  title="No requests"
+                  description="Your join requests will appear here."
                   imageSource={require('@assets/empty-state/my-events.png')}
                   imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
                   imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
@@ -247,7 +247,7 @@ const MyEventsScreen = () => {
             onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
           >
             <View style={styles.headerSpacing}>
-              <Text style={styles.headerTitle}>My Events</Text>
+              <Text style={styles.headerTitle}>My plans</Text>
             </View>
             <View style={styles.filterRow}>
               <SegmentedControl
@@ -263,7 +263,7 @@ const MyEventsScreen = () => {
 
           <EventActionBadge
             visible={showEventCreatedBadge}
-            label="Event Created"
+            label="Plan created"
             onHidden={() => {
               setShowEventCreatedBadge(false);
               navigation.setParams({ showEventCreatedBadge: false });
@@ -271,7 +271,7 @@ const MyEventsScreen = () => {
           />
           <EventActionBadge
             visible={showEventDeletedBadge}
-            label="Event Deleted"
+            label="Plan deleted"
             onHidden={() => {
               setShowEventDeletedBadge(false);
               navigation.setParams({ showEventDeletedBadge: false });

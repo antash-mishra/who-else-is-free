@@ -94,7 +94,7 @@ describe('MyEventsScreen Rendering', () => {
   describe('Header and Filter Tabs', () => {
     it('renders the header title', () => {
       renderWithNav(<MyEventsScreen />);
-      expect(screen.getByText('My Events')).toBeTruthy();
+      expect(screen.getByText('My plans')).toBeTruthy();
     });
 
     it('renders all filter buttons', () => {
@@ -104,7 +104,7 @@ describe('MyEventsScreen Rendering', () => {
       expect(screen.getByTestId('segment-requested')).toBeTruthy();
       expect(screen.getAllByText('Hosting')[0]).toBeTruthy();
       expect(screen.getAllByText('Joined')[0]).toBeTruthy();
-      expect(screen.getByText('Requested')).toBeTruthy();
+      expect(screen.getByText('Requests')).toBeTruthy();
     });
 
     it('displays event counts in filter badges', () => {
@@ -209,21 +209,21 @@ describe('MyEventsScreen Rendering', () => {
       mockUseChat.mockReturnValue({ conversations: [] });
       renderWithNav(<MyEventsScreen />);
       expect(screen.getAllByTestId('empty-state').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('No events yet').length).toBeGreaterThan(0);
+      expect(screen.getByText('No plans hosted')).toBeTruthy();
     });
 
     it('shows login prompt for guest users', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
       expect(screen.getByTestId('empty-state')).toBeTruthy();
-      expect(screen.getByText('No events to show')).toBeTruthy();
-      expect(screen.getByText('Continue')).toBeTruthy();
+      expect(screen.getByText('No plans yet')).toBeTruthy();
+      expect(screen.getByText('Get started')).toBeTruthy();
     });
 
-    it('opens sign-in modal when Continue pressed', () => {
+    it('opens sign-in modal when Get started pressed', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
-      const continueButton = screen.getByText('Continue');
+      const continueButton = screen.getByText('Get started');
       fireEvent.press(continueButton);
       expect(screen.getByTestId('bottom-sheet-modal')).toBeTruthy();
     });
