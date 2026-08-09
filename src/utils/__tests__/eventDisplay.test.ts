@@ -29,16 +29,16 @@ describe("eventDisplay", () => {
   });
 
   describe("formatAudienceLabel", () => {
-    it("uses All Gender for open-gender events", () => {
+    it("uses All genders for open-gender events", () => {
       expect(
         formatAudienceLabel({ gender: "Any", minAge: 18, maxAge: 35 }),
-      ).toBe("All Gender, 18 to 35 years");
+      ).toBe("All genders, 18 to 35 years");
     });
 
-    it("uses All Age for the canonical full age range", () => {
+    it("uses All ages for the canonical full age range", () => {
       expect(
         formatAudienceLabel({ gender: "Female", minAge: 18, maxAge: 60 }),
-      ).toBe("Female, All Age");
+      ).toBe("Female, All ages");
     });
 
     it("formats a single-year audience range", () => {
@@ -117,7 +117,7 @@ describe("eventDisplay", () => {
           minAge: 18,
           maxAge: 60,
         }),
-      ).toBe("Group, All Gender, All Age");
+      ).toBe("Group, All genders, All ages");
     });
   });
 

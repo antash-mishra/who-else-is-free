@@ -188,7 +188,7 @@ export const useHostRequestActions = ({
       setRemovedMemberBadgeLabel(firstName.length > 0 ? `${firstName} removed` : 'Member removed');
     } catch (err) {
       logger.error('Failed to remove member', err);
-      setRemoveError('Unable to remove this member. Please try again.');
+      setRemoveError("Couldn't remove this member. Please try again.");
     } finally {
       setIsRemovingMember(false);
     }

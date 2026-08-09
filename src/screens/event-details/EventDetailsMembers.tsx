@@ -72,12 +72,8 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
         <View style={styles.listContainer}>
           {members.length === 0 ? (
             <EmptyState
-              title={isAccepted ? 'No accepted members yet' : 'No members yet'}
-              description={
-                isAccepted
-                  ? 'Members you accept will appear here'
-                  : 'Members who join will appear here'
-              }
+              title={isAccepted ? 'No accepted requests' : 'No members'}
+              description="People you accept will appear here."
               imageSource={EMPTY_ILLUSTRATION}
               imageWidth={EMPTY_ILLUSTRATION_WIDTH}
               imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
@@ -125,8 +121,8 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
           <Text style={styles.emptyStateText}>{error}</Text>
         ) : members.length === 0 ? (
           <EmptyState
-            title="No members yet"
-            description="Members who join will appear here"
+            title="No members"
+            description="People you accept will appear here."
             imageSource={EMPTY_ILLUSTRATION}
             imageWidth={EMPTY_ILLUSTRATION_WIDTH}
             imageHeight={EMPTY_ILLUSTRATION_HEIGHT}

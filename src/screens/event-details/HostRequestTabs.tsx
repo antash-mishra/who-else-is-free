@@ -130,8 +130,8 @@ const HostRequestTabs = ({
           <View style={{ width: pagerWidth > 0 ? pagerWidth : '50%', minHeight: 200 }}>
             {pendingRequests.length === 0 ? (
               <EmptyState
-                title="No requests yet"
-                description="Join requests will appear here"
+                title="No requests"
+                description="Join requests will appear here."
                 imageSource={EMPTY_ILLUSTRATION}
                 imageWidth={EMPTY_ILLUSTRATION_WIDTH}
                 imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
@@ -161,8 +161,8 @@ const HostRequestTabs = ({
             {isSingleEvent ? (
               acceptedRequests.length === 0 ? (
                 <EmptyState
-                  title="No accepted members yet"
-                  description="Members you accept will appear here"
+                  title="No accepted requests"
+                  description="People you accept will appear here."
                   imageSource={EMPTY_ILLUSTRATION}
                   imageWidth={EMPTY_ILLUSTRATION_WIDTH}
                   imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
@@ -182,8 +182,8 @@ const HostRequestTabs = ({
               )
             ) : confirmedMembers.length === 0 ? (
               <EmptyState
-                title="No members yet"
-                description="Members who join will appear here"
+                title="No members"
+                description="People you accept will appear here."
                 imageSource={EMPTY_ILLUSTRATION}
                 imageWidth={EMPTY_ILLUSTRATION_WIDTH}
                 imageHeight={EMPTY_ILLUSTRATION_HEIGHT}

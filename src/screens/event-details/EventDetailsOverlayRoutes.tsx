@@ -169,10 +169,10 @@ const EventDetailsOverlayRoutes = ({
         isVisible={showDeleteConfirm}
         onBackdropPress={isDeleting ? undefined : onDeleteCancel}
         type="confirm"
-        title="Delete this event?"
-        description="This will remove the event for everyone and can't be undone."
-        confirmLabel="Delete event"
-        cancelLabel="Keep event"
+        title="Delete this plan?"
+        description="This will remove the plan for everyone and can't be undone."
+        confirmLabel="Delete plan"
+        cancelLabel="Keep plan"
         confirmTone="destructive"
         onConfirm={onDelete}
         onCancel={onDeleteCancel}
@@ -215,9 +215,9 @@ const EventDetailsOverlayRoutes = ({
         isVisible={showLeaveConfirm}
         onBackdropPress={isLeaving ? undefined : onLeaveCancel}
         type="confirm"
-        title="Leave this event?"
+        title="Leave this plan?"
         description="You'll need to request to join again if you change your mind."
-        confirmLabel="Leave Event"
+        confirmLabel="Leave plan"
         cancelLabel="Stay"
         confirmTone="destructive"
         onConfirm={onLeaveEvent}
@@ -248,8 +248,8 @@ const EventDetailsOverlayRoutes = ({
         title={`Remove ${memberTitleName}?`}
         description={
           isSingleEvent
-            ? 'They will be removed from this event and private chat.'
-            : 'They will be removed from the group chat and will need to request to join again.'
+            ? 'They will be removed from this plan and your 1:1 chat will be deleted.'
+            : 'They will be removed from this plan and group chat.'
         }
         confirmLabel={`Remove ${memberFirstName}`}
         cancelLabel="Cancel"
@@ -261,17 +261,17 @@ const EventDetailsOverlayRoutes = ({
       />
       <EventActionBadge
         visible={showEventUpdatedBadge}
-        label="Event details updated"
+        label="Plan details updated"
         onHidden={onEventUpdatedBadgeHidden}
       />
       <EventActionBadge
         visible={showRequestSentBadge}
-        label="Requested to join"
+        label="Request sent"
         onHidden={onRequestSentBadgeHidden}
       />
       <EventActionBadge
         visible={showRequestCancelledBadge}
-        label="Requested to join cancelled"
+        label="Request cancelled"
         onHidden={onRequestCancelledBadgeHidden}
       />
       <EventActionBadge

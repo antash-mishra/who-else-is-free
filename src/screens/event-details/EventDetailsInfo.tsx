@@ -122,7 +122,7 @@ const EventDetailsInfo = ({
               )}
             </View>
             <Text style={styles.goingLabel} testID="going-count-label">
-              {`${goingCount} Going`}
+              {`${goingCount} Joined`}
             </Text>
           </View>
         )}
@@ -130,7 +130,7 @@ const EventDetailsInfo = ({
 
       <View style={[styles.divider, { marginTop: 20, marginBottom: 24 }]} />
 
-      <Text style={styles.sectionHeading}>Details</Text>
+      <Text style={styles.sectionHeading}>Plan details</Text>
       <View style={styles.detailDiv}>
         <View style={styles.detailRowTop}>
           <View style={styles.detailIconContainerTop}>

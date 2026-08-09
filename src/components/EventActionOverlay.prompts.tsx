@@ -78,8 +78,8 @@ export const InvitePrompt = ({
   return (
     <View style={styles.prompt}>
       <TextInput
-        accessibilityLabel="Send an intro about you and why you would like to join."
-        placeholder="Send an intro about you and why you would like to join."
+        accessibilityLabel="Share a short intro with the host"
+        placeholder="Share a short intro with the host"
         placeholderTextColor={colors.subText}
         multiline
         value={inviteMessage}
@@ -104,7 +104,7 @@ export const InvitePrompt = ({
         ]}
         testID="action-item-invite"
       >
-        <Text style={styles.sendLabel}>{inviteSubmitting ? 'Sending…' : 'Send Introduction'}</Text>
+        <Text style={styles.sendLabel}>{inviteSubmitting ? 'Sending…' : 'Send request'}</Text>
       </Pressable>
     </View>
   );
@@ -198,8 +198,8 @@ export const ReportPrompt = ({
   return (
     <View style={styles.prompt}>
       <TextInput
-        accessibilityLabel="Tell us why you are reporting this event"
-        placeholder="Tell us why you are reporting this event"
+        accessibilityLabel="Tell us why you're reporting this plan"
+        placeholder="Tell us why you're reporting this plan"
         placeholderTextColor={colors.subText}
         multiline
         value={reportMessage}
@@ -224,7 +224,7 @@ export const ReportPrompt = ({
         ]}
         testID="action-item-submit-report"
       >
-        <Text style={styles.sendLabel}>{reportSubmitting ? 'Submitting…' : 'Submit Report'}</Text>
+        <Text style={styles.sendLabel}>{reportSubmitting ? 'Submitting…' : 'Submit report'}</Text>
       </Pressable>
     </View>
   );
@@ -242,7 +242,7 @@ export const ActionMenu = ({ items }: ActionMenuProps) => (
 export const IntroMessagePrompt = ({ introMessage, onDismiss }: IntroMessagePromptProps) => (
   <View style={styles.prompt}>
     <View style={styles.promptHeader}>
-      <Text style={styles.promptTitle}>Your Introduction</Text>
+      <Text style={styles.promptTitle}>Your intro</Text>
       <Text style={styles.introMessageText}>{`"${introMessage}"`}</Text>
     </View>
     <Pressable

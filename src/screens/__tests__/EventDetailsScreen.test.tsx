@@ -60,7 +60,7 @@ describe('EventDetailsScreen', () => {
         maxAge: event.maxAge,
       });
 
-      expect(audienceLine).toBe('Group, All Gender, 18 to 35 years');
+      expect(audienceLine).toBe('Group, All genders, 18 to 35 years');
     });
   });
 
