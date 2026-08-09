@@ -13,7 +13,7 @@ describe("relativeTime utilities", () => {
           new Date(now.getTime() - 45 * 1000).toISOString(),
           now,
         ),
-      ).toBe("now");
+      ).toBe("Now");
     });
 
     it("returns compact minute labels for timestamps under one hour", () => {
@@ -37,13 +37,13 @@ describe("relativeTime utilities", () => {
           new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
           now,
         ),
-      ).toBe("2hr");
+      ).toBe("2h");
       expect(
         formatCompactRelativeTime(
           new Date(now.getTime() - 10 * 60 * 60 * 1000).toISOString(),
           now,
         ),
-      ).toBe("10hr");
+      ).toBe("10h");
     });
 
     it("returns compact day labels for older timestamps", () => {

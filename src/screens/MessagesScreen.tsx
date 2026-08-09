@@ -64,7 +64,7 @@ const ConversationRow = ({
     : (counterpart?.name ?? item.displayName);
   const lastMessageBody =
     item.lastMessage?.body ??
-    (isPendingSingleHostPlaceholder(item, userId) ? 'No accepted members yet' : 'No messages yet');
+    (isPendingSingleHostPlaceholder(item, userId) ? 'No one accepted yet' : 'No messages yet');
   const isOwnMessage = item.lastMessage?.senderId === userId;
   const isSystemMessage = item.lastMessage?.kind === 'system';
   const previewText = item.lastMessage
@@ -347,8 +347,8 @@ const MessagesScreen = () => {
         >
           <EmptyState
             title="No messages to show"
-            description={"Sign in to view conversations from events you've created or joined"}
-            actionLabel="Continue"
+            description={'Get started to view conversations from plans you host or join.'}
+            actionLabel="Get started"
             onActionPress={() => setSignInVisible(true)}
             imageSource={require('@assets/empty-state/chat.png')}
             imageWidth={279}
@@ -395,8 +395,8 @@ const MessagesScreen = () => {
         imageHeight={245}
       >
         <EmptyState
-          title="No Messages Yet"
-          description={'Messages from your events will appear here'}
+          title="No messages to show"
+          description={'Conversations from your plans will appear here.'}
           imageSource={require('@assets/empty-state/chat.png')}
           imageWidth={279}
           imageHeight={245}
