@@ -45,7 +45,7 @@ export const buildEventMemberSubtitle = ({
   memberCount,
 }: EventMemberSubtitleOptions): string => {
   const typeLabel = groupType === 'Single' ? '1:1' : 'Group';
-  const noun = groupType === 'Single' ? 'Accepted' : 'Members';
+  const noun = groupType === 'Single' ? 'Accepted' : 'members';
   return `${typeLabel}, ${memberCount} ${noun}`;
 };
 

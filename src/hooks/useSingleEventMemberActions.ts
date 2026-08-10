@@ -31,7 +31,7 @@ const DEFAULT_REPORT_ERRORS = {
 export const useSingleEventMemberActions = ({
   eventId,
   onSuccess,
-  removeErrorTitle = 'Unable to remove member',
+  removeErrorTitle = "Couldn't remove this person.",
   reportErrorMessages,
 }: UseSingleEventMemberActionsOptions) => {
   const { authFetch, token } = useAuth();
@@ -113,7 +113,7 @@ export const useSingleEventMemberActions = ({
         token,
         timeoutMs: null,
         fetchImpl: authFetch,
-        errorMessage: 'Unable to remove member.',
+        errorMessage: 'Please try again.',
       });
 
       await onSuccess?.();

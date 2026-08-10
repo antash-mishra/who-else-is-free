@@ -83,7 +83,7 @@ const ChatEventHeader = ({
       pressableStyle={styles.titlePressable}
       style={styles.titlePressableInner}
       onPress={onTitlePress}
-      accessibilityLabel={titleAccessibilityLabel ?? "View event details"}
+      accessibilityLabel={titleAccessibilityLabel ?? "View plan details"}
       testID={testID}
     >
       {titleInner}
