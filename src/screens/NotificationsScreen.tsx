@@ -199,7 +199,7 @@ const NotificationsScreen = () => {
       testID: 'notifications-menu-mark-all-read',
     },
     {
-      label: 'Clear all notifications',
+      label: 'Clear all',
       onPress: handleClearAll,
       destructive: true,
       disabled: notifications.length === 0,
@@ -294,7 +294,7 @@ const NotificationsScreen = () => {
       <FullPageEmptyState visible={showEmpty} imageHeight={245}>
         <EmptyState
           title="No notifications yet"
-          description="You don't have any notifications."
+          description="Your notifications will appear here."
           imageSource={require('@assets/empty-state/notifications.png')}
           imageWidth={245}
           imageHeight={245}

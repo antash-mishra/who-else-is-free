@@ -176,7 +176,7 @@ describe('NotificationsScreen Rendering', () => {
   it('renders the empty state when there are no notifications', () => {
     const { getByText } = render(<NotificationsScreen />);
     expect(getByText('No notifications yet')).toBeTruthy();
-    expect(getByText("You don't have any notifications.")).toBeTruthy();
+    expect(getByText('Your notifications will appear here.')).toBeTruthy();
   });
 
   it('shows the more-options menu button', () => {
@@ -200,7 +200,7 @@ describe('NotificationsScreen Rendering', () => {
     expect(mockMarkAllRead).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the action menu and calls clearAll when Clear all notifications is pressed', () => {
+  it('opens the action menu and calls clearAll when Clear all is pressed', () => {
     mockNotificationsValue = {
       ...mockNotificationsValue,
       notifications: sampleNotifications(),

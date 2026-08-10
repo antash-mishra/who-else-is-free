@@ -1,6 +1,6 @@
 /**
  * Buckets inbox items into widening time windows
- * (Today / Last 7 Days / Last 30 Days / Earlier).
+ * (Today / Last 7 days / Last 30 days / Earlier).
  *
  * Assumes the input is already ordered newest-first; order is preserved within
  * each section, and empty sections are omitted.
@@ -25,10 +25,10 @@ const sectionTitleForDayDiff = (diffDays: number): string => {
     return 'Today';
   }
   if (diffDays <= 7) {
-    return 'Last 7 Days';
+    return 'Last 7 days';
   }
   if (diffDays <= 30) {
-    return 'Last 30 Days';
+    return 'Last 30 days';
   }
   return 'Earlier';
 };
