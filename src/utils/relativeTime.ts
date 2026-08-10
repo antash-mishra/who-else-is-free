@@ -19,13 +19,13 @@ export const formatCompactRelativeTime = (
   const diffMs = Math.max(0, nowMs - timestampMs);
 
   if (diffMs < ONE_MINUTE_MS) {
-    return "now";
+    return "Now";
   }
   if (diffMs < ONE_HOUR_MS) {
     return `${Math.floor(diffMs / ONE_MINUTE_MS)}m`;
   }
   if (diffMs < ONE_DAY_MS) {
-    return `${Math.floor(diffMs / ONE_HOUR_MS)}hr`;
+    return `${Math.floor(diffMs / ONE_HOUR_MS)}h`;
   }
   return `${Math.floor(diffMs / ONE_DAY_MS)}d`;
 };

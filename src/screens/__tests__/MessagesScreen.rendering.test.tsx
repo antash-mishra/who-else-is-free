@@ -388,7 +388,7 @@ describe('MessagesScreen Rendering', () => {
       const { getByText } = render(<MessagesScreen />);
 
       expect(getByText('2m')).toBeTruthy();
-      expect(getByText('now')).toBeTruthy();
+      expect(getByText('Now')).toBeTruthy();
     });
 
     it('should refresh compact timestamps while the screen is mounted', () => {
@@ -405,7 +405,7 @@ describe('MessagesScreen Rendering', () => {
       ];
 
       const { getByText, queryByText } = render(<MessagesScreen />);
-      expect(getByText('now')).toBeTruthy();
+      expect(getByText('Now')).toBeTruthy();
 
       act(() => {
         jest.advanceTimersByTime(30_000);
@@ -489,7 +489,7 @@ describe('MessagesScreen Rendering', () => {
 
       const emptyState = getByTestId('empty-state');
       expect(emptyState).toBeTruthy();
-      expect(getByText('No Messages Yet')).toBeTruthy();
+      expect(getByText('No messages to show')).toBeTruthy();
     });
 
     it('should not show empty state while connecting', () => {
@@ -521,10 +521,10 @@ describe('MessagesScreen Rendering', () => {
       const emptyState = getByTestId('empty-state');
       expect(emptyState).toBeTruthy();
       expect(getByText('No messages to show')).toBeTruthy();
-      expect(getByText('Continue')).toBeTruthy();
+      expect(getByText('Get started')).toBeTruthy();
     });
 
-    it('should open sign-in modal when Continue button is pressed', () => {
+    it('should open sign-in modal when Get started button is pressed', () => {
       mockAuthValue.user = null;
 
       const { getByTestId } = render(<MessagesScreen />);
@@ -578,7 +578,7 @@ describe('MessagesScreen Rendering', () => {
       const { getByText } = render(<MessagesScreen />);
 
       expect(getByText('Solo Coffee')).toBeTruthy();
-      expect(getByText('No accepted members yet')).toBeTruthy();
+      expect(getByText('No one accepted yet')).toBeTruthy();
     });
 
     it('should open JoinRequests for a host-owned 1:1 event without a conversation', () => {
