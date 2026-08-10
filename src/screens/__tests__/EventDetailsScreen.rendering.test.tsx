@@ -257,7 +257,7 @@ jest.mock('@components/EventActionOverlay', () => {
             />
             {props.reportError && <Text testID="report-error">{props.reportError}</Text>}
             <Pressable testID="submit-report-button" onPress={props.onSubmitReport}>
-              <Text>Submit Report</Text>
+              <Text>Submit report</Text>
             </Pressable>
           </View>
         );
@@ -276,10 +276,10 @@ jest.mock('@components/EventActionOverlay', () => {
         return (
           <View testID="pending-request-overlay">
             <Pressable testID="cancel-request-button" onPress={props.onCancelRequest}>
-              <Text>Cancel Request</Text>
+              <Text>Cancel request</Text>
             </Pressable>
             <Pressable testID="report-event-button" onPress={props.onReportEvent}>
-              <Text>Report Event</Text>
+              <Text>Report plan</Text>
             </Pressable>
           </View>
         );
@@ -402,7 +402,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders audience information correctly for group event', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = 'Group, All Gender, 18 to 35 years';
+      const audienceLine = 'Group, All genders, 18 to 35 years';
       expect(getByText(audienceLine)).toBeTruthy();
     });
 
@@ -417,7 +417,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = '1:1, All Gender, 21 to 40 years';
+      const audienceLine = '1:1, All genders, 21 to 40 years';
       expect(getByText(audienceLine)).toBeTruthy();
 
       // Restore the spy to avoid polluting other tests
@@ -427,7 +427,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders "Details" section heading', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('Details')).toBeTruthy();
+      expect(getByText('Plan details')).toBeTruthy();
     });
   });
 
@@ -443,10 +443,10 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText('Hosted by you')).toBeTruthy();
     });
 
-    it('shows "Go to Chat" CTA button for host', () => {
+    it('shows "Go to chat" CTA button for host', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('Go to Chat')).toBeTruthy();
+      expect(getByText('Go to chat')).toBeTruthy();
     });
 
     it('shows going row for host', () => {
@@ -455,29 +455,29 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-row')).toBeTruthy();
     });
 
-    it('shows "Event details updated" badge after a short delay when route param is set', () => {
+    it('shows "Plan details updated" badge after a short delay when route param is set', () => {
       jest.useFakeTimers();
       const routeSpy = jest
         .spyOn(require('@react-navigation/native'), 'useRoute')
         .mockReturnValue(createMockRoute('1', 'MyEvents', true));
 
       const { getByText, queryByText } = render(<EventDetailsScreen />);
-      expect(queryByText('Event details updated')).toBeNull();
+      expect(queryByText('Plan details updated')).toBeNull();
 
       act(() => {
         jest.advanceTimersByTime(350);
       });
 
-      expect(getByText('Event details updated')).toBeTruthy();
+      expect(getByText('Plan details updated')).toBeTruthy();
 
       routeSpy.mockRestore();
       jest.useRealTimers();
     });
 
-    it('opens chat when "Go to Chat" is pressed', () => {
+    it('opens chat when "Go to chat" is pressed', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const chatButton = getByText('Go to Chat');
+      const chatButton = getByText('Go to chat');
       fireEvent.press(chatButton);
 
       expect(mockChatState.setActiveConversation).toHaveBeenCalledWith(mockEventConversation.id);
@@ -502,7 +502,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
     });
 
-    it('shows Edit Details and Delete Event menu items for host', async () => {
+    it('shows Edit plan and Delete plan menu items for host', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
@@ -510,19 +510,19 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(buttons[1]); // Menu button
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-edit-details')).toBeTruthy();
-        expect(getByTestId('menu-item-delete-event')).toBeTruthy();
+        expect(getByTestId('menu-item-edit-plan')).toBeTruthy();
+        expect(getByTestId('menu-item-delete-plan')).toBeTruthy();
       });
     });
 
-    it('navigates to edit screen when Edit Details is pressed', async () => {
+    it('navigates to edit screen when Edit plan is pressed', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        const editButton = getByTestId('menu-item-edit-details');
+        const editButton = getByTestId('menu-item-edit-plan');
         fireEvent.press(editButton);
       });
       act(() => {
@@ -538,20 +538,20 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }));
     });
 
-    it('shows delete confirmation when Delete Event is pressed', async () => {
+    it('shows delete confirmation when Delete plan is pressed', async () => {
       const { getByTestId, getAllByRole, queryByTestId } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        const deleteButton = getByTestId('menu-item-delete-event');
+        const deleteButton = getByTestId('menu-item-delete-plan');
         fireEvent.press(deleteButton);
       });
 
       await waitFor(() => {
         expect(getByTestId('confirm-overlay')).toBeTruthy();
-        expect(getByTestId('confirm-title')).toHaveTextContent('Delete this event?');
+        expect(getByTestId('confirm-title')).toHaveTextContent('Delete this plan?');
       });
     });
 
@@ -562,7 +562,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        fireEvent.press(getByTestId('menu-item-delete-event'));
+        fireEvent.press(getByTestId('menu-item-delete-plan'));
       });
 
       await waitFor(() => {
@@ -586,10 +586,10 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText('Members')).toBeTruthy();
     });
 
-    it('displays "No requests yet" when there are no pending requests', () => {
+    it('displays "No requests" when there are no pending requests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('No requests yet')).toBeTruthy();
+      expect(getByText('No requests')).toBeTruthy();
     });
 
     it('displays pending join requests for host', async () => {
@@ -635,24 +635,24 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText(`Hosted by ${mockNonOwnedEvent.hostName}`)).toBeTruthy();
     });
 
-    it('shows "Interested" CTA button for guest', () => {
+    it('shows "Request to join" CTA button for guest', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('Interested')).toBeTruthy();
+      expect(getByText('Request to join')).toBeTruthy();
     });
 
     it('shows going row for guest viewers', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('2 Going');
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 Joined');
     });
 
     it('redirects to login when guest tries to join', async () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
-      // Press Interested button
-      const interestedButton = getByText('Interested');
+      // Press Request to join button
+      const interestedButton = getByText('Request to join');
       fireEvent.press(interestedButton);
 
       // Should show invite overlay
@@ -688,17 +688,17 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }];
     });
 
-    it('shows "Interested" button for non-member', () => {
+    it('shows "Request to join" button for non-member', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('Interested')).toBeTruthy();
+      expect(getByText('Request to join')).toBeTruthy();
     });
 
     it('shows going row for non-joined viewers', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1 Going');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 Joined');
     });
 
     it('shows fallback host going state when conversation is missing', () => {
@@ -706,7 +706,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1 Going');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 Joined');
       expect(getByTestId('going-avatar-0')).toBeTruthy();
     });
 
@@ -735,24 +735,24 @@ describe('EventDetailsScreen Rendering Tests', () => {
       routeSpy.mockRestore();
     });
 
-    it('opens invite prompt when Interested is pressed', async () => {
+    it('opens invite prompt when Request to join is pressed', async () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
-      fireEvent.press(getByText('Interested'));
+      fireEvent.press(getByText('Request to join'));
 
       await waitFor(() => {
         expect(getByTestId('invite-overlay')).toBeTruthy();
       });
     });
 
-    it('shows Report Event option in menu for non-member', async () => {
+    it('shows Report plan option in menu for non-member', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-report-event')).toBeTruthy();
+        expect(getByTestId('menu-item-report-plan')).toBeTruthy();
       });
     });
 
@@ -765,7 +765,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
       // Open invite prompt
-      fireEvent.press(getByText('Interested'));
+      fireEvent.press(getByText('Request to join'));
 
       await waitFor(() => {
         expect(getByTestId('invite-overlay')).toBeTruthy();
@@ -795,7 +795,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
       // Open invite prompt
-      fireEvent.press(getByText('Interested'));
+      fireEvent.press(getByText('Request to join'));
 
       await waitFor(() => {
         expect(getByTestId('invite-overlay')).toBeTruthy();
@@ -823,48 +823,48 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }];
     });
 
-    it('shows "Go to Chat" button for members', () => {
+    it('shows "Go to chat" button for members', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('Go to Chat')).toBeTruthy();
+      expect(getByText('Go to chat')).toBeTruthy();
     });
 
     it('shows going row for joined members', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('2 Going');
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 Joined');
     });
 
-    it('does not show "Interested" button for members', () => {
+    it('does not show "Request to join" button for members', () => {
       const { queryByText } = render(<EventDetailsScreen />);
 
-      expect(queryByText('Interested')).toBeNull();
+      expect(queryByText('Request to join')).toBeNull();
     });
 
-    it('shows Leave Event option in menu for members', async () => {
+    it('shows Leave plan option in menu for members', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-leave-event')).toBeTruthy();
+        expect(getByTestId('menu-item-leave-plan')).toBeTruthy();
       });
     });
 
-    it('shows Report Event option in menu for members', async () => {
+    it('shows Report plan option in menu for members', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-report-event')).toBeTruthy();
+        expect(getByTestId('menu-item-report-plan')).toBeTruthy();
       });
     });
 
-    it('shows View Intro Message option in menu for members', async () => {
+    it('shows View intro message option in menu for members', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
@@ -875,19 +875,19 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
     });
 
-    it('shows leave confirmation when Leave Event is pressed', async () => {
+    it('shows leave confirmation when Leave plan is pressed', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        fireEvent.press(getByTestId('menu-item-leave-event'));
+        fireEvent.press(getByTestId('menu-item-leave-plan'));
       });
 
       await waitFor(() => {
         expect(getByTestId('confirm-overlay')).toBeTruthy();
-        expect(getByTestId('confirm-title')).toHaveTextContent('Leave this event?');
+        expect(getByTestId('confirm-title')).toHaveTextContent('Leave this plan?');
       });
     });
 
@@ -900,7 +900,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        fireEvent.press(getByTestId('menu-item-leave-event'));
+        fireEvent.press(getByTestId('menu-item-leave-plan'));
       });
 
       await waitFor(() => {
@@ -944,21 +944,21 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }];
     });
 
-    it('shows "Pending Request" button when request is pending', () => {
+    it('shows "Request pending" button when request is pending', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText('Pending Request')).toBeTruthy();
+      expect(getByText('Request pending')).toBeTruthy();
     });
 
     it('disables CTA button when request is pending', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const pendingButton = getByText('Pending Request').parent;
+      const pendingButton = getByText('Request pending').parent;
       // The button should be disabled (not respond to press)
       expect(pendingButton).toBeTruthy();
     });
 
-    it('shows Cancel Request option in menu for pending state', async () => {
+    it('shows Cancel request option in menu for pending state', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
@@ -969,7 +969,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       });
     });
 
-    it('cancels request when Cancel Request is pressed', async () => {
+    it('cancels request when Cancel request is pressed', async () => {
       fetchMock.mockResponseOnce('', { status: 200 });
 
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
@@ -1001,7 +1001,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders fallback UI when event is not found', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText("We couldn't find that event.")).toBeTruthy();
+      expect(getByText("We couldn't find that plan.")).toBeTruthy();
     });
 
     it('shows back button on fallback screen', () => {
@@ -1067,7 +1067,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
   });
 
-  describe('Report Event Flow', () => {
+  describe('Report plan Flow', () => {
     beforeEach(() => {
       mockAuthState.user = mockUser;
       mockAuthState.token = 'test-token';
@@ -1079,14 +1079,14 @@ describe('EventDetailsScreen Rendering Tests', () => {
       }];
     });
 
-    it('opens report overlay when Report Event is selected', async () => {
+    it('opens report overlay when Report plan is selected', async () => {
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        fireEvent.press(getByTestId('menu-item-report-event'));
+        fireEvent.press(getByTestId('menu-item-report-plan'));
       });
 
       await waitFor(() => {
@@ -1101,7 +1101,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        fireEvent.press(getByTestId('menu-item-report-event'));
+        fireEvent.press(getByTestId('menu-item-report-plan'));
       });
 
       await waitFor(() => {
@@ -1122,7 +1122,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        fireEvent.press(getByTestId('menu-item-report-event'));
+        fireEvent.press(getByTestId('menu-item-report-plan'));
       });
 
       await waitFor(() => {
@@ -1158,9 +1158,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-report-event')).toBeTruthy();
+        expect(getByTestId('menu-item-report-plan')).toBeTruthy();
       });
-      fireEvent.press(getByTestId('menu-item-report-event'));
+      fireEvent.press(getByTestId('menu-item-report-plan'));
 
       await waitFor(() => {
         expect(getByTestId('report-message-input')).toBeTruthy();
@@ -1298,9 +1298,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-delete-event')).toBeTruthy();
+        expect(getByTestId('menu-item-delete-plan')).toBeTruthy();
       });
-      fireEvent.press(getByTestId('menu-item-delete-event'));
+      fireEvent.press(getByTestId('menu-item-delete-plan'));
 
       await waitFor(() => {
         expect(getByTestId('confirm-button')).toBeTruthy();
@@ -1368,9 +1368,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-delete-event')).toBeTruthy();
+        expect(getByTestId('menu-item-delete-plan')).toBeTruthy();
       });
-      fireEvent.press(getByTestId('menu-item-delete-event'));
+      fireEvent.press(getByTestId('menu-item-delete-plan'));
 
       await waitFor(() => {
         expect(getByTestId('confirm-button')).toBeTruthy();
@@ -1397,9 +1397,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getAllByRole('button')[1]);
 
       await waitFor(() => {
-        expect(getByTestId('menu-item-leave-event')).toBeTruthy();
+        expect(getByTestId('menu-item-leave-plan')).toBeTruthy();
       });
-      fireEvent.press(getByTestId('menu-item-leave-event'));
+      fireEvent.press(getByTestId('menu-item-leave-plan'));
 
       await waitFor(() => {
         expect(getByTestId('confirm-button')).toBeTruthy();
@@ -1427,7 +1427,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
       // Open invite prompt
-      fireEvent.press(getByText('Interested'));
+      fireEvent.press(getByText('Request to join'));
 
       await waitFor(() => {
         fireEvent.changeText(getByTestId('invite-message-input'), 'Hello!');
@@ -1452,7 +1452,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
       // Open invite prompt
-      fireEvent.press(getByText('Interested'));
+      fireEvent.press(getByText('Request to join'));
 
       await waitFor(() => {
         expect(getByTestId('invite-message-input')).toBeTruthy();
@@ -1502,12 +1502,12 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(queryByText('Members')).toBeNull();
     });
 
-    it('opens JoinRequests when 1:1 host taps "Go to Chat" without existing conversations', () => {
+    it('opens JoinRequests when 1:1 host taps "Go to chat" without existing conversations', () => {
       mockChatState.conversations = [];
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      fireEvent.press(getByText('Go to Chat'));
+      fireEvent.press(getByText('Go to chat'));
 
       expect(mockNavigate).toHaveBeenCalledWith(
         'JoinRequests',
@@ -1645,7 +1645,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const { getByLabelText, queryByLabelText } = render(<EventDetailsScreen />);
 
-      expect(queryByLabelText('Close event details')).toBeNull();
+      expect(queryByLabelText('Close')).toBeNull();
 
       fireEvent.press(getByLabelText('Go back'));
 
@@ -1776,7 +1776,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, queryByText } = render(<EventDetailsScreen />);
 
       expect(getByText('Accepted')).toBeTruthy();
-      expect(getByText('No accepted members yet')).toBeTruthy();
+      expect(getByText('No accepted requests')).toBeTruthy();
       expect(getByText('Members you accept will appear here')).toBeTruthy();
       expect(queryByText('Host')).toBeNull();
     });
@@ -1849,7 +1849,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
         );
 
       const { getByLabelText, queryByLabelText } = render(<EventDetailsScreen />);
-      const closeButton = getByLabelText('Close event details');
+      const closeButton = getByLabelText('Close');
 
       expect(queryByLabelText('Go back')).toBeNull();
       expect(closeButton.props.style).toEqual(

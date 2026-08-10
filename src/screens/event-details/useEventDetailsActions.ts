@@ -157,7 +157,7 @@ export const useEventDetailsActions = ({
     }
     const trimmed = inviteMessage.trim();
     if (!trimmed.length) {
-      setInviteError('Please include a brief note for the host.');
+      setInviteError('Add a short intro for the host.');
       return;
     }
     triggerHaptic('submit');
@@ -177,7 +177,7 @@ export const useEventDetailsActions = ({
       if (response.status === 409) {
         setHasPendingRequest(true);
         markEventRequested(event.id);
-        setInviteError('You already have a pending request for this event.');
+        setInviteError('You already have a pending request for this plan.');
         trackEvent('join_request_failed', {
           ...eventAnalyticsParams,
           status_code: response.status,
@@ -208,7 +208,7 @@ export const useEventDetailsActions = ({
             status_code: response.status,
             reason_category: 'forbidden',
           }).catch(() => undefined);
-          throw new Error('You are unable to join this event.');
+          throw new Error("You can't join this plan.");
         }
         if (response.status === 404) {
           failureTracked = true;
@@ -217,7 +217,7 @@ export const useEventDetailsActions = ({
             status_code: response.status,
             reason_category: 'not_found',
           }).catch(() => undefined);
-          throw new Error('This event is no longer available.');
+          throw new Error('This plan is no longer available.');
         }
         failureTracked = true;
         trackEvent('join_request_failed', {
@@ -225,7 +225,7 @@ export const useEventDetailsActions = ({
           status_code: response.status,
           reason_category: 'api_error',
         }).catch(() => undefined);
-        throw new Error(serverMsg || 'Unable to send request right now.');
+        throw new Error(serverMsg || "Couldn't send request. Please try again.");
       }
       setInviteMessage('');
       setShowInvitePrompt(false);
@@ -242,7 +242,7 @@ export const useEventDetailsActions = ({
       }
       logger.error('Failed to send invite', err);
       setInviteError(
-        err instanceof Error ? err.message : 'Unable to send request. Please try again.',
+        err instanceof Error ? err.message : "Couldn't send request. Please try again.",
       );
     } finally {
       setIsSendingInvite(false);
@@ -315,7 +315,7 @@ export const useEventDetailsActions = ({
       });
     } catch (err) {
       logger.error('Failed to delete event', err);
-      setDeleteError('Unable to delete this event. Please try again.');
+      setDeleteError("Couldn't delete this plan. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -376,7 +376,7 @@ export const useEventDetailsActions = ({
     }
     const trimmed = reportMessage.trim();
     if (!trimmed.length) {
-      setReportError('Please tell us why you are reporting this event.');
+      setReportError("Please tell us why you're reporting this plan.");
       return;
     }
     triggerHaptic('submit');
@@ -392,11 +392,11 @@ export const useEventDetailsActions = ({
         body: JSON.stringify({ reason: trimmed }),
       });
       if (response.status === 409) {
-        setReportError('You have already reported this event.');
+        setReportError('You have already reported this plan.');
         return;
       }
       if (!response.ok) {
-        throw new Error('Unable to submit report right now.');
+        throw new Error("Couldn't submit report. Please try again.");
       }
       setReportMessage('');
       setShowReportPrompt(false);
@@ -424,7 +424,7 @@ export const useEventDetailsActions = ({
     } catch (err) {
       logger.error('Failed to submit report', err);
       setReportError(
-        err instanceof Error ? err.message : 'Unable to submit report. Please try again.',
+        err instanceof Error ? err.message : "Couldn't submit report. Please try again.",
       );
     } finally {
       setIsSubmittingReport(false);
@@ -487,7 +487,7 @@ export const useEventDetailsActions = ({
       });
     } catch (err) {
       logger.error('Failed to leave event', err);
-      setLeaveError('Unable to leave this event. Please try again.');
+      setLeaveError('Unable to leave this plan. Please try again.');
     } finally {
       setIsLeaving(false);
     }
@@ -521,44 +521,44 @@ export const useEventDetailsActions = ({
 
   const menuItems = useMemo(() => {
     if (isOwner) {
-      // Host: Edit Details, Delete Event
+      // Host: Edit plan, Delete plan
       return [
-        { label: 'Edit Details', onPress: handleMenuEdit },
-        { label: 'Delete Event', onPress: handleMenuDelete, destructive: true },
+        { label: 'Edit plan', onPress: handleMenuEdit },
+        { label: 'Delete plan', onPress: handleMenuDelete, destructive: true },
       ];
     }
     if (isConversationMember) {
-      // Joined: View Intro Message, Leave Event, Report Event
+      // Joined: View intro message, Leave plan, Report plan
       return [
-        { label: 'View Intro Message', onPress: handleMenuViewIntro },
-        { label: 'Leave Event', onPress: handleLeavePrompt, destructive: true },
+        { label: 'View intro message', onPress: handleMenuViewIntro },
+        { label: 'Leave plan', onPress: handleLeavePrompt, destructive: true },
         {
-          label: 'Report Event',
+          label: 'Report plan',
           onPress: handleMenuReportEvent,
           destructive: true,
         },
       ];
     }
     if (hasPendingRequest) {
-      // Pending: View Intro Message, Cancel Request, Report Event
+      // Pending: View intro message, Cancel request, Report plan
       return [
-        { label: 'View Intro Message', onPress: handleMenuViewIntro },
+        { label: 'View intro message', onPress: handleMenuViewIntro },
         {
-          label: 'Cancel Request',
+          label: 'Cancel request',
           onPress: handleMenuCancelRequest,
           loading: isCancellingRequest,
         },
         {
-          label: 'Report Event',
+          label: 'Report plan',
           onPress: handleMenuReportEvent,
           destructive: true,
         },
       ];
     }
-    // Not joined: Report Event
+    // Not joined: Report plan
     return [
       {
-        label: 'Report Event',
+        label: 'Report plan',
         onPress: handleMenuReportEvent,
         destructive: true,
       },

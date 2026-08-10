@@ -213,7 +213,7 @@ const EventDetailsScreenContent = ({
           {isOverlay ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close event details"
+              accessibilityLabel="Close"
               onPress={() => {
                 triggerHaptic('light');
                 handleOverlayClose();
@@ -232,7 +232,7 @@ const EventDetailsScreenContent = ({
               <ChevronLeftIcon width={24} height={24} color={colors.text} />
             </Pressable>
           )}
-          <Text style={styles.fallbackText}>We couldn't find that event.</Text>
+          <Text style={styles.fallbackText}>We couldn't find that plan.</Text>
         </View>
       </SafeAreaView>
     );
@@ -250,7 +250,7 @@ const EventDetailsScreenContent = ({
     maxAge: event.maxAge,
   });
 
-  const ctaLabel = hasPendingRequest ? 'Pending Request' : 'Interested';
+  const ctaLabel = hasPendingRequest ? 'Request pending' : 'Request to join';
 
   // Show standard CTA only for non-owners who haven't joined
   const showStandardCTA = !isOwner && !isConversationMember;
@@ -283,7 +283,7 @@ const EventDetailsScreenContent = ({
         {isOverlay ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Close event details"
+            accessibilityLabel="Close"
             onPress={() => {
               triggerHaptic('light');
               handleOverlayClose();
@@ -314,7 +314,7 @@ const EventDetailsScreenContent = ({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="More event actions"
+              accessibilityLabel="More actions"
               onPress={() => {
                 triggerHaptic('light');
                 setShowMenuOverlay(true);
@@ -584,7 +584,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
           },
         });
         if (response.status === 404) {
-          // The event was deleted; the "couldn't find that event" fallback
+          // The event was deleted; the "couldn't find that plan" fallback
           // handles this, so don't treat it as an error.
           if (!isCancelled) {
             setFetchedEvent(null);
@@ -629,7 +629,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
               {isOverlay ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Close event details"
+                  accessibilityLabel="Close"
                   onPress={() => {
                     triggerHaptic('light');
                     handleOverlayClose();
@@ -648,7 +648,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
                   <ChevronLeftIcon width={24} height={24} color={colors.text} />
                 </Pressable>
               )}
-              <Text style={styles.fallbackText}>We couldn't find that event.</Text>
+              <Text style={styles.fallbackText}>We couldn't find that plan.</Text>
             </>
           )}
         </View>

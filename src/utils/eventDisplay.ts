@@ -113,7 +113,7 @@ export const formatVerboseAgeLabel = (
   }
 
   if (isAllAge(normalized.minAge, normalized.maxAge)) {
-    return "All Age";
+    return "All ages";
   }
 
   if (normalized.minAge === normalized.maxAge) {
@@ -129,7 +129,7 @@ export const formatAudienceLabel = ({
   maxAge,
 }: AudienceInput): string => {
   const parts: string[] = [];
-  const genderLabel = isAllGender(gender) ? "All Gender" : getGenderLabel(gender);
+  const genderLabel = isAllGender(gender) ? "All genders" : getGenderLabel(gender);
   const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
 
   if (genderLabel) {

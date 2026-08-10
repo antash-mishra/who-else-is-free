@@ -80,7 +80,7 @@ const EventDetailsCTA = ({
             onPress={onOpenChat}
             style={[styles.ctaButton, isOwner && styles.ctaButtonSecondary]}
           >
-            <Text style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}>Go to Chat</Text>
+            <Text style={[styles.ctaLabel, isOwner && styles.ctaLabelSecondary]}>Go to chat</Text>
           </ScalePressable>
         </View>
       </View>
