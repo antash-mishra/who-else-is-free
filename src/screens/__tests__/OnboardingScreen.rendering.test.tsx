@@ -59,7 +59,7 @@ const getStep3BackButton = () => screen.getAllByTestId('back-button')[1];
 const selectAge = (age: number) => fireEvent.press(screen.getByText(String(age)));
 const pressStep1Continue = () => fireEvent.press(getStep1ContinueButton());
 const pressStep2Continue = () => fireEvent.press(getStep2ContinueButton());
-const pressDone = () => fireEvent.press(screen.getByText('Done'));
+const pressDone = () => fireEvent.press(screen.getByText("Let's go"));
 
 describe('OnboardingScreen Rendering', () => {
   const defaultUser = mockUsers[2]; // New user without complete profile
@@ -83,12 +83,12 @@ describe('OnboardingScreen Rendering', () => {
 
     it('renders name input field', () => {
       render(<OnboardingScreen />);
-      expect(screen.getByPlaceholderText('Your Name')).toBeTruthy();
+      expect(screen.getByPlaceholderText('Your name')).toBeTruthy();
     });
 
     it('pre-fills name from user data', () => {
       render(<OnboardingScreen />);
-      const nameInput = screen.getByPlaceholderText('Your Name');
+      const nameInput = screen.getByPlaceholderText('Your name');
       expect(nameInput.props.value).toBe('New User');
     });
 
@@ -104,7 +104,7 @@ describe('OnboardingScreen Rendering', () => {
         signOut: mockSignOut,
       });
       render(<OnboardingScreen />);
-      const nameInput = screen.getByPlaceholderText('Your Name');
+      const nameInput = screen.getByPlaceholderText('Your name');
       fireEvent.changeText(nameInput, '');
       pressStep1Continue();
       expect(Alert.alert).not.toHaveBeenCalled();
@@ -117,7 +117,7 @@ describe('OnboardingScreen Rendering', () => {
         signOut: mockSignOut,
       });
       render(<OnboardingScreen />);
-      const nameInput = screen.getByPlaceholderText('Your Name');
+      const nameInput = screen.getByPlaceholderText('Your name');
       fireEvent.changeText(nameInput, '   ');
       pressStep1Continue();
       expect(Alert.alert).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('OnboardingScreen Rendering', () => {
 
     it('advances to step 2 with valid name', () => {
       render(<OnboardingScreen />);
-      const nameInput = screen.getByPlaceholderText('Your Name');
+      const nameInput = screen.getByPlaceholderText('Your name');
       fireEvent.changeText(nameInput, 'John Doe');
       pressStep1Continue();
       expect(screen.getByText("What's your gender?")).toBeTruthy();
@@ -135,7 +135,7 @@ describe('OnboardingScreen Rendering', () => {
   describe('Step 2 - Gender Selection', () => {
     const goToStep2 = () => {
       render(<OnboardingScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John Doe');
+      fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'John Doe');
       pressStep1Continue();
     };
 
@@ -216,7 +216,7 @@ describe('OnboardingScreen Rendering', () => {
   describe('Step 3 - Age Picker', () => {
     const goToStep3 = () => {
       render(<OnboardingScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John Doe');
+      fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'John Doe');
       pressStep1Continue();
       fireEvent.press(screen.getByText('Female'));
       pressStep2Continue();
@@ -236,7 +236,7 @@ describe('OnboardingScreen Rendering', () => {
 
     it('renders Done button', () => {
       goToStep3();
-      expect(screen.getByText('Done')).toBeTruthy();
+      expect(screen.getByText("Let's go")).toBeTruthy();
     });
 
     it('submits the selected age', async () => {
@@ -261,7 +261,7 @@ describe('OnboardingScreen Rendering', () => {
   describe('Profile Submission', () => {
     const completeForm = () => {
       render(<OnboardingScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John Doe');
+      fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'John Doe');
       pressStep1Continue();
       fireEvent.press(screen.getByText('Female'));
       pressStep2Continue();
@@ -285,7 +285,7 @@ describe('OnboardingScreen Rendering', () => {
     it('submits Other as the selected gender', async () => {
       mockUpdateProfile.mockResolvedValue({});
       render(<OnboardingScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'Taylor');
+      fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'Taylor');
       pressStep1Continue();
       fireEvent.press(screen.getByText('Other'));
       pressStep2Continue();
@@ -374,7 +374,7 @@ describe('OnboardingScreen Rendering', () => {
       });
 
       // Complete form
-      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John');
+      fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'John');
       pressStep1Continue();
       fireEvent.press(screen.getByText('Male'));
       pressStep2Continue();
@@ -403,7 +403,7 @@ describe('OnboardingScreen Rendering', () => {
       );
 
       render(<OnboardingScreen />);
-      fireEvent.changeText(screen.getByPlaceholderText('Your Name'), 'John');
+      fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'John');
       pressStep1Continue();
       fireEvent.press(screen.getByText('Male'));
       pressStep2Continue();

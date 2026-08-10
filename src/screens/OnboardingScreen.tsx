@@ -252,7 +252,7 @@ const OnboardingScreen = () => {
               <View style={[styles.headerSection, { marginTop: headerTopMargin }]}>
                 <Text style={styles.title}>What's your name?</Text>
                 <Text style={styles.subtitle}>
-                  Add your name and a photo so{'\n'}others know who you are.
+                  {"This is how you'll appear publicly."}
                 </Text>
               </View>
 
@@ -308,7 +308,7 @@ const OnboardingScreen = () => {
                   onFocus={handleNameFocus}
                   onSubmitEditing={Keyboard.dismiss}
                   selection={nameSelection}
-                  placeholder="Your Name"
+                  placeholder="Your name"
                   placeholderTextColor={colors.placeholder}
                   autoCapitalize="words"
                   autoCorrect={false}
@@ -467,7 +467,7 @@ const OnboardingScreen = () => {
           {/* Button - Fixed at bottom */}
           <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
             <AppButton
-              label="Done"
+              label="Let's go"
               variant="primary"
               fullWidth
               haptic="submit"
