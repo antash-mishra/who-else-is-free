@@ -97,6 +97,13 @@ describe('EventCard', () => {
       expect(screen.getByText('Pending')).toBeTruthy();
     });
 
+    it('should show Requested badge', () => {
+      render(<EventCard {...defaultProps} badgeLabel="Requested" />);
+
+      expect(screen.getByTestId('event-card-badge')).toBeTruthy();
+      expect(screen.getByText('Requested')).toBeTruthy();
+    });
+
     it('should show Hosting badge', () => {
       render(<EventCard {...defaultProps} badgeLabel="Hosting" />);
 

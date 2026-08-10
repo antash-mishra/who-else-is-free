@@ -146,7 +146,7 @@ const HomeScreen = () => {
       if (!user) return undefined;
       if (event.ownerId === user.id) return 'Hosting';
       if (joinedEventIds.has(event.id)) return 'Joined';
-      if (isEventRequested(event.id)) return 'Pending';
+      if (isEventRequested(event.id)) return 'Requested';
       return undefined;
     },
     [user, joinedEventIds, isEventRequested],
@@ -203,7 +203,7 @@ const HomeScreen = () => {
   const newestSections = useMemo<EventSection[]>(() => {
     if (discoverableEvents) {
       return buildSingleEventSection(
-        'Newest',
+        'Newest created',
         [...discoverableEvents].sort(sortEventsByCreatedAtDesc),
         getBadgeLabel,
       );
@@ -286,8 +286,8 @@ const HomeScreen = () => {
 
   const discoverEmptyState = (
     <EmptyState
-      title="Nothing Happening Here (Yet!)"
-      description="There are currently no events available. Please check back later."
+      title="Nothing happening yet"
+      description="Create a plan and see who else is free."
       imageSource={require('@assets/empty-state/discover.png')}
     />
   );
@@ -360,7 +360,7 @@ const HomeScreen = () => {
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
           <View style={styles.headerSpacing}>
-            <Text style={styles.headerTitle}>Discover Events</Text>
+            <Text style={styles.headerTitle}>Discover</Text>
           </View>
           <View style={styles.filtersRow}>
             <SegmentedControl
@@ -384,7 +384,7 @@ const HomeScreen = () => {
       />
       <EventActionBadge
         visible={showReportedBadge}
-        label="Event Reported, Admins are looking into it"
+        label="Report submitted. We'll review it shortly."
         onHidden={() => {
           setShowReportedBadge(false);
           navigation.setParams({ showEventReportedBadge: false });
@@ -392,7 +392,7 @@ const HomeScreen = () => {
       />
       <EventActionBadge
         visible={showEventDeletedBadge}
-        label="Event Deleted"
+        label="Plan deleted"
         onHidden={() => {
           setShowEventDeletedBadge(false);
           navigation.setParams({ showEventDeletedBadge: false });
@@ -400,7 +400,7 @@ const HomeScreen = () => {
       />
       <EventActionBadge
         visible={showEventLeftBadge}
-        label="Event left"
+        label="You left the plan"
         onHidden={() => {
           setShowEventLeftBadge(false);
           navigation.setParams({ showEventLeftBadge: false });
@@ -408,7 +408,7 @@ const HomeScreen = () => {
       />
       <NotificationAccessModal
         visible={showNoAccessModal}
-        message="You no longer have access to this event. Explore other events nearby."
+        message="You no longer have access to this plan. Explore other plans nearby."
         onDismiss={() => {
           setShowNoAccessModal(false);
           navigation.setParams({ showNoAccessModal: false });

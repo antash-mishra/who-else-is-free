@@ -114,17 +114,17 @@ describe('HomeScreen', () => {
       }
     });
 
-    it('should return "Pending" for events with pending requests', () => {
+    it('should return "Requested" for events with pending requests', () => {
       const isEventRequested = (eventId: string) => eventId === '99';
       const pendingEvent = { ...mockEvents[0], id: '99', ownerId: 999 };
 
       const getBadgeLabelWithPending = (event: typeof mockEvents[0]): string | undefined => {
         if (event.ownerId === user.id) return 'Hosting';
-        if (isEventRequested(event.id)) return 'Pending';
+        if (isEventRequested(event.id)) return 'Requested';
         return undefined;
       };
 
-      expect(getBadgeLabelWithPending(pendingEvent)).toBe('Pending');
+      expect(getBadgeLabelWithPending(pendingEvent)).toBe('Requested');
     });
   });
 
@@ -204,7 +204,7 @@ describe('HomeScreen', () => {
 
   describe('Error State', () => {
     it('should show error when error exists and not loading', () => {
-      const error = 'Unable to load events.';
+      const error = 'Unable to load plans.';
       const isLoading = false;
       const events: typeof mockEvents = [];
 
@@ -213,7 +213,7 @@ describe('HomeScreen', () => {
     });
 
     it('should not show error when loading', () => {
-      const error = 'Unable to load events.';
+      const error = 'Unable to load plans.';
       const isLoading = true;
       const events: typeof mockEvents = [];
 
