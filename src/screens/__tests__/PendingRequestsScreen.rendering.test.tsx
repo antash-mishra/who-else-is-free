@@ -223,7 +223,7 @@ describe('PendingRequestsScreen Rendering', () => {
     it('should show empty state when no pending requests', () => {
       mockChatValue.joinRequestsByConversation = { 1: [] };
       const { getByText } = render(<PendingRequestsScreen />);
-      expect(getByText('No pending requests')).toBeTruthy();
+      expect(getByText('No requests')).toBeTruthy();
     });
 
     it('should show empty state when all requests are approved', () => {
@@ -239,7 +239,7 @@ describe('PendingRequestsScreen Rendering', () => {
         }],
       };
       const { getByText } = render(<PendingRequestsScreen />);
-      expect(getByText('No pending requests')).toBeTruthy();
+      expect(getByText('No requests')).toBeTruthy();
       expect(getByText('Requests')).toBeTruthy();
     });
   });
