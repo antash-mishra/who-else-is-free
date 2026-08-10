@@ -131,7 +131,7 @@ const EditProfileScreen = () => {
   return (
     <ScreenContainer>
       <View style={styles.inner}>
-        <ScreenHeader title="Edit Profile" onBack={navigation.goBack} />
+        <ScreenHeader title="Edit profile" onBack={navigation.goBack} />
 
         {/* Avatar + Name */}
         <View style={styles.avatarSection}>
@@ -173,7 +173,7 @@ const EditProfileScreen = () => {
             style={styles.nameInput}
             value={editName}
             onChangeText={setEditName}
-            placeholder="Your Name"
+            placeholder="Your name"
             placeholderTextColor="#9CA3AF"
             autoCapitalize="words"
             autoCorrect={false}

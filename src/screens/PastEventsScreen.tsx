@@ -102,7 +102,7 @@ const PastEventsScreen = () => {
       });
       setEvents(mapped);
     } catch {
-      setError('Failed to load past events');
+      setError('Failed to load past plans');
     }
   }, [authFetch, token, user]);
 
@@ -149,7 +149,7 @@ const PastEventsScreen = () => {
   return (
     <View style={styles.screenRoot}>
       <ScreenContainer edges={['top']}>
-        <ScreenHeader title="Past Events" onBack={navigation.goBack} />
+        <ScreenHeader title="Past plans" onBack={navigation.goBack} />
         {showLoading ? (
           <View style={styles.centerContent}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -176,8 +176,8 @@ const PastEventsScreen = () => {
       </ScreenContainer>
       <FullPageEmptyState visible={showEmpty} imageHeight={245}>
         <EmptyState
-          title="No Past Events"
-          description="Events you've hosted or joined will appear here after they end."
+          title="No past plans"
+          description="Your past plans will appear here once they've ended."
           imageSource={require('@assets/empty-state/past-events.png')}
           imageWidth={219}
           imageHeight={245}

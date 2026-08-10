@@ -21,7 +21,7 @@ import { colors, typography } from '@theme/index';
 
 const CONTACT_CHECKBOXES = [
   { label: 'Urgent safety issue', value: 'urgent' },
-  { label: 'I want a reply', value: 'reply' },
+  { label: 'I need a reply', value: 'reply' },
 ];
 
 const HelpContactScreen = () => {
@@ -68,8 +68,8 @@ const HelpContactScreen = () => {
       setCheckedOptions([]);
     } catch (error) {
       Alert.alert(
-        'Unable to send',
-        error instanceof Error ? error.message : 'Unable to submit right now. Please try again.',
+        "Couldn't send your message.",
+        error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -90,8 +90,9 @@ const HelpContactScreen = () => {
             Need help with anything?
           </AppText>
           <AppText variant="body" style={styles.sectionBody}>
-            If you feel unsafe, had a bad experience, or something's not working, we're here. We
-            review all safety reports as a priority and will get back to you as soon as we can.
+            If you feel unsafe, had a bad experience, or something isn't working, we're here to
+            help. Safety reports are reviewed as a priority, and we'll get back to you as soon as
+            we can.
           </AppText>
           <HelpForm
             message={contactMessage}

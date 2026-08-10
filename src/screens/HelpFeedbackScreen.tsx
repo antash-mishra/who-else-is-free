@@ -17,9 +17,9 @@ import { colors, typography } from '@theme/index';
 
 const FEEDBACK_BULLETS = [
   'Ideas for new features',
-  'Ways to improve the app',
+  'Ways we can improve the app',
   'Things that feel confusing or slow',
-  'General thoughts',
+  'Anything else on your mind',
 ];
 
 const HelpFeedbackScreen = () => {
@@ -32,7 +32,7 @@ const HelpFeedbackScreen = () => {
   const handleSubmit = useCallback(async () => {
     const message = feedbackMessage.trim();
     if (!message) {
-      Alert.alert('Feedback required', 'Please share your ideas or thoughts.');
+      Alert.alert('Feedback required', 'Please share your feedback.');
       return;
     }
 
@@ -44,7 +44,7 @@ const HelpFeedbackScreen = () => {
     } catch (error) {
       Alert.alert(
         'Unable to send',
-        error instanceof Error ? error.message : 'Unable to submit right now. Please try again.',
+        error instanceof Error ? error.message : "We couldn't send your feedback. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -62,10 +62,10 @@ const HelpFeedbackScreen = () => {
       >
         <View style={styles.content}>
           <AppText variant="body" style={styles.sectionTitle}>
-            Got ideas or thoughts?
+            Got ideas or feedback?
           </AppText>
           <AppText variant="body" style={styles.sectionBody}>
-            Tell us anything, we read it all.
+            Tell us what you think. We read every message.
           </AppText>
           <View style={styles.bulletList}>
             {FEEDBACK_BULLETS.map((item) => (
@@ -82,7 +82,7 @@ const HelpFeedbackScreen = () => {
           <HelpForm
             message={feedbackMessage}
             onMessageChange={setFeedbackMessage}
-            placeholder="Share your ideas or thoughts"
+            placeholder="Share your feedback"
             buttonLabel="Send feedback"
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
