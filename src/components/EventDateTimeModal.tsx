@@ -452,7 +452,7 @@ export const EventDateTimePickerContent = ({
 
       {error ? <Text style={errorStyle.text}>{error}</Text> : null}
       <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-        <Text style={styles.confirmButtonText}>Update Time</Text>
+        <Text style={styles.confirmButtonText}>Done</Text>
       </Pressable>
     </>
   );

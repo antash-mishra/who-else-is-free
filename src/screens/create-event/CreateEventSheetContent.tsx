@@ -23,19 +23,19 @@ import type { CreateEventSheet } from './useCreateEventSheets';
 export const getCreateEventSheetTitle = (sheet: CreateEventSheet | null): string | undefined => {
   switch (sheet) {
     case 'dateTime':
-      return 'When is your event?';
+      return 'Date & time';
     case 'cover':
-      return 'Choose cover';
+      return 'Cover';
     case 'groupType':
-      return 'Group Type';
+      return 'Group type';
     case 'gender':
       return 'Gender';
     case 'age':
       return 'Age';
     case 'location':
-      return 'Select Location';
+      return 'Location';
     case 'description':
-      return 'Description';
+      return 'Details';
     default:
       return undefined;
   }

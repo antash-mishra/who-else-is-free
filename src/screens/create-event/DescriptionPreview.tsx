@@ -46,7 +46,7 @@ const DescriptionPreview = ({ description }: DescriptionPreviewProps) => {
 
   if (!description) {
     return (
-      <Text style={[styles.descriptionValue, styles.descriptionPlaceholder]}>Add Description</Text>
+      <Text style={[styles.descriptionValue, styles.descriptionPlaceholder]}>Add details</Text>
     );
   }
 

@@ -57,7 +57,7 @@ const CreateEventFormFields = ({
     <View style={styles.fieldCard}>
       <View style={styles.fieldCardInner}>
         <TextInput
-          placeholder="Event Name"
+          placeholder="Event name"
           value={eventName}
           onChangeText={onChangeEventName}
           placeholderTextColor={colors.createTextFaint}
@@ -70,7 +70,7 @@ const CreateEventFormFields = ({
           style={styles.descriptionRow}
           onPress={onOpenDescription}
           accessibilityRole="button"
-          accessibilityLabel="Edit description"
+          accessibilityLabel="Add details"
         >
           <DescriptionPreview description={description} />
         </Pressable>
@@ -80,7 +80,7 @@ const CreateEventFormFields = ({
     <View style={styles.fieldCard}>
       <View style={styles.fieldCardInner}>
         <Pressable style={styles.fieldRow} onPress={onOpenGroupTypePicker}>
-          <Text style={styles.fieldLabel}>Group Type</Text>
+          <Text style={styles.fieldLabel}>Group type</Text>
           <View style={styles.fieldValuePill}>
             <Text style={styles.fieldValueText}>{groupTypeLabel}</Text>
           </View>
@@ -111,7 +111,7 @@ const CreateEventFormFields = ({
     <View style={styles.fieldCard}>
       <View style={styles.fieldCardInner}>
         <Pressable style={[styles.fieldRow, styles.dateRow]} onPress={onOpenDateTimePicker}>
-          <Text style={styles.fieldLabel}>Date & Time</Text>
+          <Text style={styles.fieldLabel}>Date & time</Text>
           <View style={[styles.fieldValuePill, styles.dateTimeValuePill]}>
             <Text style={[styles.fieldValueText, styles.dateTimeValueText]} numberOfLines={1}>
               {dateTimeLabel}

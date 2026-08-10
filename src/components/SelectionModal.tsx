@@ -61,7 +61,7 @@ export function SelectionModalContent<T>({
         testID="selection-modal-confirm"
         accessibilityRole="button"
       >
-        <Text style={styles.selectButtonText}>Select</Text>
+        <Text style={styles.selectButtonText}>Done</Text>
       </Pressable>
     </>
   );

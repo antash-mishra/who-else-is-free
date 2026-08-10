@@ -15,7 +15,7 @@ type CreateEventHeaderProps = {
 const CreateEventHeader = ({ isEditing, onClose }: CreateEventHeaderProps) => (
   <View style={styles.headerRow}>
     <View style={styles.headerSpacer} />
-    <Text style={styles.pageTitle}>{isEditing ? 'Edit Details' : 'Create Event'}</Text>
+    <Text style={styles.pageTitle}>{isEditing ? 'Edit plan' : 'Create plan'}</Text>
     <Pressable
       accessibilityRole="button"
       onPress={() => {

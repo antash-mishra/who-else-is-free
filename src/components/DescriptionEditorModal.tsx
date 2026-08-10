@@ -47,7 +47,7 @@ export const DescriptionEditorContent = ({
         style={styles.input}
         value={draft}
         onChangeText={setDraft}
-        placeholder="Write a description"
+        placeholder="Add details"
         placeholderTextColor={colors.subText}
         multiline
         textAlignVertical="top"
