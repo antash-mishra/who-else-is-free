@@ -100,9 +100,11 @@ CREATE TABLE IF NOT EXISTS messages (
     attachment_url TEXT,
     delivery_status TEXT NOT NULL DEFAULT 'sent',
     kind TEXT NOT NULL DEFAULT 'user',
+    reply_to_message_id INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES users(id)
+    FOREIGN KEY (sender_id) REFERENCES users(id),
+    FOREIGN KEY (reply_to_message_id) REFERENCES messages(id) ON DELETE SET NULL
 );
 `
 
@@ -181,9 +183,9 @@ VALUES (?, ?, ?);
 `
 
 const insertMessage = `
-INSERT INTO messages (conversation_id, sender_id, body, attachment_url, delivery_status, kind)
-VALUES (?, ?, ?, ?, ?, ?)
-RETURNING id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, created_at;
+INSERT INTO messages (conversation_id, sender_id, body, attachment_url, delivery_status, kind, reply_to_message_id)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+RETURNING id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, reply_to_message_id, created_at;
 `
 
 const upsertReadState = `
@@ -231,7 +233,7 @@ ORDER BY m.sender_id ASC;
 `
 
 const selectMessagesForConversation = `
-SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, created_at
+SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, reply_to_message_id, created_at
 FROM messages
 WHERE conversation_id = ?
 ORDER BY created_at DESC
@@ -239,10 +241,26 @@ LIMIT ? OFFSET ?;
 `
 
 const selectLatestMessageForConversation = `
-SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, created_at
+SELECT id, conversation_id, sender_id, body, attachment_url, delivery_status, kind, reply_to_message_id, created_at
 FROM messages
 WHERE conversation_id = ?
 ORDER BY created_at DESC, id DESC
+LIMIT 1;
+`
+
+const selectReplyToMessage = `
+SELECT m.id, m.sender_id, m.body, u.name
+FROM messages m
+JOIN users u ON u.id = m.sender_id
+WHERE m.id = ?
+LIMIT 1;
+`
+
+const selectReplyToMessageForConversation = `
+SELECT m.id, m.sender_id, m.body, u.name
+FROM messages m
+JOIN users u ON u.id = m.sender_id
+WHERE m.id = ? AND m.conversation_id = ?
 LIMIT 1;
 `
 
@@ -809,6 +827,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureMessageKindColumn(ctx); err != nil {
 		return err
 	}
+	if err := r.ensureMessageReplyToColumn(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createTableConversationReadState); err != nil {
 		return fmt.Errorf("create conversation read state table: %w", err)
 	}
@@ -1152,6 +1173,47 @@ WHERE kind = 'user'
   AND (body = 'Updated Event Detail' OR body LIKE '% joined the chat');
 `); err != nil {
 		return fmt.Errorf("backfill system message kinds: %w", err)
+	}
+	return nil
+}
+
+func (r *EventRepository) ensureMessageReplyToColumn(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(messages);`)
+	if err != nil {
+		return fmt.Errorf("inspect messages table: %w", err)
+	}
+
+	hasReplyTo := false
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			colType    string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultVal, &pk); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan messages schema: %w", err)
+		}
+		if name == "reply_to_message_id" {
+			hasReplyTo = true
+			break
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return fmt.Errorf("iterate messages schema: %w", err)
+	}
+	rows.Close()
+
+	if hasReplyTo {
+		return nil
+	}
+
+	if _, err := r.db.ExecContext(ctx, `ALTER TABLE messages ADD COLUMN reply_to_message_id INTEGER REFERENCES messages(id) ON DELETE SET NULL;`); err != nil {
+		return fmt.Errorf("add reply_to_message_id column: %w", err)
 	}
 	return nil
 }

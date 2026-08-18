@@ -98,10 +98,11 @@ const (
 )
 
 type inboundEnvelope struct {
-	Type           string `json:"type"`
-	ConversationID int64  `json:"conversationId"`
-	Body           string `json:"body"`
-	TempID         string `json:"tempId"`
+	Type             string `json:"type"`
+	ConversationID   int64  `json:"conversationId"`
+	Body             string `json:"body"`
+	TempID           string `json:"tempId"`
+	ReplyToMessageID *int64 `json:"replyToMessageId,omitempty"`
 }
 
 type outboundMessage struct {
@@ -110,13 +111,21 @@ type outboundMessage struct {
 	Message messagePayload `json:"message"`
 }
 
+type replyToPayload struct {
+	ID         int64  `json:"id"`
+	SenderID   int64  `json:"senderId"`
+	Body       string `json:"body"`
+	SenderName string `json:"senderName"`
+}
+
 type messagePayload struct {
-	ID             int64  `json:"id"`
-	ConversationID int64  `json:"conversationId"`
-	SenderID       int64  `json:"senderId"`
-	Body           string `json:"body"`
-	Kind           string `json:"kind"`
-	CreatedAt      string `json:"createdAt"`
+	ID             int64           `json:"id"`
+	ConversationID int64           `json:"conversationId"`
+	SenderID       int64           `json:"senderId"`
+	Body           string          `json:"body"`
+	Kind           string          `json:"kind"`
+	CreatedAt      string          `json:"createdAt"`
+	ReplyTo        *replyToPayload `json:"replyTo,omitempty"`
 }
 
 var upgrader = websocket.Upgrader{
@@ -125,6 +134,24 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+}
+
+// validatedReplyToID returns a reply target only when it belongs to the
+// message's conversation. This protects private chat content from being
+// referenced and exposed across conversations.
+func validatedReplyToID(ctx context.Context, inbound inboundEnvelope, repo *EventRepository) *int64 {
+	if inbound.ReplyToMessageID == nil || *inbound.ReplyToMessageID <= 0 {
+		return nil
+	}
+	rp, err := repo.fetchReplyToMessageForConversation(
+		ctx,
+		*inbound.ReplyToMessageID,
+		inbound.ConversationID,
+	)
+	if err != nil || rp == nil {
+		return nil
+	}
+	return inbound.ReplyToMessageID
 }
 
 func NewChatHub(repo *EventRepository, signer *tokenSigner, pushSender PushSender) *ChatHub {
@@ -482,11 +509,12 @@ func (c *ChatClient) handleSend(inbound inboundEnvelope) {
 	}
 
 	params := CreateMessageParams{
-		ConversationID: inbound.ConversationID,
-		SenderID:       c.userID,
-		Body:           inbound.Body,
-		DeliveryStatus: "sent",
-		Kind:           MessageKindUser,
+		ConversationID:   inbound.ConversationID,
+		SenderID:         c.userID,
+		Body:             inbound.Body,
+		DeliveryStatus:   "sent",
+		Kind:             MessageKindUser,
+		ReplyToMessageID: validatedReplyToID(ctx, inbound, c.hub.repo),
 	}
 
 	msg, err := c.hub.repo.CreateMessage(ctx, params)
@@ -728,14 +756,32 @@ func (h *ChatHTTPHandler) listMessages(c *gin.Context) {
 
 	payloads := make([]messagePayload, 0, len(messages))
 	for _, msg := range messages {
-		payloads = append(payloads, messagePayload{
+		mp := messagePayload{
 			ID:             msg.ID,
 			ConversationID: msg.ConversationID,
 			SenderID:       msg.SenderID,
 			Body:           msg.Body,
 			Kind:           string(msg.Kind),
 			CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
-		})
+		}
+		if msg.ReplyToMessageID != nil {
+			rp, err := h.repo.fetchReplyToMessageForConversation(
+				ctx,
+				*msg.ReplyToMessageID,
+				msg.ConversationID,
+			)
+			if err != nil {
+				log.Printf("fetch reply-to message %d: %v", *msg.ReplyToMessageID, err)
+			} else if rp != nil {
+				mp.ReplyTo = &replyToPayload{
+					ID:         rp.ID,
+					SenderID:   rp.SenderID,
+					Body:       rp.Body,
+					SenderName: rp.SenderName,
+				}
+			}
+		}
+		payloads = append(payloads, mp)
 	}
 
 	c.JSON(http.StatusOK, listMessagesResponse{Messages: payloads})
@@ -1251,17 +1297,39 @@ func containsInt64(values []int64, target int64) bool {
 }
 
 func (h *ChatHub) emitChatMessage(msg *Message, tempID string) {
+	msgPayload := messagePayload{
+		ID:             msg.ID,
+		ConversationID: msg.ConversationID,
+		SenderID:       msg.SenderID,
+		Body:           msg.Body,
+		Kind:           string(msg.Kind),
+		CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
+	}
+
+	if msg.ReplyToMessageID != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		rp, err := h.repo.fetchReplyToMessageForConversation(
+			ctx,
+			*msg.ReplyToMessageID,
+			msg.ConversationID,
+		)
+		cancel()
+		if err != nil {
+			log.Printf("fetch reply-to message %d: %v", *msg.ReplyToMessageID, err)
+		} else if rp != nil {
+			msgPayload.ReplyTo = &replyToPayload{
+				ID:         rp.ID,
+				SenderID:   rp.SenderID,
+				Body:       rp.Body,
+				SenderName: rp.SenderName,
+			}
+		}
+	}
+
 	envelope := outboundMessage{
-		Type:   "message:new",
-		TempID: tempID,
-		Message: messagePayload{
-			ID:             msg.ID,
-			ConversationID: msg.ConversationID,
-			SenderID:       msg.SenderID,
-			Body:           msg.Body,
-			Kind:           string(msg.Kind),
-			CreatedAt:      msg.CreatedAt.Format(time.RFC3339Nano),
-		},
+		Type:    "message:new",
+		TempID:  tempID,
+		Message: msgPayload,
 	}
 	payload, err := json.Marshal(envelope)
 	if err != nil {
@@ -1353,7 +1421,7 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 			notifications = append(notifications, PushNotification{
 				Token: t.Token,
 				Data:  data,
-		})
+			})
 		}
 
 		if err := h.pushSender.SendBatch(ctx, notifications); err != nil {

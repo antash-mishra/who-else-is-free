@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat Composer Keyboard Gap — Fix Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #151515;
+        --muted: #656565;
+        --paper: #f5f4ef;
+        --card: #ffffff;
+        --line: #deddd7;
+        --accent: #1447e6;
+        --good: #16794a;
+        --good-bg: #e9f7ef;
+        --warn: #a13d19;
+        --warn-bg: #fff1e9;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font-family:
+          Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 56px 0 72px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 850px;
+        margin-bottom: 16px;
+        font-size: clamp(2.3rem, 6vw, 4.6rem);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      h2 {
+        margin-bottom: 18px;
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        letter-spacing: -0.035em;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 1.05rem;
+      }
+
+      .eyebrow {
+        margin-bottom: 14px;
+        color: var(--accent);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        max-width: 780px;
+        margin-bottom: 24px;
+        color: var(--muted);
+        font-size: 1.15rem;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 52px;
+        padding: 10px 15px;
+        border-radius: 999px;
+        color: var(--good);
+        background: var(--good-bg);
+        font-weight: 750;
+      }
+
+      .status::before {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      section {
+        margin-top: 52px;
+      }
+
+      .summary-grid,
+      .evidence-grid {
+        display: grid;
+        gap: 20px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .summary-card,
+      .evidence-card,
+      .validation,
+      .measurements {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--card);
+      }
+
+      .summary-card {
+        padding: 24px;
+      }
+
+      .summary-card p {
+        margin-bottom: 0;
+        color: var(--muted);
+      }
+
+      .evidence-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .evidence-card {
+        overflow: hidden;
+      }
+
+      .evidence-copy {
+        padding: 22px 24px;
+      }
+
+      .evidence-copy p {
+        margin-bottom: 0;
+        color: var(--muted);
+      }
+
+      .label {
+        display: inline-block;
+        margin-bottom: 10px;
+        padding: 5px 9px;
+        border-radius: 8px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .label.before {
+        color: var(--warn);
+        background: var(--warn-bg);
+      }
+
+      .label.after {
+        color: var(--good);
+        background: var(--good-bg);
+      }
+
+      .shot-wrap {
+        display: grid;
+        place-items: center;
+        min-height: 440px;
+        padding: 26px;
+        border-top: 1px solid var(--line);
+        background:
+          linear-gradient(135deg, rgba(20, 71, 230, 0.055), transparent 60%),
+          #eeede7;
+      }
+
+      .shot-wrap img {
+        display: block;
+        width: min(100%, 340px);
+        height: auto;
+        border: 8px solid #161616;
+        border-radius: 28px;
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
+      }
+
+      .measurements {
+        margin-top: 20px;
+        padding: 8px 24px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 15px 6px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      td strong {
+        color: var(--good);
+      }
+
+      .ios-card {
+        display: grid;
+        grid-template-columns: 1fr minmax(250px, 380px);
+        gap: 32px;
+        align-items: center;
+        padding: 32px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--card);
+      }
+
+      .ios-card img {
+        display: block;
+        width: 100%;
+        border: 8px solid #161616;
+        border-radius: 30px;
+        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.16);
+      }
+
+      .ios-card ul,
+      .validation ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .ios-card li,
+      .validation li {
+        margin: 8px 0;
+      }
+
+      .validation {
+        padding: 28px;
+      }
+
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eeeeea;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.88em;
+      }
+
+      .footnote {
+        margin-top: 22px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 820px) {
+        main {
+          padding-top: 36px;
+        }
+
+        .summary-grid,
+        .evidence-grid,
+        .ios-card {
+          grid-template-columns: 1fr;
+        }
+
+        .shot-wrap {
+          min-height: 0;
+        }
+
+        .ios-card {
+          padding: 24px;
+        }
+
+        .ios-card img {
+          width: min(100%, 360px);
+          margin: 0 auto;
+        }
+
+        .measurements {
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Interaction QA · 30 July 2026</p>
+        <h1>Chat composer keyboard gap fixed on Android</h1>
+        <p class="lede">
+          The oversized space was reproduced, traced to Android safe-area padding being translated
+          above the IME, fixed in the Android-only composer path, and regression-tested on iOS.
+        </p>
+        <div class="status">Fixed and verified on both platforms</div>
+      </header>
+
+      <section aria-labelledby="diagnosis-heading">
+        <h2 id="diagnosis-heading">Diagnosis and solution</h2>
+        <div class="summary-grid">
+          <article class="summary-card">
+            <h3>Root cause</h3>
+            <p>
+              The resting composer includes bottom navigation/safe-area padding. Android’s custom
+              keyboard translation lifted that padding above the open keyboard, making it visible
+              as an unintended gap.
+            </p>
+          </article>
+          <article class="summary-card">
+            <h3>Fix</h3>
+            <p>
+              The Android translation now subtracts the resting bottom padding before adding the
+              intentional small keyboard breathing space. The reply preview and text box now move
+              together inside the same keyboard dock.
+            </p>
+          </article>
+          <article class="summary-card">
+            <h3>Platform safety</h3>
+            <p>
+              The calculation lives only inside <code>AndroidKeyboardComposer</code>. The existing
+              iOS <code>KeyboardAvoidingView</code> behavior was not changed.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="android-heading">
+        <h2 id="android-heading">Android — before and after</h2>
+        <div class="evidence-grid">
+          <article class="evidence-card">
+            <div class="evidence-copy">
+              <span class="label before">Before</span>
+              <h3>Safe-area padding becomes a visible gap</h3>
+              <p>The composer pill sits noticeably above the keyboard accessory row.</p>
+            </div>
+            <div class="shot-wrap">
+              <img
+                src="chat-keyboard-gap-android-before.png"
+                alt="Android chat screen before the fix, with a large gap below the message composer"
+              />
+            </div>
+          </article>
+
+          <article class="evidence-card">
+            <div class="evidence-copy">
+              <span class="label after">After</span>
+              <h3>Composer follows the keyboard</h3>
+              <p>Only the intended compact breathing space remains above the IME.</p>
+            </div>
+            <div class="shot-wrap">
+              <img
+                src="chat-keyboard-gap-android-after.png"
+                alt="Android chat screen after the fix, with the message composer aligned closely to the keyboard"
+              />
+            </div>
+          </article>
+        </div>
+
+        <div class="measurements">
+          <table>
+            <thead>
+              <tr>
+                <th>Measurement (emulator pixels)</th>
+                <th>Before</th>
+                <th>After</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Keyboard top</td>
+                <td>1502 px</td>
+                <td>1502 px</td>
+                <td>Stable test baseline</td>
+              </tr>
+              <tr>
+                <td>Text input bottom</td>
+                <td>1407 px</td>
+                <td>1470 px</td>
+                <td>Moved 63 px closer</td>
+              </tr>
+              <tr>
+                <td>Input-to-keyboard distance</td>
+                <td>95 px</td>
+                <td><strong>32 px</strong></td>
+                <td>Unwanted safe-area gap removed</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="ios-heading">
+        <h2 id="ios-heading">iOS regression check</h2>
+        <article class="ios-card">
+          <div>
+            <span class="label after">Pass</span>
+            <h3>Native iOS keyboard avoidance remains intact</h3>
+            <p>
+              The same conversation was opened on an iPhone 15 Pro simulator running iOS 17.4.
+              Focusing the composer keeps it directly above the native keyboard without overlap or
+              an added gap.
+            </p>
+            <ul>
+              <li>Android-only translation helper is never used on iOS.</li>
+              <li>Composer remains visible and tappable while the keyboard is open.</li>
+              <li>Message list still resizes to the available viewport.</li>
+            </ul>
+          </div>
+          <img
+            src="chat-keyboard-gap-ios-after.png"
+            alt="iOS chat screen after the Android fix, showing the composer aligned above the native keyboard"
+          />
+        </article>
+      </section>
+
+      <section aria-labelledby="reply-heading">
+        <h2 id="reply-heading">Reply-to-message keyboard state</h2>
+        <p class="lede">
+          A reply was started from Alice’s message, then the text box was focused. The selected
+          message preview remains directly above the composer while the keyboard is open on both
+          platforms.
+        </p>
+        <div class="evidence-grid">
+          <article class="evidence-card">
+            <div class="evidence-copy">
+              <span class="label after">Android pass</span>
+              <h3>Reply preview and composer move as one dock</h3>
+              <p>
+                “Replying to Alice” stays visible immediately above the text box, with the compact
+                composer-to-keyboard spacing preserved.
+              </p>
+            </div>
+            <div class="shot-wrap">
+              <img
+                src="chat-reply-keyboard-android-after.png"
+                alt="Android chat reply state with Alice's selected message above the text box and the keyboard open"
+              />
+            </div>
+          </article>
+
+          <article class="evidence-card">
+            <div class="evidence-copy">
+              <span class="label after">iOS pass</span>
+              <h3>Native keyboard avoidance keeps the reply context visible</h3>
+              <p>
+                The selected Alice message, focused composer, and iOS keyboard remain stacked in
+                the expected order without overlap.
+              </p>
+            </div>
+            <div class="shot-wrap">
+              <img
+                src="chat-reply-keyboard-ios-after.png"
+                alt="iOS chat reply state with Alice's selected message above the text box and the keyboard open"
+              />
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="validation-heading">
+        <h2 id="validation-heading">Validation record</h2>
+        <div class="validation">
+          <ul>
+            <li>
+              Focused Jest suite:
+              <code>ChatThreadScreen.rendering.test.tsx</code> — 44 of 44 tests passed.
+            </li>
+            <li>TypeScript validation: <code>npm run typecheck</code> — passed.</li>
+            <li>
+              Android: WEIF API 36 emulator, Android 16 — base composer and active reply state
+              passed.
+            </li>
+            <li>
+              iOS: iPhone 15 Pro simulator, iOS 17.4 — base composer and active reply state passed.
+            </li>
+          </ul>
+          <p class="footnote">
+            Android screenshots use the same conversation and viewport before and after the code
+            change. The iOS screenshots validate the unchanged native keyboard-avoidance branch.
+          </p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

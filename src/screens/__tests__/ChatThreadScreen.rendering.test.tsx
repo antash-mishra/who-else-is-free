@@ -5,14 +5,14 @@
 
 import React from 'react';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
-import { Platform, StyleSheet } from 'react-native';
+import { FlatList, Platform, StyleSheet } from 'react-native';
 import {
   AndroidSoftInputModes,
   KeyboardController,
   KeyboardEvents,
 } from 'react-native-keyboard-controller';
 
-import ChatThreadScreen from '../ChatThreadScreen';
+import ChatThreadScreen, { getAndroidComposerKeyboardTranslation } from '../ChatThreadScreen';
 import {
   render,
   createMockUseAuth,
@@ -28,7 +28,7 @@ import {
   mockEvents,
 } from '../../__tests__/mocks/mockData';
 import { mockNavigation } from '../../__tests__/mocks/mockModules';
-import { spacing } from '@theme/index';
+import { colors, radii, spacing } from '@theme/index';
 
 // Mock the context hooks
 jest.mock('@context/AuthContext', () => ({
@@ -46,7 +46,9 @@ jest.mock('@context/EventsContext', () => ({
 // Mock components
 jest.mock('@components/ScreenContainer', () => {
   const { View } = require('react-native');
-  return ({ children }: { children: React.ReactNode }) => <View testID="screen-container">{children}</View>;
+  return ({ children }: { children: React.ReactNode }) => (
+    <View testID="screen-container">{children}</View>
+  );
 });
 
 jest.mock('@components/EventActionOverlay', () => {
@@ -127,13 +129,15 @@ describe('ChatThreadScreen Rendering', () => {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  const setupMocks = (overrides: {
-    authOverrides?: object;
-    chatOverrides?: object;
-    eventsOverrides?: object;
-  } = {}) => {
+  const setupMocks = (
+    overrides: {
+      authOverrides?: object;
+      chatOverrides?: object;
+      eventsOverrides?: object;
+    } = {},
+  ) => {
     mockedUseAuth.mockReturnValue(
-      createMockUseAuth({ user: mockUsers[0], ...overrides.authOverrides })()
+      createMockUseAuth({ user: mockUsers[0], ...overrides.authOverrides })(),
     );
     mockedUseChat.mockReturnValue(
       createMockUseChat({
@@ -149,10 +153,10 @@ describe('ChatThreadScreen Rendering', () => {
         error: null,
         joinRequestsByConversation: {},
         ...overrides.chatOverrides,
-      })()
+      })(),
     );
     mockedUseEvents.mockReturnValue(
-      createMockUseEvents({ events: mockEvents, ...overrides.eventsOverrides })()
+      createMockUseEvents({ events: mockEvents, ...overrides.eventsOverrides })(),
     );
   };
 
@@ -312,7 +316,7 @@ describe('ChatThreadScreen Rendering', () => {
       const sendButton = getByLabelText('Send message');
       fireEvent.press(sendButton);
 
-      expect(mockSendMessage).toHaveBeenCalledWith(1, 'Hello!');
+      expect(mockSendMessage).toHaveBeenCalledWith(1, 'Hello!', undefined);
     });
 
     it('should not send empty messages', () => {
@@ -368,6 +372,139 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByText } = render(<ChatThreadScreen />);
 
       expect(getByText('Sending…')).toBeTruthy();
+    });
+  });
+
+  describe('Reply interactions', () => {
+    it('should show a reply bar after long-pressing another user message', () => {
+      setupMocks();
+      const { getByLabelText, getByTestId, getByText, getAllByText, queryByTestId } = render(
+        <ChatThreadScreen />,
+      );
+
+      fireEvent(getByTestId('chat-message-2'), 'longPress');
+
+      expect(getByText('Replying to Liam')).toBeTruthy();
+      expect(getAllByText('Hi there! Looking forward to the meetup.')).toHaveLength(1);
+
+      fireEvent.press(getByLabelText('Cancel reply'));
+
+      expect(queryByTestId('reply-preview-bar')).toBeNull();
+    });
+
+    it('should render the reply preview from persisted message data', () => {
+      setupMocks({
+        chatOverrides: {
+          messages: [
+            {
+              ...mockMessages[2],
+              replyTo: {
+                id: mockMessages[1].id,
+                senderId: mockMessages[1].senderId,
+                senderName: 'Liam Test',
+                body: mockMessages[1].body,
+              },
+            },
+          ],
+        },
+      });
+      const { getByText } = render(<ChatThreadScreen />);
+
+      expect(getByText('Liam')).toBeTruthy();
+      expect(getByText('Hi there! Looking forward to the meetup.')).toBeTruthy();
+    });
+
+    it('should use a dark quoted-message card inside an own message bubble', () => {
+      setupMocks({
+        chatOverrides: {
+          messages: [
+            mockMessages[1],
+            {
+              ...mockMessages[2],
+              replyTo: {
+                id: mockMessages[1].id,
+                senderId: mockMessages[1].senderId,
+                senderName: 'Liam Test',
+                body: mockMessages[1].body,
+              },
+            },
+          ],
+        },
+      });
+      const { getByTestId } = render(<ChatThreadScreen />);
+
+      expect(StyleSheet.flatten(getByTestId('reply-preview-3').props.style).backgroundColor).toBe(
+        colors.buttonBackground,
+      );
+    });
+
+    it('should highlight the original message without scrolling when it is already visible', () => {
+      const replyMessage = {
+        ...mockMessages[2],
+        replyTo: {
+          id: mockMessages[1].id,
+          senderId: mockMessages[1].senderId,
+          senderName: 'Liam Test',
+          body: mockMessages[1].body,
+        },
+      };
+      setupMocks({
+        chatOverrides: { messages: [mockMessages[1], replyMessage] },
+      });
+      const { getByTestId, UNSAFE_getByType } = render(<ChatThreadScreen />);
+      const list = UNSAFE_getByType(FlatList);
+      const scrollSpy = jest.spyOn(FlatList.prototype, 'scrollToIndex');
+
+      act(() => {
+        list.props.onViewableItemsChanged({
+          viewableItems: [{ item: mockMessages[1] }],
+          changed: [],
+        });
+      });
+      fireEvent.press(getByTestId('reply-preview-3'));
+
+      const highlightStyle = StyleSheet.flatten(getByTestId('message-highlight-2').props.style);
+      expect(highlightStyle.backgroundColor).toBe(colors.primary);
+      expect(highlightStyle.borderWidth).toBeUndefined();
+      expect(scrollSpy).not.toHaveBeenCalled();
+      scrollSpy.mockRestore();
+    });
+
+    it('should scroll to and then highlight an original message outside the viewport', () => {
+      const replyMessage = {
+        ...mockMessages[2],
+        replyTo: {
+          id: mockMessages[1].id,
+          senderId: mockMessages[1].senderId,
+          senderName: 'Liam Test',
+          body: mockMessages[1].body,
+        },
+      };
+      setupMocks({
+        chatOverrides: { messages: [mockMessages[1], replyMessage] },
+      });
+      const { getByTestId, UNSAFE_getByType } = render(<ChatThreadScreen />);
+      const list = UNSAFE_getByType(FlatList);
+      const scrollSpy = jest
+        .spyOn(FlatList.prototype, 'scrollToIndex')
+        .mockImplementation(() => undefined);
+
+      fireEvent.press(getByTestId('reply-preview-3'));
+
+      expect(scrollSpy).toHaveBeenCalledWith({
+        index: 0,
+        animated: true,
+        viewPosition: 0.5,
+      });
+
+      act(() => {
+        list.props.onViewableItemsChanged({
+          viewableItems: [{ item: mockMessages[1] }],
+          changed: [],
+        });
+      });
+      expect(getByTestId('message-highlight-2')).toBeTruthy();
+      scrollSpy.mockRestore();
     });
   });
 
@@ -434,23 +571,24 @@ describe('ChatThreadScreen Rendering', () => {
       expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
     });
 
-    it('should return null when no active conversation', () => {
+    it('should show a loading state when the active conversation is unavailable', () => {
       setupMocks({
         chatOverrides: { activeConversationId: null },
       });
       const { queryByTestId } = render(<ChatThreadScreen />);
 
-      // Component should return null when no active conversation
-      expect(queryByTestId('screen-container')).toBeNull();
+      expect(queryByTestId('screen-container')).toBeTruthy();
     });
 
     it('should not issue an extra goBack while swipe-back is removing the route', () => {
       let activeConversationId: number | null = 1;
       const listeners: Record<string, (event?: any) => void> = {};
-      (mockNavigation.addListener as jest.Mock).mockImplementation((eventName: string, callback: (event?: any) => void) => {
-        listeners[eventName] = callback;
-        return jest.fn();
-      });
+      (mockNavigation.addListener as jest.Mock).mockImplementation(
+        (eventName: string, callback: (event?: any) => void) => {
+          listeners[eventName] = callback;
+          return jest.fn();
+        },
+      );
       mockedUseChat.mockImplementation(() =>
         createMockUseChat({
           activeConversationId,
@@ -464,7 +602,7 @@ describe('ChatThreadScreen Rendering', () => {
           isConnecting: false,
           error: null,
           joinRequestsByConversation: {},
-        })()
+        })(),
       );
       mockedUseAuth.mockReturnValue(createMockUseAuth({ user: mockUsers[0] })());
       mockedUseEvents.mockReturnValue(createMockUseEvents({ events: mockEvents })());
@@ -482,10 +620,12 @@ describe('ChatThreadScreen Rendering', () => {
 
     it('should clear active conversation after the chat route closes', () => {
       const listeners: Record<string, (event?: any) => void> = {};
-      (mockNavigation.addListener as jest.Mock).mockImplementation((eventName: string, callback: (event?: any) => void) => {
-        listeners[eventName] = callback;
-        return jest.fn();
-      });
+      (mockNavigation.addListener as jest.Mock).mockImplementation(
+        (eventName: string, callback: (event?: any) => void) => {
+          listeners[eventName] = callback;
+          return jest.fn();
+        },
+      );
       setupMocks();
 
       render(<ChatThreadScreen />);
@@ -520,7 +660,15 @@ describe('ChatThreadScreen Rendering', () => {
           conversations: [groupHostConversation],
           joinRequestsByConversation: {
             99: [
-              { id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } },
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
             ],
           },
         },
@@ -537,7 +685,15 @@ describe('ChatThreadScreen Rendering', () => {
           activeConversationId: 1,
           joinRequestsByConversation: {
             [-1]: [
-              { id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } },
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
             ],
           },
         },
@@ -553,7 +709,17 @@ describe('ChatThreadScreen Rendering', () => {
         chatOverrides: {
           activeConversationId: 1,
           joinRequestsByConversation: {
-            1: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } }],
+            1: [
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'approved',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
+            ],
           },
         },
       });
@@ -583,8 +749,24 @@ describe('ChatThreadScreen Rendering', () => {
           conversations: [singleHostConversation],
           joinRequestsByConversation: {
             99: [
-              { id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User A' } },
-              { id: 2, eventId: 2, userId: 4, message: 'Hello', status: 'pending', createdAt: '', requester: { id: 4, name: 'User B' } },
+              {
+                id: 1,
+                eventId: 2,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User A' },
+              },
+              {
+                id: 2,
+                eventId: 2,
+                userId: 4,
+                message: 'Hello',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 4, name: 'User B' },
+              },
             ],
           },
         },
@@ -616,7 +798,15 @@ describe('ChatThreadScreen Rendering', () => {
           conversations: [groupHostConversation],
           joinRequestsByConversation: {
             99: [
-              { id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } },
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'approved',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
             ],
           },
         },
@@ -648,7 +838,17 @@ describe('ChatThreadScreen Rendering', () => {
           activeConversationId: 99,
           conversations: [groupHostConversation],
           joinRequestsByConversation: {
-            99: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } }],
+            99: [
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
+            ],
           },
         },
       });
@@ -777,26 +977,54 @@ describe('ChatThreadScreen Rendering', () => {
       Object.defineProperty(Platform, 'OS', { value: originalPlatform });
     });
 
-    it('should keep Android composer bottom gap without extra footer spacing', () => {
+    it('should keep Android resting padding and hide it behind the open keyboard', () => {
       setupMocks();
       Object.defineProperty(Platform, 'OS', { value: 'android' });
 
       const { getByTestId } = render(<ChatThreadScreen />);
 
       expect(
-        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom,
       ).toBe(spacing.sm);
       expect(KeyboardController.setInputMode).toHaveBeenCalledWith(
-        AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING
+        AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING,
       );
       expect(KeyboardEvents.addListener).toHaveBeenCalledWith(
         'keyboardWillShow',
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(KeyboardEvents.addListener).toHaveBeenCalledWith(
         'keyboardWillHide',
-        expect.any(Function)
+        expect.any(Function),
       );
+      expect(getAndroidComposerKeyboardTranslation(300, spacing.sm)).toBe(
+        -(300 - spacing.sm + spacing.xs),
+      );
+    });
+
+    it('should translate the active reply preview and composer together on Android', () => {
+      setupMocks();
+      Object.defineProperty(Platform, 'OS', { value: 'android' });
+
+      const { getByTestId } = render(<ChatThreadScreen />);
+
+      fireEvent(getByTestId('chat-message-2'), 'longPress');
+
+      const keyboardDock = getByTestId('android-keyboard-dock');
+      expect(keyboardDock.findByProps({ testID: 'reply-preview-bar' })).toBeTruthy();
+      expect(keyboardDock.findByProps({ testID: 'chat-composer-container' })).toBeTruthy();
+
+      const composerShellStyle = StyleSheet.flatten(getByTestId('chat-composer-shell').props.style);
+      const replySurfaceStyle = StyleSheet.flatten(
+        getByTestId('reply-preview-surface').props.style,
+      );
+      const replyRailStyle = StyleSheet.flatten(getByTestId('reply-preview-rail').props.style);
+      expect(composerShellStyle.borderRadius).toBe(radii.xl);
+      expect(composerShellStyle.overflow).toBe('hidden');
+      expect(replySurfaceStyle.borderRadius).toBe(radii.md);
+      expect(replySurfaceStyle.overflow).toBe('hidden');
+      expect(replyRailStyle.alignSelf).toBe('stretch');
+      expect(replyRailStyle.height).toBeUndefined();
     });
 
     it('should still render composer on iOS', () => {
@@ -808,8 +1036,11 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByPlaceholderText('Write a message')).toBeTruthy();
       expect(getByLabelText('Send message')).toBeTruthy();
       expect(
-        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom,
       ).toBe(spacing.xs);
+      expect(StyleSheet.flatten(getByTestId('chat-composer-shell').props.style).borderRadius).toBe(
+        radii.pill,
+      );
       expect(KeyboardController.setInputMode).not.toHaveBeenCalled();
     });
 

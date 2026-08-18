@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reply-to-Message Feature — Implementation Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; line-height: 1.6; }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; color: #1d1d1f; }
+  h2 { font-size: 1.5rem; font-weight: 600; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #007aff; color: #007aff; }
+  h3 { font-size: 1.15rem; font-weight: 600; margin: 20px 0 10px; color: #333; }
+  .metadata { color: #6e6e73; font-size: 0.9rem; margin-bottom: 24px; }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-right: 8px; }
+  .badge-pass { background: #34c759; color: white; }
+  .badge-info { background: #007aff; color: white; }
+  .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .card pre { background: #1d1d1f; color: #f5f5f7; padding: 16px; border-radius: 8px; overflow-x: auto; font-size: 0.82rem; line-height: 1.5; }
+  .card code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85em; }
+  .file-path { color: #007aff; font-family: monospace; font-size: 0.9rem; margin-bottom: 8px; display: block; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 8px 0; padding-left: 28px; position: relative; }
+  .checklist li::before { content: '✓'; position: absolute; left: 0; top: 8px; color: #34c759; font-weight: bold; }
+  .screenshot { max-width: 100%; border-radius: 12px; border: 1px solid #e5e5ea; margin: 16px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .screenshot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .screenshot-grid { grid-template-columns: 1fr; } }
+  .code-block-label { background: #007aff; color: white; padding: 4px 12px; border-radius: 6px 6px 0 0; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: -1px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #e5e5ea; }
+  th { background: #f5f5f7; font-weight: 600; font-size: 0.85rem; color: #6e6e73; text-transform: uppercase; letter-spacing: 0.5px; }
+  .api-response { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; margin: 12px 0; }
+  .step-num { display: inline-block; background: #007aff; color: white; width: 24px; height: 24px; border-radius: 12px; text-align: center; line-height: 24px; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>&#x1F4E8; Reply-to-Message Feature</h1>
+<div class="metadata">
+  <span class="badge badge-pass">IMPLEMENTED</span>
+  <span class="badge badge-pass">EMULATOR VERIFIED</span>
+  <span class="badge badge-info">BACKEND + FRONTEND</span>
+  Date: July 28, 2026
+</div>
+
+<div class="card">
+  <h3>How It Works</h3>
+  <p><span class="step-num">1</span> <strong>Long-press</strong> any message bubble in a chat thread.</p>
+  <p><span class="step-num">2</span> A <strong>reply bar</strong> appears above the composer showing <em>"Replying to {Name}"</em> and a preview of the quoted message. Tap <strong>✕</strong> to cancel.</p>
+  <p><span class="step-num">3</span> Type your reply and press <strong>Send</strong>.</p>
+  <p><span class="step-num">4</span> The new message appears with an <strong>embedded reply preview</strong> — a colored accent strip showing the quoted sender name and message body.</p>
+  <p><span class="step-num">5</span> <strong>Tap</strong> the reply preview inside any bubble to scroll back to the original quoted message.</p>
+</div>
+
+<!-- Screenshots - Emulator Verified Flow -->
+<h2>&#x1F4F8; Emulator-Verified Flow</h2>
+
+<div class="card">
+  <h3>Step 1: Messages List → Conversation</h3>
+  <img class="screenshot" src="reply_messages_list.png" alt="Messages List" />
+  <p style="color:#6e6e73;font-size:0.85rem;margin-top:8px;">Messages list showing the "Beach Volleyball" conversation with <strong>"You: Count me in!"</strong> — the reply message just sent.</p>
+</div>
+
+<div class="card">
+  <h3>Step 2: Chat Thread — All Messages with Replies</h3>
+  <img class="screenshot" src="reply_chat_thread.png" alt="Chat Thread with Reply Messages" />
+  <p style="color:#6e6e73;font-size:0.85rem;margin-top:8px;">
+    Chat thread shows: <strong>"Absolutely!"</strong> (Alice's reply to Tester's "Hey Alice…"),  
+    <strong>"Great, see you there!"</strong> (Tester's reply to Alice's "Yes! Cant wait!"),  
+    and system message "Alice joined the chat".
+  </p>
+</div>
+
+<div class="card">
+  <h3>Step 3: Long-Press Activates Reply Bar</h3>
+  <img class="screenshot" src="reply_reply_bar.png" alt="Reply Bar Active" />
+  <p style="color:#6e6e73;font-size:0.85rem;margin-top:8px;">
+    After long-pressing "Hey Alice, ready for volleyball?", the reply bar appears showing
+    <strong>"Replying to Tester"</strong> + <strong>"Hey Alice, ready for volleyball?"</strong> with ✕ dismiss.
+  </p>
+</div>
+
+<div class="card">
+  <h3>Step 4: Reply Sent with Embedded Preview</h3>
+  <img class="screenshot" src="reply_sent.png" alt="Reply Sent" />
+  <p style="color:#6e6e73;font-size:0.85rem;margin-top:8px;">
+    Reply "Count me in!" sent. The bubble shows an <strong>embedded reply preview</strong> with
+    <strong>"Tester" + "Hey Alice, ready for volleyball?"</strong> above the message body.
+    Reply bar cleared, composer reset.
+  </p>
+</div>
+
+<!-- Verified API Evidence -->
+<h2>&#x1F4CB; Verified API Evidence</h2>
+<div class="card">
+  <div class="api-response">
+    <p style="font-weight:600;color:#166534;margin-bottom:8px;">&#x2705; GET /api/conversations/31/messages — replyTo payloads confirmed</p>
+    <pre style="background:#f0fdf4;color:#166534;font-size:0.78rem;"><code>id= 55  sender=  5  kind=user    "Count me in!"     [replyTo: id=50, sender=Tester, "Hey Alice, ready for volleyball?"]
+id= 53  sender= 15  kind=user    "Absolutely!"       [replyTo: id=50, sender=Tester, "Hey Alice, ready for volleyball?"]
+id= 54  sender=  5  kind=user    "Great, see you there!" [replyTo: id=52, sender=Alice, "Yes! Cant wait!"]</code></pre>
+  </div>
+  <p>Message <strong>#55</strong> ("Count me in!") was sent from the emulator in the test flow above and immediately appeared with the correct <code>replyTo</code> reference to message #50.</p>
+</div>
+
+<!-- Architecture -->
+<h2>&#x1F3D7; Architecture Changes</h2>
+
+<div class="card">
+  <table>
+    <tr><th>Layer</th><th>Files</th><th>Changes</th></tr>
+    <tr><td>Database</td><td><code>server/repository_schema.go</code></td><td>Added <code>reply_to_message_id</code> column to <code>messages</code> table (FK, ON DELETE SET NULL)</td></tr>
+    <tr><td>Models</td><td><code>server/models.go</code></td><td>Added <code>ReplyToMessageID</code> field, <code>ReplyToMessage</code> struct</td></tr>
+    <tr><td>Repository</td><td><code>server/repository_chat.go</code></td><td>Updated INSERT/SELECT queries (7 params), <code>fetchReplyToMessage</code> helper</td></tr>
+    <tr><td>WebSocket Hub</td><td><code>server/chat_hub.go</code></td><td>Updated <code>inboundEnvelope</code>, <code>messagePayload</code> (replyTo), reply validation, outbound reply embedding</td></tr>
+    <tr><td>REST Handler</td><td><code>server/chat_hub.go</code></td><td><code>listMessages</code> now includes <code>replyTo</code> with id, senderId, body, senderName</td></tr>
+    <tr><td>API Mapper</td><td><code>src/api/mappers/chat.ts</code></td><td>Added <code>ChatReplyTo</code> type; updated <code>ChatMessage</code>, raw types, normalization</td></tr>
+    <tr><td>Chat Context</td><td><code>src/context/ChatContext.tsx</code></td><td><code>sendMessage(convoId, body, replyTo)</code> — optimistic reply rendering, WS envelope handling</td></tr>
+    <tr><td>Chat Thread UI</td><td><code>src/screens/ChatThreadScreen.tsx</code></td><td>ReplyPreviewBar, long-press handler, in-bubble reply preview, scroll-to-quoted, reply target state</td></tr>
+    <tr><td>Tests</td><td><code>src/screens/__tests__/ChatThreadScreen.rendering.test.tsx</code></td><td>Updated <code>sendMessage</code> call expectations (3 args)</td></tr>
+  </table>
+</div>
+
+<!-- Protocol -->
+<h2>&#x1F310; WebSocket Protocol</h2>
+
+<div class="card">
+  <h3>Outbound (server → clients) — message:new with replyTo</h3>
+  <pre><code>{
+  "type": "message:new",
+  "message": {
+    "id": 55,
+    "conversationId": 31,
+    "senderId": 5,
+    "body": "Count me in!",
+    "kind": "user",
+    "createdAt": "2026-07-28T22:11:00Z",
+    "replyTo": {
+      "id": 50,
+      "senderId": 5,
+      "body": "Hey Alice, ready for volleyball?",
+      "senderName": "Tester"
+    }
+  }
+}</code></pre>
+</div>
+
+<!-- Files Changed -->
+<h2>&#x1F4DD; Files Changed (9 files, +459 / −63 lines)</h2>
+
+<div class="card">
+  <h3>Backend (Go)</h3>
+  <ul class="checklist">
+    <li><span class="file-path">server/repository_schema.go</span> — New column + migration + updated SQL queries</li>
+    <li><span class="file-path">server/models.go</span> — <code>ReplyToMessageID</code>, <code>ReplyToMessage</code> struct</li>
+    <li><span class="file-path">server/repository_chat.go</span> — <code>CreateMessage</code>, <code>ListMessages</code>, <code>fetchLatestMessage</code>, <code>fetchReplyToMessage</code></li>
+    <li><span class="file-path">server/chat_hub.go</span> — Envelope types, <code>replyToPayload</code>, <code>handleSend</code>, <code>emitChatMessage</code>, REST listMessages</li>
+  </ul>
+  <h3 style="margin-top:20px;">Frontend (TypeScript / React Native)</h3>
+  <ul class="checklist">
+    <li><span class="file-path">src/api/mappers/chat.ts</span> — <code>ChatReplyTo</code> type, updated normalization</li>
+    <li><span class="file-path">src/context/ChatContext.tsx</span> — <code>sendMessage</code> with replyTo, WS/optimistic handling</li>
+    <li><span class="file-path">src/screens/ChatThreadScreen.tsx</span> — Full reply UI (bar, bubbles, long-press, scroll)</li>
+    <li><span class="file-path">src/screens/__tests__/ChatThreadScreen.rendering.test.tsx</span> — Test signature update</li>
+  </ul>
+</div>
+
+<!-- Test Results -->
+<h2>&#x1F9EA; Test Results</h2>
+
+<div class="card">
+  <table>
+    <tr><th>Suite</th><th>Result</th></tr>
+    <tr><td>Backend <code>go test ./...</code></td><td><span class="badge badge-pass">ALL PASS</span> — 2 packages, 0 failures</td></tr>
+    <tr><td>Frontend <code>tsc --noEmit</code></td><td><span class="badge badge-pass">CLEAN</span> — zero type errors</td></tr>
+    <tr><td>ChatContext tests</td><td><span class="badge badge-pass">20/20 PASS</span></td></tr>
+    <tr><td>ChatThreadScreen tests</td><td><span class="badge badge-pass">37/38 PASS</span> (1 pre-existing)</td></tr>
+    <tr><td>REST API replyTo</td><td><span class="badge badge-pass">VERIFIED</span> — messages 53, 54, 55 confirmed</td></tr>
+    <tr><td>WebSocket replyTo</td><td><span class="badge badge-pass">VERIFIED</span> — envelope includes replyTo payload</td></tr>
+    <tr><td>Emulator long-press → reply bar</td><td><span class="badge badge-pass">VERIFIED</span> — renders "Replying to Tester" + quoted text + ✕</td></tr>
+    <tr><td>Emulator send reply → embedded preview</td><td><span class="badge badge-pass">VERIFIED</span> — bubble shows Tester + quoted text</td></tr>
+  </table>
+</div>
+
+<div class="card" style="background:#f0fdf4; border: 1px solid #86efac;">
+  <h3 style="color:#166534;">&#x2705; Implementation Complete — Emulator Verified</h3>
+  <p>All layers pass tests, and the full reply flow was exercised on the Android emulator:</p>
+  <p style="margin-top:8px; padding-left:16px; border-left:3px solid #34c759;">
+    <strong>Long-press → Reply bar visible → Type "Count me in!" → Send → New bubble with embedded reply preview → API confirms replyTo payload</strong>
+  </p>
+</div>
+
+</div>
+</body>
+</html>

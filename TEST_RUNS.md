@@ -92,3 +92,47 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Evidence: `report/accepted-members-overlay-implementation.html` and four before/after screenshots under `report/accepted-members-overlay-assets/`.
 - QA data note: Coffee Catchup was moved from 16 July to 18 July through `PUT /api/events/7` so it remained visible after a fresh app session.
 - Final verdict: **PASS**.
+
+## 2026-07-28 — Reply-to-Message Feature
+
+- Change: Full reply-to-message feature — DB schema (`reply_to_message_id`), backend WebSocket + REST reply payloads, frontend long-press-to-reply UI with reply preview bar and in-bubble reply indicators. See `report/reply-to-message-implementation.html` for full report.
+- Flow: curl set up group event + approved member → WebSocket sent 5 messages (2 with replies) → Messages tab → ChatThread → long-press message → reply bar → type/send reply → verify reply preview in bubble.
+- Attempt 1: PASS — REST API confirmed `replyTo` payloads on messages 53 and 54. Backend `go test ./...` all pass. Frontend typecheck clean. ChatContext tests 20/20 pass. ChatThreadScreen 37/38 pass (1 pre-existing). WebSocket outbound envelopes include replyTo with senderName. Emulator screenshots captured for Messages list and ChatThread.
+- Final: PASS — full-stack implementation verified.
+
+- Automated: `go test ./...` PASS, `tsc --noEmit` PASS, `jest` 38/38 ChatThread + 20/20 ChatContext PASS.
+
+## 2026-07-28 — Reply-to-Message hardening and interaction repair
+
+- Change: restrict reply targets to their source conversation, preserve reply metadata through REST refreshes, retries, and conversation summaries, and rework reply gestures/layout so long press and directional swipes coexist with scrolling and the reply bar sits above the composer.
+- Device: Android emulator `WEIF_API_36`, package `com.whoelseisfree.app`, current Metro bundle.
+- Attempt 1: PASS — ChatThread rendered REST-loaded reply previews for both own and other-user messages. Long-pressing Alice's incoming reply displayed `Replying to Alice` above, rather than over, the composer. After dismissing it, a right swipe on that incoming bubble restored the same reply bar; long-pressing an outgoing bubble likewise displayed `Replying to Tester`. The other-user bubble, avatar, and composer remained correctly positioned.
+- Automated: reply-focused Jest suites 63/63 PASS; `go test ./...` PASS; `tsc --noEmit` PASS; lint completed with 0 errors; `git diff --check` PASS.
+- Final verdict: **PASS**.
+
+## 2026-07-28 — Quoted-message card and jump highlight
+
+- Change: restyle the quoted-message card inside outgoing dark bubbles, add an accessible jump action, highlight visible originals in place, and scroll off-screen originals to the center before highlighting them.
+- Device: Android emulator `WEIF_API_36`, package `com.whoelseisfree.app`, current Metro bundle.
+- Attempt 1: PASS — outgoing reply bubbles use a dark-gray quoted card with light text, while incoming reply bubbles use a white quoted card with a subtle border. Tapping the visible `Alice / Absolutely!` quote left the list position unchanged and briefly flashed a neutral tint over the original bubble, with no colored outline.
+- Automated: ChatThread rendering suite 43/43 PASS, including visible-target no-scroll and off-screen scroll-then-highlight cases; `tsc --noEmit` PASS.
+- Evidence: `report/reply_jump_highlight.png`.
+- Final verdict: **PASS**.
+
+## 2026-07-30 — Chat composer keyboard gap and reply dock
+
+- Change: remove the Android-only safe-area gap above the IME and move the active reply preview plus composer together inside the Android keyboard dock; leave the iOS native keyboard-avoidance branch unchanged.
+- Android: `WEIF_API_36`, Android 16, 1080 × 2400. Reproduced a 95 px input-to-keyboard distance, then verified 32 px after the fix (including the input pill’s internal padding). With `Replying to Alice` active, the reply preview remained immediately above the focused text box and both moved above the keyboard.
+- iOS: iPhone 15 Pro simulator, iOS 17.4, 1179 × 2556. Verified the base focused composer and the active `Replying to Alice` state above the native keyboard without overlap or an added gap.
+- Automated: ChatThread rendering suite 44/44 PASS; `tsc --noEmit` PASS; touched-file lint completed with 0 errors and existing warning debt; `git diff --check` PASS.
+- Evidence: `report/chat-keyboard-gap-fix-report.html`, `report/chat-keyboard-gap-android-before.png`, `report/chat-keyboard-gap-android-after.png`, `report/chat-keyboard-gap-ios-after.png`, `report/chat-reply-keyboard-android-after.png`, and `report/chat-reply-keyboard-ios-after.png`.
+- Final verdict: **PASS**.
+
+## 2026-07-31 — Reply composer inset card and full-height rail
+
+- Change: replace the joined reply-preview and input surfaces with one rounded composer shell containing an inset reply card. Remove the fixed 32 px rail height and stretch the neutral rail through the complete card; remove the negative hairline overlap workaround. The no-reply composer remains a pill.
+- Android: `WEIF_API_36`, Android 16, 1080 × 2400. Verified the full-height rail is cleanly clipped by the inset card, the selected `Replying to Alice` preview remains above the input row, and the complete shell stays directly above the keyboard.
+- iOS: iPhone 15 Pro simulator, iOS 17.4, 1179 × 2556. Verified the same inset-card treatment and full-height rail while preserving native keyboard avoidance.
+- Automated: ChatThread rendering suite 44/44 PASS; `tsc --noEmit` PASS; `git diff --check` PASS.
+- Evidence: `report/chat-reply-composer-shape-report.html`, `report/chat-reply-composer-shape-android-after.png`, and `report/chat-reply-composer-shape-ios-after.png`.
+- Final verdict: **PASS**.

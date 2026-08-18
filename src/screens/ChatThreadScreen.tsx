@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -6,6 +6,7 @@ import {
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { ViewToken } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,7 +32,7 @@ import { CountBadge } from '@components/ui';
 import EventActionOverlay from '@components/EventActionOverlay';
 import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
 import UserAvatar from '@components/UserAvatar';
-import { colors, spacing, typography } from '@theme/index';
+import { colors, radii, spacing, typography } from '@theme/index';
 import { useChat } from '@context/ChatContext';
 import type { ChatMessage } from '@context/ChatContext';
 import { useAuth } from '@context/AuthContext';
@@ -43,53 +45,115 @@ import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHead
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
+export const getAndroidComposerKeyboardTranslation = (
+  keyboardHeight: number,
+  composerBottomPadding: number,
+) => -Math.max(0, keyboardHeight - composerBottomPadding + ANDROID_KEYBOARD_GAP);
+
 interface ComposerProps {
   composerBottomPadding: number;
   draft: string;
   isSendDisabled: boolean;
   onDraftChange: (text: string) => void;
+  onDismissReply: () => void;
   onSend: () => void;
+  replySenderName: string;
+  replyTarget: ChatMessage | null;
 }
+
+interface ReplyPreviewBarProps {
+  replyTarget: ChatMessage;
+  senderName: string;
+  onDismiss: () => void;
+}
+
+const ReplyPreviewBar = ({ replyTarget, senderName, onDismiss }: ReplyPreviewBarProps) => (
+  <View style={styles.replyBar} testID="reply-preview-bar">
+    <View style={styles.replyBarInner} testID="reply-preview-surface">
+      <View style={styles.replyBarBar} testID="reply-preview-rail" />
+      <View style={styles.replyBarContent}>
+        <Text style={styles.replyBarName} numberOfLines={1}>
+          Replying to {senderName}
+        </Text>
+        <Text style={styles.replyBarBody} numberOfLines={1}>
+          {replyTarget.body}
+        </Text>
+      </View>
+      <Pressable
+        onPress={onDismiss}
+        hitSlop={8}
+        style={styles.replyBarDismissButton}
+        accessibilityRole="button"
+        accessibilityLabel="Cancel reply"
+      >
+        <Text style={styles.replyBarDismiss}>✕</Text>
+      </Pressable>
+    </View>
+  </View>
+);
 
 const ChatComposer = ({
   composerBottomPadding,
   draft,
   isSendDisabled,
   onDraftChange,
+  onDismissReply,
   onSend,
+  replySenderName,
+  replyTarget,
 }: ComposerProps) => (
   <View
     style={[styles.composerContainer, { paddingBottom: composerBottomPadding }]}
     testID="chat-composer-container"
   >
-    <View style={styles.composerInputWrapper}>
-      <TextInput
-        placeholder="Write a message"
-        value={draft}
-        onChangeText={onDraftChange}
-        style={styles.composerInput}
-        placeholderTextColor={colors.tabInactive}
-        multiline
-      />
-      <Pressable
-        onPress={onSend}
-        disabled={isSendDisabled}
-        style={[styles.sendIconButton, isSendDisabled && styles.sendIconButtonDisabled]}
-        accessibilityRole="button"
-        accessibilityLabel="Send message"
-        accessibilityState={{ disabled: isSendDisabled }}
-      >
-        <SendIcon
-          width={15}
-          height={16}
-          color={isSendDisabled ? colors.tabInactive : colors.buttonText}
+    <View
+      style={[styles.composerShell, replyTarget && styles.composerShellWithReply]}
+      testID="chat-composer-shell"
+    >
+      {replyTarget ? (
+        <ReplyPreviewBar
+          replyTarget={replyTarget}
+          senderName={replySenderName}
+          onDismiss={onDismissReply}
         />
-      </Pressable>
+      ) : null}
+      <View
+        style={[styles.composerInputRow, replyTarget && styles.composerInputRowWithReply]}
+        testID="chat-composer-input-wrapper"
+      >
+        <TextInput
+          placeholder="Write a message"
+          value={draft}
+          onChangeText={onDraftChange}
+          style={styles.composerInput}
+          placeholderTextColor={colors.tabInactive}
+          multiline
+        />
+        <Pressable
+          onPress={onSend}
+          disabled={isSendDisabled}
+          style={[styles.sendIconButton, isSendDisabled && styles.sendIconButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{ disabled: isSendDisabled }}
+        >
+          <SendIcon
+            width={15}
+            height={16}
+            color={isSendDisabled ? colors.tabInactive : colors.buttonText}
+          />
+        </Pressable>
+      </View>
     </View>
   </View>
 );
 
-const AndroidKeyboardComposer = (props: ComposerProps) => {
+interface AndroidKeyboardDockProps {
+  children: ReactNode;
+  composerBottomPadding: number;
+}
+
+const AndroidKeyboardDock = ({ children, composerBottomPadding }: AndroidKeyboardDockProps) => {
   const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -97,7 +161,9 @@ const AndroidKeyboardComposer = (props: ComposerProps) => {
 
     const showSub = KeyboardEvents.addListener('keyboardWillShow', (event) => {
       Animated.timing(translateY, {
-        toValue: -(event.height + ANDROID_KEYBOARD_GAP),
+        // Keep the closed-state safe-area padding behind the keyboard instead
+        // of lifting it into a visible gap above the IME.
+        toValue: getAndroidComposerKeyboardTranslation(event.height, composerBottomPadding),
         duration: event.duration || 250,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -118,11 +184,76 @@ const AndroidKeyboardComposer = (props: ComposerProps) => {
       hideSub.remove();
       KeyboardController.setDefaultMode();
     };
-  }, [translateY]);
+  }, [composerBottomPadding, translateY]);
 
   return (
-    <Animated.View style={{ transform: [{ translateY }] }}>
-      <ChatComposer {...props} />
+    <Animated.View style={{ transform: [{ translateY }] }} testID="android-keyboard-dock">
+      {children}
+    </Animated.View>
+  );
+};
+
+const SWIPE_THRESHOLD = 60;
+const LONG_PRESS_MS = 300;
+const HIGHLIGHT_FADE_IN_MS = 160;
+const HIGHLIGHT_HOLD_MS = 700;
+const HIGHLIGHT_FADE_OUT_MS = 420;
+
+const SwipeableBubble = ({
+  children,
+  onSwipeReply,
+  onLongPress,
+  isOwn,
+  disabled,
+  testID,
+}: {
+  children: React.ReactNode;
+  onSwipeReply: () => void;
+  onLongPress: () => void;
+  isOwn: boolean;
+  disabled?: boolean;
+  testID: string;
+}) => {
+  const panX = useRef(new Animated.Value(0)).current;
+  const swipeDirection = isOwn ? -1 : 1;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        !disabled &&
+        gestureState.dx * swipeDirection > 10 &&
+        gestureState.dx * swipeDirection > Math.abs(gestureState.dy),
+      onPanResponderMove: (_, gestureState) => {
+        panX.setValue(gestureState.dx);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx * swipeDirection > SWIPE_THRESHOLD) {
+          triggerHaptic('light');
+          onSwipeReply();
+        }
+        Animated.spring(panX, { toValue: 0, useNativeDriver: true }).start();
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(panX, { toValue: 0, useNativeDriver: true }).start();
+      },
+    }),
+  ).current;
+
+  if (disabled) {
+    return <>{children}</>;
+  }
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={{
+        transform: [{ translateX: panX }],
+        alignSelf: isOwn ? ('flex-end' as const) : ('flex-start' as const),
+      }}
+    >
+      <Pressable testID={testID} onLongPress={onLongPress} delayLongPress={LONG_PRESS_MS}>
+        {children}
+      </Pressable>
     </Animated.View>
   );
 };
@@ -148,7 +279,93 @@ const ChatThreadScreen = () => {
   } = useChat();
 
   const [draft, setDraft] = useState('');
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
+  const visibleMessageIdsRef = useRef(new Set<string>());
+  const pendingHighlightMessageIdRef = useRef<string | null>(null);
+  const scrollRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightOpacity = useRef(new Animated.Value(0)).current;
+  const highlightAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  const highlightMessage = useCallback(
+    (messageId: string) => {
+      highlightAnimationRef.current?.stop();
+      setHighlightedMessageId(messageId);
+      highlightOpacity.setValue(0);
+
+      const animation = Animated.sequence([
+        Animated.timing(highlightOpacity, {
+          toValue: 0.14,
+          duration: HIGHLIGHT_FADE_IN_MS,
+          useNativeDriver: true,
+        }),
+        Animated.delay(HIGHLIGHT_HOLD_MS),
+        Animated.timing(highlightOpacity, {
+          toValue: 0,
+          duration: HIGHLIGHT_FADE_OUT_MS,
+          useNativeDriver: true,
+        }),
+      ]);
+      highlightAnimationRef.current = animation;
+      animation.start(({ finished }) => {
+        if (finished) {
+          setHighlightedMessageId((current) => (current === messageId ? null : current));
+        }
+      });
+    },
+    [highlightOpacity],
+  );
+  const highlightMessageRef = useRef(highlightMessage);
+  highlightMessageRef.current = highlightMessage;
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: Array<ViewToken<ChatMessage>> }) => {
+      const visibleIds = new Set(
+        viewableItems
+          .map((viewableItem) => viewableItem.item?.id)
+          .filter((messageId): messageId is string => typeof messageId === 'string'),
+      );
+      visibleMessageIdsRef.current = visibleIds;
+
+      const pendingMessageId = pendingHighlightMessageIdRef.current;
+      if (pendingMessageId && visibleIds.has(pendingMessageId)) {
+        pendingHighlightMessageIdRef.current = null;
+        highlightMessageRef.current(pendingMessageId);
+      }
+    },
+  ).current;
+  const messageViewabilityConfig = useRef({ itemVisiblePercentThreshold: 55 }).current;
+
+  const handleScrollToIndexFailed = useCallback(
+    ({ index, averageItemLength }: { index: number; averageItemLength: number }) => {
+      messagesListRef.current?.scrollToOffset({
+        offset: Math.max(0, index * averageItemLength),
+        animated: false,
+      });
+      if (scrollRetryTimerRef.current) {
+        clearTimeout(scrollRetryTimerRef.current);
+      }
+      scrollRetryTimerRef.current = setTimeout(() => {
+        messagesListRef.current?.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      }, 80);
+    },
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      highlightAnimationRef.current?.stop();
+      if (scrollRetryTimerRef.current) {
+        clearTimeout(scrollRetryTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const activeConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
@@ -414,8 +631,19 @@ const ChatThreadScreen = () => {
       return;
     }
     triggerHaptic('submit');
-    sendMessage(activeConversationId, draft.trim());
+    const replyPreview: ChatMessage['replyTo'] | undefined = replyTarget
+      ? {
+          id: replyTarget.id,
+          senderId: replyTarget.senderId,
+          body: replyTarget.body,
+          senderName:
+            activeConversation?.participants?.find((p) => p.id === replyTarget.senderId)?.name ??
+            '',
+        }
+      : undefined;
+    sendMessage(activeConversationId, draft.trim(), replyPreview);
     setDraft('');
+    setReplyTarget(null);
   };
 
   const isSendDisabled = draft.trim().length === 0;
@@ -504,6 +732,34 @@ const ChatThreadScreen = () => {
             minute: '2-digit',
           });
 
+    const replyToPreview = item.replyTo;
+    const replyToName = replyToPreview ? replyToPreview.senderName.split(' ')[0] || 'Someone' : '';
+
+    const handleLongPress = () => {
+      if (item.pending || item.failed) return;
+      triggerHaptic('light');
+      setReplyTarget(item);
+    };
+
+    const handleReplyTap = () => {
+      if (!replyToPreview) return;
+      const targetIndex = messages.findIndex((m) => m.id === replyToPreview.id);
+      if (targetIndex < 0) return;
+
+      triggerHaptic('selection');
+      if (visibleMessageIdsRef.current.has(replyToPreview.id)) {
+        highlightMessage(replyToPreview.id);
+        return;
+      }
+
+      pendingHighlightMessageIdRef.current = replyToPreview.id;
+      messagesListRef.current?.scrollToIndex({
+        index: targetIndex,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    };
+
     const bubble = (
       <View
         style={[
@@ -512,6 +768,53 @@ const ChatThreadScreen = () => {
           item.failed ? styles.messageBubbleFailed : undefined,
         ]}
       >
+        {highlightedMessageId === item.id ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.messageHighlight,
+              isOwn ? styles.messageHighlightOwn : styles.messageHighlightOther,
+              { opacity: highlightOpacity },
+            ]}
+            testID={`message-highlight-${item.id}`}
+          />
+        ) : null}
+        {replyToPreview ? (
+          <Pressable
+            style={[styles.replyPreview, isOwn ? styles.replyPreviewOwn : styles.replyPreviewOther]}
+            onPress={handleReplyTap}
+            accessibilityRole="button"
+            accessibilityLabel={`Jump to message from ${replyToName}`}
+            testID={`reply-preview-${item.id}`}
+          >
+            <View
+              style={[
+                styles.replyPreviewBar,
+                isOwn ? styles.replyPreviewBarOwn : styles.replyPreviewBarOther,
+              ]}
+            />
+            <View style={styles.replyPreviewContent}>
+              <Text
+                style={[
+                  styles.replyPreviewName,
+                  isOwn ? styles.replyPreviewNameOwn : styles.replyPreviewNameOther,
+                ]}
+                numberOfLines={1}
+              >
+                {replyToName}
+              </Text>
+              <Text
+                style={[
+                  styles.replyPreviewBody,
+                  isOwn ? styles.replyPreviewBodyOwn : styles.replyPreviewBodyOther,
+                ]}
+                numberOfLines={1}
+              >
+                {replyToPreview.body}
+              </Text>
+            </View>
+          </Pressable>
+        ) : null}
         <Text style={[styles.messageText, isOwn ? styles.messageTextOwn : styles.messageTextOther]}>
           {item.body}
           {showMeta ? (
@@ -532,17 +835,31 @@ const ChatThreadScreen = () => {
       </View>
     );
 
+    const handleSwipeReply = () => {
+      if (item.pending || item.failed) return;
+      setReplyTarget(item);
+    };
+
     const bubbleContent = item.failed ? (
       <Pressable
         onPress={() => {
           triggerHaptic('warning');
           retryMessage(item.conversationId, item);
         }}
+        style={isOwn ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }}
       >
         {bubble}
       </Pressable>
     ) : (
-      bubble
+      <SwipeableBubble
+        onSwipeReply={handleSwipeReply}
+        onLongPress={handleLongPress}
+        isOwn={isOwn}
+        disabled={item.pending}
+        testID={`chat-message-${item.id}`}
+      >
+        {bubble}
+      </SwipeableBubble>
     );
 
     return (
@@ -580,7 +897,13 @@ const ChatThreadScreen = () => {
     draft,
     isSendDisabled,
     onDraftChange: setDraft,
+    onDismissReply: () => setReplyTarget(null),
     onSend: handleSend,
+    replySenderName:
+      activeConversation?.participants
+        ?.find((participant) => participant.id === replyTarget?.senderId)
+        ?.name?.split(' ')[0] ?? 'Someone',
+    replyTarget,
   };
 
   return (
@@ -656,6 +979,9 @@ const ChatThreadScreen = () => {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
+              viewabilityConfig={messageViewabilityConfig}
+              onViewableItemsChanged={onViewableItemsChanged}
+              onScrollToIndexFailed={handleScrollToIndexFailed}
             />
             <ChatComposer {...composerProps} />
           </View>
@@ -674,8 +1000,13 @@ const ChatThreadScreen = () => {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
+              viewabilityConfig={messageViewabilityConfig}
+              onViewableItemsChanged={onViewableItemsChanged}
+              onScrollToIndexFailed={handleScrollToIndexFailed}
             />
-            <AndroidKeyboardComposer {...composerProps} />
+            <AndroidKeyboardDock composerBottomPadding={composerBottomPadding}>
+              <ChatComposer {...composerProps} />
+            </AndroidKeyboardDock>
           </View>
         </View>
       )}
@@ -763,12 +1094,24 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md, // = messageBubble paddingLeft, so the name lines up with the text
   },
   messageBubble: {
+    position: 'relative',
     paddingTop: 10,
     paddingBottom: 10,
     paddingLeft: 14,
     paddingRight: 14,
     borderRadius: 18,
     borderCurve: 'continuous',
+  },
+  messageHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    zIndex: 1,
+  },
+  messageHighlightOwn: {
+    backgroundColor: colors.buttonText,
+  },
+  messageHighlightOther: {
+    backgroundColor: colors.primary,
   },
   messageBubbleOwn: {
     alignSelf: 'flex-end',
@@ -828,14 +1171,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.transparent,
     paddingHorizontal: 0,
   },
-  composerInputWrapper: {
+  composerShell: {
+    backgroundColor: colors.inputSurface,
+    borderRadius: radii.pill,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+  },
+  composerShellWithReply: {
+    borderRadius: radii.xl,
+  },
+  composerInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.inputSurface,
-    borderRadius: 999,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
+  },
+  composerInputRowWithReply: {
+    paddingTop: 6,
   },
   composerInput: {
     flex: 1,
@@ -858,6 +1211,113 @@ const styles = StyleSheet.create({
   },
   sendIconButtonDisabled: {
     backgroundColor: colors.secondaryButtonBackground,
+  },
+  replyPreview: {
+    flexDirection: 'row',
+    minWidth: 140,
+    marginBottom: 6,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  replyPreviewOwn: {
+    backgroundColor: colors.buttonBackground,
+    borderColor: colors.muted,
+  },
+  replyPreviewOther: {
+    backgroundColor: colors.background,
+    borderColor: colors.borderSubtle,
+  },
+  replyPreviewBar: {
+    width: 3,
+    borderRadius: 1.5,
+  },
+  replyPreviewBarOwn: {
+    backgroundColor: colors.buttonText,
+    opacity: 0.8,
+  },
+  replyPreviewBarOther: {
+    backgroundColor: colors.primary,
+  },
+  replyPreviewContent: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    gap: 1,
+  },
+  replyPreviewName: {
+    fontSize: 13,
+    fontFamily: typography.fontFamilyMedium,
+    fontWeight: '500',
+    lineHeight: 17,
+    letterSpacing: -0.3,
+  },
+  replyPreviewNameOwn: {
+    color: colors.buttonText,
+  },
+  replyPreviewNameOther: {
+    color: colors.text,
+  },
+  replyPreviewBody: {
+    fontSize: 13,
+    fontFamily: typography.fontFamilyRegular,
+    lineHeight: 17,
+    letterSpacing: -0.3,
+  },
+  replyPreviewBodyOwn: {
+    color: colors.selectedTextMutedOnDark,
+  },
+  replyPreviewBodyOther: {
+    color: colors.muted,
+  },
+  replyBar: {
+    zIndex: 10,
+    marginTop: spacing.xs,
+    marginHorizontal: spacing.xs,
+  },
+  replyBarInner: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+  },
+  replyBarBar: {
+    width: 3,
+    alignSelf: 'stretch',
+    backgroundColor: colors.muted,
+    flexShrink: 0,
+  },
+  replyBarContent: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+    gap: 1,
+  },
+  replyBarName: {
+    fontSize: 13,
+    fontFamily: typography.fontFamilyMedium,
+    fontWeight: '500',
+    lineHeight: 17,
+    color: colors.text,
+    letterSpacing: -0.3,
+  },
+  replyBarBody: {
+    fontSize: 13,
+    fontFamily: typography.fontFamilyRegular,
+    lineHeight: 17,
+    color: colors.subText,
+    letterSpacing: -0.3,
+  },
+  replyBarDismiss: {
+    fontSize: 16,
+    color: colors.subText,
+  },
+  replyBarDismissButton: {
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
   },
 });
 

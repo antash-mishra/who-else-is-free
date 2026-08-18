@@ -175,6 +175,11 @@ const TestConsumer = ({
           <Text testID={`message-body-${index}`}>{msg.body}</Text>
           <Text testID={`message-pending-${index}`}>{msg.pending ? 'pending' : 'sent'}</Text>
           <Text testID={`message-failed-${index}`}>{msg.failed ? 'failed' : 'ok'}</Text>
+          {msg.replyTo ? (
+            <Text testID={`message-reply-${index}`}>
+              {`${msg.replyTo.senderName}: ${msg.replyTo.body}`}
+            </Text>
+          ) : null}
           {msg.failed && (
             <TouchableOpacity
               testID={`retry-${index}`}
@@ -193,6 +198,19 @@ const TestConsumer = ({
           if (activeConversationId) {
             sendMessage(activeConversationId, 'Test message');
             onSendMessage?.(activeConversationId, 'Test message');
+          }
+        }}
+      />
+      <TouchableOpacity
+        testID="sendReplyMessageBtn"
+        onPress={() => {
+          if (activeConversationId) {
+            sendMessage(activeConversationId, 'Reply message', {
+              id: '123',
+              senderId: 2,
+              senderName: 'Reply Author',
+              body: 'Quoted message',
+            });
           }
         }}
       />
@@ -402,6 +420,96 @@ describe('ChatContext Rendering Tests', () => {
       await waitFor(() => {
         expect(screen.getByTestId('error')).toHaveTextContent('Chat connection is not ready.');
       });
+    });
+
+    it('should preserve reply metadata when messages are loaded from REST', async () => {
+      const messagesWithReply = {
+        messages: [
+          {
+            id: 600,
+            conversationId: 1,
+            senderId: 2,
+            body: 'A persisted reply',
+            createdAt: new Date().toISOString(),
+            replyTo: {
+              id: 599,
+              senderId: 1,
+              senderName: 'Reply Author',
+              body: 'Quoted message',
+            },
+          },
+        ],
+      };
+      fetchMock.mockResponse(async (request) =>
+        JSON.stringify(
+          request.url.includes('/messages')
+            ? messagesWithReply
+            : mockApiResponses.conversations.success,
+        ),
+      );
+
+      renderWithProvider();
+      await act(async () => {
+        await tick(10);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('conversation-1')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-1'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('message-reply-0')).toHaveTextContent(
+          'Reply Author: Quoted message',
+        );
+      });
+    });
+
+    it('should keep reply metadata when a failed send is retried', async () => {
+      fetchMock.mockResponse(async (request) =>
+        JSON.stringify(
+          request.url.includes('/messages')
+            ? { messages: [] }
+            : mockApiResponses.conversations.success,
+        ),
+      );
+      renderWithProvider();
+
+      await act(async () => {
+        await tick(10);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('conversation-1')).toBeTruthy();
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-1'));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('activeConversationId')).toHaveTextContent('1');
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('sendReplyMessageBtn'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('message-reply-0')).toHaveTextContent(
+          'Reply Author: Quoted message',
+        );
+        expect(screen.getByTestId('message-failed-0')).toHaveTextContent('failed');
+      });
+
+      const ws = MockWebSocket.getLatest();
+      await act(async () => {
+        ws.simulateOpen();
+        fireEvent.press(screen.getByTestId('retry-0'));
+      });
+
+      const replySend = ws.send.mock.calls
+        .map(([payload]) => JSON.parse(payload))
+        .find((payload) => payload.type === 'message:send' && payload.body === 'Reply message');
+      expect(replySend).toMatchObject({ replyToMessageId: 123 });
     });
   });
 

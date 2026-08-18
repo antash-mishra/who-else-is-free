@@ -67,14 +67,15 @@ const (
 )
 
 type Message struct {
-	ID             int64       `json:"id"`
-	ConversationID int64       `json:"conversation_id"`
-	SenderID       int64       `json:"sender_id"`
-	Body           string      `json:"body"`
-	AttachmentURL  *string     `json:"attachment_url,omitempty"`
-	DeliveryStatus string      `json:"delivery_status"`
-	Kind           MessageKind `json:"kind"`
-	CreatedAt      time.Time   `json:"created_at"`
+	ID               int64       `json:"id"`
+	ConversationID   int64       `json:"conversation_id"`
+	SenderID         int64       `json:"sender_id"`
+	Body             string      `json:"body"`
+	AttachmentURL    *string     `json:"attachment_url,omitempty"`
+	DeliveryStatus   string      `json:"delivery_status"`
+	Kind             MessageKind `json:"kind"`
+	ReplyToMessageID *int64      `json:"reply_to_message_id,omitempty"`
+	CreatedAt        time.Time   `json:"created_at"`
 }
 
 type ConversationSummary struct {
@@ -87,12 +88,13 @@ type ConversationSummary struct {
 }
 
 type CreateMessageParams struct {
-	ConversationID int64
-	SenderID       int64
-	Body           string
-	AttachmentURL  *string
-	DeliveryStatus string
-	Kind           MessageKind
+	ConversationID   int64
+	SenderID         int64
+	Body             string
+	AttachmentURL    *string
+	DeliveryStatus   string
+	Kind             MessageKind
+	ReplyToMessageID *int64
 }
 
 type ConversationParticipant struct {
@@ -115,11 +117,12 @@ type ConversationEventMeta struct {
 }
 
 type MessageSummary struct {
-	ID        int64       `json:"id"`
-	SenderID  int64       `json:"sender_id"`
-	Body      string      `json:"body"`
-	Kind      MessageKind `json:"kind"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID        int64            `json:"id"`
+	SenderID  int64            `json:"sender_id"`
+	Body      string           `json:"body"`
+	Kind      MessageKind      `json:"kind"`
+	CreatedAt time.Time        `json:"created_at"`
+	ReplyTo   *ReplyToMessage  `json:"reply_to,omitempty"`
 }
 
 type ConversationJoinRequest struct {

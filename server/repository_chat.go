@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -202,11 +203,15 @@ func (r *EventRepository) ListMessages(ctx context.Context, conversationID int64
 	for rows.Next() {
 		var msg Message
 		var attachment sql.NullString
-		if err := rows.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
+		var replyTo sql.NullInt64
+		if err := rows.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.Kind, &replyTo, &msg.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan message: %w", err)
 		}
 		if attachment.Valid {
 			msg.AttachmentURL = &attachment.String
+		}
+		if replyTo.Valid {
+			msg.ReplyToMessageID = &replyTo.Int64
 		}
 		messages = append(messages, msg)
 	}
@@ -227,15 +232,23 @@ func (r *EventRepository) CreateMessage(ctx context.Context, params CreateMessag
 	if params.Kind == "" {
 		params.Kind = MessageKindUser
 	}
+	replyTo := sql.NullInt64{}
+	if params.ReplyToMessageID != nil {
+		replyTo = sql.NullInt64{Int64: *params.ReplyToMessageID, Valid: true}
+	}
 
 	var msg Message
-	row := r.db.QueryRowContext(ctx, insertMessage, params.ConversationID, params.SenderID, params.Body, attachment, params.DeliveryStatus, string(params.Kind))
+	row := r.db.QueryRowContext(ctx, insertMessage, params.ConversationID, params.SenderID, params.Body, attachment, params.DeliveryStatus, string(params.Kind), replyTo)
 	var attachmentOut sql.NullString
-	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
+	var replyToOut sql.NullInt64
+	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.Kind, &replyToOut, &msg.CreatedAt); err != nil {
 		return nil, fmt.Errorf("insert message: %w", err)
 	}
 	if attachmentOut.Valid {
 		msg.AttachmentURL = &attachmentOut.String
+	}
+	if replyToOut.Valid {
+		msg.ReplyToMessageID = &replyToOut.Int64
 	}
 	return &msg, nil
 }
@@ -485,8 +498,9 @@ func (r *EventRepository) approveSingleJoinRequest(ctx context.Context, event *E
 		// Persist the request intro as the first message in the approved private chat.
 		var msg Message
 		var attachmentOut sql.NullString
-		row := tx.QueryRowContext(ctx, insertMessage, convoID, userID, trimmedMessage, sql.NullString{}, "sent", string(MessageKindUser))
-		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
+		var replyToOut sql.NullInt64
+		row := tx.QueryRowContext(ctx, insertMessage, convoID, userID, trimmedMessage, sql.NullString{}, "sent", string(MessageKindUser), sql.NullInt64{})
+		if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachmentOut, &msg.DeliveryStatus, &msg.Kind, &replyToOut, &msg.CreatedAt); err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("insert approved single intro message: %w", err)
 		}
@@ -926,11 +940,15 @@ func (r *EventRepository) fetchLatestMessage(ctx context.Context, conversationID
 
 	var msg Message
 	var attachment sql.NullString
-	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.Kind, &msg.CreatedAt); err != nil {
+	var replyTo sql.NullInt64
+	if err := row.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Body, &attachment, &msg.DeliveryStatus, &msg.Kind, &replyTo, &msg.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("fetch latest message: %w", err)
+	}
+	if replyTo.Valid {
+		msg.ReplyToMessageID = &replyTo.Int64
 	}
 
 	summary := &MessageSummary{
@@ -941,7 +959,60 @@ func (r *EventRepository) fetchLatestMessage(ctx context.Context, conversationID
 		CreatedAt: msg.CreatedAt,
 	}
 
+	if msg.ReplyToMessageID != nil {
+		rp, err := r.fetchReplyToMessage(ctx, *msg.ReplyToMessageID)
+		if err != nil {
+			// Non-fatal: last message preview still works without reply info.
+			log.Printf("fetch reply-to message for last message preview: %v", err)
+		} else {
+			summary.ReplyTo = rp
+		}
+	}
+
 	return summary, nil
+}
+
+// ReplyToMessage holds minimal info about the replied-to message for display.
+type ReplyToMessage struct {
+	ID         int64  `json:"id"`
+	SenderID   int64  `json:"sender_id"`
+	Body       string `json:"body"`
+	SenderName string `json:"sender_name"`
+}
+
+func (r *EventRepository) fetchReplyToMessage(ctx context.Context, messageID int64) (*ReplyToMessage, error) {
+	var rp ReplyToMessage
+	row := r.db.QueryRowContext(ctx, selectReplyToMessage, messageID)
+	if err := row.Scan(&rp.ID, &rp.SenderID, &rp.Body, &rp.SenderName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("fetch reply-to message %d: %w", messageID, err)
+	}
+	return &rp, nil
+}
+
+// fetchReplyToMessageForConversation only resolves a reply target from the
+// supplied conversation. This prevents a reply reference from exposing a
+// message from another conversation.
+func (r *EventRepository) fetchReplyToMessageForConversation(
+	ctx context.Context,
+	messageID, conversationID int64,
+) (*ReplyToMessage, error) {
+	var rp ReplyToMessage
+	row := r.db.QueryRowContext(ctx, selectReplyToMessageForConversation, messageID, conversationID)
+	if err := row.Scan(&rp.ID, &rp.SenderID, &rp.Body, &rp.SenderName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf(
+			"fetch reply-to message %d for conversation %d: %w",
+			messageID,
+			conversationID,
+			err,
+		)
+	}
+	return &rp, nil
 }
 
 // countUnreadMessages uses the stored read cursor to compute unread totals.

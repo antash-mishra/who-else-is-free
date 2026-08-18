@@ -6,6 +6,13 @@ export type ConversationParticipant = {
   avatar?: string;
 };
 
+export type ChatReplyTo = {
+  id: string;
+  senderId: number;
+  body: string;
+  senderName: string;
+};
+
 export type ChatMessage = {
   id: string;
   conversationId: number;
@@ -16,6 +23,7 @@ export type ChatMessage = {
   pending?: boolean;
   tempId?: string;
   failed?: boolean;
+  replyTo?: ChatReplyTo;
 };
 
 export type ChatJoinRequest = {
@@ -87,6 +95,12 @@ export type RawConversationLastMessage = {
   body: string;
   kind?: 'user' | 'system';
   created_at: string;
+  reply_to?: {
+    id: number;
+    sender_id: number;
+    body: string;
+    sender_name: string;
+  };
 };
 
 export type RawConversationEvent = {
@@ -184,6 +198,14 @@ export const normalizeConversation = (
         body: conversation.last_message.body,
         kind: (conversation.last_message.kind === 'system' ? 'system' : 'user') as ChatMessage['kind'],
         createdAt: conversation.last_message.created_at,
+        replyTo: conversation.last_message.reply_to
+          ? {
+              id: String(conversation.last_message.reply_to.id),
+              senderId: conversation.last_message.reply_to.sender_id,
+              body: conversation.last_message.reply_to.body,
+              senderName: conversation.last_message.reply_to.sender_name,
+            }
+          : undefined,
       }
     : undefined;
 

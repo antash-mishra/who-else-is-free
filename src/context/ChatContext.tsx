@@ -38,7 +38,7 @@ interface ChatContextValue {
   joinRequestsByConversation: Record<number, ChatJoinRequest[]>;
   setActiveConversation: (conversationId: number | null) => void;
   refreshConversations: () => Promise<void>;
-  sendMessage: (conversationId: number, body: string) => void;
+  sendMessage: (conversationId: number, body: string, replyTo?: ChatMessage['replyTo']) => void;
   retryMessage: (conversationId: number, message: ChatMessage) => void;
   refreshJoinRequests: (
     conversationId: number,
@@ -78,6 +78,12 @@ type ServerEnvelope = {
     body: string;
     kind?: 'user' | 'system';
     createdAt: string;
+    replyTo?: {
+      id: number;
+      senderId: number;
+      body: string;
+      senderName: string;
+    };
   };
   conversationId?: number;
   userId?: number;
@@ -97,6 +103,12 @@ type MessagesResponse = {
     body: string;
     kind?: 'user' | 'system';
     createdAt: string;
+    replyTo?: {
+      id: number;
+      senderId: number;
+      body: string;
+      senderName: string;
+    };
   }>;
 };
 
@@ -166,6 +178,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       body: payload.body,
       kind: payload.kind === 'system' ? 'system' : 'user',
       createdAt: payload.createdAt,
+      replyTo: payload.replyTo
+        ? {
+            id: String(payload.replyTo.id),
+            senderId: payload.replyTo.senderId,
+            body: payload.replyTo.body,
+            senderName: payload.replyTo.senderName,
+          }
+        : undefined,
     };
   }, []);
 
@@ -221,6 +241,14 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             body: message.body,
             kind: (message.kind === 'system' ? 'system' : 'user') as ChatMessage['kind'],
             createdAt: message.createdAt,
+            replyTo: message.replyTo
+              ? {
+                  id: String(message.replyTo.id),
+                  senderId: message.replyTo.senderId,
+                  body: message.replyTo.body,
+                  senderName: message.replyTo.senderName,
+                }
+              : undefined,
           }));
 
         setMessagesByConversation((prev) => ({
@@ -803,7 +831,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [cleanupSocket, connectSocket, refreshConversations, refreshMessages, token, user]);
 
   const sendMessage = useCallback(
-    (conversationId: number, body: string) => {
+    (conversationId: number, body: string, replyTo?: ChatMessage['replyTo']) => {
       const trimmed = body.trim();
       if (!trimmed) {
         return;
@@ -826,6 +854,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           pending: false,
           tempId,
           failed: true,
+          replyTo,
         };
 
         setMessagesByConversation((prev) => {
@@ -859,6 +888,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         kind: 'user',
         pending: true,
         tempId,
+        replyTo,
       };
 
       setMessagesByConversation((prev) => {
@@ -887,6 +917,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         conversationId,
         body: trimmed,
         tempId,
+        ...(replyTo ? { replyToMessageId: Number(replyTo.id) } : {}),
       };
 
       try {
@@ -915,7 +946,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         };
       });
 
-      sendMessage(conversationId, message.body);
+      sendMessage(conversationId, message.body, message.replyTo);
     },
     [sendMessage],
   );
