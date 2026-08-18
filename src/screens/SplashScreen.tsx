@@ -120,6 +120,9 @@ const SplashScreen = () => {
       style={styles.root}
       onLayout={onLayoutRootView}
       testID="splash-container"
+      accessible
+      accessibilityLabel="Who Else Is Free"
+      accessibilityRole="image"
     >
       <Image
         source={variant.image}
@@ -133,7 +136,14 @@ const SplashScreen = () => {
           </Animated.View>
           <Text style={styles.tagline}>Who Else Is Free</Text>
         </View>
-        <Text style={styles.location}>{variant.location}</Text>
+        <Text
+          style={styles.location}
+          testID="splash-location"
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+        >
+          {variant.location}
+        </Text>
       </View>
     </View>
   );

@@ -5,7 +5,7 @@
 
 import React from "react";
 import { act, render, waitFor } from "@testing-library/react-native";
-import { Animated, Image } from "react-native";
+import { Animated, Image, Text } from "react-native";
 
 import SplashScreen, { SPLASH_VARIANTS } from "../SplashScreen";
 
@@ -109,19 +109,47 @@ describe("SplashScreen Rendering", () => {
 
   describe("Initial Rendering", () => {
     it("renders the splash container, image, logo, tagline, and location", () => {
-      const { getByTestId, getByText, queryByText, UNSAFE_getByType } = render(
-        <SplashScreen />,
-      );
+      const { getByTestId, getByText, UNSAFE_getByType, UNSAFE_getAllByType } =
+        render(<SplashScreen />);
 
       expect(getByTestId("splash-container")).toBeTruthy();
       expect(getByTestId("splash-logo")).toBeTruthy();
       expect(getByText("Who Else Is Free")).toBeTruthy();
       // One of the rotating venue captions is shown (chosen at random per launch).
-      const shownLocation = SPLASH_VARIANTS.some((variant) =>
-        queryByText(variant.location),
+      const texts = UNSAFE_getAllByType(Text);
+      const locationText = texts.find(
+        (node) => node.props.testID === "splash-location",
       );
-      expect(shownLocation).toBe(true);
+      expect(locationText).toBeTruthy();
+      expect(
+        SPLASH_VARIANTS.some(
+          (variant) => variant.location === locationText?.props.children,
+        ),
+      ).toBe(true);
       expect(UNSAFE_getByType(Image).props.resizeMode).toBe("cover");
+    });
+
+    it("exposes an accessibility label on the root and hides the venue caption", () => {
+      const { getByTestId, UNSAFE_getAllByType } = render(<SplashScreen />);
+
+      const container = getByTestId("splash-container");
+      expect(container.props.accessibilityLabel).toBe("Who Else Is Free");
+      expect(container.props.accessibilityRole).toBe("image");
+      expect(container.props.accessible).toBe(true);
+
+      const texts = UNSAFE_getAllByType(Text);
+      const locationText = texts.find(
+        (node) => node.props.accessible === false,
+      );
+      expect(locationText).toBeTruthy();
+      expect(locationText?.props.importantForAccessibility).toBe(
+        "no-hide-descendants",
+      );
+      // The tagline remains accessible (not marked decorative).
+      const tagline = texts.find(
+        (node) => node.props.children === "Who Else Is Free",
+      );
+      expect(tagline?.props.accessible).not.toBe(false);
     });
 
     it("renders the logo with the current dimensions", () => {
@@ -137,9 +165,15 @@ describe("SplashScreen Rendering", () => {
       // Stored index 0 = Vicar Street; the next launch must pick another venue.
       mockGetItemAsync.mockResolvedValue("0");
 
-      const { queryByText } = await renderReadySplash();
+      const { UNSAFE_getAllByType } = await renderReadySplash();
 
-      expect(queryByText(SPLASH_VARIANTS[0].location)).toBeNull();
+      const texts = UNSAFE_getAllByType(Text);
+      const locationText = texts.find(
+        (node) => node.props.testID === "splash-location",
+      );
+      expect(locationText?.props.children).not.toBe(
+        SPLASH_VARIANTS[0].location,
+      );
     });
 
     it("persists the chosen index for the next launch", async () => {
@@ -156,12 +190,18 @@ describe("SplashScreen Rendering", () => {
     it("falls back to a random venue on first launch (no stored index)", async () => {
       mockGetItemAsync.mockResolvedValue(null);
 
-      const { queryByText } = await renderReadySplash();
+      const { UNSAFE_getAllByType } = await renderReadySplash();
 
-      const shownLocation = SPLASH_VARIANTS.some((variant) =>
-        queryByText(variant.location),
+      const texts = UNSAFE_getAllByType(Text);
+      const locationText = texts.find(
+        (node) => node.props.testID === "splash-location",
       );
-      expect(shownLocation).toBe(true);
+      expect(locationText).toBeTruthy();
+      expect(
+        SPLASH_VARIANTS.some(
+          (variant) => variant.location === locationText?.props.children,
+        ),
+      ).toBe(true);
     });
   });
 
