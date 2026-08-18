@@ -21,6 +21,7 @@ import { colors, typography } from '@theme/index';
 import { useAuth, type ApiError } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 import CameraIcon from '@assets/onboarding/camera.svg';
 import ProfileIcon from '@assets/onboarding/profile.svg';
 import AvatarBackground from '@components/AvatarBackground';
@@ -67,10 +68,7 @@ const EditProfileScreen = () => {
 
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your photo library to upload an avatar.',
-      );
+      Alert.alert('Photo access needed', 'Allow photo access to add a profile picture.');
       return;
     }
 
@@ -122,7 +120,11 @@ const EditProfileScreen = () => {
     } catch (error) {
       const status = error instanceof Error ? (error as ApiError).status : undefined;
       if (status === 401) return;
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save profile.');
+      logger.warn('Profile update failed:', error instanceof Error ? error.message : error);
+      Alert.alert(
+        "Couldn't save your changes",
+        'Something went wrong on our end. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -136,7 +138,11 @@ const EditProfileScreen = () => {
         {/* Avatar + Name */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
-            <TouchableOpacity onPress={pickImage} accessibilityRole="button">
+            <TouchableOpacity
+              onPress={pickImage}
+              accessibilityRole="button"
+              accessibilityLabel={editAvatarValue ? 'Change photo' : 'Add photo'}
+            >
               {!editAvatarValue && !editName.trim() ? (
                 <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
                   <AvatarBackground seed={user?.id} name={editName.trim() || user?.name} />

@@ -321,7 +321,10 @@ describe('OnboardingScreen Rendering', () => {
       completeForm();
       pressDone();
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Network error');
+        expect(Alert.alert).toHaveBeenCalledWith(
+          "Couldn't save your changes",
+          'Something went wrong on our end. Please try again.',
+        );
       });
     });
   });
@@ -342,8 +345,8 @@ describe('OnboardingScreen Rendering', () => {
       fireEvent.press(screen.getByTestId('avatar-button'));
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
-          'Permission Required',
-          'Please allow access to your photo library to upload an avatar.',
+          'Photo access needed',
+          'Allow photo access to add a profile picture.',
         );
       });
     });

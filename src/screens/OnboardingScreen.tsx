@@ -133,10 +133,7 @@ const OnboardingScreen = () => {
 
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your photo library to upload an avatar.',
-      );
+      Alert.alert('Photo access needed', 'Allow photo access to add a profile picture.');
       return;
     }
 
@@ -154,25 +151,16 @@ const OnboardingScreen = () => {
   }, []);
 
   const handleContinueStep1 = useCallback(() => {
-    if (!name.trim()) {
-      Alert.alert('Name Required', 'Please enter your name.');
-      return;
-    }
     goForward(2);
-  }, [name, goForward]);
+  }, [goForward]);
 
   const handleContinueStep2 = useCallback(() => {
-    if (!gender) {
-      Alert.alert('Gender Required', 'Please select your gender.');
-      return;
-    }
     goForward(3);
-  }, [gender, goForward]);
+  }, [goForward]);
 
   const handleDone = useCallback(async () => {
     const ageNum = parseInt(age, 10);
     if (isNaN(ageNum) || ageNum < MIN_AGE || ageNum > MAX_AGE) {
-      Alert.alert('Invalid Age', `Please enter a valid age between ${MIN_AGE} and ${MAX_AGE}.`);
       return;
     }
 
@@ -198,12 +186,15 @@ const OnboardingScreen = () => {
         ],
       });
     } catch (error) {
-      logger.warn('Profile update failed', error);
       const status = error instanceof Error ? (error as ApiError).status : undefined;
       if (status === 401) {
         return;
       }
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to save profile.');
+      logger.warn('Profile update failed:', error instanceof Error ? error.message : error);
+      Alert.alert(
+        "Couldn't save your changes",
+        'Something went wrong on our end. Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -263,6 +254,7 @@ const OnboardingScreen = () => {
                     onPress={pickImage}
                     testID="avatar-button"
                     accessibilityRole="button"
+                    accessibilityLabel={avatarBase64 ? 'Change photo' : 'Add photo'}
                   >
                     {!avatarBase64 && !name.trim() ? (
                       <View style={[styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
