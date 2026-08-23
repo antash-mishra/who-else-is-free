@@ -60,7 +60,7 @@ describe('EventDetailsScreen', () => {
         maxAge: event.maxAge,
       });
 
-      expect(audienceLine).toBe('Group, All genders, 18 to 35 years');
+      expect(audienceLine).toBe('Group · All genders · 18 to 35 years');
     });
   });
 
@@ -133,10 +133,9 @@ describe('EventDetailsScreen', () => {
       const eventId = '1';
       const message = 'I would like to join!';
 
-      fetchMock.mockResponseOnce(
-        JSON.stringify({ request: { id: 1, status: 'pending' } }),
-        { status: 201 }
-      );
+      fetchMock.mockResponseOnce(JSON.stringify({ request: { id: 1, status: 'pending' } }), {
+        status: 201,
+      });
 
       const response = await fetch(`${BASE_URL}/api/events/${eventId}/chat/requests`, {
         method: 'POST',
@@ -201,15 +200,12 @@ describe('EventDetailsScreen', () => {
 
       fetchMock.mockResponseOnce('', { status: 200 });
 
-      const response = await fetch(
-        `${BASE_URL}/api/events/${eventId}/chat/members/${userId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${MOCK_TOKEN}`,
-          },
-        }
-      );
+      const response = await fetch(`${BASE_URL}/api/events/${eventId}/chat/members/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${MOCK_TOKEN}`,
+        },
+      });
 
       expect(response.ok).toBe(true);
     });

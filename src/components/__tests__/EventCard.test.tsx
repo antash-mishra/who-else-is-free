@@ -35,14 +35,14 @@ describe('EventCard', () => {
     it('should render event location and time', () => {
       render(<EventCard {...defaultProps} />);
 
-      expect(screen.getByText('Central Park, 10:00')).toBeTruthy();
+      expect(screen.getByText('Central Park · 10:00')).toBeTruthy();
     });
 
     it('should render only the place name when location includes a full address', () => {
       render(<EventCard {...defaultProps} location="Temple Bar, Dublin, Ireland" />);
 
-      expect(screen.getByText('Temple Bar, 10:00')).toBeTruthy();
-      expect(screen.queryByText('Temple Bar, Dublin, Ireland, 10:00')).toBeNull();
+      expect(screen.getByText('Temple Bar · 10:00')).toBeTruthy();
+      expect(screen.queryByText('Temple Bar, Dublin, Ireland · 10:00')).toBeNull();
     });
 
     it('should render event audience', () => {
@@ -52,9 +52,9 @@ describe('EventCard', () => {
     });
 
     it('should render metaLine when provided', () => {
-      render(<EventCard {...defaultProps} metaLine="Group, 30-40" />);
+      render(<EventCard {...defaultProps} metaLine="Group · 30-40" />);
 
-      expect(screen.getByText('Group, 30-40')).toBeTruthy();
+      expect(screen.getByText('Group · 30-40')).toBeTruthy();
       expect(screen.queryByText(defaultProps.audience)).toBeNull();
     });
 
@@ -74,11 +74,11 @@ describe('EventCard', () => {
           time={event.time}
           audience={event.audience}
           imageUri={event.imageUri}
-        />
+        />,
       );
 
       expect(screen.getByText(event.title)).toBeTruthy();
-      expect(screen.getByText(`${event.location}, ${event.time}`)).toBeTruthy();
+      expect(screen.getByText(`${event.location} · ${event.time}`)).toBeTruthy();
       expect(screen.getByText(event.audience)).toBeTruthy();
     });
   });
@@ -133,7 +133,8 @@ describe('EventCard', () => {
 
   describe('Text Truncation', () => {
     it('should truncate long title with numberOfLines', () => {
-      const longTitle = 'This is a very long event title that should be truncated because it exceeds the available space';
+      const longTitle =
+        'This is a very long event title that should be truncated because it exceeds the available space';
       render(<EventCard {...defaultProps} title={longTitle} />);
 
       const titleElement = screen.getByText(longTitle);
@@ -144,12 +145,13 @@ describe('EventCard', () => {
       const longLocation = 'Very Long Location Name That Exceeds Available Space';
       render(<EventCard {...defaultProps} location={longLocation} />);
 
-      const metaElement = screen.getByText(`${longLocation}, 10:00`);
+      const metaElement = screen.getByText(`${longLocation} · 10:00`);
       expect(metaElement.props.numberOfLines).toBe(1);
     });
 
     it('should truncate audience with numberOfLines', () => {
-      const longAudience = 'All Gender, 18 to 65 years, all experience levels welcome, beginners and experts alike';
+      const longAudience =
+        'All Gender, 18 to 65 years, all experience levels welcome, beginners and experts alike';
       render(<EventCard {...defaultProps} audience={longAudience} />);
 
       const audienceElement = screen.getByText(longAudience);
@@ -167,7 +169,7 @@ describe('EventCard', () => {
 
   describe('Different Event Types', () => {
     it('should render today event', () => {
-      const todayEvent = mockEvents.find(e => e.dateLabel === 'Today');
+      const todayEvent = mockEvents.find((e) => e.dateLabel === 'Today');
       if (!todayEvent) throw new Error('No today event in mock data');
 
       render(
@@ -178,14 +180,14 @@ describe('EventCard', () => {
           time={todayEvent.time}
           audience={todayEvent.audience}
           imageUri={todayEvent.imageUri}
-        />
+        />,
       );
 
       expect(screen.getByText(todayEvent.title)).toBeTruthy();
     });
 
     it('should render tomorrow event', () => {
-      const tomorrowEvent = mockEvents.find(e => e.dateLabel === 'Tmrw');
+      const tomorrowEvent = mockEvents.find((e) => e.dateLabel === 'Tmrw');
       if (!tomorrowEvent) throw new Error('No tomorrow event in mock data');
 
       render(
@@ -196,14 +198,14 @@ describe('EventCard', () => {
           time={tomorrowEvent.time}
           audience={tomorrowEvent.audience}
           imageUri={tomorrowEvent.imageUri}
-        />
+        />,
       );
 
       expect(screen.getByText(tomorrowEvent.title)).toBeTruthy();
     });
 
     it('should render group event', () => {
-      const groupEvent = mockEvents.find(e => e.groupType === 'Group');
+      const groupEvent = mockEvents.find((e) => e.groupType === 'Group');
       if (!groupEvent) throw new Error('No group event in mock data');
 
       render(
@@ -214,14 +216,14 @@ describe('EventCard', () => {
           time={groupEvent.time}
           audience={groupEvent.audience}
           imageUri={groupEvent.imageUri}
-        />
+        />,
       );
 
       expect(screen.getByText(groupEvent.title)).toBeTruthy();
     });
 
     it('should render single event', () => {
-      const singleEvent = mockEvents.find(e => e.groupType === 'Single');
+      const singleEvent = mockEvents.find((e) => e.groupType === 'Single');
       if (!singleEvent) throw new Error('No single event in mock data');
 
       render(
@@ -232,7 +234,7 @@ describe('EventCard', () => {
           time={singleEvent.time}
           audience={singleEvent.audience}
           imageUri={singleEvent.imageUri}
-        />
+        />,
       );
 
       expect(screen.getByText(singleEvent.title)).toBeTruthy();
@@ -253,7 +255,7 @@ describe('EventCard', () => {
           time="08:00"
           audience="All Gender, 21 to 40 years"
           imageUri="https://example.com/hiking.jpg"
-        />
+        />,
       );
       expect(screen.getByText('Hiking Adventure')).toBeTruthy();
     });

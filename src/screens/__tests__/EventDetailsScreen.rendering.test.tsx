@@ -8,7 +8,12 @@ import React from 'react';
 import { act, render, fireEvent, waitFor, screen } from '@testing-library/react-native';
 import fetchMock from 'jest-fetch-mock';
 
-import { mockEvents, mockUsers, mockConversations, mockJoinRequests } from '../../__tests__/mocks/mockData';
+import {
+  mockEvents,
+  mockUsers,
+  mockConversations,
+  mockJoinRequests,
+} from '../../__tests__/mocks/mockData';
 
 // Mock user for different test scenarios
 const mockUser = mockUsers[0]; // Ava Test, id: 1
@@ -30,7 +35,7 @@ const formatEventDetailDateLabel = (eventDate: string) => {
   const locale = Intl.DateTimeFormat().resolvedOptions().locale ?? '';
   const normalizedLocale = locale.replace(/_/g, '-');
   const localeParts = normalizedLocale.split('-').slice(1);
-  const isUSLocale = localeParts.some(part => part.toUpperCase() === 'US');
+  const isUSLocale = localeParts.some((part) => part.toUpperCase() === 'US');
   if (isUSLocale) {
     return `${weekday} ${dd} ${monthLabel}`;
   }
@@ -379,7 +384,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders event time with date label', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const scheduleLine = `${formatEventDetailDateLabel(mockGroupEvent.eventDate)}, ${mockGroupEvent.time}`;
+      const scheduleLine = `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · ${mockGroupEvent.time}`;
       expect(getByText(scheduleLine)).toBeTruthy();
     });
 
@@ -389,7 +394,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(
-        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)}, 7:30 PM`),
+        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · 7:30 PM`),
       ).toBeTruthy();
     });
 
@@ -402,7 +407,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders audience information correctly for group event', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = 'Group, All genders, 18 to 35 years';
+      const audienceLine = 'Group · All genders · 18 to 35 years';
       expect(getByText(audienceLine)).toBeTruthy();
     });
 
@@ -411,13 +416,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockEventsState.events = [mockSingleEvent];
 
       // Update route to point to single event
-      const routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute('2')
-      );
+      const routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute('2'));
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = '1:1, All genders, 21 to 40 years';
+      const audienceLine = '1:1 · All genders · 21 to 40 years';
       expect(getByText(audienceLine)).toBeTruthy();
 
       // Restore the spy to avoid polluting other tests
@@ -492,7 +497,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       // Find and press menu button (more-horizontal icon)
       const menuButtons = screen.getAllByRole('button');
-      const menuButton = menuButtons.find(btn => btn.props.accessibilityRole === 'button');
+      const menuButton = menuButtons.find((btn) => btn.props.accessibilityRole === 'button');
 
       // Press on the second pressable which should be the menu button
       fireEvent.press(menuButtons[1]);
@@ -529,13 +534,15 @@ describe('EventDetailsScreen Rendering Tests', () => {
         jest.runOnlyPendingTimers();
       });
 
-      expect(mockNavigation.dispatch).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'PUSH',
-        payload: expect.objectContaining({
-          name: 'CreateEvent',
-          params: { editEventId: mockOwnedEvent.id },
+      expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'PUSH',
+          payload: expect.objectContaining({
+            name: 'CreateEvent',
+            params: { editEventId: mockOwnedEvent.id },
+          }),
         }),
-      }));
+      );
     });
 
     it('shows delete confirmation when Delete plan is pressed', async () => {
@@ -681,11 +688,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.token = 'test-token';
       mockEventsState.events = [mockNonOwnedEvent];
       // Remove user from conversation members
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [999], // User not in members
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [999], // User not in members
+        },
+      ];
     });
 
     it('shows "Request to join" button for non-member', () => {
@@ -757,10 +766,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
 
     it('sends join request successfully', async () => {
-      fetchMock.mockResponseOnce(
-        JSON.stringify({ request: { id: 1, status: 'pending' } }),
-        { status: 201 }
-      );
+      fetchMock.mockResponseOnce(JSON.stringify({ request: { id: 1, status: 'pending' } }), {
+        status: 201,
+      });
 
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
@@ -785,10 +793,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
             headers: expect.objectContaining({
               Authorization: 'Bearer test-token',
             }),
-          })
+          }),
         );
       });
-
     });
 
     it('shows error when join request message is empty', async () => {
@@ -816,11 +823,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.user = mockUser;
       mockAuthState.token = 'test-token';
       mockEventsState.events = [mockNonOwnedEvent];
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [mockUser.id, 999], // User is in members
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [mockUser.id, 999], // User is in members
+        },
+      ];
     });
 
     it('shows "Go to chat" button for members', () => {
@@ -909,8 +918,10 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith(
-          expect.stringContaining(`/api/events/${mockNonOwnedEvent.id}/chat/members/${mockUser.id}`),
-          expect.objectContaining({ method: 'DELETE' })
+          expect.stringContaining(
+            `/api/events/${mockNonOwnedEvent.id}/chat/members/${mockUser.id}`,
+          ),
+          expect.objectContaining({ method: 'DELETE' }),
         );
       });
 
@@ -937,11 +948,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.token = 'test-token';
       mockEventsState.events = [mockNonOwnedEvent];
       mockEventsState.isEventRequested = jest.fn(() => true);
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [999], // User not yet a member
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [999], // User not yet a member
+        },
+      ];
     });
 
     it('shows "Request pending" button when request is pending', () => {
@@ -984,10 +997,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalledWith(
           expect.stringContaining(`/api/events/${mockNonOwnedEvent.id}/chat/requests/me`),
-          expect.objectContaining({ method: 'DELETE' })
+          expect.objectContaining({ method: 'DELETE' }),
         );
       });
-
     });
   });
 
@@ -1021,9 +1033,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
 
     it('fetches event details when the event is missing from context', async () => {
-      const routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute('42')
-      );
+      const routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute('42'));
       mockAuthState.token = 'test-token';
       mockAuthState.authFetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -1072,11 +1084,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.user = mockUser;
       mockAuthState.token = 'test-token';
       mockEventsState.events = [mockNonOwnedEvent];
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [999],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [999],
+        },
+      ];
     });
 
     it('opens report overlay when Report plan is selected', async () => {
@@ -1136,7 +1150,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
           expect.objectContaining({
             method: 'POST',
             body: JSON.stringify({ reason: 'Inappropriate content' }),
-          })
+          }),
         );
       });
 
@@ -1168,9 +1182,14 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.changeText(getByTestId('report-message-input'), 'Inappropriate content');
       fireEvent.press(getByTestId('submit-report-button'));
 
-      await waitFor(() => {
-        expect(getByTestId('report-error')).toHaveTextContent('Unable to submit report right now.');
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(getByTestId('report-error')).toHaveTextContent(
+            'Unable to submit report right now.',
+          );
+        },
+        { timeout: 3000 },
+      );
     });
   });
 
@@ -1218,10 +1237,12 @@ describe('EventDetailsScreen Rendering Tests', () => {
     const longDescription = 'A'.repeat(150);
 
     beforeEach(() => {
-      mockEventsState.events = [{
-        ...mockNonOwnedEvent,
-        description: longDescription,
-      }];
+      mockEventsState.events = [
+        {
+          ...mockNonOwnedEvent,
+          description: longDescription,
+        },
+      ];
     });
 
     // Fire an onTextLayout with `lineCount` wrapped lines; >2 triggers truncation.
@@ -1265,10 +1286,12 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
 
     it('does not show toggle for short descriptions', () => {
-      mockEventsState.events = [{
-        ...mockNonOwnedEvent,
-        description: 'Short desc',
-      }];
+      mockEventsState.events = [
+        {
+          ...mockNonOwnedEvent,
+          description: 'Short desc',
+        },
+      ];
 
       const { queryByText, getByTestId } = render(<EventDetailsScreen />);
 
@@ -1331,7 +1354,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(
-        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)}, ${mockGroupEvent.time}`),
+        getByText(
+          `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · ${mockGroupEvent.time}`,
+        ),
       ).toBeTruthy();
     });
 
@@ -1347,7 +1372,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(
-        getByText(`${formatEventDetailDateLabel(mockSingleEvent.eventDate)}, ${mockGroupEvent.time}`),
+        getByText(
+          `${formatEventDetailDateLabel(mockSingleEvent.eventDate)} · ${mockGroupEvent.time}`,
+        ),
       ).toBeTruthy();
     });
   });
@@ -1378,18 +1405,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getByTestId('confirm-button'));
 
       // Should show error message after rejection propagates
-      await waitFor(() => {
-        expect(getByTestId('confirm-error')).toBeTruthy();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(getByTestId('confirm-error')).toBeTruthy();
+        },
+        { timeout: 3000 },
+      );
     });
 
     it('handles leave event failure gracefully', async () => {
       mockEventsState.events = [mockNonOwnedEvent];
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [mockUser.id, 999],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [mockUser.id, 999],
+        },
+      ];
 
       const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
 
@@ -1409,20 +1441,25 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fetchMock.mockRejectOnce(new Error('Network error'));
       fireEvent.press(getByTestId('confirm-button'));
 
-      await waitFor(() => {
-        expect(getByTestId('confirm-error')).toBeTruthy();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(getByTestId('confirm-error')).toBeTruthy();
+        },
+        { timeout: 3000 },
+      );
     });
 
     it('handles join request 401 by showing sign-in modal', async () => {
       fetchMock.mockResponseOnce('', { status: 401 });
 
       mockEventsState.events = [mockNonOwnedEvent];
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [999],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [999],
+        },
+      ];
 
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
@@ -1443,11 +1480,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fetchMock.mockResponseOnce('', { status: 409 });
 
       mockEventsState.events = [mockNonOwnedEvent];
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [999],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [999],
+        },
+      ];
 
       const { getByText, getByTestId } = render(<EventDetailsScreen />);
 
@@ -1460,9 +1499,14 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.changeText(getByTestId('invite-message-input'), 'Hello!');
       fireEvent.press(getByTestId('send-invite-button'));
 
-      await waitFor(() => {
-        expect(getByTestId('invite-error')).toHaveTextContent('You already have a pending request for this event.');
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(getByTestId('invite-error')).toHaveTextContent(
+            'You already have a pending request for this event.',
+          );
+        },
+        { timeout: 3000 },
+      );
     });
   });
 
@@ -1478,16 +1522,18 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockEventsState.events = [singleOwnedEvent];
 
       // Update route to point to the single event
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute('2')
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute('2'));
 
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        id: 2,
-        eventId: 2,
-        memberIds: [mockUser.id],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          id: 2,
+          eventId: 2,
+          memberIds: [mockUser.id],
+        },
+      ];
     });
 
     afterEach(() => {
@@ -1538,11 +1584,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
     it('has accessible CTA button', () => {
       mockEventsState.events = [mockNonOwnedEvent];
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [999],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [999],
+        },
+      ];
 
       const { getAllByRole } = render(<EventDetailsScreen />);
 
@@ -1558,21 +1606,25 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.token = 'test-token';
       mockEventsState.events = [mockNonOwnedEvent];
       mockEventsState.isEventRequested = jest.fn(() => true);
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockNonOwnedEvent.id),
-        memberIds: [mockUser.id, 999],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockNonOwnedEvent.id),
+          memberIds: [mockUser.id, 999],
+        },
+      ];
 
       // Mock the fetch for user's intro message
       fetchMock.mockResponseOnce(
         JSON.stringify({
-          requests: [{
-            event_id: Number(mockNonOwnedEvent.id),
-            message: 'My introduction message',
-          }],
+          requests: [
+            {
+              event_id: Number(mockNonOwnedEvent.id),
+              message: 'My introduction message',
+            },
+          ],
         }),
-        { status: 200 }
+        { status: 200 },
       );
     });
 
@@ -1580,10 +1632,13 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { queryByText } = render(<EventDetailsScreen />);
 
       // Wait for the fetch to complete
-      await waitFor(() => {
-        // The intro message section should be visible
-        expect(queryByText('Introduction')).toBeTruthy();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          // The intro message section should be visible
+          expect(queryByText('Introduction')).toBeTruthy();
+        },
+        { timeout: 3000 },
+      );
     });
   });
 
@@ -1609,9 +1664,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockEventsState.events = [mockOwnedEvent];
       mockChatState.conversations = [];
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetails', true)
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetails', true),
+        );
 
       const { getByText, queryByText } = render(<EventDetailsScreen />);
 
@@ -1639,9 +1696,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockEventsState.events = [mockOwnedEvent];
       mockChatState.conversations = [];
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetails', true)
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetails', true),
+        );
 
       const { getByLabelText, queryByLabelText } = render(<EventDetailsScreen />);
 
@@ -1664,19 +1723,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
       // Non-host user viewing a group event overlay
       mockAuthState.user = mockOtherUser; // Liam, id: 2
       mockEventsState.events = [mockOwnedEvent]; // ownerId: 1 (Ava)
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockOwnedEvent.id),
-        memberIds: [1, 2],
-        participants: [
-          { id: 2, name: 'Liam Test' },
-          { id: 1, name: 'Ava Test' },
-        ],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockOwnedEvent.id),
+          memberIds: [1, 2],
+          participants: [
+            { id: 2, name: 'Liam Test' },
+            { id: 1, name: 'Ava Test' },
+          ],
+        },
+      ];
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay')
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay'),
+        );
 
       const { getByText, queryByText, queryAllByText } = render(<EventDetailsScreen />);
 
@@ -1692,19 +1755,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
       // Host user viewing overlay
       mockAuthState.user = mockUser; // Ava, id: 1
       mockEventsState.events = [mockOwnedEvent]; // ownerId: 1
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockOwnedEvent.id),
-        memberIds: [1, 2],
-        participants: [
-          { id: 1, name: 'Ava Test' },
-          { id: 2, name: 'Liam Test' },
-        ],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockOwnedEvent.id),
+          memberIds: [1, 2],
+          participants: [
+            { id: 1, name: 'Ava Test' },
+            { id: 2, name: 'Liam Test' },
+          ],
+        },
+      ];
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay')
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay'),
+        );
 
       const { getByText, queryByText } = render(<EventDetailsScreen />);
 
@@ -1726,9 +1793,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
         requester: { id: mockUser.id, name: mockUser.name },
       };
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
+        );
 
       mockChatState.conversations = [
         {
@@ -1769,9 +1838,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockEventsState.events = [mockSingleEvent];
       mockChatState.conversations = [];
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockSingleEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
+        );
 
       const { getByText, queryByText } = render(<EventDetailsScreen />);
 
@@ -1786,15 +1857,17 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.user = mockUser; // Ava, id: 1
       mockEventsState.events = [mockOwnedEvent]; // ownerId: 1, Group
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockOwnedEvent.id)
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute(mockOwnedEvent.id));
 
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockOwnedEvent.id),
-        memberIds: [1, 2],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockOwnedEvent.id),
+          memberIds: [1, 2],
+        },
+      ];
 
       const { getByText } = render(<EventDetailsScreen />);
 
@@ -1807,19 +1880,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.user = mockOtherUser; // Liam, id: 2
       mockAuthState.authFetch = jest.fn();
       mockEventsState.events = [mockOwnedEvent]; // ownerId: 1
-      mockChatState.conversations = [{
-        ...mockEventConversation,
-        eventId: Number(mockOwnedEvent.id),
-        memberIds: [1, 2],
-        participants: [
-          { id: 1, name: 'Ava Test' },
-          { id: 2, name: 'Liam Test' },
-        ],
-      }];
+      mockChatState.conversations = [
+        {
+          ...mockEventConversation,
+          eventId: Number(mockOwnedEvent.id),
+          memberIds: [1, 2],
+          participants: [
+            { id: 1, name: 'Ava Test' },
+            { id: 2, name: 'Liam Test' },
+          ],
+        },
+      ];
 
-      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue(
-        createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay', true)
-      );
+      routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(
+          createMockRoute(mockOwnedEvent.id, undefined, undefined, 'EventDetailsOverlay', true),
+        );
 
       const { queryAllByText } = render(<EventDetailsScreen />);
 

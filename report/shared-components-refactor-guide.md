@@ -56,6 +56,7 @@ In this React Native app, "shared CSS" means:
 | API payload normalization                     | `src/api/mappers/events.ts`, `src/api/mappers/chat.ts`                                 | `EventsContext`, `ChatContext`                                       |
 | Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `requestJson` (default 10s), custom fetch flows                      |
 | Create/Edit Event mapping                     | `createEventForm.ts` helpers                                                           | `CreateEventScreen`                                                  |
+| Event metadata separator                      | `EVENT_INFO_SEPARATOR` from `src/constants/display.ts`                                 | `EventCard`, event display formatters, Event Details                 |
 
 ## Shared Styling System
 

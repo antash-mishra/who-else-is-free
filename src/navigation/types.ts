@@ -53,7 +53,6 @@ export type RootTabParamList = {
         showEventReportedBadge?: boolean;
         showEventDeletedBadge?: boolean;
         showEventLeftBadge?: boolean;
-        showNoAccessModal?: boolean;
         showWelcomeBadge?: boolean;
       }
     | undefined;

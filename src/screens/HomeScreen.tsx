@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ActivityIndicator, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
@@ -13,12 +13,12 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import AnimatedPager from '@components/AnimatedPager';
 import EmptyState from '@components/EmptyState';
 import { emptyStateAnchorTop } from '@components/FullPageEmptyState';
 import EventActionBadge from '@components/EventActionBadge';
-import NotificationAccessModal from '@components/NotificationAccessModal';
 import { EventItemProps } from '@components/EventCard';
 import {
   EventListPage,
@@ -29,14 +29,13 @@ import {
 } from '@components/events';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl from '@components/SegmentedControl';
+import { AppButton } from '@components/ui';
 import { useAuth } from '@context/AuthContext';
 import { useBloom } from '@context/BloomContext';
 import { useChat } from '@context/ChatContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
-import { triggerHaptic } from '@services/haptics';
-import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
 import {
   EventWithDistance,
@@ -95,7 +94,6 @@ const HomeScreen = () => {
   const [showReportedBadge, setShowReportedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
-  const [showNoAccessModal, setShowNoAccessModal] = useState(false);
   const [showWelcomeBadge, setShowWelcomeBadge] = useState(false);
 
   useEffect(() => {
@@ -121,12 +119,6 @@ const HomeScreen = () => {
     const t = setTimeout(() => setShowEventLeftBadge(true), 350);
     return () => clearTimeout(t);
   }, [route.params?.showEventLeftBadge]);
-
-  useEffect(() => {
-    if (!route.params?.showNoAccessModal) return;
-    logger.log(`HomeScreen: setShowNoAccessModal(true) at ${Date.now()}`);
-    setShowNoAccessModal(true);
-  }, [route.params?.showNoAccessModal]);
 
   // Set of event IDs user has joined (is a member of conversation but not owner)
   const joinedEventIds = useMemo(() => {
@@ -301,16 +293,20 @@ const HomeScreen = () => {
           </View>
         ) : showAllEventsError ? (
           <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable
-              style={styles.retryButton}
-              onPress={() => {
-                triggerHaptic('light');
-                handleRefresh();
-              }}
+            <Svg
+              width={38}
+              height={38}
+              viewBox="0 0 38 38"
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="Unable to load plans"
             >
-              <Text style={styles.retryButtonText}>Try again</Text>
-            </Pressable>
+              <Circle cx="19" cy="19" r="16" stroke={colors.error} strokeWidth="3" fill="none" />
+              <Path d="M19 10.5v10" stroke={colors.error} strokeWidth="3" strokeLinecap="round" />
+              <Circle cx="19" cy="27" r="1.7" fill={colors.error} />
+            </Svg>
+            <Text style={styles.errorText}>{error}</Text>
+            <AppButton label="Try again" onPress={handleRefresh} style={styles.retryButton} />
           </View>
         ) : (
           <AnimatedPager
@@ -335,7 +331,7 @@ const HomeScreen = () => {
                 sections={nearestSections}
                 onEventPress={handleEventPress}
                 headerPaddingTop={headerHeight}
-              emptyStateTopPadding={emptyStateTopPadding}
+                emptyStateTopPadding={emptyStateTopPadding}
                 bottomInset={insets.bottom}
                 emptyState={showNearestEmpty ? discoverEmptyState : null}
                 refreshing={isPullRefreshing}
@@ -406,14 +402,6 @@ const HomeScreen = () => {
           navigation.setParams({ showEventLeftBadge: false });
         }}
       />
-      <NotificationAccessModal
-        visible={showNoAccessModal}
-        message="You no longer have access to this plan. Explore other plans nearby."
-        onDismiss={() => {
-          setShowNoAccessModal(false);
-          navigation.setParams({ showNoAccessModal: false });
-        }}
-      />
     </ScreenContainer>
   );
 };
@@ -457,23 +445,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   errorText: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilyMedium,
+    fontSize: typography.title,
+    fontFamily: typography.fontFamilySemiBold,
     color: colors.error,
     textAlign: 'center',
   },
   retryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-  },
-  retryButtonText: {
-    color: colors.buttonText,
-    fontSize: typography.body,
-    fontFamily: typography.fontFamilyMedium,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
+    minWidth: 172,
   },
 });
 

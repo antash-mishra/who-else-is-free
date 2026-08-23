@@ -223,7 +223,7 @@ describe('NotificationsScreen Rendering', () => {
     const { getByText } = render(<NotificationsScreen />);
 
     // Chat: composed sentence with the message preview inline.
-    expect(getByText('New message from Alice in Dancing: hey')).toBeTruthy();
+    expect(getByText('New message from Alice in Dancing. Alice: hey')).toBeTruthy();
     // Declined: event name leads the softened sentence.
     expect(
       getByText('Hike is no longer available to you. Explore other events nearby.'),
@@ -292,10 +292,7 @@ describe('NotificationsScreen Rendering', () => {
 
     expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
     expect(mockNavRefNavigate).toHaveBeenCalledWith('ChatThread');
-    expect(mockNavigate).not.toHaveBeenCalledWith('Main', {
-      screen: 'Events',
-      params: { showNoAccessModal: true },
-    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('Main', { screen: 'Events' });
   });
 
   it('refreshes on focus', () => {

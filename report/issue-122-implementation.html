@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Issue #122 — Discover implementation report</title>
+  <style>
+    :root { color-scheme: light; --ink:#171717; --muted:#686868; --line:#e6e6e6; --red:#ff1744; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f7f7f7; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { max-width:1080px; margin:0 auto; padding:40px 24px 64px; }
+    h1 { margin:0 0 8px; font-size:36px; letter-spacing:-1px; }
+    h2 { margin:36px 0 14px; font-size:22px; }
+    p { line-height:1.55; color:var(--muted); }
+    .eyebrow { color:var(--red); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:12px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px; box-shadow:0 8px 24px #00000008; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+    figure { margin:0; }
+    figure img { display:block; width:100%; height:auto; border-radius:12px; border:1px solid var(--line); background:#fff; }
+    figcaption { margin-top:9px; color:var(--muted); font-size:13px; }
+    .phone { width:322px; max-width:100%; min-height:520px; margin:auto; background:#fff; border:1px solid #ddd; border-radius:28px; padding:38px 18px 20px; display:flex; flex-direction:column; }
+    .phone h3 { margin:0 0 30px; font-size:25px; }
+    .tabs { display:flex; gap:8px; }
+    .tabs span { border:1px solid #ddd; border-radius:15px; padding:10px 14px; color:#555; }
+    .tabs span:first-child { background:#000; border-color:#000; color:#fff; }
+    .error { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+    .error svg { width:38px; height:38px; }
+    .error strong { color:var(--red); font-size:20px; }
+    .retry { background:#000; color:#fff; border-radius:24px; padding:13px 35px; font-weight:600; }
+    .event { display:grid; grid-template-columns:80px 1fr; gap:14px; align-items:center; margin-top:38px; }
+    .cover { width:80px; height:80px; border-radius:10px; background:linear-gradient(135deg,#09a99c,#f0a21b); }
+    .event b { font-size:18px; }
+    .event div div { color:#777; margin-top:6px; }
+    code { background:#f0f0f0; border-radius:5px; padding:2px 5px; }
+    li { margin:9px 0; line-height:1.45; }
+    .status { color:#087443; font-weight:700; }
+    @media (max-width:600px) { main { padding:26px 16px 44px; } h1 { font-size:30px; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Who Else Is Free · Issue #122</div>
+  <h1>Discover implementation report</h1>
+  <p>Implemented the Discover error-state redesign, middle-dot metadata separators, and removal of the obsolete notification access modal.</p>
+
+  <h2>Visual result</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="phone" aria-label="Implemented Discover error state preview">
+        <h3>Discover</h3>
+        <div class="tabs"><span>Upcoming</span><span>Nearest</span><span>Newest</span></div>
+        <div class="error">
+          <svg viewBox="0 0 38 38" role="img" aria-label="Error icon"><circle cx="19" cy="19" r="16" fill="none" stroke="#ff1744" stroke-width="3"/><path d="M19 10.5v10" stroke="#ff1744" stroke-width="3" stroke-linecap="round"/><circle cx="19" cy="27" r="1.7" fill="#ff1744"/></svg>
+          <strong>Unable to load plans.</strong>
+          <div class="retry">Try again</div>
+        </div>
+      </div>
+      <p><span class="status">Implemented:</span> alert icon, stronger error copy, shared <code>AppButton</code> retry styling, and preserved retry action.</p>
+    </div>
+    <div class="card">
+      <div class="phone" aria-label="Implemented event metadata preview">
+        <h3>Discover Events</h3>
+        <div class="tabs"><span>Upcoming</span><span>Nearest</span><span>Newest</span></div>
+        <div class="event"><div class="cover"></div><div><b>One to one</b><div>Temple Bar · 1:55 AM</div><div>1:1 · Female</div></div></div>
+        <div class="event"><div class="cover"></div><div><b>Group event</b><div>Temple Bar · 2:00 AM</div><div>Group · 30-40</div></div></div>
+      </div>
+      <p><span class="status">Implemented:</span> one centralized <code>EVENT_INFO_SEPARATOR</code> renders metadata with <code>·</code> in cards, audience labels, and event-detail schedules.</p>
+    </div>
+  </div>
+
+  <h2>Reference from the issue</h2>
+  <div class="grid">
+    <figure class="card"><img src="https://github.com/user-attachments/assets/4e0a6df4-f145-4796-9180-d964d4ca0c67" alt="Issue current error state"/><figcaption>Issue reference: current error state.</figcaption></figure>
+    <figure class="card"><img src="https://github.com/user-attachments/assets/e1084dab-d107-4dd9-9862-071d1bcc9ba5" alt="Issue desired error state"/><figcaption>Issue reference: desired error state.</figcaption></figure>
+    <figure class="card"><img src="https://github.com/user-attachments/assets/a0c80345-efee-489e-a9dc-8351fd8ae219" alt="Issue desired event card separator"/><figcaption>Issue reference: middle-dot event metadata.</figcaption></figure>
+  </div>
+
+  <h2>Code changes</h2>
+  <div class="card">
+    <ul>
+      <li><code>src/screens/HomeScreen.tsx</code>: redesigned Discover error branch and removed modal state/rendering.</li>
+      <li><code>src/constants/display.ts</code>: added the shared metadata separator token.</li>
+      <li><code>src/components/EventCard.tsx</code>, <code>src/utils/eventDisplay.ts</code>, and <code>src/screens/EventDetailsScreen.tsx</code>: applied middle-dot formatting.</li>
+      <li><code>src/components/NotificationAccessModal.tsx</code>: removed; <code>showNoAccessModal</code> navigation parameter removed.</li>
+      <li>Updated focused component, screen, utility, and routing tests.</li>
+    </ul>
+  </div>
+
+  <h2>Validation</h2>
+  <div class="card">
+    <p class="status">130 focused Jest tests passed.</p>
+    <p>10 isolated Event Details date/audience rendering tests also passed.</p>
+    <p><code>npm run typecheck</code> passed.</p>
+    <p><code>npm run lint</code> completed with the repository’s existing warning baseline and no errors.</p>
+    <p>The full Jest run still exposes a pre-existing Event Details test-state leak: a failed async fetch test leaves a mocked route active, causing later cases to remain on the loading screen. The issue #122 cases pass when isolated.</p>
+  </div>
+</main>
+</body>
+</html>

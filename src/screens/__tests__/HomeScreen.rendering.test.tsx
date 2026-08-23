@@ -163,9 +163,10 @@ describe('HomeScreen Rendering', () => {
       mockEventsValue.isLoading = false;
       mockEventsValue.events = [];
       mockEventsValue.error = 'Unable to load plans.';
-      const { getByText } = render(<HomeScreen />);
+      const { getByText, getByLabelText } = render(<HomeScreen />);
       expect(getByText('Unable to load plans.')).toBeTruthy();
       expect(getByText('Try again')).toBeTruthy();
+      expect(getByLabelText('Unable to load plans')).toBeTruthy();
     });
 
     it('calls refreshEvents when retry button is pressed', () => {
@@ -183,9 +184,7 @@ describe('HomeScreen Rendering', () => {
       const { getByTestId } = render(<HomeScreen />);
       expect(getByTestId('empty-state')).toBeTruthy();
       expect(getByTestId('empty-state-title').props.children).toBe('Nothing happening yet');
-      expect(getByTestId('empty-state-description').props.children).toContain(
-        'Create a plan',
-      );
+      expect(getByTestId('empty-state-description').props.children).toContain('Create a plan');
     });
   });
 
@@ -243,7 +242,7 @@ describe('HomeScreen Rendering', () => {
       ];
 
       const { getByText, queryByText } = render(<HomeScreen />);
-      expect(getByText('Group, 30-40')).toBeTruthy();
+      expect(getByText('Group · 30-40')).toBeTruthy();
       expect(queryByText('All Gender, 18 to 50 years')).toBeNull();
     });
   });

@@ -92,3 +92,11 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Evidence: `report/accepted-members-overlay-implementation.html` and four before/after screenshots under `report/accepted-members-overlay-assets/`.
 - QA data note: Coffee Catchup was moved from 16 July to 18 July through `PUT /api/events/7` so it remained visible after a fresh app session.
 - Final verdict: **PASS**.
+
+## 2026-08-23 — Issue #122 unavailable-plan notification
+
+- Change: verify that removing `NotificationAccessModal` leaves the unavailable-plan explanation in the Notifications inbox and routes taps directly to Discover.
+- Flow: dev-login member requests `Hike` → host denies request through the authenticated API → Member2 Profile → Notifications → unavailable-plan row → tap row → Discover.
+- Attempt 1: PASS — the inbox displayed `Hike is no longer available to you. Explore other events nearby.` under Today; tapping it opened Discover without a modal.
+- Evidence: `report/issue-122-notification-unavailable.png` and `report/issue-122-after-notification-tap.png`.
+- Final verdict: **PASS**.

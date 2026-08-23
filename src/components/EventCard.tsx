@@ -5,10 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import MaskedView from '@react-native-masked-view/masked-view';
 
-import { colors, spacing, typography } from '@theme/index';
 import PendingIcon from '@assets/event/pending.svg';
 import HostingIcon from '@assets/event/hosting.svg';
 import JoinedIcon from '@assets/event/joined.svg';
+import { EVENT_INFO_SEPARATOR } from '@constants/display';
+import { colors, spacing, typography } from '@theme/index';
 import { formatEventLocationName } from '@utils/eventDisplay';
 
 const IMAGE_SIZE = 80;
@@ -77,14 +78,17 @@ const EventCard = ({
               />
             }
           >
-            <BlurView
-              intensity={28}
-              tint="dark"
-              style={{ width: IMAGE_SIZE, height: BLUR_H }}
-            />
+            <BlurView intensity={28} tint="dark" style={{ width: IMAGE_SIZE, height: BLUR_H }} />
             <View
               testID="event-card-badge"
-              style={{ position: 'absolute', bottom: 6, left: 7, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              style={{
+                position: 'absolute',
+                bottom: 6,
+                left: 7,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}
             >
               {getBadgeIcon(badgeLabel)}
               <Text style={styles.badgeText}>{badgeLabel}</Text>
@@ -97,7 +101,7 @@ const EventCard = ({
           {title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {`${locationName}, ${time}`}
+          {`${locationName}${EVENT_INFO_SEPARATOR}${time}`}
         </Text>
         <Text style={styles.audience} numberOfLines={1}>
           {metaLine ?? audience}

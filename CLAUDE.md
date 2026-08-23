@@ -33,6 +33,7 @@ Before adding or refactoring UI, read `report/shared-components-refactor-guide.m
 
 - Preserve behavior unless the task explicitly asks for behavior change.
 - Prefer existing shared components, hooks, services, API helpers, and theme tokens before adding local code.
+- Use `EVENT_INFO_SEPARATOR` from `src/constants/display.ts` for compact event metadata joins; do not replace punctuation in normal prose or saved addresses.
 - Keep screens focused on composition, state orchestration, and navigation.
 - Move repeated UI, data mapping, payload construction, request helpers, haptics, and action behavior into shared components/helpers.
 - Refactor one user-visible area at a time.

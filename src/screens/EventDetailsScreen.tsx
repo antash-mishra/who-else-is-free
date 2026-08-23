@@ -19,6 +19,7 @@ import { API_BASE_URL } from '@api/config';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
+import { EVENT_INFO_SEPARATOR } from '@constants/display';
 import { useAuth } from '@context/AuthContext';
 import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
 import { triggerHaptic } from '@services/haptics';
@@ -242,7 +243,7 @@ const EventDetailsScreenContent = ({
   const scheduleDateLabel = event.eventDate
     ? formatEventDetailDateLabel(event.eventDate)
     : event.dateLabel;
-  const scheduleLine = `${scheduleDateLabel}, ${event.time}`;
+  const scheduleLine = `${scheduleDateLabel}${EVENT_INFO_SEPARATOR}${event.time}`;
   const audienceLine = formatEventDetailAudienceLine({
     groupType: event.groupType,
     gender: event.gender,

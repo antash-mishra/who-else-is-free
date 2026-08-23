@@ -1,6 +1,7 @@
-import { AGE_MAX, AGE_MIN } from "@constants/eventOptions";
+import { EVENT_INFO_SEPARATOR } from '@constants/display';
+import { AGE_MAX, AGE_MIN } from '@constants/eventOptions';
 
-import { parseDateKey } from "./dateTime";
+import { parseDateKey } from './dateTime';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -23,7 +24,7 @@ const normalizeAgeRange = (
   minAge?: number | null,
   maxAge?: number | null,
 ): NormalizedAgeRange | null => {
-  if (typeof minAge !== "number" || typeof maxAge !== "number") {
+  if (typeof minAge !== 'number' || typeof maxAge !== 'number') {
     return null;
   }
 
@@ -52,9 +53,9 @@ const formatListAbsoluteDateLabel = (eventDate: string): string => {
     return eventDate;
   }
 
-  const day = `${parsed.getDate()}`.padStart(2, "0");
-  const month = parsed.toLocaleString("en-US", { month: "short" });
-  const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
+  const day = `${parsed.getDate()}`.padStart(2, '0');
+  const month = parsed.toLocaleString('en-US', { month: 'short' });
+  const weekday = parsed.toLocaleString('en-US', { weekday: 'short' });
   return `${day} ${month}, ${weekday}`;
 };
 
@@ -70,12 +71,9 @@ const getDiffFromToday = (eventDate: string, now: Date = new Date()): number | n
 };
 
 export const isAllGender = (gender?: string | null): boolean =>
-  (gender ?? "").trim().toLowerCase() === "any";
+  (gender ?? '').trim().toLowerCase() === 'any';
 
-export const isAllAge = (
-  minAge?: number | null,
-  maxAge?: number | null,
-): boolean => {
+export const isAllAge = (minAge?: number | null, maxAge?: number | null): boolean => {
   const normalized = normalizeAgeRange(minAge, maxAge);
   if (!normalized) {
     return false;
@@ -84,8 +82,8 @@ export const isAllAge = (
   return normalized.minAge === AGE_MIN && normalized.maxAge === AGE_MAX;
 };
 
-export const formatEventTypeLabel = (groupType?: string | null): "1:1" | "Group" =>
-  groupType === "Group" ? "Group" : "1:1";
+export const formatEventTypeLabel = (groupType?: string | null): '1:1' | 'Group' =>
+  groupType === 'Group' ? 'Group' : '1:1';
 
 export const formatCompactAgeLabel = (
   minAge?: number | null,
@@ -113,7 +111,7 @@ export const formatVerboseAgeLabel = (
   }
 
   if (isAllAge(normalized.minAge, normalized.maxAge)) {
-    return "All ages";
+    return 'All ages';
   }
 
   if (normalized.minAge === normalized.maxAge) {
@@ -123,13 +121,9 @@ export const formatVerboseAgeLabel = (
   return `${normalized.minAge} to ${normalized.maxAge} years`;
 };
 
-export const formatAudienceLabel = ({
-  gender,
-  minAge,
-  maxAge,
-}: AudienceInput): string => {
+export const formatAudienceLabel = ({ gender, minAge, maxAge }: AudienceInput): string => {
   const parts: string[] = [];
-  const genderLabel = isAllGender(gender) ? "All genders" : getGenderLabel(gender);
+  const genderLabel = isAllGender(gender) ? 'All genders' : getGenderLabel(gender);
   const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
 
   if (genderLabel) {
@@ -140,7 +134,7 @@ export const formatAudienceLabel = ({
     parts.push(ageLabel);
   }
 
-  return parts.join(", ");
+  return parts.join(EVENT_INFO_SEPARATOR);
 };
 
 export const formatEventCardMetaLine = ({
@@ -161,7 +155,7 @@ export const formatEventCardMetaLine = ({
     parts.push(ageLabel);
   }
 
-  return parts.join(", ");
+  return parts.join(EVENT_INFO_SEPARATOR);
 };
 
 export const formatEventDetailAudienceLine = ({
@@ -177,16 +171,16 @@ export const formatEventDetailAudienceLine = ({
     parts.push(audienceLabel);
   }
 
-  return parts.join(", ");
+  return parts.join(EVENT_INFO_SEPARATOR);
 };
 
 export const formatEventLocationName = (location?: string | null): string => {
   const trimmed = location?.trim();
   if (!trimmed) {
-    return "";
+    return '';
   }
 
-  return trimmed.split(",")[0]?.trim() || trimmed;
+  return trimmed.split(',')[0]?.trim() || trimmed;
 };
 
 export const formatEventListSectionHeaderLabel = (
@@ -195,10 +189,10 @@ export const formatEventListSectionHeaderLabel = (
 ): string => {
   const diff = getDiffFromToday(eventDate, now);
   if (diff === 0) {
-    return "Today";
+    return 'Today';
   }
   if (diff === 1) {
-    return "Tomorrow";
+    return 'Tomorrow';
   }
 
   return formatListAbsoluteDateLabel(eventDate);
