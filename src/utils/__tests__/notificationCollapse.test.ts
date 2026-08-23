@@ -15,6 +15,7 @@ const join = (
   title,
   body: `${requester} wants to join your event`,
   read: false,
+  actionState: 'active',
   createdAt: new Date(2026, 0, 1, 12, 0, id).toISOString(),
   ...overrides,
 });
@@ -33,6 +34,7 @@ const chat = (
   body: `${sender}: ${message}`,
   payload: JSON.stringify({ senderName: sender }),
   read: false,
+  actionState: 'active',
   createdAt: new Date(2026, 0, 1, 12, 0, id).toISOString(),
   ...overrides,
 });
@@ -75,6 +77,42 @@ describe('collapseNotifications', () => {
       expect(items[0].group.count).toBe(1);
       expect(items[0].group.ids).toEqual([2]);
     }
+  });
+
+  it('preserves one collapsed inactive chat history summary', () => {
+    const items = collapseNotifications([
+      chat(3, 10, 'Sylvie', 'latest', {
+        read: true,
+        actionState: 'resolved',
+        actionReason: 'request_approved',
+      }),
+      chat(2, 10, 'Joe', 'older', {
+        read: true,
+        actionState: 'unavailable',
+        actionReason: 'conversation_deleted',
+      }),
+    ]);
+
+    expect(items).toHaveLength(1);
+    if (items[0].kind === 'chatGroup') {
+      expect(items[0].group.count).toBe(2);
+      expect(items[0].group.actionState).toBe('unavailable');
+      expect(items[0].group.actionReason).toBe('conversation_deleted');
+    }
+  });
+
+  it('does not mix active and inactive tasks in the same collapsed group', () => {
+    const items = collapseNotifications([
+      chat(2, 10, 'Sylvie', 'active'),
+      chat(1, 10, 'Joe', 'history', {
+        read: true,
+        actionState: 'unavailable',
+        actionReason: 'access_removed',
+      }),
+    ]);
+
+    expect(items).toHaveLength(2);
+    expect(items.map((item) => item.key)).toEqual(['c-10:active', 'c-10:inactive']);
   });
 
   it('lists unique senders, latest first', () => {
@@ -121,6 +159,22 @@ describe('collapseNotifications', () => {
     }
   });
 
+  it('keeps resolved join-request history even though it is read', () => {
+    const items = collapseNotifications([
+      join(1, 1, 'Joe', 'Dancing', {
+        read: true,
+        actionState: 'resolved',
+        actionReason: 'request_cancelled',
+      }),
+    ]);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].kind).toBe('joinGroup');
+    if (items[0].kind === 'joinGroup') {
+      expect(items[0].group.actionState).toBe('resolved');
+    }
+  });
+
   it('passes unknown notification types through individually', () => {
     const approved: AppNotification = {
       id: 5,
@@ -129,6 +183,7 @@ describe('collapseNotifications', () => {
       title: 'Dancing',
       body: 'Your request to join was approved!',
       read: false,
+      actionState: 'active',
       createdAt: new Date(2026, 0, 1, 12, 0, 5).toISOString(),
     };
     const items = collapseNotifications([approved, chat(1, 10, 'Sylvie', 'hi')]);
@@ -146,6 +201,7 @@ describe('buildJoinGroupDisplay copy', () => {
     count,
     createdAt: new Date().toISOString(),
     ids: [],
+    actionState: 'active' as const,
   });
 
   it('singular "wants" for one requester', () => {
@@ -171,6 +227,7 @@ describe('buildChatGroupDisplay copy', () => {
     latestPreview: 'See you at 7 pm',
     createdAt: new Date().toISOString(),
     ids: [],
+    actionState: 'active' as const,
   });
 
   it('singular for one message', () => {

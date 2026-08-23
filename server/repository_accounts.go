@@ -201,6 +201,22 @@ func (r *EventRepository) DeleteUserAccount(ctx context.Context, userID int64) (
 		return nil, err
 	}
 
+	// Best-effort notification cleanup must run before requests/events and their
+	// conversations are deleted so stable identifiers are still queryable.
+	_ = invalidateRequesterJoinNotificationsWith(ctx, tx, userID)
+	for _, hostedEvent := range hostedEvents {
+		_ = invalidateEventNotificationsWith(ctx, tx, hostedEvent.ID)
+	}
+	for _, membership := range append(append([]EventConversationMember{}, joinedNotifications...), directNotifications...) {
+		_ = invalidateConversationNotificationsWith(
+			ctx,
+			tx,
+			membership.ConversationID,
+			nil,
+			NotificationReasonConversationDeleted,
+		)
+	}
+
 	// Hosted events must go first: events.user_id references users.id and
 	// event-backed conversations/join-requests/reports cascade from events.
 	if _, err := tx.ExecContext(ctx, `DELETE FROM events WHERE user_id = ?;`, userID); err != nil {

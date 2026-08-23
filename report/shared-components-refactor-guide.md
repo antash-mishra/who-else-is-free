@@ -877,6 +877,7 @@ Where it is used:
 
 - `EventDetailsOverlayRoutes`
 - `ChatThreadScreen`
+- `HomeScreen` for the one-shot notification unavailable result after a safe Discover redirect
 - `ProfileScreen`
 
 Supported prompt types:
@@ -1145,7 +1146,9 @@ File: `src/components/NotificationRow.tsx`
 
 What it is:
 
-- Feature row for the Notifications inbox. Owns its visual states (unread `UnreadDot` vs read/dimmed body) and press haptic (`triggerHaptic('light')`).
+- Feature row for the Notifications inbox. Owns active unread, read, resolving, and muted inactive
+  states, including the `Handled`/`Unavailable` status icon and label, accessibility copy, and press
+  haptic (`triggerHaptic('light')`).
 - Renders the server-supplied inbox body verbatim (override text is finalized in `server/notification_payloads.go`, never on the client).
 
 Where it is used:

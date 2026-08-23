@@ -836,16 +836,22 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 			"type":           "join_request.created",
 			"eventId":        strconv.FormatInt(eventID, 10),
 			"conversationId": strconv.FormatInt(convo.ID, 10),
+			"joinRequestId":  strconv.FormatInt(req.ID, 10),
+			"requesterId":    strconv.FormatInt(user.ID, 10),
+			"senderName":     user.Name,
 			"title":          event.Title,
 			"body":           fmt.Sprintf("%s wants to join your event", user.Name),
 		})
 	} else {
 		// For 1:1 events, the request remains pending until host approval.
 		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
-			"type":    "join_request.created",
-			"eventId": strconv.FormatInt(eventID, 10),
-			"title":   event.Title,
-			"body":    fmt.Sprintf("%s wants to join your event", user.Name),
+			"type":          "join_request.created",
+			"eventId":       strconv.FormatInt(eventID, 10),
+			"joinRequestId": strconv.FormatInt(req.ID, 10),
+			"requesterId":   strconv.FormatInt(user.ID, 10),
+			"senderName":    user.Name,
+			"title":         event.Title,
+			"body":          fmt.Sprintf("%s wants to join your event", user.Name),
 		})
 	}
 
@@ -983,6 +989,15 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		}
 		return
 	}
+	if err := h.repo.ResolveJoinRequestNotifications(
+		ctx,
+		eventID,
+		req.ID,
+		NotificationActionResolved,
+		NotificationReasonRequestApproved,
+	); err != nil {
+		log.Printf("notifications: resolve approved join request %d failed: %v", req.ID, err)
+	}
 
 	event, err := h.repo.GetEventByID(ctx, eventID)
 	if err != nil {
@@ -1030,6 +1045,7 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		"type":           "join_request.approved",
 		"eventId":        strconv.FormatInt(eventID, 10),
 		"conversationId": strconv.FormatInt(convo.ID, 10),
+		"joinRequestId":  strconv.FormatInt(req.ID, 10),
 		"title":          event.Title,
 		"body":           "Your request to join was approved!",
 	})
@@ -1088,6 +1104,15 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 		}
 		return
 	}
+	if err := h.repo.ResolveJoinRequestNotifications(
+		ctx,
+		eventID,
+		req.ID,
+		NotificationActionResolved,
+		NotificationReasonRequestDenied,
+	); err != nil {
+		log.Printf("notifications: resolve denied join request %d failed: %v", req.ID, err)
+	}
 
 	view, err := h.buildJoinRequestView(ctx, req)
 	if err != nil {
@@ -1107,10 +1132,11 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 		eventTitle = event.Title
 	}
 	h.hub.recordAndSendPushToUser(userID, map[string]string{
-		"type":    "join_request.denied",
-		"eventId": strconv.FormatInt(eventID, 10),
-		"title":   eventTitle,
-		"body":    "Your request to join was declined",
+		"type":          "join_request.denied",
+		"eventId":       strconv.FormatInt(eventID, 10),
+		"joinRequestId": strconv.FormatInt(req.ID, 10),
+		"title":         eventTitle,
+		"body":          "Your request to join was declined",
 	})
 
 	c.JSON(http.StatusOK, joinRequestResponse{Request: view})
@@ -1141,6 +1167,7 @@ func (h *ChatHTTPHandler) cancelJoinRequest(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
 	defer cancel()
 
+	pendingRequest, lookupErr := h.repo.GetPendingJoinRequest(ctx, eventID, claims.UserID)
 	err = h.repo.CancelJoinRequest(ctx, eventID, claims.UserID)
 	if err != nil {
 		if errors.Is(err, ErrJoinRequestNotFound) {
@@ -1149,6 +1176,17 @@ func (h *ChatHTTPHandler) cancelJoinRequest(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to cancel request"})
 		return
+	}
+	if lookupErr == nil && pendingRequest != nil {
+		if err := h.repo.ResolveJoinRequestNotifications(
+			ctx,
+			eventID,
+			pendingRequest.ID,
+			NotificationActionResolved,
+			NotificationReasonRequestCancelled,
+		); err != nil {
+			log.Printf("notifications: resolve cancelled join request %d failed: %v", pendingRequest.ID, err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "request cancelled"})
@@ -1208,7 +1246,11 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 	// This is important for 1:1 events where multiple private conversations can exist.
 	convo, _ := h.repo.findUserConversationForEventPublic(ctx, eventID, userID)
 
-	if err := h.repo.RemoveEventMember(ctx, eventID, userID); err != nil {
+	invalidationReason := NotificationReasonAccessRemoved
+	if claims.UserID == userID {
+		invalidationReason = NotificationReasonMemberLeft
+	}
+	if err := h.repo.RemoveEventMemberWithReason(ctx, eventID, userID, invalidationReason); err != nil {
 		switch {
 		case errors.Is(err, ErrCannotRemoveHost):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "event host cannot leave the event chat"})
@@ -1331,12 +1373,20 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 			"title":          title,
 			"body":           body,
 		}
+		if eventID, err := h.repo.GetConversationEventID(ctx, msg.ConversationID); err == nil && eventID != nil {
+			data["eventId"] = strconv.FormatInt(*eventID, 10)
+		} else if err != nil {
+			log.Printf("push: resolve event for conversation %d failed: %v", msg.ConversationID, err)
+		}
 
 		// Persist one inbox row per recipient (best-effort, before the token
 		// lookup so a recipient with no registered push token still sees the
 		// message in their inbox).
+		notificationIDs := make(map[int64]int64, len(recipientIDs))
 		for _, recipientID := range recipientIDs {
-			h.recordChatMessageNotification(recipientID, msg.ConversationID, senderName, title, body, data)
+			if notificationID := h.recordChatMessageNotification(recipientID, msg.ConversationID, senderName, title, body, data); notificationID != nil {
+				notificationIDs[recipientID] = *notificationID
+			}
 		}
 
 		tokens, err := h.repo.ListPushTokensByUserIDs(ctx, recipientIDs)
@@ -1350,10 +1400,14 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 
 		var notifications []PushNotification
 		for _, t := range tokens {
+			pushData := clonePushData(data)
+			if notificationID, ok := notificationIDs[t.UserID]; ok {
+				pushData["notificationId"] = strconv.FormatInt(notificationID, 10)
+			}
 			notifications = append(notifications, PushNotification{
 				Token: t.Token,
-				Data:  data,
-		})
+				Data:  pushData,
+			})
 		}
 
 		if err := h.pushSender.SendBatch(ctx, notifications); err != nil {
@@ -1369,6 +1423,14 @@ func (h *ChatHub) sendPushToUser(userID int64, data map[string]string) {
 
 // sendPushToUsers sends the same push payload to multiple users.
 func (h *ChatHub) sendPushToUsers(userIDs []int64, data map[string]string) {
+	h.sendPushToUsersWithNotificationIDs(userIDs, data, nil)
+}
+
+func (h *ChatHub) sendPushToUsersWithNotificationIDs(
+	userIDs []int64,
+	data map[string]string,
+	notificationIDs map[int64]int64,
+) {
 	if len(userIDs) == 0 {
 		return
 	}
@@ -1404,9 +1466,13 @@ func (h *ChatHub) sendPushToUsers(userIDs []int64, data map[string]string) {
 
 		var notifications []PushNotification
 		for _, t := range tokens {
+			pushData := clonePushData(data)
+			if notificationID, ok := notificationIDs[t.UserID]; ok {
+				pushData["notificationId"] = strconv.FormatInt(notificationID, 10)
+			}
 			notifications = append(notifications, PushNotification{
 				Token: t.Token,
-				Data:  data,
+				Data:  pushData,
 			})
 		}
 
@@ -1414,6 +1480,14 @@ func (h *ChatHub) sendPushToUsers(userIDs []int64, data map[string]string) {
 			log.Printf("push: send to users %v failed: %v", unique, err)
 		}
 	}()
+}
+
+func clonePushData(data map[string]string) map[string]string {
+	cloned := make(map[string]string, len(data)+1)
+	for key, value := range data {
+		cloned[key] = value
+	}
+	return cloned
 }
 
 func mapJoinRequestPayload(view JoinRequestView) joinRequestPayload {

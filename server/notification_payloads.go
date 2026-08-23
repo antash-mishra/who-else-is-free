@@ -6,13 +6,36 @@ import "fmt"
 // the OS. They are the single source of truth for the types that can be
 // persisted to the notifications table.
 const (
-	NotificationTypeChatMessage       = "chat.message"
-	NotificationTypeJoinRequestCreated = "join_request.created"
+	NotificationTypeChatMessage         = "chat.message"
+	NotificationTypeJoinRequestCreated  = "join_request.created"
 	NotificationTypeJoinRequestApproved = "join_request.approved"
-	NotificationTypeJoinRequestDenied  = "join_request.denied"
-	NotificationTypeMemberRemoved     = "event.member_removed"
-	NotificationTypeEventDeleted      = "event.deleted"
+	NotificationTypeJoinRequestDenied   = "join_request.denied"
+	NotificationTypeMemberRemoved       = "event.member_removed"
+	NotificationTypeEventDeleted        = "event.deleted"
 )
+
+// Notification categories control inbox grouping/retention independently of
+// action state. Tasks point at work that can become handled or unavailable;
+// outcomes remain historical records even when their original target is gone.
+type NotificationCategory string
+
+const (
+	NotificationCategoryTask    NotificationCategory = "task"
+	NotificationCategoryOutcome NotificationCategory = "outcome"
+	NotificationCategoryUnknown NotificationCategory = "unknown"
+)
+
+func notificationCategoryForType(notificationType string) NotificationCategory {
+	switch notificationType {
+	case NotificationTypeChatMessage, NotificationTypeJoinRequestCreated:
+		return NotificationCategoryTask
+	case NotificationTypeJoinRequestApproved, NotificationTypeJoinRequestDenied,
+		NotificationTypeMemberRemoved, NotificationTypeEventDeleted:
+		return NotificationCategoryOutcome
+	default:
+		return NotificationCategoryUnknown
+	}
+}
 
 // notificationDisplayTexts holds the INBOX-display title/body for each type.
 // The raw push body sent to the OS via FCM is unchanged; this map only swaps

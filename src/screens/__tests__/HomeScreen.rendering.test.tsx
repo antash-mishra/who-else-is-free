@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
+
 import { render, fireEvent, act } from '@testing-library/react-native';
-import HomeScreen from '../HomeScreen';
+
 import {
   mockEvents,
   mockUsers,
@@ -13,7 +14,8 @@ import {
   createTodayEvent,
   createTomorrowEvent,
 } from '../../__tests__/mocks/mockData';
-import { mockNavigation } from '../../__tests__/mocks/mockModules';
+import { mockNavigation, mockRoute } from '../../__tests__/mocks/mockModules';
+import HomeScreen from '../HomeScreen';
 
 const mockUser = mockUsers[0];
 
@@ -110,6 +112,32 @@ jest.mock('@components/SegmentedControl', () => {
   );
 });
 
+jest.mock('@components/EventActionOverlay', () => {
+  const { Pressable, Text, View } = require('react-native');
+  return ({
+    isVisible,
+    title,
+    description,
+    dismissLabel,
+    onDismiss,
+  }: {
+    isVisible: boolean;
+    title: string;
+    description: string;
+    dismissLabel: string;
+    onDismiss: () => void;
+  }) =>
+    isVisible ? (
+      <View testID="notification-notice-overlay">
+        <Text>{title}</Text>
+        <Text>{description}</Text>
+        <Pressable testID="notification-notice-dismiss" onPress={onDismiss}>
+          <Text>{dismissLabel}</Text>
+        </Pressable>
+      </View>
+    ) : null;
+});
+
 jest.mock('@assets/empty-state/discover.png', () => 'mock-empty-state-image');
 
 describe('HomeScreen Rendering', () => {
@@ -130,6 +158,22 @@ describe('HomeScreen Rendering', () => {
       permission: null,
       isLoading: false,
     };
+    mockRoute.params = {};
+  });
+
+  it('consumes the deleted-event notice once and shows the informational prompt', () => {
+    mockRoute.params = { notificationNotice: 'event_unavailable' };
+    const { getByText, getByTestId, queryByTestId } = render(<HomeScreen />);
+
+    expect(getByText('Event unavailable')).toBeTruthy();
+    expect(
+      getByText('This event is no longer available. You can discover other events here.'),
+    ).toBeTruthy();
+    expect(getByText('Explore events')).toBeTruthy();
+    expect(mockNavigation.setParams).toHaveBeenCalledWith({ notificationNotice: undefined });
+
+    fireEvent.press(getByTestId('notification-notice-dismiss'));
+    expect(queryByTestId('notification-notice-overlay')).toBeNull();
   });
 
   describe('Loading State', () => {

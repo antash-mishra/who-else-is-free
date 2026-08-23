@@ -180,17 +180,49 @@ type PushToken struct {
 // is unchanged; only the inbox body may differ for the three "harsh"
 // override types (see server/notification_payloads.go).
 type Notification struct {
-	ID             int64     `json:"id"`
-	UserID         int64     `json:"user_id"`
-	Type           string    `json:"type"`
-	EventID        *int64    `json:"event_id,omitempty"`
-	ConversationID *int64    `json:"conversation_id,omitempty"`
-	Title          string    `json:"title"`
-	Body           string    `json:"body"`
-	Payload        string    `json:"payload,omitempty"`
-	Read           bool      `json:"read"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID               int64                     `json:"id"`
+	UserID           int64                     `json:"user_id"`
+	Type             string                    `json:"type"`
+	EventID          *int64                    `json:"event_id,omitempty"`
+	ConversationID   *int64                    `json:"conversation_id,omitempty"`
+	JoinRequestID    *int64                    `json:"join_request_id,omitempty"`
+	Title            string                    `json:"title"`
+	Body             string                    `json:"body"`
+	Payload          string                    `json:"payload,omitempty"`
+	Read             bool                      `json:"read"`
+	ActionState      NotificationActionState   `json:"action_state"`
+	ActionReason     *NotificationActionReason `json:"action_reason,omitempty"`
+	ActionResolvedAt *time.Time                `json:"action_resolved_at,omitempty"`
+	CreatedAt        time.Time                 `json:"created_at"`
 }
+
+// NotificationActionState describes whether the historical notification still
+// has a live action. It is deliberately independent from Read, which only
+// controls inbox unread presentation and badge counts.
+type NotificationActionState string
+
+const (
+	NotificationActionActive      NotificationActionState = "active"
+	NotificationActionResolved    NotificationActionState = "resolved"
+	NotificationActionUnavailable NotificationActionState = "unavailable"
+)
+
+// NotificationActionReason records why a previously-live action stopped being
+// active. The notification title/body remain immutable history.
+type NotificationActionReason string
+
+const (
+	NotificationReasonEventDeleted         NotificationActionReason = "event_deleted"
+	NotificationReasonRequestApproved      NotificationActionReason = "request_approved"
+	NotificationReasonRequestDenied        NotificationActionReason = "request_denied"
+	NotificationReasonRequestCancelled     NotificationActionReason = "request_cancelled"
+	NotificationReasonRequesterDeleted     NotificationActionReason = "requester_deleted"
+	NotificationReasonAccessRemoved        NotificationActionReason = "access_removed"
+	NotificationReasonMemberLeft           NotificationActionReason = "member_left"
+	NotificationReasonConversationDeleted  NotificationActionReason = "conversation_deleted"
+	NotificationReasonConversationReplaced NotificationActionReason = "conversation_replaced"
+	NotificationReasonEventEnded           NotificationActionReason = "event_ended"
+)
 
 type CreateEventParams struct {
 	Title       string  `json:"title" binding:"required,min=1"`

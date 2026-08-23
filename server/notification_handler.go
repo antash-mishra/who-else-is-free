@@ -24,15 +24,19 @@ func NewNotificationHandler(repo *EventRepository) *NotificationHandler {
 // mirrors the persisted Notification but omits internal fields the client does
 // not need directly. The inbox body is the already-overridden display text.
 type NotificationView struct {
-	ID             int64  `json:"id"`
-	Type           string `json:"type"`
-	EventID        *int64 `json:"event_id,omitempty"`
-	ConversationID *int64 `json:"conversation_id,omitempty"`
-	Title          string `json:"title"`
-	Body           string `json:"body"`
-	Payload        string `json:"payload,omitempty"`
-	Read           bool   `json:"read"`
-	CreatedAt      string `json:"created_at"`
+	ID               int64                     `json:"id"`
+	Type             string                    `json:"type"`
+	EventID          *int64                    `json:"event_id,omitempty"`
+	ConversationID   *int64                    `json:"conversation_id,omitempty"`
+	JoinRequestID    *int64                    `json:"join_request_id,omitempty"`
+	Title            string                    `json:"title"`
+	Body             string                    `json:"body"`
+	Payload          string                    `json:"payload,omitempty"`
+	Read             bool                      `json:"read"`
+	ActionState      NotificationActionState   `json:"action_state"`
+	ActionReason     *NotificationActionReason `json:"action_reason,omitempty"`
+	ActionResolvedAt string                    `json:"action_resolved_at,omitempty"`
+	CreatedAt        string                    `json:"created_at"`
 }
 
 type listNotificationsResponse struct {
@@ -45,6 +49,7 @@ type unreadCountResponse struct {
 
 func (h *NotificationHandler) RegisterRoutes(protected *gin.RouterGroup) {
 	protected.GET("/notifications", h.listNotifications)
+	protected.POST("/notifications/actions/resolve", h.resolveAction)
 	protected.POST("/notifications/:id/read", h.markNotificationRead)
 	protected.POST("/notifications/read-all", h.markAllNotificationsRead)
 	protected.DELETE("/notifications", h.clearNotifications)
@@ -52,7 +57,7 @@ func (h *NotificationHandler) RegisterRoutes(protected *gin.RouterGroup) {
 }
 
 const (
-	defaultNotificationsLimit  = 20
+	defaultNotificationsLimit = 20
 	maxNotificationsLimit     = 100
 )
 
@@ -175,15 +180,23 @@ func toNotificationView(n Notification) NotificationView {
 	if !n.CreatedAt.IsZero() {
 		createdAt = n.CreatedAt.Format("2006-01-02T15:04:05.000Z")
 	}
+	var actionResolvedAt string
+	if n.ActionResolvedAt != nil && !n.ActionResolvedAt.IsZero() {
+		actionResolvedAt = n.ActionResolvedAt.Format("2006-01-02T15:04:05.000Z")
+	}
 	return NotificationView{
-		ID:             n.ID,
-		Type:           n.Type,
-		EventID:        n.EventID,
-		ConversationID: n.ConversationID,
-		Title:          n.Title,
-		Body:           n.Body,
-		Payload:        n.Payload,
-		Read:           n.Read,
-		CreatedAt:      createdAt,
+		ID:               n.ID,
+		Type:             n.Type,
+		EventID:          n.EventID,
+		ConversationID:   n.ConversationID,
+		JoinRequestID:    n.JoinRequestID,
+		Title:            n.Title,
+		Body:             n.Body,
+		Payload:          n.Payload,
+		Read:             n.Read,
+		ActionState:      n.ActionState,
+		ActionReason:     n.ActionReason,
+		ActionResolvedAt: actionResolvedAt,
+		CreatedAt:        createdAt,
 	}
 }

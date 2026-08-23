@@ -54,6 +54,7 @@ export type RootTabParamList = {
         showEventDeletedBadge?: boolean;
         showEventLeftBadge?: boolean;
         showWelcomeBadge?: boolean;
+        notificationNotice?: 'event_unavailable' | 'access_unavailable';
       }
     | undefined;
   MyEvents:

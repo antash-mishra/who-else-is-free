@@ -560,6 +560,11 @@ Existing rows do not contain action state or join-request IDs.
 
 ### Phase 1: Domain contract and schema
 
+Status: implemented on August 23, 2026. The idempotent startup migration, legacy backfill,
+server/client action-state models, stable join-request identity field, matching indexes, and domain
+category contract are in place. Newly emitted request notifications begin populating
+`join_request_id` in Phase 2.
+
 - Add the idempotent notification schema migration, action-state fields, and stable request
   identity.
 - Update server and client notification models.
@@ -574,6 +579,11 @@ Primary files:
 - `src/api/mappers/notifications.ts`
 
 ### Phase 2: Resolver and payload identity
+
+Status: implemented on August 23, 2026. New request/chat payloads retain stable action identity,
+recipient-specific persisted notification IDs are attached to pushes, and the authenticated
+resolver validates ownership, group consistency, current membership, event ownership, request
+state, and conversation topology before returning a typed destination.
 
 - Add join-request ID, requester ID, and sender name to request-created notifications.
 - Ensure chat and approval records retain enough event/conversation context.
@@ -590,6 +600,11 @@ Primary files:
 - repository query files
 
 ### Phase 3: Inbox client integration and stale-state UX
+
+Status: implemented on August 23, 2026. Inbox rows and collapsed groups resolve on the server
+before navigating. Successful results update local read/action state, inactive task histories are
+muted and labeled, temporary failures remain in Notifications, and unavailable results show the
+typed one-shot Discover prompt.
 
 - Add typed resolver API models and a centralized `openNotification(notificationIds)` operation.
 - Resolve single and collapsed rows before navigation.
@@ -611,6 +626,11 @@ Primary files:
 
 ### Phase 4: Lifecycle invalidation
 
+Status: implemented on August 23, 2026. Approve, deny, cancel, report-driven cancellation, event
+delete, host removal, self-leave, requester/host account deletion, and group topology replacement
+now invalidate or resolve affected actions. Task invalidation sets read state in the same update;
+tap-time resolution remains the final boundary if best-effort cleanup cannot complete.
+
 - Add repository invalidation helpers.
 - Wire approve, deny, cancel, event delete, member removal, self-leave, account deletion, and group
   topology changes.
@@ -627,6 +647,11 @@ Primary files:
 
 ### Phase 5: OS push integration
 
+Status: implemented on August 23, 2026. Recipient-specific push data carries `notificationId` when
+history persistence succeeds, and all background/quit-state taps use the same resolver/opening path
+as inbox rows. Legacy and persistence-failure pushes use validated type/entity hints and never route
+directly from raw data.
+
 - Add notification IDs to push payloads where practical.
 - Route OS taps through the resolver.
 - Permanently support safe resolution when persistence failed or the payload is legacy and has no
@@ -642,6 +667,11 @@ Primary files:
 - `src/context/pushRouting.ts`
 
 ### Phase 6: Backfill, tests, device QA, and observability
+
+Status: implemented on August 23, 2026, with automated backend/client coverage and an HTML
+implementation report. The resolver emits content-free status/reason/destination log records that
+can be aggregated to monitor unavailable-action rates. Device-verification results and any local
+environment limits are recorded in the report rather than inferred from automated tests.
 
 - Backfill or lazily resolve legacy rows and verify migration reruns.
 - Add lifecycle and race-condition tests.
@@ -741,7 +771,7 @@ The work is complete when:
 - The deleted `NotificationAccessModal` and its pre-navigation access-check behavior are not
   restored.
 
-## Product Decisions Needed Before Implementation
+## Product Decisions Applied During Implementation
 
 The following decisions are confirmed by this revision:
 
@@ -755,20 +785,12 @@ The following decisions are confirmed by this revision:
 - Use the exact event-unavailable copy defined above and a generic variant for lost access or a
   missing conversation.
 
-Remaining decisions:
-
-1. When a request is already resolved but the event still exists, should the host open Event
-   Details or remain in Notifications?
-2. Should past events automatically resolve pending join-request tasks?
-3. Should `join_request.denied` copy be changed so it does not imply the public event was deleted?
-4. Should automatic notification retention be added, or should rows continue to remain until the
-   user clears them or deletes the account?
-
-Recommended defaults:
-
 - Keep one collapsed muted summary for inactive tasks and keep outcome notifications as history.
 - Open Event Details for resolved requests when the event still exists.
 - Open Discover for deleted events or lost access.
 - Show the one-shot informational result modal after the Discover redirect.
-- Keep the current user-cleared/account-deletion retention behavior unless product requirements
-  add automatic expiry.
+- Pending requests on past events remain resolvable under the existing event lifecycle; no new
+  scheduled `event_ended` policy is introduced without a product expiry rule.
+- Keep the existing server-owned `join_request.denied` inbox copy; copy review remains independent
+  of action validity.
+- Keep the current user-cleared/account-deletion retention behavior; no automatic expiry is added.

@@ -25,6 +25,7 @@ func TestNotificationHandler_AuthRequired(t *testing.T) {
 		path   string
 	}{
 		{"list", http.MethodGet, "/api/notifications"},
+		{"resolve-action", http.MethodPost, "/api/notifications/actions/resolve"},
 		{"unread-count", http.MethodGet, "/api/notifications/unread-count"},
 		{"mark-one", http.MethodPost, "/api/notifications/1/read"},
 		{"mark-all", http.MethodPost, "/api/notifications/read-all"},
@@ -68,6 +69,9 @@ func TestNotificationHandler_ListPaginationAndOrdering(t *testing.T) {
 	page1 := decodeJSON[notificationsListResponse](t, resp)
 	if len(page1.Notifications) != 20 {
 		t.Fatalf("page1 len = %d, want 20", len(page1.Notifications))
+	}
+	if page1.Notifications[0].ActionState != NotificationActionActive {
+		t.Fatalf("action state = %q, want active", page1.Notifications[0].ActionState)
 	}
 	for i := 1; i < len(page1.Notifications); i++ {
 		if page1.Notifications[i-1].ID < page1.Notifications[i].ID {

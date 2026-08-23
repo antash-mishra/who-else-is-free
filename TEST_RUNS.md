@@ -100,3 +100,14 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Attempt 1: PASS — the inbox displayed `Hike is no longer available to you. Explore other events nearby.` under Today; tapping it opened Discover without a modal.
 - Evidence: `report/issue-122-notification-unavailable.png` and `report/issue-122-after-notification-tap.png`.
 - Final verdict: **PASS**.
+
+## 2026-08-23 — Stale notification action resolver and lifecycle
+
+- Change: complete phases 1–6 of `report/stale-notification-actions-plan.md`: action-state schema/backfill, authenticated resolver, eager lifecycle invalidation, muted inactive history, shared inbox/OS-push opening, recipient-specific push IDs, and the one-shot Discover result prompt.
+- Environment: Android emulator `WEIF_API_36` (Android 16, 1080 × 2400), package `com.whoelseisfree.app`; local backend with `DEV_LOGIN_ENABLED=1`; Metro at `http://10.0.2.2:8081`; Host and Member2 preset identities.
+- API flow: clear host inbox → create event as Host → request as Member2 → verify active unread row → delete event as Host → verify row is `unavailable`, `read=true`, reason `event_deleted`, and unread count 0. Repeated for Group and 1:1.
+- Attempt 1: BLOCKED — the already-running AVD went offline and showed `System UI isn't responding`; no visual verdict was recorded from that state.
+- Attempt 2: PASS — cold-started the AVD, connected the installed development build to Metro, and signed in as Host. For both Group and 1:1, Notifications showed one muted `Unavailable` request row with no unread dot; Profile showed the bell with no count badge; tapping the row opened Discover and the exact `Event unavailable` / `This event is no longer available. You can discover other events here.` prompt; dismissing it and revisiting Discover did not reopen it.
+- Automated checks: Go tests and `go vet ./...` passed; focused frontend suites passed 70/70; TypeScript, touched-file lint, Prettier, and `git diff --check` passed. The full frontend baseline passed 73/78 suites (1,205/1,232 tests); all notification suites passed, while five unrelated existing suites retained 27 failures.
+- Evidence: `report/stale-notification-actions-device.png`, `report/stale-notification-actions-modal-device.png`, and `report/stale-notification-actions-implementation-report.html`.
+- Final verdict: **PASS**.

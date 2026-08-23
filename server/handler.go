@@ -633,8 +633,20 @@ func (h *EventHandler) reportEvent(c *gin.Context) {
 		h.hub.NotifyMembership(convo.ID, claims.UserID, "removed")
 	}
 
-	// Silently cancel any pending join request for this user/event
-	_ = h.repo.CancelJoinRequest(ctx, eventID, claims.UserID)
+	// Silently cancel any pending join request for this user/event and resolve
+	// the matching host task when stable identity is available.
+	pendingRequest, pendingErr := h.repo.GetPendingJoinRequest(ctx, eventID, claims.UserID)
+	if err := h.repo.CancelJoinRequest(ctx, eventID, claims.UserID); err == nil && pendingErr == nil {
+		if resolveErr := h.repo.ResolveJoinRequestNotifications(
+			ctx,
+			eventID,
+			pendingRequest.ID,
+			NotificationActionResolved,
+			NotificationReasonRequestCancelled,
+		); resolveErr != nil {
+			log.Printf("notifications: resolve reported-event request %d failed: %v", pendingRequest.ID, resolveErr)
+		}
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"report": report})
 }

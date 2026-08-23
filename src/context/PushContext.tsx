@@ -21,7 +21,7 @@ import { requestJson } from '@api/client';
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { useNotifications } from '@context/NotificationsContext';
-import { handleNotificationTap, PushData } from '@context/pushRouting';
+import { openNotification, PushData, resolutionRequestFromPushData } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
 import { logger } from '@services/logger';
 
@@ -182,7 +182,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   // Handle notification taps when app is opened from background/quit
   useEffect(() => {
     const msg = getMessagingInstance();
-    if (!msg) return;
+    if (!msg || !token) return;
     let isCancelled = false;
 
     const routeFromPushTap = (data: PushData, attempt = 0) => {
@@ -190,7 +190,18 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       if (navigationRef.isReady()) {
-        handleNotificationTap(data, setActiveConversation, navigationRef);
+        const request = resolutionRequestFromPushData(data);
+        if (!request) return;
+        openNotification({
+          request,
+          token,
+          setActiveConversation,
+          navigator: navigationRef,
+        })
+          .then(() => refreshUnreadCount())
+          .catch((err) => {
+            logger.warn('push: notification action resolution failed', err);
+          });
         return;
       }
       if (attempt >= 20) {
@@ -225,7 +236,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       isCancelled = true;
       unsubscribeOpened();
     };
-  }, [setActiveConversation]);
+  }, [refreshUnreadCount, setActiveConversation, token]);
 
   // Foreground message handling: refresh the unread count so the bell badge
   // updates live. The full inbox list is NOT reloaded here (avoids list churn
@@ -259,8 +270,11 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (Platform.OS === 'ios') {
       const msg = getMessagingInstance();
-      if (msg && typeof (msg as any).setBadgeCount === 'function') {
-        (msg as any).setBadgeCount(0).catch(() => {});
+      const badgeMessaging = msg as typeof msg & {
+        setBadgeCount?: (count: number) => Promise<void>;
+      };
+      if (typeof badgeMessaging?.setBadgeCount === 'function') {
+        badgeMessaging.setBadgeCount(0).catch(() => {});
       }
     }
   }, []);

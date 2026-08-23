@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stale Notification Actions — Implementation Report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #171717;
+        --muted: #686868;
+        --line: #deded8;
+        --surface: #ffffff;
+        --soft: #f5f5f1;
+        --green: #146c43;
+        --green-bg: #eaf7ef;
+        --amber: #8a5600;
+        --amber-bg: #fff5dc;
+        --blue: #1559a8;
+        --blue-bg: #edf5ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--soft);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 32px auto 72px;
+      }
+
+      .hero,
+      section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+
+      .hero {
+        padding: clamp(28px, 5vw, 56px);
+        background: linear-gradient(135deg, #fff 0%, #eef8f2 100%);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 850px;
+        margin-bottom: 14px;
+        font-size: clamp(36px, 6vw, 68px);
+        line-height: 1.02;
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin-bottom: 18px;
+        font-size: 28px;
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 18px;
+      }
+
+      .lede {
+        max-width: 780px;
+        margin-bottom: 24px;
+        color: #3e3e3e;
+        font-size: 19px;
+      }
+
+      .meta,
+      .note {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .pills,
+      .metric-grid,
+      .phase-grid,
+      .screenshots {
+        display: grid;
+        gap: 14px;
+      }
+
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .pill,
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      .pill {
+        padding: 8px 12px;
+        background: var(--green-bg);
+        color: var(--green);
+        font-size: 13px;
+      }
+
+      .pill::before,
+      .status.pass::before {
+        content: '✓';
+      }
+
+      section {
+        margin-top: 20px;
+        padding: clamp(22px, 4vw, 38px);
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      }
+
+      .metric,
+      .phase,
+      .flow-step {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fff;
+      }
+
+      .metric strong {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .phase-grid {
+        grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+      }
+
+      .phase {
+        position: relative;
+        padding-top: 50px;
+      }
+
+      .phase-number {
+        position: absolute;
+        top: 16px;
+        left: 18px;
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .phase p,
+      .flow-step p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .flow-step {
+        position: relative;
+        background: var(--blue-bg);
+        border-color: #cfdef0;
+      }
+
+      .flow-step:not(:last-child)::after {
+        content: '→';
+        position: absolute;
+        z-index: 2;
+        top: 50%;
+        right: -17px;
+        color: var(--blue);
+        font-weight: 800;
+        transform: translateY(-50%);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        padding: 13px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: #f0f0ec;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+      }
+
+      .status {
+        padding: 4px 9px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .status.pass {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+
+      .status.baseline {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+
+      .callout {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-left: 4px solid var(--amber);
+        border-radius: 8px;
+        background: var(--amber-bg);
+        color: #573b08;
+        font-size: 14px;
+      }
+
+      .screenshots {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      figure {
+        margin: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--soft);
+      }
+
+      figure img {
+        display: block;
+        width: min(100%, 390px);
+        max-height: 720px;
+        margin: 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        object-fit: contain;
+        background: #fff;
+      }
+
+      figcaption {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      ul {
+        margin-bottom: 0;
+        padding-left: 21px;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      footer {
+        padding: 22px 4px 0;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      @media (max-width: 800px) {
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-step:not(:last-child)::after {
+          content: '↓';
+          top: auto;
+          right: 50%;
+          bottom: -20px;
+          transform: translateX(50%);
+        }
+
+        .screenshots {
+          grid-template-columns: 1fr;
+        }
+
+        .table-wrap {
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <p class="meta">Implementation report · August 23, 2026</p>
+        <h1>Stale notification actions are now resolved safely.</h1>
+        <p class="lede">
+          All six phases of the plan are implemented. Historical notification copy is preserved,
+          action validity follows live event/request/conversation state, and every inbox or OS-push
+          tap crosses one authenticated server boundary before navigation.
+        </p>
+        <div class="pills">
+          <span class="pill">Server resolver</span>
+          <span class="pill">Lifecycle invalidation</span>
+          <span class="pill">Inbox UX</span>
+          <span class="pill">OS-push parity</span>
+          <span class="pill">Android verified</span>
+        </div>
+      </header>
+
+      <section aria-labelledby="outcome">
+        <h2 id="outcome">Outcome at a glance</h2>
+        <div class="metric-grid">
+          <div class="metric">
+            <strong>6 / 6</strong><span>implementation phases complete</span>
+          </div>
+          <div class="metric">
+            <strong>70 / 70</strong><span>focused frontend tests passing</span>
+          </div>
+          <div class="metric"><strong>100%</strong><span>Go packages passing</span></div>
+          <div class="metric">
+            <strong>2 / 2</strong><span>Group and 1:1 device flows passing</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="architecture">
+        <h2 id="architecture">One opening path</h2>
+        <div class="flow">
+          <div class="flow-step">
+            <h3>Inbox / OS tap</h3>
+            <p>Uses persisted notification IDs, or validated legacy hints when no row ID exists.</p>
+          </div>
+          <div class="flow-step">
+            <h3>Authenticated resolve</h3>
+            <p><code>POST /api/notifications/actions/resolve</code></p>
+          </div>
+          <div class="flow-step">
+            <h3>Live validation</h3>
+            <p>Checks ownership, grouping, request state, event topology, and membership.</p>
+          </div>
+          <div class="flow-step">
+            <h3>Atomic state</h3>
+            <p>Marks handled rows read and persists newly found resolved/unavailable state.</p>
+          </div>
+          <div class="flow-step">
+            <h3>Typed navigation</h3>
+            <p>Routes only from the server result; failures remain safely in Notifications.</p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="phases">
+        <h2 id="phases">Implemented phases</h2>
+        <div class="phase-grid">
+          <article class="phase">
+            <span class="phase-number">Phase 1</span>
+            <h3>Domain contract and schema</h3>
+            <p>
+              Added idempotent action columns/backfill, stable join-request identity, matching
+              indexes, server/client types, and active/resolved/unavailable semantics.
+            </p>
+          </article>
+          <article class="phase">
+            <span class="phase-number">Phase 2</span>
+            <h3>Resolver and identity</h3>
+            <p>
+              Added the authenticated single/group resolver, strict ownership/group validation, safe
+              legacy hints, and richer request/chat payload identity.
+            </p>
+          </article>
+          <article class="phase">
+            <span class="phase-number">Phase 3</span>
+            <h3>Inbox and stale-state UX</h3>
+            <p>
+              Centralized opening, added per-row progress/retry behavior, muted history summaries,
+              explicit status labels, and the one-shot Discover result prompt.
+            </p>
+          </article>
+          <article class="phase">
+            <span class="phase-number">Phase 4</span>
+            <h3>Lifecycle invalidation</h3>
+            <p>
+              Wired approve, deny, cancel, report cancellation, event delete, leave/remove, account
+              delete, and group topology changes to eager action updates.
+            </p>
+          </article>
+          <article class="phase">
+            <span class="phase-number">Phase 5</span>
+            <h3>OS-push integration</h3>
+            <p>
+              Push payloads now carry recipient-specific notification IDs when persistence works;
+              no-ID pushes permanently retain the safe validated-hint path.
+            </p>
+          </article>
+          <article class="phase">
+            <span class="phase-number">Phase 6</span>
+            <h3>Backfill, tests, QA, observability</h3>
+            <p>
+              Added migration/lifecycle/routing/UX coverage, content-free resolver logging, public
+              API regression checks, and sequential Group plus 1:1 Android verification.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="policy">
+        <h2 id="policy">Resolution and lifecycle policy</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Condition</th>
+                <th>Persisted action</th>
+                <th>Safe destination</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Active chat + current membership</td>
+                <td>Active; handled row becomes read</td>
+                <td>Exact chat</td>
+              </tr>
+              <tr>
+                <td>Pending host request, Group</td>
+                <td>Active</td>
+                <td>Join Requests</td>
+              </tr>
+              <tr>
+                <td>Pending host request, 1:1</td>
+                <td>Active</td>
+                <td>Event Details</td>
+              </tr>
+              <tr>
+                <td>Resolved/cancelled request; event exists</td>
+                <td>Resolved + read</td>
+                <td>Event Details</td>
+              </tr>
+              <tr>
+                <td>Deleted event</td>
+                <td>Unavailable + read</td>
+                <td>Discover + event prompt</td>
+              </tr>
+              <tr>
+                <td>Lost access / missing conversation</td>
+                <td>Unavailable + read</td>
+                <td>Discover + generic prompt</td>
+              </tr>
+              <tr>
+                <td>Approved request after topology replacement</td>
+                <td>Active only after membership proof</td>
+                <td>Validated replacement chat</td>
+              </tr>
+              <tr>
+                <td>Unknown type</td>
+                <td>Safe historical row</td>
+                <td>Stay in Notifications</td>
+              </tr>
+              <tr>
+                <td>Temporary resolver failure</td>
+                <td>Unchanged</td>
+                <td>Stay and retry</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="verification">
+        <h2 id="verification">Verification results</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Gate</th>
+                <th>Result</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Backend tests</td>
+                <td><span class="status pass">Pass</span></td>
+                <td><code>cd server &amp;&amp; go test ./...</code>; both packages green.</td>
+              </tr>
+              <tr>
+                <td>Focused frontend tests</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>
+                  6 suites, 70 tests; resolver API, mapper, routing, inbox, collapse, and Home
+                  prompt.
+                </td>
+              </tr>
+              <tr>
+                <td>TypeScript</td>
+                <td><span class="status pass">Pass</span></td>
+                <td><code>npm run typecheck</code>.</td>
+              </tr>
+              <tr>
+                <td>Touched-file lint</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>Zero errors and zero warnings after import/token/type cleanup.</td>
+              </tr>
+              <tr>
+                <td>Formatting / whitespace</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>Prettier check and <code>git diff --check</code>.</td>
+              </tr>
+              <tr>
+                <td>Public API deleted-event regression</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>
+                  Group and 1:1: active unread request → event delete → unavailable/read with
+                  <code>event_deleted</code>; unread count 0.
+                </td>
+              </tr>
+              <tr>
+                <td>Android emulator</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>
+                  Group and 1:1 muted row, no badge, safe Discover redirect, exact prompt, and
+                  one-shot dismissal verified on Android 16 / WEIF_API_36.
+                </td>
+              </tr>
+              <tr>
+                <td>Entire frontend repository</td>
+                <td><span class="status baseline">Baseline failures</span></td>
+                <td>
+                  73/78 suites and 1,205/1,232 tests passed; all notification-related suites passed.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          The full frontend run retains 27 failures in five untouched baseline suites:
+          <code>EventDetailsScreen.rendering</code>, <code>ChatThreadScreen.rendering</code>,
+          <code>MyEventsScreen.rendering</code>, <code>eventListSections</code>, and
+          <code>createEventForm</code>. Failures are existing mock/loading, copy/punctuation, and
+          date-normalization expectation drift; the 70 focused notification tests are green.
+        </div>
+      </section>
+
+      <section aria-labelledby="device">
+        <h2 id="device">Android evidence</h2>
+        <div class="screenshots">
+          <figure>
+            <img
+              src="stale-notification-actions-device.png"
+              alt="Android Notifications screen showing a muted unavailable join request"
+            />
+            <figcaption>
+              Deleted Group event: the old host task is read, muted, labeled Unavailable, and has no
+              unread dot. Its accessibility label explains the safe fallback.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="stale-notification-actions-modal-device.png"
+              alt="Android Discover screen showing the Event unavailable prompt"
+            />
+            <figcaption>
+              The stale row opens Discover and then shows the exact informational result prompt.
+              After dismissal, revisiting Discover produced no second prompt.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section aria-labelledby="tests">
+        <h2 id="tests">Coverage added</h2>
+        <ul>
+          <li>
+            Resolver ownership, mixed-group rejection, exact chat membership, and mismatched hint
+            rejection.
+          </li>
+          <li>
+            Deleted event fallback, mixed resolved/pending request groups, and approved replacement
+            conversation.
+          </li>
+          <li>
+            Member removal, requester deletion, event deletion, and topology replacement
+            invalidation.
+          </li>
+          <li>
+            Schema creation, legacy upgrade/backfill, rerun idempotency, action-state persistence,
+            and unread exclusion.
+          </li>
+          <li>
+            Recipient-specific push notification IDs and stable join-request/requester/sender
+            identity.
+          </li>
+          <li>
+            Inbox loading/error behavior, muted history rendering, atomic grouped opening, and safe
+            network failure.
+          </li>
+          <li>
+            OS no-ID fallback, typed destination mapping, unknown-type safety, and one-shot Home
+            prompt copy.
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="decisions">
+        <h2 id="decisions">Product decisions applied</h2>
+        <ul>
+          <li>Resolved requests with a surviving event open Event Details.</li>
+          <li>
+            Past pending requests follow the existing lifecycle; no new automatic expiry policy was
+            invented.
+          </li>
+          <li>
+            The current server-owned denied copy stays unchanged and remains separate from action
+            validity.
+          </li>
+          <li>
+            Inactive task groups remain as one muted historical summary; outcomes remain until
+            clear-all/account deletion.
+          </li>
+          <li>
+            Resolver logs include user ID, status, reason, destination, and ID count—but never
+            notification content.
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="rollout">
+        <h2 id="rollout">Rollout notes</h2>
+        <ul>
+          <li>
+            The startup migration is idempotent and runs before action indexes/backfill queries.
+          </li>
+          <li>Push persistence remains best-effort: insert failure never blocks FCM delivery.</li>
+          <li>
+            Legacy/no-ID pushes are intentionally supported permanently and always revalidate
+            current access.
+          </li>
+          <li>
+            Aggregate the <code>notification action resolved</code> log by reason to watch
+            unavailable rates and find missed invalidation paths.
+          </li>
+        </ul>
+      </section>
+
+      <footer>
+        Who Else Is Free · stale notification actions implementation · generated from local
+        automated and Android emulator verification
+      </footer>
+    </main>
+  </body>
+</html>

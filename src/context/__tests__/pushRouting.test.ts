@@ -1,83 +1,87 @@
-import { handleNotificationTap, PushData } from "../pushRouting";
+import { resolutionRequestFromPushData, routeResolvedNotification } from '../pushRouting';
 
-describe("pushRouting", () => {
+describe('pushRouting', () => {
   const createNavigator = (isReady = true) => ({
     isReady: jest.fn(() => isReady),
     navigate: jest.fn(),
   });
 
-  it("routes event.deleted taps to Events tab", () => {
-    const navigator = createNavigator();
-    const setActiveConversation = jest.fn();
-    const data: PushData = { type: "event.deleted", eventId: "123" };
+  it('prefers a recipient-specific persisted notification id', () => {
+    expect(
+      resolutionRequestFromPushData({
+        notificationId: '42',
+        type: 'chat.message',
+        conversationId: '7',
+      }),
+    ).toEqual({ notification_ids: [42], mark_handled: true });
+  });
 
-    handleNotificationTap(data, setActiveConversation, navigator);
-
-    expect(setActiveConversation).not.toHaveBeenCalled();
-    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
-      screen: "Events",
+  it('builds validated resolver hints for legacy and persistence-failed pushes', () => {
+    expect(
+      resolutionRequestFromPushData({
+        type: ' Join_Request.Created ',
+        eventId: '11',
+        conversationId: '12',
+        joinRequestId: '13',
+      }),
+    ).toEqual({
+      type: 'join_request.created',
+      event_id: 11,
+      conversation_id: 12,
+      join_request_id: 13,
+      mark_handled: true,
     });
   });
 
-  it("routes event.member_removed taps to Events tab", () => {
+  it('routes unavailable deleted events to Discover with the one-shot notice', () => {
     const navigator = createNavigator();
-    const setActiveConversation = jest.fn();
-    const data: PushData = { type: "event.member_removed", eventId: "123" };
-
-    handleNotificationTap(data, setActiveConversation, navigator);
-
-    expect(setActiveConversation).not.toHaveBeenCalled();
-    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
-      screen: "Events",
+    routeResolvedNotification(
+      {
+        status: 'unavailable',
+        reason: 'event_deleted',
+        destination: 'events',
+      },
+      jest.fn(),
+      navigator,
+    );
+    expect(navigator.navigate).toHaveBeenCalledWith('Main', {
+      screen: 'Events',
+      params: { notificationNotice: 'event_unavailable' },
     });
   });
 
-  it("routes event_deleted taps to Events tab", () => {
+  it('routes lost access to Discover with the generic notice', () => {
     const navigator = createNavigator();
-    const setActiveConversation = jest.fn();
-    const data: PushData = { type: "event_deleted", eventId: "123" };
-
-    handleNotificationTap(data, setActiveConversation, navigator);
-
-    expect(setActiveConversation).not.toHaveBeenCalled();
-    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
-      screen: "Events",
+    routeResolvedNotification(
+      {
+        status: 'unavailable',
+        reason: 'access_removed',
+        destination: 'events',
+      },
+      jest.fn(),
+      navigator,
+    );
+    expect(navigator.navigate).toHaveBeenCalledWith('Main', {
+      screen: 'Events',
+      params: { notificationNotice: 'access_unavailable' },
     });
   });
 
-  it("routes mixed-case event.deleted taps to Events tab", () => {
+  it('routes an active conversation only after server resolution', () => {
     const navigator = createNavigator();
     const setActiveConversation = jest.fn();
-    const data: PushData = { type: " Event.Deleted ", eventId: "123" };
-
-    handleNotificationTap(data, setActiveConversation, navigator);
-
-    expect(setActiveConversation).not.toHaveBeenCalled();
-    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
-      screen: "Events",
-    });
+    routeResolvedNotification(
+      { status: 'active', destination: 'chat', conversation_id: 9 },
+      setActiveConversation,
+      navigator,
+    );
+    expect(setActiveConversation).toHaveBeenCalledWith(9);
+    expect(navigator.navigate).toHaveBeenCalledWith('ChatThread');
   });
 
-  it("keeps existing join_request.denied routing intact", () => {
-    const navigator = createNavigator();
-    const setActiveConversation = jest.fn();
-    const data: PushData = { type: "join_request.denied" };
-
-    handleNotificationTap(data, setActiveConversation, navigator);
-
-    expect(navigator.navigate).toHaveBeenCalledWith("Main", {
-      screen: "Messages",
-    });
-  });
-
-  it("does not navigate when navigation is not ready", () => {
+  it('does not navigate when navigation is not ready', () => {
     const navigator = createNavigator(false);
-    const setActiveConversation = jest.fn();
-    const data: PushData = { type: "event.deleted", eventId: "123" };
-
-    handleNotificationTap(data, setActiveConversation, navigator);
-
+    routeResolvedNotification({ status: 'active', destination: 'events' }, jest.fn(), navigator);
     expect(navigator.navigate).not.toHaveBeenCalled();
-    expect(setActiveConversation).not.toHaveBeenCalled();
   });
 });

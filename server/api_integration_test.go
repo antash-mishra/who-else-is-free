@@ -6062,6 +6062,9 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 		found := false
 		for _, n := range notifications {
 			if n.Token == "fcm-ava-device" && n.Data["type"] == "join_request.created" {
+				if n.Data["notificationId"] == "" || n.Data["joinRequestId"] == "" || n.Data["requesterId"] == "" || n.Data["senderName"] == "" {
+					t.Fatalf("join request push missing resolver identity: %+v", n.Data)
+				}
 				found = true
 			}
 		}
@@ -6114,6 +6117,9 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 		found := false
 		for _, n := range notifications {
 			if n.Token == "fcm-noah-device" && n.Data["type"] == "join_request.approved" {
+				if n.Data["notificationId"] == "" || n.Data["joinRequestId"] == "" {
+					t.Fatalf("approval push missing resolver identity: %+v", n.Data)
+				}
 				found = true
 			}
 		}

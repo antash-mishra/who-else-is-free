@@ -1,11 +1,14 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+
 import { Image } from 'expo-image';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { AppNotification } from '@api/mappers/notifications';
 import ScalePressable from '@components/ScalePressable';
-import UserAvatar from '@components/UserAvatar';
 import { UnreadDot } from '@components/ui';
+import UserAvatar from '@components/UserAvatar';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing, typography } from '@theme/index';
 import { ChatGroup, InboxItem, JoinGroup } from '@utils/notificationCollapse';
@@ -27,7 +30,25 @@ export interface NotificationRowProps {
   nowMs: number;
   /** Event cover for rows with an associated event (singles + join groups). */
   eventImageUri?: string;
+  isResolving?: boolean;
 }
+
+const NotificationStatusIcon = ({ unavailable }: { unavailable: boolean }) => (
+  <Svg width={14} height={14} viewBox="0 0 14 14" accessibilityElementsHidden>
+    <Circle cx={7} cy={7} r={5.75} stroke={colors.cardMeta} strokeWidth={1.5} fill="none" />
+    {unavailable ? (
+      <Path d="M4.25 9.75l5.5-5.5" stroke={colors.cardMeta} strokeWidth={1.5} />
+    ) : (
+      <Path
+        d="M4 7.1l1.8 1.8L10 4.8"
+        stroke={colors.cardMeta}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    )}
+  </Svg>
+);
 
 /**
  * NotificationRow: 40px circular avatar/cover, blue unread dot at the left edge,
@@ -41,8 +62,14 @@ const NotificationRow = ({
   onPressJoinGroup,
   nowMs,
   eventImageUri,
+  isResolving = false,
 }: NotificationRowProps) => {
-  const hasUnread = item.kind === 'single' ? !item.notification.read : true;
+  const actionState =
+    item.kind === 'single' ? item.notification.actionState : item.group.actionState;
+  const isInactive = actionState !== 'active';
+  const isUnavailable = actionState === 'unavailable';
+  const hasUnread =
+    actionState === 'active' && (item.kind === 'single' ? !item.notification.read : true);
   const timestampLabel = formatCompactRelativeTime(item.createdAt, nowMs);
 
   let segments;
@@ -66,6 +93,12 @@ const NotificationRow = ({
     avatarSeed = item.notification.id;
   }
 
+  if (isUnavailable) {
+    a11yLabel = `Unavailable notification. Opens Discover and explains why. ${a11yLabel}`;
+  } else if (isInactive) {
+    a11yLabel = `Handled notification. ${a11yLabel}`;
+  }
+
   const handlePress = () => {
     triggerHaptic('light');
     if (item.kind === 'chatGroup') {
@@ -83,11 +116,13 @@ const NotificationRow = ({
       delay={80}
       accessibilityRole="button"
       accessibilityLabel={a11yLabel}
+      accessibilityState={{ disabled: isResolving, busy: isResolving }}
+      disabled={isResolving}
       style={styles.row}
     >
       {hasUnread && <UnreadDot style={styles.unreadDot} />}
       <View style={styles.rowContent}>
-        <View style={styles.avatar}>
+        <View style={[styles.avatar, isInactive && styles.avatarInactive]}>
           {eventImageUri ? (
             <Image
               source={{ uri: eventImageUri }}
@@ -102,7 +137,7 @@ const NotificationRow = ({
         <View style={styles.copyInner}>
           <View style={styles.titleRow}>
             <Text
-              style={[styles.message, !hasUnread && styles.messageRead]}
+              style={[styles.message, (!hasUnread || isInactive) && styles.messageRead]}
               numberOfLines={3}
               ellipsizeMode="tail"
             >
@@ -118,12 +153,20 @@ const NotificationRow = ({
                 </Text>
               ))}
             </Text>
-            {timestampLabel ? (
+            {isResolving ? (
+              <ActivityIndicator size="small" color={colors.cardMeta} style={styles.timestamp} />
+            ) : timestampLabel ? (
               <Text style={styles.timestamp} numberOfLines={1}>
                 {timestampLabel}
               </Text>
             ) : null}
           </View>
+          {isInactive ? (
+            <View style={styles.statusRow}>
+              <NotificationStatusIcon unavailable={isUnavailable} />
+              <Text style={styles.statusLabel}>{isUnavailable ? 'Unavailable' : 'Handled'}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </ScalePressable>
@@ -163,6 +206,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  avatarInactive: {
+    opacity: 0.62,
   },
   copyInner: {
     flex: 1,
@@ -205,9 +251,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
     letterSpacing: -0.2,
-    color: '#8B8B8B', // same as the chat list timestamp
+    color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
     textAlign: 'right',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  statusLabel: {
+    color: colors.cardMeta,
+    fontFamily: typography.fontFamilyMedium,
+    fontSize: typography.small,
+    lineHeight: typography.body,
   },
 });
 

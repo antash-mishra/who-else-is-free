@@ -26,8 +26,10 @@ func (h *ChatHub) recordAndSendPushToUsers(userIDs []int64, data map[string]stri
 	rawBody := payloadField(data, "body")
 	eventID := int64PtrOrNil(payloadField(data, "eventId"))
 	conversationID := int64PtrOrNil(payloadField(data, "conversationId"))
+	joinRequestID := int64PtrOrNil(payloadField(data, "joinRequestId"))
 	payloadJSON := encodeNotificationPayload(data)
 	row := buildNotification(0, nType, eventID, conversationID, title, rawBody, payloadJSON)
+	row.JoinRequestID = joinRequestID
 
 	// De-duplicate recipients the same way sendPushToUsers does, so we insert
 	// exactly one row per unique user.
@@ -44,18 +46,22 @@ func (h *ChatHub) recordAndSendPushToUsers(userIDs []int64, data map[string]stri
 		unique = append(unique, userID)
 	}
 
+	notificationIDs := make(map[int64]int64, len(unique))
 	if len(unique) > 0 {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		for _, userID := range unique {
 			row.UserID = userID
-			if _, err := h.repo.CreateNotification(ctx, row); err != nil {
+			stored, err := h.repo.CreateNotification(ctx, row)
+			if err != nil {
 				log.Printf("notifications: persist row for user %d failed: %v (push still sent)", userID, err)
+				continue
 			}
+			notificationIDs[userID] = stored.ID
 		}
 		cancel()
 	}
 
-	h.sendPushToUsers(unique, data)
+	h.sendPushToUsersWithNotificationIDs(unique, data, notificationIDs)
 }
 
 // recordChatMessageNotification persists a chat.message Notification row for a
@@ -63,15 +69,19 @@ func (h *ChatHub) recordAndSendPushToUsers(userIDs []int64, data map[string]stri
 // "<senderName>: <preview>", which is also the verbatim inbox body for
 // chat.message — no override). Best-effort; insert failure is logged and does
 // not block the FCM dispatch.
-func (h *ChatHub) recordChatMessageNotification(recipientID int64, conversationID int64, senderName, title, body string, data map[string]string) {
+func (h *ChatHub) recordChatMessageNotification(recipientID int64, conversationID int64, senderName, title, body string, data map[string]string) *int64 {
 	convID := conversationID
+	eventID := int64PtrOrNil(payloadField(data, "eventId"))
 	payloadJSON := encodeNotificationPayload(data)
-	row := buildNotification(recipientID, NotificationTypeChatMessage, nil, &convID, title, body, payloadJSON)
+	row := buildNotification(recipientID, NotificationTypeChatMessage, eventID, &convID, title, body, payloadJSON)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if _, err := h.repo.CreateNotification(ctx, row); err != nil {
+	stored, err := h.repo.CreateNotification(ctx, row)
+	if err != nil {
 		log.Printf("notifications: persist chat.message row for user %d failed: %v (push still sent)", recipientID, err)
+		return nil
 	}
+	return &stored.ID
 }
 
 // encodeNotificationPayload serializes the raw push data map into a JSON

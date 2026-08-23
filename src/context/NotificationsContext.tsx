@@ -11,6 +11,7 @@ import {
 
 import { requestJson } from '@api/client';
 import { ApiNotification, AppNotification, mapNotifications } from '@api/mappers/notifications';
+import { NotificationActionResolution } from '@api/notifications';
 import { useAuth } from '@context/AuthContext';
 import { logger } from '@services/logger';
 
@@ -29,6 +30,7 @@ type NotificationsContextValue = {
   /** Cheap unread-count-only fetch used by foreground push refresh + mark-read re-sync. */
   refreshUnreadCount: () => Promise<void>;
   markRead: (id: number) => Promise<void>;
+  applyActionResolution: (ids: number[], resolution: NotificationActionResolution) => void;
   markAllRead: () => Promise<void>;
   clearAll: () => Promise<void>;
 };
@@ -133,9 +135,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
   const markRead = useCallback(
     async (id: number) => {
       // Optimistic flip + count decrement (Confirmed Decision #10).
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
       if (!canFetch) {
         return;
@@ -155,6 +155,36 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       }
     },
     [canFetch, token, fetchUnreadCount, refresh],
+  );
+
+  const applyActionResolution = useCallback(
+    (ids: number[], resolution: NotificationActionResolution) => {
+      const idSet = new Set(ids);
+      const activeUnreadCount = notifications.filter(
+        (notification) =>
+          idSet.has(notification.id) && !notification.read && notification.actionState === 'active',
+      ).length;
+      const resolvedAt = new Date().toISOString();
+      setNotifications((prev) =>
+        prev.map((notification) => {
+          if (!idSet.has(notification.id)) return notification;
+          return {
+            ...notification,
+            read: true,
+            ...(resolution.status === 'active'
+              ? {}
+              : {
+                  actionState: resolution.status,
+                  actionReason: resolution.reason,
+                  actionResolvedAt: resolvedAt,
+                }),
+          };
+        }),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - activeUnreadCount));
+      fetchUnreadCount().catch(() => undefined);
+    },
+    [fetchUnreadCount, notifications],
   );
 
   const markAllRead = useCallback(async () => {
@@ -205,7 +235,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     if (!user) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sign-out requires synchronous state reset.
       setNotifications([]);
-       
+
       setUnreadCount(0);
       offsetRef.current = 0;
       exhaustedRef.current = false;
@@ -225,15 +255,27 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       loadMore,
       refreshUnreadCount,
       markRead,
+      applyActionResolution,
       markAllRead,
       clearAll,
     }),
-    [notifications, unreadCount, loading, refreshing, error, refresh, loadMore, refreshUnreadCount, markRead, markAllRead, clearAll],
+    [
+      notifications,
+      unreadCount,
+      loading,
+      refreshing,
+      error,
+      refresh,
+      loadMore,
+      refreshUnreadCount,
+      markRead,
+      applyActionResolution,
+      markAllRead,
+      clearAll,
+    ],
   );
 
-  return (
-    <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>
-  );
+  return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 };
 
 export const useNotifications = () => {

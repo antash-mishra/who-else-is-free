@@ -55,6 +55,9 @@ func TestCreateNotification_PersistsRow(t *testing.T) {
 	if n.Read {
 		t.Fatal("new notification should be unread")
 	}
+	if n.ActionState != NotificationActionActive {
+		t.Fatalf("action state = %q, want active", n.ActionState)
+	}
 	if n.EventID == nil || *n.EventID != eid {
 		t.Fatalf("event id = %v, want %d", n.EventID, eid)
 	}
@@ -63,6 +66,179 @@ func TestCreateNotification_PersistsRow(t *testing.T) {
 	}
 	if n.Payload != `{"foo":"bar"}` {
 		t.Fatalf("payload = %q", n.Payload)
+	}
+}
+
+func TestCreateNotification_PersistsActionContract(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	joinRequestID := int64(91)
+	reason := NotificationReasonRequestApproved
+	resolvedAt := time.Now().UTC().Truncate(time.Second)
+
+	n, err := repo.CreateNotification(ctx, Notification{
+		UserID:           1,
+		Type:             NotificationTypeJoinRequestCreated,
+		JoinRequestID:    &joinRequestID,
+		Title:            "Hike",
+		Body:             "Alice wants to join your event",
+		ActionState:      NotificationActionResolved,
+		ActionReason:     &reason,
+		ActionResolvedAt: &resolvedAt,
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if n.ActionState != NotificationActionResolved {
+		t.Fatalf("action state = %q, want resolved", n.ActionState)
+	}
+	if !n.Read {
+		t.Fatal("inactive task notification must be read")
+	}
+	if n.ActionReason == nil || *n.ActionReason != reason {
+		t.Fatalf("action reason = %v, want %q", n.ActionReason, reason)
+	}
+	if n.ActionResolvedAt == nil || !n.ActionResolvedAt.Equal(resolvedAt) {
+		t.Fatalf("resolved at = %v, want %v", n.ActionResolvedAt, resolvedAt)
+	}
+	if n.JoinRequestID == nil || *n.JoinRequestID != joinRequestID {
+		t.Fatalf("join request id = %v, want %d", n.JoinRequestID, joinRequestID)
+	}
+
+	rows, err := repo.ListNotifications(ctx, 1, 20, 0)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ActionState != NotificationActionResolved {
+		t.Fatalf("listed rows = %+v", rows)
+	}
+}
+
+func TestCreateNotification_RejectsInvalidActionState(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	_, err := repo.CreateNotification(context.Background(), Notification{
+		UserID:      1,
+		Type:        NotificationTypeChatMessage,
+		Title:       "Hike",
+		Body:        "hello",
+		ActionState: NotificationActionState("stale"),
+	})
+	if err == nil {
+		t.Fatal("expected invalid action state error")
+	}
+}
+
+func TestInitMigratesAndBackfillsLegacyNotificationActions(t *testing.T) {
+	db, err := openDB(":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	ctx := context.Background()
+
+	if _, err := db.ExecContext(ctx, createTableUsers); err != nil {
+		t.Fatalf("create legacy users: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO users (name, email, password) VALUES ('Host', 'host@example.test', 'pw');`); err != nil {
+		t.Fatalf("insert legacy user: %v", err)
+	}
+	const legacyNotifications = `
+		CREATE TABLE notifications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			type TEXT NOT NULL,
+			event_id INTEGER,
+			conversation_id INTEGER,
+			title TEXT NOT NULL,
+			body TEXT NOT NULL,
+			payload TEXT,
+			read INTEGER NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+		);`
+	if _, err := db.ExecContext(ctx, legacyNotifications); err != nil {
+		t.Fatalf("create legacy notifications: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO notifications (user_id, type, event_id, title, body)
+		VALUES (1, 'join_request.created', 999, 'Gone event', 'Alice wants to join');
+	`); err != nil {
+		t.Fatalf("insert legacy notification: %v", err)
+	}
+
+	repo := NewEventRepository(db)
+	if err := repo.Init(ctx); err != nil {
+		t.Fatalf("first init: %v", err)
+	}
+	rows, err := repo.ListNotifications(ctx, 1, 20, 0)
+	if err != nil {
+		t.Fatalf("list migrated notifications: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("row count = %d, want 1", len(rows))
+	}
+	migrated := rows[0]
+	if migrated.ActionState != NotificationActionUnavailable || !migrated.Read {
+		t.Fatalf("migrated notification = %+v, want unavailable and read", migrated)
+	}
+	if migrated.ActionReason == nil || *migrated.ActionReason != NotificationReasonEventDeleted {
+		t.Fatalf("action reason = %v, want event_deleted", migrated.ActionReason)
+	}
+	if migrated.ActionResolvedAt == nil {
+		t.Fatal("expected action_resolved_at backfill")
+	}
+	firstResolvedAt := *migrated.ActionResolvedAt
+
+	if err := repo.Init(ctx); err != nil {
+		t.Fatalf("second init: %v", err)
+	}
+	rows, err = repo.ListNotifications(ctx, 1, 20, 0)
+	if err != nil {
+		t.Fatalf("list after second init: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ActionResolvedAt == nil || !rows[0].ActionResolvedAt.Equal(firstResolvedAt) {
+		t.Fatalf("rerun changed migrated row: before=%v after=%+v", firstResolvedAt, rows)
+	}
+}
+
+func TestBackfillNotificationActionState_ResolvesLegacyRequestWithoutPendingWork(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	result, err := repo.db.ExecContext(ctx, `
+		INSERT INTO events (
+			user_id, title, location, time, event_date, gender, min_age, max_age,
+			date_label, group_type, cover_key
+		) VALUES (1, 'Hike', 'Trail', '10:00', '2099-01-01', 'Everyone', 18, 99, 'Today', 'Group', 'sports-badminton-1');
+	`)
+	if err != nil {
+		t.Fatalf("insert event: %v", err)
+	}
+	eventID, err := result.LastInsertId()
+	if err != nil {
+		t.Fatalf("event id: %v", err)
+	}
+	if _, err := repo.CreateNotification(ctx, Notification{
+		UserID:  1,
+		Type:    NotificationTypeJoinRequestCreated,
+		EventID: &eventID,
+		Title:   "Hike",
+		Body:    "Alice wants to join your event",
+	}); err != nil {
+		t.Fatalf("create notification: %v", err)
+	}
+
+	if err := repo.backfillNotificationActionState(ctx); err != nil {
+		t.Fatalf("backfill: %v", err)
+	}
+	rows, err := repo.ListNotifications(ctx, 1, 20, 0)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ActionState != NotificationActionResolved || !rows[0].Read {
+		t.Fatalf("backfilled rows = %+v", rows)
+	}
+	if rows[0].ActionReason != nil {
+		t.Fatalf("ambiguous legacy resolution reason = %v, want nil", rows[0].ActionReason)
 	}
 }
 
@@ -134,8 +310,17 @@ func TestCountUnreadNotifications(t *testing.T) {
 			t.Fatalf("create: %v", err)
 		}
 	}
+	if _, err := repo.CreateNotification(ctx, Notification{
+		UserID:      uid,
+		Type:        NotificationTypeChatMessage,
+		Title:       "Handled",
+		Body:        "B",
+		ActionState: NotificationActionResolved,
+	}); err != nil {
+		t.Fatalf("create inactive: %v", err)
+	}
 	if count, err := repo.CountUnreadNotifications(ctx, uid); err != nil || count != 3 {
-		t.Fatalf("count = %d, err %v, want 3", count, err)
+		t.Fatalf("count = %d, err %v, want 3 active rows", count, err)
 	}
 }
 

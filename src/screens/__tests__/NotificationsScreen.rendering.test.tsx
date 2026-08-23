@@ -4,11 +4,12 @@
  */
 
 import React from 'react';
+
 import { act, fireEvent, render } from '@testing-library/react-native';
-import { InteractionManager } from 'react-native';
+
+import { AppNotification } from '@api/mappers/notifications';
 
 import NotificationsScreen from '../NotificationsScreen';
-import { AppNotification } from '@api/mappers/notifications';
 
 // Mock navigation
 const mockGoBack = jest.fn();
@@ -41,10 +42,21 @@ jest.mock('@navigation/navigationRef', () => {
 const navRefModule = require('@navigation/navigationRef');
 const mockNavRefNavigate = navRefModule.navigationRef.navigate;
 
+const mockResolveNotificationAction = jest.fn();
+jest.mock('@api/notifications', () => ({
+  ...jest.requireActual('@api/notifications'),
+  resolveNotificationAction: (...args: unknown[]) => mockResolveNotificationAction(...args),
+}));
+
+jest.mock('@context/AuthContext', () => ({
+  useAuth: () => ({ token: 'auth-token', user: { id: 1 } }),
+}));
+
 // Mock NotificationsContext
 const mockRefresh = jest.fn().mockResolvedValue(undefined);
 const mockLoadMore = jest.fn().mockResolvedValue(undefined);
 const mockMarkRead = jest.fn().mockResolvedValue(undefined);
+const mockApplyActionResolution = jest.fn();
 const mockMarkAllRead = jest.fn().mockResolvedValue(undefined);
 const mockRefreshUnreadCount = jest.fn().mockResolvedValue(undefined);
 const mockClearAll = jest.fn().mockResolvedValue(undefined);
@@ -59,6 +71,7 @@ let mockNotificationsValue: {
   loadMore: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
   markRead: (id: number) => Promise<void>;
+  applyActionResolution: typeof mockApplyActionResolution;
   markAllRead: () => Promise<void>;
   clearAll: () => Promise<void>;
 } = {
@@ -71,6 +84,7 @@ let mockNotificationsValue: {
   loadMore: mockLoadMore,
   refreshUnreadCount: mockRefreshUnreadCount,
   markRead: mockMarkRead,
+  applyActionResolution: mockApplyActionResolution,
   markAllRead: mockMarkAllRead,
   clearAll: mockClearAll,
 };
@@ -97,6 +111,12 @@ jest.mock('@context/EventsContext', () => ({
 jest.mock('@services/haptics', () => ({
   triggerHaptic: jest.fn(),
 }));
+
+jest.mock('@components/EventActionBadge', () => {
+  const { Text } = require('react-native');
+  return ({ visible, label }: { visible: boolean; label: string }) =>
+    visible ? <Text>{label}</Text> : null;
+});
 
 // Mock the BottomSheet sheet components so we can test the action menu without Reanimated/Modal.
 jest.mock('@components/sheets', () => {
@@ -136,6 +156,7 @@ const sampleNotifications = (): AppNotification[] => [
     body: 'Alice: hey',
     payload: JSON.stringify({ senderName: 'Alice' }),
     read: false,
+    actionState: 'active',
     createdAt: new Date(Date.now() - 5 * 60_000).toISOString(),
   },
   {
@@ -145,6 +166,7 @@ const sampleNotifications = (): AppNotification[] => [
     title: 'Hike',
     body: 'This event is no longer available to you. Explore other events nearby.',
     read: true,
+    actionState: 'active',
     createdAt: new Date(Date.now() - 3 * 3600_000).toISOString(),
   },
 ];
@@ -152,9 +174,10 @@ const sampleNotifications = (): AppNotification[] => [
 describe('NotificationsScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(InteractionManager, 'runAfterInteractions').mockImplementation((cb: any) => {
-      cb();
-      return { cancel: jest.fn() } as any;
+    mockResolveNotificationAction.mockResolvedValue({
+      status: 'active',
+      destination: 'chat',
+      conversation_id: 10,
     });
     mockConversations = [{ id: 10 }];
     mockNotificationsValue = {
@@ -241,7 +264,7 @@ describe('NotificationsScreen Rendering', () => {
     expect(UNSAFE_getByProps).toBeTruthy();
   });
 
-  it('marks read and routes to chat thread on tap of a chat.message row', async () => {
+  it('resolves and routes to chat thread on tap of a chat.message row', async () => {
     mockNotificationsValue = {
       ...mockNotificationsValue,
       notifications: sampleNotifications(),
@@ -253,12 +276,23 @@ describe('NotificationsScreen Rendering', () => {
       fireEvent.press(getByLabelText(/New message from Alice/));
     });
 
-    expect(mockMarkRead).toHaveBeenCalledWith(1);
+    expect(mockResolveNotificationAction).toHaveBeenCalledWith('auth-token', {
+      notification_ids: [1],
+      mark_handled: true,
+    });
+    expect(mockApplyActionResolution).toHaveBeenCalledWith(
+      [1],
+      expect.objectContaining({ destination: 'chat' }),
+    );
     expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
     expect(mockNavRefNavigate).toHaveBeenCalledWith('ChatThread');
   });
 
   it('routes denied rows to Main → Events (inbox override)', async () => {
+    mockResolveNotificationAction.mockResolvedValue({
+      status: 'active',
+      destination: 'events',
+    });
     mockNotificationsValue = {
       ...mockNotificationsValue,
       notifications: sampleNotifications(),
@@ -270,8 +304,10 @@ describe('NotificationsScreen Rendering', () => {
       fireEvent.press(getByLabelText(/Hike is no longer available/));
     });
 
-    // Read row => markRead NOT called for id 2.
-    expect(mockMarkRead).not.toHaveBeenCalled();
+    expect(mockApplyActionResolution).toHaveBeenCalledWith(
+      [2],
+      expect.objectContaining({ destination: 'events' }),
+    );
     expect(mockNavRefNavigate).toHaveBeenCalledWith('Main', { screen: 'Events' });
   });
 
@@ -293,6 +329,42 @@ describe('NotificationsScreen Rendering', () => {
     expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
     expect(mockNavRefNavigate).toHaveBeenCalledWith('ChatThread');
     expect(mockNavigate).not.toHaveBeenCalledWith('Main', { screen: 'Events' });
+  });
+
+  it('does not navigate blindly when resolution fails', async () => {
+    mockResolveNotificationAction.mockRejectedValue(new Error('offline'));
+    mockNotificationsValue = {
+      ...mockNotificationsValue,
+      notifications: sampleNotifications(),
+      unreadCount: 1,
+    };
+    const { getByLabelText, getByText } = render(<NotificationsScreen />);
+
+    await act(async () => {
+      fireEvent.press(getByLabelText(/New message from Alice/));
+    });
+
+    expect(mockNavRefNavigate).not.toHaveBeenCalled();
+    expect(mockApplyActionResolution).not.toHaveBeenCalled();
+    expect(getByText('Unable to open this notification. Please try again.')).toBeTruthy();
+  });
+
+  it('renders unavailable task history with a status label and safe accessibility copy', () => {
+    const unavailable = sampleNotifications()[0];
+    unavailable.read = true;
+    unavailable.actionState = 'unavailable';
+    unavailable.actionReason = 'conversation_deleted';
+    mockNotificationsValue = {
+      ...mockNotificationsValue,
+      notifications: [unavailable],
+      unreadCount: 0,
+    };
+    const { getByLabelText, getByText } = render(<NotificationsScreen />);
+
+    expect(getByText('Unavailable')).toBeTruthy();
+    expect(
+      getByLabelText(/Unavailable notification\. Opens Discover and explains why/),
+    ).toBeTruthy();
   });
 
   it('refreshes on focus', () => {

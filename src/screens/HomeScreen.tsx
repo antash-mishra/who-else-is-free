@@ -17,8 +17,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import AnimatedPager from '@components/AnimatedPager';
 import EmptyState from '@components/EmptyState';
-import { emptyStateAnchorTop } from '@components/FullPageEmptyState';
 import EventActionBadge from '@components/EventActionBadge';
+import EventActionOverlay from '@components/EventActionOverlay';
 import { EventItemProps } from '@components/EventCard';
 import {
   EventListPage,
@@ -27,6 +27,7 @@ import {
   buildSingleEventSection,
   sortEventsByCreatedAtDesc,
 } from '@components/events';
+import { emptyStateAnchorTop } from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl from '@components/SegmentedControl';
 import { AppButton } from '@components/ui';
@@ -49,6 +50,7 @@ const isLocalOrViewerOwnedEvent = (event: EventWithDistance<UserEvent>, viewerUs
   (viewerUserId != null && event.ownerId === viewerUserId);
 
 type SortOptionValue = 'upcoming' | 'nearest' | 'newest';
+type NotificationNotice = 'event_unavailable' | 'access_unavailable';
 
 const baseSortOptions: Array<{ label: string; value: SortOptionValue }> = [
   { label: 'Upcoming', value: 'upcoming' },
@@ -95,6 +97,14 @@ const HomeScreen = () => {
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
   const [showWelcomeBadge, setShowWelcomeBadge] = useState(false);
+  const [notificationNotice, setNotificationNotice] = useState<NotificationNotice | null>(null);
+
+  useEffect(() => {
+    if (!isFocused || !route.params?.notificationNotice) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consume one-shot navigation notice after focus.
+    setNotificationNotice(route.params.notificationNotice);
+    navigation.setParams({ notificationNotice: undefined });
+  }, [isFocused, navigation, route.params?.notificationNotice]);
 
   useEffect(() => {
     if (!route.params?.showWelcomeBadge) return;
@@ -401,6 +411,23 @@ const HomeScreen = () => {
           setShowEventLeftBadge(false);
           navigation.setParams({ showEventLeftBadge: false });
         }}
+      />
+      <EventActionOverlay
+        isVisible={notificationNotice != null}
+        type="result"
+        title={
+          notificationNotice === 'event_unavailable'
+            ? 'Event unavailable'
+            : 'This is no longer available'
+        }
+        description={
+          notificationNotice === 'event_unavailable'
+            ? 'This event is no longer available. You can discover other events here.'
+            : 'You no longer have access to the original destination. You can discover other events here.'
+        }
+        dismissLabel="Explore events"
+        onDismiss={() => setNotificationNotice(null)}
+        onBackdropPress={() => setNotificationNotice(null)}
       />
     </ScreenContainer>
   );

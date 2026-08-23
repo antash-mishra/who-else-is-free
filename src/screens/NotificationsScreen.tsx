@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   ActivityIndicator,
-  InteractionManager,
   Pressable,
   RefreshControl,
   SectionList,
@@ -14,39 +13,37 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppNotification } from '@api/mappers/notifications';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import EmptyState from '@components/EmptyState';
+import EventActionBadge from '@components/EventActionBadge';
 import FullPageEmptyState from '@components/FullPageEmptyState';
 import NotificationRow from '@components/NotificationRow';
 import ScreenContainer from '@components/ScreenContainer';
 import { BottomSheet, SheetActionList } from '@components/sheets';
 import { AppText, IconButton } from '@components/ui';
+import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
-import { routeFromNotification, PushData } from '@context/pushRouting';
+import { openNotification } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
 import { RootStackParamList } from '@navigation/types';
-import { ChatGroup, InboxItem, JoinGroup, collapseNotifications } from '@utils/notificationCollapse';
-import { groupNotificationsByDate } from '@utils/notificationSections';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { colors, layout, spacing, typography } from '@theme/index';
+import {
+  ChatGroup,
+  InboxItem,
+  JoinGroup,
+  collapseNotifications,
+} from '@utils/notificationCollapse';
+import { groupNotificationsByDate } from '@utils/notificationSections';
 import { getNextCompactRelativeTimeUpdateMs } from '@utils/relativeTime';
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type NotificationsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const pushDataFromNotification = (n: AppNotification): PushData => ({
-  type: n.type,
-  conversationId: n.conversationId != null ? String(n.conversationId) : undefined,
-  eventId: n.eventId != null ? String(n.eventId) : undefined,
-  title: n.title,
-  body: n.body,
-});
 
 const NotificationsScreen = () => {
   const navigation = useNavigation<NotificationsScreenNavigationProp>();
@@ -59,14 +56,17 @@ const NotificationsScreen = () => {
     error,
     refresh,
     loadMore,
-    markRead,
+    applyActionResolution,
     markAllRead,
     clearAll,
   } = useNotifications();
+  const { token } = useAuth();
   const { setActiveConversation } = useChat();
   const { events } = useEvents();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [menuVisible, setMenuVisible] = useState(false);
+  const [resolvingIDs, setResolvingIDs] = useState<Set<number>>(() => new Set());
+  const [showOpenError, setShowOpenError] = useState(false);
   // Collapse chat messages per conversation, then bucket into time sections.
   const inboxItems = useMemo(() => collapseNotifications(notifications), [notifications]);
   // Event cover for singles + join groups (chat groups fall back to a monogram).
@@ -85,10 +85,7 @@ const NotificationsScreen = () => {
     },
     [events],
   );
-  const sections = useMemo(
-    () => groupNotificationsByDate(inboxItems, nowMs),
-    [inboxItems, nowMs],
-  );
+  const sections = useMemo(() => groupNotificationsByDate(inboxItems, nowMs), [inboxItems, nowMs]);
 
   // Reload page 1 + count whenever the inbox is focused so it's fresh on open.
   useFocusEffect(
@@ -109,68 +106,52 @@ const NotificationsScreen = () => {
     return () => clearTimeout(timeoutId);
   }, [notifications, nowMs]);
 
-  const handleRowPress = useCallback(
-    (notification: AppNotification) => {
-      const tapTime = Date.now();
-      logger.log(`notifications: tap at ${tapTime}`);
-      const data = pushDataFromNotification(notification);
-
-      // Navigate first so the transition starts immediately, then mark read
-      // after the navigation animation finishes — avoids blocking the JS thread
-      // with an optimistic state update + network call before navigation. Do
-      // not pre-check ChatContext.conversations here; that list can be stale or
-      // still loading, while the persisted notification payload has the route.
-      routeFromNotification(data, setActiveConversation, navigationRef);
-      if (!notification.read) {
-        InteractionManager.runAfterInteractions(() => {
-          logger.log(
-            `notifications: markRead deferred callback fired at ${Date.now()} (+${Date.now() - tapTime}ms)`,
-          );
-          markRead(notification.id).catch(() => undefined);
+  const openNotificationIDs = useCallback(
+    async (ids: number[]) => {
+      if (!token || ids.length === 0 || ids.some((id) => resolvingIDs.has(id))) return;
+      setShowOpenError(false);
+      setResolvingIDs((current) => new Set([...current, ...ids]));
+      try {
+        const resolution = await openNotification({
+          request: { notification_ids: ids, mark_handled: true },
+          token,
+          setActiveConversation,
+          navigator: navigationRef,
+        });
+        applyActionResolution(ids, resolution);
+      } catch (err) {
+        logger.warn('notifications: action resolution failed', err);
+        setShowOpenError(true);
+      } finally {
+        setResolvingIDs((current) => {
+          const next = new Set(current);
+          ids.forEach((id) => next.delete(id));
+          return next;
         });
       }
     },
-    [markRead, setActiveConversation],
+    [applyActionResolution, resolvingIDs, setActiveConversation, token],
   );
 
-  // Tapping a collapsed group: route, then mark all of the group's underlying
-  // notifications read (so the row clears).
-  const markGroupRead = useCallback(
-    (ids: number[]) => {
-      InteractionManager.runAfterInteractions(() => {
-        ids.forEach((id) => markRead(id).catch(() => undefined));
-      });
+  const handleRowPress = useCallback(
+    (notification: { id: number }) => {
+      openNotificationIDs([notification.id]).catch(() => undefined);
     },
-    [markRead],
+    [openNotificationIDs],
   );
 
   const handleChatGroupPress = useCallback(
     (group: ChatGroup) => {
-      routeFromNotification(
-        { type: 'chat.message', conversationId: String(group.conversationId) },
-        setActiveConversation,
-        navigationRef,
-      );
-      markGroupRead(group.ids);
+      openNotificationIDs(group.ids).catch(() => undefined);
     },
-    [markGroupRead, setActiveConversation],
+    [openNotificationIDs],
   );
 
   const handleJoinGroupPress = useCallback(
     (group: JoinGroup) => {
-      routeFromNotification(
-        {
-          type: 'join_request.created',
-          eventId: String(group.eventId),
-          conversationId: group.conversationId != null ? String(group.conversationId) : undefined,
-          title: group.eventName,
-        },
-        setActiveConversation,
-        navigationRef,
-      );
-      markGroupRead(group.ids);
+      openNotificationIDs(group.ids).catch(() => undefined);
     },
-    [markGroupRead, setActiveConversation],
+    [openNotificationIDs],
   );
 
   const handleMarkAllRead = useCallback(() => {
@@ -209,88 +190,93 @@ const NotificationsScreen = () => {
 
   return (
     <View style={styles.screenRoot}>
-    <ScreenContainer edges={['top']}>
-      <View style={styles.header}>
-        <IconButton
-          accessibilityLabel="Go back"
-          icon={<ChevronLeftIcon width={24} height={24} color={colors.text} />}
-          onPress={navigation.goBack}
-          style={styles.backButton}
-        />
-        <View style={styles.titleContainer} pointerEvents="none">
-          <AppText variant="subtitle" style={styles.title} numberOfLines={1}>
-            Notifications
-          </AppText>
-        </View>
-        <IconButton
-          accessibilityLabel="More options"
-          testID="notifications-menu-button"
-          icon={<MoreHorizontalIcon width={24} height={24} color={colors.text} />}
-          onPress={() => setMenuVisible(true)}
-        />
-      </View>
-
-      {showInitialLoading ? (
-        <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : showError ? (
-        <View style={styles.centerContent}>
-          <AppText variant="body" style={styles.errorText}>
-            {error}
-          </AppText>
-          <Pressable hitSlop={layout.hitSlop.md} onPress={() => refresh().catch(() => undefined)}>
-            <AppText variant="button" style={styles.retryText}>
-              Try again
+      <ScreenContainer edges={['top']}>
+        <View style={styles.header}>
+          <IconButton
+            accessibilityLabel="Go back"
+            icon={<ChevronLeftIcon width={24} height={24} color={colors.text} />}
+            onPress={navigation.goBack}
+            style={styles.backButton}
+          />
+          <View style={styles.titleContainer} pointerEvents="none">
+            <AppText variant="subtitle" style={styles.title} numberOfLines={1}>
+              Notifications
             </AppText>
-          </Pressable>
+          </View>
+          <IconButton
+            accessibilityLabel="More options"
+            testID="notifications-menu-button"
+            icon={<MoreHorizontalIcon width={24} height={24} color={colors.text} />}
+            onPress={() => setMenuVisible(true)}
+          />
         </View>
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.key}
-          renderItem={({ item }) => (
-            <NotificationRow
-              item={item}
-              onPressSingle={handleRowPress}
-              onPressChatGroup={handleChatGroupPress}
-              onPressJoinGroup={handleJoinGroupPress}
-              nowMs={nowMs}
-              eventImageUri={resolveEventImageUri(item)}
-            />
-          )}
-          renderSectionHeader={({ section }) => (
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-          )}
-          stickySectionHeadersEnabled={false}
-          style={styles.list}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            showEmpty ? styles.emptyList : styles.listContent,
-            { paddingBottom: spacing.xl + safeBottom },
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => refresh().catch(() => undefined)}
-            />
-          }
-          onEndReached={() => {
-            loadMore().catch(() => undefined);
-          }}
-          onEndReachedThreshold={0.5}
-        />
-      )}
 
-      <BottomSheet
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        title="Notifications"
-        testID="notifications-menu-sheet"
-      >
-        <SheetActionList items={menuActions} />
-      </BottomSheet>
-    </ScreenContainer>
+        {showInitialLoading ? (
+          <View style={styles.centerContent}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : showError ? (
+          <View style={styles.centerContent}>
+            <AppText variant="body" style={styles.errorText}>
+              {error}
+            </AppText>
+            <Pressable hitSlop={layout.hitSlop.md} onPress={() => refresh().catch(() => undefined)}>
+              <AppText variant="button" style={styles.retryText}>
+                Try again
+              </AppText>
+            </Pressable>
+          </View>
+        ) : (
+          <SectionList
+            sections={sections}
+            keyExtractor={(item) => item.key}
+            renderItem={({ item }) => (
+              <NotificationRow
+                item={item}
+                onPressSingle={handleRowPress}
+                onPressChatGroup={handleChatGroupPress}
+                onPressJoinGroup={handleJoinGroupPress}
+                nowMs={nowMs}
+                eventImageUri={resolveEventImageUri(item)}
+                isResolving={
+                  item.kind === 'single'
+                    ? resolvingIDs.has(item.notification.id)
+                    : item.group.ids.some((id) => resolvingIDs.has(id))
+                }
+              />
+            )}
+            renderSectionHeader={({ section }) => (
+              <Text style={styles.sectionHeader}>{section.title}</Text>
+            )}
+            stickySectionHeadersEnabled={false}
+            style={styles.list}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              showEmpty ? styles.emptyList : styles.listContent,
+              { paddingBottom: spacing.xl + safeBottom },
+            ]}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => refresh().catch(() => undefined)}
+              />
+            }
+            onEndReached={() => {
+              loadMore().catch(() => undefined);
+            }}
+            onEndReachedThreshold={0.5}
+          />
+        )}
+
+        <BottomSheet
+          visible={menuVisible}
+          onClose={() => setMenuVisible(false)}
+          title="Notifications"
+          testID="notifications-menu-sheet"
+        >
+          <SheetActionList items={menuActions} />
+        </BottomSheet>
+      </ScreenContainer>
       <FullPageEmptyState visible={showEmpty} imageHeight={245}>
         <EmptyState
           title="No notifications yet"
@@ -300,6 +286,11 @@ const NotificationsScreen = () => {
           imageHeight={245}
         />
       </FullPageEmptyState>
+      <EventActionBadge
+        visible={showOpenError}
+        label="Unable to open this notification. Please try again."
+        onHidden={() => setShowOpenError(false)}
+      />
     </View>
   );
 };

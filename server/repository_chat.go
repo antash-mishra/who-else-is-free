@@ -273,6 +273,17 @@ func fetchJoinRequestByID(ctx context.Context, q rowQuery, id int64) (*Conversat
 	return req, nil
 }
 
+func (r *EventRepository) GetPendingJoinRequest(ctx context.Context, eventID, userID int64) (*ConversationJoinRequest, error) {
+	req, err := scanJoinRequest(r.db.QueryRowContext(ctx, selectPendingJoinRequest, eventID, userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrJoinRequestNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get pending join request: %w", err)
+	}
+	return req, nil
+}
+
 func fetchConversationByEventID(ctx context.Context, q rowQuery, eventID int64) (*Conversation, error) {
 	row := q.QueryRowContext(ctx, selectConversationByEventID, eventID)
 	var convo Conversation
@@ -633,6 +644,14 @@ func (r *EventRepository) findUserConversationForEvent(ctx context.Context, tx *
 }
 
 func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID int64) error {
+	return r.RemoveEventMemberWithReason(ctx, eventID, userID, NotificationReasonAccessRemoved)
+}
+
+func (r *EventRepository) RemoveEventMemberWithReason(
+	ctx context.Context,
+	eventID, userID int64,
+	reason NotificationActionReason,
+) error {
 	event, err := r.GetEventByID(ctx, eventID)
 	if err != nil {
 		return err
@@ -656,6 +675,10 @@ func (r *EventRepository) RemoveEventMember(ctx context.Context, eventID, userID
 	if err != nil {
 		return fmt.Errorf("begin remove member tx: %w", err)
 	}
+
+	// Best-effort eager invalidation happens while the exact conversation still
+	// exists. Tap-time resolution remains the correctness boundary if it fails.
+	_ = invalidateEventAccessNotificationsWith(ctx, tx, eventID, convo.ID, userID, reason)
 
 	if event.GroupType == "Single" {
 		// In 1:1 events, close the private conversation entirely so the host
@@ -997,6 +1020,21 @@ func (r *EventRepository) IsConversationMember(ctx context.Context, conversation
 		return false, fmt.Errorf("check conversation membership: %w", err)
 	}
 	return true, nil
+}
+
+func (r *EventRepository) GetConversationEventID(ctx context.Context, conversationID int64) (*int64, error) {
+	var eventID sql.NullInt64
+	if err := r.db.QueryRowContext(ctx, `SELECT event_id FROM conversations WHERE id = ?;`, conversationID).Scan(&eventID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrConversationNotFound
+		}
+		return nil, fmt.Errorf("get conversation event id: %w", err)
+	}
+	if !eventID.Valid {
+		return nil, nil
+	}
+	value := eventID.Int64
+	return &value, nil
 }
 
 func (r *EventRepository) CancelJoinRequest(ctx context.Context, eventID, userID int64) error {

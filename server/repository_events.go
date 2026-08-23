@@ -206,6 +206,21 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 			tx.Rollback()
 			return nil, fmt.Errorf("list approved members for event migration: %w", err)
 		}
+		seenConversationIDs := make(map[int64]struct{}, len(preMembers))
+		for _, member := range preMembers {
+			if _, seen := seenConversationIDs[member.ConversationID]; seen {
+				continue
+			}
+			seenConversationIDs[member.ConversationID] = struct{}{}
+			_, _ = tx.ExecContext(ctx, `
+				UPDATE notifications
+				SET action_state = 'unavailable', action_reason = 'conversation_replaced',
+				    action_resolved_at = CURRENT_TIMESTAMP, read = 1
+				WHERE action_state = 'active'
+				  AND type = 'chat.message'
+				  AND conversation_id = ?;
+			`, member.ConversationID)
+		}
 		if _, err := tx.ExecContext(ctx, deleteConversationsByEventID, id); err != nil {
 			tx.Rollback()
 			return nil, fmt.Errorf("delete event conversations during migration: %w", err)
@@ -387,7 +402,22 @@ func diffEventConversationMembers(source, target []EventConversationMember) []Ev
 }
 
 func (r *EventRepository) Delete(ctx context.Context, id int64, userID int64) error {
-	result, err := r.db.ExecContext(ctx, `DELETE FROM events WHERE id = ? AND user_id = ?`, id, userID)
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin delete event tx: %w", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// Best-effort and inside the delete transaction so conversation identifiers
+	// are still available before the event cascade removes them.
+	_ = invalidateEventNotificationsWith(ctx, tx, id)
+
+	result, err := tx.ExecContext(ctx, `DELETE FROM events WHERE id = ? AND user_id = ?`, id, userID)
 	if err != nil {
 		return fmt.Errorf("delete event: %w", err)
 	}
@@ -400,6 +430,10 @@ func (r *EventRepository) Delete(ctx context.Context, id int64, userID int64) er
 	if rowsAffected == 0 {
 		return ErrEventNotFound
 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit delete event: %w", err)
+	}
+	committed = true
 
 	return nil
 }

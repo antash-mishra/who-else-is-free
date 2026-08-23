@@ -620,6 +620,10 @@ CREATE TABLE IF NOT EXISTS notifications (
     body TEXT NOT NULL,
     payload TEXT,
     read INTEGER NOT NULL DEFAULT 0,
+    action_state TEXT NOT NULL DEFAULT 'active' CHECK(action_state IN ('active','resolved','unavailable')),
+    action_reason TEXT,
+    action_resolved_at DATETIME,
+    join_request_id INTEGER,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -635,14 +639,39 @@ CREATE INDEX IF NOT EXISTS notifications_user_read_idx
 ON notifications (user_id, read);
 `
 
+const createNotificationsUserActionReadIndex = `
+CREATE INDEX IF NOT EXISTS notifications_user_action_read_idx
+ON notifications (user_id, action_state, read);
+`
+
+const createNotificationsEventActionIndex = `
+CREATE INDEX IF NOT EXISTS notifications_event_action_idx
+ON notifications (event_id, type, action_state);
+`
+
+const createNotificationsConversationActionIndex = `
+CREATE INDEX IF NOT EXISTS notifications_conversation_action_idx
+ON notifications (conversation_id, type, action_state);
+`
+
+const createNotificationsJoinRequestActionIndex = `
+CREATE INDEX IF NOT EXISTS notifications_join_request_action_idx
+ON notifications (join_request_id, type, action_state);
+`
+
 const insertNotification = `
-INSERT INTO notifications (user_id, type, event_id, conversation_id, title, body, payload, read)
-VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-RETURNING id, user_id, type, event_id, conversation_id, title, body, payload, read, created_at;
+INSERT INTO notifications (
+    user_id, type, event_id, conversation_id, title, body, payload, read,
+    action_state, action_reason, action_resolved_at, join_request_id
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id, user_id, type, event_id, conversation_id, title, body, payload, read,
+          action_state, action_reason, action_resolved_at, join_request_id, created_at;
 `
 
 const selectNotificationsForUser = `
-SELECT id, user_id, type, event_id, conversation_id, title, body, payload, read, created_at
+SELECT id, user_id, type, event_id, conversation_id, title, body, payload, read,
+       action_state, action_reason, action_resolved_at, join_request_id, created_at
 FROM notifications
 WHERE user_id = ?
 ORDER BY created_at DESC, id DESC
@@ -652,7 +681,7 @@ LIMIT ? OFFSET ?;
 const countUnreadNotificationsForUser = `
 SELECT COUNT(1)
 FROM notifications
-WHERE user_id = ? AND read = 0;
+WHERE user_id = ? AND read = 0 AND action_state = 'active';
 `
 
 const markNotificationReadForUser = `
@@ -872,17 +901,135 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createTableNotifications); err != nil {
 		return fmt.Errorf("create notifications table: %w", err)
 	}
+	if err := r.ensureNotificationActionColumns(ctx); err != nil {
+		return err
+	}
+	if err := r.backfillNotificationActionState(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createNotificationsUserCreatedIndex); err != nil {
 		return fmt.Errorf("create notifications user_created index: %w", err)
 	}
 	if _, err := r.db.ExecContext(ctx, createNotificationsUserReadIndex); err != nil {
 		return fmt.Errorf("create notifications user_read index: %w", err)
 	}
+	if _, err := r.db.ExecContext(ctx, createNotificationsUserActionReadIndex); err != nil {
+		return fmt.Errorf("create notifications user_action_read index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createNotificationsEventActionIndex); err != nil {
+		return fmt.Errorf("create notifications event_action index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createNotificationsConversationActionIndex); err != nil {
+		return fmt.Errorf("create notifications conversation_action index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createNotificationsJoinRequestActionIndex); err != nil {
+		return fmt.Errorf("create notifications join_request_action index: %w", err)
+	}
 	if err := r.cleanupDuplicateSingleEventConversations(ctx); err != nil {
 		return err
 	}
 	if err := r.cleanupOrphanedSingleEventConversations(ctx); err != nil {
 		return err
+	}
+	return nil
+}
+
+// ensureNotificationActionColumns upgrades pre-action-state databases in
+// place. The PRAGMA cursor is explicitly closed before ALTER TABLE statements;
+// keeping it open can leave SQLite's schema locked during startup.
+func (r *EventRepository) ensureNotificationActionColumns(ctx context.Context) error {
+	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(notifications);`)
+	if err != nil {
+		return fmt.Errorf("inspect notifications table: %w", err)
+	}
+
+	columns := make(map[string]bool)
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			columnType string
+			notNull    int
+			defaultVal sql.NullString
+			primaryKey int
+		)
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultVal, &primaryKey); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan notifications schema: %w", err)
+		}
+		columns[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return fmt.Errorf("iterate notifications schema: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close notifications schema cursor: %w", err)
+	}
+
+	definitions := []struct {
+		name string
+		sql  string
+	}{
+		{"action_state", `ALTER TABLE notifications ADD COLUMN action_state TEXT NOT NULL DEFAULT 'active' CHECK(action_state IN ('active','resolved','unavailable'));`},
+		{"action_reason", `ALTER TABLE notifications ADD COLUMN action_reason TEXT;`},
+		{"action_resolved_at", `ALTER TABLE notifications ADD COLUMN action_resolved_at DATETIME;`},
+		{"join_request_id", `ALTER TABLE notifications ADD COLUMN join_request_id INTEGER;`},
+	}
+	for _, definition := range definitions {
+		if columns[definition.name] {
+			continue
+		}
+		if _, err := r.db.ExecContext(ctx, definition.sql); err != nil {
+			return fmt.Errorf("add notifications %s column: %w", definition.name, err)
+		}
+	}
+	return nil
+}
+
+// backfillNotificationActionState safely classifies unambiguous legacy rows.
+// Ambiguous request rows with any pending request remain active for the
+// tap-time resolver introduced in the next implementation phase.
+func (r *EventRepository) backfillNotificationActionState(ctx context.Context) error {
+	statements := []struct {
+		name string
+		sql  string
+	}{
+		{
+			"missing join-request event",
+			`UPDATE notifications
+			 SET action_state = 'unavailable', action_reason = 'event_deleted',
+			     action_resolved_at = COALESCE(action_resolved_at, CURRENT_TIMESTAMP), read = 1
+			 WHERE action_state = 'active' AND type = 'join_request.created'
+			   AND (event_id IS NULL OR NOT EXISTS (SELECT 1 FROM events e WHERE e.id = notifications.event_id));`,
+		},
+		{
+			"resolved legacy join request",
+			`UPDATE notifications
+			 SET action_state = 'resolved', action_reason = NULL,
+			     action_resolved_at = COALESCE(action_resolved_at, CURRENT_TIMESTAMP), read = 1
+			 WHERE action_state = 'active' AND type = 'join_request.created'
+			   AND EXISTS (SELECT 1 FROM events e WHERE e.id = notifications.event_id AND e.user_id = notifications.user_id)
+			   AND NOT EXISTS (
+			       SELECT 1 FROM conversation_join_requests r
+			       WHERE r.event_id = notifications.event_id AND r.status = 'pending'
+			   );`,
+		},
+		{
+			"missing conversation",
+			`UPDATE notifications
+			 SET action_state = 'unavailable', action_reason = 'conversation_deleted',
+			     action_resolved_at = COALESCE(action_resolved_at, CURRENT_TIMESTAMP), read = 1
+			 WHERE action_state = 'active' AND type IN ('chat.message', 'join_request.approved')
+			   AND (conversation_id IS NULL OR NOT EXISTS (
+			       SELECT 1 FROM conversations c WHERE c.id = notifications.conversation_id
+			   ));`,
+		},
+	}
+	for _, statement := range statements {
+		if _, err := r.db.ExecContext(ctx, statement.sql); err != nil {
+			return fmt.Errorf("backfill notification action state (%s): %w", statement.name, err)
+		}
 	}
 	return nil
 }

@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -105,6 +107,16 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		if row.Read {
 			t.Fatal("new row should be unread")
 		}
+		if row.JoinRequestID == nil || *row.JoinRequestID <= 0 {
+			t.Fatalf("join_request_id = %v, want stable request identity", row.JoinRequestID)
+		}
+		var payload map[string]string
+		if err := json.Unmarshal([]byte(row.Payload), &payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["requesterId"] != strconv.FormatInt(noahID, 10) || payload["senderName"] == "" {
+			t.Fatalf("request identity payload = %+v", payload)
+		}
 	})
 
 	t.Run("join_request.approved persisted for requester", func(t *testing.T) {
@@ -124,6 +136,16 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		row := waitForInboxRow(t, env, noahToken, "join_request.approved", 3*time.Second)
 		if row.Body != "Your request to join was approved!" {
 			t.Fatalf("inbox body = %q, want verbatim", row.Body)
+		}
+		if row.JoinRequestID == nil || *row.JoinRequestID <= 0 {
+			t.Fatalf("approval join_request_id = %v", row.JoinRequestID)
+		}
+		hostTask := fetchInboxRow(t, env, avaToken, NotificationTypeJoinRequestCreated)
+		if hostTask.EventID == nil || *hostTask.EventID != eventID || hostTask.ActionState != NotificationActionResolved || !hostTask.Read {
+			t.Fatalf("approved host task = %+v", hostTask)
+		}
+		if hostTask.ActionReason == nil || *hostTask.ActionReason != NotificationReasonRequestApproved {
+			t.Fatalf("approved host task reason = %v", hostTask.ActionReason)
 		}
 	})
 
@@ -145,6 +167,37 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		const want = "This event is no longer available to you. Explore other events nearby."
 		if row.Body != want {
 			t.Fatalf("override body = %q, want %q", row.Body, want)
+		}
+		hostTask := fetchInboxRow(t, env, avaToken, NotificationTypeJoinRequestCreated)
+		if hostTask.EventID == nil || *hostTask.EventID != eventID || hostTask.ActionState != NotificationActionResolved || !hostTask.Read {
+			t.Fatalf("denied host task = %+v", hostTask)
+		}
+		if hostTask.ActionReason == nil || *hostTask.ActionReason != NotificationReasonRequestDenied {
+			t.Fatalf("denied host task reason = %v", hostTask.ActionReason)
+		}
+	})
+
+	t.Run("join request cancellation resolves host task", func(t *testing.T) {
+		eventID := createGroupEvent(t, "Inbox Cancelled")
+		joinResp := env.doRequest(t, http.MethodPost, fmt.Sprintf("/api/events/%d/chat/requests", eventID), noahToken, map[string]string{"message": "cancel me"})
+		if joinResp.StatusCode != http.StatusCreated {
+			t.Fatalf("join request: %d", joinResp.StatusCode)
+		}
+		joinResp.Body.Close()
+		_ = waitForInboxRow(t, env, avaToken, NotificationTypeJoinRequestCreated, 3*time.Second)
+
+		cancelResp := env.doRequest(t, http.MethodDelete, fmt.Sprintf("/api/events/%d/chat/requests/me", eventID), noahToken, nil)
+		if cancelResp.StatusCode != http.StatusOK {
+			t.Fatalf("cancel request: %d", cancelResp.StatusCode)
+		}
+		cancelResp.Body.Close()
+
+		hostTask := fetchInboxRow(t, env, avaToken, NotificationTypeJoinRequestCreated)
+		if hostTask.EventID == nil || *hostTask.EventID != eventID || hostTask.ActionState != NotificationActionResolved || !hostTask.Read {
+			t.Fatalf("cancelled host task = %+v", hostTask)
+		}
+		if hostTask.ActionReason == nil || *hostTask.ActionReason != NotificationReasonRequestCancelled {
+			t.Fatalf("cancelled host task reason = %v", hostTask.ActionReason)
 		}
 	})
 

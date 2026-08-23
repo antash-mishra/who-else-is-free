@@ -2,17 +2,20 @@
  * Collapses the raw notification list into inbox rows (visual collapse, no
  * backend):
  *
- *  - Unread `chat.message` notifications collapse per CONVERSATION into one row.
- *  - Unread `join_request.created` notifications collapse per EVENT into one row
- *    (works for both 1:1 and group events — requests are per-event).
- *  - Read notifications of those two types are dropped (once handled, they're
- *    done — the chat / Join Requests screen is the source of truth).
+ *  - Active unread tasks collapse per conversation/event.
+ *  - Read active tasks are dropped after they have been opened.
+ *  - Resolved/unavailable tasks collapse separately into one muted historical
+ *    summary per conversation/event, regardless of read state.
  *  - Every other notification passes through individually.
  *
  * Input is assumed newest-first; a group is positioned at its latest member, so
  * the overall order stays newest-first.
  */
-import { AppNotification } from '@api/mappers/notifications';
+import {
+  AppNotification,
+  NotificationActionReason,
+  NotificationActionState,
+} from '@api/mappers/notifications';
 
 export type ChatGroup = {
   conversationId: number;
@@ -29,6 +32,8 @@ export type ChatGroup = {
   createdAt: string;
   /** All underlying notification ids (marked read together on tap). */
   ids: number[];
+  actionState: NotificationActionState;
+  actionReason?: NotificationActionReason;
 };
 
 export type JoinGroup = {
@@ -41,6 +46,8 @@ export type JoinGroup = {
   count: number;
   createdAt: string;
   ids: number[];
+  actionState: NotificationActionState;
+  actionReason?: NotificationActionReason;
 };
 
 export type InboxItem =
@@ -99,13 +106,14 @@ const addUnique = (names: string[], name: string) => {
 
 export const collapseNotifications = (notifications: AppNotification[]): InboxItem[] => {
   const items: InboxItem[] = [];
-  const chatIndexByConvo = new Map<number, number>();
-  const joinIndexByEvent = new Map<number, number>();
+  const chatIndexByConvo = new Map<string, number>();
+  const joinIndexByEvent = new Map<string, number>();
 
   for (const n of notifications) {
     // ── Chat messages: collapse per conversation (unread only) ──
     if (n.type === 'chat.message') {
-      if (n.read) {
+      const isActive = n.actionState === 'active';
+      if (isActive && n.read) {
         continue;
       }
       const convoId = n.conversationId;
@@ -114,7 +122,8 @@ export const collapseNotifications = (notifications: AppNotification[]): InboxIt
         continue;
       }
       const sender = firstName(parseSender(n));
-      const existing = chatIndexByConvo.get(convoId);
+      const collapseKey = `${convoId}:${isActive ? 'active' : 'inactive'}`;
+      const existing = chatIndexByConvo.get(collapseKey);
       if (existing == null) {
         const group: ChatGroup = {
           conversationId: convoId,
@@ -125,15 +134,26 @@ export const collapseNotifications = (notifications: AppNotification[]): InboxIt
           latestPreview: parsePreview(n, parseSender(n)),
           createdAt: n.createdAt,
           ids: [n.id],
+          actionState: n.actionState,
+          actionReason: n.actionReason,
         };
-        chatIndexByConvo.set(convoId, items.length);
-        items.push({ kind: 'chatGroup', key: `c-${convoId}`, createdAt: n.createdAt, group });
+        chatIndexByConvo.set(collapseKey, items.length);
+        items.push({
+          kind: 'chatGroup',
+          key: `c-${collapseKey}`,
+          createdAt: n.createdAt,
+          group,
+        });
       } else {
         const item = items[existing];
         if (item.kind === 'chatGroup') {
           item.group.count += 1;
           item.group.ids.push(n.id);
           addUnique(item.group.senderNames, sender);
+          if (n.actionState === 'unavailable') {
+            item.group.actionState = 'unavailable';
+            item.group.actionReason = n.actionReason;
+          }
         }
       }
       continue;
@@ -141,7 +161,8 @@ export const collapseNotifications = (notifications: AppNotification[]): InboxIt
 
     // ── Join requests: collapse per event (unread only) ──
     if (n.type === 'join_request.created') {
-      if (n.read) {
+      const isActive = n.actionState === 'active';
+      if (isActive && n.read) {
         continue;
       }
       const eventId = n.eventId;
@@ -150,7 +171,8 @@ export const collapseNotifications = (notifications: AppNotification[]): InboxIt
         continue;
       }
       const requester = firstName(parseRequester(n));
-      const existing = joinIndexByEvent.get(eventId);
+      const collapseKey = `${eventId}:${isActive ? 'active' : 'inactive'}`;
+      const existing = joinIndexByEvent.get(collapseKey);
       if (existing == null) {
         const group: JoinGroup = {
           eventId,
@@ -160,15 +182,26 @@ export const collapseNotifications = (notifications: AppNotification[]): InboxIt
           count: 1,
           createdAt: n.createdAt,
           ids: [n.id],
+          actionState: n.actionState,
+          actionReason: n.actionReason,
         };
-        joinIndexByEvent.set(eventId, items.length);
-        items.push({ kind: 'joinGroup', key: `j-${eventId}`, createdAt: n.createdAt, group });
+        joinIndexByEvent.set(collapseKey, items.length);
+        items.push({
+          kind: 'joinGroup',
+          key: `j-${collapseKey}`,
+          createdAt: n.createdAt,
+          group,
+        });
       } else {
         const item = items[existing];
         if (item.kind === 'joinGroup') {
           item.group.count += 1;
           item.group.ids.push(n.id);
           addUnique(item.group.requesterNames, requester);
+          if (n.actionState === 'unavailable') {
+            item.group.actionState = 'unavailable';
+            item.group.actionReason = n.actionReason;
+          }
         }
       }
       continue;
