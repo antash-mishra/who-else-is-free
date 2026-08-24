@@ -5185,8 +5185,8 @@ func TestUpdateEventPublishesChatUpdateForGroupEvent(t *testing.T) {
 			t.Fatal("expected at least one conversation")
 		}
 		for _, convo := range payload.Conversations {
-			if convo.LastMessage != nil && convo.LastMessage.Body == "Updated Event Detail" {
-				t.Fatalf("did not expect 'Updated Event Detail' before edit in conversation %d", convo.ID)
+			if convo.LastMessage != nil && convo.LastMessage.Body == updatedEventDetailMessage {
+				t.Fatalf("did not expect %q before edit in conversation %d", updatedEventDetailMessage, convo.ID)
 			}
 		}
 	})
@@ -5209,7 +5209,7 @@ func TestUpdateEventPublishesChatUpdateForGroupEvent(t *testing.T) {
 		}
 	})
 
-	t.Run("group conversation gets Updated Event Detail message", func(t *testing.T) {
+	t.Run("group conversation gets plan details updated message", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -5222,8 +5222,8 @@ func TestUpdateEventPublishesChatUpdateForGroupEvent(t *testing.T) {
 			if convo.LastMessage == nil {
 				t.Fatalf("expected last_message for conversation %d", convo.ID)
 			}
-			if convo.LastMessage.Body != "Updated Event Detail" {
-				t.Fatalf("expected last_message body 'Updated Event Detail', got %q", convo.LastMessage.Body)
+			if convo.LastMessage.Body != updatedEventDetailMessage {
+				t.Fatalf("expected last_message body %q, got %q", updatedEventDetailMessage, convo.LastMessage.Body)
 			}
 			if convo.LastMessage.SenderID != 1 {
 				t.Fatalf("expected sender_id 1, got %d", convo.LastMessage.SenderID)
@@ -5325,7 +5325,7 @@ func TestUpdateEventPublishesChatUpdateForApprovedSingleConversations(t *testing
 		}
 	})
 
-	t.Run("every approved private conversation receives Updated Event Detail message", func(t *testing.T) {
+	t.Run("every approved private conversation receives plan details updated message", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, fmt.Sprintf("/api/events/%d/conversations", eventID), avaToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -5344,13 +5344,13 @@ func TestUpdateEventPublishesChatUpdateForApprovedSingleConversations(t *testing
 
 			found := false
 			for _, message := range messages.Messages {
-				if message.Body == "Updated Event Detail" {
+				if message.Body == updatedEventDetailMessage {
 					found = true
 					break
 				}
 			}
 			if !found {
-				t.Fatalf("expected 'Updated Event Detail' message in conversation %d", convo.ID)
+				t.Fatalf("expected %q message in conversation %d", updatedEventDetailMessage, convo.ID)
 			}
 		}
 	})
@@ -6666,14 +6666,14 @@ func TestPushPresenceSuppression(t *testing.T) {
 }
 
 // TestSystemMessageKindExcludedFromUnreadCount proves the core fix: server-
-// generated system messages ("Updated Event Detail" on event edit, "X joined
+// generated system messages ("Plan details updated" on event edit, "X joined
 // the chat" on join approval) must be tagged kind='system' at insert time and
 // excluded from the recipient's unread_count — both for group events and for
 // 1:1 (Single) event private conversations. Real user messages must still bump
 // unread_count (regression guard).
 
 // TestSystemMessageKindExcludedFromUnreadCount proves the core fix: server-
-// generated system messages ("Updated Event Detail" on event edit, "X joined
+// generated system messages ("Plan details updated" on event edit, "X joined
 // the chat" on join approval) must be tagged kind='system' at insert time and
 // excluded from the recipient's unread_count — both for group events and for
 // 1:1 (Single) event private conversations. Real user messages must still bump
@@ -6691,7 +6691,7 @@ func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
 		t.Fatalf("load noah: %v", err)
 	}
 
-	// 1) Group event — edit emits "Updated Event Detail" (kind=system).
+	// 1) Group event — edit emits "Plan details updated" (kind=system).
 	var groupEventID int64
 	t.Run("group event edit does not badge non-host members for the update message", func(t *testing.T) {
 		body := CreateEventParams{
@@ -6731,7 +6731,7 @@ func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
 		}
 
 		// Noah (non-host, not the editor) lists his conversations. The group convo's
-		// "Updated Event Detail" must NOT contribute to unread_count.
+		// The plan-update system message must NOT contribute to unread_count.
 		resp = env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("list noah conversations: got %d", resp.StatusCode)
@@ -6750,23 +6750,23 @@ func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
 		if groupConvo.UnreadCount != 0 {
 			t.Fatalf("group: expected unread_count 0 for non-host after event edit, got %d", groupConvo.UnreadCount)
 		}
-		if groupConvo.LastMessage == nil || groupConvo.LastMessage.Body != "Updated Event Detail" {
-			t.Fatalf("group: expected last_message 'Updated Event Detail', got %+v", groupConvo.LastMessage)
+		if groupConvo.LastMessage == nil || groupConvo.LastMessage.Body != updatedEventDetailMessage {
+			t.Fatalf("group: expected last_message %q, got %+v", updatedEventDetailMessage, groupConvo.LastMessage)
 		}
 	})
 
-	// 2) The persisted row for "Updated Event Detail" has kind='system'.
+	// 2) The persisted plan-update row has kind='system'.
 	t.Run("persisted update message row is tagged kind=system", func(t *testing.T) {
 		var kind string
 		err := env.db.QueryRowContext(ctx,
-			`SELECT kind FROM messages WHERE body = 'Updated Event Detail' AND conversation_id IN (SELECT id FROM conversations WHERE event_id = ?) LIMIT 1;`,
-			groupEventID,
+			`SELECT kind FROM messages WHERE body = ? AND conversation_id IN (SELECT id FROM conversations WHERE event_id = ?) LIMIT 1;`,
+			updatedEventDetailMessage, groupEventID,
 		).Scan(&kind)
 		if err != nil {
 			t.Fatalf("query kind: %v", err)
 		}
 		if kind != "system" {
-			t.Fatalf("expected kind 'system' for Updated Event Detail, got %q", kind)
+			t.Fatalf("expected kind 'system' for plan update, got %q", kind)
 		}
 	})
 
@@ -6821,7 +6821,7 @@ func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
 		}
 
 		// Noah lists conversations; the 1:1 conversation's last message should be
-		// "Updated Event Detail" with unread_count == 0 (kind=system is excluded).
+		// The plan-update message has unread_count == 0 (kind=system is excluded).
 		resp = env.doRequest(t, http.MethodGet, "/api/conversations", noahToken, nil)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("list noah conversations: got %d", resp.StatusCode)
@@ -6840,8 +6840,8 @@ func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
 		if private.UnreadCount != 0 {
 			t.Fatalf("single: expected unread_count 0 for approved requester after event edit, got %d", private.UnreadCount)
 		}
-		if private.LastMessage == nil || private.LastMessage.Body != "Updated Event Detail" {
-			t.Fatalf("single: expected last_message 'Updated Event Detail', got %+v", private.LastMessage)
+		if private.LastMessage == nil || private.LastMessage.Body != updatedEventDetailMessage {
+			t.Fatalf("single: expected last_message %q, got %+v", updatedEventDetailMessage, private.LastMessage)
 		}
 	})
 

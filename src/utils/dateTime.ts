@@ -214,6 +214,24 @@ export const formatAbsoluteDateLabel = (eventDate: string): string => {
     return `${day} ${month} ${weekday}`;
 };
 
+const formatPickerDateLabel = (
+    eventDate: string,
+    localeTag?: string,
+): string => {
+    const parsed = parseDateKey(eventDate);
+    if (!parsed) {
+        return eventDate;
+    }
+
+    const day = `${parsed.getDate()}`.padStart(2, "0");
+    const month = parsed.toLocaleString("en-US", { month: "short" });
+    const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
+
+    return isUSLocale(localeTag)
+        ? `${weekday} ${day} ${month}`
+        : `${day} ${month} ${weekday}`;
+};
+
 const getLocaleRegion = (localeTag: string): string | null => {
     const normalized = localeTag.replace(/_/g, "-");
     const parts = normalized.split("-");
@@ -255,10 +273,10 @@ export const formatEventDetailDateLabel = (
     const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
 
     if (isUSLocale(localeTag)) {
-        return `${weekday} ${day} ${month}`;
+        return `${weekday}, ${day} ${month}`;
     }
 
-    return `${day} ${month} ${weekday}`;
+    return `${day} ${month}, ${weekday}`;
 };
 
 export const getPickerSectionDateLabel = (
@@ -273,7 +291,7 @@ export const getPickerSectionDateLabel = (
     if (diff === 1) {
         return "Tomorrow";
     }
-    return formatEventDetailDateLabel(eventDate, localeTag);
+    return formatPickerDateLabel(eventDate, localeTag);
 };
 
 const getDiffFromToday = (eventDate: string, now: Date = new Date()): number | null => {
@@ -360,7 +378,7 @@ export const formatPickerDateTimeValue = (
     localeTag?: string,
 ): string => {
     const eventDate = toDateKey(value);
-    const datePart = formatEventDetailDateLabel(eventDate, localeTag);
+    const datePart = formatPickerDateLabel(eventDate, localeTag);
     const hours = value.getHours();
     const minutes = value.getMinutes();
     const period = hours >= 12 ? "PM" : "AM";

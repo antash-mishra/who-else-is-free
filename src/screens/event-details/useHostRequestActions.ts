@@ -10,6 +10,7 @@ import { AnalyticsParams, trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 
+import { getMemberReportError, PLAN_REPORT_GENERIC_ERROR } from './eventDetailsErrors';
 import { EventDetailsNavigation } from './useEventDetailsData';
 
 const isFabricEnabled = Boolean(
@@ -81,6 +82,7 @@ export const useHostRequestActions = ({
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<ChatJoinRequest | null>(null);
   const [isReportingMember, setIsReportingMember] = useState(false);
+  const [showReportMemberConfirm, setShowReportMemberConfirm] = useState(false);
   // Group member menu state
   const [selectedMember, setSelectedMember] = useState<SelectedMember | null>(null);
   const [showMemberMenu, setShowMemberMenu] = useState(false);
@@ -196,13 +198,22 @@ export const useHostRequestActions = ({
 
   const handleReportMemberFromMenu = () => {
     setShowMemberMenu(false);
+    setReportError(null);
+    setShowReportMemberConfirm(true);
+  };
+
+  const handleReportMemberConfirm = () => {
+    if (!selectedMember) return;
+    setShowReportMemberConfirm(false);
     setReportMessage('');
     setReportError(null);
-    // Set selectedRequest-like context so handleSubmitMemberReport works
-    if (selectedMember) {
-      setSelectedRequest({ userId: selectedMember.id } as ChatJoinRequest);
-    }
+    setSelectedRequest({ userId: selectedMember.id } as ChatJoinRequest);
     setShowReportPrompt(true);
+  };
+
+  const handleReportMemberCancel = () => {
+    setShowReportMemberConfirm(false);
+    setSelectedMember(null);
   };
 
   const handleRemovePromptFromMenu = () => {
@@ -240,11 +251,13 @@ export const useHostRequestActions = ({
         },
       );
       if (response.status === 409) {
-        setReportError('You have already reported this member.');
+        setReportError(getMemberReportError(response.status));
         return;
       }
       if (!response.ok) {
-        throw new Error('Unable to submit report right now.');
+        const firstName = selectedMember?.name.trim().split(/\s+/)[0];
+        setReportError(getMemberReportError(response.status, firstName));
+        return;
       }
       const reportTargetName = (
         selectedMember?.name ??
@@ -273,9 +286,8 @@ export const useHostRequestActions = ({
       }
     } catch (err) {
       logger.error('Failed to submit member report', err);
-      setReportError(
-        err instanceof Error ? err.message : 'Unable to submit report. Please try again.',
-      );
+      const firstName = selectedMember?.name.trim().split(/\s+/)[0];
+      setReportError(firstName ? getMemberReportError(0, firstName) : PLAN_REPORT_GENERIC_ERROR);
     } finally {
       setIsReportingMember(false);
     }
@@ -288,6 +300,7 @@ export const useHostRequestActions = ({
     selectedRequest,
     setSelectedRequest,
     isReportingMember,
+    showReportMemberConfirm,
     selectedMember,
     showMemberMenu,
     setShowMemberMenu,
@@ -305,6 +318,8 @@ export const useHostRequestActions = ({
     openMemberMenu,
     handleRemoveMember,
     handleReportMemberFromMenu,
+    handleReportMemberConfirm,
+    handleReportMemberCancel,
     handleRemovePromptFromMenu,
     handleRemoveCancel,
     handleSubmitMemberReport,

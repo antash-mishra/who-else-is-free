@@ -18,11 +18,6 @@ export type InvitePromptProps = {
   inviteDisabled?: boolean;
 };
 
-export type ManageEventMenuProps = {
-  onEdit: () => void;
-  onDelete: () => void;
-};
-
 export type ConfirmActionSheetProps = EventActionConfirmProps;
 
 export type ResultPromptProps = {
@@ -33,12 +28,6 @@ export type ResultPromptProps = {
   tone?: 'default' | 'success' | 'error';
 };
 
-export type PendingRequestMenuProps = {
-  onCancelRequest: () => void;
-  onReportEvent: () => void;
-  isCancelling?: boolean;
-};
-
 export type ReportPromptProps = {
   reportMessage: string;
   onReportMessageChange: (text: string) => void;
@@ -46,6 +35,9 @@ export type ReportPromptProps = {
   reportError?: string | null;
   reportSubmitting?: boolean;
   reportDisabled?: boolean;
+  placeholder?: string;
+  submitLabel?: string;
+  submittingLabel?: string;
 };
 
 export type ActionMenuItem = {
@@ -110,20 +102,6 @@ export const InvitePrompt = ({
   );
 };
 
-export const ManageEventMenu = ({ onEdit, onDelete }: ManageEventMenuProps) => (
-  <SheetActionList
-    items={[
-      { label: 'Edit Event', onPress: onEdit, testID: 'action-item-edit' },
-      {
-        label: 'Delete Event',
-        onPress: onDelete,
-        destructive: true,
-        testID: 'action-item-delete',
-      },
-    ]}
-  />
-);
-
 export const ConfirmActionSheet = (props: ConfirmActionSheetProps) => (
   <EventActionConfirm {...props} />
 );
@@ -160,31 +138,6 @@ export const ResultPrompt = ({
   </View>
 );
 
-export const PendingRequestMenu = ({
-  onCancelRequest,
-  onReportEvent,
-  isCancelling,
-}: PendingRequestMenuProps) => (
-  <SheetActionList
-    items={[
-      {
-        label: isCancelling ? 'Cancelling…' : 'Cancel Request',
-        onPress: onCancelRequest,
-        loading: isCancelling,
-        disabled: isCancelling,
-        testID: 'action-item-cancel',
-      },
-      {
-        label: 'Report Event',
-        onPress: onReportEvent,
-        destructive: true,
-        disabled: isCancelling,
-        testID: 'action-item-report',
-      },
-    ]}
-  />
-);
-
 export const ReportPrompt = ({
   reportMessage,
   onReportMessageChange,
@@ -192,14 +145,17 @@ export const ReportPrompt = ({
   reportError,
   reportSubmitting,
   reportDisabled,
+  placeholder = "Tell us why you're reporting this plan",
+  submitLabel = 'Submit',
+  submittingLabel = 'Submitting...',
 }: ReportPromptProps) => {
   const isDisabled = reportSubmitting || reportDisabled;
 
   return (
     <View style={styles.prompt}>
       <TextInput
-        accessibilityLabel="Tell us why you're reporting this plan"
-        placeholder="Tell us why you're reporting this plan"
+        accessibilityLabel={placeholder}
+        placeholder={placeholder}
         placeholderTextColor={colors.subText}
         multiline
         value={reportMessage}
@@ -224,7 +180,7 @@ export const ReportPrompt = ({
         ]}
         testID="action-item-submit-report"
       >
-        <Text style={styles.sendLabel}>{reportSubmitting ? 'Submitting…' : 'Submit report'}</Text>
+        <Text style={styles.sendLabel}>{reportSubmitting ? submittingLabel : submitLabel}</Text>
       </Pressable>
     </View>
   );

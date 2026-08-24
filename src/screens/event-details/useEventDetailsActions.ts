@@ -10,6 +10,12 @@ import { AnalyticsParams, trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 
+import {
+  getJoinRequestError,
+  getPlanReportError,
+  JOIN_REQUEST_GENERIC_ERROR,
+  PLAN_REPORT_GENERIC_ERROR,
+} from './eventDetailsErrors';
 import { EventDetailsNavigation } from './useEventDetailsData';
 
 type UseEventDetailsActionsArgs = {
@@ -66,11 +72,9 @@ export const useEventDetailsActions = ({
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [showRequestSentBadge, setShowRequestSentBadge] = useState(false);
   const [showRequestCancelledBadge, setShowRequestCancelledBadge] = useState(false);
-  const [showManagePrompt, setShowManagePrompt] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showPendingRequestPrompt, setShowPendingRequestPrompt] = useState(false);
   const [isCancellingRequest, setIsCancellingRequest] = useState(false);
   const [showReportPrompt, setShowReportPrompt] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
@@ -177,7 +181,7 @@ export const useEventDetailsActions = ({
       if (response.status === 409) {
         setHasPendingRequest(true);
         markEventRequested(event.id);
-        setInviteError('You already have a pending request for this plan.');
+        setInviteError(getJoinRequestError(response.status));
         trackEvent('join_request_failed', {
           ...eventAnalyticsParams,
           status_code: response.status,
@@ -195,12 +199,7 @@ export const useEventDetailsActions = ({
         return;
       }
       if (!response.ok) {
-        let serverMsg = '';
-        try {
-          const body = await response.json();
-          serverMsg = body?.error || '';
-        } catch {}
-        logger.warn(`Join request failed: status=${response.status} error=${serverMsg}`);
+        logger.warn(`Join request failed: status=${response.status}`);
         if (response.status === 403) {
           failureTracked = true;
           trackEvent('join_request_failed', {
@@ -208,7 +207,8 @@ export const useEventDetailsActions = ({
             status_code: response.status,
             reason_category: 'forbidden',
           }).catch(() => undefined);
-          throw new Error("You can't join this plan.");
+          setInviteError(getJoinRequestError(response.status));
+          return;
         }
         if (response.status === 404) {
           failureTracked = true;
@@ -217,7 +217,8 @@ export const useEventDetailsActions = ({
             status_code: response.status,
             reason_category: 'not_found',
           }).catch(() => undefined);
-          throw new Error('This plan is no longer available.');
+          setInviteError(getJoinRequestError(response.status));
+          return;
         }
         failureTracked = true;
         trackEvent('join_request_failed', {
@@ -225,7 +226,8 @@ export const useEventDetailsActions = ({
           status_code: response.status,
           reason_category: 'api_error',
         }).catch(() => undefined);
-        throw new Error(serverMsg || "Couldn't send request. Please try again.");
+        setInviteError(getJoinRequestError(response.status));
+        return;
       }
       setInviteMessage('');
       setShowInvitePrompt(false);
@@ -241,9 +243,7 @@ export const useEventDetailsActions = ({
         }).catch(() => undefined);
       }
       logger.error('Failed to send invite', err);
-      setInviteError(
-        err instanceof Error ? err.message : "Couldn't send request. Please try again.",
-      );
+      setInviteError(JOIN_REQUEST_GENERIC_ERROR);
     } finally {
       setIsSendingInvite(false);
     }
@@ -276,11 +276,9 @@ export const useEventDetailsActions = ({
       return;
     }
     navigation.dispatch(StackActions.push('CreateEvent', { editEventId: event.id }));
-    setShowManagePrompt(false);
   };
 
   const handleDeletePrompt = () => {
-    setShowManagePrompt(false);
     setDeleteError(null);
     triggerHaptic('destructive');
     setShowDeleteConfirm(true);
@@ -347,7 +345,6 @@ export const useEventDetailsActions = ({
       if (!response.ok) {
         throw new Error('Unable to cancel request right now.');
       }
-      setShowPendingRequestPrompt(false);
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
       setUserIntroMessage(null);
@@ -358,13 +355,6 @@ export const useEventDetailsActions = ({
     } finally {
       setIsCancellingRequest(false);
     }
-  };
-
-  const handleOpenReportPrompt = () => {
-    setShowPendingRequestPrompt(false);
-    setReportMessage('');
-    setReportError(null);
-    setShowReportPrompt(true);
   };
 
   const handleSubmitReport = async () => {
@@ -392,11 +382,12 @@ export const useEventDetailsActions = ({
         body: JSON.stringify({ reason: trimmed }),
       });
       if (response.status === 409) {
-        setReportError('You have already reported this plan.');
+        setReportError(getPlanReportError(response.status));
         return;
       }
       if (!response.ok) {
-        throw new Error("Couldn't submit report. Please try again.");
+        setReportError(getPlanReportError(response.status));
+        return;
       }
       setReportMessage('');
       setShowReportPrompt(false);
@@ -423,9 +414,7 @@ export const useEventDetailsActions = ({
       });
     } catch (err) {
       logger.error('Failed to submit report', err);
-      setReportError(
-        err instanceof Error ? err.message : "Couldn't submit report. Please try again.",
-      );
+      setReportError(PLAN_REPORT_GENERIC_ERROR);
     } finally {
       setIsSubmittingReport(false);
     }
@@ -464,7 +453,7 @@ export const useEventDetailsActions = ({
         },
       );
       if (!response.ok) {
-        throw new Error('Unable to leave event right now.');
+        throw new Error('leave failed');
       }
       setHasPendingRequest(false);
       unmarkEventRequested(event.id);
@@ -487,7 +476,7 @@ export const useEventDetailsActions = ({
       });
     } catch (err) {
       logger.error('Failed to leave event', err);
-      setLeaveError('Unable to leave this plan. Please try again.');
+      setLeaveError("Couldn't leave this plan. Please try again.");
     } finally {
       setIsLeaving(false);
     }
@@ -580,13 +569,9 @@ export const useEventDetailsActions = ({
     setShowRequestSentBadge,
     showRequestCancelledBadge,
     setShowRequestCancelledBadge,
-    showManagePrompt,
-    setShowManagePrompt,
     showDeleteConfirm,
     deleteError,
     isDeleting,
-    showPendingRequestPrompt,
-    setShowPendingRequestPrompt,
     isCancellingRequest,
     showReportPrompt,
     setShowReportPrompt,
@@ -613,7 +598,6 @@ export const useEventDetailsActions = ({
     handleDelete,
     handleDeleteCancel,
     handleCancelRequest,
-    handleOpenReportPrompt,
     handleSubmitReport,
     handleLeaveEvent,
     handleLeaveCancel,

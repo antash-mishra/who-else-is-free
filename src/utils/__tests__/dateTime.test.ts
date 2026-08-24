@@ -217,14 +217,14 @@ describe('dateTime utilities', () => {
 
   describe('formatEventDetailDateLabel', () => {
     it('formats as weekday-day-month for US locales', () => {
-      expect(formatEventDetailDateLabel('2026-04-18', 'en-US')).toBe('Sat 18 Apr');
-      expect(formatEventDetailDateLabel('2026-04-18', 'es-US')).toBe('Sat 18 Apr');
+      expect(formatEventDetailDateLabel('2026-04-18', 'en-US')).toBe('Sat, 18 Apr');
+      expect(formatEventDetailDateLabel('2026-04-18', 'es-US')).toBe('Sat, 18 Apr');
     });
 
     it('formats as day-month-weekday for non-US locales', () => {
-      expect(formatEventDetailDateLabel('2026-04-18', 'en-IN')).toBe('18 Apr Sat');
-      expect(formatEventDetailDateLabel('2026-04-18', 'en-GB')).toBe('18 Apr Sat');
-      expect(formatEventDetailDateLabel('2026-04-18', 'en')).toBe('18 Apr Sat');
+      expect(formatEventDetailDateLabel('2026-04-18', 'en-IN')).toBe('18 Apr, Sat');
+      expect(formatEventDetailDateLabel('2026-04-18', 'en-GB')).toBe('18 Apr, Sat');
+      expect(formatEventDetailDateLabel('2026-04-18', 'en')).toBe('18 Apr, Sat');
     });
 
     it('falls back to the raw event date when parsing fails', () => {

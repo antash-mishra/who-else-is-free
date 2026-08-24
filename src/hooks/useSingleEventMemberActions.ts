@@ -23,9 +23,9 @@ interface UseSingleEventMemberActionsOptions {
 }
 
 const DEFAULT_REPORT_ERRORS = {
-  empty: 'Please tell us why you are reporting this member.',
+  empty: "Please tell us why you're reporting this member.",
   duplicate: 'You have already reported this member.',
-  generic: 'Unable to submit report. Please try again.',
+  generic: "Couldn't submit report. Please try again.",
 };
 
 export const useSingleEventMemberActions = ({

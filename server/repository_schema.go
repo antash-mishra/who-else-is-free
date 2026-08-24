@@ -1236,7 +1236,8 @@ func (r *EventRepository) ensureEventGroupTypeColumn(ctx context.Context) error 
 // ensureMessageKindColumn adds the `kind` column to messages for distinguishing
 // user-authored messages ('user') from system-generated messages ('system'),
 // such as join announcements ("X joined the chat") and event-update notices
-// ("Updated Event Detail"). The column defaults to 'user', and existing system
+// ("Updated Event Detail" historically, now "Plan details updated"). The column defaults to
+// 'user', and existing system
 // rows are backfilled so the unread-count exclusion (see countUnreadMessages)
 // applies retroactively — clearing phantom badges left over from before the
 // migration.
@@ -1291,12 +1292,15 @@ func (r *EventRepository) ensureMessageKindColumn(ctx context.Context) error {
 	// Backfill existing system rows now that every row has kind='user' (the
 	// column default). Both patterns are server-authored constants (no
 	// user-controllable path produces these bodies), so pattern matching is
-	// safe. 'Updated Event Detail' is exact-matched because it is a fixed
-	// constant; the join announcement is "<Name> joined the chat".
+	// safe. Both event-update bodies are exact-matched fixed server constants;
+	// the join announcement is "<Name> joined the chat".
 	if _, err := r.db.ExecContext(ctx, `
 UPDATE messages SET kind = 'system'
 WHERE kind = 'user'
-  AND (body = 'Updated Event Detail' OR body LIKE '% joined the chat');
+  AND (
+    body IN ('Updated Event Detail', 'Plan details updated')
+    OR body LIKE '% joined the chat'
+  );
 `); err != nil {
 		return fmt.Errorf("backfill system message kinds: %w", err)
 	}

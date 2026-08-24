@@ -434,14 +434,14 @@ describe('ChatThreadScreen Rendering', () => {
       expect(mockSetActiveConversation).toHaveBeenCalledWith(null);
     });
 
-    it('should return null when no active conversation', () => {
+    it('should show the loading shell when no active conversation is selected', () => {
       setupMocks({
         chatOverrides: { activeConversationId: null },
       });
       const { queryByTestId } = render(<ChatThreadScreen />);
 
-      // Component should return null when no active conversation
-      expect(queryByTestId('screen-container')).toBeNull();
+      expect(queryByTestId('screen-container')).toBeTruthy();
+      expect(mockRefreshConversations).not.toHaveBeenCalled();
     });
 
     it('should not issue an extra goBack while swipe-back is removing the route', () => {

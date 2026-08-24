@@ -9,10 +9,6 @@ import {
   IntroMessagePrompt,
   InvitePrompt,
   InvitePromptProps,
-  ManageEventMenu,
-  ManageEventMenuProps,
-  PendingRequestMenu,
-  PendingRequestMenuProps,
   ReportPrompt,
   ReportPromptProps,
   ResultPrompt,
@@ -23,10 +19,6 @@ type InviteOverlayProps = {
   type: 'invite';
 } & InvitePromptProps;
 
-type ManageOverlayProps = {
-  type: 'manage';
-} & ManageEventMenuProps;
-
 type ConfirmOverlayProps = {
   type: 'confirm';
 } & ConfirmActionSheetProps;
@@ -34,10 +26,6 @@ type ConfirmOverlayProps = {
 type ResultOverlayProps = {
   type: 'result';
 } & ResultPromptProps;
-
-type PendingRequestOverlayProps = {
-  type: 'pendingRequest';
-} & PendingRequestMenuProps;
 
 type ReportOverlayProps = {
   type: 'report';
@@ -56,10 +44,8 @@ type ViewIntroOverlayProps = {
 
 type OverlayVariantProps =
   | InviteOverlayProps
-  | ManageOverlayProps
   | ConfirmOverlayProps
   | ResultOverlayProps
-  | PendingRequestOverlayProps
   | ReportOverlayProps
   | MenuOverlayProps
   | ViewIntroOverlayProps;
@@ -73,14 +59,10 @@ const renderOverlayContent = (props: OverlayVariantProps) => {
   switch (props.type) {
     case 'invite':
       return <InvitePrompt {...props} />;
-    case 'manage':
-      return <ManageEventMenu {...props} />;
     case 'confirm':
       return <ConfirmActionSheet {...props} />;
     case 'result':
       return <ResultPrompt {...props} />;
-    case 'pendingRequest':
-      return <PendingRequestMenu {...props} />;
     case 'report':
       return <ReportPrompt {...props} />;
     case 'menu':

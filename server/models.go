@@ -61,7 +61,7 @@ const (
 	MessageKindUser MessageKind = "user"
 	// MessageKindSystem marks server-generated messages such as join
 	// announcements ("X joined the chat") and event-update notices
-	// ("Updated Event Detail"). They show inline in the thread and as the
+	// ("Plan details updated"). They show inline in the thread and as the
 	// last-message preview, but must NOT bump unread counts.
 	MessageKindSystem MessageKind = "system"
 )

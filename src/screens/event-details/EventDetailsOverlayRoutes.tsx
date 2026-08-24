@@ -19,20 +19,11 @@ type EventDetailsOverlayRoutesProps = {
   inviteError: string | null;
   isSendingInvite: boolean;
   onCloseInvitePrompt: () => void;
-  showManagePrompt: boolean;
-  onCloseManagePrompt: () => void;
-  onEdit: () => void;
-  onDeletePrompt: () => void;
   showDeleteConfirm: boolean;
   onDelete: () => void;
   onDeleteCancel: () => void;
   deleteError: string | null;
   isDeleting: boolean;
-  showPendingRequestPrompt: boolean;
-  onClosePendingRequestPrompt: () => void;
-  onCancelRequest: () => void;
-  onOpenReportPrompt: () => void;
-  isCancellingRequest: boolean;
   showReportPrompt: boolean;
   onCloseReportPrompt: () => void;
   reportMessage: string;
@@ -56,6 +47,9 @@ type EventDetailsOverlayRoutesProps = {
   selectedMemberName?: string | null;
   onReportMemberFromMenu: () => void;
   onRemovePromptFromMenu: () => void;
+  showReportMemberConfirm: boolean;
+  onReportMemberConfirm: () => void;
+  onReportMemberCancel: () => void;
   showRemoveConfirm: boolean;
   onRemoveMember: () => void;
   onRemoveCancel: () => void;
@@ -86,20 +80,11 @@ const EventDetailsOverlayRoutes = ({
   inviteError,
   isSendingInvite,
   onCloseInvitePrompt,
-  showManagePrompt,
-  onCloseManagePrompt,
-  onEdit,
-  onDeletePrompt,
   showDeleteConfirm,
   onDelete,
   onDeleteCancel,
   deleteError,
   isDeleting,
-  showPendingRequestPrompt,
-  onClosePendingRequestPrompt,
-  onCancelRequest,
-  onOpenReportPrompt,
-  isCancellingRequest,
   showReportPrompt,
   onCloseReportPrompt,
   reportMessage,
@@ -123,6 +108,9 @@ const EventDetailsOverlayRoutes = ({
   selectedMemberName,
   onReportMemberFromMenu,
   onRemovePromptFromMenu,
+  showReportMemberConfirm,
+  onReportMemberConfirm,
+  onReportMemberCancel,
   showRemoveConfirm,
   onRemoveMember,
   onRemoveCancel,
@@ -159,33 +147,18 @@ const EventDetailsOverlayRoutes = ({
         inviteDisabled={!inviteMessage.trim()}
       />
       <EventActionOverlay
-        isVisible={showManagePrompt}
-        onBackdropPress={onCloseManagePrompt}
-        type="manage"
-        onEdit={onEdit}
-        onDelete={onDeletePrompt}
-      />
-      <EventActionOverlay
         isVisible={showDeleteConfirm}
         onBackdropPress={isDeleting ? undefined : onDeleteCancel}
         type="confirm"
         title="Delete this plan?"
         description="This will remove the plan for everyone and can't be undone."
         confirmLabel="Delete plan"
-        cancelLabel="Keep plan"
+        cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={onDelete}
         onCancel={onDeleteCancel}
         isConfirmLoading={isDeleting}
         errorMessage={deleteError}
-      />
-      <EventActionOverlay
-        isVisible={showPendingRequestPrompt}
-        onBackdropPress={isCancellingRequest ? undefined : onClosePendingRequestPrompt}
-        type="pendingRequest"
-        onCancelRequest={onCancelRequest}
-        onReportEvent={onOpenReportPrompt}
-        isCancelling={isCancellingRequest}
       />
       <EventActionOverlay
         isVisible={showReportPrompt}
@@ -218,7 +191,7 @@ const EventDetailsOverlayRoutes = ({
         title="Leave this plan?"
         description="You'll need to request to join again if you change your mind."
         confirmLabel="Leave plan"
-        cancelLabel="Stay"
+        cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={onLeaveEvent}
         onCancel={onLeaveCancel}
@@ -240,6 +213,18 @@ const EventDetailsOverlayRoutes = ({
             destructive: true,
           },
         ]}
+      />
+      <EventActionOverlay
+        isVisible={showReportMemberConfirm}
+        onBackdropPress={onReportMemberCancel}
+        type="confirm"
+        title={`Report & block ${memberTitleName}?`}
+        description="They won't be able to interact with you on future plans. Their report will be reviewed by our team."
+        confirmLabel={`Report & block ${memberFirstName}`}
+        cancelLabel="Cancel"
+        confirmTone="destructive"
+        onConfirm={onReportMemberConfirm}
+        onCancel={onReportMemberCancel}
       />
       <EventActionOverlay
         isVisible={showRemoveConfirm}

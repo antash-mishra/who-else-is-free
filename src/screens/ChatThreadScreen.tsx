@@ -400,9 +400,6 @@ const ChatThreadScreen = () => {
   const memberActions = useSingleEventMemberActions({
     eventId: activeConversation?.eventId,
     onSuccess: refreshSingleConversation,
-    reportErrorMessages: {
-      generic: 'Unable to submit report right now.',
-    },
   });
 
   useEffect(() => {
@@ -461,9 +458,10 @@ const ChatThreadScreen = () => {
   const renderMessage = ({ item, index }: { item: (typeof messages)[number]; index: number }) => {
     const lowerBody = item.body.toLowerCase();
     const isJoinSystemMessage = lowerBody.endsWith('joined the chat');
-    const isEventUpdateSystemMessage = lowerBody === 'updated event detail';
+    const isEventUpdateSystemMessage =
+      lowerBody === 'updated event detail' || lowerBody === 'plan details updated';
 
-    if (isJoinSystemMessage || isEventUpdateSystemMessage) {
+    if (item.kind === 'system' || isJoinSystemMessage || isEventUpdateSystemMessage) {
       return (
         <View style={styles.systemMessageRow}>
           <Text style={styles.systemMessageText}>{item.body}</Text>
@@ -478,15 +476,19 @@ const ChatThreadScreen = () => {
 
     const prevMessage = index > 0 ? messages[index - 1] : null;
     const prevIsSystem = prevMessage
-      ? prevMessage.body.toLowerCase().endsWith('joined the chat') ||
-        prevMessage.body.toLowerCase() === 'updated event detail'
+      ? prevMessage.kind === 'system' ||
+        prevMessage.body.toLowerCase().endsWith('joined the chat') ||
+        prevMessage.body.toLowerCase() === 'updated event detail' ||
+        prevMessage.body.toLowerCase() === 'plan details updated'
       : false;
     const isFirstInRun = !prevMessage || prevMessage.senderId !== item.senderId || prevIsSystem;
 
     const nextMessage = index < messages.length - 1 ? messages[index + 1] : null;
     const nextIsSystem = nextMessage
-      ? nextMessage.body.toLowerCase().endsWith('joined the chat') ||
-        nextMessage.body.toLowerCase() === 'updated event detail'
+      ? nextMessage.kind === 'system' ||
+        nextMessage.body.toLowerCase().endsWith('joined the chat') ||
+        nextMessage.body.toLowerCase() === 'updated event detail' ||
+        nextMessage.body.toLowerCase() === 'plan details updated'
       : false;
     const isLastInRun = !nextMessage || nextMessage.senderId !== item.senderId || nextIsSystem;
 
@@ -616,9 +618,7 @@ const ChatThreadScreen = () => {
             });
           }
         }}
-        titleAccessibilityLabel={
-          canOpenSingleChatActions ? 'Open actions' : 'View plan details'
-        }
+        titleAccessibilityLabel={canOpenSingleChatActions ? 'Open actions' : 'View plan details'}
         rightElement={
           <>
             {isConnecting ? (

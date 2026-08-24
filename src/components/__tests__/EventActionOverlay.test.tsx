@@ -89,9 +89,7 @@ describe('EventActionOverlay', () => {
     it('should render text input for message', () => {
       render(<EventActionOverlay {...inviteProps} />);
 
-      expect(
-        screen.getByPlaceholderText('Share a short intro with the host'),
-      ).toBeTruthy();
+      expect(screen.getByPlaceholderText('Share a short intro with the host')).toBeTruthy();
     });
 
     it('should show "Send request" button text', () => {
@@ -104,9 +102,7 @@ describe('EventActionOverlay', () => {
       const onInviteMessageChange = jest.fn();
       render(<EventActionOverlay {...inviteProps} onInviteMessageChange={onInviteMessageChange} />);
 
-      const input = screen.getByPlaceholderText(
-        'Share a short intro with the host',
-      );
+      const input = screen.getByPlaceholderText('Share a short intro with the host');
       fireEvent.changeText(input, 'Hello, I would love to join!');
 
       expect(onInviteMessageChange).toHaveBeenCalledWith('Hello, I would love to join!');
@@ -150,56 +146,8 @@ describe('EventActionOverlay', () => {
     it('should display current message value', () => {
       render(<EventActionOverlay {...inviteProps} inviteMessage="I am excited to join!" />);
 
-      const input = screen.getByPlaceholderText(
-        'Share a short intro with the host',
-      );
+      const input = screen.getByPlaceholderText('Share a short intro with the host');
       expect(input.props.value).toBe('I am excited to join!');
-    });
-  });
-
-  describe('Manage Type', () => {
-    const manageProps = {
-      isVisible: true,
-      type: 'manage' as const,
-      onEdit: jest.fn(),
-      onDelete: jest.fn(),
-    };
-
-    it('should render manage prompt', () => {
-      render(<EventActionOverlay {...manageProps} />);
-
-      expect(screen.getByTestId('action-item-edit')).toBeTruthy();
-      expect(screen.getByTestId('action-item-delete')).toBeTruthy();
-    });
-
-    it('should render Edit Event button', () => {
-      render(<EventActionOverlay {...manageProps} />);
-
-      expect(screen.getByText('Edit Event')).toBeTruthy();
-    });
-
-    it('should render Delete Event button', () => {
-      render(<EventActionOverlay {...manageProps} />);
-
-      expect(screen.getByText('Delete Event')).toBeTruthy();
-    });
-
-    it('should call onEdit when Edit button is pressed', () => {
-      const onEdit = jest.fn();
-      render(<EventActionOverlay {...manageProps} onEdit={onEdit} />);
-
-      fireEvent.press(screen.getByTestId('action-item-edit'));
-
-      expect(onEdit).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call onDelete when Delete button is pressed', () => {
-      const onDelete = jest.fn();
-      render(<EventActionOverlay {...manageProps} onDelete={onDelete} />);
-
-      fireEvent.press(screen.getByTestId('action-item-delete'));
-
-      expect(onDelete).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -347,65 +295,6 @@ describe('EventActionOverlay', () => {
     });
   });
 
-  describe('PendingRequest Type', () => {
-    const pendingProps = {
-      isVisible: true,
-      type: 'pendingRequest' as const,
-      onCancelRequest: jest.fn(),
-      onReportEvent: jest.fn(),
-    };
-
-    it('should render pending request prompt', () => {
-      render(<EventActionOverlay {...pendingProps} />);
-
-      expect(screen.getByTestId('action-item-cancel')).toBeTruthy();
-      expect(screen.getByTestId('action-item-report')).toBeTruthy();
-    });
-
-    it('should show Cancel Request button', () => {
-      render(<EventActionOverlay {...pendingProps} />);
-
-      expect(screen.getByText('Cancel Request')).toBeTruthy();
-    });
-
-    it('should show Report Event button', () => {
-      render(<EventActionOverlay {...pendingProps} />);
-
-      expect(screen.getByText('Report Event')).toBeTruthy();
-    });
-
-    it('should call onCancelRequest when cancel button is pressed', () => {
-      const onCancelRequest = jest.fn();
-      render(<EventActionOverlay {...pendingProps} onCancelRequest={onCancelRequest} />);
-
-      fireEvent.press(screen.getByTestId('action-item-cancel'));
-
-      expect(onCancelRequest).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call onReportEvent when report button is pressed', () => {
-      const onReportEvent = jest.fn();
-      render(<EventActionOverlay {...pendingProps} onReportEvent={onReportEvent} />);
-
-      fireEvent.press(screen.getByTestId('action-item-report'));
-
-      expect(onReportEvent).toHaveBeenCalledTimes(1);
-    });
-
-    it('should show "Cancelling..." when cancelling', () => {
-      render(<EventActionOverlay {...pendingProps} isCancelling={true} />);
-
-      expect(screen.getByText('Cancelling…')).toBeTruthy();
-    });
-
-    it('should disable cancel button when cancelling', () => {
-      render(<EventActionOverlay {...pendingProps} isCancelling={true} />);
-
-      const button = screen.getByTestId('action-item-cancel');
-      expect(button.props.accessibilityState?.disabled).toBe(true);
-    });
-  });
-
   describe('Report Type', () => {
     const reportProps = {
       isVisible: true,
@@ -427,10 +316,10 @@ describe('EventActionOverlay', () => {
       expect(screen.getByPlaceholderText("Tell us why you're reporting this plan")).toBeTruthy();
     });
 
-    it('should show "Submit report" button text', () => {
+    it('should show "Submit" button text', () => {
       render(<EventActionOverlay {...reportProps} />);
 
-      expect(screen.getByText('Submit report')).toBeTruthy();
+      expect(screen.getByText('Submit')).toBeTruthy();
     });
 
     it('should call onReportMessageChange when text changes', () => {
@@ -455,7 +344,7 @@ describe('EventActionOverlay', () => {
     it('should show "Submitting..." when submitting', () => {
       render(<EventActionOverlay {...reportProps} reportSubmitting={true} />);
 
-      expect(screen.getByText('Submitting…')).toBeTruthy();
+      expect(screen.getByText('Submitting...')).toBeTruthy();
     });
 
     it('should disable button when submitting', () => {
@@ -718,9 +607,7 @@ describe('EventActionOverlay', () => {
         />,
       );
 
-      const input = screen.getByPlaceholderText(
-        'Share a short intro with the host',
-      );
+      const input = screen.getByPlaceholderText('Share a short intro with the host');
 
       // Type a message
       fireEvent.changeText(input, 'Hi, I love coffee and would be great to meet!');
@@ -820,12 +707,8 @@ describe('EventActionOverlay', () => {
         />,
       );
 
-      const input = screen.getByPlaceholderText(
-        'Share a short intro with the host',
-      );
-      expect(input.props.accessibilityLabel).toBe(
-        'Share a short intro with the host',
-      );
+      const input = screen.getByPlaceholderText('Share a short intro with the host');
+      expect(input.props.accessibilityLabel).toBe('Share a short intro with the host');
     });
 
     it('should have accessibility label for report input', () => {

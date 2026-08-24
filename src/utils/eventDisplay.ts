@@ -1,4 +1,4 @@
-import { EVENT_INFO_SEPARATOR } from '@constants/display';
+import { EVENT_DETAILS_INFO_SEPARATOR, EVENT_INFO_SEPARATOR } from '@constants/display';
 import { AGE_MAX, AGE_MIN } from '@constants/eventOptions';
 
 import { parseDateKey } from './dateTime';
@@ -165,13 +165,13 @@ export const formatEventDetailAudienceLine = ({
   maxAge,
 }: EventDisplayInput): string => {
   const parts: string[] = [formatEventTypeLabel(groupType)];
-  const audienceLabel = formatAudienceLabel({ gender, minAge, maxAge });
+  const genderLabel = isAllGender(gender) ? 'All genders' : getGenderLabel(gender);
+  const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
 
-  if (audienceLabel) {
-    parts.push(audienceLabel);
-  }
+  if (genderLabel) parts.push(genderLabel);
+  if (ageLabel) parts.push(ageLabel);
 
-  return parts.join(EVENT_INFO_SEPARATOR);
+  return parts.join(EVENT_DETAILS_INFO_SEPARATOR);
 };
 
 export const formatEventLocationName = (location?: string | null): string => {

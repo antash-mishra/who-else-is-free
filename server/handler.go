@@ -13,7 +13,7 @@ import (
 )
 
 const requestTimeout = 5 * time.Second
-const updatedEventDetailMessage = "Updated Event Detail"
+const updatedEventDetailMessage = "Plan details updated"
 const eventDeletedPushBody = "The host deleted this event."
 
 type EventHandler struct {

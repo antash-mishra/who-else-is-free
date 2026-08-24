@@ -56,7 +56,7 @@ In this React Native app, "shared CSS" means:
 | API payload normalization                     | `src/api/mappers/events.ts`, `src/api/mappers/chat.ts`                                 | `EventsContext`, `ChatContext`                                       |
 | Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `requestJson` (default 10s), custom fetch flows                      |
 | Create/Edit Event mapping                     | `createEventForm.ts` helpers                                                           | `CreateEventScreen`                                                  |
-| Event metadata separator                      | `EVENT_INFO_SEPARATOR` from `src/constants/display.ts`                                 | `EventCard`, event display formatters, Event Details                 |
+| Event metadata separators                     | `EVENT_INFO_SEPARATOR` and `EVENT_DETAILS_INFO_SEPARATOR`                              | Event cards and Event Details respectively                           |
 
 ## Shared Styling System
 
@@ -858,7 +858,7 @@ What it is:
 
 Where it is used:
 
-- `EventActionOverlay.prompts.tsx` for action menus and pending request menus.
+- `EventActionOverlay.prompts.tsx` for action menus.
 
 Use it when:
 
@@ -883,10 +883,8 @@ Where it is used:
 Supported prompt types:
 
 - `invite`
-- `manage`
 - `confirm`
 - `result`
-- `pendingRequest`
 - `report`
 - `menu`
 - `viewIntro`
@@ -1102,8 +1100,8 @@ File: `src/components/events/EventRequestRow.tsx`
 
 What it is:
 
-- Shared join-request row: avatar, name, expandable intro message ("See more"), and
-  accept/decline actions with loading states.
+- Shared join-request row: avatar, name, intro message clamped from measured rendered lines with
+  inline "See more"/"See less" controls, and accept/decline actions with loading states.
 - Owns action haptics (`submit` accept, `destructive` decline) — callers must not re-trigger.
 - Also exports `EventRequestRowSeparator` for the inset divider between rows.
 
@@ -1292,10 +1290,11 @@ What they are:
 - `useEventDetailsActions.ts` — guest/owner actions: join request send/cancel (including the
   sign-in redirect and auto-send-after-sign-in effect), edit, delete, report event, leave, CTA
   press, open chat, and the three-dot `menuItems`. Owns the overlay/prompt visibility state those
-  flows drive (invite, report, manage, delete, leave, menu, badges).
+  flows drive (invite, report, delete, leave, menu, badges). API failures are mapped to fixed,
+  user-safe copy by `eventDetailsErrors.ts`; raw server response bodies are never shown.
 - `useHostRequestActions.ts` — host-side request/member actions: accept/decline join requests,
-  request row expansion, the member menu, remove member, and report member (shares the report
-  prompt state owned by `useEventDetailsActions`).
+  request row expansion, the member menu, remove member, and report member (confirmation first,
+  then the shared report prompt owned by `useEventDetailsActions`).
 - `EventDetailsHero.tsx` — blurred background image, dark/light overlays, elevated cover card.
 - `EventDetailsInfo.tsx` — title, host line, going avatars stack, detail rows, and the expandable
   description (owns description measurement/expansion state).

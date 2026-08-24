@@ -172,9 +172,9 @@ describe('PendingRequestsScreen Rendering', () => {
     });
 
     it('should render request messages', () => {
-      const { getByText } = render(<PendingRequestsScreen />);
-      expect(getByText('I would love to join this coffee meetup!')).toBeTruthy();
-      expect(getByText('Sounds fun!')).toBeTruthy();
+      const { getAllByText } = render(<PendingRequestsScreen />);
+      expect(getAllByText('I would love to join this coffee meetup!')).toHaveLength(2);
+      expect(getAllByText('Sounds fun!')).toHaveLength(2);
     });
 
     it('should render avatar with correct initial', () => {

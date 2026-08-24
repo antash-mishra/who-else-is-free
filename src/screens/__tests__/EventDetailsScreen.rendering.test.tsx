@@ -37,9 +37,9 @@ const formatEventDetailDateLabel = (eventDate: string) => {
   const localeParts = normalizedLocale.split('-').slice(1);
   const isUSLocale = localeParts.some((part) => part.toUpperCase() === 'US');
   if (isUSLocale) {
-    return `${weekday} ${dd} ${monthLabel}`;
+    return `${weekday}, ${dd} ${monthLabel}`;
   }
-  return `${dd} ${monthLabel} ${weekday}`;
+  return `${dd} ${monthLabel}, ${weekday}`;
 };
 
 // Mock conversation for the event
@@ -277,18 +277,6 @@ jest.mock('@components/EventActionOverlay', () => {
           </View>
         );
 
-      case 'pendingRequest':
-        return (
-          <View testID="pending-request-overlay">
-            <Pressable testID="cancel-request-button" onPress={props.onCancelRequest}>
-              <Text>Cancel request</Text>
-            </Pressable>
-            <Pressable testID="report-event-button" onPress={props.onReportEvent}>
-              <Text>Report plan</Text>
-            </Pressable>
-          </View>
-        );
-
       default:
         return <View testID="unknown-overlay" />;
     }
@@ -384,7 +372,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders event time with date label', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const scheduleLine = `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · ${mockGroupEvent.time}`;
+      const scheduleLine = `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} . ${mockGroupEvent.time}`;
       expect(getByText(scheduleLine)).toBeTruthy();
     });
 
@@ -394,7 +382,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(
-        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · 7:30 PM`),
+        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)} . 7:30 PM`),
       ).toBeTruthy();
     });
 
@@ -407,7 +395,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders audience information correctly for group event', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = 'Group · All genders · 18 to 35 years';
+      const audienceLine = 'Group . All genders . 18 to 35 years';
       expect(getByText(audienceLine)).toBeTruthy();
     });
 
@@ -422,7 +410,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = '1:1 · All genders · 21 to 40 years';
+      const audienceLine = '1:1 . All genders . 21 to 40 years';
       expect(getByText(audienceLine)).toBeTruthy();
 
       // Restore the spy to avoid polluting other tests
@@ -460,8 +448,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByTestId('going-row')).toBeTruthy();
     });
 
-    it('shows "Plan details updated" badge after a short delay when route param is set', () => {
-      jest.useFakeTimers();
+    it('shows "Plan details updated" badge after a short delay when route param is set', async () => {
       const routeSpy = jest
         .spyOn(require('@react-navigation/native'), 'useRoute')
         .mockReturnValue(createMockRoute('1', 'MyEvents', true));
@@ -469,14 +456,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, queryByText } = render(<EventDetailsScreen />);
       expect(queryByText('Plan details updated')).toBeNull();
 
-      act(() => {
-        jest.advanceTimersByTime(350);
+      await waitFor(() => {
+        expect(getByText('Plan details updated')).toBeTruthy();
       });
 
-      expect(getByText('Plan details updated')).toBeTruthy();
-
       routeSpy.mockRestore();
-      jest.useRealTimers();
     });
 
     it('opens chat when "Go to chat" is pressed', () => {
@@ -508,7 +492,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
 
     it('shows Edit plan and Delete plan menu items for host', async () => {
-      const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
+      const { getByTestId, getAllByRole, getByText } = render(<EventDetailsScreen />);
 
       // Open menu
       const buttons = getAllByRole('button');
@@ -518,6 +502,23 @@ describe('EventDetailsScreen Rendering Tests', () => {
         expect(getByTestId('menu-item-edit-plan')).toBeTruthy();
         expect(getByTestId('menu-item-delete-plan')).toBeTruthy();
       });
+    });
+
+    it('opens a report-and-block confirmation before the member report form', async () => {
+      const { getByLabelText, getByTestId, getByText, queryByTestId } = render(
+        <EventDetailsScreen />,
+      );
+
+      fireEvent.press(getByTestId('event-details-tab-members'));
+      await waitFor(() => expect(getByLabelText('Open actions for Liam Test')).toBeTruthy());
+      fireEvent.press(getByLabelText('Open actions for Liam Test'));
+      fireEvent.press(getByTestId('menu-item-report-&-block-liam'));
+
+      expect(getByText('Report & block Liam?')).toBeTruthy();
+      expect(queryByTestId('report-overlay')).toBeNull();
+
+      fireEvent.press(getByTestId('confirm-button'));
+      expect(getByTestId('report-overlay')).toBeTruthy();
     });
 
     it('navigates to edit screen when Edit plan is pressed', async () => {
@@ -605,11 +606,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
         [mockEventConversation.id]: [mockPendingJoinRequest],
       };
 
-      const { getByText } = render(<EventDetailsScreen />);
+      const { getByText, getAllByText } = render(<EventDetailsScreen />);
 
       await waitFor(() => {
         expect(getByText(mockPendingJoinRequest.requester.name)).toBeTruthy();
-        expect(getByText(mockPendingJoinRequest.message)).toBeTruthy();
+        expect(getAllByText(mockPendingJoinRequest.message)).toHaveLength(2);
       });
     });
 
@@ -619,11 +620,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
         [-Number(mockOwnedEvent.id)]: [mockPendingJoinRequest],
       };
 
-      const { getByText } = render(<EventDetailsScreen />);
+      const { getByText, getAllByText } = render(<EventDetailsScreen />);
 
       await waitFor(() => {
         expect(getByText(mockPendingJoinRequest.requester.name)).toBeTruthy();
-        expect(getByText(mockPendingJoinRequest.message)).toBeTruthy();
+        expect(getAllByText(mockPendingJoinRequest.message)).toHaveLength(2);
       });
     });
   });
@@ -885,7 +886,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
 
     it('shows leave confirmation when Leave plan is pressed', async () => {
-      const { getByTestId, getAllByRole } = render(<EventDetailsScreen />);
+      const { getByTestId, getAllByRole, getByText } = render(<EventDetailsScreen />);
 
       // Open menu
       fireEvent.press(getAllByRole('button')[1]);
@@ -897,6 +898,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       await waitFor(() => {
         expect(getByTestId('confirm-overlay')).toBeTruthy();
         expect(getByTestId('confirm-title')).toHaveTextContent('Leave this plan?');
+        expect(getByText('Cancel')).toBeTruthy();
       });
     });
 
@@ -1077,6 +1079,33 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       routeSpy.mockRestore();
     });
+
+    it('distinguishes a fetch failure from a missing plan and retries', async () => {
+      const routeSpy = jest
+        .spyOn(require('@react-navigation/native'), 'useRoute')
+        .mockReturnValue(createMockRoute('42'));
+      mockAuthState.token = 'test-token';
+      mockAuthState.authFetch = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 500 })
+        .mockResolvedValueOnce({ ok: false, status: 404 });
+
+      const { getByText, queryByText } = render(<EventDetailsScreen />);
+
+      await waitFor(() => {
+        expect(getByText('Unable to load plan. Please try again.')).toBeTruthy();
+      });
+      expect(queryByText("We couldn't find that plan.")).toBeNull();
+
+      fireEvent.press(getByText('Try again'));
+
+      await waitFor(() => {
+        expect(getByText("We couldn't find that plan.")).toBeTruthy();
+      });
+      expect(mockAuthState.authFetch).toHaveBeenCalledTimes(2);
+
+      routeSpy.mockRestore();
+    });
   });
 
   describe('Report plan Flow', () => {
@@ -1185,7 +1214,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       await waitFor(
         () => {
           expect(getByTestId('report-error')).toHaveTextContent(
-            'Unable to submit report right now.',
+            "Couldn't submit report. Please try again.",
           );
         },
         { timeout: 3000 },
@@ -1355,7 +1384,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(
         getByText(
-          `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · ${mockGroupEvent.time}`,
+          `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} . ${mockGroupEvent.time}`,
         ),
       ).toBeTruthy();
     });
@@ -1373,7 +1402,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(
         getByText(
-          `${formatEventDetailDateLabel(mockSingleEvent.eventDate)} · ${mockGroupEvent.time}`,
+          `${formatEventDetailDateLabel(mockSingleEvent.eventDate)} . ${mockGroupEvent.time}`,
         ),
       ).toBeTruthy();
     });
@@ -1407,7 +1436,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
       // Should show error message after rejection propagates
       await waitFor(
         () => {
-          expect(getByTestId('confirm-error')).toBeTruthy();
+          expect(getByTestId('confirm-error')).toHaveTextContent(
+            "Couldn't delete this plan. Please try again.",
+          );
         },
         { timeout: 3000 },
       );
@@ -1443,7 +1474,9 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       await waitFor(
         () => {
-          expect(getByTestId('confirm-error')).toBeTruthy();
+          expect(getByTestId('confirm-error')).toHaveTextContent(
+            "Couldn't leave this plan. Please try again.",
+          );
         },
         { timeout: 3000 },
       );
@@ -1502,7 +1535,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       await waitFor(
         () => {
           expect(getByTestId('invite-error')).toHaveTextContent(
-            'You already have a pending request for this event.',
+            'You already have a pending request for this plan.',
           );
         },
         { timeout: 3000 },
@@ -1848,7 +1881,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(getByText('Accepted')).toBeTruthy();
       expect(getByText('No accepted requests')).toBeTruthy();
-      expect(getByText('Members you accept will appear here')).toBeTruthy();
+      expect(getByText('People you accept will appear here.')).toBeTruthy();
       expect(queryByText('Host')).toBeNull();
     });
 

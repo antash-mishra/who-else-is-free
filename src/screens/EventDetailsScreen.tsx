@@ -19,7 +19,8 @@ import { API_BASE_URL } from '@api/config';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
-import { EVENT_INFO_SEPARATOR } from '@constants/display';
+import { AppButton } from '@components/ui';
+import { EVENT_DETAILS_INFO_SEPARATOR } from '@constants/display';
 import { useAuth } from '@context/AuthContext';
 import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
 import { triggerHaptic } from '@services/haptics';
@@ -109,14 +110,9 @@ const EventDetailsScreenContent = ({
     setShowRequestSentBadge,
     showRequestCancelledBadge,
     setShowRequestCancelledBadge,
-    showManagePrompt,
-    setShowManagePrompt,
     showDeleteConfirm,
     deleteError,
     isDeleting,
-    showPendingRequestPrompt,
-    setShowPendingRequestPrompt,
-    isCancellingRequest,
     showReportPrompt,
     setShowReportPrompt,
     reportMessage,
@@ -137,12 +133,8 @@ const EventDetailsScreenContent = ({
     handleCtaPress,
     handleOpenChat,
     handleSendInvite,
-    handleEdit,
-    handleDeletePrompt,
     handleDelete,
     handleDeleteCancel,
-    handleCancelRequest,
-    handleOpenReportPrompt,
     handleSubmitReport,
     handleLeaveEvent,
     handleLeaveCancel,
@@ -171,6 +163,7 @@ const EventDetailsScreenContent = ({
     selectedRequest,
     setSelectedRequest,
     isReportingMember,
+    showReportMemberConfirm,
     selectedMember,
     showMemberMenu,
     setShowMemberMenu,
@@ -188,6 +181,8 @@ const EventDetailsScreenContent = ({
     openMemberMenu,
     handleRemoveMember,
     handleReportMemberFromMenu,
+    handleReportMemberConfirm,
+    handleReportMemberCancel,
     handleRemovePromptFromMenu,
     handleRemoveCancel,
     handleSubmitMemberReport,
@@ -243,7 +238,7 @@ const EventDetailsScreenContent = ({
   const scheduleDateLabel = event.eventDate
     ? formatEventDetailDateLabel(event.eventDate)
     : event.dateLabel;
-  const scheduleLine = `${scheduleDateLabel}${EVENT_INFO_SEPARATOR}${event.time}`;
+  const scheduleLine = `${scheduleDateLabel}${EVENT_DETAILS_INFO_SEPARATOR}${event.time}`;
   const audienceLine = formatEventDetailAudienceLine({
     groupType: event.groupType,
     gender: event.gender,
@@ -448,20 +443,11 @@ const EventDetailsScreenContent = ({
         inviteError={inviteError}
         isSendingInvite={isSendingInvite}
         onCloseInvitePrompt={() => setShowInvitePrompt(false)}
-        showManagePrompt={showManagePrompt}
-        onCloseManagePrompt={() => setShowManagePrompt(false)}
-        onEdit={handleEdit}
-        onDeletePrompt={handleDeletePrompt}
         showDeleteConfirm={showDeleteConfirm}
         onDelete={handleDelete}
         onDeleteCancel={handleDeleteCancel}
         deleteError={deleteError}
         isDeleting={isDeleting}
-        showPendingRequestPrompt={showPendingRequestPrompt}
-        onClosePendingRequestPrompt={() => setShowPendingRequestPrompt(false)}
-        onCancelRequest={handleCancelRequest}
-        onOpenReportPrompt={handleOpenReportPrompt}
-        isCancellingRequest={isCancellingRequest}
         showReportPrompt={showReportPrompt}
         onCloseReportPrompt={() => {
           setShowReportPrompt(false);
@@ -493,6 +479,9 @@ const EventDetailsScreenContent = ({
         selectedMemberName={selectedMember?.name}
         onReportMemberFromMenu={handleReportMemberFromMenu}
         onRemovePromptFromMenu={handleRemovePromptFromMenu}
+        showReportMemberConfirm={showReportMemberConfirm}
+        onReportMemberConfirm={handleReportMemberConfirm}
+        onReportMemberCancel={handleReportMemberCancel}
         showRemoveConfirm={showRemoveConfirm}
         onRemoveMember={handleRemoveMember}
         onRemoveCancel={handleRemoveCancel}
@@ -545,6 +534,8 @@ type EventDetailsScreenProps = {
   onOverlayClose?: () => void;
 };
 
+type EventDetailsLoadStatus = 'loading' | 'ready' | 'notFound' | 'error';
+
 const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) => {
   const navigation = useNavigation<EventDetailsNavigation>();
   const route = useRoute<EventDetailsRoute>();
@@ -558,7 +549,10 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
     [events, routeEventId],
   );
   const [fetchedEvent, setFetchedEvent] = useState<UserEvent | null>(null);
-  const [isFetchingEvent, setIsFetchingEvent] = useState(() => !rawEvent && !!token && !!authFetch);
+  const [loadStatus, setLoadStatus] = useState<EventDetailsLoadStatus>(() =>
+    rawEvent ? 'ready' : token ? 'loading' : 'notFound',
+  );
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     setFetchedEvent((prev) => (prev?.id === routeEventId ? prev : null));
@@ -566,16 +560,16 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
 
   useEffect(() => {
     if (rawEvent) {
-      setIsFetchingEvent(false);
+      setLoadStatus('ready');
       return;
     }
     if (!authFetch || !token) {
-      setIsFetchingEvent(false);
+      setLoadStatus('notFound');
       return;
     }
 
     let isCancelled = false;
-    setIsFetchingEvent(true);
+    setLoadStatus('loading');
 
     const fetchEvent = async () => {
       try {
@@ -589,6 +583,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
           // handles this, so don't treat it as an error.
           if (!isCancelled) {
             setFetchedEvent(null);
+            setLoadStatus('notFound');
           }
           return;
         }
@@ -598,15 +593,16 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
         const payload: { data?: ApiEvent | null } = await response.json();
         if (!isCancelled && payload.data) {
           setFetchedEvent(mapApiEventToUserEvent(payload.data));
+          setLoadStatus('ready');
+        } else if (!isCancelled) {
+          setFetchedEvent(null);
+          setLoadStatus('error');
         }
       } catch (err) {
         if (!isCancelled) {
           logger.error('Failed to fetch event details', err);
           setFetchedEvent(null);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsFetchingEvent(false);
+          setLoadStatus('error');
         }
       }
     };
@@ -615,7 +611,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
     return () => {
       isCancelled = true;
     };
-  }, [authFetch, rawEvent, routeEventId, token]);
+  }, [authFetch, rawEvent, retryKey, routeEventId, token]);
 
   const eventSnapshot = rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
 
@@ -623,7 +619,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.fallbackContainer}>
-          {isFetchingEvent ? (
+          {loadStatus === 'loading' ? (
             <ActivityIndicator size="large" color={colors.primary} />
           ) : (
             <>
@@ -649,7 +645,18 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
                   <ChevronLeftIcon width={24} height={24} color={colors.text} />
                 </Pressable>
               )}
-              <Text style={styles.fallbackText}>We couldn't find that plan.</Text>
+              <Text style={styles.fallbackText}>
+                {loadStatus === 'error'
+                  ? 'Unable to load plan. Please try again.'
+                  : "We couldn't find that plan."}
+              </Text>
+              {loadStatus === 'error' ? (
+                <AppButton
+                  label="Try again"
+                  variant="secondary"
+                  onPress={() => setRetryKey((value) => value + 1)}
+                />
+              ) : null}
             </>
           )}
         </View>

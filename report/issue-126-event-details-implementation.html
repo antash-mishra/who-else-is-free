@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Issue #126 — Event details implementation report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17191c;
+        --muted: #62666d;
+        --line: #dedfe2;
+        --paper: #f5f3ee;
+        --card: #fff;
+        --brand: #216b60;
+        --brand-soft: #dcece7;
+        --pass: #176b42;
+        --pass-soft: #e4f4ea;
+        --shadow: 0 12px 34px rgba(28, 31, 35, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 56px 0 80px; }
+      a { color: inherit; }
+      .hero {
+        padding: 48px;
+        border-radius: 30px;
+        color: white;
+        background: linear-gradient(135deg, #173d38, #2f7c70);
+        box-shadow: var(--shadow);
+      }
+      .eyebrow { margin: 0 0 12px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; opacity: .78; }
+      h1 { margin: 0; max-width: 850px; font-size: clamp(38px, 7vw, 72px); line-height: .98; letter-spacing: -.045em; }
+      .lede { max-width: 780px; margin: 24px 0 0; font-size: 19px; color: rgba(255,255,255,.8); }
+      .status-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+      .pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border-radius: 999px; background: rgba(255,255,255,.13); font-size: 13px; font-weight: 700; }
+      .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #8ff0bc; }
+      section { margin-top: 56px; }
+      h2 { margin: 0 0 18px; font-size: 30px; letter-spacing: -.03em; }
+      .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+      .metric { background: var(--card); padding: 22px; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
+      .metric strong { display: block; font-size: 30px; line-height: 1; color: var(--brand); }
+      .metric span { display: block; margin-top: 8px; color: var(--muted); font-size: 14px; }
+      .note { padding: 20px 22px; background: var(--brand-soft); border-left: 4px solid var(--brand); border-radius: 0 16px 16px 0; }
+      .issues { display: grid; gap: 24px; }
+      .issue { background: var(--card); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); }
+      .issue-copy { padding: 28px 30px 22px; }
+      .issue-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+      .issue h3 { margin: 0; font-size: 23px; line-height: 1.2; letter-spacing: -.02em; }
+      .pass { flex: 0 0 auto; padding: 6px 10px; border-radius: 999px; background: var(--pass-soft); color: var(--pass); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+      .issue p { margin: 12px 0 0; color: var(--muted); }
+      .evidence { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #ecebea; border-top: 1px solid var(--line); }
+      figure { margin: 0; padding: 20px; min-width: 0; }
+      figure + figure { border-left: 1px solid var(--line); }
+      figcaption { margin-bottom: 10px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      figure img { display: block; width: 100%; max-height: 610px; object-fit: contain; object-position: top center; border-radius: 15px; background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+      .single { grid-template-columns: minmax(0, 1fr); }
+      .single figure img { max-width: 470px; margin-inline: auto; }
+      .checks { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+      .checks th, .checks td { padding: 15px 18px; text-align: left; border-bottom: 1px solid var(--line); }
+      .checks th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+      .checks tr:last-child td { border-bottom: 0; }
+      .ok { color: var(--pass); font-weight: 800; }
+      code { padding: 2px 6px; background: #eceff0; border-radius: 6px; font-size: .9em; }
+      footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+      @media (max-width: 780px) {
+        main { width: min(100% - 22px, 1180px); padding-top: 18px; }
+        .hero { padding: 30px 24px; border-radius: 22px; }
+        .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        .evidence { grid-template-columns: 1fr; }
+        figure + figure { border-left: 0; border-top: 1px solid var(--line); }
+        .issue-copy { padding: 22px; }
+      }
+      @media print {
+        body { background: white; }
+        main { width: 100%; padding: 0; }
+        .hero, .issue, .metric, .checks { box-shadow: none; }
+        .issue { break-inside: avoid; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <p class="eyebrow">Implementation report · 24 August 2026</p>
+        <h1>Event details<br />Issue #126</h1>
+        <p class="lede">All ten reported areas were reproduced before implementation, corrected across the React Native client and Go backend, covered by regression tests, and verified on the Android emulator.</p>
+        <div class="status-row">
+          <span class="pill">10 / 10 resolved</span>
+          <span class="pill">1,248 frontend tests</span>
+          <span class="pill">Go tests passed</span>
+          <span class="pill">Device verified</span>
+        </div>
+      </header>
+
+      <section>
+        <h2>Outcome</h2>
+        <div class="summary-grid">
+          <div class="metric"><strong>10</strong><span>issue groups implemented</span></div>
+          <div class="metric"><strong>84</strong><span>frontend test suites passed</span></div>
+          <div class="metric"><strong>0</strong><span>TypeScript errors</span></div>
+          <div class="metric"><strong>10</strong><span>post-fix device screenshots</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Reproduction method</h2>
+        <div class="note">The existing build was exercised first with three development users (host, member, and requester) against a seeded future group plan. Visible regressions were captured on-device; unreachable branches and raw-response leaks were confirmed by tracing their state setters and status handling before any production code changed.</div>
+      </section>
+
+      <section>
+        <h2>Issue-by-issue evidence</h2>
+        <div class="issues">
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>1. Loading failure and missing-plan states</h3><span class="pass">Resolved</span></div><p>A missing plan still uses “We couldn't find that plan.” A transport/server failure now has its own retryable state and no longer masquerades as a 404.</p></div>
+            <div class="evidence single"><figure><figcaption>After · generic failure with retry</figcaption><img src="issue-126-assets/after/01-load-error.png" alt="Unable to load plan screen with Try again button" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>2. Details punctuation</h3><span class="pass">Resolved</span></div><p>Event Details now renders locale-aware commas in the date and period separators between date/time and audience values. Event cards retain their compact middle-dot style.</p></div>
+            <div class="evidence"><figure><figcaption>Before</figcaption><img src="issue-126-assets/before/02-details-punctuation.png" alt="Event details before punctuation update" /></figure><figure><figcaption>After</figcaption><img src="issue-126-assets/after/02-details-punctuation.png" alt="Event details with comma and period separators" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>3. Request-message line clamping</h3><span class="pass">Resolved</span></div><p>Clamping is driven by measured rendered lines, not character count. Long introductions stop at three lines and place “See more” inline on the final row.</p></div>
+            <div class="evidence"><figure><figcaption>Before</figcaption><img src="issue-126-assets/before/03-request-clamp.png" alt="Request message before clamp correction" /></figure><figure><figcaption>After</figcaption><img src="issue-126-assets/after/03-request-clamp.png" alt="Three-line request clamp with inline See more" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>4. Plan-update system message</h3><span class="pass">Resolved</span></div><p>The Go backend now persists “Plan details updated.” The schema backfill recognizes both historical and new copy, and the client renders either as a system message.</p></div>
+            <div class="evidence"><figure><figcaption>Before</figcaption><img src="issue-126-assets/before/04-backend-system-message.png" alt="Old backend update copy" /></figure><figure><figcaption>After</figcaption><img src="issue-126-assets/after/04-backend-system-message.png" alt="Chat list showing Plan details updated" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>5. Report &amp; Block member routing</h3><span class="pass">Resolved</span></div><p>The member menu no longer jumps into an ambiguous form. “Report &amp; Block” opens an explicit confirmation describing the consequence, then continues to the report form.</p></div>
+            <div class="evidence"><figure><figcaption>Before · wrong direct route</figcaption><img src="issue-126-assets/before/05-report-member-routing.png" alt="Member report path before confirmation" /></figure><figure><figcaption>After · explicit confirmation</figcaption><img src="issue-126-assets/after/05-member-report-confirmation.png" alt="Report and block member confirmation" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>6. Report-member sheet copy</h3><span class="pass">Resolved</span></div><p>The placeholder is “Tell us why you're reporting this plan”; the action is “Submit” / “Submitting...”; and failures use “Couldn't submit report. Please try again.”</p></div>
+            <div class="evidence"><figure><figcaption>Before</figcaption><img src="issue-126-assets/before/06-report-sheet-copy.png" alt="Old report sheet wording" /></figure><figure><figcaption>After</figcaption><img src="issue-126-assets/after/06-report-member-sheet.png" alt="Updated report sheet wording" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>7. Leave-plan confirmation and error</h3><span class="pass">Resolved</span></div><p>The neutral action is now exactly “Cancel.” Leave failures use the requested plan-specific wording: “Couldn't leave this plan. Please try again.”</p></div>
+            <div class="evidence single"><figure><figcaption>After · member flow</figcaption><img src="issue-126-assets/after/07-leave-confirmation.png" alt="Leave plan confirmation with Cancel action" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>8. Delete-plan confirmation and error</h3><span class="pass">Resolved</span></div><p>The host's neutral action is now “Cancel.” Delete failures consistently say “Couldn't delete this plan. Please try again.”</p></div>
+            <div class="evidence single"><figure><figcaption>After · host flow</figcaption><img src="issue-126-assets/after/08-delete-confirmation.png" alt="Delete plan confirmation with Cancel action" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>9. Safe Interested and Report errors</h3><span class="pass">Resolved</span></div><p>Status-to-copy mapping is centralized. Expected conflicts remain specific, while network failures and unknown server responses produce fixed user-safe messages; raw response bodies are never displayed.</p></div>
+            <div class="evidence"><figure><figcaption>Before · inconsistent states</figcaption><img src="issue-126-assets/before/09-interested-errors.png" alt="Interested flow before error normalization" /></figure><figure><figcaption>After · safe generic report failure</figcaption><img src="issue-126-assets/after/09-safe-report-error.png" alt="Safe report failure message" /></figure></div>
+          </article>
+
+          <article class="issue">
+            <div class="issue-copy"><div class="issue-head"><h3>10. Dead overlay routes</h3><span class="pass">Resolved</span></div><p>The unreachable <code>manage</code> and <code>pendingRequest</code> prompt variants, state setters, render routes, and obsolete tests were removed. The member menu now exposes only live actions.</p></div>
+            <div class="evidence single"><figure><figcaption>After · live actions only</figcaption><img src="issue-126-assets/after/10-live-actions-only.png" alt="Member action menu containing only live actions" /></figure></div>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Validation</h2>
+        <table class="checks">
+          <thead><tr><th>Gate</th><th>Result</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>Frontend tests</td><td class="ok">Passed</td><td>84 suites · 1,248 tests</td></tr>
+            <tr><td>TypeScript</td><td class="ok">Passed</td><td><code>tsc --noEmit</code></td></tr>
+            <tr><td>Backend tests</td><td class="ok">Passed</td><td><code>go test ./...</code></td></tr>
+            <tr><td>Lint</td><td class="ok">Passed</td><td>Existing warning baseline only; no errors</td></tr>
+            <tr><td>Whitespace</td><td class="ok">Passed</td><td><code>git diff --check</code></td></tr>
+            <tr><td>Android emulator</td><td class="ok">Passed</td><td>WEIF_API_36, host/member/requester flows</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer>Source issue: <a href="https://github.com/antash-mishra/who-else-is-free/issues/126">github.com/antash-mishra/who-else-is-free/issues/126</a>. Screenshots were captured from the Android development build after implementation; baseline images were captured before production edits.</footer>
+    </main>
+  </body>
+</html>
