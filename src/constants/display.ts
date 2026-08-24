@@ -2,4 +2,4 @@
 export const EVENT_INFO_SEPARATOR = ' · ';
 
 /** Separator used only by the Event Details plan-information rows. */
-export const EVENT_DETAILS_INFO_SEPARATOR = ' . ';
+export const EVENT_DETAILS_INFO_SEPARATOR = EVENT_INFO_SEPARATOR;

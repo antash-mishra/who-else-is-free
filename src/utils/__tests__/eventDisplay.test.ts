@@ -117,7 +117,7 @@ describe('eventDisplay', () => {
           minAge: 18,
           maxAge: 60,
         }),
-      ).toBe('Group . All genders . All ages');
+      ).toBe('Group · All genders · All ages');
     });
   });
 

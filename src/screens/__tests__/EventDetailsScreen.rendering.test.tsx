@@ -372,7 +372,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders event time with date label', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const scheduleLine = `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} . ${mockGroupEvent.time}`;
+      const scheduleLine = `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · ${mockGroupEvent.time}`;
       expect(getByText(scheduleLine)).toBeTruthy();
     });
 
@@ -382,7 +382,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
       expect(
-        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)} . 7:30 PM`),
+        getByText(`${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · 7:30 PM`),
       ).toBeTruthy();
     });
 
@@ -395,7 +395,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders audience information correctly for group event', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = 'Group . All genders . 18 to 35 years';
+      const audienceLine = 'Group · All genders · 18 to 35 years';
       expect(getByText(audienceLine)).toBeTruthy();
     });
 
@@ -410,7 +410,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       const { getByText } = render(<EventDetailsScreen />);
 
-      const audienceLine = '1:1 . All genders . 21 to 40 years';
+      const audienceLine = '1:1 · All genders · 21 to 40 years';
       expect(getByText(audienceLine)).toBeTruthy();
 
       // Restore the spy to avoid polluting other tests
@@ -1384,7 +1384,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(
         getByText(
-          `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} . ${mockGroupEvent.time}`,
+          `${formatEventDetailDateLabel(mockGroupEvent.eventDate)} · ${mockGroupEvent.time}`,
         ),
       ).toBeTruthy();
     });
@@ -1402,7 +1402,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(
         getByText(
-          `${formatEventDetailDateLabel(mockSingleEvent.eventDate)} . ${mockGroupEvent.time}`,
+          `${formatEventDetailDateLabel(mockSingleEvent.eventDate)} · ${mockGroupEvent.time}`,
         ),
       ).toBeTruthy();
     });
