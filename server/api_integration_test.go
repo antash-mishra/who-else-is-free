@@ -6770,11 +6770,11 @@ func TestSystemMessageKindExcludedFromUnreadCount(t *testing.T) {
 		}
 	})
 
-	// 3) Join announcement "X joined the chat" is tagged kind='system'.
+	// 3) Join announcement "X joined the plan" is tagged kind='system'.
 	t.Run("persisted join announcement row is tagged kind=system", func(t *testing.T) {
 		var kind string
 		err := env.db.QueryRowContext(ctx,
-			`SELECT kind FROM messages WHERE body LIKE '% joined the chat' AND conversation_id IN (SELECT id FROM conversations WHERE event_id = ?) LIMIT 1;`,
+			`SELECT kind FROM messages WHERE body LIKE '% joined the plan' AND conversation_id IN (SELECT id FROM conversations WHERE event_id = ?) LIMIT 1;`,
 			groupEventID,
 		).Scan(&kind)
 		if err != nil {

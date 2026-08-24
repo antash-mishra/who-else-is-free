@@ -137,14 +137,25 @@ jest.mock('@screens/EventDetailsScreen', () => {
     );
 });
 
-jest.mock('@screens/JoinRequestsScreen', () => {
+jest.mock('@screens/OneToOneHubScreen', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
   return () =>
     React.createElement(
       View,
-      { testID: 'join-requests-screen' },
-      React.createElement(Text, null, 'Join Requests'),
+      { testID: 'one-to-one-hub-screen' },
+      React.createElement(Text, null, 'One-to-One Hub'),
+    );
+});
+
+jest.mock('@screens/JoinRequestScreen', () => {
+  const React = require('react');
+  const { View, Text } = require('react-native');
+  return () =>
+    React.createElement(
+      View,
+      { testID: 'join-request-screen' },
+      React.createElement(Text, null, 'Join Request'),
     );
 });
 
@@ -214,10 +225,11 @@ describe('AppNavigator', () => {
         'Login',
         'Onboarding',
         'EventDetails',
-        'JoinRequests',
+        'OneToOneHub',
+        'JoinRequest',
         'ChatThread',
       ];
-      expect(stackScreenNames).toHaveLength(7);
+      expect(stackScreenNames).toHaveLength(8);
       expect(stackScreenNames).toContain('Splash');
       expect(stackScreenNames).toContain('Main');
       expect(stackScreenNames).toContain('Login');
@@ -303,12 +315,11 @@ describe('AppNavigator', () => {
       expect(navigateParams.origin).toBe('Events');
     });
 
-    it('should navigate to JoinRequests with required params', () => {
+    it('should navigate to OneToOneHub with required params', () => {
       const navigateParams = {
         conversationId: 1,
         eventId: 1,
         title: 'Test Event',
-        groupType: 'Group' as const,
       };
       expect(navigateParams.conversationId).toBe(1);
       expect(navigateParams.eventId).toBe(1);
@@ -356,8 +367,8 @@ describe('AppNavigator', () => {
     });
   });
 
-  describe('JoinRequests Screen Full Page', () => {
-    it('should NOT present JoinRequests as modal', () => {
+  describe('Join Request Screens', () => {
+    it('should present JoinRequest as a full-page route', () => {
       const options = { animation: 'fade_from_bottom', animationDuration: 200 };
       expect(options).not.toHaveProperty('presentation');
     });

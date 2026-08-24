@@ -67,10 +67,13 @@ const ConversationRow = ({
     (isPendingSingleHostPlaceholder(item, userId) ? 'No one accepted yet' : 'No messages yet');
   const isOwnMessage = item.lastMessage?.senderId === userId;
   const isSystemMessage = item.lastMessage?.kind === 'system';
+  const lastMessageSender = item.lastMessage
+    ? participants.find((participant) => participant.id === item.lastMessage?.senderId)
+    : undefined;
   const previewText = item.lastMessage
     ? isSystemMessage
       ? lastMessageBody
-      : `${isOwnMessage ? 'You' : (counterpart?.name?.split(' ')[0] ?? '')}: ${lastMessageBody}`
+      : `${isOwnMessage ? 'You' : (lastMessageSender?.name?.split(' ')[0] ?? '')}: ${lastMessageBody}`
     : lastMessageBody;
   const timestampLabel = item.lastMessage?.createdAt
     ? formatCompactRelativeTime(item.lastMessage.createdAt, nowMs)
@@ -304,11 +307,10 @@ const MessagesScreen = () => {
     const is1to1Host = isSingleHostEventConversation(conversation, user?.id);
 
     if (is1to1Host && conversation.eventId) {
-      navigation.navigate('JoinRequests', {
+      navigation.navigate('OneToOneHub', {
         conversationId: conversation.id,
         eventId: conversation.eventId,
         title: conversation.event?.title ?? conversation.displayName,
-        groupType: 'Single',
       });
     } else {
       setActiveConversation(conversation.id);

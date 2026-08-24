@@ -127,11 +127,10 @@ export const useEventDetailsActions = ({
   const handleOpenChat = () => {
     triggerHaptic('light');
     if (event && isOwner && isSingleEvent && eventNumericId != null && requestStoreKey != null) {
-      navigation.navigate('JoinRequests', {
+      navigation.navigate('OneToOneHub', {
         conversationId: requestStoreKey,
         eventId: eventNumericId,
         title: event.title,
-        groupType: 'Single',
       });
       return;
     }

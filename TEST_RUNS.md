@@ -130,3 +130,13 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated checks: focused Jest coverage passed 5 suites / 45 tests; TypeScript passed; touched-file formatting passed; lint completed with 0 errors and 842 existing baseline warnings. The full frontend run passed 80/82 suites and 1,223/1,247 tests; the remaining 24 failures are confined to unrelated existing Event Details and Chat Thread rendering suites.
 - Evidence: `report/issue-125-profile-implementation-report.html` and five screenshots under `report/issue-125-profile-assets/`.
 - Final verdict: **PASS**.
+
+## 2026-08-24 — Issue #127 Chat
+
+- Change: split notification request review into the full-page `JoinRequest` route while keeping the Messages/Event Details host flow in `OneToOneHub`; update message sender/system previews, chat error copy, pending-request accessibility and empty copy, thread subtitles/member grammar/timestamps, and 1:1 member-action error handling.
+- Environment: Android emulator `WEIF_API_36` (Android 16, 1080 × 2400), package `com.whoelseisfree.app`; local backend with `DEV_LOGIN_ENABLED=1`; Metro at `http://10.0.2.2:8081`; Host plus disposable Issue #127 test identities.
+- Reproduction: a fresh pending 1:1 notification opened Event Details; new join announcements read “joined the chat”; the 1:1 thread used a generic subtitle and locale-dependent time; the group singular/member, close-label, and raw error cases matched the issue report.
+- Device result: PASS — a new conversation-less 1:1 notification opened `JoinRequest` directly; the event-cache miss was found during the first pass and fixed by refreshing event metadata on focus. Messages simultaneously showed `Sylvie: Sounds good`, `Taylor Requester joined the plan`, `No messages yet`, and `No one accepted yet`. Pending Requests exposed `Close`, shared row truncation, and the exact empty copy. Thread captures proved plan/date, `10:44 PM`, and `Group • 1 member`. Report and remove remained separate; the shared report overlay opened; forced offline remove/chat failures showed fixed safe copy.
+- Automated checks: frontend 85 suites / 1,254 tests passed; `go test ./...` passed; TypeScript passed; lint completed with 0 errors and the existing warning baseline; touched files were formatted and `git diff --check` passed.
+- Evidence: `report/issue-127-chat-implementation-report.html` and before/after screenshots under `report/issue-127-assets/`.
+- Final verdict: **PASS**.

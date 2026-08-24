@@ -444,7 +444,7 @@ func resolveJoinRequestNotification(
 	}
 	return NotificationActionResolution{
 		Status:      NotificationActionActive,
-		Destination: NotificationDestinationEventDetails,
+		Destination: NotificationDestinationJoinRequests,
 		EventID:     &event.ID,
 		Title:       event.Title,
 	}, nil

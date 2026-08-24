@@ -46,7 +46,9 @@ jest.mock('@context/EventsContext', () => ({
 // Mock components
 jest.mock('@components/ScreenContainer', () => {
   const { View } = require('react-native');
-  return ({ children }: { children: React.ReactNode }) => <View testID="screen-container">{children}</View>;
+  return ({ children }: { children: React.ReactNode }) => (
+    <View testID="screen-container">{children}</View>
+  );
 });
 
 jest.mock('@components/EventActionOverlay', () => {
@@ -127,13 +129,15 @@ describe('ChatThreadScreen Rendering', () => {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  const setupMocks = (overrides: {
-    authOverrides?: object;
-    chatOverrides?: object;
-    eventsOverrides?: object;
-  } = {}) => {
+  const setupMocks = (
+    overrides: {
+      authOverrides?: object;
+      chatOverrides?: object;
+      eventsOverrides?: object;
+    } = {},
+  ) => {
     mockedUseAuth.mockReturnValue(
-      createMockUseAuth({ user: mockUsers[0], ...overrides.authOverrides })()
+      createMockUseAuth({ user: mockUsers[0], ...overrides.authOverrides })(),
     );
     mockedUseChat.mockReturnValue(
       createMockUseChat({
@@ -149,10 +153,10 @@ describe('ChatThreadScreen Rendering', () => {
         error: null,
         joinRequestsByConversation: {},
         ...overrides.chatOverrides,
-      })()
+      })(),
     );
     mockedUseEvents.mockReturnValue(
-      createMockUseEvents({ events: mockEvents, ...overrides.eventsOverrides })()
+      createMockUseEvents({ events: mockEvents, ...overrides.eventsOverrides })(),
     );
   };
 
@@ -202,7 +206,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('2 members')).toBeTruthy();
     });
 
-    it('should render counterpart name and "One to one, <date>" subtitle in 1:1 mode', () => {
+    it('should render counterpart name and "<plan name>, <date>" subtitle in 1:1 mode', () => {
       setupMocks({
         chatOverrides: {
           conversations: [
@@ -222,7 +226,7 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByText } = render(<ChatThreadScreen />);
 
       expect(getByText('Liam Test')).toBeTruthy();
-      expect(getByText('One to one')).toBeTruthy();
+      expect(getByText('Coffee Meetup')).toBeTruthy();
       expect(getByText('Today')).toBeTruthy();
     });
 
@@ -447,10 +451,12 @@ describe('ChatThreadScreen Rendering', () => {
     it('should not issue an extra goBack while swipe-back is removing the route', () => {
       let activeConversationId: number | null = 1;
       const listeners: Record<string, (event?: any) => void> = {};
-      (mockNavigation.addListener as jest.Mock).mockImplementation((eventName: string, callback: (event?: any) => void) => {
-        listeners[eventName] = callback;
-        return jest.fn();
-      });
+      (mockNavigation.addListener as jest.Mock).mockImplementation(
+        (eventName: string, callback: (event?: any) => void) => {
+          listeners[eventName] = callback;
+          return jest.fn();
+        },
+      );
       mockedUseChat.mockImplementation(() =>
         createMockUseChat({
           activeConversationId,
@@ -464,7 +470,7 @@ describe('ChatThreadScreen Rendering', () => {
           isConnecting: false,
           error: null,
           joinRequestsByConversation: {},
-        })()
+        })(),
       );
       mockedUseAuth.mockReturnValue(createMockUseAuth({ user: mockUsers[0] })());
       mockedUseEvents.mockReturnValue(createMockUseEvents({ events: mockEvents })());
@@ -482,10 +488,12 @@ describe('ChatThreadScreen Rendering', () => {
 
     it('should clear active conversation after the chat route closes', () => {
       const listeners: Record<string, (event?: any) => void> = {};
-      (mockNavigation.addListener as jest.Mock).mockImplementation((eventName: string, callback: (event?: any) => void) => {
-        listeners[eventName] = callback;
-        return jest.fn();
-      });
+      (mockNavigation.addListener as jest.Mock).mockImplementation(
+        (eventName: string, callback: (event?: any) => void) => {
+          listeners[eventName] = callback;
+          return jest.fn();
+        },
+      );
       setupMocks();
 
       render(<ChatThreadScreen />);
@@ -520,7 +528,15 @@ describe('ChatThreadScreen Rendering', () => {
           conversations: [groupHostConversation],
           joinRequestsByConversation: {
             99: [
-              { id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } },
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
             ],
           },
         },
@@ -537,7 +553,15 @@ describe('ChatThreadScreen Rendering', () => {
           activeConversationId: 1,
           joinRequestsByConversation: {
             [-1]: [
-              { id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } },
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
             ],
           },
         },
@@ -553,7 +577,17 @@ describe('ChatThreadScreen Rendering', () => {
         chatOverrides: {
           activeConversationId: 1,
           joinRequestsByConversation: {
-            1: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } }],
+            1: [
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'approved',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
+            ],
           },
         },
       });
@@ -583,8 +617,24 @@ describe('ChatThreadScreen Rendering', () => {
           conversations: [singleHostConversation],
           joinRequestsByConversation: {
             99: [
-              { id: 1, eventId: 2, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User A' } },
-              { id: 2, eventId: 2, userId: 4, message: 'Hello', status: 'pending', createdAt: '', requester: { id: 4, name: 'User B' } },
+              {
+                id: 1,
+                eventId: 2,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User A' },
+              },
+              {
+                id: 2,
+                eventId: 2,
+                userId: 4,
+                message: 'Hello',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 4, name: 'User B' },
+              },
             ],
           },
         },
@@ -616,7 +666,15 @@ describe('ChatThreadScreen Rendering', () => {
           conversations: [groupHostConversation],
           joinRequestsByConversation: {
             99: [
-              { id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'approved', createdAt: '', requester: { id: 3, name: 'User' } },
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'approved',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
             ],
           },
         },
@@ -648,7 +706,17 @@ describe('ChatThreadScreen Rendering', () => {
           activeConversationId: 99,
           conversations: [groupHostConversation],
           joinRequestsByConversation: {
-            99: [{ id: 1, eventId: 1, userId: 3, message: 'Hi', status: 'pending', createdAt: '', requester: { id: 3, name: 'User' } }],
+            99: [
+              {
+                id: 1,
+                eventId: 1,
+                userId: 3,
+                message: 'Hi',
+                status: 'pending',
+                createdAt: '',
+                requester: { id: 3, name: 'User' },
+              },
+            ],
           },
         },
       });
@@ -784,18 +852,18 @@ describe('ChatThreadScreen Rendering', () => {
       const { getByTestId } = render(<ChatThreadScreen />);
 
       expect(
-        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom,
       ).toBe(spacing.sm);
       expect(KeyboardController.setInputMode).toHaveBeenCalledWith(
-        AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING
+        AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING,
       );
       expect(KeyboardEvents.addListener).toHaveBeenCalledWith(
         'keyboardWillShow',
-        expect.any(Function)
+        expect.any(Function),
       );
       expect(KeyboardEvents.addListener).toHaveBeenCalledWith(
         'keyboardWillHide',
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
@@ -808,7 +876,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByPlaceholderText('Write a message')).toBeTruthy();
       expect(getByLabelText('Send message')).toBeTruthy();
       expect(
-        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom
+        StyleSheet.flatten(getByTestId('chat-composer-container').props.style).paddingBottom,
       ).toBe(spacing.xs);
       expect(KeyboardController.setInputMode).not.toHaveBeenCalled();
     });

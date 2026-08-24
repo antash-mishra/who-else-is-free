@@ -82,7 +82,10 @@ const mockDenyJoinRequest = jest.fn().mockResolvedValue(undefined);
 const mockRefreshJoinRequests = jest.fn().mockResolvedValue(undefined);
 
 let mockChatValue = {
-  joinRequestsByConversation: { 1: mockPendingRequests } as Record<number, typeof mockMixedRequests>,
+  joinRequestsByConversation: { 1: mockPendingRequests } as Record<
+    number,
+    typeof mockMixedRequests
+  >,
   refreshJoinRequests: mockRefreshJoinRequests,
   approveJoinRequest: mockApproveJoinRequest,
   denyJoinRequest: mockDenyJoinRequest,
@@ -154,12 +157,12 @@ describe('PendingRequestsScreen Rendering', () => {
 
     it('should render close button', () => {
       const { getByLabelText } = render(<PendingRequestsScreen />);
-      expect(getByLabelText('Close pending requests')).toBeTruthy();
+      expect(getByLabelText('Close')).toBeTruthy();
     });
 
     it('should navigate back when close button is pressed', () => {
       const { getByLabelText } = render(<PendingRequestsScreen />);
-      fireEvent.press(getByLabelText('Close pending requests'));
+      fireEvent.press(getByLabelText('Close'));
       expect(mockGoBack).toHaveBeenCalled();
     });
   });
@@ -228,15 +231,17 @@ describe('PendingRequestsScreen Rendering', () => {
 
     it('should show empty state when all requests are approved', () => {
       mockChatValue.joinRequestsByConversation = {
-        1: [{
-          id: 1,
-          eventId: 1,
-          userId: 2,
-          message: 'Hi',
-          status: 'approved' as const,
-          createdAt: new Date().toISOString(),
-          requester: { id: 2, name: 'Jane Doe' },
-        }],
+        1: [
+          {
+            id: 1,
+            eventId: 1,
+            userId: 2,
+            message: 'Hi',
+            status: 'approved' as const,
+            createdAt: new Date().toISOString(),
+            requester: { id: 2, name: 'Jane Doe' },
+          },
+        ],
       };
       const { getByText } = render(<PendingRequestsScreen />);
       expect(getByText('No requests')).toBeTruthy();

@@ -60,7 +60,7 @@ const (
 	// MessageKindUser is the default kind for messages authored by a user.
 	MessageKindUser MessageKind = "user"
 	// MessageKindSystem marks server-generated messages such as join
-	// announcements ("X joined the chat") and event-update notices
+	// announcements ("X joined the plan") and event-update notices
 	// ("Plan details updated"). They show inline in the thread and as the
 	// last-message preview, but must NOT bump unread counts.
 	MessageKindSystem MessageKind = "system"

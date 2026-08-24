@@ -32,8 +32,8 @@ export interface EventMemberSubtitleOptions {
 }
 
 /**
- * Build the event-level subtitle shared by JoinRequestsScreen and the group
- * chat window:
+ * Build the event-level subtitle shared by OneToOneHubScreen,
+ * JoinRequestScreen, and the group chat window:
  *
  *   Single → "1:1, 3 Accepted"
  *   Group  → "Group, 3 Members"
@@ -45,11 +45,13 @@ export const buildEventMemberSubtitle = ({
   memberCount,
 }: EventMemberSubtitleOptions): string => {
   const typeLabel = groupType === 'Single' ? '1:1' : 'Group';
-  const noun = groupType === 'Single' ? 'Accepted' : 'members';
+  const noun = groupType === 'Single' ? 'Accepted' : memberCount === 1 ? 'member' : 'members';
   return `${typeLabel}, ${memberCount} ${noun}`;
 };
 
 export interface OneToOneSubtitleOptions {
+  /** Plan name shown before the date. */
+  planName: string;
   /** Schedule used to derive the date portion. */
   schedule: EventScheduleLike | null | undefined;
 }
@@ -57,11 +59,11 @@ export interface OneToOneSubtitleOptions {
 /**
  * Build the 1:1 chat window subtitle:
  *
- *   "One to one, 08 Jun Mon"
+ *   "Coffee, 08 Jun Mon"
  *
- * Falls back to just "One to one" when no schedule exists.
+ * Falls back to the plan name when no schedule exists.
  */
-export const buildOneToOneSubtitle = ({ schedule }: OneToOneSubtitleOptions): string => {
+export const buildOneToOneSubtitle = ({ planName, schedule }: OneToOneSubtitleOptions): string => {
   const dateLabel = resolveDateLabel(schedule);
-  return dateLabel ? `One to one, ${dateLabel}` : 'One to one';
+  return dateLabel ? `${planName}, ${dateLabel}` : planName;
 };

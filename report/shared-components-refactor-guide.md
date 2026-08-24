@@ -28,35 +28,35 @@ In this React Native app, "shared CSS" means:
 
 ## Use This First
 
-| Need                                          | Use                                                                                    | Current examples                                                     |
-| --------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Primary, secondary, destructive, or ghost CTA | `AppButton`                                                                            | `EmptyState`, `SignInButtons`, `HelpForm`                            |
-| Shared typography variant                     | `AppText`                                                                              | `EmptyState`, help screens, UI primitives                            |
-| Text input                                    | `TextField`                                                                            | `HelpForm`                                                           |
-| Checkbox row                                  | `CheckboxRow`                                                                          | `HelpForm`                                                           |
-| Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`                                        |
-| Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                                  |
-| Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                                  |
-| Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, Join Requests header, Profile notifications bell |
-| Unread indicator dot on a list row            | `UnreadDot`                                                                            | Messages rows, Join Requests 1:1 rows, Notifications rows            |
-| Join-request row with accept/decline          | `EventRequestRow`                                                                      | Event Details, Pending Requests                                      |
-| Member row with menu or host label            | `EventMemberRow`                                                                       | Event Details members/accepted lists                                 |
-| Press scale and haptics                       | `ScalePressable`                                                                       | UI primitives, event rows, profile/menu rows                         |
-| Screen safe-area shell                        | `ScreenContainer`                                                                      | Most app screens                                                     |
-| Standard back/title header                    | `ScreenHeader`                                                                         | Help screens, Edit Profile, Past Events                              |
-| Empty state                                   | `EmptyState`                                                                           | Discover, My Events, Messages, Join Requests, Event Details          |
-| Event card list and load state                | `EventListPage`, `EventSectionList`, `EventListLoadState`                              | Discover, My Events, Past Events                                     |
-| Bottom sheet                                  | `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modal coordination, create-event sheets, action overlays             |
-| Sheet action menu                             | `SheetActionList`                                                                      | event action menus and pending request menus                         |
-| Event action prompt                           | `EventActionOverlay`                                                                   | Event Details, Chat Thread, Profile                                  |
-| Avatar                                        | `UserAvatar`                                                                           | Profile, messages, chat, event members, onboarding                   |
-| Shared haptics                                | `triggerHaptic` or shared `haptic` props                                               | navigation, forms, sheets, event actions                             |
-| Dev-only logging                              | `logger`                                                                               | contexts, screens, hooks (no direct `console.*`)                     |
-| Shared API request                            | `requestJson`, `ApiError` from `src/api/client.ts`                                     | `EventsContext`, `ChatContext`, `PushContext`, hooks                 |
-| API payload normalization                     | `src/api/mappers/events.ts`, `src/api/mappers/chat.ts`                                 | `EventsContext`, `ChatContext`                                       |
-| Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `requestJson` (default 10s), custom fetch flows                      |
-| Create/Edit Event mapping                     | `createEventForm.ts` helpers                                                           | `CreateEventScreen`                                                  |
-| Event metadata separators                     | `EVENT_INFO_SEPARATOR` and `EVENT_DETAILS_INFO_SEPARATOR`                              | Event cards and Event Details respectively                           |
+| Need                                          | Use                                                                                    | Current examples                                                      |
+| --------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Primary, secondary, destructive, or ghost CTA | `AppButton`                                                                            | `EmptyState`, `SignInButtons`, `HelpForm`                             |
+| Shared typography variant                     | `AppText`                                                                              | `EmptyState`, help screens, UI primitives                             |
+| Text input                                    | `TextField`                                                                            | `HelpForm`                                                            |
+| Checkbox row                                  | `CheckboxRow`                                                                          | `HelpForm`                                                            |
+| Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`                                         |
+| Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                                   |
+| Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                                   |
+| Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, One-to-One Hub header, Profile notifications bell |
+| Unread indicator dot on a list row            | `UnreadDot`                                                                            | Messages rows, One-to-One Hub rows, Notifications rows                |
+| Join-request row with accept/decline          | `EventRequestRow`                                                                      | Event Details, Pending Requests                                       |
+| Member row with menu or host label            | `EventMemberRow`                                                                       | Event Details members/accepted lists                                  |
+| Press scale and haptics                       | `ScalePressable`                                                                       | UI primitives, event rows, profile/menu rows                          |
+| Screen safe-area shell                        | `ScreenContainer`                                                                      | Most app screens                                                      |
+| Standard back/title header                    | `ScreenHeader`                                                                         | Help screens, Edit Profile, Past Events                               |
+| Empty state                                   | `EmptyState`                                                                           | Discover, My Events, Messages, request screens, Event Details         |
+| Event card list and load state                | `EventListPage`, `EventSectionList`, `EventListLoadState`                              | Discover, My Events, Past Events                                      |
+| Bottom sheet                                  | `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modal coordination, create-event sheets, action overlays              |
+| Sheet action menu                             | `SheetActionList`                                                                      | event action menus and pending request menus                          |
+| Event action prompt                           | `EventActionOverlay`                                                                   | Event Details, Chat Thread, Profile                                   |
+| Avatar                                        | `UserAvatar`                                                                           | Profile, messages, chat, event members, onboarding                    |
+| Shared haptics                                | `triggerHaptic` or shared `haptic` props                                               | navigation, forms, sheets, event actions                              |
+| Dev-only logging                              | `logger`                                                                               | contexts, screens, hooks (no direct `console.*`)                      |
+| Shared API request                            | `requestJson`, `ApiError` from `src/api/client.ts`                                     | `EventsContext`, `ChatContext`, `PushContext`, hooks                  |
+| API payload normalization                     | `src/api/mappers/events.ts`, `src/api/mappers/chat.ts`                                 | `EventsContext`, `ChatContext`                                        |
+| Shared API timeout                            | `createRequestTimeout`, `isAbortError`                                                 | `requestJson` (default 10s), custom fetch flows                       |
+| Create/Edit Event mapping                     | `createEventForm.ts` helpers                                                           | `CreateEventScreen`                                                   |
+| Event metadata separators                     | `EVENT_INFO_SEPARATOR` and `EVENT_DETAILS_INFO_SEPARATOR`                              | Event cards and Event Details respectively                            |
 
 ## Shared Styling System
 
@@ -434,7 +434,7 @@ What it is:
 Where it is used:
 
 - `ChatThreadScreen` header join-request count.
-- `JoinRequestsScreen` header pending count.
+- `OneToOneHubScreen` header pending count.
 
 Use it when:
 
@@ -451,7 +451,7 @@ What it is:
 Where it is used:
 
 - `MessagesScreen` conversation rows.
-- `JoinRequestsScreen` 1:1 request rows.
+- `OneToOneHubScreen` 1:1 request rows.
 
 Use it when:
 
@@ -512,7 +512,7 @@ Where it is used:
 - `EditProfileScreen`
 - `PrivacyPolicyScreen`
 - `HelpScreen`, `HelpContactScreen`, `HelpFeedbackScreen`, `HelpFAQScreen`
-- `JoinRequestsScreen`, `PendingRequestsScreen`
+- `OneToOneHubScreen`, `JoinRequestScreen`, `PendingRequestsScreen`
 - `PastEventsScreen`
 
 Use it when:
@@ -617,7 +617,8 @@ Where it is used:
 - `HomeScreen`
 - `MyEventsScreen`
 - `MessagesScreen`
-- `JoinRequestsScreen`
+- `OneToOneHubScreen`
+- `JoinRequestScreen`
 - `PastEventsScreen`
 - `EventDetailsScreen`
 
@@ -662,7 +663,8 @@ Where it is used:
 - `EditProfileScreen`
 - `MessagesScreen`
 - `ChatThreadScreen`
-- `JoinRequestsScreen`
+- `OneToOneHubScreen`
+- `JoinRequestScreen`
 - `PendingRequestsScreen`
 - `EventDetailsScreen`
 - `OnboardingScreen`
@@ -737,7 +739,8 @@ What it is:
 Where it is used:
 
 - `ChatThreadScreen`
-- `JoinRequestsScreen`
+- `OneToOneHubScreen`
+- `JoinRequestScreen`
 
 Use it when:
 
@@ -1108,6 +1111,7 @@ What it is:
 Where it is used:
 
 - `EventDetailsScreen` host Requests tab.
+- `OneToOneHubScreen` and the notification-opened `JoinRequestScreen`.
 - `PendingRequestsScreen`.
 
 Use it when:
@@ -1443,7 +1447,8 @@ Where it is used:
 - `ChatThreadScreen`
 - `MessagesScreen`
 - `ProfileScreen`
-- `JoinRequestsScreen`
+- `OneToOneHubScreen`
+- `JoinRequestScreen`
 - `PendingRequestsScreen`
 - `OnboardingScreen`
 - navigation tab buttons

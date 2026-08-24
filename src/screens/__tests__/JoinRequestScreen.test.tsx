@@ -1,5 +1,5 @@
 /**
- * Tests for JoinRequestsScreen
+ * Request-handling tests shared by JoinRequestScreen and OneToOneHubScreen
  * Covers request list, approve/deny/report actions
  */
 
@@ -9,7 +9,7 @@ import { mockJoinRequests, mockConversations } from '../../__tests__/mocks/mockD
 const BASE_URL = 'http://localhost:8080';
 const MOCK_TOKEN = 'mock-jwt-token';
 
-describe('JoinRequestsScreen', () => {
+describe('Join request handling', () => {
   beforeEach(() => {
     fetchMock.resetMocks();
   });
@@ -53,7 +53,7 @@ describe('JoinRequestsScreen', () => {
           headers: {
             Authorization: `Bearer ${MOCK_TOKEN}`,
           },
-        }
+        },
       );
 
       expect(response.ok).toBe(true);
@@ -80,7 +80,7 @@ describe('JoinRequestsScreen', () => {
           headers: {
             Authorization: `Bearer ${MOCK_TOKEN}`,
           },
-        }
+        },
       );
 
       expect(response.ok).toBe(false);
@@ -101,7 +101,7 @@ describe('JoinRequestsScreen', () => {
           headers: {
             Authorization: `Bearer ${MOCK_TOKEN}`,
           },
-        }
+        },
       );
 
       expect(response.ok).toBe(true);
@@ -124,17 +124,14 @@ describe('JoinRequestsScreen', () => {
 
       fetchMock.mockResponseOnce(JSON.stringify({ message: 'Reported' }), { status: 200 });
 
-      const response = await fetch(
-        `${BASE_URL}/api/events/${eventId}/members/${userId}/report`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${MOCK_TOKEN}`,
-          },
-          body: JSON.stringify({ reason }),
-        }
-      );
+      const response = await fetch(`${BASE_URL}/api/events/${eventId}/members/${userId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${MOCK_TOKEN}`,
+        },
+        body: JSON.stringify({ reason }),
+      });
 
       expect(response.ok).toBe(true);
     });
@@ -145,17 +142,14 @@ describe('JoinRequestsScreen', () => {
 
       fetchMock.mockResponseOnce('', { status: 409 });
 
-      const response = await fetch(
-        `${BASE_URL}/api/events/${eventId}/members/${userId}/report`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${MOCK_TOKEN}`,
-          },
-          body: JSON.stringify({ reason: 'test' }),
-        }
-      );
+      const response = await fetch(`${BASE_URL}/api/events/${eventId}/members/${userId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${MOCK_TOKEN}`,
+        },
+        body: JSON.stringify({ reason: 'test' }),
+      });
 
       expect(response.ok).toBe(false);
       expect(response.status).toBe(409);

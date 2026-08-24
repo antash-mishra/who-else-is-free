@@ -38,7 +38,7 @@ const ChatEventHeader = ({
 }: ChatEventHeaderProps) => {
   const hasCover = coverSource != null || (coverUri != null && coverUri !== "");
 
-  // Split "One to one, 23 Jul Thu" on the first comma so the comma can be
+  // Split "Plan name, 23 Jul Thu" on the first comma so the comma can be
   // rendered as a small dot separator (a filled circle) instead of a comma.
   const subtitleSepIndex = subtitle ? subtitle.indexOf(", ") : -1;
   const subtitleLeft = subtitleSepIndex >= 0 ? subtitle!.slice(0, subtitleSepIndex) : null;

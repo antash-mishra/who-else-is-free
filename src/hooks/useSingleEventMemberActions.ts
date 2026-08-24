@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+
 import { Alert } from 'react-native';
 
 import { ApiError, requestJson } from '@api/client';
@@ -31,7 +32,7 @@ const DEFAULT_REPORT_ERRORS = {
 export const useSingleEventMemberActions = ({
   eventId,
   onSuccess,
-  removeErrorTitle = "Couldn't remove this person.",
+  removeErrorTitle = "Couldn't remove this person",
   reportErrorMessages,
 }: UseSingleEventMemberActionsOptions) => {
   const { authFetch, token } = useAuth();
@@ -113,14 +114,14 @@ export const useSingleEventMemberActions = ({
         token,
         timeoutMs: null,
         fetchImpl: authFetch,
-        errorMessage: 'Please try again.',
+        errorMessage: 'Something went wrong on our end. Please try again.',
       });
 
       await onSuccess?.();
       reset();
     } catch (err) {
       logger.error('Failed to remove member', err);
-      Alert.alert(removeErrorTitle, err instanceof Error ? err.message : 'Please try again.');
+      Alert.alert(removeErrorTitle, 'Something went wrong on our end. Please try again.');
     } finally {
       setIsRemovingMember(false);
     }

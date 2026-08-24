@@ -98,7 +98,7 @@ const PendingRequestsScreen = () => {
           <IconButton
             icon={<CloseIcon width={18} height={18} color={colors.iconMuted} />}
             onPress={() => navigation.goBack()}
-            accessibilityLabel="Close pending requests"
+            accessibilityLabel="Close"
             size="sm"
             variant="soft"
           />

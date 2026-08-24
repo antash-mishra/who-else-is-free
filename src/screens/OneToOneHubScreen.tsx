@@ -26,12 +26,12 @@ const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
 const EMPTY_ILLUSTRATION_WIDTH = 227;
 const EMPTY_ILLUSTRATION_HEIGHT = 245;
 
-type JoinRequestsRoute = RouteProp<RootStackParamList, 'JoinRequests'>;
-type JoinRequestsNavigation = NativeStackNavigationProp<RootStackParamList, 'JoinRequests'>;
+type OneToOneHubRoute = RouteProp<RootStackParamList, 'OneToOneHub'>;
+type OneToOneHubNavigation = NativeStackNavigationProp<RootStackParamList, 'OneToOneHub'>;
 
-const JoinRequestsScreen = () => {
-  const navigation = useNavigation<JoinRequestsNavigation>();
-  const route = useRoute<JoinRequestsRoute>();
+const OneToOneHubScreen = () => {
+  const navigation = useNavigation<OneToOneHubNavigation>();
+  const route = useRoute<OneToOneHubRoute>();
   const { getCoverSource } = useCovers();
   const { user } = useAuth();
   const { events } = useEvents();
@@ -43,7 +43,10 @@ const JoinRequestsScreen = () => {
     setActiveConversation,
     conversations,
   } = useChat();
-  const { conversationId, eventId, title, groupType } = route.params;
+  const { conversationId, eventId, title } = route.params;
+  const legacyGroupType = (
+    route.params as RootStackParamList['OneToOneHub'] & { groupType?: 'Single' | 'Group' }
+  ).groupType;
   const requests = joinRequestsByConversation[conversationId] ?? [];
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -63,8 +66,7 @@ const JoinRequestsScreen = () => {
   );
 
   const conversationEvent = conversation?.event ?? null;
-  const resolvedGroupType = resolvedEvent?.groupType ?? conversationEvent?.groupType ?? groupType;
-  const is1to1Mode = resolvedGroupType === 'Single';
+  const is1to1Mode = legacyGroupType !== 'Group';
   const resolvedTitle = resolvedEvent?.title ?? conversationEvent?.title ?? title;
   const resolvedCoverKey = resolvedEvent?.coverKey ?? conversationEvent?.coverKey ?? undefined;
   const resolvedSchedule = resolvedEvent ?? conversationEvent;
@@ -386,7 +388,10 @@ const JoinRequestsScreen = () => {
           />
         </View>
       </ScreenContainer>
-      <FullPageEmptyState visible={displayRequests.length === 0} imageHeight={EMPTY_ILLUSTRATION_HEIGHT}>
+      <FullPageEmptyState
+        visible={displayRequests.length === 0}
+        imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
+      >
         {listEmpty}
       </FullPageEmptyState>
     </View>
@@ -528,4 +533,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default JoinRequestsScreen;
+export default OneToOneHubScreen;

@@ -49,11 +49,12 @@ import HelpFAQScreen from '@screens/HelpFAQScreen';
 import HelpFeedbackScreen from '@screens/HelpFeedbackScreen';
 import HelpScreen from '@screens/HelpScreen';
 import HomeScreen from '@screens/HomeScreen';
-import JoinRequestsScreen from '@screens/JoinRequestsScreen';
+import JoinRequestScreen from '@screens/JoinRequestScreen';
 import MessagesScreen from '@screens/MessagesScreen';
 import MyEventsScreen from '@screens/MyEventsScreen';
 import NotificationsScreen from '@screens/NotificationsScreen';
 import OnboardingScreen from '@screens/OnboardingScreen';
+import OneToOneHubScreen from '@screens/OneToOneHubScreen';
 import PastEventsScreen from '@screens/PastEventsScreen';
 import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
 import ProfileScreen from '@screens/ProfileScreen';
@@ -342,8 +343,16 @@ const AppNavigator = () => {
             }}
           />
           <Stack.Screen
-            name="JoinRequests"
-            component={JoinRequestsScreen}
+            name="OneToOneHub"
+            component={OneToOneHubScreen}
+            options={{
+              cardStyleInterpolator: slideFromRightInterpolator,
+              transitionSpec: slideFromRightTransitionSpec,
+            }}
+          />
+          <Stack.Screen
+            name="JoinRequest"
+            component={JoinRequestScreen}
             options={{
               cardStyleInterpolator: slideFromRightInterpolator,
               transitionSpec: slideFromRightTransitionSpec,

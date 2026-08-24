@@ -65,8 +65,8 @@ export const routeResolvedNotification = (
       }
       break;
     case 'join_requests':
-      if (resolution.conversation_id && resolution.event_id) {
-        navigator.navigate('JoinRequests', {
+      if (resolution.event_id) {
+        navigator.navigate('JoinRequest', {
           conversationId: resolution.conversation_id,
           eventId: resolution.event_id,
           title: resolution.title ?? '',

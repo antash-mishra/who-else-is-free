@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Issue #127 — Chat implementation report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17201f;
+        --muted: #60706d;
+        --line: #dce5e2;
+        --paper: #f5f8f7;
+        --card: #ffffff;
+        --green: #0b7457;
+        --green-soft: #dff4ec;
+        --amber: #9b5b00;
+        --amber-soft: #fff1d5;
+        --navy: #152b3c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.55 Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto 80px;
+      }
+      header {
+        margin: 24px 0;
+        padding: clamp(28px, 6vw, 68px);
+        overflow: hidden;
+        border-radius: 28px;
+        color: #fff;
+        background:
+          radial-gradient(circle at 86% 10%, rgba(80, 224, 174, 0.34), transparent 34%),
+          linear-gradient(135deg, #122a38 0%, #0d493e 100%);
+      }
+      h1 {
+        max-width: 820px;
+        margin: 8px 0 14px;
+        font-size: clamp(36px, 7vw, 68px);
+        line-height: 1.02;
+        letter-spacing: -0.045em;
+      }
+      h2 {
+        margin: 0 0 18px;
+        font-size: 30px;
+        letter-spacing: -0.025em;
+      }
+      h3 {
+        margin: 0 0 8px;
+        font-size: 21px;
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      code {
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #eaf0ee;
+        font-size: 0.9em;
+      }
+      .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 12px;
+        font-weight: 800;
+        opacity: 0.8;
+      }
+      .lede {
+        max-width: 760px;
+        margin: 0;
+        color: #d9eee7;
+        font-size: 19px;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 28px;
+      }
+      .pill {
+        padding: 7px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.23);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 13px;
+      }
+      section {
+        margin-top: 24px;
+        padding: clamp(22px, 4vw, 38px);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--card);
+      }
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .status-card {
+        padding: 18px;
+        border-radius: 18px;
+        background: var(--green-soft);
+      }
+      .status-card strong {
+        display: block;
+        color: var(--green);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .status-card span {
+        display: block;
+        margin-top: 6px;
+        font-weight: 700;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 13px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .pass {
+        color: var(--green);
+        font-weight: 800;
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      figure {
+        margin: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: #f8faf9;
+      }
+      figure img {
+        display: block;
+        width: 100%;
+        max-height: 760px;
+        object-fit: contain;
+        object-position: top center;
+        background: #edf2f0;
+      }
+      figcaption {
+        padding: 14px 16px 17px;
+        color: var(--muted);
+      }
+      figcaption strong {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--ink);
+      }
+      .before {
+        border-top: 4px solid var(--amber);
+      }
+      .after {
+        border-top: 4px solid var(--green);
+      }
+      .note {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        color: #714509;
+        background: var(--amber-soft);
+      }
+      .checks {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 28px;
+        padding: 0;
+        list-style: none;
+      }
+      .checks li::before {
+        content: '✓';
+        margin-right: 9px;
+        color: var(--green);
+        font-weight: 900;
+      }
+      .footer {
+        margin-top: 22px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 13px;
+      }
+      @media (max-width: 780px) {
+        .status-grid,
+        .gallery,
+        .checks {
+          grid-template-columns: 1fr;
+        }
+        section {
+          padding: 20px;
+        }
+        th:nth-child(3),
+        td:nth-child(3) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Android emulator verification · 24 Aug 2026</div>
+        <h1>Issue #127<br />Chat</h1>
+        <p class="lede">
+          Reproduced, implemented, regression-tested, and verified on-device. The notification flow
+          now opens the request itself; chat copy, previews, errors, accessibility, and member
+          actions follow the issue specification.
+        </p>
+        <div class="meta">
+          <span class="pill">WEIF_API_36 · Android 16</span>
+          <span class="pill">1080 × 2400 captures</span>
+          <span class="pill">Frontend + Go backend</span>
+          <span class="pill">Final verdict: PASS</span>
+        </div>
+      </header>
+
+      <section>
+        <h2>Outcome</h2>
+        <div class="status-grid">
+          <div class="status-card">
+            <strong>Flow</strong><span>Notification → JoinRequest</span>
+          </div>
+          <div class="status-card">
+            <strong>Messages</strong><span>All preview variants correct</span>
+          </div>
+          <div class="status-card">
+            <strong>Requests</strong><span>Shared rows and new empty copy</span>
+          </div>
+          <div class="status-card">
+            <strong>Thread</strong><span>Plan/date, AM/PM, safe actions</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Implemented scope</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Area</th>
+              <th>Implementation</th>
+              <th>Verification</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Navigation</td>
+              <td>
+                Split the former polymorphic route into <code>OneToOneHub</code> and full-page
+                <code>JoinRequest</code>. The server resolves active pending requests to request
+                review, including 1:1 requests with no conversation ID.
+              </td>
+              <td>Fresh notification created and tapped on-device.</td>
+              <td class="pass">PASS</td>
+            </tr>
+            <tr>
+              <td>Messages list</td>
+              <td>
+                Resolve other-user prefixes from <code>lastMessage.senderId</code>; system previews
+                remain body-only; new join copy is “joined the plan”; empty placeholders remain
+                distinct.
+              </td>
+              <td>Three live rows show other sender, system, and empty variants together.</td>
+              <td class="pass">PASS</td>
+            </tr>
+            <tr>
+              <td>Safe errors</td>
+              <td>
+                Conversation, refresh, socket, send, and remove failures use fixed user-safe copy.
+                Raw errors stay in development logs.
+              </td>
+              <td>
+                Backend stopped deliberately for device capture; focused tests cover every copy.
+              </td>
+              <td class="pass">PASS</td>
+            </tr>
+            <tr>
+              <td>Pending requests</td>
+              <td>
+                Close accessibility label is “Close”; empty copy is “No requests” / “Join requests
+                will appear here.”; rows reuse <code>EventRequestRow</code> truncation.
+              </td>
+              <td>Accessibility tree and populated/empty sheet states inspected.</td>
+              <td class="pass">PASS</td>
+            </tr>
+            <tr>
+              <td>Chat thread</td>
+              <td>
+                1:1 subtitle is plan name + date, group member grammar is singular-aware, and inline
+                timestamps use AM/PM.
+              </td>
+              <td>Separate 1:1 and host-only group conversations opened on-device.</td>
+              <td class="pass">PASS</td>
+            </tr>
+            <tr>
+              <td>Member actions</td>
+              <td>
+                Report and remove remain separate actions; report uses the shared Event Details
+                overlay; remove failures use the exact specified alert.
+              </td>
+              <td>Both sheets opened and a network failure was forced.</td>
+              <td class="pass">PASS</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>1. Notification flow</h2>
+        <div class="gallery">
+          <figure class="before">
+            <img
+              src="issue-127-assets/before/02-notification-opens-event-details.png"
+              alt="Before: notification opens Event Details"
+            />
+            <figcaption>
+              <strong>Before — incorrect detour</strong>Tapping a pending 1:1 request opened Event
+              Details instead of request review.
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/02-notification-opens-join-request.png"
+              alt="After: notification opens Join Request"
+            />
+            <figcaption>
+              <strong>After — direct request review</strong>The notification opens the full-page
+              JoinRequest route and loads both pending request rows even though the original request
+              had no conversation.
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/01-notification-direct-request.png"
+              alt="Fresh pending request notification"
+            />
+            <figcaption>
+              <strong>Fresh task used for verification</strong>A new pending 1:1 request was
+              generated after the backend change, avoiding stale resolver data.
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/09-messages-preview-variants.png"
+              alt="Messages list after fixes"
+            />
+            <figcaption>
+              <strong>OneToOneHub remains the Messages flow</strong>Messages keeps plan-level rows;
+              request notifications use the separate review route.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. Messages preview variants</h2>
+        <div class="gallery">
+          <figure class="before">
+            <img
+              src="issue-127-assets/before/03-messages-system-copy.png"
+              alt="Before: joined the chat preview"
+            />
+            <figcaption>
+              <strong>Before</strong>The server-authored join announcement said “joined the chat.”
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/09-messages-preview-variants.png"
+              alt="After: message preview variants"
+            />
+            <figcaption>
+              <strong>After</strong>“Sylvie: Sounds good” proves the actual sender is used; “Taylor
+              Requester joined the plan” is body-only system copy; both empty placeholders are
+              preserved.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. Pending Requests bottom sheet</h2>
+        <div class="gallery">
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/03-pending-requests-sheet.png"
+              alt="Populated Pending Requests sheet"
+            />
+            <figcaption>
+              <strong>Populated state</strong>The accessibility tree reports the close control as
+              exactly “Close.” Long introduction text is collapsed behind the shared “See more”
+              behavior.
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/04-pending-requests-empty.png"
+              alt="Empty Pending Requests sheet"
+            />
+            <figcaption>
+              <strong>Empty state</strong>Exact requested copy: “No requests” and “Join requests
+              will appear here.”
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>4. Chat thread and actions</h2>
+        <div class="gallery">
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/06-one-to-one-thread-subtitle-time.png"
+              alt="One-to-one chat thread"
+            />
+            <figcaption>
+              <strong>1:1 header and time</strong>The subtitle renders “Issue 127 One-to-One • 26
+              Aug Wed,” and the inline message time renders “10:44 PM.”
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/05-group-singular-member.png"
+              alt="Group thread with one member"
+            />
+            <figcaption>
+              <strong>Singular grammar</strong>A host-only group now renders “Group • 1 member.”
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/07-one-to-one-actions.png"
+              alt="One-to-one action sheet"
+            />
+            <figcaption>
+              <strong>Separate actions</strong>“Report &amp; Block Alex” and “Remove Alex” are
+              distinct actions.
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/08-report-member-sheet-shared.png"
+              alt="Shared report member sheet"
+            />
+            <figcaption>
+              <strong>Shared report surface</strong>Reporting opens the same shared overlay used by
+              Event Details; it does not invoke remove.
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/10-remove-person-safe-error.png"
+              alt="Safe remove person error"
+            />
+            <figcaption>
+              <strong>Exact remove error</strong>Forced offline: “Couldn't remove this person” /
+              “Something went wrong on our end. Please try again.”
+            </figcaption>
+          </figure>
+          <figure class="after">
+            <img
+              src="issue-127-assets/after/11-safe-chat-error.png"
+              alt="Safe chat connection error"
+            />
+            <figcaption>
+              <strong>Safe chat error</strong>The app shows “Couldn't connect to chat. Please try
+              again.” instead of the raw network exception.
+            </figcaption>
+          </figure>
+        </div>
+        <div class="note">
+          <strong>Historical data note:</strong> existing persisted announcements keep their
+          original wording. Newly generated announcements use “joined the plan”; the schema backfill
+          recognizes both forms as system messages.
+        </div>
+      </section>
+
+      <section>
+        <h2>Validation</h2>
+        <ul class="checks">
+          <li>Frontend: 85 suites, 1,254 tests passed</li>
+          <li>Backend: <code>go test ./...</code> passed</li>
+          <li>TypeScript: <code>tsc --noEmit</code> passed</li>
+          <li>Lint: 0 errors; existing warning baseline remains</li>
+          <li>Formatting: touched files formatted</li>
+          <li>Diff whitespace check passed</li>
+          <li>Fresh notification without conversation verified</li>
+          <li>Forced network failures verified on-device</li>
+        </ul>
+      </section>
+
+      <p class="footer">
+        Source issue: antash-mishra/who-else-is-free #127 · All device screenshots were captured
+        from the local Android development build.
+      </p>
+    </main>
+  </body>
+</html>

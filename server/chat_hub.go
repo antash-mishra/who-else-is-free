@@ -1522,7 +1522,7 @@ func (h *ChatHTTPHandler) buildJoinRequestView(ctx context.Context, req *Convers
 }
 
 func (h *ChatHTTPHandler) postJoinAnnouncement(ctx context.Context, conversationID int64, view JoinRequestView) error {
-	msgBody := fmt.Sprintf("%s joined the chat", view.Requester.Name)
+	msgBody := fmt.Sprintf("%s joined the plan", view.Requester.Name)
 	msg, err := h.repo.CreateMessage(ctx, CreateMessageParams{
 		ConversationID: conversationID,
 		SenderID:       view.UserID,

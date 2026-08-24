@@ -22,7 +22,6 @@ import {
   RawConversation,
   RawJoinRequest,
 } from '@api/mappers/chat';
-import { isAbortError } from '@api/request';
 import { useAuth } from '@context/AuthContext';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
@@ -58,6 +57,10 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 const WS_PATH = '/api/ws';
 const REFRESH_TIMEOUT_MS = 10_000;
+const CONVERSATIONS_ERROR = "Couldn't load conversations. Please try again.";
+const MESSAGES_ERROR = "Couldn't refresh messages. Please try again.";
+const CONNECTION_ERROR = "Couldn't connect to chat. Please try again.";
+const SEND_ERROR = "Couldn't send. Please try again.";
 
 const sortConversationsByActivity = (items: ChatConversation[]) => {
   return [...items].sort((a, b) => {
@@ -208,7 +211,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             token: activeToken,
             timeoutMs: null,
             fetchImpl: fetchClient,
-            errorMessage: 'Failed to load messages',
+            errorMessage: MESSAGES_ERROR,
           },
         );
         const normalized = payload.messages
@@ -235,7 +238,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         );
       } catch (err) {
         logger.error('Failed to refresh messages', err);
-        setError((err as Error).message);
+        setError(MESSAGES_ERROR);
       }
     },
     [token],
@@ -262,7 +265,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         token: activeToken,
         timeoutMs: REFRESH_TIMEOUT_MS,
         fetchImpl: fetchClient,
-        errorMessage: 'Unable to load conversations',
+        errorMessage: CONVERSATIONS_ERROR,
       });
       if (requestId !== conversationsRefreshRequestIdRef.current) {
         return;
@@ -310,11 +313,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       logger.error('Failed to load conversations', err);
-      if (isAbortError(err)) {
-        setError('Unable to load conversations');
-      } else {
-        setError((err as Error).message);
-      }
+      setError(CONVERSATIONS_ERROR);
     } finally {
       if (requestId === conversationsRefreshRequestIdRef.current) {
         setIsRefreshingConversations(false);
@@ -711,7 +710,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
 
     socket.onerror = async () => {
-      setError('Failed to connect to chat.');
+      setError(CONNECTION_ERROR);
       setIsConnecting(false);
       const refreshedToken = await refreshSessionSilentlyRef.current?.();
       if (refreshedToken) {
@@ -813,7 +812,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const timestamp = new Date().toISOString();
 
       if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-        setError('Chat connection is not ready.');
+        setError(SEND_ERROR);
         connectSocket();
 
         const failedMessage: ChatMessage = {

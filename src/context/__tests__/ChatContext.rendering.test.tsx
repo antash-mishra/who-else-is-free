@@ -12,7 +12,13 @@ import { Text, View, TouchableOpacity } from 'react-native';
 import fetchMock from 'jest-fetch-mock';
 
 import { ChatProvider, useChat, ChatMessage, ChatJoinRequest } from '../ChatContext';
-import { mockApiResponses, mockUsers, mockConversations, mockMessages, mockJoinRequests } from '../../__tests__/mocks/mockData';
+import {
+  mockApiResponses,
+  mockUsers,
+  mockConversations,
+  mockMessages,
+  mockJoinRequests,
+} from '../../__tests__/mocks/mockData';
 
 // Helper to create async delay with real timers
 const tick = (ms = 10) => new Promise<void>((r) => setTimeout(r, ms));
@@ -224,7 +230,7 @@ const renderWithProvider = (props = {}) => {
   return render(
     <ChatProvider>
       <TestConsumer {...props} />
-    </ChatProvider>
+    </ChatProvider>,
   );
 };
 
@@ -316,7 +322,9 @@ describe('ChatContext Rendering Tests', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Failed to connect to chat.');
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          "Couldn't connect to chat. Please try again.",
+        );
       });
     });
   });
@@ -362,9 +370,7 @@ describe('ChatContext Rendering Tests', () => {
       // Check that ws.send was called (presence update + message:send)
       expect(ws.send).toHaveBeenCalled();
       const calls = ws.send.mock.calls;
-      const messageSendCall = calls.find(
-        (c: any[]) => JSON.parse(c[0]).type === 'message:send',
-      );
+      const messageSendCall = calls.find((c: any[]) => JSON.parse(c[0]).type === 'message:send');
       expect(messageSendCall).toBeDefined();
       const sentPayload = JSON.parse(messageSendCall![0]);
       expect(sentPayload.type).toBe('message:send');
@@ -400,7 +406,7 @@ describe('ChatContext Rendering Tests', () => {
 
       // Should show error about connection
       await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Chat connection is not ready.');
+        expect(screen.getByTestId('error')).toHaveTextContent("Couldn't send. Please try again.");
       });
     });
   });
@@ -533,9 +539,7 @@ describe('ChatContext Rendering Tests', () => {
 
       // Get the tempId from the sent message (skip presence:active_conversation)
       const calls = ws.send.mock.calls;
-      const messageSendCall = calls.find(
-        (c: any[]) => JSON.parse(c[0]).type === 'message:send',
-      );
+      const messageSendCall = calls.find((c: any[]) => JSON.parse(c[0]).type === 'message:send');
       const sentPayload = JSON.parse(messageSendCall![0]);
       const tempId = sentPayload.tempId;
 
@@ -863,8 +867,7 @@ describe('ChatContext Rendering Tests', () => {
 
       const conversationOneMessageFetches = fetchMock.mock.calls.filter(
         ([request]) =>
-          typeof request === 'string' &&
-          request.includes('/api/conversations/1/messages?limit=50'),
+          typeof request === 'string' && request.includes('/api/conversations/1/messages?limit=50'),
       );
       expect(conversationOneMessageFetches.length).toBeGreaterThanOrEqual(2);
     });

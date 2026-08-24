@@ -79,6 +79,27 @@ describe('pushRouting', () => {
     expect(navigator.navigate).toHaveBeenCalledWith('ChatThread');
   });
 
+  it('routes a pending request without a conversation directly to JoinRequest', () => {
+    const navigator = createNavigator();
+
+    routeResolvedNotification(
+      {
+        status: 'active',
+        destination: 'join_requests',
+        event_id: 17,
+        title: 'Morning Walk',
+      },
+      jest.fn(),
+      navigator,
+    );
+
+    expect(navigator.navigate).toHaveBeenCalledWith('JoinRequest', {
+      conversationId: undefined,
+      eventId: 17,
+      title: 'Morning Walk',
+    });
+  });
+
   it('does not navigate when navigation is not ready', () => {
     const navigator = createNavigator(false);
     routeResolvedNotification({ status: 'active', destination: 'events' }, jest.fn(), navigator);

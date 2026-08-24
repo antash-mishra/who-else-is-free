@@ -14,11 +14,15 @@ export type RootStackParamList = {
     eventId: string;
     readOnly: true;
   };
-  JoinRequests: {
+  OneToOneHub: {
     conversationId: number;
     eventId: number;
     title: string;
-    groupType?: 'Single' | 'Group';
+  };
+  JoinRequest: {
+    conversationId?: number;
+    eventId: number;
+    title: string;
   };
   PendingRequests: {
     conversationId: number;

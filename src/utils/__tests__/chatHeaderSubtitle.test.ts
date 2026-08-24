@@ -28,7 +28,7 @@ describe('buildEventMemberSubtitle', () => {
     ).toBe('1:1, 3 Accepted');
   });
 
-  it('leads with "Group" then the member count for Group', () => {
+  it('leads with "Group" then the plural member count for Group', () => {
     expect(
       buildEventMemberSubtitle({
         groupType: 'Group',
@@ -36,6 +36,16 @@ describe('buildEventMemberSubtitle', () => {
         schedule: { eventDate },
       }),
     ).toBe('Group, 3 members');
+  });
+
+  it('uses the singular member noun for a count of one', () => {
+    expect(
+      buildEventMemberSubtitle({
+        groupType: 'Group',
+        memberCount: 1,
+        schedule: null,
+      }),
+    ).toBe('Group, 1 member');
   });
 
   it('ignores the schedule (no date in the subtitle)', () => {
@@ -81,24 +91,30 @@ describe('buildOneToOneSubtitle', () => {
   const eventDate = todayKey();
   const absoluteLabel = absoluteFor(eventDate);
 
-  it('formats as "One to one, <date>"', () => {
+  it('formats as "<plan name>, <date>"', () => {
     expect(
       buildOneToOneSubtitle({
+        planName: 'Coffee Catchup',
         schedule: { eventDate },
       }),
-    ).toBe(`One to one, ${absoluteLabel}`);
+    ).toBe(`Coffee Catchup, ${absoluteLabel}`);
   });
 
   it('falls back to dateLabel when no eventDate', () => {
     expect(
       buildOneToOneSubtitle({
+        planName: 'Coffee Catchup',
         schedule: { dateLabel: 'Today' },
       }),
-    ).toBe('One to one, Today');
+    ).toBe('Coffee Catchup, Today');
   });
 
-  it('returns just "One to one" when no schedule', () => {
-    expect(buildOneToOneSubtitle({ schedule: null })).toBe('One to one');
-    expect(buildOneToOneSubtitle({ schedule: undefined })).toBe('One to one');
+  it('returns just the plan name when no schedule', () => {
+    expect(buildOneToOneSubtitle({ planName: 'Coffee Catchup', schedule: null })).toBe(
+      'Coffee Catchup',
+    );
+    expect(buildOneToOneSubtitle({ planName: 'Coffee Catchup', schedule: undefined })).toBe(
+      'Coffee Catchup',
+    );
   });
 });

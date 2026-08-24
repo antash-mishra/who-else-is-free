@@ -25,7 +25,9 @@ Who Else Is Free is an event discovery and social coordination app.
   Lifecycle mutations eagerly invalidate related actions. Inbox and OS-push taps must both call
   the authenticated `POST /api/notifications/actions/resolve` boundary through
   `openNotification` in `src/context/pushRouting.ts`; never navigate from raw notification IDs or
-  restore client-side entity access checks. Inactive tasks remain as one muted historical group.
+  restore client-side entity access checks. Active request tasks open the full-page `JoinRequest`
+  route (including conversation-less 1:1 requests); Messages and Event Details use the separate
+  `OneToOneHub` route. Inactive tasks remain as one muted historical group.
 
 ## Working References
 

@@ -180,6 +180,38 @@ func TestResolveNotificationAction_MixedJoinGroupKeepsPendingDestination(t *test
 	}
 }
 
+func TestResolveNotificationAction_SinglePendingRequestOpensRequest(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	hostID := int64(1)
+	requesterID := seedNotificationActionUser(t, repo, "single-pending")
+	eventID := seedNotificationActionEvent(t, repo, hostID, "Single")
+	request, err := repo.CreateJoinRequest(ctx, eventID, requesterID, "hello")
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	notification, err := repo.CreateNotification(ctx, Notification{
+		UserID: hostID, Type: NotificationTypeJoinRequestCreated, EventID: &eventID,
+		JoinRequestID: &request.ID, Title: "Hike", Body: "Requester wants to join your event",
+	})
+	if err != nil {
+		t.Fatalf("create notification: %v", err)
+	}
+
+	resolution, err := repo.ResolveNotificationAction(ctx, hostID, NotificationActionResolveInput{
+		NotificationIDs: []int64{notification.ID}, MarkHandled: true,
+	})
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if resolution.Status != NotificationActionActive || resolution.Destination != NotificationDestinationJoinRequests {
+		t.Fatalf("resolution = %+v", resolution)
+	}
+	if resolution.EventID == nil || *resolution.EventID != eventID {
+		t.Fatalf("event = %v, want %d", resolution.EventID, eventID)
+	}
+}
+
 func TestResolveNotificationAction_ApprovalUsesValidatedReplacementConversation(t *testing.T) {
 	repo := newNotificationsTestRepo(t)
 	ctx := context.Background()

@@ -40,6 +40,7 @@ import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHeaderSubtitle';
+import { formatTimeAmPm } from '@utils/dateTime';
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
@@ -231,7 +232,10 @@ const ChatThreadScreen = () => {
 
   const headerSubtitle = useMemo(() => {
     if (isSingleEventConversation) {
-      return buildOneToOneSubtitle({ schedule: activeEventDetails });
+      return buildOneToOneSubtitle({
+        planName: activeEventDetails?.title ?? activeConversation?.displayName ?? 'One to one',
+        schedule: activeEventDetails,
+      });
     }
     if (isGroupEventConversation) {
       return buildEventMemberSubtitle({
@@ -501,10 +505,10 @@ const ChatThreadScreen = () => {
       ? 'Sending…'
       : item.failed
         ? "Couldn't send. Tap to retry."
-        : new Date(item.createdAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+        : formatTimeAmPm(
+            new Date(item.createdAt).getHours(),
+            new Date(item.createdAt).getMinutes(),
+          );
 
     const bubble = (
       <View

@@ -1581,7 +1581,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(queryByText('Members')).toBeNull();
     });
 
-    it('opens JoinRequests when 1:1 host taps "Go to chat" without existing conversations', () => {
+    it('opens OneToOneHub when 1:1 host taps "Go to chat" without existing conversations', () => {
       mockChatState.conversations = [];
 
       const { getByText } = render(<EventDetailsScreen />);
@@ -1589,12 +1589,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(getByText('Go to chat'));
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        'JoinRequests',
+        'OneToOneHub',
         expect.objectContaining({
           conversationId: -2,
           eventId: 2,
           title: mockSingleEvent.title,
-          groupType: 'Single',
         }),
       );
     });

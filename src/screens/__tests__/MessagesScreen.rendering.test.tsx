@@ -360,9 +360,33 @@ describe('MessagesScreen Rendering', () => {
       const { getByText } = render(<MessagesScreen />);
 
       // Jane's message in Coffee Meetup Chat
-      expect(getByText(/Looking forward to it!/)).toBeTruthy();
+      expect(getByText('Jane: Looking forward to it!')).toBeTruthy();
       // User's own message in John Smith chat
-      expect(getByText(/You: Hello there!/)).toBeTruthy();
+      expect(getByText('You: Hello there!')).toBeTruthy();
+    });
+
+    it('uses the actual last-message sender in a multi-member conversation', () => {
+      mockChatValue.conversations = [
+        {
+          ...mockConversations[0],
+          memberIds: [1, 2, 4],
+          participants: [
+            { id: 1, name: 'Test User' },
+            { id: 2, name: 'Jane Doe' },
+            { id: 4, name: 'Sylvie Hart' },
+          ],
+          lastMessage: {
+            ...mockConversations[0].lastMessage!,
+            senderId: 4,
+            body: 'Sounds good',
+          },
+        },
+      ];
+
+      const { getByText, queryByText } = render(<MessagesScreen />);
+
+      expect(getByText('Sylvie: Sounds good')).toBeTruthy();
+      expect(queryByText('Jane: Sounds good')).toBeNull();
     });
 
     it('should render compact timestamps for recent messages', () => {
@@ -553,18 +577,17 @@ describe('MessagesScreen Rendering', () => {
       expect(mockNavigate).toHaveBeenCalledWith('ChatThread');
     });
 
-    it('should navigate to JoinRequests for 1:1 event host', () => {
+    it('should navigate to OneToOneHub for 1:1 event host', () => {
       const { getByText } = render(<MessagesScreen />);
 
       fireEvent.press(getByText('One-on-One Event'));
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        'JoinRequests',
+        'OneToOneHub',
         expect.objectContaining({
           conversationId: 3,
           eventId: 3,
           title: 'One-on-One Event',
-          groupType: 'Single',
         }),
       );
     });
@@ -581,7 +604,7 @@ describe('MessagesScreen Rendering', () => {
       expect(getByText('No one accepted yet')).toBeTruthy();
     });
 
-    it('should open JoinRequests for a host-owned 1:1 event without a conversation', () => {
+    it('should open OneToOneHub for a host-owned 1:1 event without a conversation', () => {
       mockUserEvents = [mockSingleUserEvent];
       mockChatValue.conversations = mockConversations.filter(
         (conversation) => conversation.eventId !== 4,
@@ -591,11 +614,10 @@ describe('MessagesScreen Rendering', () => {
 
       fireEvent.press(getByText('Solo Coffee'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('JoinRequests', {
+      expect(mockNavigate).toHaveBeenCalledWith('OneToOneHub', {
         conversationId: -4,
         eventId: 4,
         title: 'Solo Coffee',
-        groupType: 'Single',
       });
     });
 
