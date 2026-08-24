@@ -13,6 +13,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { AppText } from '@components/ui';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
+import { logger } from '@services/logger';
 import { colors, typography } from '@theme/index';
 
 const FEEDBACK_BULLETS = [
@@ -42,9 +43,10 @@ const HelpFeedbackScreen = () => {
       setShowSentBadge(true);
       setFeedbackMessage('');
     } catch (error) {
+      logger.error('Failed to send feedback', error);
       Alert.alert(
-        'Unable to send',
-        error instanceof Error ? error.message : "We couldn't send your feedback. Please try again.",
+        "Couldn't send your feedback",
+        "We couldn't send your feedback. Please try again.",
       );
     } finally {
       setIsSubmitting(false);

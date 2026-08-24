@@ -184,9 +184,7 @@ const ProfileScreen = () => {
       setShowDeleteConfirm(false);
     } catch (error) {
       logger.error('Failed to delete account', error);
-      setDeleteError(
-        error instanceof Error ? error.message : "Couldn't delete account. Please try again.",
-      );
+      setDeleteError("Couldn't delete account. Please try again.");
     } finally {
       setIsDeletingAccount(false);
     }
@@ -299,8 +297,8 @@ const ProfileScreen = () => {
                 size={64}
                 style={styles.avatar}
               />
-              <Text style={styles.name}>{user?.name ?? 'Your Profile'}</Text>
-              <Text style={styles.email}>{user?.email ?? ''}</Text>
+              <Text style={styles.name}>{user.name}</Text>
+              <Text style={styles.email}>{user.email}</Text>
 
               {/* Stats Row */}
               <View style={styles.statsRow}>
@@ -349,7 +347,7 @@ const ProfileScreen = () => {
           ) : null}
           <MenuItem
             icon={<LogoutIcon width={20} height={20} color={colors.text} />}
-            label="Log out"
+            label="Sign out"
             onPress={handleSignOut}
             showChevron={false}
             haptic="medium"
@@ -371,7 +369,7 @@ const ProfileScreen = () => {
         title="Delete your account?"
         description="This will permanently delete your profile, created plans, joined plans, and chats. This action can't be undone."
         confirmLabel="Delete account"
-        cancelLabel="Keep account"
+        cancelLabel="Cancel"
         confirmTone="destructive"
         holdToConfirm
         onConfirm={handleDeleteAccount}

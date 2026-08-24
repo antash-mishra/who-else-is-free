@@ -1,9 +1,5 @@
 const privacyPolicyMarkdown = String.raw`# Privacy Policy
 
-[Old](https://app.notion.com/p/Old-3702ef2fbf4880abbc11fcbad322b3b3?pvs=21)
-
-[Old page](https://app.notion.com/p/Old-page-3702ef2fbf4880d395a0ff7c624e08e1?pvs=21)
-
 ## **WEIF - PRIVACY POLICY**
 
 #### Last updated June 15, 2026

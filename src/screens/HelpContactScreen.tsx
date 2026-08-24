@@ -17,6 +17,7 @@ import ScreenHeader from '@components/ScreenHeader';
 import { AppText } from '@components/ui';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
+import { logger } from '@services/logger';
 import { colors, typography } from '@theme/index';
 
 const CONTACT_CHECKBOXES = [
@@ -67,10 +68,8 @@ const HelpContactScreen = () => {
       setReplyEmail('');
       setCheckedOptions([]);
     } catch (error) {
-      Alert.alert(
-        "Couldn't send your message.",
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      logger.error('Failed to send contact message', error);
+      Alert.alert("Couldn't send your message", "We couldn't send your message. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -91,8 +90,8 @@ const HelpContactScreen = () => {
           </AppText>
           <AppText variant="body" style={styles.sectionBody}>
             If you feel unsafe, had a bad experience, or something isn't working, we're here to
-            help. Safety reports are reviewed as a priority, and we'll get back to you as soon as
-            we can.
+            help. Safety reports are reviewed as a priority, and we'll get back to you as soon as we
+            can.
           </AppText>
           <HelpForm
             message={contactMessage}

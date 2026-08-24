@@ -103,7 +103,7 @@ const parsePolicyMarkdown = (markdown: string): PolicyBlock[] => {
   while (index < lines.length) {
     const line = lines[index].trim();
 
-    if (!line || line === '# Privacy Policy' || line.startsWith('[Old')) {
+    if (!line || line === '# Privacy Policy') {
       index += 1;
       continue;
     }

@@ -242,19 +242,18 @@ describe('ProfileScreen Rendering', () => {
   });
 
   describe('Sign Out Button', () => {
-    it('should display Logout menu item', () => {
+    it('should display Sign out menu item', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      expect(getByText('Log out')).toBeTruthy();
+      expect(getByText('Sign out')).toBeTruthy();
     });
 
-    it('should call signOut when Logout is pressed', () => {
+    it('should call signOut when Sign out is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
 
-      const logoutButton = getByText('Log out');
-      fireEvent.press(logoutButton);
+      fireEvent.press(getByText('Sign out'));
 
       expect(mockSignOut).toHaveBeenCalled();
     });
@@ -358,12 +357,12 @@ describe('ProfileScreen Rendering', () => {
       expect(getByTestId('delete-account-confirm')).toBeTruthy();
       expect(getByText('Delete your account?')).toBeTruthy();
       expect(getAllByText('Delete account').length).toBeGreaterThan(0);
-      expect(getByText('Keep account')).toBeTruthy();
+      expect(getByText('Cancel')).toBeTruthy();
     });
 
     it('should close delete confirmation without calling API when cancelled', () => {
       setupMocks();
-      const { getByText, getAllByText, getByTestId, queryByTestId } = render(<ProfileScreen />);
+      const { getAllByText, getByTestId, queryByTestId } = render(<ProfileScreen />);
 
       fireEvent.press(getAllByText('Delete account')[0]);
       expect(getByTestId('delete-account-confirm')).toBeTruthy();
@@ -377,7 +376,7 @@ describe('ProfileScreen Rendering', () => {
     it('should call deleteAccount when delete confirmation is confirmed', async () => {
       mockDeleteAccount.mockResolvedValueOnce(undefined);
       setupMocks();
-      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
+      const { getAllByText, getByTestId } = render(<ProfileScreen />);
 
       fireEvent.press(getAllByText('Delete account')[0]);
       fireEvent.press(getByTestId('confirm-delete-account'));
@@ -389,16 +388,17 @@ describe('ProfileScreen Rendering', () => {
 
     it('should keep confirmation open and show an error when delete fails', async () => {
       jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockDeleteAccount.mockRejectedValueOnce(new Error('Unable to delete account'));
+      mockDeleteAccount.mockRejectedValueOnce(new Error('database connection details'));
       setupMocks();
-      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
+      const { getByText, getAllByText, getByTestId, queryByText } = render(<ProfileScreen />);
 
       fireEvent.press(getAllByText('Delete account')[0]);
       fireEvent.press(getByTestId('confirm-delete-account'));
 
       await waitFor(() => {
-        expect(getByText('Unable to delete account')).toBeTruthy();
+        expect(getByText("Couldn't delete account. Please try again.")).toBeTruthy();
       });
+      expect(queryByText('database connection details')).toBeNull();
       expect(getByTestId('delete-account-confirm')).toBeTruthy();
     });
   });
@@ -427,7 +427,7 @@ describe('ProfileScreen Rendering', () => {
       setupMocks({
         authOverrides: { user: null },
       });
-      const { getByText, getAllByText, getByTestId } = render(<ProfileScreen />);
+      const { getByText, getByTestId } = render(<ProfileScreen />);
 
       fireEvent.press(getByText('Get started'));
 
@@ -452,7 +452,7 @@ describe('ProfileScreen Rendering', () => {
 
       expect(queryByText('Edit profile')).toBeNull();
       expect(queryByText('Past plans')).toBeNull();
-      expect(queryByText('Log out')).toBeNull();
+      expect(queryByText('Sign out')).toBeNull();
       expect(queryByText('Delete account')).toBeNull();
       // Bell is hidden for guests.
       expect(queryByTestId('notifications-bell')).toBeNull();
@@ -500,15 +500,6 @@ describe('ProfileScreen Rendering', () => {
       expect(getByText('Ava Test')).toBeTruthy();
       expect(getByText('Hosted')).toBeTruthy();
       expect(getByText('Joined')).toBeTruthy();
-    });
-
-    it('should display default name when user name is null', () => {
-      setupMocks({
-        authOverrides: { user: { ...mockUsers[0], name: null as unknown as string } },
-      });
-      const { getByText } = render(<ProfileScreen />);
-
-      expect(getByText('Your Profile')).toBeTruthy();
     });
   });
 

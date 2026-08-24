@@ -121,3 +121,12 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated checks: focused Jest coverage passed 5 suites / 87 tests; TypeScript passed; lint completed with 0 errors and the existing warning baseline; touched-file formatting and `git diff --check` passed. The full frontend suite retains three unrelated baseline failures in Event Details, Chat Thread, and create-event form tests.
 - Evidence: `report/issue-123-my-plans-implementation-report.html` and `report/issue-123-my-plans-{guest,hosting-empty,card-dot}.png`.
 - Final verdict: **PASS** for the implemented issue scope; the failed offline screenshot attempt is disclosed in the report.
+
+## 2026-08-24 — Issue #125 Profile copy and safe errors
+
+- Change: update Profile to “Sign out”, rename delete cancellation to “Cancel”, replace raw account/help submission errors with fixed user-safe copy while retaining development logs, add commas to Past Plans absolute date headings, revise Past Plans error/retry copy, remove obsolete privacy-policy Notion links, remove the unreachable profile-name fallback, and verify the existing #121 Edit Profile behavior.
+- Environment: Android emulator `WEIF_API_36` (Android 16, 1080 × 2400), package `com.whoelseisfree.app`; local backend with `DEV_LOGIN_ENABLED=1`; Metro at `http://10.0.2.2:8081`; Member2 preset identity.
+- Device result: PASS — Profile displayed `Sign out`; delete hold-to-confirm displayed `Cancel`; Past Plans displayed comma-separated headings including `31 Jul, Fri` and `26 Jul, Sun`; forced offline Contact and Feedback submissions displayed the specified generic alerts while development logging retained the underlying network failure.
+- Automated checks: focused Jest coverage passed 5 suites / 45 tests; TypeScript passed; touched-file formatting passed; lint completed with 0 errors and 842 existing baseline warnings. The full frontend run passed 80/82 suites and 1,223/1,247 tests; the remaining 24 failures are confined to unrelated existing Event Details and Chat Thread rendering suites.
+- Evidence: `report/issue-125-profile-implementation-report.html` and five screenshots under `report/issue-125-profile-assets/`.
+- Final verdict: **PASS**.

@@ -1,7 +1,9 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
 import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
+
 import { mockNavigation } from '../../__tests__/mocks/mockModules';
+import privacyPolicyMarkdown from '../../content/privacyPolicyMarkdown';
 
 describe('PrivacyPolicyScreen', () => {
   beforeEach(() => {
@@ -23,5 +25,10 @@ describe('PrivacyPolicyScreen', () => {
 
     fireEvent.press(getByLabelText('Go back'));
     expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retain obsolete Notion links in the policy source', () => {
+    expect(privacyPolicyMarkdown).not.toContain('app.notion.com');
+    expect(privacyPolicyMarkdown).not.toContain('[Old');
   });
 });

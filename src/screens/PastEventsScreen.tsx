@@ -8,17 +8,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '@api/config';
 import EmptyState from '@components/EmptyState';
-import FullPageEmptyState from '@components/FullPageEmptyState';
 import { EventItemProps } from '@components/EventCard';
 import { EventSectionList, buildEventItemSections } from '@components/events';
+import FullPageEmptyState from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import { CoverKey, resolveCoverUri } from '@constants/covers';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
-import { formatAbsoluteDateLabel, getScheduleDisplay, parseDateKey } from '@utils/dateTime';
-import { formatAudienceLabel } from '@utils/eventDisplay';
+import { getScheduleDisplay, parseDateKey } from '@utils/dateTime';
+import { formatAudienceLabel, formatEventListSectionHeaderLabel } from '@utils/eventDisplay';
 
 type ApiEvent = {
   id: number;
@@ -52,7 +52,7 @@ const getPastSectionDateLabel = (eventDate: string): string => {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  return formatAbsoluteDateLabel(eventDate);
+  return formatEventListSectionHeaderLabel(eventDate);
 };
 
 const PastEventsScreen = () => {
@@ -102,7 +102,7 @@ const PastEventsScreen = () => {
       });
       setEvents(mapped);
     } catch {
-      setError('Failed to load past plans');
+      setError("Couldn't load past plans.");
     }
   }, [authFetch, token, user]);
 
@@ -158,7 +158,7 @@ const PastEventsScreen = () => {
           <View style={styles.centerContent}>
             <Text style={styles.errorText}>{error}</Text>
             <Pressable style={styles.retryButton} onPress={handleRefresh}>
-              <Text style={styles.retryButtonText}>Try again</Text>
+              <Text style={styles.retryButtonText}>Please try again</Text>
             </Pressable>
           </View>
         ) : (
