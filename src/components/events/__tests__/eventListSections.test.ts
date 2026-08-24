@@ -29,7 +29,7 @@ describe('eventListSections', () => {
       location: 'Central Park, NYC',
       time: '10:00 AM',
       audience: 'All Gender, 18 to 50 years',
-      metaLine: 'Group, 25-35',
+      metaLine: 'Group · 25-35',
       imageUri: 'cover://default',
       badgeLabel: 'Hosting',
     });

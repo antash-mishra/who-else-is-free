@@ -18,13 +18,13 @@ import AnimatedPager from '@components/AnimatedPager';
 import BottomSheetModal from '@components/BottomSheetModal';
 import ConfettiOverlay from '@components/ConfettiOverlay';
 import EmptyState from '@components/EmptyState';
+import EventActionBadge from '@components/EventActionBadge';
+import { EventItemProps } from '@components/EventCard';
+import { EventListLoadState, EventListPage, buildEventSections } from '@components/events';
 import FullPageEmptyState, {
   EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
   emptyStateAnchorTop,
 } from '@components/FullPageEmptyState';
-import EventActionBadge from '@components/EventActionBadge';
-import { EventItemProps } from '@components/EventCard';
-import { EventListPage, buildEventSections } from '@components/events';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl, { SegmentedOption } from '@components/SegmentedControl';
 import SignInButtons from '@components/SignInButtons';
@@ -50,8 +50,15 @@ const MyEventsScreen = () => {
   const navigation = useNavigation<MyEventsNavigation>();
   const route = useRoute<MyEventsRoute>();
   const isFocused = useIsFocused();
-  const { events, userEvents, requestedEvents, refreshEvents, refreshRequestedEvents } =
-    useEvents();
+  const {
+    events,
+    userEvents,
+    requestedEvents,
+    isLoading,
+    error,
+    refreshEvents,
+    refreshRequestedEvents,
+  } = useEvents();
   const { conversations } = useChat();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -62,6 +69,7 @@ const MyEventsScreen = () => {
   const [headerHeight, setHeaderHeight] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(events.length > 0);
   const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
 
@@ -76,6 +84,13 @@ const MyEventsScreen = () => {
     const task = InteractionManager.runAfterInteractions(() => setShowEventDeletedBadge(true));
     return () => task.cancel();
   }, [route.params?.showEventDeletedBadge]);
+
+  useEffect(() => {
+    if (!isLoading && events.length > 0 && !hasLoadedOnce) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Match Discover's initial-load guard so cached content stays visible during refreshes.
+      setHasLoadedOnce(true);
+    }
+  }, [events.length, hasLoadedOnce, isLoading]);
 
   const joinedEventIds = useMemo(() => {
     if (!user) return new Set<string>();
@@ -141,6 +156,8 @@ const MyEventsScreen = () => {
   ];
 
   const [signInVisible, setSignInVisible] = useState(false);
+  const showInitialLoading = isLoading && events.length === 0 && !hasLoadedOnce;
+  const showLoadError = !!error && !isLoading && events.length === 0;
 
   if (!user) {
     return (
@@ -158,8 +175,8 @@ const MyEventsScreen = () => {
           titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
         >
           <EmptyState
-            title="No plans yet"
-            description={"Sign in to see the plans you've created or joined"}
+            title="Your plans are waiting"
+            description="Get started to create or join plans."
             actionLabel="Get started"
             onActionPress={() => setSignInVisible(true)}
             imageSource={require('@assets/empty-state/my-events.png')}
@@ -178,68 +195,79 @@ const MyEventsScreen = () => {
     <View style={styles.root}>
       <ScreenContainer edges={['bottom']}>
         <View style={styles.content}>
-          <AnimatedPager
-            selectedIndex={selectedPage}
-            onPageChange={setSelectedPage}
-            pageOffsetSV={pageOffset}
-            style={styles.pager}
-            isActive={isFocused}
-          >
-            <EventListPage
-              sections={hostingSections}
-              onEventPress={handleEventPress}
-              headerPaddingTop={headerHeight}
-              bottomInset={insets.bottom}
-              emptyStateTopPadding={emptyStateTopPadding}
-              emptyState={
-                <EmptyState
-                  title="No plans hosted"
-                  description="Create a plan and get things started."
-                  imageSource={require('@assets/empty-state/my-events.png')}
-                  imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
-                  imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
-                />
-              }
-              refreshing={selectedPage === 0 ? isRefreshing : false}
-              onRefresh={handleRefresh}
+          {showInitialLoading ? (
+            <EventListLoadState status="loading" topPadding={headerHeight} />
+          ) : showLoadError ? (
+            <EventListLoadState
+              status="error"
+              errorMessage={error}
+              onRetry={handleRefresh}
+              topPadding={headerHeight}
             />
-            <EventListPage
-              sections={joinedSections}
-              onEventPress={handleEventPress}
-              headerPaddingTop={headerHeight}
-              bottomInset={insets.bottom}
-              emptyStateTopPadding={emptyStateTopPadding}
-              emptyState={
-                <EmptyState
-                  title="No plans joined"
-                  description="Your joined plans will appear here."
-                  imageSource={require('@assets/empty-state/my-events.png')}
-                  imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
-                  imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
-                />
-              }
-              refreshing={selectedPage === 1 ? isRefreshing : false}
-              onRefresh={handleRefresh}
-            />
-            <EventListPage
-              sections={requestedSections}
-              onEventPress={handleEventPress}
-              headerPaddingTop={headerHeight}
-              bottomInset={insets.bottom}
-              emptyStateTopPadding={emptyStateTopPadding}
-              emptyState={
-                <EmptyState
-                  title="No requests"
-                  description="Your join requests will appear here."
-                  imageSource={require('@assets/empty-state/my-events.png')}
-                  imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
-                  imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
-                />
-              }
-              refreshing={isRequestedRefreshing}
-              onRefresh={handleRefresh}
-            />
-          </AnimatedPager>
+          ) : (
+            <AnimatedPager
+              selectedIndex={selectedPage}
+              onPageChange={setSelectedPage}
+              pageOffsetSV={pageOffset}
+              style={styles.pager}
+              isActive={isFocused}
+            >
+              <EventListPage
+                sections={hostingSections}
+                onEventPress={handleEventPress}
+                headerPaddingTop={headerHeight}
+                bottomInset={insets.bottom}
+                emptyStateTopPadding={emptyStateTopPadding}
+                emptyState={
+                  <EmptyState
+                    title="No plans hosted"
+                    description="Your hosted plans will appear here."
+                    imageSource={require('@assets/empty-state/my-events.png')}
+                    imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+                    imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
+                  />
+                }
+                refreshing={selectedPage === 0 ? isRefreshing : false}
+                onRefresh={handleRefresh}
+              />
+              <EventListPage
+                sections={joinedSections}
+                onEventPress={handleEventPress}
+                headerPaddingTop={headerHeight}
+                bottomInset={insets.bottom}
+                emptyStateTopPadding={emptyStateTopPadding}
+                emptyState={
+                  <EmptyState
+                    title="No plans joined"
+                    description="Your joined plans will appear here."
+                    imageSource={require('@assets/empty-state/my-events.png')}
+                    imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+                    imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
+                  />
+                }
+                refreshing={selectedPage === 1 ? isRefreshing : false}
+                onRefresh={handleRefresh}
+              />
+              <EventListPage
+                sections={requestedSections}
+                onEventPress={handleEventPress}
+                headerPaddingTop={headerHeight}
+                bottomInset={insets.bottom}
+                emptyStateTopPadding={emptyStateTopPadding}
+                emptyState={
+                  <EmptyState
+                    title="No requests"
+                    description="Your join requests will appear here."
+                    imageSource={require('@assets/empty-state/my-events.png')}
+                    imageWidth={MY_EVENTS_EMPTY_IMAGE_WIDTH}
+                    imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
+                  />
+                }
+                refreshing={isRequestedRefreshing}
+                onRefresh={handleRefresh}
+              />
+            </AnimatedPager>
+          )}
 
           {/* Floating blurred header */}
           <View

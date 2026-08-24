@@ -83,6 +83,7 @@ describe('MyEventsScreen Rendering', () => {
       userEvents: userHostedEvents,
       requestedEvents: [],
       isLoading: false,
+      error: null,
       refreshEvents: jest.fn().mockResolvedValue(undefined),
       refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
     });
@@ -173,7 +174,8 @@ describe('MyEventsScreen Rendering', () => {
 
     it('displays compact third-line card metadata', () => {
       renderWithNav(<MyEventsScreen />);
-      expect(screen.getByText('Group, 18-35')).toBeTruthy();
+      expect(screen.getByText('Central Park · 10:00')).toBeTruthy();
+      expect(screen.getByText('Group · 18-35')).toBeTruthy();
       expect(screen.queryByText('All Gender, 18 to 35 years')).toBeNull();
     });
 
@@ -188,6 +190,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: mockEvents.filter((e) => e.dateLabel === 'Tmrw'),
         requestedEvents: [],
         isLoading: false,
+        error: null,
         refreshEvents: jest.fn(),
         refreshRequestedEvents: jest.fn(),
       });
@@ -203,6 +206,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: [],
         requestedEvents: [],
         isLoading: false,
+        error: null,
         refreshEvents: jest.fn(),
         refreshRequestedEvents: jest.fn(),
       });
@@ -210,14 +214,17 @@ describe('MyEventsScreen Rendering', () => {
       renderWithNav(<MyEventsScreen />);
       expect(screen.getAllByTestId('empty-state').length).toBeGreaterThan(0);
       expect(screen.getByText('No plans hosted')).toBeTruthy();
+      expect(screen.getByText('Your hosted plans will appear here.')).toBeTruthy();
     });
 
     it('shows login prompt for guest users', () => {
       mockUseAuth.mockReturnValue({ user: null });
       renderWithNav(<MyEventsScreen />);
       expect(screen.getByTestId('empty-state')).toBeTruthy();
-      expect(screen.getByText('No plans yet')).toBeTruthy();
+      expect(screen.getByText('Your plans are waiting')).toBeTruthy();
+      expect(screen.getByText('Get started to create or join plans.')).toBeTruthy();
       expect(screen.getByText('Get started')).toBeTruthy();
+      expect(screen.queryByTestId('segment-hosting')).toBeNull();
     });
 
     it('opens sign-in modal when Get started pressed', () => {
@@ -226,6 +233,84 @@ describe('MyEventsScreen Rendering', () => {
       const continueButton = screen.getByText('Get started');
       fireEvent.press(continueButton);
       expect(screen.getByTestId('bottom-sheet-modal')).toBeTruthy();
+    });
+  });
+
+  describe('Load States', () => {
+    it('shows loading instead of a false empty state before the initial load completes', () => {
+      mockUseEvents.mockReturnValue({
+        events: [],
+        userEvents: [],
+        requestedEvents: [],
+        isLoading: true,
+        error: null,
+        refreshEvents: jest.fn().mockResolvedValue(undefined),
+        refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
+      });
+      mockUseChat.mockReturnValue({ conversations: [] });
+
+      renderWithNav(<MyEventsScreen />);
+
+      expect(screen.getByTestId('event-list-loading-state')).toBeTruthy();
+      expect(screen.queryByText('No plans hosted')).toBeNull();
+      expect(screen.getByTestId('segment-hosting')).toBeTruthy();
+    });
+
+    it('shows the shared error state instead of a false empty state', () => {
+      mockUseEvents.mockReturnValue({
+        events: [],
+        userEvents: [],
+        requestedEvents: [],
+        isLoading: false,
+        error: 'Unable to load plans.',
+        refreshEvents: jest.fn().mockResolvedValue(undefined),
+        refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
+      });
+      mockUseChat.mockReturnValue({ conversations: [] });
+
+      renderWithNav(<MyEventsScreen />);
+
+      expect(screen.getByTestId('event-list-error-state')).toBeTruthy();
+      expect(screen.getByLabelText('Unable to load plans')).toBeTruthy();
+      expect(screen.getByText('Unable to load plans.')).toBeTruthy();
+      expect(screen.getByText('Try again')).toBeTruthy();
+      expect(screen.queryByText('No plans hosted')).toBeNull();
+      expect(screen.getByTestId('segment-hosting')).toBeTruthy();
+    });
+
+    it('retries the event request from the error state', () => {
+      const refreshEvents = jest.fn().mockResolvedValue(undefined);
+      mockUseEvents.mockReturnValue({
+        events: [],
+        userEvents: [],
+        requestedEvents: [],
+        isLoading: false,
+        error: 'Unable to load plans.',
+        refreshEvents,
+        refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
+      });
+
+      renderWithNav(<MyEventsScreen />);
+      fireEvent.press(screen.getByText('Try again'));
+
+      expect(refreshEvents).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps cached event content visible during a later refresh failure', () => {
+      mockUseEvents.mockReturnValue({
+        events: mockEvents,
+        userEvents: userHostedEvents,
+        requestedEvents: [],
+        isLoading: false,
+        error: 'Unable to load plans.',
+        refreshEvents: jest.fn().mockResolvedValue(undefined),
+        refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
+      });
+
+      renderWithNav(<MyEventsScreen />);
+
+      expect(screen.getAllByTestId('event-card').length).toBeGreaterThan(0);
+      expect(screen.queryByTestId('event-list-error-state')).toBeNull();
     });
   });
 
@@ -256,6 +341,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: userHostedEvents,
         requestedEvents: [],
         isLoading: false,
+        error: null,
         refreshEvents,
         refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
       });
@@ -306,6 +392,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: userHostedEvents,
         requestedEvents: [requestedEvent],
         isLoading: false,
+        error: null,
         refreshEvents: jest.fn(),
         refreshRequestedEvents: jest.fn(),
       });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ActivityIndicator, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import {
@@ -13,7 +13,6 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path } from 'react-native-svg';
 
 import AnimatedPager from '@components/AnimatedPager';
 import EmptyState from '@components/EmptyState';
@@ -22,6 +21,7 @@ import EventActionOverlay from '@components/EventActionOverlay';
 import { EventItemProps } from '@components/EventCard';
 import {
   EventListPage,
+  EventListLoadState,
   EventSection,
   buildEventSections,
   buildSingleEventSection,
@@ -30,7 +30,6 @@ import {
 import { emptyStateAnchorTop } from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl from '@components/SegmentedControl';
-import { AppButton } from '@components/ui';
 import { useAuth } from '@context/AuthContext';
 import { useBloom } from '@context/BloomContext';
 import { useChat } from '@context/ChatContext';
@@ -298,26 +297,14 @@ const HomeScreen = () => {
     <ScreenContainer edges={['bottom']}>
       <View style={styles.content}>
         {showAllEventsLoading ? (
-          <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
+          <EventListLoadState status="loading" topPadding={headerHeight} />
         ) : showAllEventsError ? (
-          <View style={[styles.centerContent, { paddingTop: headerHeight }]}>
-            <Svg
-              width={38}
-              height={38}
-              viewBox="0 0 38 38"
-              accessible
-              accessibilityRole="image"
-              accessibilityLabel="Unable to load plans"
-            >
-              <Circle cx="19" cy="19" r="16" stroke={colors.error} strokeWidth="3" fill="none" />
-              <Path d="M19 10.5v10" stroke={colors.error} strokeWidth="3" strokeLinecap="round" />
-              <Circle cx="19" cy="27" r="1.7" fill={colors.error} />
-            </Svg>
-            <Text style={styles.errorText}>{error}</Text>
-            <AppButton label="Try again" onPress={handleRefresh} style={styles.retryButton} />
-          </View>
+          <EventListLoadState
+            status="error"
+            errorMessage={error}
+            onRetry={handleRefresh}
+            topPadding={headerHeight}
+          />
         ) : (
           <AnimatedPager
             selectedIndex={selectedPage}
@@ -463,22 +450,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,
-  },
-  centerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xl,
-    gap: spacing.md,
-  },
-  errorText: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilySemiBold,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  retryButton: {
-    minWidth: 172,
   },
 });
 

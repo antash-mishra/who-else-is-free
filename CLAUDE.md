@@ -61,7 +61,7 @@ Use shared primitives before local UI:
 
 - UI primitives: `src/components/ui`
 - Sheets: `src/components/sheets`, `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`
-- Event lists: `src/components/events`
+- Event lists: `src/components/events`, including `EventListLoadState` for the shared full-page loading/error/retry presentation
 - Empty states: `EmptyState`
 - Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
 - Dev-only logging: `logger` in `src/services/logger.ts` (use it instead of `console.*`)

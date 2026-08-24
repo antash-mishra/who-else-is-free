@@ -45,7 +45,7 @@ In this React Native app, "shared CSS" means:
 | Screen safe-area shell                        | `ScreenContainer`                                                                      | Most app screens                                                     |
 | Standard back/title header                    | `ScreenHeader`                                                                         | Help screens, Edit Profile, Past Events                              |
 | Empty state                                   | `EmptyState`                                                                           | Discover, My Events, Messages, Join Requests, Event Details          |
-| Event card list                               | `EventListPage`, `EventSectionList`                                                    | Discover, My Events, Past Events                                     |
+| Event card list and load state                | `EventListPage`, `EventSectionList`, `EventListLoadState`                              | Discover, My Events, Past Events                                     |
 | Bottom sheet                                  | `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`, `BottomSheet` | modal coordination, create-event sheets, action overlays             |
 | Sheet action menu                             | `SheetActionList`                                                                      | event action menus and pending request menus                         |
 | Event action prompt                           | `EventActionOverlay`                                                                   | Event Details, Chat Thread, Profile                                  |
@@ -1036,6 +1036,27 @@ Use it when:
 - A flow needs location selection.
 
 ## Event List Foundations
+
+### `EventListLoadState`
+
+File: `src/components/events/EventListLoadState.tsx`
+
+What it is:
+
+- Shared full-page loading and error presentation for event-list screens.
+- Owns the centered spinner, accessible error icon and message, and `Try again` action.
+
+Where it is used:
+
+- `HomeScreen`
+- `MyEventsScreen`
+
+Use it when:
+
+- An event-list screen must distinguish an uncached initial load or load failure from a genuine
+  empty result.
+- Keep cached list content visible during background refreshes; callers own the state precedence
+  and retry callback.
 
 ### `EventListPage`
 

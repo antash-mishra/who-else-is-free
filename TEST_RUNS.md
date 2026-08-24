@@ -111,3 +111,13 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated checks: Go tests and `go vet ./...` passed; focused frontend suites passed 70/70; TypeScript, touched-file lint, Prettier, and `git diff --check` passed. The full frontend baseline passed 73/78 suites (1,205/1,232 tests); all notification suites passed, while five unrelated existing suites retained 27 failures.
 - Evidence: `report/stale-notification-actions-device.png`, `report/stale-notification-actions-modal-device.png`, and `report/stale-notification-actions-implementation-report.html`.
 - Final verdict: **PASS**.
+
+## 2026-08-24 — Issue #123 My Plans states and copy
+
+- Change: add explicit initial-loading and uncached-error states to signed-in My Plans, share the event-list loading/error presentation with Discover, retain cached content during refresh failures, update signed-out and Hosting empty-state copy, and close the event-card middle-dot regression gap.
+- Environment: Android emulator `WEIF_API_36` (Android 16, 1080 × 2400), package `com.whoelseisfree.app`; local backend with `DEV_LOGIN_ENABLED=1`; Metro at `http://10.0.2.2:8081`.
+- Flow: signed-out My Plans → dev-login as Member2 → signed-in Hosting empty state → seeded host event card.
+- Device result: PASS — signed-out My Plans showed `Your plans are waiting` / `Get started to create or join plans.` with no tabs; Member2 showed the tabs plus `No plans hosted` / `Your hosted plans will appear here.`; the populated event card rendered `Shivapuri Trail · 10:00 AM`. The emulator UI bridge became unresponsive while forcing the offline state, so loading/error/retry behavior was verified by focused render and component tests instead of claiming a device capture.
+- Automated checks: focused Jest coverage passed 5 suites / 87 tests; TypeScript passed; lint completed with 0 errors and the existing warning baseline; touched-file formatting and `git diff --check` passed. The full frontend suite retains three unrelated baseline failures in Event Details, Chat Thread, and create-event form tests.
+- Evidence: `report/issue-123-my-plans-implementation-report.html` and `report/issue-123-my-plans-{guest,hosting-empty,card-dot}.png`.
+- Final verdict: **PASS** for the implemented issue scope; the failed offline screenshot attempt is disclosed in the report.
