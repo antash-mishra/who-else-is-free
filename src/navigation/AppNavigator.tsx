@@ -42,7 +42,6 @@ import AdminSupportSubmissionScreen from '@screens/AdminSupportSubmissionScreen'
 import ChatThreadScreen from '@screens/ChatThreadScreen';
 import CreateEventScreen from '@screens/CreateEventScreen';
 import EditProfileScreen from '@screens/EditProfileScreen';
-import EventCreatedScreen from '@screens/EventCreatedScreen';
 import EventDetailsScreen from '@screens/EventDetailsScreen';
 import GoogleSignIn from '@screens/GoogleSignIn';
 import HelpContactScreen from '@screens/HelpContactScreen';
@@ -460,15 +459,6 @@ const AppNavigator = () => {
             options={{
               cardStyleInterpolator: slideFromRightInterpolator,
               transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="EventCreated"
-            component={EventCreatedScreen}
-            options={{
-              gestureEnabled: false,
-              cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-              cardStyle: { backgroundColor: colors.eventCreatedBackground },
             }}
           />
         </Stack.Navigator>

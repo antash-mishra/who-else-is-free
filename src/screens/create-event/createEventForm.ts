@@ -107,16 +107,6 @@ export const createFormStateFromEvent = (event?: UserEvent | null): CreateEventF
   coverKey: event?.coverKey ?? DEFAULT_COVER_KEY,
 });
 
-export const hasSelectedPlaceLocation = (form: CreateEventFormState) =>
-  !!form.placeId &&
-  typeof form.latitude === 'number' &&
-  Number.isFinite(form.latitude) &&
-  typeof form.longitude === 'number' &&
-  Number.isFinite(form.longitude);
-
-export const hasGuestDraftContent = (form: CreateEventFormState) =>
-  form.eventName.trim().length > 0 || form.description.trim().length > 0;
-
 export const normalizeCreateEventForm = (form: CreateEventFormState): NormalizedCreateEventForm => {
   const normalizedDateTime = new Date(form.selectedDateTime);
   normalizedDateTime.setSeconds(0, 0);
@@ -126,7 +116,7 @@ export const normalizeCreateEventForm = (form: CreateEventFormState): Normalized
   const groupBadge = form.groupType === 'Group' ? 'Group' : undefined;
 
   return {
-    title: form.eventName.trim() || 'New event',
+    title: form.eventName.trim(),
     location: form.location.trim(),
     time: formatTime(normalizedDateTime.getHours(), normalizedDateTime.getMinutes()),
     eventDate,
@@ -180,11 +170,10 @@ export const buildUpdateEventPayload = (form: CreateEventFormState): UpdateEvent
 
 export const buildGuestEventDraft = (form: CreateEventFormState): GuestEventDraft => {
   const normalized = normalizeCreateEventForm(form);
-  const location = normalized.location || 'To be decided';
 
   return {
     title: normalized.title,
-    location,
+    location: normalized.location,
     time: normalized.time,
     eventDate: normalized.eventDate,
     dateLabel: normalized.dateLabel,

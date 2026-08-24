@@ -248,17 +248,13 @@ export const EventDateTimePickerContent = ({
 
   const handleConfirm = useCallback(() => {
     if (isPastDateTimeSelection(draftValue)) {
-      setError('Please choose a future time.');
-      return;
-    }
-    if (draftValue.getTime() > maxDate.getTime()) {
-      setError('Please choose a time within the next 30 days.');
+      setError('Please choose a future time');
       return;
     }
     triggerHaptic('submit');
     setError(null);
     onConfirm(draftValue);
-  }, [draftValue, maxDate, onConfirm]);
+  }, [draftValue, onConfirm]);
 
   const renderWheel = useCallback(
     (

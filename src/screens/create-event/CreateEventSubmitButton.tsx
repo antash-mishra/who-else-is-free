@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -20,21 +20,17 @@ import { Springs } from '@theme/springs';
 
 import styles from '../CreateEventScreen.styles';
 
-export type ButtonLayout = { x: number; y: number; width: number; height: number };
-
 type CreateEventSubmitButtonProps = {
   label: string;
   submitError: string | null;
   isSubmitting: boolean;
   isEditing: boolean;
   onPress: () => void;
-  onMeasured: (layout: ButtonLayout) => void;
 };
 
 /**
  * Create/Edit Event footer: error row plus the primary submit button with
- * press-scale motion, the "Creating..." shimmer, and window-position
- * measurement used by the EventCreated wow transition.
+ * press-scale motion and the "Creating..." shimmer.
  */
 const CreateEventSubmitButton = ({
   label,
@@ -42,10 +38,7 @@ const CreateEventSubmitButton = ({
   isSubmitting,
   isEditing,
   onPress,
-  onMeasured,
 }: CreateEventSubmitButtonProps) => {
-  const primaryButtonRef = useRef<View>(null);
-
   // Shimmer animation for "Creating..." state
   const shimmerX = useSharedValue(-160);
   const shimmerStyle = useAnimatedStyle(() => ({
@@ -80,12 +73,6 @@ const CreateEventSubmitButton = ({
       ) : null}
 
       <Pressable
-        ref={primaryButtonRef}
-        onLayout={() => {
-          primaryButtonRef.current?.measureInWindow((x, y, w, h) => {
-            onMeasured({ x, y, width: w, height: h });
-          });
-        }}
         style={{ width: '100%' }}
         onPress={onPress}
         onPressIn={() => {
@@ -118,9 +105,7 @@ const CreateEventSubmitButton = ({
               }
             >
               <View style={shimmerStyles.mask}>
-                <Text style={[styles.primaryButtonText, shimmerStyles.dimText]}>
-                  Creating...
-                </Text>
+                <Text style={[styles.primaryButtonText, shimmerStyles.dimText]}>Creating...</Text>
               </View>
               <Animated.View style={[shimmerStyles.strip, shimmerStyle]} pointerEvents="none">
                 <LinearGradient

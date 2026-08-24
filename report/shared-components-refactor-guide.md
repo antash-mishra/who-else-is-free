@@ -1259,8 +1259,7 @@ What they are:
   `CreateEventSheet` type.
 - `CreateEventHeader.tsx` — fixed title + close button.
 - `CreateEventFormFields.tsx` — cover card, name/description inputs, and option rows.
-- `CreateEventSubmitButton.tsx` — error row plus shimmer/scale submit button with typed `View`
-  ref measurement (`ButtonLayout`) for the EventCreated transition.
+- `CreateEventSubmitButton.tsx` — error row plus shimmer/scale submit button and its loading state.
 - `CreateEventSheetContent.tsx` — sheet title (`getCreateEventSheetTitle`) and content switch.
 
 Styling:
@@ -1271,8 +1270,9 @@ Styling:
 
 Where they are used:
 
-- `CreateEventScreen`, which stays a thin container for submission and navigation orchestration
-  (`handleSubmit` / `handlePrimaryAction`).
+- `CreateEventScreen`, which stays a thin container for shared signed-in/signed-out validation,
+  submission, and navigation orchestration (`handleSubmit` / `handlePrimaryAction`). Successful
+  creation returns directly to My Events with its existing created badge/confetti.
 
 Use them when:
 

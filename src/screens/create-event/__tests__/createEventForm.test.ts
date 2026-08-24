@@ -5,8 +5,6 @@ import {
   buildGuestEventDraft,
   buildUpdateEventPayload,
   createFormStateFromEvent,
-  hasGuestDraftContent,
-  hasSelectedPlaceLocation,
   normalizeCreateEventForm,
 } from '../createEventForm';
 
@@ -27,7 +25,7 @@ const form = createFormStateFromEvent({
   maxAge: 21,
   groupType: 'Group',
   coverKey: DEFAULT_COVER_KEY,
-  scheduledAt: '2026-06-15T04:45:30.999Z',
+  scheduledAt: new Date(2026, 5, 15, 10, 15, 30, 999).toISOString(),
   placeId: 'place-1',
   latitude: 12.97,
   longitude: 77.59,
@@ -40,13 +38,8 @@ describe('createEventForm', () => {
     expect(form.groupType).toBe('Group');
     expect(form.gender).toBe('Women');
     expect(form.ageRange).toEqual([35, 21]);
-    expect(form.selectedDateTime.toISOString()).toBe('2026-06-15T04:45:30.999Z');
+    expect(form.selectedDateTime).toEqual(new Date(2026, 5, 15, 10, 15, 30, 999));
     expect(form.placeId).toBe('place-1');
-  });
-
-  it('detects selected search-result locations', () => {
-    expect(hasSelectedPlaceLocation(form)).toBe(true);
-    expect(hasSelectedPlaceLocation({ ...form, placeId: '' })).toBe(false);
   });
 
   it('normalizes shared submit fields', () => {
@@ -79,7 +72,7 @@ describe('createEventForm', () => {
     });
   });
 
-  it('builds guest drafts with fallback location and content detection', () => {
+  it('builds guest drafts without inventing fallback copy', () => {
     const guestForm = {
       ...form,
       eventName: '',
@@ -87,10 +80,9 @@ describe('createEventForm', () => {
       location: '',
     };
 
-    expect(hasGuestDraftContent(guestForm)).toBe(true);
     expect(buildGuestEventDraft(guestForm)).toMatchObject({
-      title: 'New event',
-      location: 'To be decided',
+      title: '',
+      location: '',
       description: 'Draft description',
     });
   });

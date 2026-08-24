@@ -176,6 +176,18 @@ describe('CreateEventScreen Rendering', () => {
     expect(screen.getByText('Done')).toBeTruthy();
   });
 
+  it('uses the future-time copy in the datetime sheet without a full stop', async () => {
+    mockIsPastDateTime = true;
+    render(<CreateEventScreen />);
+
+    fireEvent.press(screen.getByText('Date & time'));
+    fireEvent.press(screen.getByText('Done'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Please choose a future time')).toBeTruthy();
+    });
+  });
+
   it('preserves typed text when opening a sheet field', () => {
     render(<CreateEventScreen />);
 
@@ -199,6 +211,20 @@ describe('CreateEventScreen Rendering', () => {
     await waitFor(() => {
       expect(screen.getByText('All fields are required')).toBeTruthy();
     });
+  });
+
+  it('uses Create as the signed-out CTA and validates before opening sign-in', async () => {
+    isGuestMode = true;
+    render(<CreateEventScreen />);
+
+    expect(screen.getByText('Create')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('create-event-submit'));
+
+    await waitFor(() => {
+      expect(screen.getByText('All fields are required')).toBeTruthy();
+    });
+    expect(mockQueueGuestEvent).not.toHaveBeenCalled();
+    expect(screen.queryByText('Continue with Google')).toBeNull();
   });
 
   it('submits create payload with derived schedule fields', async () => {
@@ -226,6 +252,10 @@ describe('CreateEventScreen Rendering', () => {
           longitude: -6.2642,
         }),
       );
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Main', {
+        screen: 'MyEvents',
+        params: { showEventCreatedBadge: true },
+      });
     });
   });
 
@@ -268,17 +298,29 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
+    expect(screen.getByText('Continue with Google')).toBeTruthy();
     expect(mockNavigation.navigate).not.toHaveBeenCalledWith('Login');
+  });
+
+  it('does not show a Clear action in the description sheet', () => {
+    render(<CreateEventScreen />);
+
+    fireEvent.press(screen.getByLabelText('Add details'));
+
+    expect(screen.queryByLabelText('Clear description')).toBeNull();
+    expect(screen.getByLabelText('Done editing description')).toBeTruthy();
   });
 
   it('submits update payload in edit mode', async () => {
     currentRouteParams = { editEventId: mockEvents[0].id };
-    editModeEvents = [{
-      ...mockEvents[0],
-      placeId: 'existing-place-id',
-      latitude: 12.9716,
-      longitude: 77.5946,
-    }];
+    editModeEvents = [
+      {
+        ...mockEvents[0],
+        placeId: 'existing-place-id',
+        latitude: 12.9716,
+        longitude: 77.5946,
+      },
+    ];
     render(<CreateEventScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Updated Name');
@@ -299,18 +341,20 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
-    expect(mockNavigation.dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'POP_TO',
-      payload: expect.objectContaining({
-        name: 'EventDetails',
-        params: {
-          eventId: mockEvents[0].id,
-          origin: 'MyEvents',
-          showEventUpdatedBadge: true,
-        },
-        merge: true,
+    expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'POP_TO',
+        payload: expect.objectContaining({
+          name: 'EventDetails',
+          params: {
+            eventId: mockEvents[0].id,
+            origin: 'MyEvents',
+            showEventUpdatedBadge: true,
+          },
+          merge: true,
+        }),
       }),
-    }));
+    );
   });
 
   it('does not dispatch route param cleanup on unmount in edit mode', () => {
@@ -332,7 +376,7 @@ describe('CreateEventScreen Rendering', () => {
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
-      expect(screen.getByText('Choose a future date and time')).toBeTruthy();
+      expect(screen.getByText('Please choose a future time')).toBeTruthy();
     });
 
     expect(mockAddUserEvent).not.toHaveBeenCalled();

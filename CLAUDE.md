@@ -69,7 +69,9 @@ Use shared primitives before local UI:
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
 - Create/Edit Event structure: `useCreateEventForm`, `useCreateEventSheets`, and the
   `CreateEventHeader`/`CreateEventFormFields`/`CreateEventSubmitButton`/`CreateEventSheetContent`
-  components in `src/screens/create-event/` (all share `CreateEventScreen.styles.ts`)
+  components in `src/screens/create-event/` (all share `CreateEventScreen.styles.ts`). Signed-in and
+  signed-out creation share required-field/future-time validation and successful creation returns
+  directly to My Events with its created badge/confetti.
 - API requests: `requestJson`/`ApiError` in `src/api/client.ts`, error extraction in `src/api/errors.ts`
 - API payload mappers: `src/api/mappers` (`events.ts`, `chat.ts`)
 - API timeout helpers: `src/api/request.ts`

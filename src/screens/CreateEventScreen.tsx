@@ -38,8 +38,6 @@ import {
   buildUpdateEventPayload,
   createFormStateFromEvent,
   getFormLocationDisplayName,
-  hasGuestDraftContent,
-  hasSelectedPlaceLocation,
   normalizeCreateEventForm,
 } from './create-event/createEventForm';
 import CreateEventFormFields from './create-event/CreateEventFormFields';
@@ -47,7 +45,7 @@ import CreateEventHeader from './create-event/CreateEventHeader';
 import CreateEventSheetContent, {
   getCreateEventSheetTitle,
 } from './create-event/CreateEventSheetContent';
-import CreateEventSubmitButton, { ButtonLayout } from './create-event/CreateEventSubmitButton';
+import CreateEventSubmitButton from './create-event/CreateEventSubmitButton';
 import { useCreateEventForm } from './create-event/useCreateEventForm';
 import { useCreateEventSheets } from './create-event/useCreateEventSheets';
 import styles from './CreateEventScreen.styles';
@@ -58,22 +56,17 @@ type CreateRoute = RouteProp<RootStackParamList, 'CreateEvent'>;
 
 const EVENT_DATE_WINDOW_DAYS = 30;
 
-/** Shared date/time validation for submit and guest-draft flows. Returns an error message or null. */
-const getScheduleValidationError = (formState: CreateEventFormState): string | null => {
-  if (Number.isNaN(formState.selectedDateTime.getTime())) {
-    return 'Choose a valid date and time';
+/** Shared validation for signed-in submission and the guest sign-in handoff. */
+const getFormValidationError = (formState: CreateEventFormState): string | null => {
+  if (!formState.eventName.trim() || !formState.description.trim() || !formState.location.trim()) {
+    return 'All fields are required';
   }
 
   const now = new Date();
-  const maxAllowedDate = getMaxEventDateTime(now, EVENT_DATE_WINDOW_DAYS);
   const { normalizedDateTime } = normalizeCreateEventForm(formState);
 
   if (isPastDateTimeSelection(normalizedDateTime, now)) {
-    return 'Choose a future date and time';
-  }
-
-  if (normalizedDateTime.getTime() > maxAllowedDate.getTime()) {
-    return 'Choose a time within the next 30 days';
+    return 'Please choose a future time';
   }
 
   return null;
@@ -148,14 +141,6 @@ const CreateEventScreen = () => {
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  // Button layout for wow transition
-  const [buttonLayout, setButtonLayout] = useState<ButtonLayout>({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  });
 
   const pickerMinDate = useMemo(() => new Date(), [activeSheet]);
 
@@ -319,40 +304,12 @@ const CreateEventScreen = () => {
   );
 
   const handleSubmit = useCallback(
-    async (formOverride?: CreateEventFormState) => {
+    async (formState: CreateEventFormState) => {
       if (isSubmitting) {
         return;
       }
 
-      const formState = formOverride ?? getCurrentFormState();
-      const trimmedName = formState.eventName.trim();
-      const trimmedDescription = formState.description.trim();
-      const trimmedLocation = formState.location.trim();
-
-      if (!trimmedName || !trimmedDescription || !trimmedLocation) {
-        triggerHaptic('error');
-        setSubmitError('All fields are required');
-        return;
-      }
-
-      if (!hasSelectedPlaceLocation(formState)) {
-        triggerHaptic('error');
-        setSubmitError('Choose a location from search suggestions');
-        return;
-      }
-
-      const scheduleError = getScheduleValidationError(formState);
-      if (scheduleError) {
-        triggerHaptic('error');
-        setSubmitError(scheduleError);
-        return;
-      }
-
-      const normalized = normalizeCreateEventForm(formState);
-
       if (!user) {
-        triggerHaptic('error');
-        setSubmitError('You must be signed in to create an event');
         return;
       }
 
@@ -375,19 +332,13 @@ const CreateEventScreen = () => {
             ),
           );
         } else {
-          const minDelay = new Promise<void>((r) => setTimeout(r, 1500));
           await addUserEvent(buildCreateEventPayload(formState, user));
-          await minDelay;
           triggerHaptic('success');
           resetForm();
-          navigation.dispatch(
-            StackActions.replace('EventCreated', {
-              eventTitle: normalized.title,
-              coverUri: selectedCoverUri,
-              buttonLayout,
-              skipAnimation: true,
-            }),
-          );
+          navigation.navigate('Main', {
+            screen: 'MyEvents',
+            params: { showEventCreatedBadge: true },
+          });
         }
       } catch (err) {
         logger.error('Failed to submit event', err);
@@ -399,73 +350,39 @@ const CreateEventScreen = () => {
     },
     [
       addUserEvent,
-      buttonLayout,
       editEventId,
-      getCurrentFormState,
       isEditing,
       isSubmitting,
       navigation,
       resetForm,
-      selectedCoverUri,
       updateUserEvent,
       user,
     ],
   );
 
   const handlePrimaryAction = () => {
-    triggerHaptic('submit');
     const formState = getCurrentFormState();
 
-    // Guest user flow — always open sign-in modal
+    const validationError = getFormValidationError(formState);
+    if (validationError) {
+      triggerHaptic('error');
+      setSubmitError(validationError);
+      return;
+    }
+
+    triggerHaptic('submit');
+
     if (!user) {
-      const hasContent = hasGuestDraftContent(formState);
-
-      if (hasContent) {
-        // Validate date/time only when there's content to publish
-        const scheduleError = getScheduleValidationError(formState);
-        if (scheduleError) {
-          setSubmitError(scheduleError);
-          return;
-        }
-
-        // Queue the draft for auto-submit after sign-in
-        queueGuestEvent(buildGuestEventDraft(formState));
-      }
-
-      // Always open sign-in modal (no validation blocking for empty fields)
+      queueGuestEvent(buildGuestEventDraft(formState));
       setSubmitError(null);
       openSheet('signIn');
-      return;
-    }
-
-    // Authenticated user flow — validate and submit
-    if (
-      !formState.eventName.trim() ||
-      !formState.description.trim() ||
-      !formState.location.trim()
-    ) {
-      setSubmitError('All fields are required');
-      return;
-    }
-
-    const scheduleError = getScheduleValidationError(formState);
-    if (scheduleError) {
-      setSubmitError(scheduleError);
       return;
     }
 
     void handleSubmit(formState);
   };
 
-  const primaryButtonLabel = user
-    ? isSubmitting
-      ? isEditing
-        ? 'Saving...'
-        : 'Creating...'
-      : isEditing
-        ? 'Save'
-        : 'Create'
-    : 'Get started';
+  const primaryButtonLabel = isEditing ? (isSubmitting ? 'Saving...' : 'Save') : 'Create';
 
   const ageLabel = useMemo(() => getAgeLabel(form.ageRange), [form.ageRange]);
   const dateTimeLabel = useMemo(
@@ -531,7 +448,6 @@ const CreateEventScreen = () => {
               isSubmitting={isSubmitting}
               isEditing={isEditing}
               onPress={handlePrimaryAction}
-              onMeasured={setButtonLayout}
             />
           </KeyboardAwareScrollView>
         </View>

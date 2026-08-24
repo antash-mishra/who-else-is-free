@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Issue #124 — Create plan implementation</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17201c;
+        --muted: #66736c;
+        --line: #dde5e0;
+        --surface: #f6f8f7;
+        --accent: #176b4d;
+        --accent-soft: #e5f3ed;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #ffffff;
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        width: min(1040px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 56px 0 72px;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(34px, 5vw, 54px);
+        line-height: 1.08;
+        letter-spacing: -0.04em;
+      }
+
+      .lead {
+        max-width: 720px;
+        margin: 20px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 24px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .status::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        content: '';
+      }
+
+      section {
+        margin-top: 56px;
+      }
+
+      h2 {
+        margin: 0 0 20px;
+        font-size: 26px;
+        letter-spacing: -0.025em;
+      }
+
+      .changes {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .change {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      .change h3 {
+        margin: 0 0 7px;
+        font-size: 17px;
+      }
+
+      .change p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .screens {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      figure img {
+        display: block;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 10px 28px rgba(23, 32, 28, 0.1);
+      }
+
+      figcaption {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      figcaption strong {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--ink);
+        font-size: 15px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+
+      th {
+        background: var(--surface);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .pass {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .note {
+        margin-top: 16px;
+        padding: 16px 18px;
+        border-left: 4px solid #d79a2b;
+        background: #fff8e8;
+        color: #6d531e;
+      }
+
+      footer {
+        margin-top: 56px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 760px) {
+        main {
+          width: min(100% - 28px, 620px);
+          padding-top: 36px;
+        }
+
+        .changes,
+        .screens {
+          grid-template-columns: 1fr;
+        }
+
+        figure img {
+          max-width: 390px;
+          margin: 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">Issue #124 · Implementation report</p>
+        <h1>Create plan is now simpler and consistent</h1>
+        <p class="lead">
+          Signed-in and signed-out users now see the same Create action and the same validation. The
+          extra success screen, unused fallback copy, and unnecessary sheet actions were removed.
+        </p>
+        <div class="status">Implemented and verified</div>
+      </header>
+
+      <section>
+        <h2>What changed</h2>
+        <div class="changes">
+          <article class="change">
+            <h3>One Create action</h3>
+            <p>
+              The signed-out CTA now says “Create” and validates the form before opening sign-in.
+            </p>
+          </article>
+          <article class="change">
+            <h3>Two clear validation messages</h3>
+            <p>Users see “All fields are required” or “Please choose a future time”.</p>
+          </article>
+          <article class="change">
+            <h3>Direct success flow</h3>
+            <p>
+              New plans now return directly to My Events, where the existing badge and confetti
+              appear.
+            </p>
+          </article>
+          <article class="change">
+            <h3>Less dead code</h3>
+            <p>
+              The Event Created route, transition measurements, artificial delay, and fallback
+              title/location copy were removed.
+            </p>
+          </article>
+          <article class="change">
+            <h3>Simpler Details sheet</h3>
+            <p>The Clear action was removed. Done is now the only action in the sheet.</p>
+          </article>
+          <article class="change">
+            <h3>Cleaner Date &amp; time feedback</h3>
+            <p>
+              The future-time copy no longer has a full stop, and the redundant 30-day error was
+              removed.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Implementation screenshots</h2>
+        <div class="screens">
+          <figure>
+            <img
+              src="issue-124/create-plan-cta.png"
+              alt="Create plan screen showing the Create CTA"
+            />
+            <figcaption>
+              <strong>Signed-out CTA</strong>
+              The primary action is now “Create”.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="issue-124/required-fields-validation.png"
+              alt="Create plan screen showing All fields are required"
+            />
+            <figcaption>
+              <strong>Shared required-fields validation</strong>
+              Empty forms are blocked before submission or sign-in.
+            </figcaption>
+          </figure>
+          <figure>
+            <img src="issue-124/details-sheet.png" alt="Details sheet with only a Done button" />
+            <figcaption>
+              <strong>Simplified Details sheet</strong>
+              Clear is gone; Done is the only footer action.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>Date &amp; time sheet</h2>
+        <figure>
+          <img
+            src="issue-124/date-time-sheet.png"
+            alt="Date and time selection sheet"
+            style="max-width: 390px"
+          />
+          <figcaption>
+            <strong>The existing 30-day picker range is preserved</strong>
+            Only the unreachable extra error was removed; the selection experience remains
+            unchanged.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>Verification</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Focused Create plan, mapper, and navigation tests</td>
+              <td class="pass">44 passed</td>
+            </tr>
+            <tr>
+              <td>TypeScript typecheck</td>
+              <td class="pass">Passed</td>
+            </tr>
+            <tr>
+              <td>Touched-file formatting</td>
+              <td class="pass">Passed</td>
+            </tr>
+            <tr>
+              <td>Lint</td>
+              <td class="pass">No errors</td>
+            </tr>
+            <tr>
+              <td>Full frontend suite</td>
+              <td>1,216 passed; 24 unrelated existing rendering assertions failed</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">
+          The remaining full-suite failures are isolated to Event Details loading-state tests and
+          one Chat Thread assertion. They do not touch the Create plan implementation.
+        </p>
+      </section>
+
+      <footer>
+        Screenshots captured from the real Expo web build at a 390 × 844 mobile viewport on 24
+        August 2026.
+      </footer>
+    </main>
+  </body>
+</html>

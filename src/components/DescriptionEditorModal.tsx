@@ -35,11 +35,6 @@ export const DescriptionEditorContent = ({
     return () => clearTimeout(timer);
   }, [visible, initialValue]);
 
-  const handleClear = () => {
-    setDraft('');
-    inputRef.current?.focus();
-  };
-
   return (
     <View style={styles.container}>
       <TextInput
@@ -54,18 +49,6 @@ export const DescriptionEditorContent = ({
         underlineColorAndroid="transparent"
       />
       <View style={styles.footer}>
-        <ScalePressable
-          haptic="light"
-          onPress={handleClear}
-          disabled={draft.length === 0}
-          style={styles.clearButton}
-          accessibilityRole="button"
-          accessibilityLabel="Clear description"
-        >
-          <Text style={[styles.clearText, draft.length === 0 && styles.clearTextDisabled]}>
-            Clear
-          </Text>
-        </ScalePressable>
         <ScalePressable
           haptic="light"
           onPress={() => onDone(draft)}
@@ -99,23 +82,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   footer: {
-    gap: spacing.xs,
-  },
-  // Ghost secondary button: no background, sits above Done.
-  clearButton: {
-    height: 48,
-    borderRadius: 999,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearText: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.subText, // grey — secondary to the filled Done button
-  },
-  clearTextDisabled: {
-    opacity: 0.4,
+    width: '100%',
   },
   doneButton: {
     backgroundColor: colors.primary,

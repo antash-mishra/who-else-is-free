@@ -39,12 +39,6 @@ export type RootStackParamList = {
   AdminSupportInbox: undefined;
   AdminSupportSubmission: { submissionId: number };
   Login: undefined;
-  EventCreated: {
-    eventTitle: string;
-    coverUri: string;
-    buttonLayout: { x: number; y: number; width: number; height: number };
-    skipAnimation?: boolean;
-  };
 };
 
 export type RootTabParamList = {

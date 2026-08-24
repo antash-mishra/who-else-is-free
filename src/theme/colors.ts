@@ -7,7 +7,6 @@ export const colors = {
   tabBarUnreadDot: '#FF1519',
   unreadIndicator: '#2F81E6',
   splashBackground: '#050F29',
-  eventCreatedBackground: '#111111',
   surface: '#F8F9FC',
   card: '#FFFFFF',
   actionSurface: 'rgba(0, 0, 0, 0.08)',
