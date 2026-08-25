@@ -128,6 +128,49 @@ func TestCreateNotification_RejectsInvalidActionState(t *testing.T) {
 	}
 }
 
+func TestBackfillNotificationDisplayCopy(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	legacy := []Notification{
+		{
+			UserID: 1, Type: NotificationTypeJoinRequestCreated, Title: "Hike",
+			Body: "Alice Example wants to join your event", Payload: `{"senderName":"Alice Example"}`,
+		},
+		{UserID: 1, Type: NotificationTypeJoinRequestApproved, Title: "Hike", Body: "Your request to join was approved!"},
+		{UserID: 1, Type: NotificationTypeJoinRequestDenied, Title: "Hike", Body: "This event is no longer available to you. Explore other events nearby."},
+		{UserID: 1, Type: NotificationTypeMemberRemoved, Title: "Hike", Body: "You no longer have access to this event. Explore other events nearby."},
+		{UserID: 1, Type: NotificationTypeEventDeleted, Title: "Hike", Body: "This event has been cancelled and is no longer available. Explore other events nearby."},
+	}
+	for _, notification := range legacy {
+		if _, err := repo.CreateNotification(ctx, notification); err != nil {
+			t.Fatalf("create %s: %v", notification.Type, err)
+		}
+	}
+
+	for attempt := 0; attempt < 2; attempt++ {
+		if err := repo.backfillNotificationDisplayCopy(ctx); err != nil {
+			t.Fatalf("backfill attempt %d: %v", attempt+1, err)
+		}
+	}
+
+	rows, err := repo.ListNotifications(ctx, 1, 20, 0)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	want := map[string]string{
+		NotificationTypeJoinRequestCreated:  "Alice Example wants to join your plan Hike.",
+		NotificationTypeJoinRequestApproved: "Your request to join the plan Hike has been approved.",
+		NotificationTypeJoinRequestDenied:   "Hike is no longer available to you. Explore other plans nearby.",
+		NotificationTypeMemberRemoved:       "You no longer have access to the Hike. Explore other plans nearby.",
+		NotificationTypeEventDeleted:        "Hike has been cancelled and is no longer happening. Explore other events nearby.",
+	}
+	for _, row := range rows {
+		if row.Body != want[row.Type] {
+			t.Fatalf("%s body = %q, want %q", row.Type, row.Body, want[row.Type])
+		}
+	}
+}
+
 func TestInitMigratesAndBackfillsLegacyNotificationActions(t *testing.T) {
 	db, err := openDB(":memory:")
 	if err != nil {

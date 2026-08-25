@@ -77,10 +77,25 @@ const parsePreview = (n: AppNotification, sender: string): string => {
   return n.body.startsWith(prefix) ? n.body.slice(prefix.length) : n.body;
 };
 
-const JOIN_SUFFIX = ' wants to join your event';
-
-const parseRequester = (n: AppNotification): string =>
-  n.body.endsWith(JOIN_SUFFIX) ? n.body.slice(0, -JOIN_SUFFIX.length).trim() : n.body.trim();
+const parseRequester = (n: AppNotification): string => {
+  if (n.payload) {
+    try {
+      const payload = JSON.parse(n.payload);
+      if (payload && typeof payload.senderName === 'string' && payload.senderName) {
+        return payload.senderName;
+      }
+    } catch {
+      // Fall through to legacy body parsing.
+    }
+  }
+  for (const marker of [' wants to join your plan ', ' wants to join your event']) {
+    const index = n.body.indexOf(marker);
+    if (index > 0) {
+      return n.body.slice(0, index).trim();
+    }
+  }
+  return n.body.trim();
+};
 
 const conversationIdFromPayload = (n: AppNotification): number | undefined => {
   if (n.conversationId != null) {

@@ -833,25 +833,25 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 
 		// Push: notify host about new join request (includes conversation context).
 		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
-			"type":           "join_request.created",
+			"type":           NotificationTypeJoinRequestCreated,
 			"eventId":        strconv.FormatInt(eventID, 10),
 			"conversationId": strconv.FormatInt(convo.ID, 10),
 			"joinRequestId":  strconv.FormatInt(req.ID, 10),
 			"requesterId":    strconv.FormatInt(user.ID, 10),
 			"senderName":     user.Name,
 			"title":          event.Title,
-			"body":           fmt.Sprintf("%s wants to join your event", user.Name),
+			"body":           notificationPushBody(NotificationTypeJoinRequestCreated, event.Title, user.Name),
 		})
 	} else {
 		// For 1:1 events, the request remains pending until host approval.
 		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
-			"type":          "join_request.created",
+			"type":          NotificationTypeJoinRequestCreated,
 			"eventId":       strconv.FormatInt(eventID, 10),
 			"joinRequestId": strconv.FormatInt(req.ID, 10),
 			"requesterId":   strconv.FormatInt(user.ID, 10),
 			"senderName":    user.Name,
 			"title":         event.Title,
-			"body":          fmt.Sprintf("%s wants to join your event", user.Name),
+			"body":          notificationPushBody(NotificationTypeJoinRequestCreated, event.Title, user.Name),
 		})
 	}
 
@@ -1042,12 +1042,12 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 
 	// Push: notify the requester they were approved
 	h.hub.recordAndSendPushToUser(userID, map[string]string{
-		"type":           "join_request.approved",
+		"type":           NotificationTypeJoinRequestApproved,
 		"eventId":        strconv.FormatInt(eventID, 10),
 		"conversationId": strconv.FormatInt(convo.ID, 10),
 		"joinRequestId":  strconv.FormatInt(req.ID, 10),
 		"title":          event.Title,
-		"body":           "Your request to join was approved!",
+		"body":           notificationPushBody(NotificationTypeJoinRequestApproved, event.Title, ""),
 	})
 
 	c.JSON(http.StatusOK, gin.H{
@@ -1132,11 +1132,11 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 		eventTitle = event.Title
 	}
 	h.hub.recordAndSendPushToUser(userID, map[string]string{
-		"type":          "join_request.denied",
+		"type":          NotificationTypeJoinRequestDenied,
 		"eventId":       strconv.FormatInt(eventID, 10),
 		"joinRequestId": strconv.FormatInt(req.ID, 10),
 		"title":         eventTitle,
-		"body":          "Your request to join was declined",
+		"body":          notificationPushBody(NotificationTypeJoinRequestDenied, eventTitle, ""),
 	})
 
 	c.JSON(http.StatusOK, joinRequestResponse{Request: view})
@@ -1269,10 +1269,10 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 	}
 	if h.hub != nil && claims.UserID == event.UserID && userID != claims.UserID {
 		h.hub.recordAndSendPushToUser(userID, map[string]string{
-			"type":            "event.member_removed",
+			"type":            NotificationTypeMemberRemoved,
 			"eventId":         strconv.FormatInt(eventID, 10),
 			"title":           event.Title,
-			"body":            "The host removed you from this event.",
+			"body":            notificationPushBody(NotificationTypeMemberRemoved, event.Title, ""),
 			"removedUserId":   strconv.FormatInt(userID, 10),
 			"removedByUserId": strconv.FormatInt(claims.UserID, 10),
 		})

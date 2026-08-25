@@ -1,6 +1,10 @@
 import { AppNotification } from '@api/mappers/notifications';
 import { collapseNotifications } from '@utils/notificationCollapse';
-import { buildChatGroupDisplay, buildJoinGroupDisplay } from '@utils/notificationDisplay';
+import {
+  buildChatGroupDisplay,
+  buildJoinGroupDisplay,
+  buildNotificationDisplay,
+} from '@utils/notificationDisplay';
 
 const join = (
   id: number,
@@ -13,7 +17,8 @@ const join = (
   type: 'join_request.created',
   eventId,
   title,
-  body: `${requester} wants to join your event`,
+  body: `${requester} wants to join your plan ${title}.`,
+  payload: JSON.stringify({ senderName: requester }),
   read: false,
   actionState: 'active',
   createdAt: new Date(2026, 0, 1, 12, 0, id).toISOString(),
@@ -206,14 +211,41 @@ describe('buildJoinGroupDisplay copy', () => {
 
   it('singular "wants" for one requester', () => {
     expect(groupText(buildJoinGroupDisplay(group(1, ['Sylvie'])).segments)).toBe(
-      'Sylvie wants to join your event Dancing',
+      'Sylvie wants to join your plan Dancing.',
     );
   });
 
   it('plural "want" + name list for multiple requesters', () => {
     expect(groupText(buildJoinGroupDisplay(group(3, ['Sylvie', 'Joe', 'Amy'])).segments)).toBe(
-      'Sylvie, Joe & 1 other want to join your event Dancing',
+      'Sylvie, Joe & 1 other want to join your plan Dancing.',
     );
+  });
+
+  it('uses structured senderName when notification copy changes', () => {
+    const items = collapseNotifications([
+      join(1, 1, 'Sylvie Hart', 'Dancing', {
+        body: 'Copy can change without becoming the requester name.',
+      }),
+    ]);
+
+    expect(items[0].kind).toBe('joinGroup');
+    if (items[0].kind === 'joinGroup') {
+      expect(items[0].group.requesterNames).toEqual(['Sylvie']);
+    }
+  });
+
+  it('keeps body parsing as a fallback for legacy rows without senderName', () => {
+    const items = collapseNotifications([
+      join(1, 1, 'Sylvie Hart', 'Dancing', {
+        body: 'Sylvie Hart wants to join your event',
+        payload: undefined,
+      }),
+    ]);
+
+    expect(items[0].kind).toBe('joinGroup');
+    if (items[0].kind === 'joinGroup') {
+      expect(items[0].group.requesterNames).toEqual(['Sylvie']);
+    }
   });
 });
 
@@ -263,5 +295,60 @@ describe('buildChatGroupDisplay copy', () => {
   it('renders the preview inline as "Sender: “message”" in the last segment', () => {
     const segments = buildChatGroupDisplay(group(1, ['Sylvie'])).segments;
     expect(segments[segments.length - 1].text).toBe('Sylvie: See you at 7 pm');
+  });
+});
+
+describe('buildNotificationDisplay server-owned copy', () => {
+  const notification = (
+    type: AppNotification['type'],
+    title: string,
+    body: string,
+    payload?: string,
+  ): AppNotification => ({
+    id: 1,
+    type,
+    title,
+    body,
+    payload,
+    read: false,
+    actionState: 'active',
+    createdAt: new Date().toISOString(),
+  });
+
+  it.each([
+    [
+      'join_request.created',
+      'Hike',
+      'Sylvie wants to join your plan Hike.',
+      JSON.stringify({ senderName: 'Sylvie' }),
+    ],
+    [
+      'join_request.approved',
+      'Hike',
+      'Your request to join the plan Hike has been approved.',
+      undefined,
+    ],
+    [
+      'join_request.denied',
+      'Hike',
+      'Hike is no longer available to you. Explore other plans nearby.',
+      undefined,
+    ],
+    [
+      'event.member_removed',
+      'Hike',
+      'You no longer have access to the Hike. Explore other plans nearby.',
+      undefined,
+    ],
+    [
+      'event.deleted',
+      'Hike',
+      'Hike has been cancelled and is no longer happening. Explore other events nearby.',
+      undefined,
+    ],
+  ])('renders %s body verbatim', (type, title, body, payload) => {
+    expect(
+      groupText(buildNotificationDisplay(notification(type, title, body, payload)).segments),
+    ).toBe(body);
   });
 });

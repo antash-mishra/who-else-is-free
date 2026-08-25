@@ -29,7 +29,6 @@ import { useNotifications } from '@context/NotificationsContext';
 import { openNotification } from '@context/pushRouting';
 import { navigationRef } from '@navigation/navigationRef';
 import { RootStackParamList } from '@navigation/types';
-import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { colors, layout, spacing, typography } from '@theme/index';
 import {
@@ -157,13 +156,11 @@ const NotificationsScreen = () => {
   const handleMarkAllRead = useCallback(() => {
     setMenuVisible(false);
     if (unreadCount === 0) return;
-    triggerHaptic('light');
     markAllRead().catch(() => undefined);
   }, [unreadCount, markAllRead]);
 
   const handleClearAll = useCallback(() => {
     setMenuVisible(false);
-    triggerHaptic('warning');
     clearAll().catch(() => undefined);
   }, [clearAll]);
 
@@ -176,13 +173,11 @@ const NotificationsScreen = () => {
     {
       label: 'Mark all as read',
       onPress: handleMarkAllRead,
-      disabled: unreadCount === 0,
       testID: 'notifications-menu-mark-all-read',
     },
     {
       label: 'Clear all',
       onPress: handleClearAll,
-      destructive: true,
       disabled: notifications.length === 0,
       testID: 'notifications-menu-clear-all',
     },

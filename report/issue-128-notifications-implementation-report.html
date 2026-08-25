@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Issue #128 — Notifications implementation report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #171717;
+        --muted: #666;
+        --line: #dedede;
+        --surface: #f7f7f5;
+        --pass: #146c43;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font:
+          16px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+      main {
+        width: min(1080px, calc(100% - 40px));
+        margin: 48px auto 80px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(32px, 5vw, 56px);
+        line-height: 1.05;
+      }
+      h2 {
+        margin: 48px 0 18px;
+        font-size: 28px;
+      }
+      p {
+        max-width: 78ch;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 19px;
+      }
+      .status {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 6px 12px;
+        color: var(--pass);
+        background: #e8f5ee;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 13px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: var(--surface);
+        font-size: 14px;
+      }
+      code {
+        padding: 2px 5px;
+        background: var(--surface);
+        border-radius: 4px;
+      }
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+      figure {
+        margin: 0;
+      }
+      figure img {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        display: block;
+      }
+      figcaption {
+        margin-top: 10px;
+        color: var(--muted);
+      }
+      .wide {
+        grid-column: 1 / -1;
+      }
+      .wide img {
+        width: min(540px, 100%);
+        margin: 0 auto;
+      }
+      .note {
+        margin-top: 22px;
+        padding: 18px 20px;
+        background: var(--surface);
+        border-left: 4px solid var(--ink);
+      }
+      a {
+        color: inherit;
+      }
+      @media (max-width: 700px) {
+        .gallery {
+          grid-template-columns: 1fr;
+        }
+        .wide {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Notifications — Issue #128</h1>
+      <p class="lede">
+        Implementation and Android verification report for
+        <a href="https://github.com/antash-mishra/who-else-is-free/issues/128">GitHub issue #128</a
+        >.
+      </p>
+      <span class="status">PASS — all requested items implemented</span>
+
+      <h2>Resolution summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Issue item</th>
+            <th>Implemented result</th>
+            <th>Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. Notification actions</td>
+            <td>
+              <strong>Mark all as read</strong> stays enabled even with zero unread items;
+              <strong>Clear all</strong> uses the normal black action treatment.
+            </td>
+            <td>Screenshot 2 and rendering tests</td>
+          </tr>
+          <tr>
+            <td>2. Empty-state copy</td>
+            <td>Displays “Your notifications will appear here.”</td>
+            <td>Screenshot 3</td>
+          </tr>
+          <tr>
+            <td>3. Date headings</td>
+            <td>Uses “Last 7 days” and “Last 30 days”.</td>
+            <td>Screenshot 1 and section tests</td>
+          </tr>
+          <tr>
+            <td>4. Safe load error</td>
+            <td>
+              Displays only “Failed to load notifications”; the underlying transport error is never
+              shown to the user.
+            </td>
+            <td>Screenshot 4 and context test</td>
+          </tr>
+          <tr>
+            <td>5. Notification wording</td>
+            <td>
+              All five non-chat notification types use the requested plan/event wording. Chat copy
+              remains unchanged.
+            </td>
+            <td>Screenshot 1 and exact-copy tests</td>
+          </tr>
+          <tr>
+            <td>6. Push/inbox consistency</td>
+            <td>
+              A shared server copy function now generates both FCM and persisted inbox text. The
+              only intentional difference is the requested inbox full stop for join-created and
+              approved.
+            </td>
+            <td>Go mock-push integration tests</td>
+          </tr>
+          <tr>
+            <td>7. Server/client inconsistency</td>
+            <td>
+              Single notification rows render the server body verbatim; the client only applies bold
+              spans around structured values.
+            </td>
+            <td>Frontend display tests</td>
+          </tr>
+          <tr>
+            <td>8. Structured sender data</td>
+            <td>
+              New join notifications read <code>senderName</code> from payload data. Parsing the
+              sentence remains only as a compatibility fallback for old stored rows.
+            </td>
+            <td>Collapse tests and legacy backfill test</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Implemented notification contract</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Inbox body</th>
+            <th>Push title/body</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Join request</td>
+            <td><code>&lt;Person&gt; wants to join your plan &lt;Event&gt;.</code></td>
+            <td>Title: event; same body without final full stop</td>
+          </tr>
+          <tr>
+            <td>Approved</td>
+            <td><code>Your request to join the plan &lt;Event&gt; has been approved.</code></td>
+            <td>Title: event; same body without final full stop</td>
+          </tr>
+          <tr>
+            <td>Denied</td>
+            <td>
+              <code>&lt;Event&gt; is no longer available to you. Explore other plans nearby.</code>
+            </td>
+            <td>Title: event; identical body</td>
+          </tr>
+          <tr>
+            <td>Removed</td>
+            <td>
+              <code
+                >You no longer have access to the &lt;Event&gt;. Explore other plans nearby.</code
+              >
+            </td>
+            <td>Title: event; identical body</td>
+          </tr>
+          <tr>
+            <td>Deleted</td>
+            <td>
+              <code
+                >&lt;Event&gt; has been cancelled and is no longer happening. Explore other events
+                nearby.</code
+              >
+            </td>
+            <td>Title: event; identical body</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Android implementation screenshots</h2>
+      <div class="gallery">
+        <figure class="wide">
+          <img
+            src="issue-128-assets/01-notification-copy-and-date-sections.png"
+            alt="Notifications list showing all requested copy and date sections"
+          />
+          <figcaption>
+            1. All five revised non-chat bodies, unchanged chat treatment, and the Last 7 days /
+            Last 30 days headings.
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="issue-128-assets/02-enabled-notification-menu.png"
+            alt="Notifications action sheet with enabled black actions"
+          />
+          <figcaption>
+            2. Zero-unread state: Mark all as read remains enabled and both actions use the standard
+            black treatment.
+          </figcaption>
+        </figure>
+        <figure>
+          <img src="issue-128-assets/03-empty-notifications.png" alt="Empty notifications state" />
+          <figcaption>3. Updated empty-state message.</figcaption>
+        </figure>
+        <figure>
+          <img src="issue-128-assets/04-safe-load-error.png" alt="Safe notifications load error" />
+          <figcaption>
+            4. Forced-offline state exposes only the fixed user-safe error and retry action.
+          </figcaption>
+        </figure>
+      </div>
+
+      <h2>Architecture and migration</h2>
+      <p>
+        The server now owns canonical notification copy in one helper used by every relevant
+        lifecycle path. Existing rows receive an idempotent startup correction for the five known
+        notification types. New join payloads carry <code>senderName</code>, while legacy rows
+        remain readable through a narrow fallback parser. Inbox rows otherwise remain immutable, and
+        chat notification behavior is unchanged.
+      </p>
+
+      <h2>Validation</h2>
+      <ul>
+        <li>Android emulator <code>WEIF_API_36</code>, 1080 × 2400: PASS.</li>
+        <li>Focused frontend suites: 5 suites / 43 tests: PASS.</li>
+        <li>Full frontend suite: 87 suites / 1,264 tests: PASS.</li>
+        <li>Go notification copy, persistence, migration, and mock-push tests: PASS.</li>
+        <li>Full Go suite: PASS.</li>
+        <li>TypeScript: PASS.</li>
+        <li>Lint: 0 errors; existing warning baseline retained.</li>
+        <li>Touched-file formatting and <code>git diff --check</code>: PASS.</li>
+      </ul>
+      <p class="note">
+        OS push banners are not fabricated in the screenshots: local emulator push delivery is
+        disabled. Exact FCM title/body values are verified at the server boundary with the mock push
+        sender for group and 1:1 flows, including approve, deny, remove, and delete lifecycles.
+      </p>
+    </main>
+  </body>
+</html>

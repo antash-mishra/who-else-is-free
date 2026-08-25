@@ -127,11 +127,24 @@ jest.mock('@components/sheets', () => {
     SheetActionList: ({
       items,
     }: {
-      items: Array<{ label: string; onPress: () => void; testID?: string }>;
+      items: Array<{
+        label: string;
+        onPress: () => void;
+        testID?: string;
+        disabled?: boolean;
+        destructive?: boolean;
+      }>;
     }) => (
       <View>
         {items.map((item) => (
-          <Pressable key={item.label} testID={item.testID} onPress={item.onPress}>
+          <Pressable
+            key={item.label}
+            testID={item.testID}
+            accessibilityState={{ disabled: !!item.disabled }}
+            accessibilityHint={item.destructive ? 'destructive' : 'default'}
+            disabled={item.disabled}
+            onPress={item.onPress}
+          >
             <Text>{item.label}</Text>
           </Pressable>
         ))}
@@ -164,7 +177,7 @@ const sampleNotifications = (): AppNotification[] => [
     type: 'join_request.denied',
     eventId: 99,
     title: 'Hike',
-    body: 'This event is no longer available to you. Explore other events nearby.',
+    body: 'Hike is no longer available to you. Explore other plans nearby.',
     read: true,
     actionState: 'active',
     createdAt: new Date(Date.now() - 3 * 3600_000).toISOString(),
@@ -223,6 +236,23 @@ describe('NotificationsScreen Rendering', () => {
     expect(mockMarkAllRead).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps Mark all as read enabled and black when there is nothing unread', () => {
+    mockNotificationsValue = {
+      ...mockNotificationsValue,
+      notifications: sampleNotifications().map((notification) => ({
+        ...notification,
+        read: true,
+      })),
+      unreadCount: 0,
+    };
+    const { getByTestId } = render(<NotificationsScreen />);
+
+    fireEvent.press(getByTestId('notifications-menu-button'));
+    const action = getByTestId('notifications-menu-mark-all-read');
+    expect(action.props.accessibilityState.disabled).toBe(false);
+    expect(action.props.accessibilityHint).toBe('default');
+  });
+
   it('opens the action menu and calls clearAll when Clear all is pressed', () => {
     mockNotificationsValue = {
       ...mockNotificationsValue,
@@ -232,7 +262,9 @@ describe('NotificationsScreen Rendering', () => {
     const { getByTestId } = render(<NotificationsScreen />);
 
     fireEvent.press(getByTestId('notifications-menu-button'));
-    fireEvent.press(getByTestId('notifications-menu-clear-all'));
+    const action = getByTestId('notifications-menu-clear-all');
+    expect(action.props.accessibilityHint).toBe('default');
+    fireEvent.press(action);
 
     expect(mockClearAll).toHaveBeenCalledTimes(1);
   });
@@ -249,7 +281,7 @@ describe('NotificationsScreen Rendering', () => {
     expect(getByText('New message from Alice in Dancing. Alice: hey')).toBeTruthy();
     // Declined: event name leads the softened sentence.
     expect(
-      getByText('Hike is no longer available to you. Explore other events nearby.'),
+      getByText('Hike is no longer available to you. Explore other plans nearby.'),
     ).toBeTruthy();
   });
 

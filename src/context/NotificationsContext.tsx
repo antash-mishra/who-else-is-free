@@ -89,7 +89,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       await fetchUnreadCount();
     } catch (err) {
       logger.warn('notifications: refresh failed', err);
-      setError(err instanceof Error ? err.message : 'Failed to load notifications');
+      setError('Failed to load notifications');
     } finally {
       setRefreshing(false);
     }

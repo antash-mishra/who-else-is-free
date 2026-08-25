@@ -140,3 +140,12 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated checks: frontend 85 suites / 1,254 tests passed; `go test ./...` passed; TypeScript passed; lint completed with 0 errors and the existing warning baseline; touched files were formatted and `git diff --check` passed.
 - Evidence: `report/issue-127-chat-implementation-report.html` and before/after screenshots under `report/issue-127-assets/`.
 - Final verdict: **PASS**.
+
+## 2026-08-25 — Issue #128 Notifications
+
+- Change: keep Mark all as read enabled at zero unread, normalize Clear all styling, update empty/error/date copy, centralize the five non-chat lifecycle messages for push and inbox, render server-owned single-row bodies verbatim, add structured join-request sender names, and backfill legacy stored copy idempotently.
+- Environment: Android emulator `WEIF_API_36` (Android 16, 1080 × 2400), package `com.whoelseisfree.app`; isolated temporary SQLite backend with `DEV_LOGIN_ENABLED=1`; Metro at `http://10.0.2.2:8081`; Host and Member2 preset identities.
+- Device result: PASS — a seeded zero-unread host inbox displayed the unchanged chat row, all five exact revised lifecycle messages, and `Last 7 days` / `Last 30 days`; its menu kept `Mark all as read` enabled and rendered `Clear all` with the normal black treatment. Member2 displayed `Your notifications will appear here.` when empty, then a forced server outage displayed only `Failed to load notifications` with `Try again`.
+- Automated checks: focused Jest coverage passed 5 suites / 43 tests and the full frontend run passed 87 suites / 1,264 tests; notification Go tests and full `go test ./...` passed; TypeScript passed; lint completed with 0 errors and the existing warning baseline; touched-file formatting and `git diff --check` passed. Exact FCM title/body values are covered through the server's mock push sender because local emulator push delivery is disabled.
+- Evidence: `report/issue-128-notifications-implementation-report.html` and four screenshots under `report/issue-128-assets/`.
+- Final verdict: **PASS**.

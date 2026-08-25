@@ -134,10 +134,10 @@ func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
 				continue
 			}
 			h.hub.recordAndSendPushToUsers(event.RecipientIDs, map[string]string{
-				"type":    "event.deleted",
+				"type":    NotificationTypeEventDeleted,
 				"eventId": strconv.FormatInt(event.ID, 10),
 				"title":   event.Title,
-				"body":    eventDeletedPushBody,
+				"body":    notificationPushBody(NotificationTypeEventDeleted, event.Title, ""),
 			})
 		}
 	}

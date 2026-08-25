@@ -907,6 +907,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.backfillNotificationActionState(ctx); err != nil {
 		return err
 	}
+	if err := r.backfillNotificationDisplayCopy(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createNotificationsUserCreatedIndex); err != nil {
 		return fmt.Errorf("create notifications user_created index: %w", err)
 	}
@@ -1029,6 +1032,64 @@ func (r *EventRepository) backfillNotificationActionState(ctx context.Context) e
 	for _, statement := range statements {
 		if _, err := r.db.ExecContext(ctx, statement.sql); err != nil {
 			return fmt.Errorf("backfill notification action state (%s): %w", statement.name, err)
+		}
+	}
+	return nil
+}
+
+// backfillNotificationDisplayCopy is the deliberate exception to immutable
+// notification history for issue #128's copy correction. It updates existing
+// known-type inbox rows to the same canonical wording used for new rows, while
+// leaving chat and unknown notification types untouched. The statements are
+// idempotent and therefore safe on every startup.
+func (r *EventRepository) backfillNotificationDisplayCopy(ctx context.Context) error {
+	statements := []struct {
+		name string
+		sql  string
+	}{
+		{
+			"join request created",
+			`UPDATE notifications
+			 SET body = (
+			   CASE
+			     WHEN json_valid(payload) AND NULLIF(json_extract(payload, '$.senderName'), '') IS NOT NULL
+			       THEN json_extract(payload, '$.senderName')
+			     WHEN instr(body, ' wants to join your event') > 0 THEN substr(body, 1, instr(body, ' wants to join your event') - 1)
+			     WHEN instr(body, ' wants to join your plan') > 0 THEN substr(body, 1, instr(body, ' wants to join your plan') - 1)
+			     ELSE body
+			   END
+			 ) || ' wants to join your plan ' || title || '.'
+			 WHERE type = 'join_request.created';`,
+		},
+		{
+			"join request approved",
+			`UPDATE notifications
+			 SET body = 'Your request to join the plan ' || title || ' has been approved.'
+			 WHERE type = 'join_request.approved';`,
+		},
+		{
+			"join request denied",
+			`UPDATE notifications
+			 SET body = title || ' is no longer available to you. Explore other plans nearby.'
+			 WHERE type = 'join_request.denied';`,
+		},
+		{
+			"member removed",
+			`UPDATE notifications
+			 SET body = 'You no longer have access to the ' || title || '. Explore other plans nearby.'
+			 WHERE type = 'event.member_removed';`,
+		},
+		{
+			"event deleted",
+			`UPDATE notifications
+			 SET body = title || ' has been cancelled and is no longer happening. Explore other events nearby.'
+			 WHERE type = 'event.deleted';`,
+		},
+	}
+
+	for _, statement := range statements {
+		if _, err := r.db.ExecContext(ctx, statement.sql); err != nil {
+			return fmt.Errorf("backfill notification display copy (%s): %w", statement.name, err)
 		}
 	}
 	return nil

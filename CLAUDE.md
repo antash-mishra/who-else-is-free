@@ -18,7 +18,8 @@ Who Else Is Free is an event discovery and social coordination app.
   `ADMIN_BOOTSTRAP_EMAILS` only provisions verified initial accounts. Support Inbox API mapping is
   in `src/api/adminHelp.ts`, feature state is in `useAdminAccess`/`useAdminHelpSubmissions`, and
   support content must stay out of analytics and routine logs.
-- Notifications: historical content stays immutable while `action_state` separately tracks live
+- Notifications: historical content stays immutable except for explicit idempotent copy-correction
+  migrations, while `action_state` separately tracks live
   action validity (`active`, `resolved`, or `unavailable`). `read` remains independent and unread
   counts include only active rows. The idempotent schema migration/backfill is in
   `server/repository_schema.go`; task types are `chat.message` and `join_request.created`.
@@ -27,7 +28,10 @@ Who Else Is Free is an event discovery and social coordination app.
   `openNotification` in `src/context/pushRouting.ts`; never navigate from raw notification IDs or
   restore client-side entity access checks. Active request tasks open the full-page `JoinRequest`
   route (including conversation-less 1:1 requests); Messages and Event Details use the separate
-  `OneToOneHub` route. Inactive tasks remain as one muted historical group.
+  `OneToOneHub` route. Inactive tasks remain as one muted historical group. Push and inbox copy for
+  known types is centralized in `notificationCopyFor` in `server/notification_payloads.go`; single
+  inbox rows render stored bodies verbatim and collapsed join groups prefer structured
+  `payload.senderName` over legacy body parsing.
 
 ## Working References
 

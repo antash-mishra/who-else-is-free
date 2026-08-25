@@ -1172,7 +1172,9 @@ What it is:
 - Feature row for the Notifications inbox. Owns active unread, read, resolving, and muted inactive
   states, including the `Handled`/`Unavailable` status icon and label, accessibility copy, and press
   haptic (`triggerHaptic('light')`).
-- Renders the server-supplied inbox body verbatim (override text is finalized in `server/notification_payloads.go`, never on the client).
+- Renders each server-supplied single-row inbox body verbatim, bolding only structured actor/event
+  values. Push and inbox copy is finalized by `notificationCopyFor` in
+  `server/notification_payloads.go`; collapsed chat/join groups own their aggregate presentation.
 
 Where it is used:
 

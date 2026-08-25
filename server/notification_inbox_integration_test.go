@@ -101,8 +101,8 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		resp.Body.Close()
 
 		row := waitForInboxRow(t, env, avaToken, "join_request.created", 3*time.Second)
-		if !strings.HasSuffix(row.Body, "wants to join your event") {
-			t.Fatalf("inbox body = %q, want verbatim push body ending in 'wants to join your event'", row.Body)
+		if row.Body != "Noah Smith wants to join your plan Inbox Created." {
+			t.Fatalf("inbox body = %q, want canonical plan copy", row.Body)
 		}
 		if row.Read {
 			t.Fatal("new row should be unread")
@@ -134,8 +134,8 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		approveResp.Body.Close()
 
 		row := waitForInboxRow(t, env, noahToken, "join_request.approved", 3*time.Second)
-		if row.Body != "Your request to join was approved!" {
-			t.Fatalf("inbox body = %q, want verbatim", row.Body)
+		if row.Body != "Your request to join the plan Inbox Approved has been approved." {
+			t.Fatalf("inbox body = %q, want canonical plan copy", row.Body)
 		}
 		if row.JoinRequestID == nil || *row.JoinRequestID <= 0 {
 			t.Fatalf("approval join_request_id = %v", row.JoinRequestID)
@@ -164,7 +164,7 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		denyResp.Body.Close()
 
 		row := waitForInboxRow(t, env, noahToken, "join_request.denied", 3*time.Second)
-		const want = "This event is no longer available to you. Explore other events nearby."
+		const want = "Inbox Denied is no longer available to you. Explore other plans nearby."
 		if row.Body != want {
 			t.Fatalf("override body = %q, want %q", row.Body, want)
 		}
@@ -222,7 +222,7 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		removeResp.Body.Close()
 
 		row := waitForInboxRow(t, env, noahToken, "event.member_removed", 3*time.Second)
-		const want = "You no longer have access to this event. Explore other events nearby."
+		const want = "You no longer have access to the Inbox Removed. Explore other plans nearby."
 		if row.Body != want {
 			t.Fatalf("override body = %q, want %q", row.Body, want)
 		}
@@ -249,7 +249,7 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		deleteResp.Body.Close()
 
 		row := waitForInboxRow(t, env, noahToken, "event.deleted", 3*time.Second)
-		const want = "This event has been cancelled and is no longer available. Explore other events nearby."
+		const want = "Inbox Event Deleted has been cancelled and is no longer happening. Explore other events nearby."
 		if row.Body != want {
 			t.Fatalf("override body = %q, want %q", row.Body, want)
 		}
@@ -303,10 +303,8 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		}
 	})
 
-	// Confirm the override bodies are isolated: fetch noah's full inbox and
-	// ensure none of the verbatim push bodies leaked for the three override
-	// types.
-	t.Run("override bodies do not leak verbatim push text", func(t *testing.T) {
+	// Confirm every known outcome uses the canonical plan copy.
+	t.Run("legacy outcome copy does not leak", func(t *testing.T) {
 		resp := env.doRequest(t, http.MethodGet, "/api/notifications?limit=100", noahToken, nil)
 		list := decodeJSON[notificationsListResponse](t, resp)
 		for _, n := range list.Notifications {

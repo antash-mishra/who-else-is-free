@@ -14,7 +14,6 @@ import (
 
 const requestTimeout = 5 * time.Second
 const updatedEventDetailMessage = "Plan details updated"
-const eventDeletedPushBody = "The host deleted this event."
 
 type EventHandler struct {
 	repo *EventRepository
@@ -528,10 +527,10 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 		}
 		if len(recipientIDs) > 0 {
 			h.hub.recordAndSendPushToUsers(recipientIDs, map[string]string{
-				"type":    "event.deleted",
+				"type":    NotificationTypeEventDeleted,
 				"eventId": strconv.FormatInt(id, 10),
 				"title":   event.Title,
-				"body":    eventDeletedPushBody,
+				"body":    notificationPushBody(NotificationTypeEventDeleted, event.Title, ""),
 			})
 		}
 	}

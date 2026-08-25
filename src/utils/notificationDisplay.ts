@@ -1,11 +1,9 @@
 /**
  * Builds the single-line notification-inbox copy as styled segments.
  *
- * The notification page composes its own display sentence per type from the
- * event name (`title`), and — for the person-driven types — the actor name
- * (from the push `payload.senderName`, or parsed from the server body). Segments
- * flagged `bold` render SemiBold; the rest Regular. Chat rows additionally
- * return a `preview` (the message text) shown on a second line.
+ * Known single-row notifications render the server-supplied inbox body
+ * verbatim, splitting only structured actor/event values into bold segments.
+ * Chat and collapsed groups retain their richer client-only presentation.
  */
 import { AppNotification } from '@api/mappers/notifications';
 import { ChatGroup, JoinGroup } from '@utils/notificationCollapse';
@@ -70,8 +68,8 @@ export const chatGroupPlainText = (group: ChatGroup): string =>
 
 /**
  * Builds the copy for a collapsed join-request group (per event):
- *   "Sylvie wants to join your event Dancing"
- *   "Sylvie, Joe & 2 others want to join your event Dancing"
+ *   "Sylvie wants to join your plan Dancing."
+ *   "Sylvie, Joe & 2 others want to join your plan Dancing."
  * (verb agrees: "wants" for one requester, "want" for many).
  */
 export const buildJoinGroupDisplay = (group: JoinGroup): NotificationDisplay => {
@@ -80,8 +78,9 @@ export const buildJoinGroupDisplay = (group: JoinGroup): NotificationDisplay => 
   return {
     segments: [
       { text: requesters, bold: true },
-      { text: ` ${verb} to join your event `, bold: false },
+      { text: ` ${verb} to join your plan `, bold: false },
       { text: group.eventName, bold: true },
+      { text: '.', bold: false },
     ],
   };
 };
@@ -103,7 +102,44 @@ const parsePayload = (payload?: string): Record<string, string> => {
   }
 };
 
-const JOIN_CREATED_SUFFIX = ' wants to join your event';
+const splitBodyWithBoldValues = (body: string, values: string[]): NotificationSegment[] => {
+  const remainingValues = [...new Set(values.filter(Boolean))];
+  const segments: NotificationSegment[] = [];
+  let cursor = 0;
+
+  while (cursor < body.length) {
+    let nextIndex = -1;
+    let nextValue = '';
+    for (const value of remainingValues) {
+      const index = body.indexOf(value, cursor);
+      if (index >= 0 && (nextIndex < 0 || index < nextIndex)) {
+        nextIndex = index;
+        nextValue = value;
+      }
+    }
+    if (nextIndex < 0) {
+      segments.push({ text: body.slice(cursor), bold: false });
+      break;
+    }
+    if (nextIndex > cursor) {
+      segments.push({ text: body.slice(cursor, nextIndex), bold: false });
+    }
+    segments.push({ text: nextValue, bold: true });
+    cursor = nextIndex + nextValue.length;
+  }
+
+  return segments.length > 0 ? segments : [{ text: body, bold: false }];
+};
+
+const requesterFromBody = (body: string): string => {
+  for (const marker of [' wants to join your plan ', ' wants to join your event']) {
+    const index = body.indexOf(marker);
+    if (index > 0) {
+      return body.slice(0, index).trim();
+    }
+  }
+  return '';
+};
 
 export const buildNotificationDisplay = (notification: AppNotification): NotificationDisplay => {
   const eventName = notification.title;
@@ -130,51 +166,21 @@ export const buildNotificationDisplay = (notification: AppNotification): Notific
     }
 
     case 'join_request.created': {
-      const actor = notification.body.endsWith(JOIN_CREATED_SUFFIX)
-        ? notification.body.slice(0, -JOIN_CREATED_SUFFIX.length)
-        : payload.senderName || '';
-      return {
-        segments: [
-          { text: actor, bold: true },
-          { text: ' wants to join your event ', bold: false },
-          { text: eventName, bold: true },
-        ],
-      };
+      const actor = payload.senderName || requesterFromBody(notification.body);
+      return { segments: splitBodyWithBoldValues(notification.body, [actor, eventName]) };
     }
 
     case 'join_request.approved':
-      return {
-        segments: [
-          { text: 'Your request to join ', bold: false },
-          { text: eventName, bold: true },
-          { text: ' has been approved!', bold: false },
-        ],
-      };
+      return { segments: splitBodyWithBoldValues(notification.body, [eventName]) };
 
     case 'join_request.denied':
-      return {
-        segments: [
-          { text: eventName, bold: true },
-          { text: ' is no longer available to you. Explore other events nearby.', bold: false },
-        ],
-      };
+      return { segments: splitBodyWithBoldValues(notification.body, [eventName]) };
 
     case 'event.member_removed':
-      return {
-        segments: [
-          { text: 'You no longer have access to ', bold: false },
-          { text: eventName, bold: true },
-          { text: '. Explore other events nearby.', bold: false },
-        ],
-      };
+      return { segments: splitBodyWithBoldValues(notification.body, [eventName]) };
 
     case 'event.deleted':
-      return {
-        segments: [
-          { text: eventName, bold: true },
-          { text: ' has been cancelled and is no longer happening.', bold: false },
-        ],
-      };
+      return { segments: splitBodyWithBoldValues(notification.body, [eventName]) };
 
     default:
       // Unknown type: render the server body verbatim so the inbox never breaks.
