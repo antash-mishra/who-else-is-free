@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Android responsive layout and gesture fixes — implementation report</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #101418;
+        --muted: #5d6770;
+        --line: #dfe5e8;
+        --surface: #f5f8f7;
+        --brand: #006451;
+        --ok: #137a4b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font:
+          16px/1.55 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 56px 0 80px;
+      }
+
+      h1,
+      h2,
+      h3 {
+        line-height: 1.15;
+      }
+
+      h1 {
+        max-width: 850px;
+        margin: 12px 0 18px;
+        font-size: clamp(34px, 5vw, 60px);
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin: 56px 0 18px;
+        font-size: 28px;
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      p {
+        margin: 0 0 14px;
+      }
+
+      code {
+        font:
+          0.92em ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+
+      .eyebrow {
+        color: var(--brand);
+        font-size: 13px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        max-width: 820px;
+        color: var(--muted);
+        font-size: 20px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 22px;
+        padding: 9px 14px;
+        border: 1px solid #b9dfcd;
+        border-radius: 999px;
+        color: var(--ok);
+        background: #effaf4;
+        font-weight: 700;
+      }
+
+      .status::before {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--ok);
+        content: '';
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+
+      .card p,
+      .meta,
+      figcaption {
+        color: var(--muted);
+      }
+
+      .screens {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 18px;
+        align-items: start;
+      }
+
+      figure {
+        margin: 0;
+      }
+
+      figure img {
+        display: block;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: #eef2f1;
+        box-shadow: 0 12px 32px rgba(12, 35, 29, 0.1);
+      }
+
+      figcaption {
+        margin-top: 10px;
+        font-size: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .pass {
+        color: var(--ok);
+        font-weight: 750;
+      }
+
+      ul {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+
+      li + li {
+        margin-top: 7px;
+      }
+
+      footer {
+        margin-top: 58px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      @media (max-width: 900px) {
+        .screens {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        main {
+          width: min(100% - 24px, 1120px);
+          padding-top: 30px;
+        }
+
+        .grid,
+        .screens {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">Issue #129 · Implementation report · 25 August 2026</div>
+        <h1>Responsive Android layouts and predictable Event Details gestures</h1>
+        <p class="lede">
+          The shared inset rules now distinguish keyboard obstruction, system safe area, and app
+          tab-bar obstruction. This removes phone-specific spacing behavior and gives Event Details
+          explicit ownership of horizontal paging.
+        </p>
+        <div class="status">Implemented and verified</div>
+      </header>
+
+      <section>
+        <h2>What changed</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>One keyboard-obstruction calculation</h3>
+            <p>
+              <code>getKeyboardTranslation</code> derives the effective overlap from the keyboard's
+              viewport-top coordinate where available, falls back safely to height, subtracts the
+              covered bottom inset once, and clamps the result. Bottom sheets and chat now share
+              this rule.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Create and Profile clear bottom chrome</h3>
+            <p>
+              The Create footer includes the measured safe-area bottom. Profile scroll content
+              includes the measured bottom-tab-bar obstruction, so destructive actions remain fully
+              reachable above both app and system navigation bars.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Event Details owns horizontal paging</h3>
+            <p>
+              Requests and Members use a direction-locked horizontal pan with thresholds, velocity
+              handling, edge clamping, and snap animation. Vertical movement fails the pager early
+              and remains available to the outer details scroll view.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Route back-swipe conflict removed</h3>
+            <p>
+              Stack back-swipe is disabled only for Event Details. The visible back button and
+              Android hardware back remain intact, while horizontal movement inside the tab area
+              cannot unexpectedly pop the route.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Fixed UI evidence</h2>
+        <div class="screens">
+          <figure>
+            <img
+              src="assets/responsive-layout-fix/create-fixed.png"
+              alt="Create plan CTA above Android three-button navigation"
+            />
+            <figcaption>
+              Create CTA clears the Android three-button system navigation area.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="assets/responsive-layout-fix/profile-fixed.png"
+              alt="Profile Delete account row above app and system navigation bars"
+            />
+            <figcaption>
+              Delete account scrolls fully above the app tab bar and system navigation.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="assets/responsive-layout-fix/details-sheet-fixed.png"
+              alt="Details bottom sheet above Android system navigation"
+            />
+            <figcaption>The shared Details sheet preserves one bottom clearance owner.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="assets/responsive-layout-fix/fly-server-physical-device.png"
+              alt="Updated application running on Samsung physical phone using Fly.io"
+            />
+            <figcaption>
+              Updated bundle running on Samsung SM-A566E against the Fly.io production service.
+            </figcaption>
+          </figure>
+        </div>
+        <p class="meta" style="margin-top: 18px">
+          Device evidence: Android emulator at 1080×2400 / 420 dpi with three-button navigation;
+          Samsung SM-A566E at 1080×2340 / 450 dpi. The reporter confirmed the keyboard, chat,
+          Profile, Create, scrolling, and paging issues are fixed on the physical phone.
+        </p>
+      </section>
+
+      <section>
+        <h2>Regression protection</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Coverage</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bottom obstruction unit tests</td>
+              <td>
+                Zero inset, gesture navigation, three-button navigation, keyboard-top and height
+                fallback
+              </td>
+              <td class="pass">Pass</td>
+            </tr>
+            <tr>
+              <td>Layout rendering tests</td>
+              <td>BottomSheet, Chat composer, Create footer, Profile scroll clearance</td>
+              <td class="pass">Pass</td>
+            </tr>
+            <tr>
+              <td>Event Details gesture tests</td>
+              <td>
+                Vertical failure, horizontal tab movement, inactive-page pointer and accessibility
+                ownership
+              </td>
+              <td class="pass">Pass</td>
+            </tr>
+            <tr>
+              <td>Navigation regression test</td>
+              <td>Event Details stack gesture disabled without changing normal back navigation</td>
+              <td class="pass">Pass</td>
+            </tr>
+            <tr>
+              <td>TypeScript</td>
+              <td><code>npm run typecheck</code></td>
+              <td class="pass">Pass</td>
+            </tr>
+            <tr>
+              <td>Full frontend suite</td>
+              <td>89 suites, 1,272 tests</td>
+              <td class="pass">Pass</td>
+            </tr>
+            <tr>
+              <td>Android native build</td>
+              <td>Debug APK build and installation</td>
+              <td class="pass">Pass</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Files and architecture</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Shared foundation</h3>
+            <ul>
+              <li><code>src/utils/bottomObstruction.ts</code></li>
+              <li><code>src/components/sheets/BottomSheet.tsx</code></li>
+              <li><code>src/components/ui/SlidingTabs.tsx</code></li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Affected screens and navigation</h3>
+            <ul>
+              <li>
+                <code>ChatThreadScreen</code>, <code>CreateEventScreen</code>, and
+                <code>ProfileScreen</code>
+              </li>
+              <li><code>HostRequestTabs</code></li>
+              <li><code>AppNavigator</code> and navigation transitions</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        Prepared for GitHub issue #129: “Android responsiveness: keyboard gaps, bottom-bar overlap,
+        and Event Details gesture conflicts.” Existing repository-wide lint and formatting warning
+        baselines were not expanded; all touched source files pass Prettier and the functional/type
+        gates above are green.
+      </footer>
+    </main>
+  </body>
+</html>

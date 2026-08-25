@@ -26,6 +26,12 @@ export const slideFromRightTransitionSpec = {
   close: { animation: 'spring' as const, config: Springs.snappy },
 };
 
+export const eventDetailsScreenOptions = {
+  gestureEnabled: false,
+  cardStyleInterpolator: slideFromRightInterpolator,
+  transitionSpec: slideFromRightTransitionSpec,
+};
+
 // Full-screen slide-up modal — no background scaling/dimming
 export const slideFromBottomInterpolator = ({ current, layouts }: StackCardInterpolationProps) => ({
   cardStyle: {

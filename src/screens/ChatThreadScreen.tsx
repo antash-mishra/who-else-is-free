@@ -40,6 +40,7 @@ import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHeaderSubtitle';
+import { getKeyboardTranslation } from '@utils/bottomObstruction';
 import { formatTimeAmPm } from '@utils/dateTime';
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
@@ -90,15 +91,23 @@ const ChatComposer = ({
   </View>
 );
 
-const AndroidKeyboardComposer = (props: ComposerProps) => {
+interface AndroidKeyboardComposerProps extends ComposerProps {
+  safeAreaBottom: number;
+}
+
+const AndroidKeyboardComposer = ({ safeAreaBottom, ...props }: AndroidKeyboardComposerProps) => {
   const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING);
 
     const showSub = KeyboardEvents.addListener('keyboardWillShow', (event) => {
+      const keyboardTranslation = getKeyboardTranslation({
+        keyboardHeight: event.height,
+        safeAreaBottom,
+      });
       Animated.timing(translateY, {
-        toValue: -(event.height + ANDROID_KEYBOARD_GAP),
+        toValue: -(keyboardTranslation + ANDROID_KEYBOARD_GAP),
         duration: event.duration || 250,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
@@ -119,7 +128,7 @@ const AndroidKeyboardComposer = (props: ComposerProps) => {
       hideSub.remove();
       KeyboardController.setDefaultMode();
     };
-  }, [translateY]);
+  }, [safeAreaBottom, translateY]);
 
   return (
     <Animated.View style={{ transform: [{ translateY }] }}>
@@ -679,7 +688,7 @@ const ChatThreadScreen = () => {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             />
-            <AndroidKeyboardComposer {...composerProps} />
+            <AndroidKeyboardComposer {...composerProps} safeAreaBottom={insets.bottom} />
           </View>
         </View>
       )}

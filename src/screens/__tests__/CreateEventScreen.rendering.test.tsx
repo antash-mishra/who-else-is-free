@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { mockEvents, mockUsers } from '../../__tests__/mocks/mockData';
 import { mockNavigation, mockRoute } from '../../__tests__/mocks/mockModules';
@@ -14,6 +15,11 @@ let isGuestMode = false;
 let editModeEvents = [...mockEvents];
 let currentRouteParams: { editEventId?: string | null } = {};
 let mockIsPastDateTime = false;
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 48, left: 0, right: 0 }),
+}));
 
 jest.mock('@context/AuthContext', () => ({
   useAuth: () => ({
@@ -164,6 +170,14 @@ describe('CreateEventScreen Rendering', () => {
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
     expect(screen.getByText('All genders')).toBeTruthy();
     expect(screen.getByText('All ages')).toBeTruthy();
+  });
+
+  it('adds the Android bottom safe area to the existing CTA spacing', () => {
+    render(<CreateEventScreen />);
+
+    const footerStyle = StyleSheet.flatten(screen.getByTestId('create-event-footer').props.style);
+
+    expect(footerStyle.paddingBottom).toBe(80);
   });
 
   it('opens datetime modal from Date & time row', () => {

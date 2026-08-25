@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, componentTokens, layout, radii, shadows, spacing } from '@theme/index';
 import { Springs } from '@theme/springs';
+import { getKeyboardTranslation } from '@utils/bottomObstruction';
 
 import SheetHeader from './SheetHeader';
 
@@ -53,16 +54,6 @@ const BASE_PADDING_BOTTOM = 8;
 const MIN_TOP_GUTTER = 96;
 const MODAL_CLOSE_DURATION_MS = 300;
 const INLINE_CLOSE_DURATION_MS = 220;
-
-export const getKeyboardTranslation = (
-  keyboardHeight: number,
-  safeAreaBottomInset: number,
-  platform: typeof Platform.OS,
-) => {
-  'worklet';
-
-  return platform === 'ios' ? Math.max(0, keyboardHeight - safeAreaBottomInset) : keyboardHeight;
-};
 
 const BottomSheet = ({
   visible,
@@ -102,12 +93,8 @@ const BottomSheet = ({
     presentation === 'modal' ? MODAL_CLOSE_DURATION_MS : INLINE_CLOSE_DURATION_MS;
 
   const sheetStyle = useAnimatedStyle(() => {
-    const keyboardTranslation = avoidKeyboard
-      ? getKeyboardTranslation(keyboardOffset.value, safeBottom, Platform.OS)
-      : 0;
-
     return {
-      transform: [{ translateY: slideY.value - keyboardTranslation }],
+      transform: [{ translateY: slideY.value - (avoidKeyboard ? keyboardOffset.value : 0) }],
     };
   });
   const backdropStyle = useAnimatedStyle(() => ({
@@ -134,9 +121,13 @@ const BottomSheet = ({
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const updateKeyboardOffset = (event: KeyboardEvent) => {
-      const heightFromScreen = Math.max(0, screenHeight - event.endCoordinates.screenY);
-      const keyboardHeight = Math.max(heightFromScreen, event.endCoordinates.height ?? 0);
-      keyboardOffset.value = withTiming(keyboardHeight, {
+      const translation = getKeyboardTranslation({
+        viewportHeight: Platform.OS === 'android' ? screenHeight : undefined,
+        keyboardTop: Platform.OS === 'android' ? event.endCoordinates.screenY : undefined,
+        keyboardHeight: event.endCoordinates.height ?? 0,
+        safeAreaBottom: safeBottom,
+      });
+      keyboardOffset.value = withTiming(translation, {
         duration: event.duration ?? 220,
         easing: Easing.out(Easing.cubic),
       });
@@ -154,7 +145,7 @@ const BottomSheet = ({
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [avoidKeyboard, keyboardOffset, screenHeight]);
+  }, [avoidKeyboard, keyboardOffset, safeBottom, screenHeight]);
 
   const startOpenAnimation = useCallback(() => {
     slideY.value = screenHeight;

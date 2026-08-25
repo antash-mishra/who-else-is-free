@@ -30,6 +30,7 @@ import {
   ProfileTabIcon,
 } from '@navigation/TabIcons';
 import {
+  eventDetailsScreenOptions,
   sheetModalScreenOptions,
   slideFromBottomInterpolator,
   slideFromBottomTransitionSpec,
@@ -337,10 +338,7 @@ const AppNavigator = () => {
           <Stack.Screen
             name="EventDetails"
             component={EventDetailsScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
+            options={eventDetailsScreenOptions}
           />
           <Stack.Screen
             name="OneToOneHub"

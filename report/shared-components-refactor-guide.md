@@ -413,6 +413,8 @@ What it is:
 - Tab bar with a sliding underline that springs between tabs.
 - Owns tab layout tracking, underline motion, count labels, selection haptics, and tab
   accessibility roles.
+- External value changes (for example a pager swipe) move the underline through the same shared
+  spring path as a tab press.
 - Omit `onChange` for a static single-tab header with an underline.
 
 Where it is used:
@@ -757,8 +759,9 @@ What it is:
 - Low-level shared bottom-sheet foundation.
 - Owns modal/inline presentation, backdrop, open/close animation, safe area, keyboard avoidance,
   max height, optional snap height, and shared sheet styling.
-- On iOS, keyboard avoidance subtracts the home-indicator safe-area inset from the sheet translation
-  so it sits behind the keyboard while the shared base content spacing remains visible. Do not
+- Keyboard avoidance uses `bottomObstruction.ts` to subtract the system safe-area region already
+  reserved by the sheet from its translation. Android prefers the keyboard-top coordinate while
+  iOS retains height-based animation timing; both preserve the shared base content spacing. Do not
   compensate in prompt content.
 
 Where it is used:
@@ -1304,8 +1307,11 @@ What they are:
 - `EventDetailsHero.tsx` — blurred background image, dark/light overlays, elevated cover card.
 - `EventDetailsInfo.tsx` — title, host line, going avatars stack, detail rows, and the expandable
   description (owns description measurement/expansion state).
-- `HostRequestTabs.tsx` — `SlidingTabs` header plus the animated two-page pager (both pages stay
-  rendered; 280ms slide) for request and accepted/member lists; owns the active tab state.
+- `HostRequestTabs.tsx` — `SlidingTabs` header plus a direction-locked animated two-page pager
+  (both pages stay rendered; 280ms slide) for request and accepted/member lists. Horizontal swipes
+  change tabs, edge swipes clamp locally, inactive pages do not receive pointer/accessibility
+  events, and vertical drags fail early to the outer Event Details `ScrollView`. The Event Details
+  stack route disables back-swiping so navigation cannot steal this horizontal gesture.
 - `EventDetailsMembers.tsx` — group overlay members list and read-only members list (with
   loading/error states) under a static `SlidingTabs` header (`variant: 'overlay' | 'readOnly'`).
 - `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white

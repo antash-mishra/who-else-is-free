@@ -1,5 +1,8 @@
-import React, { useRef } from 'react';
+/* eslint-disable react-hooks/immutability -- Reanimated shared values are intentionally updated when controlled tab selection changes. */
+import React, { useEffect, useRef } from 'react';
+
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import ScalePressable from '@components/ScalePressable';
@@ -43,6 +46,15 @@ const SlidingTabs = ({
     transform: [{ translateX: underlineX.value }],
     width: underlineWidth.value,
   }));
+
+  useEffect(() => {
+    const layout = tabLayouts.current[value];
+    if (!layout) {
+      return;
+    }
+    underlineX.value = withSpring(layout.x, Springs.snappy);
+    underlineWidth.value = withSpring(layout.width, Springs.snappy);
+  }, [underlineWidth, underlineX, value]);
 
   return (
     <View style={[styles.container, style]}>

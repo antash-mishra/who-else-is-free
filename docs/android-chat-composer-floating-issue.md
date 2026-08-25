@@ -13,14 +13,20 @@ The chat screen now uses `react-native-keyboard-controller` to take control of A
 - `App.tsx` wraps the app in `KeyboardProvider`.
 - `ChatThreadScreen.tsx` switches Android to `SOFT_INPUT_ADJUST_NOTHING` while the screen is mounted.
 - Android composer movement is driven by `KeyboardEvents` keyboard height.
-- The composer is translated by `keyboard height + spacing.xs`, so it sits fully above the keyboard.
+- The composer is translated by the keyboard obstruction above the already-reserved safe area plus
+  `spacing.xs`, so three-button navigation is not counted twice.
 - On unmount, the screen restores the default Android input mode.
 
-## Current Issue
+## Resolved Regression
 
 ### User-visible behavior
 
-On Android, the chat textbox is much more stable than before, but one issue remains:
+The original overlap was removed by keyboard-controller positioning. A later cross-device check
+found the inverse problem on three-button-navigation devices: the resting system inset remained in
+the composer while the full keyboard obstruction moved it, leaving an excessive gap. The shared
+`bottomObstruction.ts` normalization now removes that already-reserved inset exactly once.
+
+The original reproduction was:
 
 - when the user taps the textbox, the keyboard opens
 - the composer moves upward with the screen
@@ -41,12 +47,14 @@ The current implementation is:
   - Android uses a normal `FlatList` plus a sibling composer
   - Android no longer relies on `adjustPan` for final composer placement
   - Android applies `SOFT_INPUT_ADJUST_NOTHING` while this screen is mounted
-  - Android translates the composer using `react-native-keyboard-controller` keyboard height
+  - Android translates the composer using the shared safe-area-normalized keyboard obstruction
   - a keyboard listener is only used to scroll messages to the end
 
 ## Root Cause
 
-The remaining overlap is caused by relying on Android `adjustPan` to place the composer correctly.
+The final cross-device regression came from translating by the full Android keyboard height while
+the composer also reserved `insets.bottom`. Some Android keyboard frames include the three-button
+navigation region, so that region was counted twice.
 
 `adjustPan` is good enough to keep the focused `TextInput` visible, but it does not guarantee perfect placement for the whole composer wrapper:
 

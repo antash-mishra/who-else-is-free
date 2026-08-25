@@ -11,7 +11,7 @@ import {
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
 import { CoverKey } from '@constants/covers';
@@ -76,6 +76,7 @@ const CreateEventScreen = () => {
   const navigation = useNavigation<CreateNavigation>();
   const route = useRoute<CreateRoute>();
   const { height: windowHeight } = useWindowDimensions();
+  const { bottom: safeBottom } = useSafeAreaInsets();
   const { addUserEvent, updateUserEvent, events, queueGuestEvent } = useEvents();
   const { user } = useAuth();
   const { resolveCover } = useCovers();
@@ -447,6 +448,7 @@ const CreateEventScreen = () => {
               submitError={submitError}
               isSubmitting={isSubmitting}
               isEditing={isEditing}
+              bottomInset={safeBottom}
               onPress={handlePrimaryAction}
             />
           </KeyboardAwareScrollView>

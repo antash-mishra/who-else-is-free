@@ -348,7 +348,6 @@ const styles = StyleSheet.create({
   // Footer wrapper
   footer: {
     paddingTop: spacing.sm,
-    paddingBottom: 32,
     position: 'relative',
   },
   // Error row

@@ -6,6 +6,7 @@
 import React from 'react';
 
 import { mockUsers } from '../../__tests__/mocks/mockData';
+import { eventDetailsScreenOptions } from '../transitions';
 
 // Mock context modules before importing components
 jest.mock('@context/AuthContext', () => ({
@@ -333,6 +334,10 @@ describe('AppNavigator', () => {
   });
 
   describe('Screen Options', () => {
+    it('disables stack back-swiping on Event Details so its horizontal pager owns swipes', () => {
+      expect(eventDetailsScreenOptions.gestureEnabled).toBe(false);
+    });
+
     it('should hide headers on all screens', () => {
       const screenOptions = { headerShown: false };
       expect(screenOptions.headerShown).toBe(false);

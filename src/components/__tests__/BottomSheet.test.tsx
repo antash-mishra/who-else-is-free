@@ -4,21 +4,7 @@ import { Keyboard, Platform, Text } from 'react-native';
 
 import { render } from '@testing-library/react-native';
 
-import BottomSheet, { getKeyboardTranslation } from '../sheets/BottomSheet';
-
-describe('getKeyboardTranslation', () => {
-  it('places only the safe-area inset behind the iOS keyboard', () => {
-    expect(getKeyboardTranslation(336, 34, 'ios')).toBe(302);
-  });
-
-  it('never produces a negative iOS translation', () => {
-    expect(getKeyboardTranslation(30, 34, 'ios')).toBe(0);
-  });
-
-  it('preserves the existing Android keyboard translation', () => {
-    expect(getKeyboardTranslation(336, 8, 'android')).toBe(336);
-  });
-});
+import BottomSheet from '../sheets/BottomSheet';
 
 describe('BottomSheet', () => {
   const defaultProps = {

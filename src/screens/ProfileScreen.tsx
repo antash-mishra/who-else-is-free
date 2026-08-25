@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { BottomTabNavigationProp, useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import {
   CompositeNavigationProp,
   RouteProp,
@@ -11,6 +11,7 @@ import {
 } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import TrashIcon from '@assets/account-icons/delete.svg';
 import EditProfileIcon from '@assets/account-icons/edit.svg';
@@ -38,6 +39,7 @@ import EventActionOverlay from '@components/EventActionOverlay';
 import PrivacyPolicyIcon from '@assets/account-icons/privacy.svg';
 import { HapticFeedback, triggerHaptic } from '@services/haptics';
 import { useAdminAccess } from '@hooks/useAdminAccess';
+import { getTabBarContentClearance } from '@utils/bottomObstruction';
 
 type ProfileNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList, 'Profile'>,
@@ -92,6 +94,9 @@ const ProfileScreen = () => {
   const { isAdmin } = useAdminAccess();
   const navigation = useNavigation<ProfileNavigation>();
   const route = useRoute<RouteProp<RootTabParamList, 'Profile'>>();
+  const { bottom: safeBottom } = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  const scrollBottomPadding = getTabBarContentClearance(tabBarHeight, safeBottom) + spacing.md;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -199,8 +204,9 @@ const ProfileScreen = () => {
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
         <ScrollView
+          testID="profile-scroll-view"
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPadding }]}
           showsVerticalScrollIndicator={false}
         >
           <LinearGradient
@@ -266,8 +272,9 @@ const ProfileScreen = () => {
         </View>
       </View>
       <ScrollView
+        testID="profile-scroll-view"
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header Card with Gradient */}

@@ -17,6 +17,7 @@ import Animated, {
 
 import WarningIcon from '@assets/ui/error.svg';
 import { Springs } from '@theme/springs';
+import { spacing } from '@theme/index';
 
 import styles from '../CreateEventScreen.styles';
 
@@ -25,6 +26,7 @@ type CreateEventSubmitButtonProps = {
   submitError: string | null;
   isSubmitting: boolean;
   isEditing: boolean;
+  bottomInset: number;
   onPress: () => void;
 };
 
@@ -37,6 +39,7 @@ const CreateEventSubmitButton = ({
   submitError,
   isSubmitting,
   isEditing,
+  bottomInset,
   onPress,
 }: CreateEventSubmitButtonProps) => {
   // Shimmer animation for "Creating..." state
@@ -64,7 +67,10 @@ const CreateEventSubmitButton = ({
   }, [isSubmitting]);
 
   return (
-    <View style={styles.footer}>
+    <View
+      style={[styles.footer, { paddingBottom: spacing.xl + bottomInset }]}
+      testID="create-event-footer"
+    >
       {submitError ? (
         <View style={styles.errorContainer}>
           <WarningIcon width={14} height={14} style={{ alignSelf: 'center' }} />

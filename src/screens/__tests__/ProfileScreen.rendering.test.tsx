@@ -6,8 +6,26 @@
 import React from 'react';
 
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import ProfileScreen from '../ProfileScreen';
+
+jest.mock('@react-navigation/bottom-tabs', () => {
+  const actual = jest.requireActual('@react-navigation/bottom-tabs');
+  return {
+    ...actual,
+    useBottomTabBarHeight: () => 98,
+  };
+});
+
+jest.mock('react-native-safe-area-context', () => {
+  const { View } = require('react-native');
+  return {
+    SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+    SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
+    useSafeAreaInsets: () => ({ top: 0, bottom: 48, left: 0, right: 0 }),
+  };
+});
 
 // Mock the context hooks
 jest.mock('@context/AuthContext', () => ({
@@ -260,6 +278,18 @@ describe('ProfileScreen Rendering', () => {
   });
 
   describe('Profile Menu Items', () => {
+    it('keeps scroll content above the visible part of the absolute tab bar', () => {
+      setupMocks();
+      const { getByTestId } = render(<ProfileScreen />);
+
+      const contentStyle = StyleSheet.flatten(
+        getByTestId('profile-scroll-view').props.contentContainerStyle,
+      );
+
+      // 98px tab bar - 48px safe area already consumed by ScreenContainer + 16px gap.
+      expect(contentStyle.paddingBottom).toBe(66);
+    });
+
     it('should display Edit profile option', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);
