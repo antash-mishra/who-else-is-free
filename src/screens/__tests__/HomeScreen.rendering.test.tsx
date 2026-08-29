@@ -5,7 +5,7 @@
 
 import React from 'react';
 
-import { render, fireEvent, act } from '@testing-library/react-native';
+import { render, fireEvent, act, waitFor } from '@testing-library/react-native';
 
 import {
   mockEvents,
@@ -32,15 +32,29 @@ let mockEventsValue = {
   isEventRequested: jest.fn().mockReturnValue(false),
 };
 let mockChatValue = { conversations: mockConversations };
+const mockSignalReady = jest.fn();
+const mockRequestPushPermission = jest.fn().mockResolvedValue(true);
+const mockRequestLocationPermission = jest.fn().mockResolvedValue(undefined);
+let mockTransitionComplete = false;
 let mockViewerLocation = {
   coords: null as { latitude: number; longitude: number } | null,
   permission: null as 'granted' | 'denied' | 'undetermined' | null,
   isLoading: false,
+  requestPermission: mockRequestLocationPermission,
 };
 
 jest.mock('@context/AuthContext', () => ({ useAuth: () => mockAuthValue }));
 jest.mock('@context/EventsContext', () => ({ useEvents: () => mockEventsValue }));
 jest.mock('@context/ChatContext', () => ({ useChat: () => mockChatValue }));
+jest.mock('@context/BloomContext', () => ({
+  useBloom: () => ({
+    signalReady: mockSignalReady,
+    transitionComplete: mockTransitionComplete,
+  }),
+}));
+jest.mock('@context/PushContext', () => ({
+  usePush: () => ({ requestPushPermission: mockRequestPushPermission }),
+}));
 jest.mock('@hooks/useViewerLocation', () => ({
   useViewerLocation: () => mockViewerLocation,
 }));
@@ -153,12 +167,30 @@ describe('HomeScreen Rendering', () => {
       isEventRequested: jest.fn().mockReturnValue(false),
     };
     mockChatValue = { conversations: mockConversations };
+    mockTransitionComplete = false;
     mockViewerLocation = {
       coords: null,
       permission: null,
       isLoading: false,
+      requestPermission: mockRequestLocationPermission,
     };
     mockRoute.params = {};
+  });
+
+  it('waits for the splash handoff, then requests startup permissions in order', async () => {
+    const view = render(<HomeScreen />);
+
+    expect(mockRequestPushPermission).not.toHaveBeenCalled();
+    expect(mockRequestLocationPermission).not.toHaveBeenCalled();
+
+    mockTransitionComplete = true;
+    view.rerender(<HomeScreen />);
+
+    await waitFor(() => expect(mockRequestLocationPermission).toHaveBeenCalledTimes(1));
+    expect(mockRequestPushPermission).toHaveBeenCalledTimes(1);
+    expect(mockRequestPushPermission.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRequestLocationPermission.mock.invocationCallOrder[0],
+    );
   });
 
   it('consumes the deleted-event notice once and shows the informational prompt', () => {

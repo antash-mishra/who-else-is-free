@@ -3,16 +3,18 @@
  * Tests the current image splash, native hide timing, bloom handoff, and routing.
  */
 
-import React from "react";
-import { act, render, waitFor } from "@testing-library/react-native";
-import { Animated, Image, Text } from "react-native";
+import React from 'react';
 
-import SplashScreen, { SPLASH_VARIANTS } from "../SplashScreen";
+import { Animated, Image, Text } from 'react-native';
+
+import { act, render, waitFor } from '@testing-library/react-native';
+
+import SplashScreen, { SPLASH_VARIANTS, splashCaptionBottom } from '../SplashScreen';
 
 const mockReset = jest.fn();
 
-jest.mock("@react-navigation/native", () => {
-  const actualNav = jest.requireActual("@react-navigation/native");
+jest.mock('@react-navigation/native', () => {
+  const actualNav = jest.requireActual('@react-navigation/native');
   return {
     ...actualNav,
     useNavigation: () => ({
@@ -25,7 +27,7 @@ jest.mock("@react-navigation/native", () => {
 });
 
 const mockHideAsync = jest.fn().mockResolvedValue(undefined);
-jest.mock("expo-splash-screen", () => ({
+jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn().mockResolvedValue(undefined),
   get hideAsync() {
     return mockHideAsync;
@@ -34,23 +36,23 @@ jest.mock("expo-splash-screen", () => ({
 
 const mockGetItemAsync = jest.fn();
 const mockSetItemAsync = jest.fn().mockResolvedValue(undefined);
-jest.mock("expo-secure-store", () => ({
+jest.mock('expo-secure-store', () => ({
   getItemAsync: (...args: unknown[]) => mockGetItemAsync(...args),
   setItemAsync: (...args: unknown[]) => mockSetItemAsync(...args),
 }));
 
-jest.mock("@assets/weif/splash-logo.svg", () => {
-  const React = require("react");
-  const { View } = require("react-native");
+jest.mock('@assets/weif/splash-logo.svg', () => {
+  const React = require('react');
+  const { View } = require('react-native');
 
   return ({ width, height }: { width: number; height: number }) => (
     <View testID="splash-logo" style={{ width, height }} />
   );
 });
 
-const mockBloom = jest.fn();
+const mockBloom = jest.fn((onPeak: () => void) => onPeak());
 const mockSignalReady = jest.fn();
-jest.mock("@context/BloomContext", () => ({
+jest.mock('@context/BloomContext', () => ({
   useBloom: () => ({
     bloom: mockBloom,
     signalReady: mockSignalReady,
@@ -64,10 +66,10 @@ let mockUser: {
   profileComplete: boolean;
 } | null = null;
 
-jest.mock("@context/AuthContext", () => ({
+jest.mock('@context/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,
-    token: mockUser ? "mock-token" : null,
+    token: mockUser ? 'mock-token' : null,
     isSigningIn: false,
     signInWithGoogle: jest.fn(),
     signOut: jest.fn(),
@@ -84,7 +86,7 @@ const advanceTimers = async (ms: number) => {
 
 const renderReadySplash = async () => {
   const view = render(<SplashScreen />);
-  const container = view.getByTestId("splash-container");
+  const container = view.getByTestId('splash-container');
 
   await act(async () => {
     container.props.onLayout?.();
@@ -94,7 +96,7 @@ const renderReadySplash = async () => {
   return { ...view, container };
 };
 
-describe("SplashScreen Rendering", () => {
+describe('SplashScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
@@ -107,106 +109,94 @@ describe("SplashScreen Rendering", () => {
     jest.useRealTimers();
   });
 
-  describe("Initial Rendering", () => {
-    it("renders the splash container, image, logo, tagline, and location", () => {
-      const { getByTestId, getByText, UNSAFE_getByType, UNSAFE_getAllByType } =
-        render(<SplashScreen />);
+  describe('Initial Rendering', () => {
+    it('renders the splash container, image, logo, tagline, and location', () => {
+      const { getByTestId, getByText, UNSAFE_getByType, UNSAFE_getAllByType } = render(
+        <SplashScreen />,
+      );
 
-      expect(getByTestId("splash-container")).toBeTruthy();
-      expect(getByTestId("splash-logo")).toBeTruthy();
-      expect(getByText("Who Else Is Free")).toBeTruthy();
+      expect(getByTestId('splash-container')).toBeTruthy();
+      expect(getByTestId('splash-logo')).toBeTruthy();
+      expect(getByText('Who Else Is Free')).toBeTruthy();
       // One of the rotating venue captions is shown (chosen at random per launch).
       const texts = UNSAFE_getAllByType(Text);
-      const locationText = texts.find(
-        (node) => node.props.testID === "splash-location",
-      );
+      const locationText = texts.find((node) => node.props.testID === 'splash-location');
       expect(locationText).toBeTruthy();
       expect(
-        SPLASH_VARIANTS.some(
-          (variant) => variant.location === locationText?.props.children,
-        ),
+        SPLASH_VARIANTS.some((variant) => variant.location === locationText?.props.children),
       ).toBe(true);
-      expect(UNSAFE_getByType(Image).props.resizeMode).toBe("cover");
+      expect(UNSAFE_getByType(Image).props.resizeMode).toBe('cover');
     });
 
-    it("exposes an accessibility label on the root and hides the venue caption", () => {
+    it('exposes an accessibility label on the root and hides the venue caption', () => {
       const { getByTestId, UNSAFE_getAllByType } = render(<SplashScreen />);
 
-      const container = getByTestId("splash-container");
-      expect(container.props.accessibilityLabel).toBe("Who Else Is Free");
-      expect(container.props.accessibilityRole).toBe("image");
+      const container = getByTestId('splash-container');
+      expect(container.props.accessibilityLabel).toBe('Who Else Is Free');
+      expect(container.props.accessibilityRole).toBe('image');
       expect(container.props.accessible).toBe(true);
 
       const texts = UNSAFE_getAllByType(Text);
-      const locationText = texts.find(
-        (node) => node.props.accessible === false,
-      );
+      const locationText = texts.find((node) => node.props.accessible === false);
       expect(locationText).toBeTruthy();
-      expect(locationText?.props.importantForAccessibility).toBe(
-        "no-hide-descendants",
-      );
+      expect(locationText?.props.importantForAccessibility).toBe('no-hide-descendants');
       // The tagline remains accessible (not marked decorative).
-      const tagline = texts.find(
-        (node) => node.props.children === "Who Else Is Free",
-      );
+      const tagline = texts.find((node) => node.props.children === 'Who Else Is Free');
       expect(tagline?.props.accessible).not.toBe(false);
     });
 
-    it("renders the logo with the current dimensions", () => {
+    it('renders the logo with the current dimensions', () => {
       const { getByTestId } = render(<SplashScreen />);
-      const logo = getByTestId("splash-logo");
+      const logo = getByTestId('splash-logo');
 
       expect(logo.props.style).toEqual({ width: 184, height: 67 });
     });
+
+    it('keeps the venue caption above the Android bottom safe area', () => {
+      expect(splashCaptionBottom(24)).toBe(40);
+      expect(splashCaptionBottom(0)).toBe(16);
+    });
   });
 
-  describe("Venue Rotation", () => {
-    it("never shows the venue stored from the previous launch", async () => {
+  describe('Venue Rotation', () => {
+    it('never shows the venue stored from the previous launch', async () => {
       // Stored index 0 = Vicar Street; the next launch must pick another venue.
-      mockGetItemAsync.mockResolvedValue("0");
+      mockGetItemAsync.mockResolvedValue('0');
 
       const { UNSAFE_getAllByType } = await renderReadySplash();
 
       const texts = UNSAFE_getAllByType(Text);
-      const locationText = texts.find(
-        (node) => node.props.testID === "splash-location",
-      );
-      expect(locationText?.props.children).not.toBe(
-        SPLASH_VARIANTS[0].location,
-      );
+      const locationText = texts.find((node) => node.props.testID === 'splash-location');
+      expect(locationText?.props.children).not.toBe(SPLASH_VARIANTS[0].location);
     });
 
-    it("persists the chosen index for the next launch", async () => {
-      mockGetItemAsync.mockResolvedValue("0");
+    it('persists the chosen index for the next launch', async () => {
+      mockGetItemAsync.mockResolvedValue('0');
 
       await renderReadySplash();
 
       expect(mockSetItemAsync).toHaveBeenCalledWith(
-        "whoelseisfree.splashIndex",
+        'whoelseisfree.splashIndex',
         expect.not.stringMatching(/^0$/),
       );
     });
 
-    it("falls back to a random venue on first launch (no stored index)", async () => {
+    it('falls back to a random venue on first launch (no stored index)', async () => {
       mockGetItemAsync.mockResolvedValue(null);
 
       const { UNSAFE_getAllByType } = await renderReadySplash();
 
       const texts = UNSAFE_getAllByType(Text);
-      const locationText = texts.find(
-        (node) => node.props.testID === "splash-location",
-      );
+      const locationText = texts.find((node) => node.props.testID === 'splash-location');
       expect(locationText).toBeTruthy();
       expect(
-        SPLASH_VARIANTS.some(
-          (variant) => variant.location === locationText?.props.children,
-        ),
+        SPLASH_VARIANTS.some((variant) => variant.location === locationText?.props.children),
       ).toBe(true);
     });
   });
 
-  describe("Hide Native Splash", () => {
-    it("calls hideAsync after layout and the 50ms handoff delay", async () => {
+  describe('Hide Native Splash', () => {
+    it('calls hideAsync after layout and the 50ms handoff delay', async () => {
       await renderReadySplash();
 
       await waitFor(() => {
@@ -214,7 +204,7 @@ describe("SplashScreen Rendering", () => {
       });
     });
 
-    it("only calls hideAsync once", async () => {
+    it('only calls hideAsync once', async () => {
       const { container } = await renderReadySplash();
 
       await act(async () => {
@@ -226,130 +216,126 @@ describe("SplashScreen Rendering", () => {
     });
   });
 
-  describe("Navigation After Load", () => {
-    it("resets to Main when there is no user", async () => {
+  describe('Navigation After Load', () => {
+    it('resets to Main when there is no user', async () => {
       mockUser = null;
       await renderReadySplash();
 
       await advanceTimers(1600);
-      expect(mockReset).not.toHaveBeenCalled();
-
-      await advanceTimers(350);
-
       expect(mockReset).toHaveBeenCalledWith({
         index: 0,
-        routes: [{ name: "Main" }],
+        routes: [{ name: 'Main' }],
       });
     });
 
-    it("resets to Main for a user with a complete profile", async () => {
+    it('resets to Main for a user with a complete profile', async () => {
       mockUser = {
         id: 1,
-        name: "Test User",
-        email: "test@example.com",
+        name: 'Test User',
+        email: 'test@example.com',
         profileComplete: true,
       };
 
       await renderReadySplash();
-      await advanceTimers(1950);
+      await advanceTimers(1600);
 
       expect(mockReset).toHaveBeenCalledWith({
         index: 0,
-        routes: [{ name: "Main" }],
+        routes: [{ name: 'Main' }],
       });
     });
 
-    it("resets to Onboarding for a user with an incomplete profile", async () => {
+    it('resets to Onboarding for a user with an incomplete profile', async () => {
       mockUser = {
         id: 2,
-        name: "New User",
-        email: "new@example.com",
+        name: 'New User',
+        email: 'new@example.com',
         profileComplete: false,
       };
 
       await renderReadySplash();
-      await advanceTimers(1950);
+      await advanceTimers(1600);
 
       expect(mockReset).toHaveBeenCalledWith({
         index: 0,
-        routes: [{ name: "Onboarding" }],
+        routes: [{ name: 'Onboarding' }],
       });
     });
   });
 
-  describe("Bloom Handoff", () => {
-    it("starts the bloom 200ms into the transition", async () => {
+  describe('Bloom Handoff', () => {
+    it('starts the bloom with the logo transition', async () => {
       await renderReadySplash();
 
-      await advanceTimers(1600);
+      // renderReadySplash already advances 50ms after the sequence timer starts.
+      await advanceTimers(1549);
       expect(mockBloom).not.toHaveBeenCalled();
 
-      await advanceTimers(200);
+      await advanceTimers(1);
       expect(mockBloom).toHaveBeenCalledTimes(1);
       expect(mockBloom).toHaveBeenCalledWith(expect.any(Function));
     });
 
-    it("signals ready for onboarding after navigation reset", async () => {
+    it('signals ready for onboarding after navigation reset', async () => {
       mockUser = {
         id: 2,
-        name: "New User",
-        email: "new@example.com",
+        name: 'New User',
+        email: 'new@example.com',
         profileComplete: false,
       };
 
       await renderReadySplash();
-      await advanceTimers(1950);
-      expect(mockSignalReady).not.toHaveBeenCalled();
-
-      await advanceTimers(100);
+      await advanceTimers(1600);
       expect(mockSignalReady).toHaveBeenCalledTimes(1);
     });
 
-    it("does not signal ready when routing to Main", async () => {
+    it('does not signal ready when routing to Main', async () => {
       await renderReadySplash();
-      await advanceTimers(2050);
+      await advanceTimers(1600);
 
       expect(mockSignalReady).not.toHaveBeenCalled();
     });
   });
 
-  describe("Logo Animation", () => {
-    it("scales the logo during the transition", async () => {
-      const animatedTimingSpy = jest.spyOn(Animated, "timing");
+  describe('Logo Animation', () => {
+    it('scales the logo during the transition', async () => {
+      const animatedTimingSpy = jest.spyOn(Animated, 'timing');
 
       await renderReadySplash();
       await advanceTimers(1600);
 
-      expect(animatedTimingSpy).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({
-          toValue: 45,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-      );
+      expect(animatedTimingSpy).toHaveBeenCalledWith(expect.any(Object), {
+        toValue: 1.08,
+        duration: 300,
+        easing: expect.any(Function),
+        useNativeDriver: true,
+      });
+      expect(animatedTimingSpy).toHaveBeenCalledWith(expect.any(Object), {
+        toValue: 0,
+        duration: 300,
+        easing: expect.any(Function),
+        useNativeDriver: true,
+      });
 
       animatedTimingSpy.mockRestore();
     });
   });
 
-  describe("Splash Duration", () => {
-    it("waits 1600ms before starting navigation", async () => {
+  describe('Splash Duration', () => {
+    it('waits 1600ms before starting navigation', async () => {
       await renderReadySplash();
 
-      await advanceTimers(1599);
+      // renderReadySplash already advances 50ms after the sequence timer starts.
+      await advanceTimers(1549);
       expect(mockReset).not.toHaveBeenCalled();
 
       await advanceTimers(1);
-      expect(mockReset).not.toHaveBeenCalled();
-
-      await advanceTimers(350);
       expect(mockReset).toHaveBeenCalled();
     });
   });
 
-  describe("Layout Not Ready", () => {
-    it("does not start the splash sequence until layout is ready", async () => {
+  describe('Layout Not Ready', () => {
+    it('does not start the splash sequence until layout is ready', async () => {
       render(<SplashScreen />);
 
       await advanceTimers(5000);

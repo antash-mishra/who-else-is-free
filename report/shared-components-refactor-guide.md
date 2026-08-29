@@ -1,6 +1,6 @@
 # Shared Components And Shared Styling Guide
 
-Updated: June 11, 2026
+Updated: August 29, 2026
 
 Branch: `refactor/code-consistency-shared-components`
 
@@ -1495,6 +1495,27 @@ Rule:
 
 - Do not call `console.*` directly in app code; use `logger` instead (tests may still spy on
   `console`).
+
+### Startup permission orchestration
+
+Files: `src/context/BloomContext.tsx`, `src/context/PushContext.tsx`,
+`src/hooks/useViewerLocation.ts`, `src/screens/HomeScreen.tsx`
+
+What it is:
+
+- `BloomContext.transitionComplete` marks the end of the splash-to-app visual handoff.
+- `PushContext.requestPushPermission` owns the explicit notification authorization request; its
+  mount effect only registers a token when authorization already exists.
+- `useViewerLocation` checks existing location authorization silently and exposes
+  `requestPermission` for a deliberate prompt.
+- `HomeScreen` waits until Discover is focused and the bloom is gone, then requests notification
+  and location authorization sequentially so native dialogs never overlap the splash or each
+  other.
+
+Rule:
+
+- Do not request startup system permissions from `App.tsx`, provider mount effects, or the splash
+  route. Keep first-time prompts in the post-splash Discover sequence.
 
 ## Artwork Palette Exceptions
 

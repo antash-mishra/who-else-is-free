@@ -1,6 +1,15 @@
-import { createContext, ReactNode, useContext, useEffect, useRef } from 'react';
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
-import { Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 import {
   AuthorizationStatus,
@@ -32,9 +41,27 @@ const DEVICE_ID_KEY = 'whoelseisfree.pushDeviceId';
 type PushContextValue = {
   /** Exposed so ChatContext can check if a push would be suppressed. */
   activeConversationId: number | null;
+  requestPushPermission: () => Promise<boolean>;
 };
 
 const PushContext = createContext<PushContextValue | undefined>(undefined);
+const PUSH_PERMISSION_REQUESTED_KEY = 'whoelseisfree.pushPermissionRequested';
+
+const isEnabledAuthorizationStatus = (status: FirebaseMessagingTypes.AuthorizationStatus) =>
+  status === AuthorizationStatus.AUTHORIZED ||
+  status === AuthorizationStatus.PROVISIONAL ||
+  status === AuthorizationStatus.EPHEMERAL;
+
+const hasPushPermission = async (msg: Messaging): Promise<boolean> => {
+  if (Platform.OS === 'android') {
+    if (Platform.Version < 33) {
+      return true;
+    }
+    return PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+  }
+
+  return isEnabledAuthorizationStatus(await hasPermission(msg));
+};
 
 const getOrCreateDeviceId = async (): Promise<string> => {
   let deviceId = await SecureStore.getItemAsync(DEVICE_ID_KEY);
@@ -93,12 +120,70 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   const fcmTokenRef = useRef<string | null>(null);
   const authTokenRef = useRef<string | null>(null);
   const prevUserIdRef = useRef<number | null>(null);
+  const permissionRequestRef = useRef<Promise<boolean> | null>(null);
+  const [permissionRevision, setPermissionRevision] = useState(0);
+
+  const requestPushPermission = useCallback(() => {
+    if (permissionRequestRef.current) {
+      return permissionRequestRef.current;
+    }
+
+    permissionRequestRef.current = (async () => {
+      try {
+        const msg = getMessagingInstance();
+        if (!msg) {
+          return false;
+        }
+
+        if (await hasPushPermission(msg)) {
+          return true;
+        }
+
+        if (Platform.OS === 'android') {
+          if (Platform.Version < 33) {
+            return true;
+          }
+          const wasRequested = await SecureStore.getItemAsync(PUSH_PERMISSION_REQUESTED_KEY);
+          if (wasRequested === '1') {
+            return false;
+          }
+          const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+          await SecureStore.setItemAsync(PUSH_PERMISSION_REQUESTED_KEY, '1');
+          return result === PermissionsAndroid.RESULTS.GRANTED;
+        }
+
+        if (Platform.OS === 'ios') {
+          if (!isDeviceRegisteredForRemoteMessages(msg)) {
+            await registerDeviceForRemoteMessages(msg);
+          }
+          const currentStatus = await hasPermission(msg);
+          if (currentStatus !== AuthorizationStatus.NOT_DETERMINED) {
+            return isEnabledAuthorizationStatus(currentStatus);
+          }
+          return isEnabledAuthorizationStatus(await requestPermission(msg));
+        }
+
+        return false;
+      } catch (err) {
+        logger.warn('Push notification permission request failed', err);
+        return false;
+      } finally {
+        setPermissionRevision((revision) => revision + 1);
+        permissionRequestRef.current = null;
+      }
+    })();
+
+    return permissionRequestRef.current;
+  }, []);
 
   useEffect(() => {
     authTokenRef.current = token ?? null;
   }, [token]);
 
-  // Request permission and get FCM token when authenticated
+  // Register an FCM token when authenticated and permission is already granted.
+  // The Discover screen owns the first-time system permission prompt.
   useEffect(() => {
     if (!user || !token) {
       return;
@@ -114,24 +199,12 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        if (!(await hasPushPermission(msg))) {
+          return;
+        }
+
         if (Platform.OS === 'ios' && !isDeviceRegisteredForRemoteMessages(msg)) {
           await registerDeviceForRemoteMessages(msg);
-        }
-
-        let authStatus = await hasPermission(msg);
-        if (authStatus === AuthorizationStatus.NOT_DETERMINED) {
-          authStatus = await requestPermission(msg);
-        }
-        const enabled =
-          authStatus === AuthorizationStatus.AUTHORIZED ||
-          authStatus === AuthorizationStatus.PROVISIONAL ||
-          authStatus === AuthorizationStatus.EPHEMERAL;
-
-        if (!enabled) {
-          logger.warn('Push notification permission denied or restricted', {
-            authStatus,
-          });
-          return;
         }
 
         const fcmToken = await getToken(msg);
@@ -161,7 +234,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         unsubscribeRefresh();
       }
     };
-  }, [user, token]);
+  }, [permissionRevision, user, token]);
 
   // Sign-out cleanup: delete push token from backend
   useEffect(() => {
@@ -279,7 +352,10 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const value = { activeConversationId };
+  const value = useMemo(
+    () => ({ activeConversationId, requestPushPermission }),
+    [activeConversationId, requestPushPermission],
+  );
 
   return <PushContext.Provider value={value}>{children}</PushContext.Provider>;
 };

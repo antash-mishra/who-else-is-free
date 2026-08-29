@@ -1,36 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Easing,
-  Image,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import * as SplashScreenModule from "expo-splash-screen";
-import * as SecureStore from "expo-secure-store";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { RootStackParamList } from "@navigation/types";
-import { useAuth } from "@context/AuthContext";
-import { useBloom } from "@context/BloomContext";
-import { typography } from "@theme/index";
-import SplashLogo from "@assets/weif/splash-logo.svg";
+import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
+
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as SecureStore from 'expo-secure-store';
+import * as SplashScreenModule from 'expo-splash-screen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import SplashLogo from '@assets/weif/splash-logo.svg';
+import { useAuth } from '@context/AuthContext';
+import { useBloom } from '@context/BloomContext';
+import { RootStackParamList } from '@navigation/types';
+import { colors, spacing, typography } from '@theme/index';
 
 const DISPLAY_DURATION_MS = 1600;
-const LAST_SPLASH_INDEX_KEY = "whoelseisfree.splashIndex";
+const LAST_SPLASH_INDEX_KEY = 'whoelseisfree.splashIndex';
 
 // Each cold launch shows one of these venues. Photos are bundled
 // (portrait 1320x2868 JPGs) so the splash is instant and works offline.
 export const SPLASH_VARIANTS = [
-  { image: require("../../assets/splash/VicarStreet.jpg"), location: "Vicar Street" },
-  { image: require("../../assets/splash/CrokePark.jpg"), location: "Croke Park" },
-  { image: require("../../assets/splash/CapelStreet.jpg"), location: "Capel Street" },
-  { image: require("../../assets/splash/Blessington.jpg"), location: "Blessington" },
-  { image: require("../../assets/splash/SheepsHead.jpg"), location: "Sheep's Head" },
-  { image: require("../../assets/splash/MulrannyBeach.jpg"), location: "Mulranny Beach" },
-  { image: require("../../assets/splash/RossCastle.jpg"), location: "Ross Castle" },
+  { image: require('../../assets/splash/VicarStreet.jpg'), location: 'Vicar Street' },
+  { image: require('../../assets/splash/CrokePark.jpg'), location: 'Croke Park' },
+  { image: require('../../assets/splash/CapelStreet.jpg'), location: 'Capel Street' },
+  { image: require('../../assets/splash/Blessington.jpg'), location: 'Blessington' },
+  { image: require('../../assets/splash/SheepsHead.jpg'), location: "Sheep's Head" },
+  { image: require('../../assets/splash/MulrannyBeach.jpg'), location: 'Mulranny Beach' },
+  { image: require('../../assets/splash/RossCastle.jpg'), location: 'Ross Castle' },
 ] as const;
 
 // Pick a random variant index, never repeating the previous launch's index.
@@ -45,21 +41,23 @@ export const pickSplashIndex = (excludeIndex: number): number => {
   return (excludeIndex + offset) % count;
 };
 
+export const splashCaptionBottom = (bottomInset: number): number => bottomInset + spacing.md;
+
 const SplashScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
   const { bloom, signalReady } = useBloom();
+  const insets = useSafeAreaInsets();
   const [isReady, setIsReady] = useState(false);
   const didNavigate = useRef(false);
 
   // Seed with a random pick so there is always something to render; the final
   // no-repeat choice is resolved in onLayoutRootView before the native splash
   // hides, so this seed is never actually shown.
-  const [variant, setVariant] = useState(
-    () => SPLASH_VARIANTS[pickSplashIndex(-1)],
-  );
+  const [variant, setVariant] = useState(() => SPLASH_VARIANTS[pickSplashIndex(-1)]);
 
-  const logoScale = useRef(new Animated.Value(1)).current;
+  const [logoScale] = useState(() => new Animated.Value(1));
+  const [logoOpacity] = useState(() => new Animated.Value(1));
 
   const onLayoutRootView = useCallback(async () => {
     if (!isReady) {
@@ -86,28 +84,31 @@ const SplashScreen = () => {
   const navigateAway = useCallback(() => {
     if (didNavigate.current) return;
     didNavigate.current = true;
-    const dest: keyof RootStackParamList =
-      user && !user.profileComplete ? "Onboarding" : "Main";
+    const dest: keyof RootStackParamList = user && !user.profileComplete ? 'Onboarding' : 'Main';
 
-    Animated.timing(logoScale, {
-      toValue: 45,
-      duration: 450,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(logoScale, {
+        toValue: 1.08,
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
 
-    // Navigate at 350ms (bloom ~50% opaque) — gives HomeScreen head start on fetching
-    setTimeout(() => {
+    // Swap screens only after the lightweight white bloom fully covers the splash.
+    bloom(() => {
       navigation.reset({ index: 0, routes: [{ name: dest }] });
-      if (dest !== "Main") {
-        setTimeout(signalReady, 100);
+      if (dest !== 'Main') {
+        signalReady();
       }
-    }, 350);
-
-    setTimeout(() => {
-      bloom(() => {});
-    }, 200);
-  }, [logoScale, bloom, signalReady, navigation, user]);
+    });
+  }, [bloom, logoOpacity, logoScale, navigation, signalReady, user]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -124,20 +125,16 @@ const SplashScreen = () => {
       accessibilityLabel="Who Else Is Free"
       accessibilityRole="image"
     >
-      <Image
-        source={variant.image}
-        style={styles.image}
-        resizeMode="cover"
-      />
+      <Image source={variant.image} style={styles.image} resizeMode="cover" />
       <View style={styles.overlay}>
         <View style={styles.center}>
-          <Animated.View style={{ transform: [{ scale: logoScale }] }}>
+          <Animated.View style={{ opacity: logoOpacity, transform: [{ scale: logoScale }] }}>
             <SplashLogo width={184} height={67} />
           </Animated.View>
           <Text style={styles.tagline}>Who Else Is Free</Text>
         </View>
         <Text
-          style={styles.location}
+          style={[styles.location, { bottom: splashCaptionBottom(insets.bottom) }]}
           testID="splash-location"
           accessible={false}
           importantForAccessibility="no-hide-descendants"
@@ -152,35 +149,34 @@ const SplashScreen = () => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: colors.primary,
   },
   image: {
     ...StyleSheet.absoluteFillObject,
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   overlay: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   center: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   tagline: {
     fontFamily: typography.fontFamilyMedium,
     fontSize: 28,
     lineHeight: 28,
     letterSpacing: -0.4,
-    color: "#FFFFFF",
+    color: colors.buttonText,
     marginTop: 20,
   },
   location: {
-    position: "absolute",
-    bottom: 20,
+    position: 'absolute',
     fontFamily: typography.fontFamilyRegular,
     fontSize: 13,
-    color: "#FFFFFF",
+    color: colors.buttonText,
     opacity: 0.85,
     letterSpacing: -0.3,
   },

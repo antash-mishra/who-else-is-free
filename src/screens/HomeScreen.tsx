@@ -34,6 +34,7 @@ import { useAuth } from '@context/AuthContext';
 import { useBloom } from '@context/BloomContext';
 import { useChat } from '@context/ChatContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
+import { usePush } from '@context/PushContext';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
@@ -80,8 +81,10 @@ const HomeScreen = () => {
   } = useEvents();
   const { user } = useAuth();
   const { conversations } = useChat();
-  const { signalReady } = useBloom();
+  const { signalReady, transitionComplete } = useBloom();
+  const { requestPushPermission } = usePush();
   const viewerLocation = useViewerLocation();
+  const requestLocationPermission = viewerLocation.requestPermission;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [selectedSort, setSelectedSort] = useState<SortOptionValue>('upcoming');
@@ -91,6 +94,7 @@ const HomeScreen = () => {
   const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, 245);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const hasSignalledReady = useRef(false);
+  const hasStartedPermissionSequence = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
@@ -244,6 +248,34 @@ const HomeScreen = () => {
       signalReady();
     }
   }, [isLoading, signalReady]);
+
+  useEffect(() => {
+    if (!isFocused || !transitionComplete || hasStartedPermissionSequence.current) {
+      return;
+    }
+
+    let isCancelled = false;
+    hasStartedPermissionSequence.current = true;
+
+    const requestStartupPermissions = async () => {
+      await requestPushPermission();
+      if (!isCancelled) {
+        await requestLocationPermission();
+      }
+    };
+
+    requestStartupPermissions()
+      .catch(() => undefined)
+      .finally(() => {
+        if (isCancelled) {
+          hasStartedPermissionSequence.current = false;
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isFocused, requestLocationPermission, requestPushPermission, transitionComplete]);
 
   const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
