@@ -10,6 +10,7 @@ import {
   Alert,
   useWindowDimensions,
   Keyboard,
+  Platform,
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -17,7 +18,6 @@ import {
 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BlurView } from 'expo-blur';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,10 +27,10 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
-import CameraIcon from '@assets/onboarding/camera.svg';
 import ProfileIcon from '@assets/onboarding/profile.svg';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
+import AvatarEditBadge from '@components/AvatarEditBadge';
 import { AppButton, IconButton } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { userGenderOptions, type UserGender } from '@constants/profileOptions';
@@ -41,6 +41,7 @@ import { logger } from '@services/logger';
 import { colors, typography } from '@theme/index';
 import AvatarBackground from '@components/AvatarBackground';
 import { getAvatarColor } from '@utils/avatar';
+import { getBottomBarClearance } from '@utils/bottomObstruction';
 
 // Lazy import to handle missing native module gracefully
 let ImagePicker: typeof import('expo-image-picker') | null = null;
@@ -94,9 +95,6 @@ const OnboardingScreen = () => {
     [slideX, width],
   );
   const [name, setName] = useState(user?.name ?? '');
-  const [nameSelection, setNameSelection] = useState<{ start: number; end: number } | undefined>(
-    undefined,
-  );
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
   const [gender, setGender] = useState<UserGender | null>(null);
   const [age, setAge] = useState('30');
@@ -110,15 +108,8 @@ const OnboardingScreen = () => {
   const DEFAULT_AGE = 30;
   const ages = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => i + MIN_AGE); // 18 to 120
 
-  const handleNameFocus = useCallback(() => {
-    if (name === '') {
-      setNameSelection({ start: 0, end: 0 });
-    }
-  }, [name]);
-
   const handleNameChange = useCallback((text: string) => {
     setName(text);
-    setNameSelection(undefined);
   }, []);
 
   const pickImage = useCallback(async () => {
@@ -271,11 +262,7 @@ const OnboardingScreen = () => {
                       />
                     )}
                     {/* Camera badge */}
-                    <View style={styles.cameraBadgeShadow}>
-                      <BlurView style={styles.cameraBadge} intensity={15} tint="light">
-                        <CameraIcon width={20} height={20} color={colors.iconColor} />
-                      </BlurView>
-                    </View>
+                    <AvatarEditBadge />
                   </TouchableOpacity>
                   {/* Remove photo button */}
                   {avatarBase64 && (
@@ -297,9 +284,7 @@ const OnboardingScreen = () => {
                   style={styles.nameInput}
                   value={name}
                   onChangeText={handleNameChange}
-                  onFocus={handleNameFocus}
                   onSubmitEditing={Keyboard.dismiss}
-                  selection={nameSelection}
                   placeholder="Your name"
                   placeholderTextColor={colors.placeholder}
                   autoCapitalize="words"
@@ -311,7 +296,7 @@ const OnboardingScreen = () => {
             </View>
 
             {/* Button - Fixed at bottom */}
-            <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={[styles.buttonSection, { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 }]}>
               <AppButton
                 label="Continue"
                 variant="primary"
@@ -377,7 +362,7 @@ const OnboardingScreen = () => {
           </View>
 
           {/* Button - Fixed at bottom */}
-          <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.buttonSection, { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 }]}>
             <AppButton
               label="Continue"
               variant="primary"
@@ -457,7 +442,7 @@ const OnboardingScreen = () => {
           </View>
 
           {/* Button - Fixed at bottom */}
-          <View style={[styles.buttonSection, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={[styles.buttonSection, { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 }]}>
             <AppButton
               label="Let's go"
               variant="primary"
@@ -557,28 +542,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden', // clip the gradient background to the circle
-  },
-  cameraBadgeShadow: {
-    position: 'absolute',
-    bottom: 4,
-    right: -2,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cameraBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   removePhotoBadge: {
     position: 'absolute',

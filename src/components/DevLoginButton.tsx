@@ -25,12 +25,15 @@ export type DevLoginUser = {
   name: string;
   label: string;
   testID: string;
+  /** When true, signs in with an incomplete profile so the app routes to Onboarding. */
+  skipProfileCompletion?: boolean;
 };
 
 export const PRESET_DEV_USERS: DevLoginUser[] = [
   { email: 'tester@who-else-is-free.test', name: 'Tester', label: 'Dev Login (tester)', testID: 'dev-login-button' },
   { email: 'host@who-else-is-free.test', name: 'Host', label: 'Dev Login (host)', testID: 'dev-login-button-host' },
   { email: 'member2@who-else-is-free.test', name: 'Member2', label: 'Dev Login (member2)', testID: 'dev-login-button-member2' },
+  { email: 'onboarding@who-else-is-free.test', name: 'Onboard Tester', label: 'Dev Login (onboarding)', testID: 'dev-login-button-onboarding', skipProfileCompletion: true },
 ];
 
 const DevLoginButtonImpl: React.FC = () => {
@@ -44,7 +47,9 @@ const DevLoginButtonImpl: React.FC = () => {
       setError(null);
       setPendingEmail(user.email);
       try {
-        const signedIn = await signInWithDevUser(user.email, user.name);
+        const signedIn = await signInWithDevUser(user.email, user.name, {
+          profileComplete: !user.skipProfileCompletion,
+        });
         navigation.reset({
           index: 0,
           routes: [{ name: signedIn.profileComplete ? 'Main' : 'Onboarding' }],

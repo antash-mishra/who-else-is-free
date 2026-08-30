@@ -53,7 +53,11 @@ interface AuthContextValue {
   signInWithApple: (idToken: string) => Promise<AuthUser>;
   /** DEV ONLY. Issues a real session token for a fixed test user via /api/dev-login.
    *  Requires the backend to be started with DEV_LOGIN_ENABLED=1. */
-  signInWithDevUser: (email: string, name?: string) => Promise<AuthUser>;
+  signInWithDevUser: (
+    email: string,
+    name?: string,
+    options?: { profileComplete?: boolean },
+  ) => Promise<AuthUser>;
   signOut: () => void;
   refreshSessionSilently: () => Promise<string | null>;
   updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
@@ -247,13 +251,18 @@ export const AuthProvider = ({
   // the worst case in prod is a 404 nobody can reach because the button that
   // calls it is __DEV__-only.
   const signInWithDevUser = useCallback(
-    async (email: string, name: string = 'Tester'): Promise<AuthUser> => {
+    async (
+      email: string,
+      name: string = 'Tester',
+      options?: { profileComplete?: boolean },
+    ): Promise<AuthUser> => {
+      const profileComplete = options?.profileComplete ?? true;
       setIsSigningIn(true);
       try {
         const response = await fetch(`${API_BASE_URL}/api/dev-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, name, profile_complete: true }),
+          body: JSON.stringify({ email, name, profile_complete: profileComplete }),
         });
         if (response.status === 404) {
           throw new Error('Dev login is not enabled on the server. Start the backend with DEV_LOGIN_ENABLED=1.');

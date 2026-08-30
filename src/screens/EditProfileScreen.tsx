@@ -1,29 +1,20 @@
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useCallback, useState } from 'react';
-import { BlurView } from 'expo-blur';
-import ScalePressable from '@components/ScalePressable';
+import { useState, useCallback } from 'react';
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import CloseIcon from '@assets/ui/close.svg';
 
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import UserAvatar from '@components/UserAvatar';
-import { colors, typography } from '@theme/index';
+import AvatarEditBadge from '@components/AvatarEditBadge';
+import { AppButton } from '@components/ui';
 import { useAuth, type ApiError } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import CameraIcon from '@assets/onboarding/camera.svg';
+import { colors, typography } from '@theme/index';
 import ProfileIcon from '@assets/onboarding/profile.svg';
+import CloseIcon from '@assets/ui/close.svg';
 import AvatarBackground from '@components/AvatarBackground';
 import { getAvatarColor } from '@utils/avatar';
 
@@ -157,11 +148,7 @@ const EditProfileScreen = () => {
                   style={styles.avatarFrame}
                 />
               )}
-              <View style={styles.cameraBadgeShadow}>
-                <BlurView style={styles.cameraBadge} intensity={15} tint="light">
-                  <CameraIcon width={20} height={20} color={colors.iconColor} />
-                </BlurView>
-              </View>
+              <AvatarEditBadge />
             </TouchableOpacity>
             {editAvatarValue && (
               <TouchableOpacity
@@ -180,7 +167,7 @@ const EditProfileScreen = () => {
             value={editName}
             onChangeText={setEditName}
             placeholder="Your name"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.placeholder}
             autoCapitalize="words"
             autoCorrect={false}
             textAlign="center"
@@ -191,27 +178,14 @@ const EditProfileScreen = () => {
 
         {/* Save Button — pinned to bottom */}
         <View style={styles.buttonSection}>
-          <ScalePressable
+          <AppButton
+            label="Save"
+            variant="primary"
+            fullWidth
             onPress={handleSave}
-            disabled={!editHasChanges || isSubmitting}
-            style={[
-              styles.saveButton,
-              (!editHasChanges || isSubmitting) && styles.saveButtonDisabled,
-            ]}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color="#9CA3AF" />
-            ) : (
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  (!editHasChanges || isSubmitting) && styles.saveButtonTextDisabled,
-                ]}
-              >
-                Save
-              </Text>
-            )}
-          </ScalePressable>
+            disabled={!editHasChanges}
+            loading={isSubmitting}
+          />
         </View>
       </View>
     </ScreenContainer>
@@ -246,28 +220,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden', // clip the gradient background to the circle
   },
-  cameraBadgeShadow: {
-    position: 'absolute',
-    bottom: 4,
-    right: -2,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cameraBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.6)',
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   removeBadge: {
     position: 'absolute',
     top: 0,
@@ -293,28 +245,11 @@ const styles = StyleSheet.create({
     minWidth: 200,
     letterSpacing: -0.5,
   },
+  // ScreenContainer already provides the 16dp horizontal screen padding, so the
+  // full-width Save button matches Onboarding's Continue without extra margins.
   buttonSection: {
-    paddingHorizontal: 16,
-  },
-  saveButton: {
-    backgroundColor: colors.primaryButtonBackground,
-    borderRadius: 999,
-    borderCurve: 'continuous',
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#E5E5E5',
-  },
-  saveButtonText: {
-    color: colors.buttonText,
-    fontSize: 17,
-    fontFamily: typography.fontFamilyMedium,
-    textAlign: 'center',
-  },
-  saveButtonTextDisabled: {
-    color: '#9CA3AF',
+    paddingTop: 16,
+    paddingBottom: 8,
   },
 });
 
