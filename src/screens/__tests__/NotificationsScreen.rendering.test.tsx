@@ -118,12 +118,31 @@ jest.mock('@components/EventActionBadge', () => {
     visible ? <Text>{label}</Text> : null;
 });
 
-// Mock the BottomSheet sheet components so we can test the action menu without Reanimated/Modal.
+// Mock the shared sheet pieces so we can test the action menu without Reanimated/Modal.
+jest.mock('@components/BottomSheetModal', () => {
+  const { View } = require('react-native');
+  return ({
+    visible,
+    children,
+    title,
+  }: {
+    visible: boolean;
+    children: React.ReactNode;
+    title?: string;
+  }) =>
+    visible ? (
+      <View
+        testID="notifications-menu-sheet"
+        accessibilityHint={title === undefined ? 'content-only' : 'titled'}
+      >
+        {children}
+      </View>
+    ) : null;
+});
+
 jest.mock('@components/sheets', () => {
   const { View, Text, Pressable } = require('react-native');
   return {
-    BottomSheet: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
-      visible ? <View testID="notifications-menu-sheet">{children}</View> : null,
     SheetActionList: ({
       items,
     }: {
@@ -236,6 +255,14 @@ describe('NotificationsScreen Rendering', () => {
     expect(mockMarkAllRead).toHaveBeenCalledTimes(1);
   });
 
+  it('uses the shared content-only action sheet chrome', () => {
+    const { getByTestId } = render(<NotificationsScreen />);
+
+    fireEvent.press(getByTestId('notifications-menu-button'));
+
+    expect(getByTestId('notifications-menu-sheet').props.accessibilityHint).toBe('content-only');
+  });
+
   it('keeps Mark all as read enabled and black when there is nothing unread', () => {
     mockNotificationsValue = {
       ...mockNotificationsValue,
@@ -267,6 +294,15 @@ describe('NotificationsScreen Rendering', () => {
     fireEvent.press(action);
 
     expect(mockClearAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps Clear all enabled when the inbox is empty', () => {
+    const { getByTestId } = render(<NotificationsScreen />);
+
+    fireEvent.press(getByTestId('notifications-menu-button'));
+    const action = getByTestId('notifications-menu-clear-all');
+
+    expect(action.props.accessibilityState.disabled).toBe(false);
   });
 
   it('renders the composed notification copy and unread dot', () => {

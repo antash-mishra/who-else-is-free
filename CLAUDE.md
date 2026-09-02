@@ -68,6 +68,7 @@ Treat "shared CSS" in React Native as:
 Use shared primitives before local UI:
 
 - UI primitives: `src/components/ui`
+- `IconButton` supports a compact visual size with an explicit shared hit-slop token when a header must keep the standard touch target without inheriting the button's layout height.
 - Sheets: `src/components/sheets`, `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`
 - Event lists: `src/components/events`, including `EventListLoadState` for the shared full-page loading/error/retry presentation
 - Empty states: `EmptyState`

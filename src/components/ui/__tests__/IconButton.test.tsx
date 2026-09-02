@@ -31,4 +31,19 @@ describe('IconButton', () => {
       disabled: true,
     });
   });
+
+  it('allows compact buttons to preserve a larger touch target', () => {
+    const { getByTestId } = render(
+      <IconButton
+        accessibilityLabel="Notifications"
+        icon={<Text>Icon</Text>}
+        onPress={jest.fn()}
+        size="sm"
+        hitSlop={18}
+        testID="notifications-button"
+      />,
+    );
+
+    expect(getByTestId('notifications-button').props.hitSlop).toBe(18);
+  });
 });

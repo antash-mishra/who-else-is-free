@@ -1,5 +1,5 @@
 import { memo, ReactNode } from 'react';
-import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
+import { Insets, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 
 import ScalePressable from '@components/ScalePressable';
 import { HapticFeedback } from '@services/haptics';
@@ -13,6 +13,7 @@ export interface IconButtonProps {
   haptic?: HapticFeedback;
   size?: 'sm' | 'md';
   variant?: 'plain' | 'soft';
+  hitSlop?: Insets | number;
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -25,6 +26,7 @@ const IconButton = ({
   haptic = 'light',
   size = 'md',
   variant = 'plain',
+  hitSlop = layout.hitSlop.md,
   testID,
   style,
 }: IconButtonProps) => (
@@ -32,7 +34,7 @@ const IconButton = ({
     onPress={onPress}
     disabled={disabled}
     haptic={haptic}
-    hitSlop={layout.hitSlop.md}
+    hitSlop={hitSlop}
     accessibilityRole="button"
     accessibilityLabel={accessibilityLabel}
     accessibilityState={{ disabled }}

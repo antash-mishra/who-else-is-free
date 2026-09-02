@@ -15,12 +15,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
+import BottomSheetModal from '@components/BottomSheetModal';
 import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import FullPageEmptyState from '@components/FullPageEmptyState';
 import NotificationRow from '@components/NotificationRow';
 import ScreenContainer from '@components/ScreenContainer';
-import { BottomSheet, SheetActionList } from '@components/sheets';
+import { SheetActionList } from '@components/sheets';
 import { AppText, IconButton } from '@components/ui';
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
@@ -178,7 +179,6 @@ const NotificationsScreen = () => {
     {
       label: 'Clear all',
       onPress: handleClearAll,
-      disabled: notifications.length === 0,
       testID: 'notifications-menu-clear-all',
     },
   ];
@@ -263,14 +263,13 @@ const NotificationsScreen = () => {
           />
         )}
 
-        <BottomSheet
+        <BottomSheetModal
           visible={menuVisible}
           onClose={() => setMenuVisible(false)}
-          title="Notifications"
           testID="notifications-menu-sheet"
         >
           <SheetActionList items={menuActions} />
-        </BottomSheet>
+        </BottomSheetModal>
       </ScreenContainer>
       <FullPageEmptyState visible={showEmpty} imageHeight={245}>
         <EmptyState

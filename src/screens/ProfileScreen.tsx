@@ -32,7 +32,7 @@ import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
 import { logger } from '@services/logger';
-import { colors, spacing, typography } from '@theme/index';
+import { colors, componentTokens, spacing, typography } from '@theme/index';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import BottomSheetModal from '@components/BottomSheetModal';
 import EventActionOverlay from '@components/EventActionOverlay';
@@ -264,6 +264,8 @@ const ProfileScreen = () => {
               testID="notifications-bell"
               icon={<BellIcon width={24} height={24} color={colors.text} />}
               onPress={() => navigation.navigate('Notifications')}
+              size="sm"
+              hitSlop={componentTokens.iconButton.compactHitSlop}
             />
             {unreadCount > 0 ? (
               <UnreadDot style={styles.bellBadge} testID="notifications-badge" />
@@ -419,11 +421,11 @@ const styles = StyleSheet.create({
   },
   bellBadge: {
     position: 'absolute',
-    // The IconButton is 44x44; the 24x24 bell SVG is centered inside it.
+    // The compact IconButton is 32x32; the 24x24 bell SVG is centered inside it.
     // Position the dot at the top-right corner of the SVG icon, not the
     // button container, so it visually sits on the bell's upper-right.
-    top: 10,
-    right: 11,
+    top: 4,
+    right: 2,
     // Match the chat tab-bar unread dot: red fill with a white ring. RN draws
     // borders inside the box, so 10px outer (6px red fill + 2px ring each side)
     // keeps it the same size as the chat dot.

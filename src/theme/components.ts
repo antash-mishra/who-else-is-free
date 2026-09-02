@@ -21,6 +21,7 @@ export const componentTokens = {
     md: 44,
     iconSm: 18,
     iconMd: 24,
+    compactHitSlop: 18,
   },
   avatar: {
     sm: 32,

@@ -34,7 +34,7 @@ In this React Native app, "shared CSS" means:
 | Shared typography variant                     | `AppText`                                                                              | `EmptyState`, help screens, UI primitives                             |
 | Text input                                    | `TextField`                                                                            | `HelpForm`                                                            |
 | Checkbox row                                  | `CheckboxRow`                                                                          | `HelpForm`                                                            |
-| Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`                                         |
+| Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`, Profile notifications bell             |
 | Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                                   |
 | Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                                   |
 | Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, One-to-One Hub header, Profile notifications bell |
@@ -174,7 +174,7 @@ Important groups:
 - `button`: height, radius, horizontal padding
 - `input`: height, radius, pill radius, padding
 - `checkbox`: size, radius, tick size
-- `iconButton`: button and icon sizes
+- `iconButton`: button and icon sizes, plus `compactHitSlop` for compact header actions that retain a full touch target
 - `avatar`: shared avatar sizes
 - `overlay`: backdrop, close button background, destructive progress fill
 - `segmentedControl`: tab gaps and padding
