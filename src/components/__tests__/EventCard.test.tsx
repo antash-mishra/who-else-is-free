@@ -4,7 +4,12 @@
  */
 
 import React from 'react';
+
+import { StyleSheet } from 'react-native';
+
 import { render, screen } from '@testing-library/react-native';
+
+import { spacing, typography } from '@theme/index';
 
 import EventCard from '../EventCard';
 import { mockEvents } from '../../__tests__/mocks/mockData';
@@ -49,6 +54,24 @@ describe('EventCard', () => {
       render(<EventCard {...defaultProps} />);
 
       expect(screen.getByText('All Gender, 18 to 35 years')).toBeTruthy();
+    });
+
+    it('uses normalized text metrics for evenly spaced Android event-card rows', () => {
+      render(<EventCard {...defaultProps} />);
+
+      const expectedLineHeight = typography.body + spacing.xs;
+      const textRows = [
+        screen.getByText(defaultProps.title),
+        screen.getByText(`${defaultProps.location} · ${defaultProps.time}`),
+        screen.getByText(defaultProps.audience),
+      ];
+
+      textRows.forEach((row) => {
+        expect(StyleSheet.flatten(row.props.style)).toMatchObject({
+          lineHeight: expectedLineHeight,
+          includeFontPadding: false,
+        });
+      });
     });
 
     it('should render metaLine when provided', () => {
