@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -43,8 +44,9 @@ type textValue struct {
 }
 
 type autocompleteRequest struct {
-	Input        string `json:"input"`
-	SessionToken string `json:"sessionToken,omitempty"`
+	Input               string   `json:"input"`
+	SessionToken        string   `json:"sessionToken,omitempty"`
+	IncludedRegionCodes []string `json:"includedRegionCodes,omitempty"`
 }
 
 type autocompleteResponse struct {
@@ -84,6 +86,14 @@ type simplifiedDetail struct {
 	Longitude        float64 `json:"longitude"`
 }
 
+func includedRegionCode(value string) []string {
+	countryCode := strings.ToLower(strings.TrimSpace(value))
+	if len(countryCode) != 2 || countryCode[0] < 'a' || countryCode[0] > 'z' || countryCode[1] < 'a' || countryCode[1] > 'z' {
+		return nil
+	}
+	return []string{countryCode}
+}
+
 func (h *PlacesHandler) autocomplete(c *gin.Context) {
 	input := c.Query("input")
 	if input == "" {
@@ -104,7 +114,10 @@ func (h *PlacesHandler) autocomplete(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), placesRequestTimeout)
 	defer cancel()
 
-	reqBody := autocompleteRequest{Input: input}
+	reqBody := autocompleteRequest{
+		Input:               input,
+		IncludedRegionCodes: includedRegionCode(c.Query("country")),
+	}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to build request"})

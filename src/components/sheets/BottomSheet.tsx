@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
+  Dimensions,
   Keyboard,
   KeyboardEvent,
   Modal,
@@ -47,6 +48,8 @@ export type BottomSheetProps = {
   closeTestID?: string;
   contentTestID?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Fired after the entry animation has settled. */
+  onOpened?: () => void;
   onClosed?: () => void;
 };
 
@@ -69,6 +72,7 @@ const BottomSheet = ({
   closeTestID = 'bottom-sheet-close',
   contentTestID,
   contentStyle,
+  onOpened,
   onClosed,
 }: BottomSheetProps) => {
   const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
@@ -82,6 +86,7 @@ const BottomSheet = ({
   const hasBeenVisible = useRef(visible);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onClosedRef = useRef(onClosed);
+  const onOpenedRef = useRef(onOpened);
   const shouldAnimateOnShowRef = useRef(false);
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
@@ -110,6 +115,14 @@ const BottomSheet = ({
   }, [onClosed]);
 
   useEffect(() => {
+    onOpenedRef.current = onOpened;
+  }, [onOpened]);
+
+  const notifyOpened = useCallback(() => {
+    onOpenedRef.current?.();
+  }, []);
+
+  useEffect(() => {
     if (!avoidKeyboard) {
       keyboardOffset.value = withTiming(0, {
         duration: 160,
@@ -122,7 +135,11 @@ const BottomSheet = ({
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const updateKeyboardOffset = (event: KeyboardEvent) => {
       const translation = getKeyboardTranslation({
-        viewportHeight: Platform.OS === 'android' ? screenHeight : undefined,
+        // Android reports `screenY` in physical-screen coordinates. With the
+        // app configured for adjustPan, `useWindowDimensions()` can instead be
+        // the already-panned window height, which makes the old subtraction
+        // resolve to zero and leaves text-entry sheets under the keyboard.
+        viewportHeight: Platform.OS === 'android' ? Dimensions.get('screen').height : undefined,
         keyboardTop: Platform.OS === 'android' ? event.endCoordinates.screenY : undefined,
         keyboardHeight: event.endCoordinates.height ?? 0,
         safeAreaBottom: safeBottom,
@@ -145,7 +162,7 @@ const BottomSheet = ({
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [avoidKeyboard, keyboardOffset, safeBottom, screenHeight]);
+  }, [avoidKeyboard, keyboardOffset, safeBottom]);
 
   const startOpenAnimation = useCallback(() => {
     slideY.value = screenHeight;
@@ -156,6 +173,7 @@ const BottomSheet = ({
 
       if (finished) {
         runOnJS(setIsAnimating)(false);
+        runOnJS(notifyOpened)();
       }
     };
     if (animation === 'spring') {
@@ -174,7 +192,7 @@ const BottomSheet = ({
       duration: animation === 'spring' ? 100 : 140,
       easing: Easing.out(Easing.cubic),
     });
-  }, [animation, backdropOpacity, screenHeight, slideY]);
+  }, [animation, backdropOpacity, notifyOpened, screenHeight, slideY]);
 
   const startCloseAnimation = useCallback(() => {
     Keyboard.dismiss();

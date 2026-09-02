@@ -54,6 +54,20 @@ export const DEFAULT_COVER_OPTION: CoverOption = {
 
 export const COVER_OPTIONS: readonly CoverOption[] = [DEFAULT_COVER_OPTION];
 
+/** Select a catalog cover for a new plan without coupling form state to the cover provider. */
+export const getRandomCoverKey = (
+  covers: readonly Pick<CoverOption, 'key'>[],
+  random: () => number = Math.random,
+): CoverKey => {
+  const available = covers.filter((cover) => cover.key.trim().length > 0);
+  if (available.length === 0) {
+    return DEFAULT_COVER_KEY;
+  }
+
+  const index = Math.min(available.length - 1, Math.floor(random() * available.length));
+  return available[index].key;
+};
+
 const uriCache: Record<string, string> = {};
 
 const normalizeCoverUrl = (url?: string, fileName?: string) => {

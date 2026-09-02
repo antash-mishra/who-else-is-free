@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Image, Platform, useWindowDimensions, View } from 'react-native';
+import { Platform, useWindowDimensions, View } from 'react-native';
 
 import {
   RouteProp,
@@ -10,16 +10,18 @@ import {
   useRoute,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
-import { CoverKey } from '@constants/covers';
+import { CoverKey, getRandomCoverKey } from '@constants/covers';
 import { genderDisplayLabels, getAgeLabel, groupDisplayLabels } from '@constants/eventOptions';
 import { useAuth } from '@context/AuthContext';
 import { useCovers } from '@context/CoversContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
+import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
@@ -35,6 +37,7 @@ import {
   CreateEventFormState,
   buildCreateEventPayload,
   buildGuestEventDraft,
+  createEmptyFormState,
   buildUpdateEventPayload,
   createFormStateFromEvent,
   getFormLocationDisplayName,
@@ -47,7 +50,7 @@ import CreateEventSheetContent, {
 } from './create-event/CreateEventSheetContent';
 import CreateEventSubmitButton from './create-event/CreateEventSubmitButton';
 import { useCreateEventForm } from './create-event/useCreateEventForm';
-import { useCreateEventSheets } from './create-event/useCreateEventSheets';
+import { CreateEventSheet, useCreateEventSheets } from './create-event/useCreateEventSheets';
 import styles from './CreateEventScreen.styles';
 
 type CreateNavigation = NativeStackNavigationProp<RootStackParamList, 'CreateEvent'>;
@@ -79,9 +82,17 @@ const CreateEventScreen = () => {
   const { bottom: safeBottom } = useSafeAreaInsets();
   const { addUserEvent, updateUserEvent, events, queueGuestEvent } = useEvents();
   const { user } = useAuth();
-  const { resolveCover } = useCovers();
+  const { covers, resolveCover } = useCovers();
+  const { countryCode } = useViewerLocation();
   const scrollViewRef = useRef<KeyboardAwareScrollView>(null);
   const createStartTrackedRef = useRef(false);
+  const hasFocusedRef = useRef(false);
+  const coversRef = useRef(covers);
+  const [initialRandomCoverKey] = useState(() => getRandomCoverKey(covers));
+
+  useEffect(() => {
+    coversRef.current = covers;
+  }, [covers]);
 
   // Responsive gap for spacing between form elements
   const responsiveGap = spacing.xs;
@@ -95,7 +106,11 @@ const CreateEventScreen = () => {
       : undefined;
   const editEvent = editEventId ? events.find((eventItem) => eventItem.id === editEventId) : null;
   const isEditing = !!editEvent;
-  const initialFormState = useMemo(() => createFormStateFromEvent(editEvent), [editEvent]);
+  const initialFormState = useMemo(
+    () =>
+      editEvent ? createFormStateFromEvent(editEvent) : createEmptyFormState(initialRandomCoverKey),
+    [editEvent, initialRandomCoverKey],
+  );
   const initialLocationDisplayName = useMemo(
     () => getFormLocationDisplayName(editEvent),
     [editEvent],
@@ -136,8 +151,22 @@ const CreateEventScreen = () => {
   } = useCreateEventForm(initialFormState, initialLocationDisplayName);
 
   // Sheet state
-  const { activeSheet, renderedSheet, openSheet, closeActiveSheet, closeSheetImmediately } =
-    useCreateEventSheets();
+  const {
+    activeSheet,
+    renderedSheet,
+    openSheet: presentSheet,
+    closeActiveSheet,
+    closeSheetImmediately,
+  } = useCreateEventSheets();
+  const [openedSheet, setOpenedSheet] = useState<CreateEventSheet | null>(null);
+  const isSheetReady = activeSheet !== null && activeSheet === openedSheet;
+  const openSheet = useCallback(
+    (sheet: CreateEventSheet) => {
+      setOpenedSheet(null);
+      presentSheet(sheet);
+    },
+    [presentSheet],
+  );
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,7 +180,7 @@ const CreateEventScreen = () => {
   );
 
   const resetForm = useCallback(() => {
-    resetFormFields();
+    resetFormFields(getRandomCoverKey(coversRef.current));
     closeSheetImmediately();
     setSubmitError(null);
     setIsSubmitting(false);
@@ -170,8 +199,13 @@ const CreateEventScreen = () => {
     useCallback(() => {
       if (editEvent && editEventId) {
         applyEventToForm(editEvent);
-      } else {
+      } else if (hasFocusedRef.current) {
         resetForm();
+      } else {
+        // The reducer was seeded with a random cover on first mount. Avoid a
+        // second, transition-time reset while the full-screen Create route is
+        // moving in from the bottom.
+        hasFocusedRef.current = true;
       }
     }, [applyEventToForm, editEvent, editEventId, resetForm]),
   );
@@ -335,7 +369,6 @@ const CreateEventScreen = () => {
         } else {
           await addUserEvent(buildCreateEventPayload(formState, user));
           triggerHaptic('success');
-          resetForm();
           navigation.navigate('Main', {
             screen: 'MyEvents',
             params: { showEventCreatedBadge: true },
@@ -349,16 +382,7 @@ const CreateEventScreen = () => {
         setIsSubmitting(false);
       }
     },
-    [
-      addUserEvent,
-      editEventId,
-      isEditing,
-      isSubmitting,
-      navigation,
-      resetForm,
-      updateUserEvent,
-      user,
-    ],
+    [addUserEvent, editEventId, isEditing, isSubmitting, navigation, updateUserEvent, user],
   );
 
   const handlePrimaryAction = () => {
@@ -397,8 +421,10 @@ const CreateEventScreen = () => {
       <Image
         source={{ uri: selectedCoverUri }}
         style={styles.backgroundImage}
-        resizeMode="cover"
+        contentFit="cover"
         blurRadius={28}
+        transition={150}
+        testID="create-event-background-image"
       />
       <View style={styles.backgroundOverlay} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -460,6 +486,7 @@ const CreateEventScreen = () => {
         title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
         avoidKeyboard={renderedSheet === 'description'}
+        onOpened={() => setOpenedSheet(renderedSheet)}
         snapHeight={
           renderedSheet === 'location'
             ? locationSheetHeight
@@ -471,6 +498,7 @@ const CreateEventScreen = () => {
         <CreateEventSheetContent
           renderedSheet={renderedSheet}
           activeSheet={activeSheet}
+          isSheetReady={isSheetReady}
           selectedDateTime={form.selectedDateTime}
           pickerMinDate={pickerMinDate}
           pickerMaxDate={pickerMaxDate}
@@ -487,6 +515,7 @@ const CreateEventScreen = () => {
           onSelectTempAgeRange={setTempAgeRange}
           onConfirmAge={confirmAgeSelection}
           selectedLocationLabel={selectedLocationLabel}
+          countryCode={countryCode}
           onSelectLocation={handleLocationSelect}
           description={form.description}
           onDescriptionDone={handleDescriptionDone}

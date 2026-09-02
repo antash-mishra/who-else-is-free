@@ -176,8 +176,8 @@ export const useCreateEventForm = (
     dispatch({ type: 'applyForm', form, locationDisplayName: displayLocationName });
   }, []);
 
-  const resetForm = useCallback(() => {
-    applyFormState(createEmptyFormState());
+  const resetForm = useCallback((coverKey?: CoverKey) => {
+    applyFormState(createEmptyFormState(coverKey));
   }, [applyFormState]);
 
   const applyEventToForm = useCallback(

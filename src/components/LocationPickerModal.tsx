@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Pressable,
@@ -25,6 +25,9 @@ export type LocationPickerModalProps = {
     onClose: () => void;
     onSelect: (place: PlaceDetail) => void;
     initialQuery?: string;
+    countryCode?: string | null;
+    /** Focus only after the parent sheet has finished its entry animation. */
+    isSheetReady?: boolean;
 };
 
 export const LocationPickerContent = ({
@@ -32,12 +35,16 @@ export const LocationPickerContent = ({
     onClose,
     onSelect,
     initialQuery = "",
+    countryCode,
+    isSheetReady = visible,
 }: LocationPickerModalProps) => {
     const { height: windowHeight } = useWindowDimensions();
     const [query, setQuery] = useState(initialQuery);
-    const { results, loading, error: autocompleteError, search, clear } = usePlacesAutocomplete();
+    const { results, loading, error: autocompleteError, search, clear } = usePlacesAutocomplete(countryCode);
     const [selectingId, setSelectingId] = useState<string | null>(null);
     const [selectionError, setSelectionError] = useState<string | null>(null);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const inputRef = useRef<TextInput>(null);
 
     useEffect(() => {
         if (visible) {
@@ -55,6 +62,15 @@ export const LocationPickerContent = ({
             return () => clearTimeout(timer);
         }
     }, [visible, initialQuery, search, clear]);
+
+    useEffect(() => {
+        if (!visible || !isSheetReady) {
+            return undefined;
+        }
+
+        const timer = setTimeout(() => inputRef.current?.focus(), 16);
+        return () => clearTimeout(timer);
+    }, [isSheetReady, visible]);
 
     const handleQueryChange = useCallback(
         (text: string) => {
@@ -94,14 +110,16 @@ export const LocationPickerContent = ({
             <View style={styles.searchContainer}>
                 <SearchIcon width={16} height={16} color="#8E8E93" />
                 <TextInput
+                    ref={inputRef}
                     style={styles.searchInput}
-                    placeholder="Search Location"
+                    placeholder={isSearchFocused ? "" : "Search Location"}
                     placeholderTextColor="#C7C7CC"
                     value={query}
                     onChangeText={handleQueryChange}
-                    autoFocus
                     returnKeyType="search"
                     underlineColorAndroid="transparent"
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
                     onSubmitEditing={() => search(query)}
                 />
             </View>
@@ -176,15 +194,34 @@ export const LocationPickerContent = ({
 };
 
 const LocationPickerModal = (props: LocationPickerModalProps) => {
+    const { visible, onClose, ...contentProps } = props;
     const { height: windowHeight } = useWindowDimensions();
     const sheetHeight = useMemo(
         () => Math.round(windowHeight * 0.9),
         [windowHeight],
     );
+    const [isSheetReady, setIsSheetReady] = useState(false);
+
+    const handleClose = useCallback(() => {
+        setIsSheetReady(false);
+        onClose();
+    }, [onClose]);
 
     return (
-        <BottomSheetModal visible={props.visible} onClose={props.onClose} title="Select Location" avoidKeyboard={false} snapHeight={sheetHeight}>
-            <LocationPickerContent {...props} />
+        <BottomSheetModal
+            visible={visible}
+            onClose={handleClose}
+            title="Select Location"
+            avoidKeyboard={false}
+            snapHeight={sheetHeight}
+            onOpened={() => setIsSheetReady(true)}
+        >
+            <LocationPickerContent
+                {...contentProps}
+                visible={visible}
+                onClose={handleClose}
+                isSheetReady={isSheetReady}
+            />
         </BottomSheetModal>
     );
 };

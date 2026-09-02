@@ -55,6 +55,10 @@ jest.mock('@utils/dateTime', () => ({
   parseDateKey: () => new Date('2026-01-24T00:00:00.000Z'),
 }));
 
+jest.mock('@hooks/useViewerLocation', () => ({
+  useViewerLocation: () => ({ countryCode: 'ie' }),
+}));
+
 jest.mock('@components/LocationPickerModal', () => {
   const React = require('react');
   const { Pressable, Text, View } = require('react-native');
@@ -106,6 +110,7 @@ jest.mock('@components/LocationPickerModal', () => {
 
 jest.mock('@constants/covers', () => ({
   DEFAULT_COVER_KEY: 'cover_01',
+  getRandomCoverKey: () => 'cover_02',
   resolveCoverUri: () => 'https://example.com/cover.png',
   COVER_OPTIONS: [
     { key: 'cover_01', label: 'Sunset Glow', source: { uri: 'mock-cover-1' } },
@@ -170,6 +175,20 @@ describe('CreateEventScreen Rendering', () => {
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
     expect(screen.getByText('All genders')).toBeTruthy();
     expect(screen.getByText('All ages')).toBeTruthy();
+  });
+
+  it('uses the cached image renderer for the blurred backdrop and cover swap', () => {
+    render(<CreateEventScreen />);
+
+    expect(screen.getByTestId('create-event-background-image').props).toMatchObject({
+      blurRadius: 28,
+      contentFit: 'cover',
+      transition: 150,
+    });
+    expect(screen.getByTestId('create-event-cover-image').props).toMatchObject({
+      contentFit: 'cover',
+      transition: 150,
+    });
   });
 
   it('adds the Android bottom safe area to the existing CTA spacing', () => {
@@ -271,6 +290,24 @@ describe('CreateEventScreen Rendering', () => {
         params: { showEventCreatedBadge: true },
       });
     });
+  });
+
+  it('keeps the submitted form visible until navigation completes', async () => {
+    render(<CreateEventScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Coffee Meetup');
+    fillDescription('Casual chat');
+    await selectMockLocation();
+    fireEvent.press(screen.getByTestId('create-event-submit'));
+
+    await waitFor(() => {
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('Main', {
+        screen: 'MyEvents',
+        params: { showEventCreatedBadge: true },
+      });
+    });
+
+    expect(screen.getByPlaceholderText('Event name').props.value).toBe('Coffee Meetup');
   });
 
   it('treats null editEventId as create mode', async () => {

@@ -2,6 +2,7 @@ import { API_BASE_URL } from '@api/config';
 import {
   ApiCoverOption,
   GENERIC_COVER_CATEGORY,
+  getRandomCoverKey,
   mapApiCoverCategory,
   mapApiCoverOption,
 } from '@constants/covers';
@@ -56,6 +57,20 @@ describe('mapApiCoverOption', () => {
       tags: ['Tennis'],
     });
     expect(mapped.url).toBe(`${API_BASE_URL}/assets/covers/sports-tennis-1.png`);
+  });
+});
+
+describe('getRandomCoverKey', () => {
+  const covers = [{ key: 'coffee' }, { key: 'hiking' }, { key: 'tennis' }];
+
+  it('selects from the loaded catalog deterministically when given a random source', () => {
+    expect(getRandomCoverKey(covers, () => 0)).toBe('coffee');
+    expect(getRandomCoverKey(covers, () => 0.5)).toBe('hiking');
+    expect(getRandomCoverKey(covers, () => 0.999)).toBe('tennis');
+  });
+
+  it('falls back to the default when no usable catalog cover exists', () => {
+    expect(getRandomCoverKey([{ key: '   ' }])).toBe('sports-badminton-1');
   });
 });
 

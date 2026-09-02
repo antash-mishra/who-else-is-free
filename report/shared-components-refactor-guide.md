@@ -760,9 +760,11 @@ What it is:
 - Owns modal/inline presentation, backdrop, open/close animation, safe area, keyboard avoidance,
   max height, optional snap height, and shared sheet styling.
 - Keyboard avoidance uses `bottomObstruction.ts` to subtract the system safe-area region already
-  reserved by the sheet from its translation. Android prefers the keyboard-top coordinate while
-  iOS retains height-based animation timing; both preserve the shared base content spacing. Do not
-  compensate in prompt content.
+  reserved by the sheet from its translation. Android uses physical-screen keyboard-top coordinates
+  so `adjustPan` does not collapse the translation to zero; iOS retains height-based animation
+  timing. Both preserve the shared base content spacing. Do not compensate in prompt content.
+- Exposes `onOpened` after its entry animation settles. Use it for keyboard focus and expensive
+  child mounting rather than guessing a timeout in individual sheet content.
 
 Where it is used:
 
@@ -799,7 +801,8 @@ File: `src/components/BottomSheetModal.tsx`
 What it is:
 
 - Standard modal sheet wrapper around `BottomSheet`.
-- Supports optional title, close header, `avoidKeyboard`, and `snapHeight`.
+- Supports optional title, close header, `avoidKeyboard`, `snapHeight`, and the forwarded
+  `onOpened` entry-settled callback.
 - Uses `BottomSheetHostProvider` when available and falls back to local modal rendering in isolated
   tests or stories.
 
@@ -1030,6 +1033,10 @@ What it is:
 
 - Location search and selection sheet/content.
 - Also exports content for Create Event hosted sheet usage.
+- Defers autofocus until its containing sheet has settled and hides the empty-input placeholder
+  while focused so the Android caret does not render over the first placeholder character.
+- Accepts the ISO country code from `useViewerLocation`; autocomplete includes that value only when
+  permission and reverse geocoding have resolved it, otherwise it remains available worldwide.
 
 Where it is used:
 
@@ -1231,7 +1238,8 @@ File: `src/screens/create-event/createEventForm.ts`
 
 What it is:
 
-- Shared Create/Edit Event form mapper.
+- Shared Create/Edit Event form mapper. `createEmptyFormState` accepts a supplied cover key so a
+  new Create session can select from the loaded catalog while Edit hydration remains deterministic.
 - Keeps payload construction, edit hydration, guest draft mapping, and date normalization out of
   `CreateEventScreen`.
 

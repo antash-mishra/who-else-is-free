@@ -23,7 +23,7 @@ interface UsePlacesAutocompleteResult {
   clear: () => void;
 }
 
-export const usePlacesAutocomplete = (): UsePlacesAutocompleteResult => {
+export const usePlacesAutocomplete = (countryCode?: string | null): UsePlacesAutocompleteResult => {
   const [results, setResults] = useState<PlacePrediction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +52,9 @@ export const usePlacesAutocomplete = (): UsePlacesAutocompleteResult => {
     debounceRef.current = setTimeout(async () => {
       abortRef.current = new AbortController();
       try {
+        const countryQuery = countryCode ? `&country=${encodeURIComponent(countryCode)}` : '';
         const response = await fetch(
-          `${API_BASE_URL}/api/places/autocomplete?input=${encodeURIComponent(trimmed)}`,
+          `${API_BASE_URL}/api/places/autocomplete?input=${encodeURIComponent(trimmed)}${countryQuery}`,
           { signal: abortRef.current.signal },
         );
         if (!response.ok) {
@@ -71,7 +72,7 @@ export const usePlacesAutocomplete = (): UsePlacesAutocompleteResult => {
         setLoading(false);
       }
     }, 300);
-  }, []);
+  }, [countryCode]);
 
   const clear = useCallback(() => {
     if (debounceRef.current) {

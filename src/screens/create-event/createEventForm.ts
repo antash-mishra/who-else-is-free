@@ -79,7 +79,9 @@ export const getEventDateTime = (event?: UserEvent | null): Date => {
   return getDefaultEventDateTime();
 };
 
-export const createEmptyFormState = (): CreateEventFormState => ({
+export const createEmptyFormState = (
+  coverKey: CoverKey = DEFAULT_COVER_KEY,
+): CreateEventFormState => ({
   eventName: '',
   description: '',
   groupType: 'Single',
@@ -90,7 +92,7 @@ export const createEmptyFormState = (): CreateEventFormState => ({
   placeId: '',
   latitude: undefined,
   longitude: undefined,
-  coverKey: DEFAULT_COVER_KEY,
+  coverKey,
 });
 
 export const createFormStateFromEvent = (event?: UserEvent | null): CreateEventFormState => ({

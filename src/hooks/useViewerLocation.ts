@@ -9,13 +9,21 @@ type ViewerLocationPermission = 'granted' | 'denied' | 'undetermined';
 
 export type ViewerLocationState = {
   coords: Coordinates | null;
+  /** ISO country code resolved from the granted device location, when available. */
+  countryCode: string | null;
   permission: ViewerLocationPermission | null;
   isLoading: boolean;
   requestPermission: () => Promise<void>;
 };
 
+const normalizeCountryCode = (value: string | null | undefined): string | null => {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  return /^[a-z]{2}$/.test(normalized) ? normalized : null;
+};
+
 export const useViewerLocation = (): ViewerLocationState => {
   const [coords, setCoords] = useState<Coordinates | null>(null);
+  const [countryCode, setCountryCode] = useState<string | null>(null);
   const [permission, setPermission] = useState<ViewerLocationPermission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const isMounted = useRef(true);
@@ -30,10 +38,23 @@ export const useViewerLocation = (): ViewerLocationState => {
     if (!isMounted.current) {
       return;
     }
-    setCoords({
+    const nextCoords = {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
-    });
+    };
+    setCoords(nextCoords);
+
+    try {
+      const [address] = await Location.reverseGeocodeAsync(nextCoords);
+      if (isMounted.current) {
+        setCountryCode(normalizeCountryCode(address?.isoCountryCode));
+      }
+    } catch (error) {
+      logger.warn('Unable to resolve viewer country', error);
+      if (isMounted.current) {
+        setCountryCode(null);
+      }
+    }
   }, []);
 
   const inspectPermission = useCallback(
@@ -52,11 +73,13 @@ export const useViewerLocation = (): ViewerLocationState => {
           await loadPosition();
         } else {
           setCoords(null);
+          setCountryCode(null);
         }
       } catch (error) {
         logger.warn('Unable to resolve viewer location', error);
         if (isMounted.current) {
           setCoords(null);
+          setCountryCode(null);
         }
       } finally {
         if (isMounted.current) {
@@ -86,5 +109,5 @@ export const useViewerLocation = (): ViewerLocationState => {
     };
   }, [inspectPermission]);
 
-  return { coords, permission, isLoading, requestPermission };
+  return { coords, countryCode, permission, isLoading, requestPermission };
 };

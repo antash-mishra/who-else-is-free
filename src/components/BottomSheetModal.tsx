@@ -19,6 +19,8 @@ export type BottomSheetModalProps = {
   closeTestID?: string;
   contentTestID?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Fired after the shared sheet has completed its entry transition. */
+  onOpened?: () => void;
 };
 
 const BottomSheetModal = ({
@@ -33,6 +35,7 @@ const BottomSheetModal = ({
   closeTestID = 'bottom-sheet-close',
   contentTestID,
   contentStyle,
+  onOpened,
 }: BottomSheetModalProps) => {
   const host = useOptionalBottomSheetHost();
   const ownerId = useId();
@@ -48,6 +51,7 @@ const BottomSheetModal = ({
       closeTestID,
       contentTestID,
       contentStyle,
+      onOpened,
     }),
     [
       avoidKeyboard,
@@ -56,6 +60,7 @@ const BottomSheetModal = ({
       closeTestID,
       contentStyle,
       contentTestID,
+      onOpened,
       onClose,
       snapHeight,
       testID,
@@ -98,6 +103,7 @@ const BottomSheetModal = ({
       closeTestID={closeTestID}
       contentTestID={contentTestID}
       contentStyle={contentStyle}
+      onOpened={onOpened}
     >
       {children}
     </BottomSheet>

@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { colors, spacing, typography } from '@theme/index';
 
@@ -104,11 +104,16 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginTop: spacing.lg,
     marginBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    // Match iOS: the cover sits flush on Android rather than gaining an
+    // Android-only elevation shadow behind its rounded edges.
+    ...(Platform.OS === 'ios'
+      ? {
+          shadowColor: colors.text,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+        }
+      : {}),
   },
   // Cover photo (fills the card)
   coverImage: {

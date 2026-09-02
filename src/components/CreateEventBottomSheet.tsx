@@ -10,6 +10,7 @@ type CreateEventBottomSheetProps = {
   snapHeight?: number;
   /** Lift the sheet above the keyboard (for text-entry sheets like Description). */
   avoidKeyboard?: boolean;
+  onOpened?: () => void;
 };
 
 const CreateEventBottomSheet = ({
@@ -19,6 +20,7 @@ const CreateEventBottomSheet = ({
   onClose,
   snapHeight,
   avoidKeyboard = false,
+  onOpened,
 }: CreateEventBottomSheetProps) => (
   <BottomSheetModal
     visible={visible}
@@ -26,6 +28,7 @@ const CreateEventBottomSheet = ({
     title={title}
     snapHeight={snapHeight}
     avoidKeyboard={avoidKeyboard}
+    onOpened={onOpened}
     testID="create-event-bottom-sheet"
     backdropTestID="create-event-sheet-backdrop"
     closeTestID="create-event-sheet-close"

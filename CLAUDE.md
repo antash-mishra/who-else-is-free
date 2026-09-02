@@ -81,6 +81,8 @@ Use shared primitives before local UI:
   components in `src/screens/create-event/` (all share `CreateEventScreen.styles.ts`). Signed-in and
   signed-out creation share required-field/future-time validation and successful creation returns
   directly to My Events with its created badge/confetti.
+- New Create sessions select a random loaded catalog cover through `getRandomCoverKey`; Edit keeps
+  the event's existing cover.
 - API requests: `requestJson`/`ApiError` in `src/api/client.ts`, error extraction in `src/api/errors.ts`
 - API payload mappers: `src/api/mappers` (`events.ts`, `chat.ts`)
 - API timeout helpers: `src/api/request.ts`
@@ -90,7 +92,11 @@ Use shared primitives before local UI:
   hand-editing covers. Cover images are gitignored; deploys (and fresh clones)
   populate them with `cd server && go run ./cmd/covers-sync -fetch`
 
-Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
+Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `onOpened` for focus or heavy content that must wait for sheet entry; Android keyboard lifts use physical-screen keyboard-top coordinates to support `adjustPan`. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
+
+Places autocomplete is country-restricted server-side only when the client supplies the ISO country
+resolved from the already-granted viewer location; do not replace it with a client-only result
+filter, and leave it unrestricted when the country is unavailable.
 
 Event Details disables stack back-swiping because its host Requests/Members (or Requests/Accepted) section owns horizontal swipes. `HostRequestTabs` direction-locks its pager so vertical drags fail early to the outer screen `ScrollView`; preserve that gesture boundary when changing the tabs.
 

@@ -1,11 +1,13 @@
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { BlurView } from 'expo-blur';
+import { Image } from 'expo-image';
 
 import UploadIcon from '@assets/create-event/choose-cover.svg';
 import { colors } from '@theme/index';
 
 import styles from '../CreateEventScreen.styles';
+
 import DescriptionPreview from './DescriptionPreview';
 
 type CreateEventFormFieldsProps = {
@@ -48,7 +50,13 @@ const CreateEventFormFields = ({
 }: CreateEventFormFieldsProps) => (
   <>
     <Pressable style={styles.coverCard} onPress={onOpenCoverPicker} accessibilityRole="button">
-      <Image source={{ uri: selectedCoverUri }} style={styles.coverImage} />
+      <Image
+        source={{ uri: selectedCoverUri }}
+        style={styles.coverImage}
+        contentFit="cover"
+        transition={150}
+        testID="create-event-cover-image"
+      />
       <BlurView intensity={45} tint="dark" style={styles.coverChip}>
         <UploadIcon width={20} height={20} color="white" style={{ opacity: 0.9 }} />
       </BlurView>

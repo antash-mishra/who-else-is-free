@@ -44,6 +44,7 @@ export const getCreateEventSheetTitle = (sheet: CreateEventSheet | null): string
 type CreateEventSheetContentProps = {
   renderedSheet: CreateEventSheet | null;
   activeSheet: CreateEventSheet | null;
+  isSheetReady: boolean;
   selectedDateTime: Date;
   pickerMinDate: Date;
   pickerMaxDate: Date;
@@ -60,6 +61,7 @@ type CreateEventSheetContentProps = {
   onSelectTempAgeRange: (value: [number, number]) => void;
   onConfirmAge: () => void;
   selectedLocationLabel: string;
+  countryCode: string | null;
   onSelectLocation: (place: PlaceDetail) => void;
   description: string;
   onDescriptionDone: (text: string) => void;
@@ -70,6 +72,7 @@ type CreateEventSheetContentProps = {
 const CreateEventSheetContent = ({
   renderedSheet,
   activeSheet,
+  isSheetReady,
   selectedDateTime,
   pickerMinDate,
   pickerMaxDate,
@@ -86,6 +89,7 @@ const CreateEventSheetContent = ({
   onSelectTempAgeRange,
   onConfirmAge,
   selectedLocationLabel,
+  countryCode,
   onSelectLocation,
   description,
   onDescriptionDone,
@@ -95,7 +99,7 @@ const CreateEventSheetContent = ({
     case 'dateTime':
       return (
         <EventDateTimePickerContent
-          visible={activeSheet === 'dateTime'}
+          visible={activeSheet === 'dateTime' && isSheetReady}
           value={selectedDateTime}
           minDate={pickerMinDate}
           maxDate={pickerMaxDate}
@@ -144,15 +148,18 @@ const CreateEventSheetContent = ({
       return (
         <LocationPickerContent
           visible={activeSheet === 'location'}
+          isSheetReady={isSheetReady}
           onClose={onClose}
           onSelect={onSelectLocation}
           initialQuery={selectedLocationLabel}
+          countryCode={countryCode}
         />
       );
     case 'description':
       return (
         <DescriptionEditorContent
           visible={activeSheet === 'description'}
+          isSheetReady={isSheetReady}
           initialValue={description}
           onDone={onDescriptionDone}
         />

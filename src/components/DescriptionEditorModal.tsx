@@ -7,6 +7,8 @@ import { colors, spacing, typography } from '@theme/index';
 
 export type DescriptionEditorProps = {
   visible: boolean;
+  /** True once the containing sheet has settled and can safely summon the keyboard. */
+  isSheetReady?: boolean;
   /** Current committed description; seeds the local draft each time the sheet opens. */
   initialValue: string;
   /** Commit the draft and close. Only fired from "Done". */
@@ -20,6 +22,7 @@ export type DescriptionEditorProps = {
  */
 export const DescriptionEditorContent = ({
   visible,
+  isSheetReady = visible,
   initialValue,
   onDone,
 }: DescriptionEditorProps) => {
@@ -31,9 +34,16 @@ export const DescriptionEditorContent = ({
       return;
     }
     setDraft(initialValue);
-    const timer = setTimeout(() => inputRef.current?.focus(), 250);
-    return () => clearTimeout(timer);
   }, [visible, initialValue]);
+
+  useEffect(() => {
+    if (!visible || !isSheetReady) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => inputRef.current?.focus(), 16);
+    return () => clearTimeout(timer);
+  }, [isSheetReady, visible]);
 
   return (
     <View style={styles.container}>

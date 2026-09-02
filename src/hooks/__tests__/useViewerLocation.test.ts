@@ -6,6 +6,7 @@ const mockGetForegroundPermissionsAsync = jest.fn();
 const mockRequestForegroundPermissionsAsync = jest.fn();
 const mockGetLastKnownPositionAsync = jest.fn();
 const mockGetCurrentPositionAsync = jest.fn();
+const mockReverseGeocodeAsync = jest.fn();
 
 jest.mock('expo-location', () => ({
   PermissionStatus: {
@@ -19,6 +20,7 @@ jest.mock('expo-location', () => ({
     mockRequestForegroundPermissionsAsync(...args),
   getLastKnownPositionAsync: (...args: unknown[]) => mockGetLastKnownPositionAsync(...args),
   getCurrentPositionAsync: (...args: unknown[]) => mockGetCurrentPositionAsync(...args),
+  reverseGeocodeAsync: (...args: unknown[]) => mockReverseGeocodeAsync(...args),
 }));
 
 describe('useViewerLocation', () => {
@@ -30,6 +32,7 @@ describe('useViewerLocation', () => {
       coords: { latitude: 53.3498, longitude: -6.2603 },
     });
     mockGetCurrentPositionAsync.mockResolvedValue(null);
+    mockReverseGeocodeAsync.mockResolvedValue([{ isoCountryCode: 'IE' }]);
   });
 
   it('checks silently on mount and requests location only after the explicit action', async () => {
@@ -46,5 +49,7 @@ describe('useViewerLocation', () => {
     expect(mockRequestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
     expect(result.current.permission).toBe('granted');
     expect(result.current.coords).toEqual({ latitude: 53.3498, longitude: -6.2603 });
+    expect(result.current.countryCode).toBe('ie');
+    expect(mockReverseGeocodeAsync).toHaveBeenCalledWith({ latitude: 53.3498, longitude: -6.2603 });
   });
 });

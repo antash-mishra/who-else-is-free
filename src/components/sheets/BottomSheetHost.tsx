@@ -22,6 +22,7 @@ export type BottomSheetDescriptor = {
   closeTestID?: string;
   contentTestID?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  onOpened?: () => void;
   onClose: () => void;
 };
 
@@ -85,6 +86,7 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
           closeTestID={descriptor.closeTestID}
           contentTestID={descriptor.contentTestID}
           contentStyle={descriptor.contentStyle}
+          onOpened={descriptor.onOpened}
           onClosed={handleClosed}
         >
           {descriptor.children}
