@@ -6,6 +6,7 @@ import DescriptionIcon from '@assets/event-details/description.svg';
 import PeopleIcon from '@assets/event-details/group-type.svg';
 import LocationIcon from '@assets/event-details/location.svg';
 import TimeIcon from '@assets/event-details/time.svg';
+import { Placed } from '@components/motion';
 import UserAvatar from '@components/UserAvatar';
 import { triggerHaptic } from '@services/haptics';
 import { colors } from '@theme/index';
@@ -98,14 +99,23 @@ const EventDetailsInfo = ({
         {!readOnly && !isSingleEvent && (
           <View style={styles.goingRow} testID="going-row">
             <View style={styles.goingAvatarStack}>
+              {/* tiltMode none: overlapping circles must not rotate or the
+                  overlap reads as broken. */}
               {goingParticipants.slice(0, 3).map((participant, index) => (
-                <View
+                <Placed
                   key={`${participant.id}-${index}`}
-                  style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
-                  testID={`going-avatar-${index}`}
+                  id={`going-${participant.id}-${index}`}
+                  index={index}
+                  tiltMode="none"
+                  testID={`placed-going-${index}`}
                 >
-                  {renderAvatar(participant, 24)}
-                </View>
+                  <View
+                    style={[styles.goingAvatarItem, index > 0 && styles.goingAvatarOverlap]}
+                    testID={`going-avatar-${index}`}
+                  >
+                    {renderAvatar(participant, 24)}
+                  </View>
+                </Placed>
               ))}
               {/* "+N" overflow badge when more than 3 people are going. */}
               {goingCount > 3 && (
