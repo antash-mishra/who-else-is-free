@@ -24,8 +24,8 @@ Issue: <https://github.com/antash-mishra/who-else-is-free/issues/135>
 - `git diff --check`: passed. Complete code and test diff reviewed.
 - Backend tests not run; no backend code changed.
 
-## Native QA limitation and remaining work
+## Native QA
 
-A fresh Android build was attempted with `npx expo run:android --port 8087 --no-bundler`; prebuild failed because this checkout has no ignored `google-services.json`. An isolated synthetic sheet harness bundled successfully into the installed development client, but the emulator app became unresponsive and subsequent launch did not expose usable controls. The harness and temporary entry-point changes were removed, and its Metro process was stopped.
+Android emulator verification completed on 2026-09-05 against commit `005470e3` (AVD `WEIF_API_36`, API 36; see `TEST_RUNS.md` for the flows and `report/issue-135-assets/` for screenshots). Every issue item passed on device except the intermittent horizontal Event Details slide, which was not reproduced and stays open. iOS was not checked.
 
-The intermittent **horizontal Event Details slide** was not reproduced or changed speculatively. The verified shared-sheet entry defect above is a separate finding, not proof that the horizontal-slide report is resolved. Native checks of keyboard/footer geometry and repeated navigation on iOS and Android remain required before closing issue 135. No production deployment or issue closure was performed.
+Earlier attempts on another checkout were blocked (missing `google-services.json`, unresponsive development client); those notes remain in `TEST_RUNS.md`. The shared-sheet entry fix is a separate finding from the horizontal-slide report and is not proof that it is resolved. No production deployment or issue closure was performed.
