@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: typography.fontFamilyMedium,
     color: 'rgba(255, 255, 255, 1)',
-    letterSpacing: -0.3,
+    letterSpacing: typography.inputDetailLetterSpacing,
     lineHeight: 22,
     paddingVertical: 12,
     paddingRight: 10,

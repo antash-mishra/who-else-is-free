@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     paddingVertical: componentTokens.input.paddingVertical,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: typography.inputLetterSpacing,
     color: colors.text,
     textAlignVertical: 'top',
   },

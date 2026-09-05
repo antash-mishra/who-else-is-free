@@ -707,6 +707,74 @@ describe('ChatContext Rendering Tests', () => {
       });
     });
 
+    it('marks the approved conversation read and ignores approval-time socket messages', async () => {
+      fetchMock.mockResponse(JSON.stringify(mockApiResponses.conversations.success));
+
+      renderWithProvider();
+
+      await act(async () => {
+        await tick(10);
+      });
+
+      const ws = MockWebSocket.getLatest();
+      await act(async () => {
+        ws.simulateOpen();
+        await tick(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('conversation-unread-1')).toHaveTextContent('2');
+      });
+
+      await act(async () => {
+        ws.simulateMessage({
+          type: 'conversation:join_request',
+          conversationId: 1,
+          action: 'created',
+          request: {
+            id: 20,
+            event_id: 1,
+            user_id: 3,
+            message: 'Please let me join!',
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            requester: { id: 3, name: 'Test User' },
+          },
+        });
+        await tick(100);
+      });
+
+      // The approve response names the conversation the requester joined.
+      fetchMock.mockResponseOnce(JSON.stringify({ conversationId: 1 }));
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('approve-20'));
+        await tick(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('conversation-unread-1')).toHaveTextContent('0');
+      });
+
+      // The requester's intro arrives over the socket right after approval and
+      // must not re-flag the conversation for the approver.
+      await act(async () => {
+        ws.simulateMessage({
+          type: 'message:new',
+          message: {
+            id: 990,
+            conversationId: 1,
+            senderId: 2,
+            body: 'Thanks for accepting me!',
+            createdAt: new Date().toISOString(),
+          },
+        });
+        await tick(100);
+      });
+
+      expect(screen.getByTestId('conversation-unread-1')).toHaveTextContent('0');
+    });
+
     it('should deny join request and update state', async () => {
       fetchMock.mockResponse(JSON.stringify(mockApiResponses.conversations.success));
 

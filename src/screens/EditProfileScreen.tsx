@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 12,
     minWidth: 200,
-    letterSpacing: -0.5,
+    letterSpacing: typography.inputLetterSpacing,
   },
   // ScreenContainer already provides the 16dp horizontal screen padding, so the
   // full-width Save button matches Onboarding's Continue without extra margins.

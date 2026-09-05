@@ -150,6 +150,7 @@ Important tokens:
 - Families: `fontFamilyRegular`, `fontFamilyMedium`, `fontFamilySemiBold`, `fontFamilyBold`
 - Sizes: `header`, `title`, `subtitle`, `body`, `caption`, `small`, `cardTitle`, `cardMeta`
 - Spacing: `lineHeight`, `titleLineHeight`, `letterSpacing`, `detailLetterSpacing`
+- Inputs: `inputLetterSpacing`, `inputDetailLetterSpacing` (zero on Android so the caret does not overlap the placeholder; use these on every `TextInput`)
 
 Rule:
 

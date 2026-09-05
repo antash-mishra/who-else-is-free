@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -25,7 +26,7 @@ import { useAuth } from '@context/AuthContext';
 import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import { colors, spacing } from '@theme/index';
+import { colors, componentTokens, spacing } from '@theme/index';
 import { formatEventDetailDateLabel } from '@utils/dateTime';
 import { formatEventDetailAudienceLine } from '@utils/eventDisplay';
 
@@ -43,6 +44,29 @@ import {
   useEventDetailsData,
 } from './event-details/useEventDetailsData';
 import { useHostRequestActions } from './event-details/useHostRequestActions';
+
+// Frosted-glass backing for the floating hero buttons. Android only blurs
+// with the experimental method, and its dark tint comes out lighter than the
+// iOS material, so a translucent dark layer sits on top of the blur there.
+const HeroButtonBlur = () => (
+  <>
+    <BlurView
+      intensity={24}
+      tint="dark"
+      experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+      style={StyleSheet.absoluteFill}
+    />
+    {Platform.OS === 'android' ? (
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: componentTokens.overlay.heroButtonTint },
+        ]}
+      />
+    ) : null}
+  </>
+);
 
 const EventDetailsScreenContent = ({
   initialEventSnapshot,
@@ -287,7 +311,7 @@ const EventDetailsScreenContent = ({
             ]}
             hitSlop={12}
           >
-            <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+            <HeroButtonBlur />
             <CloseIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         ) : !readOnly ? (
@@ -301,7 +325,7 @@ const EventDetailsScreenContent = ({
               }}
               style={[styles.backButton, { top: floatingButtonTop }]}
             >
-              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+              <HeroButtonBlur />
               <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
             <Pressable
@@ -313,7 +337,7 @@ const EventDetailsScreenContent = ({
               }}
               style={[styles.menuButton, { top: floatingButtonTop }]}
             >
-              <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+              <HeroButtonBlur />
               <MoreHorizontalIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
           </>
@@ -328,7 +352,7 @@ const EventDetailsScreenContent = ({
             hitSlop={12}
             style={[styles.backButton, { top: floatingButtonTop }]}
           >
-            <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFill} />
+            <HeroButtonBlur />
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}

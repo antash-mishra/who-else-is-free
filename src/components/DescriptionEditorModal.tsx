@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     color: colors.text,
     lineHeight: 22,
-    letterSpacing: -0.3,
+    letterSpacing: typography.inputDetailLetterSpacing,
     paddingTop: 0,
   },
   footer: {

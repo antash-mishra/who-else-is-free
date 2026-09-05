@@ -31,6 +31,9 @@ export const componentTokens = {
   overlay: {
     backdrop: 'rgba(0, 0, 0, 0.4)',
     closeButtonBackground: 'rgba(120, 120, 128, 0.16)',
+    // Dark tint layered over the Android hero-button blur, which renders
+    // lighter than the iOS dark material.
+    heroButtonTint: 'rgba(0, 0, 0, 0.28)',
     destructiveProgressFill: 'rgba(0, 0, 0, 0.18)',
   },
   countBadge: {
