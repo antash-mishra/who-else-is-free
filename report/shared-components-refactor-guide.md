@@ -261,6 +261,49 @@ Rule:
 
 - If two interactions should feel the same, they should share a spring preset.
 
+File: `src/theme/motion.ts`
+
+What it is:
+
+- Scrapbook motion tokens, layered beside `springs.ts` rather than replacing it.
+  `springs.ts` values are frozen because `src/navigation/transitions.ts` is tuned
+  against them.
+
+Important tokens:
+
+- `Motion.settle`: spring for an item settling onto the page (one gentle overshoot)
+- `motionTiming.staggerStepMs` / `staggerMaxSteps`: per-item delay, capped at 6 steps
+- `motionGeometry.tiltMaxDeg` / `entryTranslateY` / `entryScaleFrom`: placed-item geometry
+
+### Motion Primitives
+
+Directory: `src/components/motion`
+
+What it is:
+
+- `Placed`: the scrapbook entry primitive. Children fade in, rise, scale up, and
+  un-tilt as they settle, like a photograph laid on a page. `tiltMode` selects
+  `entry` (settles square, right for text rows), `rest` (settles at a slight
+  angle, right for photo cards), or `none` (no rotation, right for overlapping
+  avatars).
+- `staggerDelayMs(index)`: capped entry delay for a staggered group.
+- `resetPlacedIds()`: test seam that clears the placed-once registry.
+
+Where it is used:
+
+- `EventSectionList` (Discover/My Events/Past Events rows), `EventDetailsHero`
+  (cover card), `EventDetailsInfo` (going avatars).
+
+Rules:
+
+- `Placed` animates **once per `id`**, so `SectionList` recycling, pager page
+  changes, and re-renders never replay an entry the user has already seen. Pass a
+  stable, unique `id`.
+- Every animated primitive must honour Reanimated's `useReducedMotion()` and
+  degrade to a static or opacity-only presentation.
+- Tilt angles come from `src/utils/seededRandom.ts` so they are deterministic per
+  id; the confetti engine shares that generator.
+
 ### Component-Level Style Files
 
 These are not global theme tokens, but they are still shared style owners for complex components.
