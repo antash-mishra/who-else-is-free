@@ -275,6 +275,43 @@ Important tokens:
 - `motionTiming.staggerStepMs` / `staggerMaxSteps`: per-item delay, capped at 6 steps
 - `motionGeometry.tiltMaxDeg` / `entryTranslateY` / `entryScaleFrom`: placed-item geometry
 
+### Tabbed Pager Wiring
+
+File: `src/hooks/useTabbedPages.ts`
+
+What it is:
+
+- The single wiring for a screen that pairs a tab strip with a swipeable pager,
+  so the tab indicator tracks the swipe continuously instead of snapping.
+
+Where it is used:
+
+- `HomeScreen` (Discover sort tabs), `MyEventsScreen` (Hosting/Joined/Requests).
+
+How to use it:
+
+```tsx
+const { pagerProps, tabsProps } = useTabbedPages(options, 'upcoming');
+
+<AnimatedPager {...pagerProps}>{pages}</AnimatedPager>
+<SegmentedControl {...tabsProps} />
+```
+
+Rules:
+
+- Spread the bundles. Do not pass `pageOffsetSV`, `selectedIndex` or `onChange`
+  by hand. Discover and My Events already used the same two components and the
+  indicator still drifted apart, because the offset can be handed to the pager
+  and forgotten on the tabs; spreading makes the correct wiring the only wiring.
+- Selection is tracked by value, not index. Discover's options are dynamic
+  ("Nearest" appears only with location), and an index silently points at the
+  wrong tab when the list changes length.
+- If the selected value leaves `options`, the hook falls back to the first
+  option, which replaces per-screen reset effects.
+- Memoise the options array; the hook keys its fallback off its identity.
+- `HostRequestTabs` in Event Details keeps its own direction-locked pager and is
+  deliberately not on this hook.
+
 ### Motion Primitives
 
 Directory: `src/components/motion`

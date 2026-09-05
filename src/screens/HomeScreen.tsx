@@ -11,7 +11,6 @@ import {
   RouteProp,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPager from '@components/AnimatedPager';
@@ -35,6 +34,7 @@ import { useBloom } from '@context/BloomContext';
 import { useChat } from '@context/ChatContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
 import { usePush } from '@context/PushContext';
+import { useTabbedPages } from '@hooks/useTabbedPages';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
@@ -87,8 +87,6 @@ const HomeScreen = () => {
   const requestLocationPermission = viewerLocation.requestPermission;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const [selectedSort, setSelectedSort] = useState<SortOptionValue>('upcoming');
-  const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
   const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, 245);
@@ -162,27 +160,9 @@ const HomeScreen = () => {
     () => (hasViewerLocation ? locationSortOptions : baseSortOptions),
     [hasViewerLocation],
   );
-  const selectedPage = Math.max(
-    0,
-    sortOptions.findIndex((option) => option.value === selectedSort),
-  );
-  const handlePageChange = useCallback(
-    (index: number) => {
-      setSelectedSort(sortOptions[index]?.value ?? 'upcoming');
-    },
-    [sortOptions],
-  );
-
-  const resetUnavailableSort = useCallback(() => {
-    setSelectedSort('upcoming');
-  }, []);
-
-  useEffect(() => {
-    if (!hasViewerLocation && selectedSort === 'nearest') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Keep selected sort valid when the location-only option disappears.
-      resetUnavailableSort();
-    }
-  }, [hasViewerLocation, resetUnavailableSort, selectedSort]);
+  // The hook drops back to Upcoming on its own when Nearest disappears with
+  // location permission, so no bespoke reset effect is needed here.
+  const { pagerProps, tabsProps } = useTabbedPages(sortOptions, 'upcoming');
 
   const discoverableEvents = useMemo(() => {
     if (viewerLocation.isLoading) {
@@ -338,13 +318,7 @@ const HomeScreen = () => {
             topPadding={headerHeight}
           />
         ) : (
-          <AnimatedPager
-            selectedIndex={selectedPage}
-            onPageChange={handlePageChange}
-            pageOffsetSV={pageOffset}
-            style={styles.pager}
-            isActive={isFocused}
-          >
+          <AnimatedPager {...pagerProps} style={styles.pager} isActive={isFocused}>
             <EventListPage
               sections={upcomingSections}
               onEventPress={handleEventPress}
@@ -388,15 +362,7 @@ const HomeScreen = () => {
             <Text style={styles.headerTitle}>Discover</Text>
           </View>
           <View style={styles.filtersRow}>
-            <SegmentedControl
-              options={sortOptions}
-              pageOffsetSV={pageOffset}
-              value={sortOptions[selectedPage].value}
-              onChange={(value) => {
-                const index = sortOptions.findIndex((o) => o.value === value);
-                setSelectedSort(sortOptions[index]?.value ?? 'upcoming');
-              }}
-            />
+            <SegmentedControl {...tabsProps} />
           </View>
         </View>
       </View>

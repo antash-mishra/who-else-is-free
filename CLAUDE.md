@@ -75,6 +75,12 @@ Use shared primitives before local UI:
 - `IconButton` supports a compact visual size with an explicit shared hit-slop token when a header must keep the standard touch target without inheriting the button's layout height.
 - Sheets: `src/components/sheets`, `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`
 - Event lists: `src/components/events`, including `EventListLoadState` for the shared full-page loading/error/retry presentation
+- Tabbed pager wiring: `useTabbedPages` in `src/hooks/useTabbedPages.ts`. Spread `pagerProps` onto
+  `AnimatedPager` and `tabsProps` onto `SegmentedControl` instead of passing `pageOffsetSV`,
+  `selectedIndex` and `onChange` separately, so the tab indicator cannot stop tracking the pager.
+  Selection is by value, not index (Discover's options are dynamic), and the hook falls back to the
+  first option when the selected one disappears. `HostRequestTabs` keeps its own frozen pager and
+  stays off this hook.
 - Empty states: `EmptyState`
 - Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
 - Motion tokens: `src/theme/motion.ts`, layered beside the frozen `src/theme/springs.ts` (the four

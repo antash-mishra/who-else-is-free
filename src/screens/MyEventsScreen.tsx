@@ -11,7 +11,6 @@ import {
   useIsFocused,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPager from '@components/AnimatedPager';
@@ -31,6 +30,7 @@ import SignInButtons from '@components/SignInButtons';
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
+import { useTabbedPages } from '@hooks/useTabbedPages';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { colors, spacing, typography } from '@theme/index';
 
@@ -64,8 +64,6 @@ const MyEventsScreen = () => {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, MY_EVENTS_EMPTY_IMAGE_HEIGHT);
-  const [selectedPage, setSelectedPage] = useState(0);
-  const pageOffset = useSharedValue(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
@@ -128,6 +126,17 @@ const MyEventsScreen = () => {
     [userEvents.length, joinedEvents.length, requestedEvents.length],
   );
 
+  const filterOptions: SegmentedOption[] = useMemo(
+    () => [
+      { label: 'Hosting', value: 'hosting', count: counts.hosting },
+      { label: 'Joined', value: 'joined', count: counts.joined },
+      { label: 'Requests', value: 'requested', count: counts.requested },
+    ],
+    [counts.hosting, counts.joined, counts.requested],
+  );
+
+  const { index: selectedPage, pagerProps, tabsProps } = useTabbedPages(filterOptions, 'hosting');
+
   const handleRefresh = useCallback(() => {
     if (selectedPage === 2) {
       setIsRequestedRefreshing(true);
@@ -148,12 +157,6 @@ const MyEventsScreen = () => {
     },
     [navigation],
   );
-
-  const filterOptions: SegmentedOption[] = [
-    { label: 'Hosting', value: 'hosting', count: counts.hosting },
-    { label: 'Joined', value: 'joined', count: counts.joined },
-    { label: 'Requests', value: 'requested', count: counts.requested },
-  ];
 
   const [signInVisible, setSignInVisible] = useState(false);
   const showInitialLoading = isLoading && events.length === 0 && !hasLoadedOnce;
@@ -205,13 +208,7 @@ const MyEventsScreen = () => {
               topPadding={headerHeight}
             />
           ) : (
-            <AnimatedPager
-              selectedIndex={selectedPage}
-              onPageChange={setSelectedPage}
-              pageOffsetSV={pageOffset}
-              style={styles.pager}
-              isActive={isFocused}
-            >
+            <AnimatedPager {...pagerProps} style={styles.pager} isActive={isFocused}>
               <EventListPage
                 sections={hostingSections}
                 onEventPress={handleEventPress}
@@ -278,14 +275,7 @@ const MyEventsScreen = () => {
               <Text style={styles.headerTitle}>My plans</Text>
             </View>
             <View style={styles.filterRow}>
-              <SegmentedControl
-                options={filterOptions}
-                value={filterOptions[selectedPage].value}
-                onChange={(value) => {
-                  const index = filterOptions.findIndex((o) => o.value === value);
-                  setSelectedPage(index);
-                }}
-              />
+              <SegmentedControl {...tabsProps} />
             </View>
           </View>
 
