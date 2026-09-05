@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   AccessibilityRole,
   AccessibilityState,
@@ -12,7 +12,9 @@ import {
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { HapticFeedback, triggerHaptic } from '@services/haptics';
+import { motionGeometry } from '@theme/motion';
 import { Springs } from '@theme/springs';
+import { seedFromString, seededRand } from '@utils/seededRandom';
 
 type ScalePressableProps = {
   onPress: () => void;
@@ -32,6 +34,10 @@ type ScalePressableProps = {
   haptic?: HapticFeedback;
   testID?: string;
   onLayout?: (e: LayoutChangeEvent) => void;
+  /** Adds a small scrapbook counter-rotation alongside the press scale. */
+  tilt?: boolean;
+  /** Stable seed for the tilt angle. Falls back to testID, then to the label. */
+  tiltSeed?: string;
 };
 
 const ScalePressable = ({
@@ -49,9 +55,22 @@ const ScalePressable = ({
   haptic = 'none',
   testID,
   onLayout,
+  tilt = false,
+  tiltSeed,
 }: ScalePressableProps) => {
   const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const rotation = useSharedValue(0);
+  const tiltAngle = useMemo(() => {
+    if (!tilt) return 0;
+    const seed = tiltSeed ?? testID ?? accessibilityLabel ?? 'scale-pressable';
+    return (seededRand(seedFromString(seed)) * 2 - 1) * motionGeometry.tiltMaxDeg;
+  }, [accessibilityLabel, testID, tilt, tiltSeed]);
+
+  const animStyle = useAnimatedStyle(() =>
+    tilt
+      ? { transform: [{ scale: scale.value }, { rotate: `${rotation.value}deg` }] }
+      : { transform: [{ scale: scale.value }] },
+  );
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   return (
@@ -74,9 +93,11 @@ const ScalePressable = ({
         if (delay > 0) {
           pressTimer.current = setTimeout(() => {
             scale.value = withSpring(0.96, Springs.snappy);
+            rotation.value = withSpring(tiltAngle, Springs.snappy);
           }, delay);
         } else {
           scale.value = withSpring(0.96, Springs.snappy);
+          rotation.value = withSpring(tiltAngle, Springs.snappy);
         }
       }}
       onPressOut={() => {
@@ -85,9 +106,12 @@ const ScalePressable = ({
           pressTimer.current = null;
         }
         scale.value = withSpring(1, Springs.press);
+        rotation.value = withSpring(0, Springs.press);
       }}
     >
-      <Animated.View style={[style, animStyle]}>{children}</Animated.View>
+      <Animated.View style={[style, animStyle]} testID={testID ? `${testID}-content` : undefined}>
+        {children}
+      </Animated.View>
     </Pressable>
   );
 };

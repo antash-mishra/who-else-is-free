@@ -55,6 +55,8 @@ const EventCardRow = <TItem extends EventItemProps>({
       onPress(item);
     }}
     delay={80}
+    tilt
+    tiltSeed={item.id}
   >
     <EventCard {...item} />
   </ScalePressable>
