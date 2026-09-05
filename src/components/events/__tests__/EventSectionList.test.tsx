@@ -44,9 +44,7 @@ describe('EventSectionList', () => {
   });
 
   it('still renders the event titles', () => {
-    const { getByText } = render(
-      <EventSectionList sections={sections} onEventPress={jest.fn()} />,
-    );
+    const { getByText } = render(<EventSectionList sections={sections} onEventPress={jest.fn()} />);
     expect(getByText('Pub quiz')).toBeTruthy();
     expect(getByText('Five-a-side')).toBeTruthy();
   });

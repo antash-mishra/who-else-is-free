@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability -- Reanimated press feedback mutates shared values from press handlers. */
 import { useMemo, useRef } from 'react';
 import {
   AccessibilityRole,

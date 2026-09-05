@@ -390,6 +390,7 @@ const HomeScreen = () => {
           <View style={styles.filtersRow}>
             <SegmentedControl
               options={sortOptions}
+              pageOffsetSV={pageOffset}
               value={sortOptions[selectedPage].value}
               onChange={(value) => {
                 const index = sortOptions.findIndex((o) => o.value === value);
