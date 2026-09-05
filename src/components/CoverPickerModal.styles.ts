@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     color: colors.text,
     padding: 0,
-    letterSpacing: typography.detailLetterSpacing,
+    letterSpacing: typography.inputDetailLetterSpacing,
   },
   chipsRow: {
     flexGrow: 0,

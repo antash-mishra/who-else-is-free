@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 12,
     minWidth: 200,
-    letterSpacing: -0.5,
+    letterSpacing: typography.inputLetterSpacing,
   },
   // Gender options
   genderOptions: {

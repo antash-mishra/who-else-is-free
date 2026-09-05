@@ -1040,6 +1040,18 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 		log.Printf("post join announcement failed: %v", err)
 	}
 
+	// The approver already read the requester's intro (it was the join
+	// request they just accepted) and triggered the announcement, so advance
+	// their read cursor past both. Otherwise the conversation surfaces as
+	// unread in their inbox for content they authored the decision on.
+	if latest, err := h.repo.ListMessages(ctx, convo.ID, 1, 0); err != nil {
+		log.Printf("load latest message after approval failed: %v", err)
+	} else if len(latest) > 0 {
+		if err := h.repo.UpdateReadState(ctx, convo.ID, claims.UserID, latest[0].ID); err != nil {
+			log.Printf("update read state after approval failed: %v", err)
+		}
+	}
+
 	// Push: notify the requester they were approved
 	h.hub.recordAndSendPushToUser(userID, map[string]string{
 		"type":           NotificationTypeJoinRequestApproved,

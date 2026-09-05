@@ -91,14 +91,25 @@ const ChatComposer = ({
   </View>
 );
 
-interface AndroidKeyboardComposerProps extends ComposerProps {
-  safeAreaBottom: number;
-}
-
-const AndroidKeyboardComposer = ({ safeAreaBottom, ...props }: AndroidKeyboardComposerProps) => {
-  const translateY = useRef(new Animated.Value(0)).current;
+/**
+ * Android keyboard handling for the thread. The window is kept in
+ * ADJUST_NOTHING so the header stays put, and the thread body gets bottom
+ * padding equal to the keyboard lift instead. That pushes the composer up and
+ * shrinks the message list together, so the latest messages stay visible and
+ * scrollable above the composer while typing.
+ */
+const useAndroidKeyboardLift = (safeAreaBottom: number, onSettled: () => void) => {
+  const lift = useRef(new Animated.Value(0)).current;
+  const onSettledRef = useRef(onSettled);
 
   useEffect(() => {
+    onSettledRef.current = onSettled;
+  }, [onSettled]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return undefined;
+    }
     KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING);
 
     const showSub = KeyboardEvents.addListener('keyboardWillShow', (event) => {
@@ -106,20 +117,24 @@ const AndroidKeyboardComposer = ({ safeAreaBottom, ...props }: AndroidKeyboardCo
         keyboardHeight: event.height,
         safeAreaBottom,
       });
-      Animated.timing(translateY, {
-        toValue: -(keyboardTranslation + ANDROID_KEYBOARD_GAP),
+      Animated.timing(lift, {
+        toValue: keyboardTranslation + ANDROID_KEYBOARD_GAP,
         duration: event.duration || 250,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: false,
+      }).start(({ finished }) => {
+        if (finished) {
+          onSettledRef.current();
+        }
+      });
     });
 
     const hideSub = KeyboardEvents.addListener('keyboardWillHide', (event) => {
-      Animated.timing(translateY, {
+      Animated.timing(lift, {
         toValue: 0,
         duration: event.duration || 250,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     });
 
@@ -128,13 +143,9 @@ const AndroidKeyboardComposer = ({ safeAreaBottom, ...props }: AndroidKeyboardCo
       hideSub.remove();
       KeyboardController.setDefaultMode();
     };
-  }, [safeAreaBottom, translateY]);
+  }, [lift, safeAreaBottom]);
 
-  return (
-    <Animated.View style={{ transform: [{ translateY }] }}>
-      <ChatComposer {...props} />
-    </Animated.View>
-  );
+  return lift;
 };
 
 const ChatThreadScreen = () => {
@@ -159,6 +170,10 @@ const ChatThreadScreen = () => {
 
   const [draft, setDraft] = useState('');
   const messagesListRef = useRef<FlatList<ChatMessage>>(null);
+  const scrollMessagesToEnd = useCallback(() => {
+    messagesListRef.current?.scrollToEnd({ animated: true });
+  }, []);
+  const androidKeyboardLift = useAndroidKeyboardLift(insets.bottom, scrollMessagesToEnd);
 
   const activeConversation = useMemo(
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
@@ -675,7 +690,7 @@ const ChatThreadScreen = () => {
         </KeyboardAvoidingView>
       ) : (
         <View style={styles.threadContainer}>
-          <View style={styles.threadBody}>
+          <Animated.View style={[styles.threadBody, { paddingBottom: androidKeyboardLift }]}>
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <FlatList
               data={messages}
@@ -688,8 +703,8 @@ const ChatThreadScreen = () => {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             />
-            <AndroidKeyboardComposer {...composerProps} safeAreaBottom={insets.bottom} />
-          </View>
+            <ChatComposer {...composerProps} />
+          </Animated.View>
         </View>
       )}
       <EventActionOverlay
@@ -858,7 +873,7 @@ const styles = StyleSheet.create({
     paddingRight: spacing.sm,
     fontFamily: typography.fontFamilyRegular,
     fontSize: 15,
-    letterSpacing: -0.3,
+    letterSpacing: typography.inputDetailLetterSpacing,
   },
   sendIconButton: {
     width: 32,

@@ -103,6 +103,9 @@ type MessagesResponse = {
   }>;
 };
 
+// How long approval-generated messages stay exempt from unread counting.
+const RECENTLY_APPROVED_GRACE_MS = 15_000;
+
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const { user, token, refreshSessionSilently, authFetch } = useAuth();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -127,6 +130,11 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const refreshSessionSilentlyRef = useRef(refreshSessionSilently);
   const conversationsRefreshRequestIdRef = useRef(0);
   const joinRequestsRefreshRequestIdRef = useRef<Record<number, number>>({});
+  // Conversations the viewer just approved a request into, keyed by id with
+  // an expiry. Messages the server posts as part of that approval (the
+  // requester's intro, the join announcement) are not unread for the
+  // approver, but they can arrive over the socket before the approve response.
+  const recentlyApprovedConversationsRef = useRef<Map<number, number>>(new Map());
 
   useEffect(() => {
     activeConversationRef.current = activeConversationId;
@@ -393,7 +401,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (!activeToken) {
         throw new Error('Not authenticated');
       }
-      await requestJson(path, {
+      const response = await requestJson<{ conversationId?: number }>(path, {
         method: 'POST',
         token: activeToken,
         timeoutMs: null,
@@ -401,6 +409,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         errorMessage:
           action === 'approve' ? 'Unable to approve join request.' : 'Unable to deny join request.',
       });
+      const approvedConversationId =
+        action === 'approve' && typeof response?.conversationId === 'number'
+          ? response.conversationId
+          : null;
+      if (approvedConversationId != null) {
+        const now = Date.now();
+        const recentlyApproved = recentlyApprovedConversationsRef.current;
+        for (const [id, expiresAt] of recentlyApproved) {
+          if (expiresAt <= now) {
+            recentlyApproved.delete(id);
+          }
+        }
+        recentlyApproved.set(approvedConversationId, now + RECENTLY_APPROVED_GRACE_MS);
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === approvedConversationId
+              ? { ...conversation, unreadCount: 0 }
+              : conversation,
+          ),
+        );
+      }
       setJoinRequestsByConversation((prev) => {
         const eventScopedKey = -eventId;
         const existingByConversation = prev[conversationId] ?? [];
@@ -538,6 +567,10 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
             pending: false,
             tempId: envelope.tempId,
           };
+          const approvedUntil = recentlyApprovedConversationsRef.current.get(
+            message.conversationId,
+          );
+          const isRecentlyApproved = approvedUntil != null && approvedUntil > Date.now();
           const updated = prev.map((conversation) =>
             conversation.id === message.conversationId
               ? {
@@ -546,7 +579,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
                   unreadCount:
                     message.kind === 'system' ||
                     message.senderId === currentUserId ||
-                    conversation.id === currentActiveConversationId
+                    conversation.id === currentActiveConversationId ||
+                    isRecentlyApproved
                       ? 0
                       : (conversation.unreadCount ?? 0) + 1,
                 }

@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontFamily: typography.fontFamilyRegular,
-    letterSpacing: typography.letterSpacing,
+    letterSpacing: typography.inputLetterSpacing,
   },
   singleLine: {
     height: componentTokens.input.height,

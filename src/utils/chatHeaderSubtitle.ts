@@ -8,7 +8,7 @@ interface EventScheduleLike {
 /**
  * Resolve a display-ready absolute date label for a header subtitle.
  *
- * Prefers a compact absolute label (e.g. "08 Jun Mon") derived from the
+ * Prefers a compact absolute label (e.g. "08 Jun, Mon") derived from the
  * event date; falls back to the legacy short label (e.g. "Today"/"Tmrw")
  * when no event date is available.
  */
@@ -59,7 +59,7 @@ export interface OneToOneSubtitleOptions {
 /**
  * Build the 1:1 chat window subtitle:
  *
- *   "Coffee, 08 Jun Mon"
+ *   "Coffee, 08 Jun, Mon"
  *
  * Falls back to the plan name when no schedule exists.
  */

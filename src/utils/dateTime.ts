@@ -211,7 +211,7 @@ export const formatAbsoluteDateLabel = (eventDate: string): string => {
     const day = `${parsed.getDate()}`.padStart(2, "0");
     const month = parsed.toLocaleString("en-US", { month: "short" });
     const weekday = parsed.toLocaleString("en-US", { weekday: "short" });
-    return `${day} ${month} ${weekday}`;
+    return `${day} ${month}, ${weekday}`;
 };
 
 const formatPickerDateLabel = (

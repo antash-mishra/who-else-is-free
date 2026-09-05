@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
         fontFamily: typography.fontFamilyRegular,
         color: "#1C1C1E",
         padding: 0,
-        letterSpacing: -0.3,
+        letterSpacing: typography.inputDetailLetterSpacing,
     },
     resultsList: {
         flex: 1,
