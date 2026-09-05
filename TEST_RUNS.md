@@ -201,12 +201,12 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 
 ### Discover scroll (12 swipes)
 
-| Run | Janky | 90th | 99th | Slow UI thread |
-| --- | --- | --- | --- | --- |
-| A: feature branch | 25 (9.09%) | 34 ms | 121 ms | 25 |
-| B: `master` | 3 (0.79%) | 16 ms | 25 ms | 2 |
-| C: branch minus `Placed` on rows | 3 (0.81%) | 16 ms | 24 ms | 3 |
-| D: branch with `Placed` fixed | 2 (0.54%) | 16 ms | 28 ms | 2 |
+| Run                              | Janky      | 90th  | 99th   | Slow UI thread |
+| -------------------------------- | ---------- | ----- | ------ | -------------- |
+| A: feature branch                | 25 (9.09%) | 34 ms | 121 ms | 25             |
+| B: `master`                      | 3 (0.79%)  | 16 ms | 25 ms  | 2              |
+| C: branch minus `Placed` on rows | 3 (0.81%)  | 16 ms | 24 ms  | 3              |
+| D: branch with `Placed` fixed    | 2 (0.54%)  | 16 ms | 28 ms  | 2              |
 
 - Run C isolates it: removing only the `Placed` wrapper restores `master` behaviour while the `ScalePressable` tilt stays in place, so the tilt is not implicated.
 - Root cause: `Placed` left a `useReducedMotion` hook, a shared value, a worklet style, and an extra native `Animated.View` attached to every row for the life of the list, and `SectionList` remounts those constantly while recycling. The animation is one-shot; the machinery was not.
@@ -214,21 +214,21 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 
 ### Tab navigation (Discover → My plans → Chats → Profile ×3)
 
-| Run | Janky | 90th | 99th |
-| --- | --- | --- | --- |
-| `master`, debug build | 39 (6.40%) | 20 ms | 69 ms |
-| Branch, debug build | 48 (8.32%) | 27 ms | 85 ms |
-| Branch, tilt neutralised | 47 (8.05%) | 23 ms | 85 ms |
+| Run                       | Janky      | 90th  | 99th  |
+| ------------------------- | ---------- | ----- | ----- |
+| `master`, debug build     | 39 (6.40%) | 20 ms | 69 ms |
+| Branch, debug build       | 48 (8.32%) | 27 ms | 85 ms |
+| Branch, tilt neutralised  | 47 (8.05%) | 23 ms | 85 ms |
 | Branch, battery saver off | 43 (7.00%) | 20 ms | 69 ms |
 
 - Tab navigation is janky on `master` too. Across runs the count moved 39/43/47/48 out of ~600 frames, so the branch delta sits inside run-to-run noise rather than being a distinct regression. Neutralising the `ScalePressable` tilt changed nothing (48 → 47).
 
 ### Release build (same device, same battery-saver state)
 
-| Interaction | Debug | Release |
-| --- | --- | --- |
+| Interaction     | Debug       | Release                                |
+| --------------- | ----------- | -------------------------------------- |
 | Discover scroll | 0.54% janky | **0.00%** (0 janky frames, 99th 15 ms) |
-| Tab navigation | 8.32% janky | **2.94%** (99th 48 ms) |
+| Tab navigation  | 8.32% janky | **2.94%** (99th 48 ms)                 |
 
 - The debug/dev-client build was the dominant contributor to the remaining perceived jank; a release build of the same commit removes it. Battery saver is a smaller secondary factor (scroll 0.54% → 0.26% with it off).
 - Final: the one genuine regression (`Placed` on list rows) is fixed and now measures better than `master`; residual tab-navigation jank is pre-existing and largely a dev-build artifact.
