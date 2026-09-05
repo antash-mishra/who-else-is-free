@@ -171,10 +171,8 @@ export const mockFirebaseAnalyticsModule = {
     ) => analyticsInstance.logEvent(eventName, params),
   ),
   setDefaultEventParameters: jest.fn(
-    (
-      analyticsInstance: typeof mockFirebaseAnalytics,
-      params?: Record<string, unknown>,
-    ) => analyticsInstance.setDefaultEventParameters(params),
+    (analyticsInstance: typeof mockFirebaseAnalytics, params?: Record<string, unknown>) =>
+      analyticsInstance.setDefaultEventParameters(params),
   ),
 };
 
@@ -194,9 +192,7 @@ export const mockFirebaseMessaging = {
   hasPermission: jest.fn().mockResolvedValue(1),
   isDeviceRegisteredForRemoteMessages: true,
   onMessage: jest.fn((_listener: (remoteMessage: unknown) => unknown) => jest.fn()),
-  onNotificationOpenedApp: jest.fn(
-    (_listener: (remoteMessage: unknown) => unknown) => jest.fn(),
-  ),
+  onNotificationOpenedApp: jest.fn((_listener: (remoteMessage: unknown) => unknown) => jest.fn()),
   onTokenRefresh: jest.fn((_listener: (token: string) => unknown) => jest.fn()),
   registerDeviceForRemoteMessages: jest.fn().mockResolvedValue(undefined),
   requestPermission: jest.fn().mockResolvedValue(1),
@@ -238,14 +234,11 @@ export const mockFirebaseMessagingModule = {
     ) => messagingInstance.onNotificationOpenedApp(listener),
   ),
   onTokenRefresh: jest.fn(
-    (
-      messagingInstance: typeof mockFirebaseMessaging,
-      listener: (token: string) => unknown,
-    ) => messagingInstance.onTokenRefresh(listener),
+    (messagingInstance: typeof mockFirebaseMessaging, listener: (token: string) => unknown) =>
+      messagingInstance.onTokenRefresh(listener),
   ),
-  registerDeviceForRemoteMessages: jest.fn(
-    (messagingInstance: typeof mockFirebaseMessaging) =>
-      messagingInstance.registerDeviceForRemoteMessages(),
+  registerDeviceForRemoteMessages: jest.fn((messagingInstance: typeof mockFirebaseMessaging) =>
+    messagingInstance.registerDeviceForRemoteMessages(),
   ),
   requestPermission: jest.fn((messagingInstance: typeof mockFirebaseMessaging) =>
     messagingInstance.requestPermission(),
@@ -373,7 +366,9 @@ jest.mock('react-native-reanimated', () => {
     ScrollView,
     createAnimatedComponent,
     makeMutable: (value: unknown) => ({ value }),
-    useSharedValue: (value: unknown) => ({ value }),
+    // Real shared values are referentially stable across renders; mirror that so
+    // hooks that list them as dependencies do not re-run on every render.
+    useSharedValue: (value: unknown) => React.useRef({ value }).current,
     useDerivedValue: (factory: () => unknown) => ({ value: factory() }),
     useAnimatedStyle: (factory: () => object) => factory(),
     useAnimatedKeyboard: () => ({ height: { value: 0 } }),

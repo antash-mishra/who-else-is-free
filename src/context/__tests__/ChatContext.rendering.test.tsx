@@ -458,6 +458,57 @@ describe('ChatContext Rendering Tests', () => {
     });
   });
 
+  describe('Server event subscription', () => {
+    const ServerEventProbe = ({ onEvent }: { onEvent: (type: string) => void }) => {
+      const { subscribeToServerEvents } = useChat();
+      React.useEffect(
+        () => subscribeToServerEvents((envelope) => onEvent(envelope.type)),
+        [onEvent, subscribeToServerEvents],
+      );
+      return null;
+    };
+
+    it('delivers socket:open and unhandled frames such as notification:new to subscribers', async () => {
+      fetchMock.mockResponse(JSON.stringify(mockApiResponses.conversations.success));
+      const onEvent = jest.fn();
+
+      const { unmount } = render(
+        <ChatProvider>
+          <ServerEventProbe onEvent={onEvent} />
+        </ChatProvider>,
+      );
+
+      await act(async () => {
+        await tick(10);
+      });
+
+      const ws = MockWebSocket.getLatest();
+      await act(async () => {
+        ws.simulateOpen();
+        await tick(50);
+      });
+      expect(onEvent).toHaveBeenCalledWith('socket:open');
+
+      await act(async () => {
+        ws.simulateMessage({
+          type: 'notification:new',
+          notification: { id: 1, type: 'join_request.created', title: 'x', body: 'y' },
+        });
+        await tick(50);
+      });
+      expect(onEvent).toHaveBeenCalledWith('notification:new');
+
+      // Unsubscribe on unmount: further frames are not delivered.
+      const callsBefore = onEvent.mock.calls.length;
+      unmount();
+      await act(async () => {
+        ws.simulateMessage({ type: 'notification:new', notification: { id: 2 } });
+        await tick(20);
+      });
+      expect(onEvent.mock.calls.length).toBe(callsBefore);
+    });
+  });
+
   describe('WebSocket Message Handling', () => {
     it('should handle message:new event and update conversations', async () => {
       fetchMock.mockResponse(JSON.stringify(mockApiResponses.conversations.success));

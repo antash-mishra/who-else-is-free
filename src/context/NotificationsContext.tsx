@@ -10,9 +10,15 @@ import {
 } from 'react';
 
 import { requestJson } from '@api/client';
-import { ApiNotification, AppNotification, mapNotifications } from '@api/mappers/notifications';
+import {
+  ApiNotification,
+  AppNotification,
+  mapNotification,
+  mapNotifications,
+} from '@api/mappers/notifications';
 import { NotificationActionResolution } from '@api/notifications';
 import { useAuth } from '@context/AuthContext';
+import { useChat } from '@context/ChatContext';
 import { logger } from '@services/logger';
 
 const PAGE_SIZE = 20;
@@ -33,12 +39,25 @@ type NotificationsContextValue = {
   applyActionResolution: (ids: number[], resolution: NotificationActionResolution) => void;
   markAllRead: () => Promise<void>;
   clearAll: () => Promise<void>;
+  /**
+   * Observe notifications that arrive live over the WebSocket (after they have
+   * been merged into `notifications`). Used by the foreground banner host.
+   * Returns an unsubscribe function.
+   */
+  subscribeToIncomingNotifications: (listener: IncomingNotificationListener) => () => void;
 };
+
+export type IncomingNotificationListener = (notification: AppNotification) => void;
+
+/** True when a row contributes to the server's unread count. */
+const countsAsUnread = (notification: AppNotification) =>
+  !notification.read && notification.actionState === 'active';
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 export const NotificationsProvider = ({ children }: { children: ReactNode }) => {
   const { user, token } = useAuth();
+  const { subscribeToServerEvents } = useChat();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -48,6 +67,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
   const canFetch = !!token;
   const offsetRef = useRef(0);
   const exhaustedRef = useRef(false);
+  const incomingListenersRef = useRef(new Set<IncomingNotificationListener>());
 
   const fetchUnreadCount = useCallback(async () => {
     if (!canFetch) {
@@ -131,6 +151,65 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
   }, [canFetch, refreshing, loading, token]);
 
   const refreshUnreadCount = fetchUnreadCount;
+
+  const subscribeToIncomingNotifications = useCallback((listener: IncomingNotificationListener) => {
+    incomingListenersRef.current.add(listener);
+    return () => {
+      incomingListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  // Mirror of `notifications` readable from socket callbacks without stale
+  // closures; refreshed after every commit.
+  const notificationsRef = useRef<AppNotification[]>(notifications);
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
+
+  // Merge a row delivered live over the WebSocket (`notification:new`). The
+  // frame carries the full inbox view, so no follow-up fetch is needed. Rows
+  // already present (e.g. fetched by a concurrent refresh) are left untouched.
+  const ingestIncoming = useCallback((raw: ApiNotification) => {
+    const row = mapNotification(raw);
+    if (notificationsRef.current.some((n) => n.id === row.id)) {
+      return;
+    }
+    setNotifications((prev) => {
+      if (prev.some((n) => n.id === row.id)) {
+        return prev;
+      }
+      // Keep offset pagination aligned: the next page starts one row later.
+      offsetRef.current += 1;
+      return [row, ...prev];
+    });
+    if (countsAsUnread(row)) {
+      setUnreadCount((prev) => prev + 1);
+    }
+    incomingListenersRef.current.forEach((listener) => {
+      try {
+        listener(row);
+      } catch (err) {
+        logger.warn('notifications: incoming listener failed', err);
+      }
+    });
+  }, []);
+
+  // Live inbox: `notification:new` prepends the row; `socket:open` re-syncs the
+  // count so a reconnect gap cannot leave the bell stale.
+  useEffect(() => {
+    if (!canFetch) {
+      return undefined;
+    }
+    return subscribeToServerEvents((envelope) => {
+      if (envelope.type === 'notification:new' && envelope.notification) {
+        ingestIncoming(envelope.notification);
+        return;
+      }
+      if (envelope.type === 'socket:open') {
+        fetchUnreadCount().catch(() => undefined);
+      }
+    });
+  }, [canFetch, fetchUnreadCount, ingestIncoming, subscribeToServerEvents]);
 
   const markRead = useCallback(
     async (id: number) => {
@@ -258,6 +337,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       applyActionResolution,
       markAllRead,
       clearAll,
+      subscribeToIncomingNotifications,
     }),
     [
       notifications,
@@ -272,6 +352,7 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       applyActionResolution,
       markAllRead,
       clearAll,
+      subscribeToIncomingNotifications,
     ],
   );
 

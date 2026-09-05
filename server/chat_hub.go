@@ -27,6 +27,7 @@ type ChatHub struct {
 	broadcast     chan chatBroadcast                 // queue of conversation payloads to fan back out
 	membership    chan membershipUpdate              // join/leave notifications from the HTTP layer
 	presence      chan presenceUpdate                // presence updates from readPump goroutines
+	direct        chan userDirectMessage             // per-user frames (inbox notifications) from HTTP/push goroutines
 	subscriptions map[int64]map[*ChatClient]struct{} // conversationID -> live clients in that room
 	clientsByUser map[int64]map[*ChatClient]struct{} // userID -> live sockets for that user
 	activeConvos  map[int64]int64                    // userID -> activeConversationID (for push suppression)
@@ -47,6 +48,21 @@ type membershipUpdate struct {
 type presenceUpdate struct {
 	userID               int64
 	activeConversationID int64 // 0 means cleared
+}
+
+// userDirectMessage is a frame addressed to every live socket of one user,
+// independent of conversation subscriptions.
+type userDirectMessage struct {
+	userID  int64
+	payload []byte
+}
+
+// notificationEvent is the `notification:new` frame emitted whenever an inbox
+// row is persisted for a user. It carries the same view the REST inbox returns
+// so the client can prepend it without a follow-up fetch.
+type notificationEvent struct {
+	Type         string           `json:"type"`
+	Notification NotificationView `json:"notification"`
 }
 
 type membershipEvent struct {
@@ -137,6 +153,7 @@ func NewChatHub(repo *EventRepository, signer *tokenSigner, pushSender PushSende
 		broadcast:     make(chan chatBroadcast),
 		membership:    make(chan membershipUpdate, 16),
 		presence:      make(chan presenceUpdate, 16),
+		direct:        make(chan userDirectMessage, 64),
 		subscriptions: make(map[int64]map[*ChatClient]struct{}),
 		clientsByUser: make(map[int64]map[*ChatClient]struct{}),
 		activeConvos:  make(map[int64]int64),
@@ -189,6 +206,10 @@ func (h *ChatHub) Run() {
 			} else {
 				h.activeConvos[p.userID] = p.activeConversationID
 			}
+		case m := <-h.direct:
+			// Per-user frames (e.g. `notification:new`) are delivered to every
+			// live socket for that user, regardless of conversation membership.
+			h.pushToUser(m.userID, m.payload)
 		}
 	}
 }
@@ -225,6 +246,55 @@ func (h *ChatHub) pushToConversation(conversationID int64, payload []byte) {
 	}
 	if len(subs) == 0 {
 		delete(h.subscriptions, conversationID)
+	}
+}
+
+// pushToUser fans a payload out to every live socket of one user. Must run on
+// the hub goroutine (it reads clientsByUser). Slow sockets are dropped the same
+// way pushToConversation drops them.
+func (h *ChatHub) pushToUser(userID int64, payload []byte) {
+	peers := h.clientsByUser[userID]
+	if peers == nil {
+		return
+	}
+	for client := range peers {
+		select {
+		case client.send <- payload:
+		default:
+			close(client.send)
+			for conversationID := range client.subscriptions {
+				if subs, ok := h.subscriptions[conversationID]; ok {
+					delete(subs, client)
+					if len(subs) == 0 {
+						delete(h.subscriptions, conversationID)
+					}
+				}
+			}
+			h.detachClient(client)
+		}
+	}
+}
+
+// emitNotificationNew enqueues a `notification:new` frame for the row's owner.
+// Safe to call from any goroutine; never blocks the caller (a full queue logs
+// and drops, since the inbox row is already persisted and the REST inbox and
+// the foreground count refresh remain as reconciliation paths).
+func (h *ChatHub) emitNotificationNew(n Notification) {
+	if h == nil || n.UserID <= 0 {
+		return
+	}
+	payload, err := json.Marshal(notificationEvent{
+		Type:         "notification:new",
+		Notification: toNotificationView(n),
+	})
+	if err != nil {
+		log.Printf("notifications: marshal notification:new failed: %v", err)
+		return
+	}
+	select {
+	case h.direct <- userDirectMessage{userID: n.UserID, payload: payload}:
+	default:
+		log.Printf("notifications: direct queue full, dropped notification:new for user %d", n.UserID)
 	}
 }
 
@@ -503,20 +573,29 @@ func (c *ChatClient) handleSend(inbound inboundEnvelope) {
 
 	// Send push notifications to offline/inactive conversation members.
 	senderName := ""
+	senderAvatar := ""
 	eventTitle := ""
+	eventCoverKey := ""
 	if sender, err := c.hub.repo.GetUserByID(ctx, c.userID); err == nil {
 		senderName = sender.Name
+		senderAvatar = payloadAvatar(sender.Avatar)
 	}
-	// Try to resolve the event title for this conversation's push notification title.
+	// Try to resolve the event title (and cover) for this conversation's push notification.
 	if convos, err := c.hub.repo.ListConversations(ctx, c.userID); err == nil {
 		for _, conv := range convos {
 			if conv.ID == msg.ConversationID && conv.Event != nil {
 				eventTitle = conv.Event.Title
+				eventCoverKey = conv.Event.CoverKey
 				break
 			}
 		}
 	}
-	c.hub.sendPushForChatMessage(msg, senderName, eventTitle)
+	c.hub.sendPushForChatMessage(msg, chatPushContext{
+		senderName:    senderName,
+		senderAvatar:  senderAvatar,
+		eventTitle:    eventTitle,
+		eventCoverKey: eventCoverKey,
+	})
 }
 
 // allowMessage implements a sliding window limiter to curb rapid sends.
@@ -832,7 +911,7 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		h.hub.emitJoinRequestEvent(convo.ID, "created", view)
 
 		// Push: notify host about new join request (includes conversation context).
-		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
+		data := map[string]string{
 			"type":           NotificationTypeJoinRequestCreated,
 			"eventId":        strconv.FormatInt(eventID, 10),
 			"conversationId": strconv.FormatInt(convo.ID, 10),
@@ -841,10 +920,13 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 			"senderName":     user.Name,
 			"title":          event.Title,
 			"body":           notificationPushBody(NotificationTypeJoinRequestCreated, event.Title, user.Name),
-		})
+		}
+		setPayloadIfPresent(data, "senderAvatar", payloadAvatar(user.Avatar))
+		setPayloadIfPresent(data, "coverKey", event.CoverKey)
+		h.hub.recordAndSendPushToUser(event.UserID, data)
 	} else {
 		// For 1:1 events, the request remains pending until host approval.
-		h.hub.recordAndSendPushToUser(event.UserID, map[string]string{
+		data := map[string]string{
 			"type":          NotificationTypeJoinRequestCreated,
 			"eventId":       strconv.FormatInt(eventID, 10),
 			"joinRequestId": strconv.FormatInt(req.ID, 10),
@@ -852,7 +934,10 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 			"senderName":    user.Name,
 			"title":         event.Title,
 			"body":          notificationPushBody(NotificationTypeJoinRequestCreated, event.Title, user.Name),
-		})
+		}
+		setPayloadIfPresent(data, "senderAvatar", payloadAvatar(user.Avatar))
+		setPayloadIfPresent(data, "coverKey", event.CoverKey)
+		h.hub.recordAndSendPushToUser(event.UserID, data)
 	}
 
 	c.JSON(http.StatusCreated, joinRequestResponse{Request: view})
@@ -1053,14 +1138,16 @@ func (h *ChatHTTPHandler) approveJoin(c *gin.Context) {
 	}
 
 	// Push: notify the requester they were approved
-	h.hub.recordAndSendPushToUser(userID, map[string]string{
+	approvedData := map[string]string{
 		"type":           NotificationTypeJoinRequestApproved,
 		"eventId":        strconv.FormatInt(eventID, 10),
 		"conversationId": strconv.FormatInt(convo.ID, 10),
 		"joinRequestId":  strconv.FormatInt(req.ID, 10),
 		"title":          event.Title,
 		"body":           notificationPushBody(NotificationTypeJoinRequestApproved, event.Title, ""),
-	})
+	}
+	setPayloadIfPresent(approvedData, "coverKey", event.CoverKey)
+	h.hub.recordAndSendPushToUser(userID, approvedData)
 
 	c.JSON(http.StatusOK, gin.H{
 		"request":        view,
@@ -1140,16 +1227,20 @@ func (h *ChatHTTPHandler) denyJoin(c *gin.Context) {
 	// Push: notify the requester they were denied
 	event, _ := h.repo.GetEventByID(ctx, eventID)
 	eventTitle := ""
+	eventCoverKey := ""
 	if event != nil {
 		eventTitle = event.Title
+		eventCoverKey = event.CoverKey
 	}
-	h.hub.recordAndSendPushToUser(userID, map[string]string{
+	deniedData := map[string]string{
 		"type":          NotificationTypeJoinRequestDenied,
 		"eventId":       strconv.FormatInt(eventID, 10),
 		"joinRequestId": strconv.FormatInt(req.ID, 10),
 		"title":         eventTitle,
 		"body":          notificationPushBody(NotificationTypeJoinRequestDenied, eventTitle, ""),
-	})
+	}
+	setPayloadIfPresent(deniedData, "coverKey", eventCoverKey)
+	h.hub.recordAndSendPushToUser(userID, deniedData)
 
 	c.JSON(http.StatusOK, joinRequestResponse{Request: view})
 }
@@ -1280,14 +1371,16 @@ func (h *ChatHTTPHandler) removeMember(c *gin.Context) {
 		h.hub.NotifyMembership(convo.ID, userID, "removed")
 	}
 	if h.hub != nil && claims.UserID == event.UserID && userID != claims.UserID {
-		h.hub.recordAndSendPushToUser(userID, map[string]string{
+		removedData := map[string]string{
 			"type":            NotificationTypeMemberRemoved,
 			"eventId":         strconv.FormatInt(eventID, 10),
 			"title":           event.Title,
 			"body":            notificationPushBody(NotificationTypeMemberRemoved, event.Title, ""),
 			"removedUserId":   strconv.FormatInt(userID, 10),
 			"removedByUserId": strconv.FormatInt(claims.UserID, 10),
-		})
+		}
+		setPayloadIfPresent(removedData, "coverKey", event.CoverKey)
+		h.hub.recordAndSendPushToUser(userID, removedData)
 	}
 
 	c.Status(http.StatusNoContent)
@@ -1342,7 +1435,19 @@ func (h *ChatHub) emitJoinRequestEvent(conversationID int64, action string, view
 
 // sendPushForChatMessage sends push notifications to all conversation members
 // who are not the sender and not actively viewing the conversation.
-func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle string) {
+// chatPushContext carries the sender/event decoration for a chat push and its
+// inbox row. senderAvatar and eventCoverKey are optional and only ever short
+// strings (see payloadAvatar) so the FCM data payload stays small.
+type chatPushContext struct {
+	senderName    string
+	senderAvatar  string
+	eventTitle    string
+	eventCoverKey string
+}
+
+func (h *ChatHub) sendPushForChatMessage(msg *Message, push chatPushContext) {
+	senderName := push.senderName
+	eventTitle := push.eventTitle
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -1385,6 +1490,8 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, senderName, eventTitle st
 			"title":          title,
 			"body":           body,
 		}
+		setPayloadIfPresent(data, "senderAvatar", push.senderAvatar)
+		setPayloadIfPresent(data, "coverKey", push.eventCoverKey)
 		if eventID, err := h.repo.GetConversationEventID(ctx, msg.ConversationID); err == nil && eventID != nil {
 			data["eventId"] = strconv.FormatInt(*eventID, 10)
 		} else if err != nil {

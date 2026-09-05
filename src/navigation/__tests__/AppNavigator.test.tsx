@@ -9,6 +9,8 @@ import { mockUsers } from '../../__tests__/mocks/mockData';
 import { eventDetailsScreenOptions } from '../transitions';
 
 // Mock context modules before importing components
+jest.mock('@components/NotificationBannerHost', () => () => null);
+
 jest.mock('@context/AuthContext', () => ({
   useAuth: jest.fn(() => ({ user: null, loading: false })),
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,

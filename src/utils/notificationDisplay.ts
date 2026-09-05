@@ -90,7 +90,8 @@ export const joinGroupPlainText = (group: JoinGroup): string =>
     .segments.map((segment) => segment.text)
     .join('');
 
-const parsePayload = (payload?: string): Record<string, string> => {
+/** Parse the opaque payload JSON stored on a notification row (never throws). */
+export const parseNotificationPayload = (payload?: string): Record<string, string> => {
   if (!payload) {
     return {};
   }
@@ -101,6 +102,8 @@ const parsePayload = (payload?: string): Record<string, string> => {
     return {};
   }
 };
+
+const parsePayload = parseNotificationPayload;
 
 const splitBodyWithBoldValues = (body: string, values: string[]): NotificationSegment[] => {
   const remainingValues = [...new Set(values.filter(Boolean))];

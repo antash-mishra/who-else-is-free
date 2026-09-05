@@ -57,6 +57,7 @@ func (h *ChatHub) recordAndSendPushToUsers(userIDs []int64, data map[string]stri
 				continue
 			}
 			notificationIDs[userID] = stored.ID
+			h.emitNotificationNew(stored)
 		}
 		cancel()
 	}
@@ -81,6 +82,7 @@ func (h *ChatHub) recordChatMessageNotification(recipientID int64, conversationI
 		log.Printf("notifications: persist chat.message row for user %d failed: %v (push still sent)", recipientID, err)
 		return nil
 	}
+	h.emitNotificationNew(stored)
 	return &stored.ID
 }
 

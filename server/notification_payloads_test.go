@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestNotificationCategoryForType(t *testing.T) {
 	tests := []struct {
@@ -80,3 +83,41 @@ func TestNotificationCopyFor(t *testing.T) {
 		})
 	}
 }
+
+func TestPayloadAvatarOnlyForwardsShortRemoteURLs(t *testing.T) {
+	long := "https://cdn.example/" + strings.Repeat("a", maxPayloadAvatarLength)
+	base64Avatar := "/9j/4AAQSkZJRgABAQAAAQABAAD"
+	tests := []struct {
+		name   string
+		avatar *string
+		want   string
+	}{
+		{"nil", nil, ""},
+		{"empty", ptr(""), ""},
+		{"https url", ptr("https://cdn.example/u/4.jpg"), "https://cdn.example/u/4.jpg"},
+		{"http url", ptr("http://cdn.example/u/4.jpg"), "http://cdn.example/u/4.jpg"},
+		{"inline base64 is dropped", ptr(base64Avatar), ""},
+		{"too long is dropped", ptr(long), ""},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := payloadAvatar(test.avatar); got != test.want {
+				t.Fatalf("payloadAvatar = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestSetPayloadIfPresent(t *testing.T) {
+	data := map[string]string{"type": "x"}
+	setPayloadIfPresent(data, "coverKey", "")
+	setPayloadIfPresent(data, "senderAvatar", "https://cdn.example/a.jpg")
+	if _, ok := data["coverKey"]; ok {
+		t.Fatal("empty value must not be written")
+	}
+	if data["senderAvatar"] != "https://cdn.example/a.jpg" {
+		t.Fatalf("senderAvatar = %q", data["senderAvatar"])
+	}
+}
+
+func ptr(s string) *string { return &s }

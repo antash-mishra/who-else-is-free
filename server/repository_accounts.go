@@ -344,7 +344,7 @@ func ensureUserExistsTx(ctx context.Context, tx *sql.Tx, userID int64) error {
 
 func collectHostedEventDeletionEffectsTx(ctx context.Context, tx *sql.Tx, userID int64) ([]AccountDeletionHostedEvent, []EventConversationMember, error) {
 	eventRows, err := tx.QueryContext(ctx, `
-		SELECT id, title
+		SELECT id, title, COALESCE(cover_key, '')
 		FROM events
 		WHERE user_id = ?
 		ORDER BY id ASC;
@@ -358,7 +358,7 @@ func collectHostedEventDeletionEffectsTx(ctx context.Context, tx *sql.Tx, userID
 	eventIndex := make(map[int64]int)
 	for eventRows.Next() {
 		var event AccountDeletionHostedEvent
-		if err := eventRows.Scan(&event.ID, &event.Title); err != nil {
+		if err := eventRows.Scan(&event.ID, &event.Title, &event.CoverKey); err != nil {
 			return nil, nil, fmt.Errorf("scan hosted event: %w", err)
 		}
 		eventIndex[event.ID] = len(hostedEvents)

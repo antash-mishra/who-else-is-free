@@ -138,3 +138,33 @@ func int64PtrOrNil(s string) *int64 {
 	}
 	return &v
 }
+
+// maxPayloadAvatarLength bounds the avatar value copied into push/inbox
+// payloads. The same data map is sent as an FCM data message (4 KB cap), so
+// only short remote URLs qualify; inline base64 avatars are omitted and the
+// client falls back to a seeded monogram or a locally known avatar.
+const maxPayloadAvatarLength = 512
+
+// payloadAvatar returns the avatar suitable for a push/inbox payload, or "".
+func payloadAvatar(avatar *string) string {
+	if avatar == nil {
+		return ""
+	}
+	value := strings.TrimSpace(*avatar)
+	if value == "" || len(value) > maxPayloadAvatarLength {
+		return ""
+	}
+	if !strings.HasPrefix(value, "https://") && !strings.HasPrefix(value, "http://") {
+		return ""
+	}
+	return value
+}
+
+// setPayloadIfPresent adds key=value to a push data map only when value is
+// non-empty, keeping optional decoration (avatars, cover keys) out of payloads
+// that have nothing to show.
+func setPayloadIfPresent(data map[string]string, key, value string) {
+	if value != "" {
+		data[key] = value
+	}
+}

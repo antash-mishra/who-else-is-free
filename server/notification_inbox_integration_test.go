@@ -117,6 +117,12 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		if payload["requesterId"] != strconv.FormatInt(noahID, 10) || payload["senderName"] == "" {
 			t.Fatalf("request identity payload = %+v", payload)
 		}
+		if payload["coverKey"] != defaultCoverKey {
+			t.Fatalf("coverKey = %q, want the event cover %q so the banner can show the plan artwork", payload["coverKey"], defaultCoverKey)
+		}
+		if _, ok := payload["senderAvatar"]; ok {
+			t.Fatalf("senderAvatar must be omitted when the requester has no remote avatar: %+v", payload)
+		}
 	})
 
 	t.Run("join_request.approved persisted for requester", func(t *testing.T) {

@@ -23,14 +23,10 @@ import NotificationRow from '@components/NotificationRow';
 import ScreenContainer from '@components/ScreenContainer';
 import { SheetActionList } from '@components/sheets';
 import { AppText, IconButton } from '@components/ui';
-import { useAuth } from '@context/AuthContext';
-import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
-import { openNotification } from '@context/pushRouting';
-import { navigationRef } from '@navigation/navigationRef';
+import { useOpenNotifications } from '@hooks/useOpenNotifications';
 import { RootStackParamList } from '@navigation/types';
-import { logger } from '@services/logger';
 import { colors, layout, spacing, typography } from '@theme/index';
 import {
   ChatGroup,
@@ -38,6 +34,10 @@ import {
   JoinGroup,
   collapseNotifications,
 } from '@utils/notificationCollapse';
+import {
+  resolveNotificationCoverUri,
+  resolveNotificationEventImageUri,
+} from '@utils/notificationImage';
 import { groupNotificationsByDate } from '@utils/notificationSections';
 import { getNextCompactRelativeTimeUpdateMs } from '@utils/relativeTime';
 
@@ -56,32 +56,25 @@ const NotificationsScreen = () => {
     error,
     refresh,
     loadMore,
-    applyActionResolution,
     markAllRead,
     clearAll,
   } = useNotifications();
-  const { token } = useAuth();
-  const { setActiveConversation } = useChat();
   const { events } = useEvents();
+  const { openNotificationIDs, resolvingIDs, openError, clearOpenError } = useOpenNotifications();
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [menuVisible, setMenuVisible] = useState(false);
-  const [resolvingIDs, setResolvingIDs] = useState<Set<number>>(() => new Set());
-  const [showOpenError, setShowOpenError] = useState(false);
   // Collapse chat messages per conversation, then bucket into time sections.
   const inboxItems = useMemo(() => collapseNotifications(notifications), [notifications]);
   // Event cover for singles + join groups (chat groups fall back to a monogram).
   const resolveEventImageUri = useCallback(
     (item: InboxItem): string | undefined => {
-      let eventId: number | undefined;
       if (item.kind === 'single') {
-        eventId = item.notification.eventId ?? undefined;
-      } else if (item.kind === 'joinGroup') {
-        eventId = item.group.eventId;
+        return resolveNotificationCoverUri(item.notification, events);
       }
-      if (eventId == null) {
-        return undefined;
+      if (item.kind === 'joinGroup') {
+        return resolveNotificationEventImageUri(events, item.group.eventId);
       }
-      return events.find((event) => Number(event.id) === eventId)?.imageUri;
+      return undefined;
     },
     [events],
   );
@@ -105,33 +98,6 @@ const NotificationsScreen = () => {
     const timeoutId = setTimeout(() => setNowMs(Date.now()), Math.max(1_000, nextRefreshMs));
     return () => clearTimeout(timeoutId);
   }, [notifications, nowMs]);
-
-  const openNotificationIDs = useCallback(
-    async (ids: number[]) => {
-      if (!token || ids.length === 0 || ids.some((id) => resolvingIDs.has(id))) return;
-      setShowOpenError(false);
-      setResolvingIDs((current) => new Set([...current, ...ids]));
-      try {
-        const resolution = await openNotification({
-          request: { notification_ids: ids, mark_handled: true },
-          token,
-          setActiveConversation,
-          navigator: navigationRef,
-        });
-        applyActionResolution(ids, resolution);
-      } catch (err) {
-        logger.warn('notifications: action resolution failed', err);
-        setShowOpenError(true);
-      } finally {
-        setResolvingIDs((current) => {
-          const next = new Set(current);
-          ids.forEach((id) => next.delete(id));
-          return next;
-        });
-      }
-    },
-    [applyActionResolution, resolvingIDs, setActiveConversation, token],
-  );
 
   const handleRowPress = useCallback(
     (notification: { id: number }) => {
@@ -281,9 +247,9 @@ const NotificationsScreen = () => {
         />
       </FullPageEmptyState>
       <EventActionBadge
-        visible={showOpenError}
+        visible={openError}
         label="Unable to open this notification. Please try again."
-        onHidden={() => setShowOpenError(false)}
+        onHidden={clearOpenError}
       />
     </View>
   );

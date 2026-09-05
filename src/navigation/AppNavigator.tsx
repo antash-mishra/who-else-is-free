@@ -18,6 +18,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
+import NotificationBannerHost from '@components/NotificationBannerHost';
 import { BottomSheetHostProvider } from '@components/sheets';
 import { navigationRef } from '@navigation/navigationRef';
 import { EventDetailsOverlaySheet, PendingRequestsSheet } from '@navigation/SheetRoutes';
@@ -151,6 +152,10 @@ const tabBarStyles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.background,
   },
+  // Hosts the navigator plus the absolutely positioned foreground banner.
+  navigatorRoot: {
+    flex: 1,
+  },
 });
 
 // ─── Main tabs ───────────────────────────────────────────────────────────────
@@ -273,204 +278,207 @@ const AppNavigator = () => {
   };
 
   return (
-    <NavigationContainer
-      ref={navigationRef}
-      theme={navigationTheme}
-      onReady={() => {
-        routeNameRef.current = navigationRef.getCurrentRoute()?.name;
-        if (routeNameRef.current) {
-          trackScreenView(routeNameRef.current).catch(() => undefined);
-        }
-      }}
-      onStateChange={() => {
-        const currentRouteName = navigationRef.getCurrentRoute()?.name;
-        if (currentRouteName && routeNameRef.current !== currentRouteName) {
-          routeNameRef.current = currentRouteName;
-          trackScreenView(currentRouteName).catch(() => undefined);
-        }
-      }}
-    >
-      <BottomSheetHostProvider>
-        <Stack.Navigator
-          initialRouteName="Splash"
-          screenOptions={{
-            headerShown: false,
-            gestureEnabled: true,
-            cardStyle: { backgroundColor: colors.background },
-            cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
-            transitionSpec: {
-              open: { animation: 'spring' as const, config: Springs.snappy },
-              close: { animation: 'spring' as const, config: Springs.snappy },
-            },
-          }}
-        >
-          <Stack.Screen
-            name="Splash"
-            component={SplashScreen}
-            options={{
-              cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-              cardStyle: { backgroundColor: colors.splashBackground },
-            }}
-          />
-          <Stack.Screen
-            name="Main"
-            component={MainTabs}
-            options={{
-              gestureEnabled: false,
-              cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-            }}
-          />
-          <Stack.Screen
-            name="Login"
-            component={GoogleSignIn}
-            options={{
-              presentation: 'transparentModal',
-            }}
-          />
-          <Stack.Screen
-            name="Onboarding"
-            component={OnboardingScreen}
-            options={{
-              gestureEnabled: false,
+    <View style={tabBarStyles.navigatorRoot}>
+      <NavigationContainer
+        ref={navigationRef}
+        theme={navigationTheme}
+        onReady={() => {
+          routeNameRef.current = navigationRef.getCurrentRoute()?.name;
+          if (routeNameRef.current) {
+            trackScreenView(routeNameRef.current).catch(() => undefined);
+          }
+        }}
+        onStateChange={() => {
+          const currentRouteName = navigationRef.getCurrentRoute()?.name;
+          if (currentRouteName && routeNameRef.current !== currentRouteName) {
+            routeNameRef.current = currentRouteName;
+            trackScreenView(currentRouteName).catch(() => undefined);
+          }
+        }}
+      >
+        <BottomSheetHostProvider>
+          <Stack.Navigator
+            initialRouteName="Splash"
+            screenOptions={{
+              headerShown: false,
+              gestureEnabled: true,
+              cardStyle: { backgroundColor: colors.background },
               cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+              transitionSpec: {
+                open: { animation: 'spring' as const, config: Springs.snappy },
+                close: { animation: 'spring' as const, config: Springs.snappy },
+              },
             }}
-          />
-          <Stack.Screen
-            name="EventDetails"
-            component={EventDetailsScreen}
-            options={eventDetailsScreenOptions}
-          />
-          <Stack.Screen
-            name="OneToOneHub"
-            component={OneToOneHubScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="JoinRequest"
-            component={JoinRequestScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="PendingRequests"
-            component={PendingRequestsSheet}
-            options={{
-              presentation: 'transparentModal',
-              ...sheetModalScreenOptions,
-            }}
-          />
-          <Stack.Screen
-            name="EventDetailsOverlay"
-            component={EventDetailsOverlaySheet}
-            options={{
-              presentation: 'transparentModal',
-              ...sheetModalScreenOptions,
-            }}
-          />
-          <Stack.Screen
-            name="CreateEvent"
-            component={CreateEventScreen}
-            options={{
-              cardStyleInterpolator: slideFromBottomInterpolator,
-              transitionSpec: slideFromBottomTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="EditProfile"
-            component={EditProfileScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="PastEvents"
-            component={PastEventsScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="Notifications"
-            component={NotificationsScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="AdminSupportInbox"
-            component={AdminSupportInboxScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="AdminSupportSubmission"
-            component={AdminSupportSubmissionScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="PrivacyPolicy"
-            component={PrivacyPolicyScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="Help"
-            component={HelpScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="HelpContact"
-            component={HelpContactScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="HelpFAQ"
-            component={HelpFAQScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="HelpFeedback"
-            component={HelpFeedbackScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-          <Stack.Screen
-            name="ChatThread"
-            component={ChatThreadScreen}
-            options={{
-              cardStyleInterpolator: slideFromRightInterpolator,
-              transitionSpec: slideFromRightTransitionSpec,
-            }}
-          />
-        </Stack.Navigator>
-      </BottomSheetHostProvider>
-    </NavigationContainer>
+          >
+            <Stack.Screen
+              name="Splash"
+              component={SplashScreen}
+              options={{
+                cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+                cardStyle: { backgroundColor: colors.splashBackground },
+              }}
+            />
+            <Stack.Screen
+              name="Main"
+              component={MainTabs}
+              options={{
+                gestureEnabled: false,
+                cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+              }}
+            />
+            <Stack.Screen
+              name="Login"
+              component={GoogleSignIn}
+              options={{
+                presentation: 'transparentModal',
+              }}
+            />
+            <Stack.Screen
+              name="Onboarding"
+              component={OnboardingScreen}
+              options={{
+                gestureEnabled: false,
+                cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+              }}
+            />
+            <Stack.Screen
+              name="EventDetails"
+              component={EventDetailsScreen}
+              options={eventDetailsScreenOptions}
+            />
+            <Stack.Screen
+              name="OneToOneHub"
+              component={OneToOneHubScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="JoinRequest"
+              component={JoinRequestScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="PendingRequests"
+              component={PendingRequestsSheet}
+              options={{
+                presentation: 'transparentModal',
+                ...sheetModalScreenOptions,
+              }}
+            />
+            <Stack.Screen
+              name="EventDetailsOverlay"
+              component={EventDetailsOverlaySheet}
+              options={{
+                presentation: 'transparentModal',
+                ...sheetModalScreenOptions,
+              }}
+            />
+            <Stack.Screen
+              name="CreateEvent"
+              component={CreateEventScreen}
+              options={{
+                cardStyleInterpolator: slideFromBottomInterpolator,
+                transitionSpec: slideFromBottomTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="PastEvents"
+              component={PastEventsScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="AdminSupportInbox"
+              component={AdminSupportInboxScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="AdminSupportSubmission"
+              component={AdminSupportSubmissionScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="PrivacyPolicy"
+              component={PrivacyPolicyScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="Help"
+              component={HelpScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="HelpContact"
+              component={HelpContactScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="HelpFAQ"
+              component={HelpFAQScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="HelpFeedback"
+              component={HelpFeedbackScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+            <Stack.Screen
+              name="ChatThread"
+              component={ChatThreadScreen}
+              options={{
+                cardStyleInterpolator: slideFromRightInterpolator,
+                transitionSpec: slideFromRightTransitionSpec,
+              }}
+            />
+          </Stack.Navigator>
+        </BottomSheetHostProvider>
+      </NavigationContainer>
+      <NotificationBannerHost />
+    </View>
   );
 };
 

@@ -35,6 +35,10 @@ export const componentTokens = {
     // lighter than the iOS dark material.
     heroButtonTint: 'rgba(0, 0, 0, 0.28)',
     destructiveProgressFill: 'rgba(0, 0, 0, 0.18)',
+    // Foreground notification banner: dark material over the blur plus a
+    // hairline edge so the card separates from light screens.
+    bannerTint: 'rgba(16, 17, 20, 0.74)',
+    bannerBorder: 'rgba(255, 255, 255, 0.12)',
   },
   countBadge: {
     size: 28,
@@ -46,6 +50,17 @@ export const componentTokens = {
     tabGap: 4,
     tabPaddingVertical: 8,
     tabPaddingHorizontal: 10,
+  },
+  banner: {
+    // Foreground in-app notification banner (NotificationBanner).
+    holdMs: 4000,
+    avatarSize: 44,
+    topOffset: 6,
+    horizontalMargin: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 14,
+    blurIntensity: 70,
   },
   eventList: {
     itemSeparatorHeight: 14,

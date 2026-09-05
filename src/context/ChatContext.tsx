@@ -22,6 +22,7 @@ import {
   RawConversation,
   RawJoinRequest,
 } from '@api/mappers/chat';
+import type { ApiNotification } from '@api/mappers/notifications';
 import { useAuth } from '@context/AuthContext';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
@@ -51,6 +52,12 @@ interface ChatContextValue {
   reportMember: (eventId: number, userId: number, reason: string) => Promise<void>;
   isRefreshingConversations: boolean;
   hasUnseenMessages: boolean;
+  /**
+   * Observe raw server frames (and the synthetic `socket:open` event) without
+   * owning the socket. Used by NotificationsContext for `notification:new`.
+   * Returns an unsubscribe function.
+   */
+  subscribeToServerEvents: (listener: ServerEventListener) => () => void;
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
@@ -70,7 +77,7 @@ const sortConversationsByActivity = (items: ChatConversation[]) => {
   });
 };
 
-type ServerEnvelope = {
+export type ServerEnvelope = {
   type: string;
   code?: string;
   tempId?: string;
@@ -86,7 +93,14 @@ type ServerEnvelope = {
   userId?: number;
   action?: string;
   request?: RawJoinRequest;
+  /** `notification:new` frames carry the same view the REST inbox returns. */
+  notification?: ApiNotification;
 };
+
+export type ServerEventListener = (envelope: ServerEnvelope) => void;
+
+/** Synthetic envelope delivered to listeners each time the socket (re)opens. */
+export const SOCKET_OPEN_EVENT: ServerEnvelope = { type: 'socket:open' };
 
 type ConversationsResponse = {
   conversations: RawConversation[];
@@ -129,6 +143,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const authFetchRef = useRef(authFetch);
   const refreshSessionSilentlyRef = useRef(refreshSessionSilently);
   const conversationsRefreshRequestIdRef = useRef(0);
+  const serverEventListenersRef = useRef(new Set<ServerEventListener>());
   const joinRequestsRefreshRequestIdRef = useRef<Record<number, number>>({});
   // Conversations the viewer just approved a request into, keyed by id with
   // an expiry. Messages the server posts as part of that approval (the
@@ -536,10 +551,31 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearReconnectTimeout]);
 
+  const notifyServerEventListeners = useCallback((envelope: ServerEnvelope) => {
+    serverEventListenersRef.current.forEach((listener) => {
+      try {
+        listener(envelope);
+      } catch (err) {
+        logger.warn('chat: server event listener failed', err);
+      }
+    });
+  }, []);
+
+  const subscribeToServerEvents = useCallback((listener: ServerEventListener) => {
+    serverEventListenersRef.current.add(listener);
+    return () => {
+      serverEventListenersRef.current.delete(listener);
+    };
+  }, []);
+
   const handleServerEnvelope = useCallback(
     (envelope: ServerEnvelope) => {
       const currentUserId = userIdRef.current;
       const currentActiveConversationId = activeConversationRef.current;
+
+      // Fan every frame out to observers before the built-in handling so
+      // frames this context ignores (e.g. `notification:new`) still reach them.
+      notifyServerEventListeners(envelope);
 
       if (envelope.type === 'message:new') {
         const message = mapServerMessage(envelope.message);
@@ -703,7 +739,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     },
-    [mapServerMessage, refreshConversations],
+    [mapServerMessage, notifyServerEventListeners, refreshConversations],
   );
 
   const connectSocket = useCallback(() => {
@@ -736,6 +772,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
     socket.onopen = () => {
       setIsConnecting(false);
+      notifyServerEventListeners(SOCKET_OPEN_EVENT);
       refreshConversations().catch(() => undefined);
       const conversationId = activeConversationRef.current;
       if (conversationId != null) {
@@ -778,6 +815,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, [
     clearReconnectTimeout,
     handleServerEnvelope,
+    notifyServerEventListeners,
     refreshConversations,
     refreshMessages,
     token,
@@ -994,6 +1032,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       reportMember,
       isRefreshingConversations,
       hasUnseenMessages,
+      subscribeToServerEvents,
     }),
     [
       conversations,
@@ -1011,6 +1050,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       reportMember,
       isRefreshingConversations,
       hasUnseenMessages,
+      subscribeToServerEvents,
     ],
   );
 

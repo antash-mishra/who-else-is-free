@@ -38,6 +38,18 @@ Who Else Is Free is an event discovery and social coordination app.
   known types is centralized in `notificationCopyFor` in `server/notification_payloads.go`; single
   inbox rows render stored bodies verbatim and collapsed join groups prefer structured
   `payload.senderName` over legacy body parsing.
+  Every persisted inbox row is also emitted live as a `notification:new` frame over `/api/ws`
+  (`emitNotificationNew` in `server/chat_hub.go`, carrying the same `NotificationView` the REST
+  inbox returns); `NotificationsContext` subscribes through `useChat().subscribeToServerEvents`,
+  prepends the row, bumps the unread count, and re-syncs the count on `socket:open`.
+  `NotificationBannerHost` (mounted once in `AppNavigator` above the `NavigationContainer`) is the
+  only foreground banner surface; it suppresses banners on the Notifications route and for the
+  active chat conversation, and shapes its copy per type with `buildBannerContent`
+  (`src/utils/notificationBanner.ts`). Payloads carry `coverKey` for event-bearing types and
+  `senderAvatar` only as a short remote URL (`payloadAvatar`), never inline base64, because the same
+  map is the FCM data message. Do not mount per-screen notification banners (`EventActionBadge` stays
+  for local action confirmations). Inbox rows and the banner both open through
+  `useOpenNotifications` (`src/hooks/useOpenNotifications.ts`).
 
 ## Working References
 

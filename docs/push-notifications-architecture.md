@@ -371,6 +371,30 @@ Every message and event has two delivery channels that work together:
 
 When a user is online with an active socket viewing the target conversation, push is **suppressed** to avoid redundancy. The WebSocket broadcast always runs; push is the fallback for offline users.
 
+### Inbox frames (`notification:new`)
+
+Every inbox row persisted by the recorder (`server/notification_recorder.go`) is also emitted to the
+owner's live sockets as:
+
+```json
+{ "type": "notification:new", "notification": { /* NotificationView, same as GET /api/notifications */ } }
+```
+
+`emitNotificationNew` (`server/chat_hub.go`) marshals the frame and enqueues it on the hub's
+`direct` channel; `Run()` fans it out via `pushToUser`, so `clientsByUser` is only touched on the
+hub goroutine. For chat messages the frame follows `message:new` on the same socket. Recipients whose
+push is suppressed (viewing the conversation) get neither a row nor a frame.
+
+On the client, `ChatContext.subscribeToServerEvents` delivers the frame (and a synthetic
+`socket:open` event) to `NotificationsContext`, which prepends the row, bumps the unread count, and
+re-syncs the count after reconnects. `NotificationBannerHost` then shows the foreground banner unless
+the inbox route or the matching conversation is on screen.
+
+Payloads also carry `coverKey` (all event-bearing types) and `senderAvatar` (chat, join requests).
+`payloadAvatar` forwards an avatar only when it is a short `http(s)` URL; inline base64 avatars are
+omitted so the FCM data message stays within its 4 KB limit, and the client falls back to the
+conversation roster or a seeded monogram.
+
 ---
 
 ## 8. Data Model

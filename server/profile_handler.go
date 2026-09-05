@@ -133,12 +133,14 @@ func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
 			if len(event.RecipientIDs) == 0 {
 				continue
 			}
-			h.hub.recordAndSendPushToUsers(event.RecipientIDs, map[string]string{
+			deletedData := map[string]string{
 				"type":    NotificationTypeEventDeleted,
 				"eventId": strconv.FormatInt(event.ID, 10),
 				"title":   event.Title,
 				"body":    notificationPushBody(NotificationTypeEventDeleted, event.Title, ""),
-			})
+			}
+			setPayloadIfPresent(deletedData, "coverKey", event.CoverKey)
+			h.hub.recordAndSendPushToUsers(event.RecipientIDs, deletedData)
 		}
 	}
 

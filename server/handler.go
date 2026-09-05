@@ -526,12 +526,14 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 			h.hub.NotifyMembership(member.ConversationID, member.UserID, "removed")
 		}
 		if len(recipientIDs) > 0 {
-			h.hub.recordAndSendPushToUsers(recipientIDs, map[string]string{
+			deletedData := map[string]string{
 				"type":    NotificationTypeEventDeleted,
 				"eventId": strconv.FormatInt(id, 10),
 				"title":   event.Title,
 				"body":    notificationPushBody(NotificationTypeEventDeleted, event.Title, ""),
-			})
+			}
+			setPayloadIfPresent(deletedData, "coverKey", event.CoverKey)
+			h.hub.recordAndSendPushToUsers(recipientIDs, deletedData)
 		}
 	}
 

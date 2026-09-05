@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Live Notifications Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #171717;
+        --body: #3e3e3e;
+        --muted: #686868;
+        --line: #deded8;
+        --surface: #ffffff;
+        --soft: #f5f5f1;
+        --code-bg: #f0f0ec;
+        --hero-from: #ffffff;
+        --hero-to: #eef8f2;
+        --green: #146c43;
+        --green-bg: #eaf7ef;
+        --amber: #8a5600;
+        --amber-bg: #fff5dc;
+        --blue: #1559a8;
+        --blue-bg: #edf5ff;
+        --blue-line: #cfdef0;
+        --phone-bg: #e9e9e4;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          color-scheme: dark;
+          --ink: #ececea;
+          --body: #cfcfcb;
+          --muted: #9a9a95;
+          --line: #33363d;
+          --surface: #1e2025;
+          --soft: #15161a;
+          --code-bg: #2a2d34;
+          --hero-from: #1e2025;
+          --hero-to: #17261e;
+          --green: #7fd3a2;
+          --green-bg: #12301f;
+          --amber: #e6b35a;
+          --amber-bg: #3a2c10;
+          --blue: #8fb8ef;
+          --blue-bg: #16233a;
+          --blue-line: #27395a;
+          --phone-bg: #111216;
+        }
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --ink: #ececea;
+        --body: #cfcfcb;
+        --muted: #9a9a95;
+        --line: #33363d;
+        --surface: #1e2025;
+        --soft: #15161a;
+        --code-bg: #2a2d34;
+        --hero-from: #1e2025;
+        --hero-to: #17261e;
+        --green: #7fd3a2;
+        --green-bg: #12301f;
+        --amber: #e6b35a;
+        --amber-bg: #3a2c10;
+        --blue: #8fb8ef;
+        --blue-bg: #16233a;
+        --blue-line: #27395a;
+        --phone-bg: #111216;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--soft);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        line-height: 1.55;
+        font-size: 15px;
+      }
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 32px auto 72px;
+      }
+      .hero,
+      section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+      }
+      .hero {
+        padding: clamp(28px, 5vw, 56px);
+        background: linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+      h1 {
+        max-width: 850px;
+        margin-bottom: 14px;
+        font-size: clamp(34px, 6vw, 62px);
+        line-height: 1.02;
+        letter-spacing: -0.045em;
+        text-wrap: balance;
+      }
+      h2 {
+        margin-bottom: 18px;
+        font-size: 26px;
+        letter-spacing: -0.025em;
+        text-wrap: balance;
+      }
+      h3 {
+        margin-bottom: 8px;
+        font-size: 17px;
+      }
+      .eyebrow {
+        margin-bottom: 14px;
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .lede {
+        max-width: 780px;
+        margin-bottom: 24px;
+        color: var(--body);
+        font-size: 18px;
+      }
+      .meta,
+      .note {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .pill,
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .pill {
+        padding: 8px 12px;
+        background: var(--green-bg);
+        color: var(--green);
+        font-size: 13px;
+      }
+      .pill::before,
+      .status.pass::before {
+        content: '✓';
+      }
+      section {
+        margin-top: 20px;
+        padding: clamp(22px, 4vw, 38px);
+      }
+      section > p {
+        max-width: 760px;
+        color: var(--body);
+      }
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+      }
+      .metric,
+      .step,
+      .flow-step {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+      .metric strong {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+        font-variant-numeric: tabular-nums;
+      }
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+      }
+      .flow-step {
+        position: relative;
+        background: var(--blue-bg);
+        border-color: var(--blue-line);
+      }
+      .flow-step strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+      .flow-step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .flow-step:not(:last-child)::after {
+        content: '→';
+        position: absolute;
+        z-index: 2;
+        top: 50%;
+        right: -14px;
+        color: var(--blue);
+        font-weight: 800;
+        transform: translateY(-50%);
+      }
+      @media (max-width: 860px) {
+        .flow {
+          grid-template-columns: 1fr;
+        }
+        .flow-step:not(:last-child)::after {
+          content: '↓';
+          top: auto;
+          right: 50%;
+          bottom: -16px;
+          transform: translateX(50%);
+        }
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 14px;
+      }
+      .step p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .step p + p {
+        margin-top: 8px;
+      }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 13px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: var(--code-bg);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+      }
+      pre {
+        margin: 0;
+        padding: 16px 18px;
+        border-radius: 12px;
+        background: var(--code-bg);
+        overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      pre code {
+        padding: 0;
+        background: transparent;
+        font-size: inherit;
+      }
+      .status {
+        padding: 4px 9px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .status.pass {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+      .status.baseline {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+      .status.info {
+        background: var(--blue-bg);
+        color: var(--blue);
+      }
+      .screenshots {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 18px;
+      }
+      figure {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .phone {
+        position: relative;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--phone-bg);
+        overflow: hidden;
+        aspect-ratio: 1080 / 2400;
+      }
+      .phone img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top;
+      }
+      .phone.crop {
+        aspect-ratio: 1080 / 1000;
+      }
+      figcaption {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      figcaption strong {
+        display: block;
+        color: var(--ink);
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+      .callout {
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: var(--amber-bg);
+        color: var(--amber);
+        font-size: 14px;
+      }
+      ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--body);
+      }
+      li + li {
+        margin-top: 6px;
+      }
+      a {
+        color: var(--blue);
+      }
+      a:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div class="eyebrow">Who Else Is Free · Notifications · 2026-09-06</div>
+        <h1>Live inbox updates and the foreground notification banner</h1>
+        <p class="lede">
+          The notification inbox now updates the moment a row is written, and a notification that
+          arrives while the app is open shows up as a tappable banner on whatever screen the person
+          is on. Both ride on a single new WebSocket frame, <code>notification:new</code>, emitted
+          for every persisted inbox row.
+        </p>
+        <div class="pills">
+          <span class="pill">Server frame</span>
+          <span class="pill">Live inbox and badge</span>
+          <span class="pill">Foreground banner</span>
+          <span class="pill">Shared open path</span>
+          <span class="pill">Android verified</span>
+        </div>
+      </header>
+
+      <section aria-labelledby="outcome">
+        <h2 id="outcome">Outcome at a glance</h2>
+        <div class="metric-grid">
+          <div class="metric"><strong>1</strong><span>new WebSocket frame type</span></div>
+          <div class="metric"><strong>6</strong><span>notification types delivered live</span></div>
+          <div class="metric"><strong>4 s</strong><span>banner hold before auto-hide</span></div>
+          <div class="metric"><strong>7</strong><span>device scenarios passed</span></div>
+          <div class="metric"><strong>1,329</strong><span>Jest tests green</span></div>
+        </div>
+        <p class="note" style="margin-top: 16px">
+          Before this change the inbox list only reloaded on open or pull-to-refresh, and a
+          foreground push did nothing visible beyond refreshing the bell count. OS push behaviour is
+          unchanged.
+        </p>
+      </section>
+
+      <section aria-labelledby="path">
+        <h2 id="path">One frame, two consumers</h2>
+        <p>
+          The socket is only open while the app is in the foreground, which is exactly when an
+          in-app banner is wanted. So the persisted inbox row is the single source of truth and the
+          frame is just its live delivery.
+        </p>
+        <div class="flow">
+          <div class="flow-step">
+            <strong>Row persisted</strong>
+            <p>
+              Recorder inserts the inbox row, as before, then calls
+              <code>emitNotificationNew</code>.
+            </p>
+          </div>
+          <div class="flow-step">
+            <strong>Hub direct queue</strong>
+            <p>The frame is enqueued on a per-user channel and fanned out on the hub goroutine.</p>
+          </div>
+          <div class="flow-step">
+            <strong>ChatContext</strong>
+            <p>
+              Owns the socket; forwards every frame to subscribers plus a synthetic
+              <code>socket:open</code>.
+            </p>
+          </div>
+          <div class="flow-step">
+            <strong>NotificationsContext</strong>
+            <p>Prepends the row, bumps the unread count, re-syncs the count after reconnects.</p>
+          </div>
+          <div class="flow-step">
+            <strong>Banner host</strong>
+            <p>Shows the banner unless the inbox or the matching thread is already on screen.</p>
+          </div>
+        </div>
+        <h3 style="margin-top: 26px">Wire shape</h3>
+        <pre><code>{
+  "type": "notification:new",
+  "notification": {
+    "id": 12, "type": "chat.message",
+    "event_id": 16, "conversation_id": 13, "join_request_id": null,
+    "title": "Group Picnic 135",
+    "body": "Tester: Hey everyone, banner test from Tester",
+    "payload": "{\"senderName\":\"Tester\",\"senderAvatar\":\"https://…\",\"coverKey\":\"sports-badminton-1\", ...}",
+    "read": false, "action_state": "active",
+    "created_at": "2026-09-05T18:31:04.000Z"
+  }
+}</code></pre>
+        <p class="note" style="margin-top: 12px">
+          The <code>notification</code> object is the same view <code>GET /api/notifications</code>
+          returns, so the client reuses its existing mapper and never needs a follow-up fetch.
+        </p>
+      </section>
+
+      <section aria-labelledby="changes">
+        <h2 id="changes">What changed</h2>
+        <div class="two-col">
+          <div class="step">
+            <h3>Server</h3>
+            <p>
+              <code>server/chat_hub.go</code> gains a <code>direct</code> channel, a
+              <code>pushToUser</code> fan-out, and <code>emitNotificationNew</code>. Sends are
+              serialized on the hub goroutine, so the per-user socket map is never read from HTTP or
+              push goroutines. A full queue logs and drops rather than blocking a request.
+            </p>
+            <p>
+              <code>server/notification_recorder.go</code> emits after each successful insert in
+              both recorder paths. Persistence and push delivery are untouched.
+            </p>
+            <p>
+              Every event-bearing payload now carries the plan's <code>coverKey</code>, and
+              people-driven payloads carry <code>senderAvatar</code>. Because the same data map is
+              an FCM data message with a 4 KB cap, <code>payloadAvatar</code> forwards only short
+              remote URLs and drops inline base64 avatars.
+            </p>
+          </div>
+          <div class="step">
+            <h3>Client contexts</h3>
+            <p>
+              <code>ChatContext</code> exposes <code>subscribeToServerEvents</code>. The dispatch
+              stays a closed chain for chat frames; observers simply see every frame first.
+            </p>
+            <p>
+              <code>NotificationsContext</code> ingests <code>notification:new</code>: de-duplicates
+              by id, keeps offset pagination aligned, counts only active unread rows, and notifies
+              banner listeners through <code>subscribeToIncomingNotifications</code>.
+            </p>
+          </div>
+          <div class="step">
+            <h3>Banner</h3>
+            <p>
+              <code>NotificationBanner</code> is built on Reanimated and Gesture Handler like the
+              rest of the app: spring entry, upward-only pan with the pager's swipe thresholds,
+              timed exit, light haptic on arrival, and a live-region announcement. Visually it uses
+              the same dark frosted material as <code>EventActionBadge</code> and the Event Details
+              hero buttons, so it reads as a transient overlay on the app's white screens. Content
+              is shaped per type by <code>buildBannerContent</code>: people-driven notifications
+              (messages, join requests) lead with the person's avatar and name and show the plan as
+              context; outcome notifications lead with the plan and keep the stored body verbatim. A
+              small uppercase label names the kind.
+            </p>
+            <p>
+              <code>NotificationBannerHost</code> is mounted once in <code>AppNavigator</code> as a
+              sibling of the navigation container, so it paints above every screen and the tab bar.
+            </p>
+          </div>
+          <div class="step">
+            <h3>Shared open path</h3>
+            <p>
+              The inbox screen's resolve-then-navigate logic moved into
+              <code>useOpenNotifications</code>. Banner taps and inbox row taps now call the same
+              hook, which resolves through <code>POST /api/notifications/actions/resolve</code> and
+              mirrors the result into inbox state.
+            </p>
+            <p>
+              New tokens: <code>componentTokens.banner</code> and <code>layout.bannerZIndex</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="suppression">
+        <h2 id="suppression">When the banner stays quiet</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Situation</th>
+                <th>Behaviour</th>
+                <th>Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Viewing the conversation a chat message lands in</td>
+                <td>No banner, no inbox row, no push. The message simply appears in the thread.</td>
+                <td>Server presence suppression, already in place</td>
+              </tr>
+              <tr>
+                <td>Notifications inbox is on screen</td>
+                <td>Row appears live at the top of the list; no banner.</td>
+                <td><code>shouldSuppressBanner</code>, route check</td>
+              </tr>
+              <tr>
+                <td>Row arrives already read or no longer actionable</td>
+                <td>Merged into the list without a banner or count change.</td>
+                <td><code>shouldSuppressBanner</code></td>
+              </tr>
+              <tr>
+                <td>Navigator not ready (splash, bloom)</td>
+                <td>Dropped; the inbox still has the row.</td>
+                <td><code>shouldSuppressBanner</code></td>
+              </tr>
+              <tr>
+                <td>A newer notification arrives while one is showing</td>
+                <td>Content is replaced in place and the hold timer restarts.</td>
+                <td><code>NotificationBanner</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="device">
+        <h2 id="device">Android evidence</h2>
+        <p>
+          Emulator <code>WEIF_API_36</code>, signed in as Host. Tester and Member2 were driven from
+          the host shell over REST and a small WebSocket script, so every screenshot shows a real
+          frame arriving on a real socket.
+        </p>
+        <div class="screenshots">
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/01-banner-join-request.png"
+                alt="Discover screen with a banner reading Tester wants to join your plan Fresh Group 135"
+              />
+            </div>
+            <figcaption>
+              <strong>1 · Join request banner</strong>
+              Tester requests to join Morning Run while Host is on Discover. The dark frosted card
+              leads with the requester's avatar and name, names the plan as context, labels the
+              kind, and auto-hides after four seconds.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/02-banner-tap-opens-join-request.png"
+                alt="Join Request screen for Fresh Group 135 listing two pending requests"
+              />
+            </div>
+            <figcaption>
+              <strong>2 · Tap opens the request</strong>
+              Tapping the banner resolves the action server-side and lands on the Join Request
+              screen, the same path an inbox row takes.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/03-profile-bell-unread.png"
+                alt="Profile screen with an unread dot on the bell icon"
+              />
+            </div>
+            <figcaption>
+              <strong>3 · Bell updates without opening the inbox</strong>
+              The unread dot appears from the live count bump alone.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/04-inbox-live-row-no-banner.png"
+                alt="Notifications inbox with a new row marked Now at the top"
+              />
+            </div>
+            <figcaption>
+              <strong>4 · Live inbox, no banner</strong>
+              With the inbox open, a new request from Member2 appears at the top marked Now. Route
+              suppression keeps the banner away.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/05-banner-chat-message.png"
+                alt="Discover screen with a banner reading New message from Tester in Group Picnic 135"
+              />
+            </div>
+            <figcaption>
+              <strong>5 · Chat message banner</strong>
+              A message sent over the socket by Tester leads with the sender's profile photo and
+              name, shows the plan as context, and puts only the message text on the second line.
+              The Messages tab dot lights at the same time.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/06-banner-after-swipe.png"
+                alt="Discover screen after the banner was swiped away"
+              />
+            </div>
+            <figcaption>
+              <strong>6 · Swipe up dismisses</strong>
+              An upward swipe removes the banner before the hold expires. The row stays unread in
+              the inbox.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone">
+              <img
+                src="live-notifications-assets/07-thread-suppressed.png"
+                alt="Chat thread showing two messages from Tester and no banner"
+              />
+            </div>
+            <figcaption>
+              <strong>7 · Inside the thread</strong>
+              A second message while Host is viewing the conversation: it appears in the thread, no
+              banner, no inbox row, unread count unchanged.
+            </figcaption>
+          </figure>
+          <figure>
+            <div class="phone crop">
+              <img
+                src="live-notifications-assets/08-banner-approved-cover.png"
+                alt="Discover screen with a banner reading Live Banner Walk, Approved, your request to join the plan has been approved"
+              />
+            </div>
+            <figcaption>
+              <strong>8 · Plan-led outcome with cover art</strong>
+              Tester approves Host's request to join Live Banner Walk. The banner leads with the
+              plan's cover from the payload's <code>coverKey</code>, so it renders even when the
+              plan is not in the user's loaded lists.
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section aria-labelledby="verification">
+        <h2 id="verification">Verification results</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Check</th>
+                <th>Result</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Go <code>TestNotificationNewFrameOverWebSocket</code></td>
+                <td><span class="status pass">Pass</span></td>
+                <td>
+                  Join request frame matches the REST row; chat frame follows
+                  <code>message:new</code>; sender never receives its own frame; offline recipient
+                  still gets row and push.
+                </td>
+              </tr>
+              <tr>
+                <td>Go full suite</td>
+                <td><span class="status baseline">Baseline</span></td>
+                <td>
+                  Only <code>TestAPIIntegration/list_covers</code> fails, also on the untouched
+                  tree, because cover images are gitignored locally.
+                </td>
+              </tr>
+              <tr>
+                <td>Jest, 97 suites</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>
+                  New coverage for the banner, host suppression rules, the open hook, context ingest
+                  and de-dupe, and the ChatContext subscription. Shared Reanimated mock now returns
+                  stable shared values.
+                </td>
+              </tr>
+              <tr>
+                <td>TypeScript</td>
+                <td><span class="status pass">Pass</span></td>
+                <td><code>tsc --noEmit</code> clean.</td>
+              </tr>
+              <tr>
+                <td>ESLint</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>
+                  No new warnings in touched files; ChatContext keeps its four pre-existing ones.
+                </td>
+              </tr>
+              <tr>
+                <td>Android emulator</td>
+                <td><span class="status pass">Pass</span></td>
+                <td>Seven scenarios above. Logged in <code>TEST_RUNS.md</code>.</td>
+              </tr>
+              <tr>
+                <td>iOS</td>
+                <td><span class="status info">Not run</span></td>
+                <td>No simulator in this session.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="notes">
+        <h2 id="notes">Decisions and known limits</h2>
+        <ul>
+          <li>
+            The WebSocket frame is the only banner and live-inbox source. The Firebase foreground
+            handler keeps its cheap unread-count refresh as a reconciliation fallback, so OS push
+            behaviour is byte-for-byte the same.
+          </li>
+          <li>
+            Confirmed Decision #9 in the inbox plan, live badge with a lazy list, is superseded:
+            single rows are prepended live, but full-list refetches are still limited to inbox open,
+            pull-to-refresh, and load more.
+          </li>
+          <li>
+            While a native bottom sheet modal is open the banner renders beneath it. The inbox row
+            is still there afterwards.
+          </li>
+          <li>
+            The existing off-goroutine read in <code>shouldSuppressPush</code> was left as is; the
+            new per-user send deliberately avoids repeating that pattern.
+          </li>
+        </ul>
+        <div class="callout" style="margin-top: 18px">
+          Nothing is committed yet. All changes sit in the working tree on
+          <code>issue-136-chat</code>, with the evidence screenshots under
+          <code>report/live-notifications-assets/</code>.
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
