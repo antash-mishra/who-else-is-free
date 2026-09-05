@@ -1,5 +1,5 @@
-import { Springs } from '../springs';
 import { Motion, motionGeometry, motionTiming } from '../motion';
+import { Springs } from '../springs';
 
 describe('motion tokens', () => {
   it('caps stagger so long lists do not crawl', () => {

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability -- Reanimated pulse mutates a shared value from an effect. */
 import { useEffect } from 'react';
 
 import { StyleSheet, Text, View } from 'react-native';

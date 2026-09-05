@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/immutability -- Reanimated badge animation mutates shared values from effects and gesture handlers. */
-import { useCallback, useEffect, useRef, useState } from "react";
-import { PanResponder, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { PanResponder, StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Animated, {
   cancelAnimation,
   runOnJS,
@@ -12,9 +12,9 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { typography, Springs } from "@theme/index";
+import { typography, Springs } from '@theme/index';
 
 const BADGE_HOLD_MS = 3000;
 const FADE_MS = 180;
@@ -26,17 +26,12 @@ type EventActionBadgeProps = {
   onHidden?: () => void;
 };
 
-const EventActionBadge = ({
-  visible,
-  label,
-  topOffset = 59,
-  onHidden,
-}: EventActionBadgeProps) => {
+const EventActionBadge = ({ visible, label, topOffset = 59, onHidden }: EventActionBadgeProps) => {
   const translateY = useSharedValue(-80);
   const opacity = useSharedValue(0);
   const reducedMotion = useReducedMotion();
   const [isRendered, setIsRendered] = useState(false);
-  const onHiddenRef = useRef<EventActionBadgeProps["onHidden"]>(onHidden);
+  const onHiddenRef = useRef<EventActionBadgeProps['onHidden']>(onHidden);
 
   useEffect(() => {
     onHiddenRef.current = onHidden;
@@ -60,8 +55,7 @@ const EventActionBadge = ({
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        gestureState.dy < -8,
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy < -8,
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy < -20 || gestureState.vy < -0.5) {
           dismiss();
@@ -147,30 +141,30 @@ const EventActionBadge = ({
 
 const styles = StyleSheet.create({
   badge: {
-    position: "absolute",
-    alignSelf: "center",
+    position: 'absolute',
+    alignSelf: 'center',
     zIndex: 20,
-    maxWidth: "92%",
+    maxWidth: '92%',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 16,
-    borderCurve: "continuous",
-    flexDirection: "row",
-    alignItems: "center",
+    borderCurve: 'continuous',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   blurClip: {
     borderRadius: 16,
-    borderCurve: "continuous",
-    overflow: "hidden",
+    borderCurve: 'continuous',
+    overflow: 'hidden',
   },
   badgeOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#00000066",
+    backgroundColor: '#00000066',
     borderRadius: 16,
-    borderCurve: "continuous",
+    borderCurve: 'continuous',
   },
   badgeText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 15,
     lineHeight: 20,
     fontFamily: typography.fontFamilyMedium,

@@ -1,5 +1,4 @@
-/* eslint-disable react-hooks/immutability -- Reanimated entry animation mutates a shared value from an effect. */
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { StyleProp, View, ViewStyle } from 'react-native';
 
@@ -59,7 +58,8 @@ export type PlacedProps = {
  */
 const Placed = ({ id, index = 0, tiltMode = 'entry', style, testID, children }: PlacedProps) => {
   const reducedMotion = useReducedMotion();
-  const alreadyPlaced = useRef(placedIds.has(id)).current;
+  // Captured once at mount: whether this id had already been placed before.
+  const [alreadyPlaced] = useState(() => placedIds.has(id));
   const shouldAnimate = !reducedMotion && !alreadyPlaced;
 
   const progress = useSharedValue(shouldAnimate ? 0 : 1);

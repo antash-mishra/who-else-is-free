@@ -12,9 +12,7 @@ import EventActionBadge from '../EventActionBadge';
  * exit timing itself is covered on device, not here.
  */
 const holdBadgeOpen = () => {
-  jest
-    .spyOn(Reanimated, 'withTiming')
-    .mockImplementation((toValue) => toValue as number);
+  jest.spyOn(Reanimated, 'withTiming').mockImplementation((toValue) => toValue as number);
 };
 
 describe('EventActionBadge', () => {
