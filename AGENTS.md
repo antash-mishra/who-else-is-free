@@ -276,3 +276,10 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 - Run `cd server && go test ./...` after backend changes.
 - Keep endpoint behavior and payload shape documented in frontend mappers when they are introduced.
 - Notification push and inbox text is owned server-side by `notificationCopyFor` in `server/notification_payloads.go`. New copy changes must update that contract and its push/inbox tests together. Single rows render stored bodies verbatim; collapsed join groups use structured `payload.senderName` first and retain body parsing only for legacy rows.
+
+## Plan details and input-sheet contracts
+
+- Group member presentation includes the host exactly once, first with a Host label and no moderation menu. Group headline counts and Members lists use the same roster. The 1:1 Accepted list remains requester-only.
+- Event Details member reports carry an explicit person target; plan and person prompts must identify the same target as their submit handler. Accepted guests read their intro from More actions, not an inline Introduction section.
+- `EventActionConfirm.headerAlign` defaults to left; use center for removal confirmations. Report-plan menu entries use normal text; destructive leaving/removal retains its warning color.
+- Shared `BottomSheet` entry waits for native `onShow`, runs once per opening, and does not restart on content or viewport updates. Input sheets constrain height above the keyboard; `EventActionOverlay` keeps the CTA outside the scrollable text-entry body.

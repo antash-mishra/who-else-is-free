@@ -78,7 +78,6 @@ const EventDetailsScreenContent = ({
     goingCount,
     pendingRequests,
     acceptedRequests,
-    confirmedMembers,
     overlayMembers,
     hasPendingRequest,
     setHasPendingRequest,
@@ -160,8 +159,8 @@ const EventDetailsScreenContent = ({
     expandedRequestIds,
     acceptingUserId,
     decliningUserId,
-    selectedRequest,
-    setSelectedRequest,
+    reportTarget,
+    setReportTarget,
     isReportingMember,
     showReportMemberConfirm,
     selectedMember,
@@ -193,9 +192,6 @@ const EventDetailsScreenContent = ({
     hostRequestStoreKey,
     isSingleEvent,
     eventAnalyticsParams,
-    pendingRequests,
-    acceptedRequests,
-    confirmedMembers,
     reportMessage,
     setReportMessage,
     setReportError,
@@ -363,7 +359,8 @@ const EventDetailsScreenContent = ({
                 isSingleEvent={isSingleEvent}
                 pendingRequests={pendingRequests}
                 acceptedRequests={acceptedRequests}
-                confirmedMembers={confirmedMembers}
+                confirmedMembers={overlayMembers}
+                hostId={event.ownerId}
                 expandedRequestIds={expandedRequestIds}
                 acceptingUserId={acceptingUserId}
                 decliningUserId={decliningUserId}
@@ -404,17 +401,6 @@ const EventDetailsScreenContent = ({
                 error={readOnlyMembersError}
               />
             )}
-
-            {userIntroMessage && !readOnly && isConversationMember ? (
-              <>
-                {/* Card has no gap: set section break (20) + heading→text (12) explicitly. */}
-                <View style={[styles.divider, { marginTop: 20, marginBottom: 20 }]} />
-                <Text style={styles.sectionHeading}>Introduction</Text>
-                <Text style={[styles.introMessageText, { marginTop: 12 }]}>
-                  "{userIntroMessage}"
-                </Text>
-              </>
-            ) : null}
           </View>
         </ScrollView>
         <EventDetailsCTA
@@ -451,8 +437,9 @@ const EventDetailsScreenContent = ({
         showReportPrompt={showReportPrompt}
         onCloseReportPrompt={() => {
           setShowReportPrompt(false);
-          setSelectedRequest(null);
+          setReportTarget(null);
         }}
+        reportTargetName={reportTarget?.name}
         reportMessage={reportMessage}
         onReportMessageChange={(text) => {
           setReportMessage(text);
@@ -460,7 +447,7 @@ const EventDetailsScreenContent = ({
             setReportError(null);
           }
         }}
-        onSubmitReport={selectedRequest ? handleSubmitMemberReport : handleSubmitReport}
+        onSubmitReport={reportTarget ? handleSubmitMemberReport : handleSubmitReport}
         reportError={reportError}
         isSubmittingReport={isSubmittingReport || isReportingMember}
         showMenuOverlay={showMenuOverlay}
@@ -666,6 +653,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
 
   return (
     <EventDetailsScreenContent
+      key={routeEventId}
       initialEventSnapshot={eventSnapshot}
       onOverlayClose={onOverlayClose}
     />

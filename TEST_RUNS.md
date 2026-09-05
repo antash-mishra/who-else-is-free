@@ -149,3 +149,11 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated checks: focused Jest coverage passed 5 suites / 43 tests and the full frontend run passed 87 suites / 1,264 tests; notification Go tests and full `go test ./...` passed; TypeScript passed; lint completed with 0 errors and the existing warning baseline; touched-file formatting and `git diff --check` passed. Exact FCM title/body values are covered through the server's mock push sender because local emulator push delivery is disabled.
 - Evidence: `report/issue-128-notifications-implementation-report.html` and four screenshots under `report/issue-128-assets/`.
 - Final verdict: **PASS**.
+
+## 2026-09-05 — Issue 135 plan details
+
+- Change: person-report context, host-inclusive group membership, requested copy/styles, and input-sheet layout/lifecycle.
+- Attempt 1: BLOCKED — clean Android prebuild requires the ignored google-services.json, absent from this checkout.
+- Attempt 2: BLOCKED — synthetic sheet harness bundled into the installed development client; the Android emulator displayed an app-not-responding dialog.
+- Attempt 3: BLOCKED — restarted the installed client; UI hierarchy exposed no usable app controls. Temporary harness and entry-point changes removed; test Metro stopped.
+- Final: native verification incomplete. Automated verification passed 1,304 tests. Horizontal screen-slide reproduction remains outstanding; do not treat the shared-sheet animation fix as a verified resolution of that symptom.

@@ -8,6 +8,7 @@ import HoldToConfirmButton from './HoldToConfirmButton';
 
 export type EventActionConfirmProps = {
   title: string;
+  headerAlign?: 'left' | 'center';
   description?: string;
   confirmLabel: string;
   cancelLabel: string;
@@ -21,6 +22,7 @@ export type EventActionConfirmProps = {
 
 const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
   title,
+  headerAlign = 'left',
   description,
   confirmLabel,
   cancelLabel,
@@ -33,8 +35,10 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
 }) => (
   <View style={styles.prompt}>
     <View style={styles.promptHeader}>
-      <Text style={styles.promptTitle}>{title}</Text>
-      {description ? <Text style={styles.promptDescription}>{description}</Text> : null}
+      <Text style={[styles.promptTitle, { textAlign: headerAlign }]}>{title}</Text>
+      {description ? (
+        <Text style={[styles.promptDescription, { textAlign: headerAlign }]}>{description}</Text>
+      ) : null}
       {errorMessage ? <Text style={styles.promptError}>{errorMessage}</Text> : null}
     </View>
     <View style={styles.promptButtons}>
@@ -75,7 +79,9 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
             isConfirmLoading && styles.primaryButtonDisabled,
           ]}
         >
-          <Text style={[styles.primaryLabel, confirmTone === 'destructive' && styles.destructiveLabel]}>
+          <Text
+            style={[styles.primaryLabel, confirmTone === 'destructive' && styles.destructiveLabel]}
+          >
             {isConfirmLoading ? 'Deleting...' : confirmLabel}
           </Text>
         </Pressable>

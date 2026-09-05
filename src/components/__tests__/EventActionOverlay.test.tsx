@@ -5,6 +5,9 @@
  */
 
 import React from 'react';
+
+import { ScrollView } from 'react-native';
+
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
 import EventActionOverlay from '../EventActionOverlay';
@@ -727,3 +730,34 @@ describe('EventActionOverlay', () => {
     });
   });
 });
+
+it.each(['invite', 'report'] as const)(
+  'keeps the %s CTA outside the scrollable input body',
+  (type) => {
+    const props =
+      type === 'invite'
+        ? {
+            type,
+            inviteMessage: 'Long synthetic text\n'.repeat(40),
+            onInviteMessageChange: jest.fn(),
+            onSendInvite: jest.fn(),
+          }
+        : {
+            type,
+            reportMessage: 'Long synthetic text\n'.repeat(40),
+            onReportMessageChange: jest.fn(),
+            onSubmitReport: jest.fn(),
+          };
+    const view = render(<EventActionOverlay isVisible {...props} />);
+    const body = view.UNSAFE_getByType(ScrollView);
+    expect(body.props.keyboardShouldPersistTaps).toBe('handled');
+    const button = view.getByTestId(
+      type === 'invite' ? 'action-item-invite' : 'action-item-submit-report',
+    );
+    let ancestor = button.parent;
+    while (ancestor) {
+      expect(ancestor).not.toBe(body);
+      ancestor = ancestor.parent;
+    }
+  },
+);

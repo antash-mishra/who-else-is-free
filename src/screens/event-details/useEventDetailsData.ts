@@ -205,20 +205,21 @@ export const useEventDetailsData = ({
     [event?.hostAvatar, event?.ownerId, event?.hostName],
   );
   const goingParticipants = useMemo(() => {
-    if (eventConversation?.participants?.length) {
-      const memberSet = new Set(eventConversation.memberIds ?? []);
-      return eventConversation.participants.filter((p) => memberSet.has(p.id));
+    if (!fallbackHostParticipant) return [];
+    const memberIds = new Set(eventConversation?.memberIds ?? []);
+    const participants = eventConversation?.participants ?? [];
+    const host =
+      participants.find((participant) => participant.id === fallbackHostParticipant.id) ??
+      fallbackHostParticipant;
+    const members = new Map([[host.id, host]]);
+    for (const participant of participants) {
+      if (memberIds.has(participant.id) && participant.id !== host.id) {
+        members.set(participant.id, participant);
+      }
     }
-    return fallbackHostParticipant ? [fallbackHostParticipant] : [];
+    return [...members.values()];
   }, [eventConversation, fallbackHostParticipant]);
-  const goingCount = useMemo(() => {
-    if (!eventConversation) {
-      return 1;
-    }
-    const memberCount =
-      eventConversation.memberIds?.length ?? eventConversation.participants?.length ?? 0;
-    return memberCount > 0 ? memberCount : 1;
-  }, [eventConversation]);
+  const goingCount = goingParticipants.length;
 
   useEffect(() => {
     if (isConversationMember) {
@@ -324,18 +325,8 @@ export const useEventDetailsData = ({
     return eventConversation.participants.filter((p) => p.id !== user.id && memberSet.has(p.id));
   }, [eventConversation, user]);
 
-  // Overlay: all members with host sorted to top (for group events)
-  const overlayMembers = useMemo(() => {
-    if (!eventConversation) return [];
-    const memberSet = new Set(eventConversation.memberIds ?? []);
-    const allMembers = eventConversation.participants.filter((p) => memberSet.has(p.id));
-    const hostId = event?.ownerId;
-    return [...allMembers].sort((a, b) => {
-      if (a.id === hostId) return -1;
-      if (b.id === hostId) return 1;
-      return 0;
-    });
-  }, [eventConversation, event?.ownerId]);
+  // Group list and headline share the same host-inclusive roster.
+  const overlayMembers = goingParticipants;
 
   // Fetch the user's introduction message when they have a pending request or are a member
   useEffect(() => {

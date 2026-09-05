@@ -6,6 +6,13 @@ const styles = StyleSheet.create({
   prompt: {
     gap: spacing.sm + spacing.xs,
   },
+  inputPrompt: {
+    flexShrink: 1,
+  },
+  inputBody: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
   promptHeader: {
     gap: spacing.xs,
   },
@@ -43,6 +50,7 @@ const styles = StyleSheet.create({
     letterSpacing: typography.letterSpacing,
   },
   sendButton: {
+    flexShrink: 0,
     backgroundColor: colors.primaryButtonBackground,
     borderRadius: radii.pill,
     borderCurve: 'continuous',
@@ -111,7 +119,6 @@ const styles = StyleSheet.create({
   introMessageText: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    fontStyle: 'italic',
     color: colors.text,
     lineHeight: typography.lineHeight,
     letterSpacing: typography.letterSpacing,

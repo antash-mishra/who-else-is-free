@@ -38,9 +38,6 @@ type UseHostRequestActionsArgs = {
   hostRequestStoreKey: number | null;
   isSingleEvent: boolean;
   eventAnalyticsParams: AnalyticsParams;
-  pendingRequests: ChatJoinRequest[];
-  acceptedRequests: ChatJoinRequest[];
-  confirmedMembers: { id: number; name: string; avatar?: string }[];
   reportMessage: string;
   setReportMessage: (value: string) => void;
   setReportError: (value: string | null) => void;
@@ -60,9 +57,6 @@ export const useHostRequestActions = ({
   hostRequestStoreKey,
   isSingleEvent,
   eventAnalyticsParams,
-  pendingRequests,
-  acceptedRequests,
-  confirmedMembers,
   reportMessage,
   setReportMessage,
   setReportError,
@@ -80,7 +74,7 @@ export const useHostRequestActions = ({
   const [expandedRequestIds, setExpandedRequestIds] = useState<Set<number>>(new Set());
   const [acceptingUserId, setAcceptingUserId] = useState<number | null>(null);
   const [decliningUserId, setDecliningUserId] = useState<number | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<ChatJoinRequest | null>(null);
+  const [reportTarget, setReportTarget] = useState<SelectedMember | null>(null);
   const [isReportingMember, setIsReportingMember] = useState(false);
   const [showReportMemberConfirm, setShowReportMemberConfirm] = useState(false);
   // Group member menu state
@@ -207,7 +201,7 @@ export const useHostRequestActions = ({
     setShowReportMemberConfirm(false);
     setReportMessage('');
     setReportError(null);
-    setSelectedRequest({ userId: selectedMember.id } as ChatJoinRequest);
+    setReportTarget(selectedMember);
     setShowReportPrompt(true);
   };
 
@@ -228,7 +222,7 @@ export const useHostRequestActions = ({
   };
 
   const handleSubmitMemberReport = async () => {
-    if (!event || !token || !selectedRequest) return;
+    if (!event || !token || !reportTarget) return;
     if (isReportingMember) return;
     const trimmed = reportMessage.trim();
     if (!trimmed.length) {
@@ -240,7 +234,7 @@ export const useHostRequestActions = ({
     setIsReportingMember(true);
     try {
       const response = await authFetch(
-        `${API_BASE_URL}/api/events/${event.id}/members/${selectedRequest.userId}/report`,
+        `${API_BASE_URL}/api/events/${event.id}/members/${reportTarget.id}/report`,
         {
           method: 'POST',
           headers: {
@@ -255,24 +249,15 @@ export const useHostRequestActions = ({
         return;
       }
       if (!response.ok) {
-        const firstName = selectedMember?.name.trim().split(/\s+/)[0];
+        const firstName = reportTarget.name.trim().split(/\s+/)[0];
         setReportError(getMemberReportError(response.status, firstName));
         return;
       }
-      const reportTargetName = (
-        selectedMember?.name ??
-        selectedRequest.requester?.name ??
-        pendingRequests.find((request) => request.userId === selectedRequest.userId)?.requester
-          ?.name ??
-        acceptedRequests.find((request) => request.userId === selectedRequest.userId)?.requester
-          ?.name ??
-        confirmedMembers.find((member) => member.id === selectedRequest.userId)?.name ??
-        ''
-      ).trim();
+      const reportTargetName = reportTarget.name.trim();
       const firstName = reportTargetName.split(/\s+/)[0] ?? '';
       setReportMessage('');
       setShowReportPrompt(false);
-      setSelectedRequest(null);
+      setReportTarget(null);
       setSelectedMember(null);
       setReportedMemberBadgeLabel(
         firstName.length > 0 ? `${firstName} reported and blocked` : 'Member reported and blocked',
@@ -286,7 +271,7 @@ export const useHostRequestActions = ({
       }
     } catch (err) {
       logger.error('Failed to submit member report', err);
-      const firstName = selectedMember?.name.trim().split(/\s+/)[0];
+      const firstName = reportTarget.name.trim().split(/\s+/)[0];
       setReportError(firstName ? getMemberReportError(0, firstName) : PLAN_REPORT_GENERIC_ERROR);
     } finally {
       setIsReportingMember(false);
@@ -297,8 +282,8 @@ export const useHostRequestActions = ({
     expandedRequestIds,
     acceptingUserId,
     decliningUserId,
-    selectedRequest,
-    setSelectedRequest,
+    reportTarget,
+    setReportTarget,
     isReportingMember,
     showReportMemberConfirm,
     selectedMember,

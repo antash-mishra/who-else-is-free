@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StackActions } from '@react-navigation/native';
 
 import { API_BASE_URL } from '@api/config';
+import { ActionMenuItem } from '@components/EventActionOverlay.prompts';
 import { useAuth } from '@context/AuthContext';
 import { ChatConversation, useChat } from '@context/ChatContext';
 import { useEvents, UserEvent } from '@context/EventsContext';
@@ -507,7 +508,7 @@ export const useEventDetailsActions = ({
 
   const handleMenuDelete = () => replaceMenuOverlay(handleDeletePrompt);
 
-  const menuItems = useMemo(() => {
+  const menuItems = useMemo<ActionMenuItem[]>(() => {
     if (isOwner) {
       // Host: Edit plan, Delete plan
       return [
@@ -516,15 +517,14 @@ export const useEventDetailsActions = ({
       ];
     }
     if (isConversationMember) {
-      // Joined: View intro message, Leave plan, Report plan
+      // Joined: intro, report, then destructive leave.
       return [
         { label: 'View intro message', onPress: handleMenuViewIntro },
-        { label: 'Leave plan', onPress: handleLeavePrompt, destructive: true },
         {
           label: 'Report plan',
           onPress: handleMenuReportEvent,
-          destructive: true,
         },
+        { label: 'Leave plan', onPress: handleLeavePrompt, destructive: true },
       ];
     }
     if (hasPendingRequest) {
@@ -539,7 +539,6 @@ export const useEventDetailsActions = ({
         {
           label: 'Report plan',
           onPress: handleMenuReportEvent,
-          destructive: true,
         },
       ];
     }
@@ -548,7 +547,6 @@ export const useEventDetailsActions = ({
       {
         label: 'Report plan',
         onPress: handleMenuReportEvent,
-        destructive: true,
       },
     ];
   }, [isOwner, isConversationMember, hasPendingRequest, isCancellingRequest]);

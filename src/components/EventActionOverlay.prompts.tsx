@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { SheetActionList } from '@components/sheets';
 import { triggerHaptic } from '@services/haptics';
@@ -68,17 +68,19 @@ export const InvitePrompt = ({
   const isDisabled = inviteSubmitting || inviteDisabled;
 
   return (
-    <View style={styles.prompt}>
-      <TextInput
-        accessibilityLabel="Share a short intro with the host"
-        placeholder="Share a short intro with the host"
-        placeholderTextColor={colors.subText}
-        multiline
-        value={inviteMessage}
-        onChangeText={onInviteMessageChange}
-        style={styles.inviteInput}
-      />
-      {inviteError ? <Text style={styles.promptError}>{inviteError}</Text> : null}
+    <View style={[styles.prompt, styles.inputPrompt]}>
+      <ScrollView style={styles.inputBody} keyboardShouldPersistTaps="handled">
+        <TextInput
+          accessibilityLabel="Share a short intro with the host"
+          placeholder="Share a short intro with the host"
+          placeholderTextColor={colors.subText}
+          multiline
+          value={inviteMessage}
+          onChangeText={onInviteMessageChange}
+          style={styles.inviteInput}
+        />
+        {inviteError ? <Text style={styles.promptError}>{inviteError}</Text> : null}
+      </ScrollView>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled }}
@@ -152,17 +154,19 @@ export const ReportPrompt = ({
   const isDisabled = reportSubmitting || reportDisabled;
 
   return (
-    <View style={styles.prompt}>
-      <TextInput
-        accessibilityLabel={placeholder}
-        placeholder={placeholder}
-        placeholderTextColor={colors.subText}
-        multiline
-        value={reportMessage}
-        onChangeText={onReportMessageChange}
-        style={styles.inviteInput}
-      />
-      {reportError ? <Text style={styles.promptError}>{reportError}</Text> : null}
+    <View style={[styles.prompt, styles.inputPrompt]}>
+      <ScrollView style={styles.inputBody} keyboardShouldPersistTaps="handled">
+        <TextInput
+          accessibilityLabel={placeholder}
+          placeholder={placeholder}
+          placeholderTextColor={colors.subText}
+          multiline
+          value={reportMessage}
+          onChangeText={onReportMessageChange}
+          style={styles.inviteInput}
+        />
+        {reportError ? <Text style={styles.promptError}>{reportError}</Text> : null}
+      </ScrollView>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled }}
