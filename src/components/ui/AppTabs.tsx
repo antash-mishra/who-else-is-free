@@ -3,8 +3,10 @@ import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withSpring,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import ScalePressable from '@components/ScalePressable';
@@ -24,22 +26,47 @@ export interface AppTabsProps {
   variant?: 'pill' | 'underline';
   style?: StyleProp<ViewStyle>;
   testIDPrefix?: string;
+  /**
+   * Continuous page index from AnimatedPager. When supplied, the indicator
+   * tracks the swipe instead of springing on selection change.
+   */
+  pageOffsetSV?: SharedValue<number>;
 }
 
 interface AppTabProps {
   option: AppTabOption;
+  index: number;
   selected: boolean;
   variant: 'pill' | 'underline';
   onPress: () => void;
   testIDPrefix: string;
+  pageOffsetSV?: SharedValue<number>;
 }
 
-const AppTab = ({ option, selected, variant, onPress, testIDPrefix }: AppTabProps) => {
-  const progress = useSharedValue(selected ? 1 : 0);
+const AppTab = ({
+  option,
+  index,
+  selected,
+  variant,
+  onPress,
+  testIDPrefix,
+  pageOffsetSV,
+}: AppTabProps) => {
+  const selectedProgress = useSharedValue(selected ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withSpring(selected ? 1 : 0, Springs.snappy);
-  }, [progress, selected]);
+    selectedProgress.value = withSpring(selected ? 1 : 0, Springs.snappy);
+  }, [selectedProgress, selected]);
+
+  // With a pager offset the indicator follows the finger; without one it
+  // springs on selection exactly as before.
+  const progress = useDerivedValue(() => {
+    if (!pageOffsetSV) {
+      return selectedProgress.value;
+    }
+    const distance = Math.abs(pageOffsetSV.value - index);
+    return Math.min(Math.max(1 - distance, 0), 1);
+  });
 
   const pillStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
@@ -103,12 +130,15 @@ const AppTabs = ({
   variant = 'pill',
   style,
   testIDPrefix = 'tab',
+  pageOffsetSV,
 }: AppTabsProps) => (
   <View style={[styles.container, variant === 'underline' && styles.underlineContainer, style]}>
-    {options.map((option) => (
+    {options.map((option, index) => (
       <AppTab
         key={option.value}
         option={option}
+        index={index}
+        pageOffsetSV={pageOffsetSV}
         selected={option.value === value}
         variant={variant}
         onPress={() => onChange(option.value)}

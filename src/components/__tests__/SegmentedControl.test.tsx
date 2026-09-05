@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
+import { type SharedValue } from 'react-native-reanimated';
 
 import SegmentedControl from '../SegmentedControl';
 
@@ -56,13 +57,7 @@ describe('SegmentedControl', () => {
         { label: 'Tomorrow', value: 'tomorrow' },
       ];
 
-      render(
-        <SegmentedControl
-          options={twoOptions}
-          value="today"
-          onChange={jest.fn()}
-        />
-      );
+      render(<SegmentedControl options={twoOptions} value="today" onChange={jest.fn()} />);
 
       expect(screen.getByText('Today')).toBeTruthy();
       expect(screen.getByText('Tomorrow')).toBeTruthy();
@@ -79,13 +74,7 @@ describe('SegmentedControl', () => {
         { label: 'Five', value: '5' },
       ];
 
-      render(
-        <SegmentedControl
-          options={manyOptions}
-          value="1"
-          onChange={jest.fn()}
-        />
-      );
+      render(<SegmentedControl options={manyOptions} value="1" onChange={jest.fn()} />);
 
       manyOptions.forEach((option) => {
         expect(screen.getByText(option.label)).toBeTruthy();
@@ -177,7 +166,7 @@ describe('SegmentedControl', () => {
     it('should allow switching between all options', () => {
       const onChange = jest.fn();
       const { rerender } = render(
-        <SegmentedControl {...defaultProps} value="a" onChange={onChange} />
+        <SegmentedControl {...defaultProps} value="a" onChange={onChange} />,
       );
 
       // Press b
@@ -239,13 +228,7 @@ describe('SegmentedControl', () => {
         { label: 'Tomorrow', value: 'tomorrow' },
       ];
 
-      render(
-        <SegmentedControl
-          options={dateOptions}
-          value="today"
-          onChange={onChange}
-        />
-      );
+      render(<SegmentedControl options={dateOptions} value="today" onChange={onChange} />);
 
       expect(screen.getByText('Today')).toBeTruthy();
       expect(screen.getByText('Tomorrow')).toBeTruthy();
@@ -263,13 +246,7 @@ describe('SegmentedControl', () => {
         { label: 'Pending', value: 'pending' },
       ];
 
-      render(
-        <SegmentedControl
-          options={typeOptions}
-          value="all"
-          onChange={onChange}
-        />
-      );
+      render(<SegmentedControl options={typeOptions} value="all" onChange={onChange} />);
 
       fireEvent.press(screen.getByTestId('segment-hosting'));
       expect(onChange).toHaveBeenCalledWith('hosting');
@@ -282,13 +259,7 @@ describe('SegmentedControl', () => {
         { label: 'Group', value: 'group' },
       ];
 
-      render(
-        <SegmentedControl
-          options={groupOptions}
-          value="single"
-          onChange={onChange}
-        />
-      );
+      render(<SegmentedControl options={groupOptions} value="single" onChange={onChange} />);
 
       expect(screen.getByTestId('segment-single').props.accessibilityState.selected).toBe(true);
 
@@ -306,17 +277,28 @@ describe('SegmentedControl', () => {
         { label: 'Third', value: 'third' },
       ];
 
-      render(
-        <SegmentedControl
-          options={uniqueOptions}
-          value="first"
-          onChange={jest.fn()}
-        />
-      );
+      render(<SegmentedControl options={uniqueOptions} value="first" onChange={jest.fn()} />);
 
       expect(screen.getByTestId('segment-first')).toBeTruthy();
       expect(screen.getByTestId('segment-second')).toBeTruthy();
       expect(screen.getByTestId('segment-third')).toBeTruthy();
     });
+  });
+  it('accepts a page offset shared value without changing rendered labels', () => {
+    const pageOffsetSV = { value: 0.5 } as unknown as SharedValue<number>;
+    const { getByText } = render(
+      <SegmentedControl
+        options={[
+          { label: 'Upcoming', value: 'upcoming' },
+          { label: 'Newest', value: 'newest' },
+        ]}
+        value="upcoming"
+        onChange={jest.fn()}
+        pageOffsetSV={pageOffsetSV}
+      />,
+    );
+
+    expect(getByText('Upcoming')).toBeTruthy();
+    expect(getByText('Newest')).toBeTruthy();
   });
 });

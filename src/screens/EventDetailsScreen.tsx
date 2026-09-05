@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
 import { BlurView } from 'expo-blur';
 
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '@api/config';
@@ -82,6 +82,12 @@ const EventDetailsScreenContent = ({
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  // Drives the hero parallax. bounces stays disabled on the ScrollView below,
+  // so this is scroll-away parallax only.
+  const scrollY = useSharedValue(0);
+  const handleScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
   const { height: screenHeight } = useWindowDimensions();
   const { user } = useAuth();
   const origin = (route.params as { origin?: string }).origin ?? 'Events';
@@ -356,13 +362,15 @@ const EventDetailsScreenContent = ({
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}
-        <ScrollView
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           bounces={false}
           alwaysBounceVertical={false}
           contentContainerStyle={pageScrollContentStyle}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
-          <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} />
+          <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} scrollY={scrollY} />
           <View style={styles.card}>
             <EventDetailsInfo
               title={event.title}
@@ -426,12 +434,13 @@ const EventDetailsScreenContent = ({
               />
             )}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
         <EventDetailsCTA
           showStandardCta={shouldPinBottomCTA && showStandardCTA && !readOnly}
           showOpenChatCta={shouldPinBottomCTA && showOpenChatCTA && !readOnly}
           shouldShowInvitePrompt={shouldShowInvitePrompt}
           hasPendingRequest={hasPendingRequest}
+          stampKey={hasPendingRequest ? 'requested' : 'idle'}
           ctaLabel={ctaLabel}
           isOwner={isOwner}
           bottomInset={insets.bottom}

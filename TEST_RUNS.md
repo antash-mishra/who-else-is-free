@@ -174,3 +174,79 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated: focused Jest for chat thread, chat context, header subtitle, and dateTime; full Jest suite; TypeScript; ESLint on touched files with no new warnings; Prettier on touched files (three files were already outside the repo's format baseline and were left as found). Go: `TestAPIIntegration/list_covers` fails in this checkout because cover images are gitignored and not fetched; unrelated to the change.
 - Not verified: iOS. The placeholder caret fix is applied to every `TextInput` through the shared tokens, but only the chat composer was inspected on device.
 - Final: **PASS** on Android emulator.
+
+## 2026-09-05 — Scrapbook motion system (phases 0–2)
+
+- Change: motion tokens (`src/theme/motion.ts`) beside the frozen `springs.ts`, shared seeded random, the `Placed` entry primitive with reduce-motion support, two Reanimated migrations, Discover card stagger + opt-in `ScalePressable` tilt + swipe-tracking sort indicator, and Event Details parallax hero / cover drop-in / avatar pop-in / join stamp / request row exit (`docs/superpowers/specs/2026-09-05-app-motion-system-design.md`, `docs/superpowers/plans/2026-09-05-app-motion-system.md`).
+- Automated: 105 Jest suites / 1,345 tests pass; `npm run typecheck` clean; `npm run lint` 776 warnings against 788 on `master` (0 errors); Prettier clean on touched files.
+- Environment: the pre-existing emulator session was unhealthy (SystemUI ANR on first contact, then `Process system isn't responding`); cold-restarted `WEIF_API_36`, which booted clean with no further ANRs. Metro was already running with `--localhost`, so `adb reverse` was added for 8080 alongside the existing 8081 forward. Verified signed-out unless noted. Evidence captured with `adb screenrecord` plus ffmpeg frame extraction, since static screenshots cannot show motion.
+- **Discover entry cascade — PASS.** Full cold launch recorded; at 20 fps the rows resolve top-to-bottom. Mid-flight frame vs settled frame: row 1 nearly opaque while rows 2–4 are progressively fainter, rows still translated ~10–26 px low and rising, covers scaled slightly small and settling outward. Matches `entryTranslateY` 14 / `entryScaleFrom` 0.97 / capped 45 ms stagger.
+- **No entry replay — PASS.** Scrolling down and back, and switching sort tabs, left cards solid; no re-fade. The once-per-id registry holds.
+- **Swipe-tracking sort indicator — PASS.** During a slow drag between Upcoming and Newest the two pills interpolate through intermediate greys in step with the page slide, rather than snapping on selection. This is the new optional `pageOffsetSV` path.
+- **Event Details cover drop-in and rest tilt — PASS.** The cover card scales up into place; both mid-entry and settled frames show it visibly rotated (bottom edge slopes ~10–18 px across ~480 px, ≈1.2°, within `tiltMaxDeg` 1.5), with the elevated shadow offset to match.
+- **Reduce motion — PASS.** With `transition_animation_scale`/`window_animation_scale`/`animator_duration_scale` set to 0, Discover cards appear at full opacity with no cascade, and the Event Details cover renders perfectly axis-aligned with no drop-in and no tilt. `Placed` falls back to a plain static View as designed. Scales restored to 1 afterwards.
+- **Not verified:**
+  - Hero parallax. Every seeded plan is short enough to fit on one screen, so the Event Details `ScrollView` never scrolls and the effect is never exercised. Needs a plan with a long description or a large member list.
+  - Join CTA stamp. Reaching it requires a signed-in non-host viewer, and the seeded plans fall outside signed-in Discover's 50 km filter on this emulator (the same data quirk recorded in the issue-135 run). No join request was created.
+  - Request row exit animation. Needs a host account with pending requests, blocked by the same data gap.
+  - Avatar stagger. The available plan has a single member, so there is no sequence to observe; the avatar itself renders.
+  - iOS entirely.
+- Environment left as found: animation scales back to 1, location permission revoked (its state at session start), app signed out, no seeded data added.
+- Final: **PASS** for every motion behaviour that the available data could exercise; four items above remain unverified for data reasons, not defects.
+
+## 2026-09-05 — Motion system performance regression (Galaxy A56)
+
+- Trigger: reported slow scrolling and laggy animation on a physical Samsung SM-A566E (Android 16), running the dev client against the fly.io backend.
+- Method: `dumpsys gfxinfo <pkg> reset` then a fixed gesture sequence, reading janky-frame counts and percentiles. Because the motion work is JS-only, `master` and the feature branch were A/B'd on the same installed build by switching branches and reloading Metro, holding device, data, and battery-saver state constant.
+
+### Discover scroll (12 swipes)
+
+| Run                              | Janky      | 90th  | 99th   | Slow UI thread |
+| -------------------------------- | ---------- | ----- | ------ | -------------- |
+| A: feature branch                | 25 (9.09%) | 34 ms | 121 ms | 25             |
+| B: `master`                      | 3 (0.79%)  | 16 ms | 25 ms  | 2              |
+| C: branch minus `Placed` on rows | 3 (0.81%)  | 16 ms | 24 ms  | 3              |
+| D: branch with `Placed` fixed    | 2 (0.54%)  | 16 ms | 28 ms  | 2              |
+
+- Run C isolates it: removing only the `Placed` wrapper restores `master` behaviour while the `ScalePressable` tilt stays in place, so the tilt is not implicated.
+- Root cause: `Placed` left a `useReducedMotion` hook, a shared value, a worklet style, and an extra native `Animated.View` attached to every row for the life of the list, and `SectionList` remounts those constantly while recycling. The animation is one-shot; the machinery was not.
+- Fix: non-animating items (id already seen, reduce motion, or index past the stagger window) render as a plain `View` with no Reanimated attached. A `rest` tilt is preserved on that path as a plain style transform. GPU percentiles were flat at 3–4 ms throughout, confirming a UI/JS-thread cost rather than a GPU one.
+
+### Tab navigation (Discover → My plans → Chats → Profile ×3)
+
+| Run                       | Janky      | 90th  | 99th  |
+| ------------------------- | ---------- | ----- | ----- |
+| `master`, debug build     | 39 (6.40%) | 20 ms | 69 ms |
+| Branch, debug build       | 48 (8.32%) | 27 ms | 85 ms |
+| Branch, tilt neutralised  | 47 (8.05%) | 23 ms | 85 ms |
+| Branch, battery saver off | 43 (7.00%) | 20 ms | 69 ms |
+
+- Tab navigation is janky on `master` too. Across runs the count moved 39/43/47/48 out of ~600 frames, so the branch delta sits inside run-to-run noise rather than being a distinct regression. Neutralising the `ScalePressable` tilt changed nothing (48 → 47).
+
+### Release build (same device, same battery-saver state)
+
+| Interaction     | Debug       | Release                                |
+| --------------- | ----------- | -------------------------------------- |
+| Discover scroll | 0.54% janky | **0.00%** (0 janky frames, 99th 15 ms) |
+| Tab navigation  | 8.32% janky | **2.94%** (99th 48 ms)                 |
+
+- The debug/dev-client build was the dominant contributor to the remaining perceived jank; a release build of the same commit removes it. Battery saver is a smaller secondary factor (scroll 0.54% → 0.26% with it off).
+- Final: the one genuine regression (`Placed` on list rows) is fixed and now measures better than `master`; residual tab-navigation jank is pre-existing and largely a dev-build artifact.
+
+## 2026-09-05 — Shared tab-and-pager wiring (useTabbedPages)
+
+- Change: extracted the tab-strip/pager wiring into `src/hooks/useTabbedPages.ts` and adopted it in
+  `HomeScreen` and `MyEventsScreen`. My Events created a page offset and passed it to
+  `AnimatedPager` but never to `SegmentedControl`, so its tabs snapped while Discover's tracked the
+  swipe.
+- Automated: 9 new hook unit tests (index derivation, pager change, tab change, shared offset
+  identity, fallback when the selected option disappears, out-of-range page index); 106 suites /
+  1,354 tests pass; typecheck clean; lint 776 warnings against 788 on `master`, 0 errors.
+- Device (Galaxy A56, dev client, fly.io backend): My plans → slow horizontal drags between
+  Hosting / Joined / Requests. Frame extraction at 12 fps shows both pills interpolating through
+  intermediate greys in step with the drag — "Hosting" fading out as "Joined" fills in — rather
+  than snapping at the end. Matches Discover. The "Hosting 1" count badge is preserved through the
+  transition.
+- Not verified: iOS. Event Details' `HostRequestTabs` was deliberately excluded (its pager is
+  direction-locked and frozen in CLAUDE.md), so its tabs still snap by design.
+- Final: **PASS** on Android.

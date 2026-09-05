@@ -6,3 +6,4 @@ export * from './shadows';
 export * from './spacing';
 export * from './typography';
 export * from './springs';
+export * from './motion';

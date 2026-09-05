@@ -75,8 +75,24 @@ Use shared primitives before local UI:
 - `IconButton` supports a compact visual size with an explicit shared hit-slop token when a header must keep the standard touch target without inheriting the button's layout height.
 - Sheets: `src/components/sheets`, `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`
 - Event lists: `src/components/events`, including `EventListLoadState` for the shared full-page loading/error/retry presentation
+- Tabbed pager wiring: `useTabbedPages` in `src/hooks/useTabbedPages.ts`. Spread `pagerProps` onto
+  `AnimatedPager` and `tabsProps` onto `SegmentedControl` instead of passing `pageOffsetSV`,
+  `selectedIndex` and `onChange` separately, so the tab indicator cannot stop tracking the pager.
+  Selection is by value, not index (Discover's options are dynamic), and the hook falls back to the
+  first option when the selected one disappears. `HostRequestTabs` keeps its own frozen pager and
+  stays off this hook.
 - Empty states: `EmptyState`
 - Press motion and haptics: `ScalePressable`, `src/services/haptics.ts`
+- Motion tokens: `src/theme/motion.ts`, layered beside the frozen `src/theme/springs.ts` (the four
+  `Springs` preset values must not change; `src/navigation/transitions.ts` is tuned against them)
+- Scrapbook entry motion: `Placed` in `src/components/motion`. It animates once per `id`, so
+  `SectionList` recycling and pager page changes never replay an entry; pass a stable unique `id`.
+  `tiltMode` is `entry` (settles square), `rest` (settles at a slight angle, for photo cards), or
+  `none` (for overlapping avatars). Stagger is capped by `staggerDelayMs`; tilt angles come from
+  `src/utils/seededRandom.ts`, shared with the confetti engine.
+- Every animated primitive must honour Reanimated's `useReducedMotion()` and degrade to a static or
+  opacity-only presentation. `ScalePressable`'s `tilt` and `AppTabs`' `pageOffsetSV` are opt-in;
+  omitted, both components behave exactly as before.
 - Dev-only logging: `logger` in `src/services/logger.ts` (use it instead of `console.*`)
 - User-profile gender values and onboarding order: `src/constants/profileOptions.ts` (`Male`, `Female`, `Other`); keep these separate from event-audience gender options.
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`

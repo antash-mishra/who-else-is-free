@@ -1,6 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { colors, typography } from '@theme/index';
 
@@ -25,32 +36,32 @@ const ConnectionStatusIndicator = ({
   label = 'Connecting',
   testID,
 }: ConnectionStatusIndicatorProps) => {
-  const [opacity] = useState(() => new Animated.Value(PULSE_MAX));
+  const reducedMotion = useReducedMotion();
+  const opacity = useSharedValue(PULSE_MAX);
 
   useEffect(() => {
-    if (!visible) {
-      opacity.setValue(PULSE_MAX);
+    if (!visible || reducedMotion) {
+      opacity.value = PULSE_MAX;
       return;
     }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: PULSE_MIN,
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(PULSE_MIN, {
           duration: PULSE_DURATION_MS,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
         }),
-        Animated.timing(opacity, {
-          toValue: PULSE_MAX,
+        withTiming(PULSE_MAX, {
           duration: PULSE_DURATION_MS,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
         }),
-      ]),
+      ),
+      -1,
+      false,
     );
-    loop.start();
-    return () => loop.stop();
-  }, [opacity, visible]);
+    return () => cancelAnimation(opacity);
+  }, [opacity, reducedMotion, visible]);
+
+  const dotStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   if (!visible) {
     return null;
@@ -62,7 +73,7 @@ const ConnectionStatusIndicator = ({
       accessibilityLabel={`Connection status: ${label}`}
       testID={testID}
     >
-      <Animated.View style={[styles.dot, { opacity }]} />
+      <Animated.View style={[styles.dot, dotStyle]} />
       <Text style={styles.label}>{label}</Text>
     </View>
   );

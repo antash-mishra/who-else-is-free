@@ -339,6 +339,25 @@ jest.mock('react-native-reanimated', () => {
     callback?.(true);
     return value;
   };
+  // Layout-animation builders are chainable: every method returns the builder.
+  const makeBuilder = () => {
+    const builder: Record<string, unknown> = {};
+    [
+      'delay',
+      'duration',
+      'springify',
+      'damping',
+      'stiffness',
+      'easing',
+      'withInitialValues',
+      'randomDelay',
+      'reduceMotion',
+      'build',
+    ].forEach((method) => {
+      builder[method] = () => builder;
+    });
+    return builder;
+  };
 
   return {
     __esModule: true,
@@ -371,13 +390,31 @@ jest.mock('react-native-reanimated', () => {
     withSequence: (...values: unknown[]) => values[values.length - 1],
     cancelAnimation: jest.fn(),
     runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
-    interpolate: jest.fn(),
+    interpolate: (value: number, input: number[], output: number[]) => {
+      const last = input.length - 1;
+      if (value <= input[0]) return output[0];
+      if (value >= input[last]) return output[last];
+      let i = 0;
+      while (i < last && value > input[i + 1]) i += 1;
+      const span = input[i + 1] - input[i];
+      const ratio = span === 0 ? 0 : (value - input[i]) / span;
+      return output[i] + (output[i + 1] - output[i]) * ratio;
+    },
     interpolateColor: (_value: number, _input: number[], output: string[]) => output[0],
     Extrapolation: {
       CLAMP: 'clamp',
       EXTEND: 'extend',
       IDENTITY: 'identity',
     },
+    useReducedMotion: () => false,
+    FadeIn: makeBuilder(),
+    FadeOut: makeBuilder(),
+    FadeInDown: makeBuilder(),
+    FadeInUp: makeBuilder(),
+    FadeOutUp: makeBuilder(),
+    FadeOutDown: makeBuilder(),
+    Layout: makeBuilder(),
+    LinearTransition: makeBuilder(),
     Easing: {
       linear: jest.fn(),
       ease: jest.fn(),

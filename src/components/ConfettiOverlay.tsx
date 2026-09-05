@@ -10,6 +10,8 @@ import {
     useSharedValue,
 } from "react-native-reanimated";
 
+import { seededRand } from "@utils/seededRandom";
+
 // ─── Palettes ─────────────────────────────────────────────────────────────────
 const P: Record<string, string[]> = {
     classic:    ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#C77DFF", "#5EEAD4", "#FF9F43", "#FF6BFF"],
@@ -63,11 +65,6 @@ const DEFAULT_PHYSICS: Physics = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function seededRand(seed: number): number {
-    const x = Math.sin(seed + 1) * 39482.3741;
-    return x - Math.floor(x);
-}
-
 type Config = { color: string; w: number; h: number; isCircle: boolean };
 type State  = {
     x: number; y: number;

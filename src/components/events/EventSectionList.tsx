@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import EventCard, { EventItemProps } from '@components/EventCard';
+import { Placed } from '@components/motion';
 import ScalePressable from '@components/ScalePressable';
 import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
@@ -54,6 +55,8 @@ const EventCardRow = <TItem extends EventItemProps>({
       onPress(item);
     }}
     delay={80}
+    tilt
+    tiltSeed={item.id}
   >
     <EventCard {...item} />
   </ScalePressable>
@@ -89,9 +92,13 @@ const EventSectionList = <TItem extends EventItemProps>({
     [],
   );
 
+  // Index is per-section on purpose: each date group cascades on its own,
+  // which reads better than one continuous ramp down a long list.
   const renderItem = useCallback(
-    ({ item }: SectionListRenderItemInfo<TItem, EventSection<TItem>>) => (
-      <EventCardRow item={item} onPress={onEventPress} />
+    ({ item, index }: SectionListRenderItemInfo<TItem, EventSection<TItem>>) => (
+      <Placed id={item.id} index={index} testID={`placed-${item.id}`}>
+        <EventCardRow item={item} onPress={onEventPress} />
+      </Placed>
     ),
     [onEventPress],
   );
