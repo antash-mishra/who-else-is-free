@@ -174,3 +174,22 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated: focused Jest for chat thread, chat context, header subtitle, and dateTime; full Jest suite; TypeScript; ESLint on touched files with no new warnings; Prettier on touched files (three files were already outside the repo's format baseline and were left as found). Go: `TestAPIIntegration/list_covers` fails in this checkout because cover images are gitignored and not fetched; unrelated to the change.
 - Not verified: iOS. The placeholder caret fix is applied to every `TextInput` through the shared tokens, but only the chat composer was inspected on device.
 - Final: **PASS** on Android emulator.
+
+## 2026-09-05 — Scrapbook motion system (phases 0–2)
+
+- Change: motion tokens (`src/theme/motion.ts`) beside the frozen `springs.ts`, shared seeded random, the `Placed` entry primitive with reduce-motion support, two Reanimated migrations, Discover card stagger + opt-in `ScalePressable` tilt + swipe-tracking sort indicator, and Event Details parallax hero / cover drop-in / avatar pop-in / join stamp / request row exit (`docs/superpowers/specs/2026-09-05-app-motion-system-design.md`, `docs/superpowers/plans/2026-09-05-app-motion-system.md`).
+- Automated: 105 Jest suites / 1,345 tests pass; `npm run typecheck` clean; `npm run lint` 776 warnings against 788 on `master` (0 errors); Prettier clean on touched files.
+- Environment: the pre-existing emulator session was unhealthy (SystemUI ANR on first contact, then `Process system isn't responding`); cold-restarted `WEIF_API_36`, which booted clean with no further ANRs. Metro was already running with `--localhost`, so `adb reverse` was added for 8080 alongside the existing 8081 forward. Verified signed-out unless noted. Evidence captured with `adb screenrecord` plus ffmpeg frame extraction, since static screenshots cannot show motion.
+- **Discover entry cascade — PASS.** Full cold launch recorded; at 20 fps the rows resolve top-to-bottom. Mid-flight frame vs settled frame: row 1 nearly opaque while rows 2–4 are progressively fainter, rows still translated ~10–26 px low and rising, covers scaled slightly small and settling outward. Matches `entryTranslateY` 14 / `entryScaleFrom` 0.97 / capped 45 ms stagger.
+- **No entry replay — PASS.** Scrolling down and back, and switching sort tabs, left cards solid; no re-fade. The once-per-id registry holds.
+- **Swipe-tracking sort indicator — PASS.** During a slow drag between Upcoming and Newest the two pills interpolate through intermediate greys in step with the page slide, rather than snapping on selection. This is the new optional `pageOffsetSV` path.
+- **Event Details cover drop-in and rest tilt — PASS.** The cover card scales up into place; both mid-entry and settled frames show it visibly rotated (bottom edge slopes ~10–18 px across ~480 px, ≈1.2°, within `tiltMaxDeg` 1.5), with the elevated shadow offset to match.
+- **Reduce motion — PASS.** With `transition_animation_scale`/`window_animation_scale`/`animator_duration_scale` set to 0, Discover cards appear at full opacity with no cascade, and the Event Details cover renders perfectly axis-aligned with no drop-in and no tilt. `Placed` falls back to a plain static View as designed. Scales restored to 1 afterwards.
+- **Not verified:**
+  - Hero parallax. Every seeded plan is short enough to fit on one screen, so the Event Details `ScrollView` never scrolls and the effect is never exercised. Needs a plan with a long description or a large member list.
+  - Join CTA stamp. Reaching it requires a signed-in non-host viewer, and the seeded plans fall outside signed-in Discover's 50 km filter on this emulator (the same data quirk recorded in the issue-135 run). No join request was created.
+  - Request row exit animation. Needs a host account with pending requests, blocked by the same data gap.
+  - Avatar stagger. The available plan has a single member, so there is no sequence to observe; the avatar itself renders.
+  - iOS entirely.
+- Environment left as found: animation scales back to 1, location permission revoked (its state at session start), app signed out, no seeded data added.
+- Final: **PASS** for every motion behaviour that the available data could exercise; four items above remain unverified for data reasons, not defects.
