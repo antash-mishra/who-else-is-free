@@ -258,7 +258,7 @@ jest.mock('@components/EventActionOverlay', () => {
               testID="report-message-input"
               value={props.reportMessage}
               onChangeText={props.onReportMessageChange}
-              placeholder="Tell us why..."
+              placeholder={props.placeholder}
             />
             {props.reportError && <Text testID="report-error">{props.reportError}</Text>}
             <Pressable testID="submit-report-button" onPress={props.onSubmitReport}>
@@ -519,6 +519,67 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       fireEvent.press(getByTestId('confirm-button'));
       expect(getByTestId('report-overlay')).toBeTruthy();
+      expect(getByTestId('report-message-input').props.placeholder).toBe(
+        "Tell us why you're reporting Liam",
+      );
+    });
+
+    it.each([200, 409, 500])(
+      'submits the selected person report to the member endpoint (status %s)',
+      async (status) => {
+        fetchMock.mockResponse(JSON.stringify({}), { status });
+        const view = render(<EventDetailsScreen />);
+        fireEvent.press(view.getByTestId('event-details-tab-members'));
+        fireEvent.press(view.getByLabelText('Open actions for Liam Test'));
+        fireEvent.press(view.getByTestId('menu-item-report-&-block-liam'));
+        fireEvent.press(view.getByTestId('confirm-button'));
+        fireEvent.changeText(view.getByTestId('report-message-input'), '  Synthetic reason  ');
+        await act(async () => {
+          fireEvent.press(view.getByTestId('submit-report-button'));
+        });
+        await waitFor(() =>
+          expect(fetchMock).toHaveBeenCalledWith(
+            expect.stringContaining(
+              `/api/events/${mockOwnedEvent.id}/members/${mockOtherUser.id}/report`,
+            ),
+            expect.objectContaining({
+              method: 'POST',
+              body: JSON.stringify({ reason: 'Synthetic reason' }),
+            }),
+          ),
+        );
+        expect(
+          fetchMock.mock.calls.some(([url]) =>
+            String(url).endsWith(`/events/${mockOwnedEvent.id}/report`),
+          ),
+        ).toBe(false);
+        if (status === 200) {
+          await waitFor(() => expect(view.queryByTestId('report-overlay')).toBeNull());
+          expect(view.getByText('Liam reported and blocked')).toBeTruthy();
+        } else {
+          await waitFor(() => expect(view.getByTestId('report-error')).toBeTruthy());
+          expect(view.getByTestId('report-message-input')).toHaveProp(
+            'value',
+            '  Synthetic reason  ',
+          );
+        }
+      },
+    );
+
+    it('clears the person-report target when the event route changes', () => {
+      const routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute');
+      routeSpy.mockReturnValue(createMockRoute(mockOwnedEvent.id));
+      const view = render(<EventDetailsScreen />);
+      fireEvent.press(view.getByTestId('event-details-tab-members'));
+      fireEvent.press(view.getByLabelText('Open actions for Liam Test'));
+      fireEvent.press(view.getByTestId('menu-item-report-&-block-liam'));
+      fireEvent.press(view.getByTestId('confirm-button'));
+      expect(view.getByTestId('report-overlay')).toBeTruthy();
+      mockEventsState.events = [mockSingleEvent];
+      routeSpy.mockReturnValue(createMockRoute(mockSingleEvent.id));
+      view.rerender(<EventDetailsScreen />);
+      expect(view.queryByTestId('report-overlay')).toBeNull();
+      routeSpy.mockRestore();
     });
 
     it('navigates to edit screen when Edit plan is pressed', async () => {
@@ -653,7 +714,8 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('2 Joined');
+      // The fixture has two conversation participants plus the distinct event host (999).
+      expect(getByTestId('going-count-label')).toHaveTextContent('3 Members');
     });
 
     it('redirects to login when guest tries to join', async () => {
@@ -708,7 +770,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1 Joined');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 Member');
     });
 
     it('shows fallback host going state when conversation is missing', () => {
@@ -716,7 +778,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1 Joined');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 Member');
       expect(getByTestId('going-avatar-0')).toBeTruthy();
     });
 
@@ -843,7 +905,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('2 Joined');
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 Members');
     });
 
     it('does not show "Request to join" button for members', () => {
@@ -1660,17 +1722,14 @@ describe('EventDetailsScreen Rendering Tests', () => {
       );
     });
 
-    it('fetches and displays user intro message for members', async () => {
-      const { queryByText } = render(<EventDetailsScreen />);
-
-      // Wait for the fetch to complete
-      await waitFor(
-        () => {
-          // The intro message section should be visible
-          expect(queryByText('Introduction')).toBeTruthy();
-        },
-        { timeout: 3000 },
+    it('keeps accepted intro in the menu without an inline Introduction section', async () => {
+      const view = render(<EventDetailsScreen />);
+      fireEvent.press(view.getByLabelText('More actions'));
+      fireEvent.press(view.getByTestId('menu-item-view-intro-message'));
+      await waitFor(() =>
+        expect(view.getByTestId('intro-message')).toHaveTextContent('My introduction message'),
       );
+      expect(view.queryByText('Introduction')).toBeNull();
     });
   });
 
@@ -1974,6 +2033,28 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(closeButton);
 
       expect(mockGoBack).toHaveBeenCalledTimes(1);
+    });
+  });
+  describe('Issue 135 group roster', () => {
+    it('shows the host as the first and only member before a conversation exists', () => {
+      mockEventsState.events = [mockOwnedEvent];
+      mockChatState.conversations = [];
+      const view = render(<EventDetailsScreen />);
+      expect(view.getByText('1 Member')).toBeTruthy();
+      fireEvent.press(view.getByTestId('event-details-tab-members'));
+      expect(view.getByText(mockOwnedEvent.hostName)).toBeTruthy();
+      expect(view.getByText('Host')).toBeTruthy();
+      expect(view.queryByLabelText(`Open actions for ${mockOwnedEvent.hostName}`)).toBeNull();
+      expect(view.queryByText('No members')).toBeNull();
+    });
+    it('counts and displays host plus accepted members consistently', () => {
+      mockEventsState.events = [mockOwnedEvent];
+      const view = render(<EventDetailsScreen />);
+      expect(view.getByText('2 Members')).toBeTruthy();
+      fireEvent.press(view.getByTestId('event-details-tab-members'));
+      expect(view.getByText('Host')).toBeTruthy();
+      expect(view.getByLabelText(`Open actions for ${mockOtherUser.name}`)).toBeTruthy();
+      expect(view.queryByLabelText(`Open actions for ${mockUser.name}`)).toBeNull();
     });
   });
 });

@@ -122,7 +122,7 @@ const EventDetailsInfo = ({
               )}
             </View>
             <Text style={styles.goingLabel} testID="going-count-label">
-              {`${goingCount} Joined`}
+              {`${goingCount} ${goingCount === 1 ? 'Member' : 'Members'}`}
             </Text>
           </View>
         )}

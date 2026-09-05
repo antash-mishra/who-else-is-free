@@ -26,6 +26,7 @@ type EventDetailsOverlayRoutesProps = {
   isDeleting: boolean;
   showReportPrompt: boolean;
   onCloseReportPrompt: () => void;
+  reportTargetName?: string | null;
   reportMessage: string;
   onReportMessageChange: (text: string) => void;
   onSubmitReport: () => void;
@@ -70,7 +71,8 @@ type EventDetailsOverlayRoutesProps = {
   onCloseSignIn: () => void;
 };
 
-const getFirstName = (name?: string | null, fallback = 'Member') => name?.split(' ')[0] ?? fallback;
+const getFirstName = (name?: string | null, fallback = 'Member') =>
+  name?.trim().split(/\s+/)[0] || fallback;
 
 const EventDetailsOverlayRoutes = ({
   shouldShowInvitePrompt,
@@ -87,6 +89,7 @@ const EventDetailsOverlayRoutes = ({
   isDeleting,
   showReportPrompt,
   onCloseReportPrompt,
+  reportTargetName,
   reportMessage,
   onReportMessageChange,
   onSubmitReport,
@@ -164,6 +167,11 @@ const EventDetailsOverlayRoutes = ({
         isVisible={showReportPrompt}
         onBackdropPress={isSubmittingReport ? undefined : onCloseReportPrompt}
         type="report"
+        placeholder={
+          reportTargetName != null
+            ? `Tell us why you're reporting ${getFirstName(reportTargetName, 'this member')}`
+            : undefined
+        }
         reportMessage={reportMessage}
         onReportMessageChange={onReportMessageChange}
         onSubmitReport={onSubmitReport}
@@ -220,7 +228,7 @@ const EventDetailsOverlayRoutes = ({
         type="confirm"
         title={`Report & block ${memberTitleName}?`}
         description="They won't be able to interact with you on future plans. Their report will be reviewed by our team."
-        confirmLabel={`Report & block ${memberFirstName}`}
+        confirmLabel="Report & block"
         cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={onReportMemberConfirm}
@@ -236,7 +244,8 @@ const EventDetailsOverlayRoutes = ({
             ? 'They will be removed from this plan and your 1:1 chat will be deleted.'
             : 'They will be removed from this plan and group chat.'
         }
-        confirmLabel={`Remove ${memberFirstName}`}
+        confirmLabel="Remove"
+        headerAlign="center"
         cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={onRemoveMember}

@@ -88,6 +88,8 @@ const BottomSheet = ({
   const onClosedRef = useRef(onClosed);
   const onOpenedRef = useRef(onOpened);
   const shouldAnimateOnShowRef = useRef(false);
+  const nativeModalShownRef = useRef(false);
+  const visibleRef = useRef(visible);
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
   const keyboardOffset = useSharedValue(0);
@@ -100,6 +102,7 @@ const BottomSheet = ({
   const sheetStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: slideY.value - (avoidKeyboard ? keyboardOffset.value : 0) }],
+      maxHeight: Math.max(0, sheetMaxHeight - (avoidKeyboard ? keyboardOffset.value : 0)),
     };
   });
   const backdropStyle = useAnimatedStyle(() => ({
@@ -211,7 +214,15 @@ const BottomSheet = ({
     });
   }, [backdropOpacity, closeDuration, keyboardOffset, screenHeight, slideY]);
 
+  // Layout/keyboard changes update the geometry without replaying entry motion.
+  const animationCallbacksRef = useRef({ startOpenAnimation, startCloseAnimation });
   useEffect(() => {
+    animationCallbacksRef.current = { startOpenAnimation, startCloseAnimation };
+  }, [startOpenAnimation, startCloseAnimation]);
+
+  useEffect(() => {
+    visibleRef.current = visible;
+    let frame: number | undefined;
     if (visible) {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
@@ -219,28 +230,27 @@ const BottomSheet = ({
       }
       hasBeenVisible.current = true;
       isMountedRef.current = true;
-      if (presentation === 'modal' && !isMounted) {
+      setIsMounted(true);
+      if (presentation === 'modal' && !nativeModalShownRef.current) {
         shouldAnimateOnShowRef.current = true;
-        setIsMounted(true);
       } else {
-        setIsMounted(true);
-        requestAnimationFrame(startOpenAnimation);
+        frame = requestAnimationFrame(() => animationCallbacksRef.current.startOpenAnimation());
       }
-      return;
+    } else if (hasBeenVisible.current && isMountedRef.current) {
+      shouldAnimateOnShowRef.current = false;
+      animationCallbacksRef.current.startCloseAnimation();
+      closeTimerRef.current = setTimeout(() => {
+        isMountedRef.current = false;
+        nativeModalShownRef.current = false;
+        setIsMounted(false);
+        closeTimerRef.current = null;
+        onClosedRef.current?.();
+      }, closeDuration);
     }
-
-    if (!hasBeenVisible.current || !isMountedRef.current) {
-      return;
-    }
-
-    startCloseAnimation();
-    closeTimerRef.current = setTimeout(() => {
-      isMountedRef.current = false;
-      setIsMounted(false);
-      closeTimerRef.current = null;
-      onClosedRef.current?.();
-    }, closeDuration);
-  }, [closeDuration, isMounted, presentation, startCloseAnimation, startOpenAnimation, visible]);
+    return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
+  }, [closeDuration, presentation, visible]);
 
   useEffect(() => {
     return () => {
@@ -251,12 +261,11 @@ const BottomSheet = ({
   }, []);
 
   const handleModalShow = useCallback(() => {
-    if (!shouldAnimateOnShowRef.current) {
-      return;
-    }
+    nativeModalShownRef.current = true;
+    if (!visibleRef.current || !shouldAnimateOnShowRef.current) return;
     shouldAnimateOnShowRef.current = false;
-    startOpenAnimation();
-  }, [startOpenAnimation]);
+    animationCallbacksRef.current.startOpenAnimation();
+  }, []);
 
   if (!isMounted) {
     return null;

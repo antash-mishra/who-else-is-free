@@ -45,6 +45,7 @@ type HostRequestTabsProps = {
   pendingRequests: ChatJoinRequest[];
   acceptedRequests: ChatJoinRequest[];
   confirmedMembers: MemberLike[];
+  hostId?: number;
   expandedRequestIds: Set<number>;
   acceptingUserId: number | null;
   decliningUserId: number | null;
@@ -66,6 +67,7 @@ const HostRequestTabs = ({
   pendingRequests,
   acceptedRequests,
   confirmedMembers,
+  hostId,
   expandedRequestIds,
   acceptingUserId,
   decliningUserId,
@@ -272,7 +274,13 @@ const HostRequestTabs = ({
               ) : (
                 confirmedMembers.map((member, index) => (
                   <View key={member.id}>
-                    <EventMemberRow member={member} onMenuPress={() => onOpenMemberMenu(member)} />
+                    <EventMemberRow
+                      member={member}
+                      trailingLabel={member.id === hostId ? 'Host' : undefined}
+                      onMenuPress={
+                        member.id === hostId ? undefined : () => onOpenMemberMenu(member)
+                      }
+                    />
                     {index < confirmedMembers.length - 1 && <EventMemberRowSeparator />}
                   </View>
                 ))
