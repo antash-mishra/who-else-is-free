@@ -232,3 +232,21 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 
 - The debug/dev-client build was the dominant contributor to the remaining perceived jank; a release build of the same commit removes it. Battery saver is a smaller secondary factor (scroll 0.54% → 0.26% with it off).
 - Final: the one genuine regression (`Placed` on list rows) is fixed and now measures better than `master`; residual tab-navigation jank is pre-existing and largely a dev-build artifact.
+
+## 2026-09-05 — Shared tab-and-pager wiring (useTabbedPages)
+
+- Change: extracted the tab-strip/pager wiring into `src/hooks/useTabbedPages.ts` and adopted it in
+  `HomeScreen` and `MyEventsScreen`. My Events created a page offset and passed it to
+  `AnimatedPager` but never to `SegmentedControl`, so its tabs snapped while Discover's tracked the
+  swipe.
+- Automated: 9 new hook unit tests (index derivation, pager change, tab change, shared offset
+  identity, fallback when the selected option disappears, out-of-range page index); 106 suites /
+  1,354 tests pass; typecheck clean; lint 776 warnings against 788 on `master`, 0 errors.
+- Device (Galaxy A56, dev client, fly.io backend): My plans → slow horizontal drags between
+  Hosting / Joined / Requests. Frame extraction at 12 fps shows both pills interpolating through
+  intermediate greys in step with the drag — "Hosting" fading out as "Joined" fills in — rather
+  than snapping at the end. Matches Discover. The "Hosting 1" count badge is preserved through the
+  transition.
+- Not verified: iOS. Event Details' `HostRequestTabs` was deliberately excluded (its pager is
+  direction-locked and frozen in CLAUDE.md), so its tabs still snap by design.
+- Final: **PASS** on Android.
