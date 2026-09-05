@@ -61,7 +61,17 @@ export const useViewerLocation = (): ViewerLocationState => {
     async (allowPrompt: boolean) => {
       try {
         let permissionResult = await Location.getForegroundPermissionsAsync();
-        if (allowPrompt && permissionResult.status === Location.PermissionStatus.UNDETERMINED) {
+        // Ask whenever the system will actually show a dialog, not only the very
+        // first time. expo-location records "we have asked before" in its own
+        // SharedPreferences, so from the first denial onwards it reports DENIED
+        // instead of UNDETERMINED for good — and that file survives a permission
+        // reset and can be restored onto a reinstall by Android auto-backup.
+        // Gating on UNDETERMINED alone therefore made the prompt disappear
+        // permanently, seemingly at random. `canAskAgain` is the real signal.
+        const canPrompt =
+          permissionResult.status === Location.PermissionStatus.UNDETERMINED ||
+          (!permissionResult.granted && permissionResult.canAskAgain);
+        if (allowPrompt && canPrompt) {
           permissionResult = await Location.requestForegroundPermissionsAsync();
         }
         if (!isMounted.current) {

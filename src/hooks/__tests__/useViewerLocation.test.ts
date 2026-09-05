@@ -52,4 +52,63 @@ describe('useViewerLocation', () => {
     expect(result.current.countryCode).toBe('ie');
     expect(mockReverseGeocodeAsync).toHaveBeenCalledWith({ latitude: 53.3498, longitude: -6.2603 });
   });
+  it('still prompts when Android reports denied but will show the dialog again', async () => {
+    // expo-location records "we have asked before" in SharedPreferences, so after
+    // a single denial it reports DENIED rather than UNDETERMINED forever. Android
+    // will still show the dialog while canAskAgain is true, so gating on
+    // UNDETERMINED alone means the app silently never asks again.
+    mockGetForegroundPermissionsAsync.mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: true,
+    });
+
+    const { result } = renderHook(() => useViewerLocation());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockRequestForegroundPermissionsAsync).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.requestPermission();
+    });
+
+    expect(mockRequestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+    expect(result.current.permission).toBe('granted');
+  });
+
+  it('does not prompt when the permission is permanently denied', async () => {
+    mockGetForegroundPermissionsAsync.mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: false,
+    });
+
+    const { result } = renderHook(() => useViewerLocation());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.requestPermission();
+    });
+
+    expect(mockRequestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(result.current.permission).toBe('denied');
+    expect(result.current.coords).toBeNull();
+  });
+
+  it('does not prompt when the permission is already granted', async () => {
+    mockGetForegroundPermissionsAsync.mockResolvedValue({
+      status: 'granted',
+      granted: true,
+      canAskAgain: false,
+    });
+
+    const { result } = renderHook(() => useViewerLocation());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.requestPermission();
+    });
+
+    expect(mockRequestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(result.current.permission).toBe('granted');
+  });
 });
