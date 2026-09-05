@@ -5,6 +5,8 @@ import { View } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  FadeOutUp,
+  LinearTransition,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
@@ -215,7 +217,12 @@ const HostRequestTabs = ({
                 />
               ) : (
                 pendingRequests.map((request, index) => (
-                  <View key={request.id}>
+                  <Animated.View
+                    key={request.id}
+                    exiting={FadeOutUp.duration(180)}
+                    layout={LinearTransition.duration(220)}
+                    testID={`request-exit-${request.id}`}
+                  >
                     <EventRequestRow
                       requester={request.requester}
                       message={request.message}
@@ -227,7 +234,7 @@ const HostRequestTabs = ({
                       isDeclining={decliningUserId === request.userId}
                     />
                     {index < pendingRequests.length - 1 && <EventRequestRowSeparator />}
-                  </View>
+                  </Animated.View>
                 ))
               )}
             </View>
