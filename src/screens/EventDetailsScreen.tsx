@@ -440,6 +440,7 @@ const EventDetailsScreenContent = ({
           showOpenChatCta={shouldPinBottomCTA && showOpenChatCTA && !readOnly}
           shouldShowInvitePrompt={shouldShowInvitePrompt}
           hasPendingRequest={hasPendingRequest}
+          stampKey={hasPendingRequest ? 'requested' : 'idle'}
           ctaLabel={ctaLabel}
           isOwner={isOwner}
           bottomInset={insets.bottom}
