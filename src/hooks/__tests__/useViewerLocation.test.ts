@@ -75,8 +75,18 @@ describe('useViewerLocation', () => {
     expect(result.current.permission).toBe('granted');
   });
 
-  it('does not prompt when the permission is permanently denied', async () => {
+  it('still asks when denied with canAskAgain false, which a restored flag fakes', async () => {
+    // Android auto-backup restores expo.modules.permissions.asked onto a fresh
+    // install, so expo reports DENIED while shouldShowRequestPermissionRationale
+    // is false because Android has genuinely never asked. That pair is
+    // indistinguishable from a permanent denial, so it cannot be trusted: let
+    // the OS decide. A genuinely blocked request is a no-op.
     mockGetForegroundPermissionsAsync.mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: false,
+    });
+    mockRequestForegroundPermissionsAsync.mockResolvedValue({
       status: 'denied',
       granted: false,
       canAskAgain: false,
@@ -84,14 +94,28 @@ describe('useViewerLocation', () => {
 
     const { result } = renderHook(() => useViewerLocation());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(mockRequestForegroundPermissionsAsync).not.toHaveBeenCalled();
 
     await act(async () => {
       await result.current.requestPermission();
     });
 
-    expect(mockRequestForegroundPermissionsAsync).not.toHaveBeenCalled();
+    expect(mockRequestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
     expect(result.current.permission).toBe('denied');
     expect(result.current.coords).toBeNull();
+  });
+
+  it('never asks silently on mount, whatever the reported status', async () => {
+    mockGetForegroundPermissionsAsync.mockResolvedValue({
+      status: 'denied',
+      granted: false,
+      canAskAgain: true,
+    });
+
+    renderHook(() => useViewerLocation());
+
+    await waitFor(() => expect(mockGetForegroundPermissionsAsync).toHaveBeenCalled());
+    expect(mockRequestForegroundPermissionsAsync).not.toHaveBeenCalled();
   });
 
   it('does not prompt when the permission is already granted', async () => {

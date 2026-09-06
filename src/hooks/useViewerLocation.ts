@@ -61,17 +61,25 @@ export const useViewerLocation = (): ViewerLocationState => {
     async (allowPrompt: boolean) => {
       try {
         let permissionResult = await Location.getForegroundPermissionsAsync();
-        // Ask whenever the system will actually show a dialog, not only the very
-        // first time. expo-location records "we have asked before" in its own
-        // SharedPreferences, so from the first denial onwards it reports DENIED
-        // instead of UNDETERMINED for good — and that file survives a permission
-        // reset and can be restored onto a reinstall by Android auto-backup.
-        // Gating on UNDETERMINED alone therefore made the prompt disappear
-        // permanently, seemingly at random. `canAskAgain` is the real signal.
-        const canPrompt =
-          permissionResult.status === Location.PermissionStatus.UNDETERMINED ||
-          (!permissionResult.granted && permissionResult.canAskAgain);
-        if (allowPrompt && canPrompt) {
+        // Ask whenever we do not already hold the permission, and let the OS
+        // decide whether a dialog is warranted. expo's reported status cannot
+        // carry that decision:
+        //
+        //   - it derives UNDETERMINED vs DENIED from its own record of having
+        //     asked, kept in the SharedPreferences file
+        //     expo.modules.permissions.asked;
+        //   - Android auto-backup restores that file onto a fresh install
+        //     (the generated backup rules include every sharedpref except
+        //     SecureStore), so a brand new install can report DENIED;
+        //   - canAskAgain is shouldShowRequestPermissionRationale, which is
+        //     false when Android has never actually asked.
+        //
+        // A restored flag therefore produces DENIED + canAskAgain false, which
+        // is indistinguishable from a permanent refusal even though the system
+        // would happily show the dialog. Requesting is the only reliable
+        // signal, and costs nothing when the permission really is blocked:
+        // the OS returns immediately without showing anything.
+        if (allowPrompt && !permissionResult.granted) {
           permissionResult = await Location.requestForegroundPermissionsAsync();
         }
         if (!isMounted.current) {
