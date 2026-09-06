@@ -8,8 +8,17 @@ import React from 'react';
 import { Animated, Image, Text } from 'react-native';
 
 import { act, render, waitFor } from '@testing-library/react-native';
+import * as Reanimated from 'react-native-reanimated';
 
-import SplashScreen, { SPLASH_VARIANTS, splashCaptionBottom } from '../SplashScreen';
+import SplashScreen, {
+  SPLASH_BLOOM_DELAY_MS,
+  SPLASH_CHROME_FADE_MS,
+  SPLASH_LOGO_RENDER_SCALE,
+  SPLASH_LOGO_ZOOM_TO,
+  SPLASH_VARIANTS,
+  SPLASH_ZOOM_MS,
+  splashCaptionBottom,
+} from '../SplashScreen';
 
 const mockReset = jest.fn();
 
@@ -149,7 +158,10 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId } = render(<SplashScreen />);
       const logo = getByTestId('splash-logo');
 
-      expect(logo.props.style).toEqual({ width: 184, height: 67 });
+      expect(logo.props.style).toEqual({
+        width: 184 * SPLASH_LOGO_RENDER_SCALE,
+        height: 67 * SPLASH_LOGO_RENDER_SCALE,
+      });
     });
 
     it('keeps the venue caption above the Android bottom safe area', () => {
@@ -221,7 +233,7 @@ describe('SplashScreen Rendering', () => {
       mockUser = null;
       await renderReadySplash();
 
-      await advanceTimers(1600);
+      await advanceTimers(1600 + SPLASH_BLOOM_DELAY_MS);
       expect(mockReset).toHaveBeenCalledWith({
         index: 0,
         routes: [{ name: 'Main' }],
@@ -237,7 +249,7 @@ describe('SplashScreen Rendering', () => {
       };
 
       await renderReadySplash();
-      await advanceTimers(1600);
+      await advanceTimers(1600 + SPLASH_BLOOM_DELAY_MS);
 
       expect(mockReset).toHaveBeenCalledWith({
         index: 0,
@@ -254,7 +266,7 @@ describe('SplashScreen Rendering', () => {
       };
 
       await renderReadySplash();
-      await advanceTimers(1600);
+      await advanceTimers(1600 + SPLASH_BLOOM_DELAY_MS);
 
       expect(mockReset).toHaveBeenCalledWith({
         index: 0,
@@ -264,16 +276,30 @@ describe('SplashScreen Rendering', () => {
   });
 
   describe('Bloom Handoff', () => {
-    it('starts the bloom with the logo transition', async () => {
+    it('starts the bloom part-way into the logo zoom', async () => {
       await renderReadySplash();
 
       // renderReadySplash already advances 50ms after the sequence timer starts.
-      await advanceTimers(1549);
+      await advanceTimers(1550 + SPLASH_BLOOM_DELAY_MS - 1);
       expect(mockBloom).not.toHaveBeenCalled();
 
       await advanceTimers(1);
       expect(mockBloom).toHaveBeenCalledTimes(1);
       expect(mockBloom).toHaveBeenCalledWith(expect.any(Function));
+    });
+
+    it('blooms immediately without a zoom under reduced motion', async () => {
+      const reducedMotionSpy = jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true);
+      const animatedTimingSpy = jest.spyOn(Animated, 'timing');
+
+      await renderReadySplash();
+      await advanceTimers(1550);
+      expect(mockBloom).toHaveBeenCalledTimes(1);
+      expect(mockReset).toHaveBeenCalled();
+      expect(animatedTimingSpy).not.toHaveBeenCalled();
+
+      animatedTimingSpy.mockRestore();
+      reducedMotionSpy.mockRestore();
     });
 
     it('signals ready for onboarding after navigation reset', async () => {
@@ -285,34 +311,34 @@ describe('SplashScreen Rendering', () => {
       };
 
       await renderReadySplash();
-      await advanceTimers(1600);
+      await advanceTimers(1600 + SPLASH_BLOOM_DELAY_MS);
       expect(mockSignalReady).toHaveBeenCalledTimes(1);
     });
 
     it('does not signal ready when routing to Main', async () => {
       await renderReadySplash();
-      await advanceTimers(1600);
+      await advanceTimers(1600 + SPLASH_BLOOM_DELAY_MS);
 
       expect(mockSignalReady).not.toHaveBeenCalled();
     });
   });
 
   describe('Logo Animation', () => {
-    it('scales the logo during the transition', async () => {
+    it('zooms the logo through and fades the chrome during the transition', async () => {
       const animatedTimingSpy = jest.spyOn(Animated, 'timing');
 
       await renderReadySplash();
-      await advanceTimers(1600);
+      await advanceTimers(1600 + SPLASH_BLOOM_DELAY_MS);
 
       expect(animatedTimingSpy).toHaveBeenCalledWith(expect.any(Object), {
-        toValue: 1.08,
-        duration: 300,
+        toValue: SPLASH_LOGO_ZOOM_TO / SPLASH_LOGO_RENDER_SCALE,
+        duration: SPLASH_ZOOM_MS,
         easing: expect.any(Function),
         useNativeDriver: true,
       });
       expect(animatedTimingSpy).toHaveBeenCalledWith(expect.any(Object), {
         toValue: 0,
-        duration: 300,
+        duration: SPLASH_CHROME_FADE_MS,
         easing: expect.any(Function),
         useNativeDriver: true,
       });
@@ -322,11 +348,11 @@ describe('SplashScreen Rendering', () => {
   });
 
   describe('Splash Duration', () => {
-    it('waits 1600ms before starting navigation', async () => {
+    it('waits 1600ms plus the bloom delay before swapping screens', async () => {
       await renderReadySplash();
 
       // renderReadySplash already advances 50ms after the sequence timer starts.
-      await advanceTimers(1549);
+      await advanceTimers(1550 + SPLASH_BLOOM_DELAY_MS - 1);
       expect(mockReset).not.toHaveBeenCalled();
 
       await advanceTimers(1);
