@@ -106,6 +106,11 @@ Use shared primitives before local UI:
   opacity-only presentation. `ScalePressable`'s `tilt` and `AppTabs`' `pageOffsetSV` are opt-in;
   omitted, both components behave exactly as before.
 - Dev-only logging: `logger` in `src/services/logger.ts` (use it instead of `console.*`)
+- Runtime permissions: never gate a request on a derived status. `expo-modules-core` derives
+  UNDETERMINED vs DENIED from its own `expo.modules.permissions.asked` SharedPreferences record, and
+  Android auto-backup restores that record onto a fresh install, so a new install can report DENIED
+  with `canAskAgain` false while the system has never asked. Check `granted`, otherwise request and
+  let the OS decide — requesting a blocked permission is a no-op.
 - User-profile gender values and onboarding order: `src/constants/profileOptions.ts` (`Male`, `Female`, `Other`); keep these separate from event-audience gender options.
 - Create/Edit Event mapping: `src/screens/create-event/createEventForm.ts`
 - Create/Edit Event structure: `useCreateEventForm`, `useCreateEventSheets`, and the
