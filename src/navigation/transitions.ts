@@ -1,8 +1,8 @@
-import { Platform } from 'react-native';
+import { Animated, Platform } from 'react-native';
 
 import { CardStyleInterpolators, type StackCardInterpolationProps } from '@react-navigation/stack';
 
-import { eventCoverMotion } from '@theme/motion';
+import { eventSharedMotion } from '@theme/motion';
 import { Springs } from '@theme/springs';
 
 // ─── Stack screen animation ───────────────────────────────────────────────────
@@ -97,14 +97,23 @@ export const sheetModalScreenOptions = Platform.select({
   },
 });
 
-// Keep the destination stationary while the cover travels in the root overlay.
+// Card-origin Event Details: the page reveals itself in step with the shared
+// flight (EventSharedTransitionPage), so on open the card is transparent and
+// fully shown while the stack merely keeps the origin list attached beneath it
+// for the hold. Closing fades the card out as before.
 export const sharedCoverScreenOptions = {
   ...eventDetailsScreenOptions,
-  cardStyleInterpolator: ({ current }: StackCardInterpolationProps) => ({
-    cardStyle: { opacity: current.progress },
+  cardStyle: { backgroundColor: 'transparent' },
+  cardStyleInterpolator: ({ current, closing }: StackCardInterpolationProps) => ({
+    cardStyle: {
+      opacity: Animated.subtract(
+        1,
+        Animated.multiply(closing, Animated.subtract(1, current.progress)),
+      ),
+    },
   }),
   transitionSpec: {
-    open: { animation: 'timing' as const, config: { duration: eventCoverMotion.fadeMs } },
-    close: { animation: 'timing' as const, config: { duration: eventCoverMotion.fadeMs } },
+    open: { animation: 'timing' as const, config: { duration: eventSharedMotion.holdMs } },
+    close: { animation: 'timing' as const, config: { duration: eventSharedMotion.fadeMs } },
   },
 };

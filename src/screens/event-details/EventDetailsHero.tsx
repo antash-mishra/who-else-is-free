@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Image } from 'expo-image';
 import Animated, {
@@ -9,9 +9,12 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { useEventCoverTransition } from '@components/events/EventCoverTransition';
+import {
+  useEventSharedTransition,
+  useEventSharedTransitionState,
+} from '@components/events/EventSharedTransition';
 import { Placed } from '@components/motion';
-import { eventCoverMotion, motionGeometry } from '@theme/motion';
+import { eventSharedMotion, heroCoverSize, motionGeometry } from '@theme/motion';
 import { seedFromString, seededRand } from '@utils/seededRandom';
 
 import styles from './EventDetailsScreen.styles';
@@ -49,27 +52,25 @@ const EventDetailsHero = ({
 }: EventDetailsHeroProps) => {
   const reducedMotion = useReducedMotion();
   const coverRef = useRef<View>(null);
-  const { activeEventId, land, cancel } = useEventCoverTransition();
-  const hidden = !!eventId && activeEventId === eventId;
+  // Exactly the flying cover's layout size, so the hero's bitmap is the same
+  // cache entry and appears on the hand-off frame instead of decoding again.
+  const coverSize = heroCoverSize(useWindowDimensions().width);
+  const { land } = useEventSharedTransition();
+  const { eventId: activeEventId } = useEventSharedTransitionState();
+  const hidden = !!sharedCover && !!eventId && activeEventId === eventId;
   const rotation = reducedMotion
     ? 0
     : (seededRand(seedFromString(`hero-${imageUri}`)) * 2 - 1) * motionGeometry.tiltMaxDeg;
   const measureCover = useCallback(() => {
     if (!hidden || !eventId) return;
     coverRef.current?.measureInWindow((x, y, width, height) => {
-      land(eventId, { x, y, width, height }, rotation);
+      land(eventId, 'cover', { x, y, width, height }, { rotation });
     });
   }, [hidden, eventId, land, rotation]);
   useEffect(() => {
     const frame = requestAnimationFrame(measureCover);
     return () => globalThis.cancelAnimationFrame(frame);
   }, [measureCover]);
-  useEffect(
-    () => () => {
-      if (sharedCover) cancel();
-    },
-    [cancel, sharedCover],
-  );
   const cover = (
     <Image
       source={{ uri: imageUri }}
@@ -106,7 +107,7 @@ const EventDetailsHero = ({
       <View pointerEvents="none" style={styles.heroOverlayDark} />
       <View pointerEvents="none" style={styles.heroOverlayLight} />
 
-      <Animated.View style={[styles.imageCardContainer, coverStyle]}>
+      <Animated.View style={[styles.imageCardContainer, { width: coverSize }, coverStyle]}>
         <View ref={coverRef} onLayout={measureCover} collapsable={false} style={{ flex: 1 }}>
           {sharedCover ? (
             <View
@@ -115,7 +116,7 @@ const EventDetailsHero = ({
                 flex: 1,
                 opacity: hidden ? 0 : 1,
                 transform: [{ rotate: `${rotation}deg` }],
-                borderRadius: eventCoverMotion.heroRadius,
+                borderRadius: eventSharedMotion.heroRadius,
               }}
             >
               {cover}

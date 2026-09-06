@@ -18,7 +18,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
-import { EventCoverTransitionProvider } from '@components/events/EventCoverTransition';
+import { EventSharedTransitionProvider } from '@components/events/EventSharedTransition';
 import NotificationBannerHost from '@components/NotificationBannerHost';
 import { BottomSheetHostProvider } from '@components/sheets';
 import { navigationRef } from '@navigation/navigationRef';
@@ -276,7 +276,7 @@ const AppNavigator = () => {
   };
 
   return (
-    <EventCoverTransitionProvider>
+    <EventSharedTransitionProvider>
       <NavigationContainer
         ref={navigationRef}
         theme={navigationTheme}
@@ -478,7 +478,7 @@ const AppNavigator = () => {
         </BottomSheetHostProvider>
       </NavigationContainer>
       <NotificationBannerHost />
-    </EventCoverTransitionProvider>
+    </EventSharedTransitionProvider>
   );
 };
 

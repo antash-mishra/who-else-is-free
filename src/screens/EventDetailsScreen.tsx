@@ -20,6 +20,10 @@ import { API_BASE_URL } from '@api/config';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
 import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
+import {
+  EventSharedTransitionPage,
+  useEventSharedTransition,
+} from '@components/events/EventSharedTransition';
 import { AppButton } from '@components/ui';
 import { EVENT_DETAILS_INFO_SEPARATOR } from '@constants/display';
 import { useAuth } from '@context/AuthContext';
@@ -79,6 +83,8 @@ const EventDetailsScreenContent = ({
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
   const isOverlay = route.name === 'EventDetailsOverlay';
+  const sharedCover =
+    !isOverlay && 'sharedCover' in route.params && route.params.sharedCover === true;
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -373,7 +379,7 @@ const EventDetailsScreenContent = ({
           <EventDetailsHero
             imageUri={event.imageUri}
             eventId={String(event.id)}
-            sharedCover={'sharedCover' in route.params && route.params.sharedCover}
+            sharedCover={sharedCover}
             topInset={heroTopInset}
             scrollY={scrollY}
           />
@@ -389,6 +395,8 @@ const EventDetailsScreenContent = ({
               scheduleLine={scheduleLine}
               audienceLine={audienceLine}
               description={event.description}
+              eventId={String(event.id)}
+              sharedTitle={sharedCover}
             />
 
             {/* Host-only: Separator, Tabs, Requests/Members lists */}
@@ -541,18 +549,16 @@ const EventDetailsScreenContent = ({
     </>
   );
 
-  if (readOnly) {
-    return (
+  return (
+    <EventSharedTransitionPage
+      eventId={String(event.id)}
+      enabled={sharedCover}
+      style={styles.safeArea}
+    >
       <SafeAreaView style={styles.safeArea} edges={[]}>
         {screenContent}
       </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safeArea} edges={[]}>
-      {screenContent}
-    </SafeAreaView>
+    </EventSharedTransitionPage>
   );
 };
 
@@ -570,6 +576,9 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
   const isOverlay = route.name === 'EventDetailsOverlay';
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const routeEventId = route.params.eventId;
+  const sharedCover =
+    !isOverlay && 'sharedCover' in route.params && route.params.sharedCover === true;
+  const { cancel: cancelSharedTransition } = useEventSharedTransition();
   const rawEvent = useMemo(
     () => events.find((item) => item.id === routeEventId),
     [events, routeEventId],
@@ -641,52 +650,64 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
 
   const eventSnapshot = rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
 
+  // A card-origin open whose event is not cached (Past Events) shows the loading
+  // fallback instead of a hero: release the flight so the page can fade in.
+  useEffect(() => {
+    if (sharedCover && !eventSnapshot) cancelSharedTransition(routeEventId);
+  }, [cancelSharedTransition, eventSnapshot, routeEventId, sharedCover]);
+
   if (!eventSnapshot) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <View style={styles.fallbackContainer}>
-          {loadStatus === 'loading' ? (
-            <ActivityIndicator size="large" color={colors.primary} />
-          ) : (
-            <>
-              {isOverlay ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                  onPress={() => {
-                    triggerHaptic('light');
-                    handleOverlayClose();
-                  }}
-                  style={styles.fallbackCloseButton}
-                >
-                  <CloseIcon width={24} height={24} color={colors.text} />
-                </Pressable>
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Go back"
-                  onPress={navigation.goBack}
-                  style={styles.fallbackBackButton}
-                >
-                  <ChevronLeftIcon width={24} height={24} color={colors.text} />
-                </Pressable>
-              )}
-              <Text style={styles.fallbackText}>
-                {loadStatus === 'error'
-                  ? 'Unable to load plan. Please try again.'
-                  : "We couldn't find that plan."}
-              </Text>
-              {loadStatus === 'error' ? (
-                <AppButton
-                  label="Try again"
-                  variant="secondary"
-                  onPress={() => setRetryKey((value) => value + 1)}
-                />
-              ) : null}
-            </>
-          )}
-        </View>
-      </SafeAreaView>
+      <EventSharedTransitionPage
+        eventId={routeEventId}
+        enabled={sharedCover}
+        style={styles.safeArea}
+      >
+        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+          <View style={styles.fallbackContainer}>
+            {loadStatus === 'loading' ? (
+              <ActivityIndicator size="large" color={colors.primary} />
+            ) : (
+              <>
+                {isOverlay ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                    onPress={() => {
+                      triggerHaptic('light');
+                      handleOverlayClose();
+                    }}
+                    style={styles.fallbackCloseButton}
+                  >
+                    <CloseIcon width={24} height={24} color={colors.text} />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    onPress={navigation.goBack}
+                    style={styles.fallbackBackButton}
+                  >
+                    <ChevronLeftIcon width={24} height={24} color={colors.text} />
+                  </Pressable>
+                )}
+                <Text style={styles.fallbackText}>
+                  {loadStatus === 'error'
+                    ? 'Unable to load plan. Please try again.'
+                    : "We couldn't find that plan."}
+                </Text>
+                {loadStatus === 'error' ? (
+                  <AppButton
+                    label="Try again"
+                    variant="secondary"
+                    onPress={() => setRetryKey((value) => value + 1)}
+                  />
+                ) : null}
+              </>
+            )}
+          </View>
+        </SafeAreaView>
+      </EventSharedTransitionPage>
     );
   }
 

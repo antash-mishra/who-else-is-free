@@ -12,11 +12,11 @@ import JoinedIcon from '@assets/event/joined.svg';
 import PendingIcon from '@assets/event/pending.svg';
 import { EVENT_INFO_SEPARATOR } from '@constants/display';
 import { colors, spacing, typography } from '@theme/index';
-import { eventCoverMotion } from '@theme/motion';
+import { eventSharedMotion } from '@theme/motion';
 import { formatEventLocationName } from '@utils/eventDisplay';
 
 const IMAGE_SIZE = 80;
-const IMAGE_BORDER_RADIUS = eventCoverMotion.cardRadius;
+const IMAGE_BORDER_RADIUS = eventSharedMotion.cardRadius;
 const BLUR_H = 38;
 
 export interface EventItemProps {
@@ -29,6 +29,9 @@ export interface EventItemProps {
   imageUri: string;
   badgeLabel?: string;
   coverRef?: RefObject<View | null>;
+  titleRef?: RefObject<Text | null>;
+  /** True while this card's cover and title are flying in the shared overlay. */
+  sharedElementsHidden?: boolean;
 }
 
 const BADGE_ICON_SIZE = 10;
@@ -57,13 +60,19 @@ const EventCard = ({
   imageUri,
   badgeLabel,
   coverRef,
+  titleRef,
+  sharedElementsHidden,
 }: EventItemProps) => {
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
   const locationName = formatEventLocationName(location);
 
   return (
     <View style={styles.container} testID="event-card">
-      <View ref={coverRef} collapsable={false} style={styles.imageWrapper}>
+      <View
+        ref={coverRef}
+        collapsable={false}
+        style={[styles.imageWrapper, sharedElementsHidden && styles.hidden]}
+      >
         <Image
           source={{ uri: imageUri }}
           style={StyleSheet.absoluteFill}
@@ -102,7 +111,11 @@ const EventCard = ({
         )}
       </View>
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text
+          ref={titleRef}
+          style={[styles.title, sharedElementsHidden && styles.hidden]}
+          numberOfLines={1}
+        >
           {title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -141,6 +154,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
+  // The shared overlay carries the element; leave its slot empty rather than a duplicate.
+  hidden: {
+    opacity: 0,
+  },
   title: {
     fontSize: 17,
     lineHeight: typography.body + spacing.xs,
@@ -166,5 +183,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 });
+
+/** Card title style, replicated by the shared title flight so it lifts off pixel-exact. */
+export const eventCardTitleStyle = styles.title;
 
 export default memo(EventCard);

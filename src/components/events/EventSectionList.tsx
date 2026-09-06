@@ -1,4 +1,4 @@
-import { memo, ReactNode, useCallback, useRef } from 'react';
+import { memo, ReactNode, useCallback, useMemo, useRef } from 'react';
 
 import {
   RefreshControl,
@@ -11,14 +11,14 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import EventCard, { EventItemProps } from '@components/EventCard';
+import EventCard, { EventItemProps, eventCardTitleStyle } from '@components/EventCard';
 import { Placed } from '@components/motion';
 import ScalePressable from '@components/ScalePressable';
 import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
 
-import { useEventCoverTransition } from './EventCoverTransition';
 import { EventSection } from './eventListSections';
+import { useEventSharedTransition, useEventSharedTransitionState } from './EventSharedTransition';
 
 export type EventSectionListProps<TItem extends EventItemProps = EventItemProps> = {
   sections: EventSection<TItem>[];
@@ -51,16 +51,38 @@ const EventCardRow = <TItem extends EventItemProps>({
   onPress,
 }: EventCardRowProps<TItem>) => {
   const coverRef = useRef<View>(null);
-  const { open } = useEventCoverTransition();
+  const titleRef = useRef<Text>(null);
+  const { prime, open } = useEventSharedTransition();
+  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
+  // The overlay carries this card's cover and title once airborne; hide the originals
+  // so the elements move rather than duplicate.
+  const sharedElementsHidden = activeEventId === item.id && phase === 'flying';
+  const source = useMemo(
+    () => ({
+      imageUri: item.imageUri,
+      title: item.title,
+      titleStyle: eventCardTitleStyle,
+      coverRef,
+      titleRef,
+    }),
+    [item.imageUri, item.title],
+  );
   return (
     <ScalePressable
+      // Measure at press-in, before the press scale distorts the card.
+      onPressIn={() => prime(item.id, source)}
       onPress={() => {
         triggerHaptic('light');
-        open(item.id, item.imageUri, coverRef, (shared) => onPress(item, shared));
+        open(item.id, source, (shared) => onPress(item, shared));
       }}
       delay={80}
     >
-      <EventCard {...item} coverRef={coverRef} />
+      <EventCard
+        {...item}
+        coverRef={coverRef}
+        titleRef={titleRef}
+        sharedElementsHidden={sharedElementsHidden}
+      />
     </ScalePressable>
   );
 };

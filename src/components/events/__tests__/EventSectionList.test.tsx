@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import { resetPlacedIds } from '@components/motion';
 
@@ -41,6 +41,15 @@ describe('EventSectionList', () => {
     );
     expect(getByTestId('placed-e1')).toBeTruthy();
     expect(getByTestId('placed-e2')).toBeTruthy();
+  });
+
+  it('opens a pressed row without a shared flight outside the transition provider', () => {
+    const onEventPress = jest.fn();
+    const { getByText } = render(
+      <EventSectionList sections={sections} onEventPress={onEventPress} />,
+    );
+    fireEvent.press(getByText('Pub quiz'));
+    expect(onEventPress).toHaveBeenCalledWith(sections[0].data[0], false);
   });
 
   it('still renders the event titles', () => {

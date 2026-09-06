@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { NativeSyntheticEvent, Text, TextLayoutEventData, View } from 'react-native';
 
@@ -6,6 +6,10 @@ import DescriptionIcon from '@assets/event-details/description.svg';
 import PeopleIcon from '@assets/event-details/group-type.svg';
 import LocationIcon from '@assets/event-details/location.svg';
 import TimeIcon from '@assets/event-details/time.svg';
+import {
+  useEventSharedTransition,
+  useEventSharedTransitionState,
+} from '@components/events/EventSharedTransition';
 import { Placed } from '@components/motion';
 import UserAvatar from '@components/UserAvatar';
 import { triggerHaptic } from '@services/haptics';
@@ -32,6 +36,9 @@ type EventDetailsInfoProps = {
   scheduleLine: string;
   audienceLine: string;
   description?: string;
+  eventId?: string;
+  /** True when the page was opened from a card: the title lands the shared flight. */
+  sharedTitle?: boolean;
 };
 
 const renderAvatar = (participant: GoingParticipant, size: number = 40) => (
@@ -59,7 +66,25 @@ const EventDetailsInfo = ({
   scheduleLine,
   audienceLine,
   description,
+  eventId,
+  sharedTitle,
 }: EventDetailsInfoProps) => {
+  const titleRef = useRef<Text>(null);
+  const { land } = useEventSharedTransition();
+  const { eventId: activeEventId } = useEventSharedTransitionState();
+  // The flying replica lands pixel-identical to the first line, so the real title
+  // simply takes over at hand-off; revealing it earlier reads as a second copy.
+  const titleHidden = !!sharedTitle && !!eventId && activeEventId === eventId;
+  const measureTitle = useCallback(() => {
+    if (!titleHidden || !eventId) return;
+    titleRef.current?.measureInWindow((x, y, width, height) => {
+      land(eventId, 'title', { x, y, width, height }, { titleStyle: styles.title });
+    });
+  }, [eventId, land, titleHidden]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(measureTitle);
+    return () => globalThis.cancelAnimationFrame(frame);
+  }, [measureTitle]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   // First line + remainder when the description spills past two lines (null = fits).
   const [descriptionTruncation, setDescriptionTruncation] = useState<DescriptionTruncation | null>(
@@ -94,7 +119,14 @@ const EventDetailsInfo = ({
       {/* Header block has no gap; each row's vertical spacing is its own
           marginTop (styles.hostedBy / styles.goingRow). */}
       <View style={styles.headerBlock}>
-        <Text style={styles.title}>{title}</Text>
+        <Text
+          ref={titleRef}
+          onLayout={measureTitle}
+          style={[styles.title, titleHidden ? styles.titleHidden : styles.titleShown]}
+          testID="event-details-title"
+        >
+          {title}
+        </Text>
         <Text style={styles.hostedBy}>{hostLine}</Text>
         {!readOnly && !isSingleEvent && (
           <View style={styles.goingRow} testID="going-row">

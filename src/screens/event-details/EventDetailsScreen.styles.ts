@@ -1,8 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 import { colors, componentTokens, spacing, typography } from '@theme/index';
-import { eventCoverMotion } from '@theme/motion';
-
+import { eventSharedMotion } from '@theme/motion';
 
 /**
  * Shared styles for the Event Details screen family
@@ -112,7 +111,8 @@ const styles = StyleSheet.create({
 
   // Image card container
   imageCardContainer: {
-    width: '60%',
+    // The hero overrides this width with heroCoverSize so it matches the flying cover exactly.
+    width: `${eventSharedMotion.heroCoverWidthFraction * 100}%`,
     aspectRatio: 1, // Square card
   },
   imageCardContainerOverlay: {
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   imageCard: {
     width: '100%',
     height: '100%',
-    borderRadius: eventCoverMotion.heroRadius,
+    borderRadius: eventSharedMotion.heroRadius,
     borderCurve: 'continuous',
     shadowColor: '#000',
     shadowOffset: {
@@ -155,6 +155,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: typography.titleLineHeight,
     letterSpacing: typography.letterSpacing,
+  },
+  // The shared title flight carries a replica; the real title waits invisibly for the hand-off.
+  titleHidden: {
+    opacity: 0,
+  },
+  titleShown: {
+    opacity: 1,
   },
   // Groups title + host + going with NO gap, so each gap below is exactly the
   // child's marginTop (no hidden card gap). Tune the two gaps via:
