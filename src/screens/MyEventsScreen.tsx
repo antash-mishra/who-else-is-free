@@ -152,8 +152,12 @@ const MyEventsScreen = () => {
   }, [refreshEvents, refreshRequestedEvents, selectedPage]);
 
   const handleEventPress = useCallback(
-    (item: EventItemProps) => {
-      navigation.navigate('EventDetails', { eventId: item.id, origin: 'MyEvents' });
+    (item: EventItemProps, sharedCover?: boolean) => {
+      navigation.navigate('EventDetails', {
+        eventId: item.id,
+        ...(sharedCover ? { sharedCover: true } : {}),
+        origin: 'MyEvents',
+      });
     },
     [navigation],
   );

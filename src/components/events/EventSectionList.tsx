@@ -1,4 +1,4 @@
-import { memo, ReactNode, useCallback } from 'react';
+import { memo, ReactNode, useCallback, useRef } from 'react';
 
 import {
   RefreshControl,
@@ -17,11 +17,12 @@ import ScalePressable from '@components/ScalePressable';
 import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
 
+import { useEventCoverTransition } from './EventCoverTransition';
 import { EventSection } from './eventListSections';
 
 export type EventSectionListProps<TItem extends EventItemProps = EventItemProps> = {
   sections: EventSection<TItem>[];
-  onEventPress: (item: TItem) => void;
+  onEventPress: (item: TItem, sharedCover?: boolean) => void;
   emptyState?: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -42,25 +43,27 @@ export type EventSectionListProps<TItem extends EventItemProps = EventItemProps>
 
 type EventCardRowProps<TItem extends EventItemProps> = {
   item: TItem;
-  onPress: (item: TItem) => void;
+  onPress: (item: TItem, sharedCover?: boolean) => void;
 };
 
 const EventCardRow = <TItem extends EventItemProps>({
   item,
   onPress,
-}: EventCardRowProps<TItem>) => (
-  <ScalePressable
-    onPress={() => {
-      triggerHaptic('light');
-      onPress(item);
-    }}
-    delay={80}
-    tilt
-    tiltSeed={item.id}
-  >
-    <EventCard {...item} />
-  </ScalePressable>
-);
+}: EventCardRowProps<TItem>) => {
+  const coverRef = useRef<View>(null);
+  const { open } = useEventCoverTransition();
+  return (
+    <ScalePressable
+      onPress={() => {
+        triggerHaptic('light');
+        open(item.id, item.imageUri, coverRef, (shared) => onPress(item, shared));
+      }}
+      delay={80}
+    >
+      <EventCard {...item} coverRef={coverRef} />
+    </ScalePressable>
+  );
+};
 
 const EventSectionList = <TItem extends EventItemProps>({
   sections,

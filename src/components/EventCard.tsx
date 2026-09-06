@@ -1,19 +1,22 @@
-import { memo } from 'react';
+import { memo, type RefObject } from 'react';
+
 import { StyleSheet, Text, View } from 'react-native';
+
+import MaskedView from '@react-native-masked-view/masked-view';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
-import MaskedView from '@react-native-masked-view/masked-view';
 
-import PendingIcon from '@assets/event/pending.svg';
 import HostingIcon from '@assets/event/hosting.svg';
 import JoinedIcon from '@assets/event/joined.svg';
+import PendingIcon from '@assets/event/pending.svg';
 import { EVENT_INFO_SEPARATOR } from '@constants/display';
 import { colors, spacing, typography } from '@theme/index';
+import { eventCoverMotion } from '@theme/motion';
 import { formatEventLocationName } from '@utils/eventDisplay';
 
 const IMAGE_SIZE = 80;
-const IMAGE_BORDER_RADIUS = 10;
+const IMAGE_BORDER_RADIUS = eventCoverMotion.cardRadius;
 const BLUR_H = 38;
 
 export interface EventItemProps {
@@ -25,6 +28,7 @@ export interface EventItemProps {
   metaLine?: string;
   imageUri: string;
   badgeLabel?: string;
+  coverRef?: RefObject<View | null>;
 }
 
 const BADGE_ICON_SIZE = 10;
@@ -52,13 +56,14 @@ const EventCard = ({
   metaLine,
   imageUri,
   badgeLabel,
+  coverRef,
 }: EventItemProps) => {
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
   const locationName = formatEventLocationName(location);
 
   return (
     <View style={styles.container} testID="event-card">
-      <View style={styles.imageWrapper}>
+      <View ref={coverRef} collapsable={false} style={styles.imageWrapper}>
         <Image
           source={{ uri: imageUri }}
           style={StyleSheet.absoluteFill}

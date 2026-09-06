@@ -136,8 +136,12 @@ const PastEventsScreen = () => {
   );
 
   const handleEventPress = useCallback(
-    (item: PastEventItem) => {
-      navigation.navigate('EventDetails', { eventId: item.id, readOnly: true });
+    (item: PastEventItem, sharedCover?: boolean) => {
+      navigation.navigate('EventDetails', {
+        eventId: item.id,
+        ...(sharedCover ? { sharedCover: true } : {}),
+        readOnly: true,
+      });
     },
     [navigation],
   );

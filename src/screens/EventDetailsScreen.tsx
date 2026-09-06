@@ -370,7 +370,13 @@ const EventDetailsScreenContent = ({
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} scrollY={scrollY} />
+          <EventDetailsHero
+            imageUri={event.imageUri}
+            eventId={String(event.id)}
+            sharedCover={'sharedCover' in route.params && route.params.sharedCover}
+            topInset={heroTopInset}
+            scrollY={scrollY}
+          />
           <View style={styles.card}>
             <EventDetailsInfo
               title={event.title}

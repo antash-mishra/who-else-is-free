@@ -1678,3 +1678,9 @@ Screenshots captured during the shared-component review:
 - Event Details member reports carry an explicit person target; plan and person prompts must identify the same target as their submit handler. Accepted guests read their intro from More actions, not an inline Introduction section.
 - `EventActionConfirm.headerAlign` defaults to left; use center for removal confirmations. Report-plan menu entries use normal text; destructive leaving/removal retains its warning color.
 - Shared `BottomSheet` entry waits for native `onShow`, runs once per opening, and does not restart on content or viewport updates. Input sheets constrain height above the keyboard; `EventActionOverlay` keeps the CTA outside the scrollable text-entry body.
+
+## Event cover shared transition
+
+- `EventCoverTransitionProvider` (`src/components/events/EventCoverTransition.tsx`) owns the single root cover overlay. `EventSectionList` measures the tapped `EventCard` cover and passes `sharedCover` through its press callback into the typed Event Details route. Preserve this callback argument in new list entry points.
+- `EventDetailsHero` measures its unrotated cover container, hides its duplicate during the flight, and keeps its resting tilt without replaying `Placed` on handoff. Card-origin navigation fades behind the overlay; other entry points retain the existing slide. Back navigation uses a fade for card-origin routes; the shared flight is forward-only.
+- `eventCoverMotion` in `src/theme/motion.ts` owns duration, fallback timeouts, and both cover radii. Reduced motion uses a stationary cover and page fade. Missing/recycled measurements and image errors fall back without blocking navigation. Keep the overlay outside the stack so list clipping and screen transforms cannot clip the moving image.

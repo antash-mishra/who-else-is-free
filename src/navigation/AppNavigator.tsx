@@ -18,6 +18,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
+import { EventCoverTransitionProvider } from '@components/events/EventCoverTransition';
 import NotificationBannerHost from '@components/NotificationBannerHost';
 import { BottomSheetHostProvider } from '@components/sheets';
 import { navigationRef } from '@navigation/navigationRef';
@@ -32,6 +33,7 @@ import {
 } from '@navigation/TabIcons';
 import {
   eventDetailsScreenOptions,
+  sharedCoverScreenOptions,
   sheetModalScreenOptions,
   slideFromBottomInterpolator,
   slideFromBottomTransitionSpec,
@@ -151,10 +153,6 @@ const tabBarStyles = StyleSheet.create({
     right: 0,
     height: 1,
     backgroundColor: colors.background,
-  },
-  // Hosts the navigator plus the absolutely positioned foreground banner.
-  navigatorRoot: {
-    flex: 1,
   },
 });
 
@@ -278,7 +276,7 @@ const AppNavigator = () => {
   };
 
   return (
-    <View style={tabBarStyles.navigatorRoot}>
+    <EventCoverTransitionProvider>
       <NavigationContainer
         ref={navigationRef}
         theme={navigationTheme}
@@ -344,7 +342,9 @@ const AppNavigator = () => {
             <Stack.Screen
               name="EventDetails"
               component={EventDetailsScreen}
-              options={eventDetailsScreenOptions}
+              options={({ route }) =>
+                route.params.sharedCover ? sharedCoverScreenOptions : eventDetailsScreenOptions
+              }
             />
             <Stack.Screen
               name="OneToOneHub"
@@ -478,7 +478,7 @@ const AppNavigator = () => {
         </BottomSheetHostProvider>
       </NavigationContainer>
       <NotificationBannerHost />
-    </View>
+    </EventCoverTransitionProvider>
   );
 };
 

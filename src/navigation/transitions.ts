@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import { CardStyleInterpolators, type StackCardInterpolationProps } from '@react-navigation/stack';
 
+import { eventCoverMotion } from '@theme/motion';
 import { Springs } from '@theme/springs';
 
 // ─── Stack screen animation ───────────────────────────────────────────────────
@@ -95,3 +96,15 @@ export const sheetModalScreenOptions = Platform.select({
     transitionSpec: sheetModalTransitionSpec,
   },
 });
+
+// Keep the destination stationary while the cover travels in the root overlay.
+export const sharedCoverScreenOptions = {
+  ...eventDetailsScreenOptions,
+  cardStyleInterpolator: ({ current }: StackCardInterpolationProps) => ({
+    cardStyle: { opacity: current.progress },
+  }),
+  transitionSpec: {
+    open: { animation: 'timing' as const, config: { duration: eventCoverMotion.fadeMs } },
+    close: { animation: 'timing' as const, config: { duration: eventCoverMotion.fadeMs } },
+  },
+};

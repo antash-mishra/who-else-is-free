@@ -1,6 +1,8 @@
 import { StyleSheet } from 'react-native';
 
 import { colors, componentTokens, spacing, typography } from '@theme/index';
+import { eventCoverMotion } from '@theme/motion';
+
 
 /**
  * Shared styles for the Event Details screen family
@@ -121,7 +123,7 @@ const styles = StyleSheet.create({
   imageCard: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: eventCoverMotion.heroRadius,
     borderCurve: 'continuous',
     shadowColor: '#000',
     shadowOffset: {

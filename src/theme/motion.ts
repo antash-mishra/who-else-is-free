@@ -26,3 +26,13 @@ export const motionGeometry = {
   /** Scale an entering item starts at. */
   entryScaleFrom: 0.97,
 } as const;
+
+/** Shared card-to-detail cover flight and its navigation fade. */
+export const eventCoverMotion = {
+  durationMs: 420,
+  fadeMs: 240,
+  timeoutMs: 1800,
+  measureTimeoutMs: 120,
+  cardRadius: 10,
+  heroRadius: 20,
+} as const;
