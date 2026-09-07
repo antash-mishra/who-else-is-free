@@ -1,0 +1,6 @@
+{
+  "path": "artifacts/animation-performance/airbnb-final-v8.apk",
+  "sha256": "a4387281e6d035b5d3cce7bd6c631bb6ddc5af76e4da2e5649adf5a50e95eb1c",
+  "bytes": 72901516,
+  "api": "local emulator fixture; not a production phone build"
+}

@@ -1,0 +1,114 @@
+{
+  "create-open": {
+    "baseline": {
+      "samples": 3,
+      "median_trial_p95_ms": 81.214125,
+      "trial_p95_range_ms": [
+        78.187334,
+        129.342
+      ],
+      "app_frame_records": 65,
+      "app_deadline_misses": 48,
+      "app_deadline_miss_pct": 73.84615384615384,
+      "median_gfxinfo_p95_ms": 155.786684
+    },
+    "fixed": {
+      "samples": 3,
+      "median_trial_p95_ms": 79.07475,
+      "trial_p95_range_ms": [
+        71.789833,
+        106.457167
+      ],
+      "app_frame_records": 68,
+      "app_deadline_misses": 38,
+      "app_deadline_miss_pct": 55.88235294117647,
+      "median_gfxinfo_p95_ms": 127.808961
+    },
+    "p95_reduction_pct": 2.634240041372115,
+    "deadline_reduction_percentage_points": 17.96380090497737
+  },
+  "create-close": {
+    "baseline": {
+      "samples": 3,
+      "median_trial_p95_ms": 137.470333,
+      "trial_p95_range_ms": [
+        85.762792,
+        212.922
+      ],
+      "app_frame_records": 40,
+      "app_deadline_misses": 26,
+      "app_deadline_miss_pct": 65.0,
+      "median_gfxinfo_p95_ms": 248.082988
+    },
+    "fixed": {
+      "samples": 3,
+      "median_trial_p95_ms": 68.567125,
+      "trial_p95_range_ms": [
+        57.780666,
+        86.854084
+      ],
+      "app_frame_records": 58,
+      "app_deadline_misses": 20,
+      "app_deadline_miss_pct": 34.48275862068966,
+      "median_gfxinfo_p95_ms": 99.451709
+    },
+    "p95_reduction_pct": 50.12223837415161,
+    "deadline_reduction_percentage_points": 30.51724137931034
+  },
+  "keyboard-open": {
+    "baseline": {
+      "samples": 3,
+      "median_trial_p95_ms": 112.901292,
+      "trial_p95_range_ms": [
+        63.845833,
+        131.721625
+      ],
+      "app_frame_records": 46,
+      "app_deadline_misses": 22,
+      "app_deadline_miss_pct": 47.82608695652174,
+      "median_gfxinfo_p95_ms": 160.393662
+    },
+    "fixed": {
+      "samples": 3,
+      "median_trial_p95_ms": 69.290125,
+      "trial_p95_range_ms": [
+        63.982791,
+        70.156625
+      ],
+      "app_frame_records": 49,
+      "app_deadline_misses": 13,
+      "app_deadline_miss_pct": 26.53061224489796,
+      "median_gfxinfo_p95_ms": 104.49124
+    },
+    "p95_reduction_pct": 38.62769524373556,
+    "deadline_reduction_percentage_points": 21.295474711623783
+  },
+  "keyboard-close": {
+    "baseline": {
+      "samples": 3,
+      "median_trial_p95_ms": 70.904958,
+      "trial_p95_range_ms": [
+        69.613042,
+        77.747583
+      ],
+      "app_frame_records": 53,
+      "app_deadline_misses": 20,
+      "app_deadline_miss_pct": 37.735849056603776,
+      "median_gfxinfo_p95_ms": 94.409086
+    },
+    "fixed": {
+      "samples": 3,
+      "median_trial_p95_ms": 60.214542,
+      "trial_p95_range_ms": [
+        55.388875,
+        71.911292
+      ],
+      "app_frame_records": 51,
+      "app_deadline_misses": 11,
+      "app_deadline_miss_pct": 21.568627450980394,
+      "median_gfxinfo_p95_ms": 99.683573
+    },
+    "p95_reduction_pct": 15.077106455658562,
+    "deadline_reduction_percentage_points": 16.167221605623382
+  }
+}

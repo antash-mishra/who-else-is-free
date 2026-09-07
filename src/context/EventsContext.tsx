@@ -172,6 +172,11 @@ export const EventsProvider = ({
   const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(() => new Set());
   const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(() => new Set());
   const eventsRequestIdRef = useRef(0);
+  // Keep confirmed creations visible until a list response includes them.
+  const unreconciledCreations = useRef(new Map<string, UserEvent>());
+  useEffect(() => {
+    unreconciledCreations.current.clear();
+  }, [token]);
   const requestedEventsRequestIdRef = useRef(0);
   const resetRequestedEventIds = useCallback(() => {
     setRequestedEventIds((prev) => {
@@ -214,7 +219,12 @@ export const EventsProvider = ({
       if (requestId !== eventsRequestIdRef.current) {
         return;
       }
-      setEvents(nextEvents);
+      for (const event of nextEvents) unreconciledCreations.current.delete(event.id);
+      setEvents(
+        [...nextEvents, ...unreconciledCreations.current.values()]
+          .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
+          .sort(sortEventsBySchedule),
+      );
     } catch (err) {
       if (requestId !== eventsRequestIdRef.current) {
         return;
@@ -405,12 +415,13 @@ export const EventsProvider = ({
         longitude: event.longitude,
       };
 
+      const optimistic = mapApiEventToUserEvent(
+        optimisticEvent,
+        metaRef.current[eventId]?.badgeLabel,
+      );
+      unreconciledCreations.current.set(eventId, optimistic);
       setEvents((prev) => {
         const withoutNew = prev.filter((item) => item.id !== eventId);
-        const optimistic = mapApiEventToUserEvent(
-          optimisticEvent,
-          metaRef.current[eventId]?.badgeLabel,
-        );
         const next = [optimistic, ...withoutNew].filter((item) =>
           isUpcomingEvent(item.eventDate, item.time, item.scheduledAt),
         );
@@ -418,7 +429,9 @@ export const EventsProvider = ({
         return next;
       });
 
-      await refreshEvents();
+      // POST success is the completion boundary. Reconciliation must not hold
+      // the form open (or turn a successfully created plan into a submit error).
+      void refreshEvents().catch((err) => logger.error('Failed to reconcile created event', err));
 
       return eventId;
     },
@@ -500,6 +513,7 @@ export const EventsProvider = ({
         errorMessage: (status) => `Request failed with status ${status}`,
       });
 
+      unreconciledCreations.current.delete(eventId);
       await refreshEvents();
     },
     [refreshEvents, token],

@@ -1,0 +1,6 @@
+{
+  "artifact": "artifacts/animation-performance/return-flicker-emulator.apk",
+  "sha256": "089d66f2dc044967e2537bf0cbc1c7592528ab327878dbb8f884a1b850771c09",
+  "environment": "local emulator fixture, OTA disabled",
+  "bytes": 72901580
+}

@@ -72,10 +72,13 @@ const MyEventsScreen = () => {
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
 
   useEffect(() => {
-    if (!route.params?.showEventCreatedBadge) return;
-    const task = InteractionManager.runAfterInteractions(() => setShowEventCreatedBadge(true));
+    if (!isFocused || !route.params?.showEventCreatedBadge) return;
+    const task = InteractionManager.runAfterInteractions(() => {
+      setShowEventCreatedBadge(true);
+      navigation.setParams({ showEventCreatedBadge: false });
+    });
     return () => task.cancel();
-  }, [route.params?.showEventCreatedBadge]);
+  }, [isFocused, navigation, route.params?.showEventCreatedBadge]);
 
   useEffect(() => {
     if (!route.params?.showEventDeletedBadge) return;

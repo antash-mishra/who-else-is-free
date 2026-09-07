@@ -56,15 +56,15 @@ const EventDetailsHero = ({
   // cache entry and appears on the hand-off frame instead of decoding again.
   const coverSize = heroCoverSize(useWindowDimensions().width);
   const { land } = useEventSharedTransition();
-  const { eventId: activeEventId } = useEventSharedTransitionState();
-  const hidden = !!sharedCover && !!eventId && activeEventId === eventId;
+  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
+  const hidden = !!sharedCover && !!eventId && activeEventId === eventId && phase !== 'returning';
   const rotation = reducedMotion
     ? 0
     : (seededRand(seedFromString(`hero-${imageUri}`)) * 2 - 1) * motionGeometry.tiltMaxDeg;
   const measureCover = useCallback(() => {
     if (!hidden || !eventId) return;
     coverRef.current?.measureInWindow((x, y, width, height) => {
-      land(eventId, 'cover', { x, y, width, height }, { rotation });
+      land(eventId, 'cover', { x, y, width, height }, { rotation, coverRef });
     });
   }, [hidden, eventId, land, rotation]);
   useEffect(() => {

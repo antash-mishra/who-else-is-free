@@ -265,3 +265,73 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Automated: Go `TestNotificationNewFrameOverWebSocket` (3 subtests) + full `go test ./...` (only the pre-existing `TestAPIIntegration/list_covers` failure, gitignored covers); Jest 97 suites / 1329+ tests green incl. new banner, host, hook, context, and ChatContext subscription tests; `tsc` clean; ESLint adds no warnings in touched files (ChatContext keeps its 4 baseline warnings).
 - Not verified: iOS; background → foreground `socket:open` count re-sync was exercised only by unit test.
 - Final: **PASS** on Android emulator.
+
+## 2026-09-07 — Animation lifecycle repair (verification in progress)
+
+- Change: Create success pops to existing Main; asynchronous list reconciliation; badge mount/hold sequencing; shared-flight cancellation and generation checks; removal of independent stack hold; animation cleanup. Splash and shared cover/title design preserved.
+- Environment: local API fixtures, API 36 arm64 emulator, SwiftShader/Vulkan disabled, 720×1600 density 280, release APKs with local URLs and OTA disabled.
+- Invalid attempts excluded: hardware renderer stalls; tap before splash completed; fixture filtered after viewer location resolved.
+- Valid age matrix: both baseline and fixed reached Details at 15/25/35/40/45/60/120 s. All 14 destination screenshots inspected. Report: `report/animation-repair/status.md`. This signed-out scenario did not reproduce the reported 40-second failure.
+- Automated: 115 suites / 1,418 tests passed; later badge regression passed in its five-test suite. Typecheck and lint passed (774 warnings, zero errors).
+- Final: **IN PROGRESS**. Signed-in creation, broader animation matrix, long idle/resume and physical-device smoothness remain unverified. No FPS target or app-wide smoothness pass claimed.
+
+## 2026-09-07 — Animation repair, measured release iteration
+
+- Report: `report/animation-repair/performance-report.md`, with per-transition frame tables, screenshots, baseline/final recordings, source-change inventory, excluded experiments and limitations.
+- Retained: shared-flight lifecycle guards; removal of competing stack hold; asynchronous post-create reconciliation with stale-list protection; badge/press/shimmer cleanup; memory+disk Create images; active-only confetti. Creation now reads hydrated root state, jumps the existing Main tab to My Events, allows a render opportunity, then pops the form with a route-change guard. Splash/shared visual design preserved.
+- Release emulator: API 36 arm64, 720×1600, density 280, SwiftShader/Vulkan disabled, local fixture backend, OTA disabled for QA only. Temporary native manifest changes restored. No physical device or production data used.
+- Four main batches: 144 inspected scenario destinations (Create open/cancel-close, group sheet open/close, My Plans/Discover tabs). Keyboard batches: 32 inspected destinations. Earlier shared age/repetition: 54 inspected destinations.
+- Final successful creation video: downward dismissal directly onto My Plans, then downward toast entry and confetti. Visible submitting feedback → destination reveal: baseline 2.892 s, final 2.102 s (27.3% shorter in one recording pair; not FPS/population p95). Back returns to Discover, not the submitted form. Two additional open/cancel-close cycles recorded.
+- Frame results mixed: confirmation Create-open p95 83.2→72.2 ms; close 76.4→74.8 ms; group-open 62.4→99.9 ms regressed. Earlier Create batch also regressed. Keyboard app-frame p95 opening 112.9→69.3 ms, closing 70.9→60.2 ms (three warm trials each). No consistent app-wide smoothness claim.
+- Automated final: 117 suites / 1,425 tests passed; typecheck passed; lint zero errors / 774 existing warnings; release APK build passed. Hidden confetti regression verifies 50→0 particle allocations and 1→0 registered frame callbacks per inactive overlay.
+- Final: **PARTIAL PASS** — navigation/lifecycle repair iteration verified; app-wide smoothness acceptance remains open. The exact 40-second failure was not reproduced; longer idle, three-batch stress acceptance, broader animation matrix, phone and iOS validation remain.
+
+- Final resume smoke check: 58.5 seconds in background, same process retained, then signed-in Discover → Details succeeded; recording and settled screenshot inspected. This is one recovery observation, not a long-idle or FPS pass. Create entry still briefly shows image placeholders.
+
+## 2026-09-07 — Animation phone QA APK handoff
+
+- Built `artifacts/animation-performance/animation-phone-qa.apk`: release arm64, production HTTPS API/WSS URLs, OTA disabled for this QA binary so the bundled repairs remain under test. Original native manifest restored after build.
+- Connected to the user's Galaxy A56 (SM-A566E) at the explicitly supplied wireless ADB address. Signing certificate matched the installed app; installed with `adb install -r` successfully, without uninstalling or clearing data.
+- Verified actual APK bundle contains production API and WS URLs and excludes the emulator fixture endpoint. First assemble reused a stale Gradle bundle; rejected it before installation and forced fresh bundle generation. Installed APK SHA-256 matches `a9ae9c8a8d4590e3b6b8b8d48095b09b63a028d4fe1be168e7d9d7b48076d0ce`.
+- Launched MainActivity successfully and verified the app process and resumed activity. No event creation or automated interaction test was performed on the phone; performance/visual acceptance is handed to the user.
+- Result: **INSTALL/LAUNCH PASS**, phone animation measurements still pending.
+
+
+## 2026-09-07 — Airbnb-style image-only transition
+
+**Verdict: design/lifecycle pass on Android emulator; performance not accepted.** Implemented rounded page expansion/return with shared image only. Final release: 11 open/return cycles, all 22 endpoint screenshots checked; two recorded cycles plus 45.13-second idle and 45.24-second background/resume recordings reviewed frame by frame. Same process survived; My Plans and on-screen Back checked. Explicit cached-layer experiments were rejected after native blur/blank-screen failures. Final reset/handoff paths and static Android hero material tested without those observed failures.
+
+Perfetto, ten post-warm-up trials per direction: old → final median trial p95 opening **70.6 → 145.3 ms**, return **83.4 → 108.7 ms**. Final is 17.3% / 25.6% lower than the first new-design prototype, but slower than the old design. These are emulator frame-record timings, not phone FPS. RenderThread CPU increased substantially; see the report's scheduler breakdown.
+
+Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 23 passed; typecheck passed; lint 0 errors / 774 warning baseline. No physical-device or iOS claim. [Report, screenshots, recordings and raw measurements](report/animation-repair/airbnb-implementation-report.md).
+
+
+## 2026-09-07 — Image-only transition phone APK handoff
+
+- Connected to Galaxy A56 (SM-A566E) using the user-supplied wireless debugging address `192.168.1.9:39779`.
+- Built the latest release ARM64 APK with forced fresh JS bundling, production HTTPS API/WSS endpoints, and OTA disabled for this QA binary. Original native manifest restored after build. Gradle assemble passed in 1m 11s.
+- Verified bundled production URLs and absence of the emulator fixture endpoint. Artifact: `artifacts/animation-performance/airbnb-phone-qa.apk` (72,901,480 bytes), SHA-256 `9a4df30cec5da2e1241d458be265f1d153213d4364c4d28f2c7a2212f6cb50a1`.
+- Installed with `adb install -r` successfully; no uninstall or data clearing. Pulled installed base APK and confirmed its SHA-256 matches the new artifact. MainActivity launched successfully and app process was present.
+- Result: **INSTALL/LAUNCH PASS**. Includes the image-only expanding/returning shared transition and earlier animation repairs. Phone animation smoothness and performance acceptance remain for user testing; no production event mutations or phone performance benchmark performed.
+
+
+## 2026-09-07 — Event Details return endpoint flicker
+
+- Reproduced the reported flash in original video frame 92 (12.946844 s); both cover and badge washed out, neighboring text stayed stable.
+- Image fade/source experiment: FAIL, reverted. Retaining completed progress alone: FAIL. Final repair hides the contracted Details surface on the UI thread at the source endpoint and preserves that endpoint through cleanup.
+- Final release emulator validation: **PASS for this flicker**, four open/return cycles in two recordings, all 199 captured frames reviewed. No white flash in 87 post-return frames; minimum contrast proxy 95.45%, versus 19.9% in original damaged frame. This is not a frame-time/FPS improvement claim.
+- 49 focused tests, typecheck, targeted ESLint and diff check passed. No phone update or iOS test for this repair. [Report and evidence](report/animation-repair/return-flicker-report.md).
+
+
+## 2026-09-07 — Return flicker fix installed on phone
+
+- Connected to the user-authorized Galaxy A56 at `192.168.1.9:39779`; built release ARM64 with fresh production API/WSS bundling and QA OTA disabled. Original manifest restored.
+- Installed `artifacts/animation-performance/return-flicker-phone.apk` with `adb install -r`, preserving app data. Actual installed APK SHA-256 verified on device: `6ad4625df423b3d5194ed748fcdc09b65695258b545edc0ac4c2a92747661be8` (72,901,540 bytes).
+- MainActivity launched successfully; process present (PID 15611). **INSTALL/LAUNCH PASS**. The return-endpoint fix is now installed; physical-device visual acceptance remains for the user to test.
+
+
+## 2026-09-07 — User acceptance and commit handoff
+
+- The user confirmed the installed animation implementation works correctly on their phone and requested commit/push.
+- Existing validation: 117 suites / 1,428 tests passed for the implemented design; subsequent endpoint repair passed 49 focused tests, typecheck, targeted ESLint, and release build/install verification. Four final emulator returns were reviewed frame by frame without the reported white flash.
+- Visual acceptance is confirmed by the user. Remaining work is optional measured performance tuning (rendering/blur cost and deferred heavy Details content), a comparable before/after device benchmark if access becomes available, and iOS validation. Existing emulator regressions remain documented; acceptance is not a numeric frame-rate claim.

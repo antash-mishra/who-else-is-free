@@ -6,10 +6,12 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import HostingIcon from '@assets/event/hosting.svg';
 import JoinedIcon from '@assets/event/joined.svg';
 import PendingIcon from '@assets/event/pending.svg';
+import { useEventSharedTransition } from '@components/events/EventSharedTransition';
 import { EVENT_INFO_SEPARATOR } from '@constants/display';
 import { colors, spacing, typography } from '@theme/index';
 import { eventSharedMotion } from '@theme/motion';
@@ -30,7 +32,7 @@ export interface EventItemProps {
   badgeLabel?: string;
   coverRef?: RefObject<View | null>;
   titleRef?: RefObject<Text | null>;
-  /** True while this card's cover and title are flying in the shared overlay. */
+  /** True while this card's cover is flying in the shared overlay. */
   sharedElementsHidden?: boolean;
 }
 
@@ -63,15 +65,20 @@ const EventCard = ({
   titleRef,
   sharedElementsHidden,
 }: EventItemProps) => {
+  const { progress } = useEventSharedTransition();
+  const coverVisibility = useAnimatedStyle(() => ({
+    // Return the source image on the UI thread before JS navigation completes.
+    opacity: sharedElementsHidden && progress.value > 0.001 ? 0 : 1,
+  }));
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
   const locationName = formatEventLocationName(location);
 
   return (
     <View style={styles.container} testID="event-card">
-      <View
+      <Animated.View
         ref={coverRef}
         collapsable={false}
-        style={[styles.imageWrapper, sharedElementsHidden && styles.hidden]}
+        style={[styles.imageWrapper, coverVisibility]}
       >
         <Image
           source={{ uri: imageUri }}
@@ -109,13 +116,9 @@ const EventCard = ({
             </View>
           </MaskedView>
         )}
-      </View>
+      </Animated.View>
       <View style={styles.content}>
-        <Text
-          ref={titleRef}
-          style={[styles.title, sharedElementsHidden && styles.hidden]}
-          numberOfLines={1}
-        >
+        <Text ref={titleRef} style={styles.title} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -153,10 +156,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     gap: 6,
-  },
-  // The shared overlay carries the element; leave its slot empty rather than a duplicate.
-  hidden: {
-    opacity: 0,
   },
   title: {
     fontSize: 17,

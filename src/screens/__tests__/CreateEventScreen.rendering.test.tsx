@@ -285,10 +285,18 @@ describe('CreateEventScreen Rendering', () => {
           longitude: -6.2642,
         }),
       );
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('Main', {
-        screen: 'MyEvents',
-        params: { showEventCreatedBadge: true },
-      });
+      expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'POP_TO',
+          payload: expect.objectContaining({
+            name: 'Main',
+            params: {
+              screen: 'MyEvents',
+              params: { showEventCreatedBadge: true },
+            },
+          }),
+        }),
+      );
     });
   });
 
@@ -301,10 +309,18 @@ describe('CreateEventScreen Rendering', () => {
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('Main', {
-        screen: 'MyEvents',
-        params: { showEventCreatedBadge: true },
-      });
+      expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'POP_TO',
+          payload: expect.objectContaining({
+            name: 'Main',
+            params: {
+              screen: 'MyEvents',
+              params: { showEventCreatedBadge: true },
+            },
+          }),
+        }),
+      );
     });
 
     expect(screen.getByPlaceholderText('Event name').props.value).toBe('Coffee Meetup');

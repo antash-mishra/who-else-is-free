@@ -25,10 +25,12 @@ describe('EventCard', () => {
   };
 
   describe('Rendering', () => {
-    it('hides its cover and title while they fly in the shared overlay', () => {
+    it('hides only its cover while the image flies in the shared overlay', () => {
       render(<EventCard {...defaultProps} sharedElementsHidden />);
 
-      expect(StyleSheet.flatten(screen.getByText('Coffee Meetup').props.style).opacity).toBe(0);
+      expect(StyleSheet.flatten(screen.getByText('Coffee Meetup').props.style).opacity ?? 1).toBe(
+        1,
+      );
       expect(
         StyleSheet.flatten(screen.getByTestId('event-card').props.children[0].props.style).opacity,
       ).toBe(0);

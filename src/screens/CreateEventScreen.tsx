@@ -23,6 +23,8 @@ import { UserEvent, useEvents } from '@context/EventsContext';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList } from '@navigation/types';
+import { completeEventCreation } from '@navigation/completeEventCreation';
+import { navigationRef } from '@navigation/navigationRef';
 import { trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
@@ -369,10 +371,10 @@ const CreateEventScreen = () => {
         } else {
           await addUserEvent(buildCreateEventPayload(formState, user));
           triggerHaptic('success');
-          navigation.navigate('Main', {
-            screen: 'MyEvents',
-            params: { showEventCreatedBadge: true },
-          });
+          await completeEventCreation(
+            navigation,
+            navigationRef.isReady() ? navigationRef.getRootState() : undefined,
+          );
         }
       } catch (err) {
         logger.error('Failed to submit event', err);
@@ -422,6 +424,7 @@ const CreateEventScreen = () => {
         source={{ uri: selectedCoverUri }}
         style={styles.backgroundImage}
         contentFit="cover"
+        cachePolicy="memory-disk"
         blurRadius={28}
         transition={150}
         testID="create-event-background-image"

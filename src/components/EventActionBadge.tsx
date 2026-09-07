@@ -8,8 +8,6 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withDelay,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -26,11 +24,18 @@ type EventActionBadgeProps = {
   onHidden?: () => void;
 };
 
-const EventActionBadge = ({ visible, label, topOffset = 59, onHidden }: EventActionBadgeProps) => {
+const EventActionBadgeBody = ({
+  visible,
+  label,
+  topOffset = 59,
+  onHidden,
+}: EventActionBadgeProps) => {
   const translateY = useSharedValue(-80);
   const opacity = useSharedValue(0);
   const reducedMotion = useReducedMotion();
-  const [isRendered, setIsRendered] = useState(false);
+  const [isRendered, setIsRendered] = useState(true);
+  const mounted = useRef(true);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onHiddenRef = useRef<EventActionBadgeProps['onHidden']>(onHidden);
 
   useEffect(() => {
@@ -38,20 +43,30 @@ const EventActionBadge = ({ visible, label, topOffset = 59, onHidden }: EventAct
   }, [onHidden]);
 
   const finish = useCallback(() => {
+    if (!mounted.current) return;
+    mounted.current = false;
     setIsRendered(false);
     onHiddenRef.current?.();
   }, []);
 
   const dismiss = useCallback(() => {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
     cancelAnimation(translateY);
     cancelAnimation(opacity);
     opacity.value = withTiming(0, { duration: FADE_MS });
-    translateY.value = withTiming(-80, { duration: FADE_MS }, (completed) => {
+    const exitTarget = reducedMotion ? 0 : -80;
+    translateY.value = withTiming(exitTarget, { duration: FADE_MS }, (completed) => {
       if (completed) {
         runOnJS(finish)();
       }
     });
-  }, [finish, opacity, translateY]);
+  }, [finish, opacity, reducedMotion, translateY]);
+
+  const holdThenDismiss = useCallback(() => {
+    if (!mounted.current) return;
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = setTimeout(dismiss, BADGE_HOLD_MS);
+  }, [dismiss]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -65,6 +80,7 @@ const EventActionBadge = ({ visible, label, topOffset = 59, onHidden }: EventAct
   ).current;
 
   useEffect(() => {
+    mounted.current = true;
     cancelAnimation(translateY);
     cancelAnimation(opacity);
 
@@ -80,43 +96,24 @@ const EventActionBadge = ({ visible, label, topOffset = 59, onHidden }: EventAct
     opacity.value = 0;
 
     if (reducedMotion) {
-      // No travel: fade in, hold, fade out.
       translateY.value = 0;
-      opacity.value = withSequence(
-        withTiming(1, { duration: FADE_MS }),
-        withDelay(
-          BADGE_HOLD_MS,
-          withTiming(0, { duration: FADE_MS }, (completed) => {
-            if (completed) {
-              runOnJS(finish)();
-            }
-          }),
-        ),
-      );
-      return;
+      opacity.value = withTiming(1, { duration: FADE_MS }, (finished) => {
+        if (finished) runOnJS(holdThenDismiss)();
+      });
+    } else {
+      opacity.value = withTiming(1, { duration: FADE_MS });
+      translateY.value = withSpring(0, Springs.bouncyUp, (finished) => {
+        if (finished) runOnJS(holdThenDismiss)();
+      });
     }
 
-    opacity.value = withSequence(
-      withTiming(1, { duration: FADE_MS }),
-      withDelay(BADGE_HOLD_MS, withTiming(0, { duration: FADE_MS })),
-    );
-    translateY.value = withSequence(
-      withSpring(0, Springs.bouncyUp),
-      withDelay(
-        BADGE_HOLD_MS,
-        withTiming(-80, { duration: FADE_MS }, (completed) => {
-          if (completed) {
-            runOnJS(finish)();
-          }
-        }),
-      ),
-    );
-
     return () => {
+      mounted.current = false;
+      if (holdTimer.current) clearTimeout(holdTimer.current);
       cancelAnimation(translateY);
       cancelAnimation(opacity);
     };
-  }, [finish, opacity, reducedMotion, translateY, visible]);
+  }, [holdThenDismiss, opacity, reducedMotion, translateY, visible]);
 
   const badgeStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -172,5 +169,10 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
 });
+
+// Mount the native view before its entry effect starts. Starting the clock in
+// the same effect that requests a mount can lose the whole entry under JS load.
+const EventActionBadge = (props: EventActionBadgeProps) =>
+  props.visible ? <EventActionBadgeBody {...props} /> : null;
 
 export default EventActionBadge;

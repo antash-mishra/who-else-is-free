@@ -1,0 +1,154 @@
+{
+  "airbnb-baseline": {
+    "open": [
+      {
+        "thread": "RenderThread",
+        "median_cpu_ms": 395.34,
+        "samples": 10
+      },
+      {
+        "thread": "mqt_v_js",
+        "median_cpu_ms": 324.25,
+        "samples": 10
+      },
+      {
+        "thread": "oelseisfree.app",
+        "median_cpu_ms": 293.08,
+        "samples": 10
+      },
+      {
+        "thread": "HeapTaskDaemon",
+        "median_cpu_ms": 95.14,
+        "samples": 5
+      },
+      {
+        "thread": "HybridData Dest",
+        "median_cpu_ms": 24.41,
+        "samples": 5
+      },
+      {
+        "thread": "Jit thread pool",
+        "median_cpu_ms": 23.53,
+        "samples": 10
+      },
+      {
+        "thread": ".0.2.2:8093/...",
+        "median_cpu_ms": 22.64,
+        "samples": 10
+      }
+    ],
+    "close": [
+      {
+        "thread": "mqt_v_js",
+        "median_cpu_ms": 221.9,
+        "samples": 10
+      },
+      {
+        "thread": "RenderThread",
+        "median_cpu_ms": 171.59,
+        "samples": 10
+      },
+      {
+        "thread": "oelseisfree.app",
+        "median_cpu_ms": 130.98,
+        "samples": 10
+      },
+      {
+        "thread": "hades",
+        "median_cpu_ms": 108.36,
+        "samples": 2
+      },
+      {
+        "thread": "HeapTaskDaemon",
+        "median_cpu_ms": 59.95,
+        "samples": 5
+      },
+      {
+        "thread": ".0.2.2:8093/...",
+        "median_cpu_ms": 26.53,
+        "samples": 10
+      },
+      {
+        "thread": "Measurement Wor",
+        "median_cpu_ms": 13.1,
+        "samples": 10
+      }
+    ]
+  },
+  "airbnb-final-v8": {
+    "open": [
+      {
+        "thread": "RenderThread",
+        "median_cpu_ms": 694.65,
+        "samples": 10
+      },
+      {
+        "thread": "mqt_v_js",
+        "median_cpu_ms": 270.64,
+        "samples": 10
+      },
+      {
+        "thread": "oelseisfree.app",
+        "median_cpu_ms": 212.83,
+        "samples": 10
+      },
+      {
+        "thread": "HeapTaskDaemon",
+        "median_cpu_ms": 67.2,
+        "samples": 7
+      },
+      {
+        "thread": "hades",
+        "median_cpu_ms": 56.46,
+        "samples": 2
+      },
+      {
+        "thread": "HybridData Dest",
+        "median_cpu_ms": 17.59,
+        "samples": 6
+      },
+      {
+        "thread": ".0.2.2:8093/...",
+        "median_cpu_ms": 16.09,
+        "samples": 10
+      }
+    ],
+    "close": [
+      {
+        "thread": "RenderThread",
+        "median_cpu_ms": 517.58,
+        "samples": 10
+      },
+      {
+        "thread": "mqt_v_js",
+        "median_cpu_ms": 276.67,
+        "samples": 10
+      },
+      {
+        "thread": "oelseisfree.app",
+        "median_cpu_ms": 160.05,
+        "samples": 10
+      },
+      {
+        "thread": "hades",
+        "median_cpu_ms": 86.91,
+        "samples": 2
+      },
+      {
+        "thread": "HeapTaskDaemon",
+        "median_cpu_ms": 29.82,
+        "samples": 6
+      },
+      {
+        "thread": ".0.2.2:8093/...",
+        "median_cpu_ms": 23.81,
+        "samples": 10
+      },
+      {
+        "thread": "HybridData Dest",
+        "median_cpu_ms": 14.45,
+        "samples": 3
+      }
+    ]
+  }
+}

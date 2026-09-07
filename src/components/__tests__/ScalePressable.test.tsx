@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Reanimated from 'react-native-reanimated';
 import { Text } from 'react-native';
 import { fireEvent, render } from '@testing-library/react-native';
 
@@ -68,5 +69,21 @@ describe('ScalePressable', () => {
 
     const style = getByTestId('tilted-content').props.style;
     expect(JSON.stringify(style)).toContain('rotate');
+  });
+  it('cancels a delayed press when its row unmounts', () => {
+    jest.useFakeTimers();
+    const spring = jest.spyOn(Reanimated, 'withSpring');
+    const view = render(
+      <ScalePressable onPress={jest.fn()} delay={100} testID="delayed">
+        <Text>Tap</Text>
+      </ScalePressable>,
+    );
+    fireEvent(view.getByTestId('delayed'), 'pressIn');
+    view.unmount();
+    spring.mockClear();
+    jest.advanceTimersByTime(200);
+    expect(spring).not.toHaveBeenCalled();
+    jest.useRealTimers();
+    spring.mockRestore();
   });
 });

@@ -66,3 +66,6 @@ privacy-policy-screen.png
 # Cover artwork is fetched at deploy time from the catalog (covers-sync -fetch);
 # the images themselves stay out of the public repo.
 server/assets/covers/*.png
+
+# Local release APKs and full emulator performance traces
+/artifacts/animation-performance/

@@ -54,9 +54,9 @@ const EventCardRow = <TItem extends EventItemProps>({
   const titleRef = useRef<Text>(null);
   const { prime, open } = useEventSharedTransition();
   const { eventId: activeEventId, phase } = useEventSharedTransitionState();
-  // The overlay carries this card's cover and title once airborne; hide the originals
-  // so the elements move rather than duplicate.
-  const sharedElementsHidden = activeEventId === item.id && phase === 'flying';
+  // Hide only the cover while its overlay travels; list text stays in place.
+  const sharedElementsHidden =
+    activeEventId === item.id && (phase === 'flying' || phase === 'closing');
   const source = useMemo(
     () => ({
       imageUri: item.imageUri,

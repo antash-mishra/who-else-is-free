@@ -1,0 +1,33 @@
+[
+  {
+    "name": "create-open",
+    "input": [
+      "tap",
+      360,
+      1475
+    ]
+  },
+  {
+    "name": "keyboard-open",
+    "input": [
+      "tap",
+      240,
+      635
+    ]
+  },
+  {
+    "name": "keyboard-close",
+    "input": [
+      "keyevent",
+      4
+    ]
+  },
+  {
+    "name": "create-close",
+    "input": [
+      "tap",
+      664,
+      140
+    ]
+  }
+]

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/immutability -- Reanimated press feedback mutates shared values from press handlers. */
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   AccessibilityRole,
   AccessibilityState,
@@ -10,7 +10,13 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, {
+  cancelAnimation,
+  useReducedMotion,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { HapticFeedback, triggerHaptic } from '@services/haptics';
 import { motionGeometry } from '@theme/motion';
@@ -61,6 +67,7 @@ const ScalePressable = ({
 }: ScalePressableProps) => {
   const scale = useSharedValue(1);
   const rotation = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
   const tiltAngle = useMemo(() => {
     if (!tilt) return 0;
     const seed = tiltSeed ?? testID ?? accessibilityLabel ?? 'scale-pressable';
@@ -73,6 +80,14 @@ const ScalePressable = ({
       : { transform: [{ scale: scale.value }] },
   );
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (pressTimer.current) clearTimeout(pressTimer.current);
+      cancelAnimation(scale);
+      cancelAnimation(rotation);
+    },
+    [rotation, scale],
+  );
 
   return (
     <Pressable
@@ -91,6 +106,8 @@ const ScalePressable = ({
       onPressIn={() => {
         if (disabled) return;
         onPressIn?.();
+        if (reducedMotion) return;
+        if (pressTimer.current) clearTimeout(pressTimer.current);
         if (delay > 0) {
           pressTimer.current = setTimeout(() => {
             scale.value = withSpring(0.96, Springs.snappy);
@@ -106,8 +123,8 @@ const ScalePressable = ({
           clearTimeout(pressTimer.current);
           pressTimer.current = null;
         }
-        scale.value = withSpring(1, Springs.press);
-        rotation.value = withSpring(0, Springs.press);
+        scale.value = reducedMotion ? 1 : withSpring(1, Springs.press);
+        rotation.value = reducedMotion ? 0 : withSpring(0, Springs.press);
       }}
     >
       <Animated.View style={[style, animStyle]} testID={testID ? `${testID}-content` : undefined}>

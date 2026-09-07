@@ -54,6 +54,7 @@ const CreateEventFormFields = ({
         source={{ uri: selectedCoverUri }}
         style={styles.coverImage}
         contentFit="cover"
+        cachePolicy="memory-disk"
         transition={150}
         testID="create-event-cover-image"
       />

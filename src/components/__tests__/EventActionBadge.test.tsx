@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 import * as Reanimated from 'react-native-reanimated';
 
 import EventActionBadge from '../EventActionBadge';
@@ -45,5 +45,23 @@ describe('EventActionBadge', () => {
     const { getByText } = render(<EventActionBadge visible label="Welcome" />);
     expect(getByText('Welcome')).toBeTruthy();
     expect(spring).not.toHaveBeenCalled();
+  });
+  it('starts the hold after entry and ignores a queued entry callback after unmount', () => {
+    jest.useFakeTimers();
+    let entered: ((finished?: boolean) => void) | undefined;
+    jest.spyOn(Reanimated, 'withSpring').mockImplementation((value, _config, callback) => {
+      entered = callback;
+      return value as never;
+    });
+    holdBadgeOpen();
+    const view = render(<EventActionBadge visible label="Created" />);
+    const beforeEntry = jest.getTimerCount();
+    act(() => entered?.(true));
+    expect(jest.getTimerCount()).toBe(beforeEntry + 1);
+    view.unmount();
+    const afterUnmount = jest.getTimerCount();
+    act(() => entered?.(true));
+    expect(jest.getTimerCount()).toBe(afterUnmount);
+    jest.useRealTimers();
   });
 });

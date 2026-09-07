@@ -1,0 +1,112 @@
+Applications Graphics Acceleration Info:
+Uptime: 10367284 Realtime: 10367284
+
+** Graphics info for pid 18775 [com.whoelseisfree.app] **
+
+Stats since: 10365514363400ns
+Total frames rendered: 16
+Janky frames: 14 (87.50%)
+Janky frames (legacy): 15 (93.75%)
+50th percentile: 46ms
+90th percentile: 77ms
+95th percentile: 101ms
+99th percentile: 101ms
+Number Missed Vsync: 8
+Number High input latency: 3
+Number Slow UI thread: 7
+Number Slow bitmap uploads: 1
+Number Slow issue draw commands: 11
+Number Frame deadline missed: 14
+Number Frame deadline missed (legacy): 14
+HISTOGRAM: 5ms=0 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21ms=1 22ms=0 23ms=0 24ms=0 25ms=0 26ms=0 27ms=0 28ms=0 29ms=0 30ms=2 31ms=0 32ms=0 34ms=0 36ms=0 38ms=4 40ms=0 42ms=0 44ms=1 46ms=1 48ms=0 53ms=2 57ms=0 61ms=0 65ms=1 69ms=0 73ms=2 77ms=1 81ms=0 85ms=0 89ms=0 93ms=0 97ms=0 101ms=1 105ms=0 109ms=0 113ms=0 117ms=0 121ms=0 125ms=0 129ms=0 133ms=0 150ms=0 200ms=0 250ms=0 300ms=0 350ms=0 400ms=0 450ms=0 500ms=0 550ms=0 600ms=0 650ms=0 700ms=0 750ms=0 800ms=0 850ms=0 900ms=0 950ms=0 1000ms=0 1050ms=0 1100ms=0 1150ms=0 1200ms=0 1250ms=0 1300ms=0 1350ms=0 1400ms=0 1450ms=0 1500ms=0 1550ms=0 1600ms=0 1650ms=0 1700ms=0 1750ms=0 1800ms=0 1850ms=0 1900ms=0 1950ms=0 2000ms=0 2050ms=0 2100ms=0 2150ms=0 2200ms=0 2250ms=0 2300ms=0 2350ms=0 2400ms=0 2450ms=0 2500ms=0 2550ms=0 2600ms=0 2650ms=0 2700ms=0 2750ms=0 2800ms=0 2850ms=0 2900ms=0 2950ms=0 3000ms=0 3050ms=0 3100ms=0 3150ms=0 3200ms=0 3250ms=0 3300ms=0 3350ms=0 3400ms=0 3450ms=0 3500ms=0 3550ms=0 3600ms=0 3650ms=0 3700ms=0 3750ms=0 3800ms=0 3850ms=0 3900ms=0 3950ms=0 4000ms=0 4050ms=0 4100ms=0 4150ms=0 4200ms=0 4250ms=0 4300ms=0 4350ms=0 4400ms=0 4450ms=0 4500ms=0 4550ms=0 4600ms=0 4650ms=0 4700ms=0 4750ms=0 4800ms=0 4850ms=0 4900ms=0 4950ms=0
+50th gpu percentile: 7ms
+90th gpu percentile: 17ms
+95th gpu percentile: 4950ms
+99th gpu percentile: 4950ms
+GPU HISTOGRAM: 1ms=0 2ms=0 3ms=1 4ms=2 5ms=4 6ms=1 7ms=2 8ms=2 9ms=0 10ms=1 11ms=0 12ms=0 13ms=1 14ms=0 15ms=0 16ms=0 17ms=1 18ms=0 19ms=0 20ms=0 21ms=0 22ms=0 23ms=0 24ms=0 25ms=0 4950ms=1
+
+Pipeline=Skia (OpenGL)
+Memory policy:
+  Max surface area: 2073600
+  Max resource usage: 99.53MB (x48)
+  Background retention: 50% (altUiHidden = true)
+  GPU Context timeout: 10
+Contexts: 2 (stopped = 1)
+CPU Caches:
+  Glyph Cache: 268.36 KB (1 entry)
+  Shadows: 11.09 KB (1 entry)
+  Glyph Count: 55
+Total CPU memory usage:
+  286154 bytes, 279.45 KB (0.00 bytes is purgeable)
+GPU Caches:
+  Other:
+    Other: 95.36 KB (1 entry)
+    Buffer Object: 2.05 KB (2 entries)
+  Image:
+    Texture: 5.19 MB (50 entries)
+  Scratch:
+    RenderTarget: 21.56 MB (21 entries)
+    Buffer Object: 174.00 KB (5 entries)
+    Texture: 2.64 MB (60 entries)
+Total GPU memory usage:
+  31093900 bytes, 29.65 MB (27.01 MB is purgeable)
+
+GraphicBufferAllocator buffers:
+            Handle |         Size |     W (Stride) x H | Layers |   Format |      Usage | Requestor
+0xb400007378a11910 |      unknown |  720 (   0) x 1600 |      1 |        1 | 0x     b00 | VRI[MainActivity]#0(BLAST Consumer)0
+0xb400007378a12b70 |      unknown |  720 (   0) x 1600 |      1 |        1 | 0x     b00 | VRI[MainActivity]#0(BLAST Consumer)0
+0xb400007378a1a4a0 |      unknown |  720 (   0) x 1600 |      1 |        1 | 0x     b00 | VRI[MainActivity]#0(BLAST Consumer)0
+Total allocated by GraphicBufferAllocator (estimate): 0.00 KB
+Imported gralloc buffers:
++ name:VRI[MainActivity]#0(BLAST Consumer)0, id:1046, size:4500.31KiB, w/h:720x1600, usage: 0xb00, req fmt:1, fourcc/mod:875708993/0, dataspace: 0x8810000, compressed: false
++ name:VRI[MainActivity]#0(BLAST Consumer)0, id:1045, size:4500.31KiB, w/h:720x1600, usage: 0xb00, req fmt:1, fourcc/mod:875708993/0, dataspace: 0x8810000, compressed: false
++ name:VRI[MainActivity]#0(BLAST Consumer)0, id:1044, size:4500.31KiB, w/h:720x1600, usage: 0xb00, req fmt:1, fourcc/mod:875708993/0, dataspace: 0x8810000, compressed: false
+Total imported by gralloc: 13500.94KiB
+
+Profile data in ms:
+
+	com.whoelseisfree.app/com.whoelseisfree.app.MainActivity/android.view.ViewRootImpl@7b03104 (visibility=0)
+Window: com.whoelseisfree.app/com.whoelseisfree.app.MainActivity
+Stats since: 10365514258233ns
+Total frames rendered: 5
+Janky frames: 5 (100.00%)
+Janky frames (legacy): 4 (80.00%)
+50th percentile: 38ms
+90th percentile: 77ms
+95th percentile: 77ms
+99th percentile: 77ms
+Number Missed Vsync: 2
+Number High input latency: 0
+Number Slow UI thread: 3
+Number Slow bitmap uploads: 0
+Number Slow issue draw commands: 2
+Number Frame deadline missed: 5
+Number Frame deadline missed (legacy): 4
+HISTOGRAM: 5ms=0 6ms=0 7ms=0 8ms=0 9ms=0 10ms=0 11ms=0 12ms=0 13ms=0 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21ms=1 22ms=0 23ms=0 24ms=0 25ms=0 26ms=0 27ms=0 28ms=0 29ms=0 30ms=0 31ms=0 32ms=0 34ms=0 36ms=0 38ms=2 40ms=0 42ms=0 44ms=0 46ms=1 48ms=0 53ms=0 57ms=0 61ms=0 65ms=0 69ms=0 73ms=0 77ms=1 81ms=0 85ms=0 89ms=0 93ms=0 97ms=0 101ms=0 105ms=0 109ms=0 113ms=0 117ms=0 121ms=0 125ms=0 129ms=0 133ms=0 150ms=0 200ms=0 250ms=0 300ms=0 350ms=0 400ms=0 450ms=0 500ms=0 550ms=0 600ms=0 650ms=0 700ms=0 750ms=0 800ms=0 850ms=0 900ms=0 950ms=0 1000ms=0 1050ms=0 1100ms=0 1150ms=0 1200ms=0 1250ms=0 1300ms=0 1350ms=0 1400ms=0 1450ms=0 1500ms=0 1550ms=0 1600ms=0 1650ms=0 1700ms=0 1750ms=0 1800ms=0 1850ms=0 1900ms=0 1950ms=0 2000ms=0 2050ms=0 2100ms=0 2150ms=0 2200ms=0 2250ms=0 2300ms=0 2350ms=0 2400ms=0 2450ms=0 2500ms=0 2550ms=0 2600ms=0 2650ms=0 2700ms=0 2750ms=0 2800ms=0 2850ms=0 2900ms=0 2950ms=0 3000ms=0 3050ms=0 3100ms=0 3150ms=0 3200ms=0 3250ms=0 3300ms=0 3350ms=0 3400ms=0 3450ms=0 3500ms=0 3550ms=0 3600ms=0 3650ms=0 3700ms=0 3750ms=0 3800ms=0 3850ms=0 3900ms=0 3950ms=0 4000ms=0 4050ms=0 4100ms=0 4150ms=0 4200ms=0 4250ms=0 4300ms=0 4350ms=0 4400ms=0 4450ms=0 4500ms=0 4550ms=0 4600ms=0 4650ms=0 4700ms=0 4750ms=0 4800ms=0 4850ms=0 4900ms=0 4950ms=0
+50th gpu percentile: 10ms
+90th gpu percentile: 4950ms
+95th gpu percentile: 4950ms
+99th gpu percentile: 4950ms
+GPU HISTOGRAM: 1ms=0 2ms=0 3ms=0 4ms=0 5ms=0 6ms=0 7ms=0 8ms=2 9ms=0 10ms=1 11ms=0 12ms=0 13ms=1 14ms=0 15ms=0 16ms=0 17ms=0 18ms=0 19ms=0 20ms=0 21ms=0 22ms=0 23ms=0 24ms=0 25ms=0 4950ms=1
+
+
+
+---PROFILEDATA---
+Flags,FrameTimelineVsyncId,IntendedVsync,Vsync,InputEventId,HandleInputStart,AnimationStart,PerformTraversalsStart,DrawStart,FrameDeadline,FrameStartTime,FrameInterval,WorkloadTarget,SyncQueued,SyncStart,IssueDrawCommandsStart,SwapBuffers,FrameCompleted,DequeueBufferDuration,QueueBufferDuration,GpuCompleted,SwapBuffersCompleted,DisplayPresentTime,CommandSubmissionCompleted,
+0,4174409,10365675963027,10365675963027,0,10365676815984,10365676816609,10365680976275,10365681171275,10365692629693,10365676813525,16666666,16666666,10365681710359,10365682134692,10365682675484,10365685755234,10365698222900,6167,412875,10365698222900,10365686908400,0,10365685755234,
+0,4174417,10365692629693,10365692629693,0,10365693980192,10365693980442,10365695304609,10365695352442,10365725963025,10365693977900,16666666,16666666,10365695457984,10365695487067,10365695570609,10365698922817,10365731553609,12208,242917,10365731553609,10365721916400,0,10365698922817,
+0,4174424,10365709296359,10365725963025,0,10365731974859,10365731974984,10365748615525,10365748727025,10365759296357,10365731944025,16666666,16666666,10365748856400,10365756515984,10365756630734,10365757362192,10365764829275,4833,160584,10365764829275,10365758131317,0,10365757362192,
+0,4174493,10365942629683,10365959296349,0,10365961526025,10365961526192,10365969957817,10365971152109,10365959296349,10365961494525,16666666,16666666,10365971456692,10366019055859,10366019252359,10366020329650,10366029593275,5458,169500,10366029593275,10366020972817,0,10366020329650,
+0,4174513,10366042629679,10366042629679,0,10366050572359,10366050572650,10366094480234,10366109795609,10366059296345,10366050570609,16666666,16666666,10366110186775,10366114289484,10366114832900,10366116273234,10366124142734,9208,340083,10366124142734,10366119867359,0,10366116273234,
+---PROFILEDATA---
+
+
+View hierarchy:
+
+  com.whoelseisfree.app/com.whoelseisfree.app.MainActivity/android.view.ViewRootImpl@7b03104
+  93 views, 196.10 kB of render nodes
+
+
+Total ViewRootImpl   : 1
+Total attached Views : 93
+Total RenderNode     : 196.10 kB (used) / 652.25 kB (capacity)

@@ -1,0 +1,10 @@
+{
+  "baseline_head": "11904044a11e164fb73a13e80b041648842676b9",
+  "candidate": "working tree; see performance-report.md",
+  "apks": {
+    "baseline.apk": "c497467a9d031e0b0d9b7fba59dd46dba06bc0e861bfd71ec5321767d9b0e412",
+    "final-v5.apk": "dfc6ca5177c76750c7a8d051a4597c41c74ef28a7c04c5bab55a10dbb4e1f2fd"
+  },
+  "endpoints": "local emulator fixture 10.0.2.2:8093; not a phone release",
+  "ota": "disabled in QA native manifest only"
+}

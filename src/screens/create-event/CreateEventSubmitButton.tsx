@@ -7,7 +7,9 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
+  cancelAnimation,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withRepeat,
   withSequence,
@@ -42,6 +44,7 @@ const CreateEventSubmitButton = ({
   bottomInset,
   onPress,
 }: CreateEventSubmitButtonProps) => {
+  const reducedMotion = useReducedMotion();
   // Shimmer animation for "Creating..." state
   const shimmerX = useSharedValue(-160);
   const shimmerStyle = useAnimatedStyle(() => ({
@@ -54,7 +57,8 @@ const CreateEventSubmitButton = ({
   }));
 
   useEffect(() => {
-    if (isSubmitting && !isEditing) {
+    cancelAnimation(shimmerX);
+    if (isSubmitting && !isEditing && !reducedMotion) {
       shimmerX.value = -160;
       shimmerX.value = withRepeat(
         withSequence(
@@ -64,7 +68,8 @@ const CreateEventSubmitButton = ({
         -1,
       );
     }
-  }, [isSubmitting]);
+    return () => cancelAnimation(shimmerX);
+  }, [isSubmitting, isEditing, reducedMotion, shimmerX]);
 
   return (
     <View
@@ -82,10 +87,10 @@ const CreateEventSubmitButton = ({
         style={{ width: '100%' }}
         onPress={onPress}
         onPressIn={() => {
-          if (!isSubmitting) buttonScale.value = withSpring(0.96, Springs.snappy);
+          if (!isSubmitting && !reducedMotion) buttonScale.value = withSpring(0.96, Springs.snappy);
         }}
         onPressOut={() => {
-          buttonScale.value = withSpring(1, Springs.press);
+          buttonScale.value = reducedMotion ? 1 : withSpring(1, Springs.press);
         }}
         disabled={isSubmitting}
         accessibilityRole="button"

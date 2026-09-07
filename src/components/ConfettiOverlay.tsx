@@ -7,6 +7,7 @@ import {
     makeMutable,
     useDerivedValue,
     useFrameCallback,
+    useReducedMotion,
     useSharedValue,
 } from "react-native-reanimated";
 
@@ -185,7 +186,7 @@ const SkiaPiece = ({
 // ─── Overlay ──────────────────────────────────────────────────────────────────
 type Props = { active: boolean; variant?: ConfettiVariant; speedScale?: number };
 
-const ConfettiOverlay = ({ active, variant = "burst", speedScale = 1 }: Props) => {
+const ConfettiAnimation = ({ active, variant = "burst", speedScale = 1 }: Props) => {
     const { width, height } = useWindowDimensions();
 
     const configs = useMemo(() => makeConfigs(variant), [variant]);
@@ -220,7 +221,7 @@ const ConfettiOverlay = ({ active, variant = "burst", speedScale = 1 }: Props) =
         }
     }, [active, variant]);
 
-    useFrameCallback((info) => {
+    const frameCallback = useFrameCallback((info) => {
         if (!running.value) return;
 
         const dt        = Math.min(info.timeSincePreviousFrame ?? 16.67, 33) / 1000;
@@ -261,7 +262,12 @@ const ConfettiOverlay = ({ active, variant = "burst", speedScale = 1 }: Props) =
 
         simStates.value = [...s];
         if (!anyActive) running.value = false;
-    });
+    }, false);
+
+    useEffect(() => {
+        frameCallback.setActive(true);
+        return () => frameCallback.setActive(false);
+    }, [frameCallback]);
 
     if (!active) return null;
 
@@ -274,6 +280,12 @@ const ConfettiOverlay = ({ active, variant = "burst", speedScale = 1 }: Props) =
             </Canvas>
         </View>
     );
+};
+
+// Hidden celebrations must not allocate particles or keep the UI frame loop alive.
+const ConfettiOverlay = (props: Props) => {
+    const reducedMotion = useReducedMotion();
+    return props.active && !reducedMotion ? <ConfettiAnimation {...props} /> : null;
 };
 
 export default ConfettiOverlay;

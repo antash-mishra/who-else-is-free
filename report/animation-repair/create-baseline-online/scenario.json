@@ -1,0 +1,50 @@
+[
+  {
+    "name": "create-open",
+    "input": [
+      "tap",
+      360,
+      1475
+    ]
+  },
+  {
+    "name": "group-sheet-open",
+    "input": [
+      "tap",
+      340,
+      825
+    ]
+  },
+  {
+    "name": "group-sheet-close",
+    "input": [
+      "tap",
+      664,
+      1245
+    ]
+  },
+  {
+    "name": "create-close",
+    "input": [
+      "tap",
+      664,
+      140
+    ]
+  },
+  {
+    "name": "tab-my-plans",
+    "input": [
+      "tap",
+      216,
+      1475
+    ]
+  },
+  {
+    "name": "tab-discover",
+    "input": [
+      "tap",
+      72,
+      1475
+    ]
+  }
+]

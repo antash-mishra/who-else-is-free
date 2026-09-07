@@ -23,6 +23,7 @@ import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import {
   EventSharedTransitionPage,
   useEventSharedTransition,
+  useEventSharedTransitionState,
 } from '@components/events/EventSharedTransition';
 import { AppButton } from '@components/ui';
 import { EVENT_DETAILS_INFO_SEPARATOR } from '@constants/display';
@@ -52,25 +53,34 @@ import { useHostRequestActions } from './event-details/useHostRequestActions';
 // Frosted-glass backing for the floating hero buttons. Android only blurs
 // with the experimental method, and its dark tint comes out lighter than the
 // iOS material, so a translucent dark layer sits on top of the blur there.
-const HeroButtonBlur = () => (
-  <>
-    <BlurView
-      intensity={24}
-      tint="dark"
-      experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-      style={StyleSheet.absoluteFill}
-    />
-    {Platform.OS === 'android' ? (
-      <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: componentTokens.overlay.heroButtonTint },
-        ]}
-      />
-    ) : null}
-  </>
-);
+const HeroButtonBlur = () => {
+  const { phase } = useEventSharedTransitionState();
+  // Keep live blur from repeatedly capturing the moving page; use the existing
+  // tint during shared motion. Layer-caching experiments also exposed a native
+  // RenderScript context failure when nested live BlurViews were captured.
+  const staticMaterial = Platform.OS === 'android' && !!phase;
+  return (
+    <>
+      {!staticMaterial && (
+        <BlurView
+          intensity={24}
+          tint="dark"
+          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      {Platform.OS === 'android' ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: componentTokens.overlay.heroButtonTint },
+          ]}
+        />
+      ) : null}
+    </>
+  );
+};
 
 const EventDetailsScreenContent = ({
   initialEventSnapshot,

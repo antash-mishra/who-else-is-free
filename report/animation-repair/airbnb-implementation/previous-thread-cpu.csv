@@ -1,0 +1,518 @@
+"sample","name","cpu_ms"
+2,"RenderThread",352.331492
+2,"mqt_v_js",307.945628
+2,"oelseisfree.app",303.009906
+2,"glide-disk-cach",23.434541
+2,".0.2.2:8093/...",22.311708
+2,"Jit thread pool",21.166291
+2,"Measurement Wor",10.754041
+2,"HWC release",8.127543
+2,"queued-work-loo",6.586791
+2,"mqt_v_native",5.256790
+2,"binder:24460_1",3.869749
+2,"OkHttp TaskRunn",3.224294
+2,"Firebase Backgr",2.625126
+2,"DefaultDispatch",2.460792
+2,"ncFunctionQueue",1.611416
+2,"binder:24460_5",1.610124
+2,"GPU completion",1.123375
+2,"CookieMonsterCl",1.028667
+2,"hwuiTask0",0.839417
+2,"ScionFrontendAp",0.750916
+2,"hwuiTask1",0.696083
+2,"Firebase Blocki",0.338333
+2,"binder:24460_3",0.337712
+2,"binder:24460_2",0.119209
+3,"mqt_v_js",194.025796
+3,"oelseisfree.app",154.418585
+3,"RenderThread",100.310787
+3,"HeapTaskDaemon",59.953415
+3,".0.2.2:8093/...",30.993827
+3,"Measurement Wor",13.575458
+3,"Jit thread pool",11.642667
+3,"ReferenceQueueD",9.979832
+3,"DefaultDispatch",8.774376
+3,"HybridData Dest",7.708167
+3,"mqt_v_native",6.171623
+3,"Firebase Backgr",2.711834
+3,"CookieMonsterCl",1.338958
+3,"binder:24460_5",1.331874
+3,"queued-work-loo",1.030709
+3,"OkHttp TaskRunn",0.938626
+3,"Expo JNI deallo",0.879125
+3,"hwuiTask1",0.793000
+3,"GPU completion",0.467626
+3,"Firebase Blocki",0.385584
+3,"ScionFrontendAp",0.381292
+3,"binder:24460_2",0.337749
+3,"FinalizerDaemon",0.234292
+3,"binder:24460_1",0.204918
+3,"binder:24460_3",0.199835
+3,"hwuiTask0",0.193459
+3,"Profile Saver",0.087041
+3,"binder:24460_4",0.055250
+4,"RenderThread",423.011087
+4,"mqt_v_js",374.846747
+4,"oelseisfree.app",329.695032
+4,"Jit thread pool",39.322499
+4,".0.2.2:8093/...",32.687167
+4,"glide-disk-cach",30.969707
+4,"Measurement Wor",17.961292
+4,"mqt_v_native",13.592206
+4,"queued-work-loo",3.409375
+4,"DefaultDispatch",3.314958
+4,"binder:24460_1",2.782499
+4,"Firebase Backgr",2.436502
+4,"OkHttp TaskRunn",2.401626
+4,"hwuiTask0",1.437459
+4,"ncFunctionQueue",1.100542
+4,"binder:24460_5",0.929997
+4,"GPU completion",0.927499
+4,"CookieMonsterCl",0.924293
+4,"ScionFrontendAp",0.777000
+4,"hwuiTask1",0.601460
+4,"Firebase Blocki",0.335333
+4,"HWC release",0.223166
+4,"binder:24460_3",0.208586
+4,"FinalizerWatchd",0.119209
+5,"mqt_v_js",230.871200
+5,"RenderThread",221.702533
+5,"oelseisfree.app",134.460972
+5,".0.2.2:8093/...",24.733667
+5,"Measurement Wor",13.779998
+5,"Jit thread pool",13.093541
+5,"mqt_v_native",8.704005
+5,"Firebase Backgr",3.542916
+5,"queued-work-loo",3.214332
+5,"OkHttp TaskRunn",2.025876
+5,"DefaultDispatch",1.867042
+5,"binder:24460_5",1.671918
+5,"ScionFrontendAp",1.248834
+5,"hwuiTask1",0.563333
+5,"hwuiTask0",0.528582
+5,"GPU completion",0.511334
+5,"CookieMonsterCl",0.504709
+5,"Firebase Blocki",0.199625
+5,"binder:24460_3",0.131872
+5,"HWC release",0.042333
+5,"binder:24460_1",0.018625
+6,"RenderThread",458.419753
+6,"mqt_v_js",340.563833
+6,"oelseisfree.app",282.320707
+6,"HeapTaskDaemon",78.678210
+6,"Jit thread pool",37.300252
+6,"HybridData Dest",24.407417
+6,".0.2.2:8093/...",22.964088
+6,"hwuiTask1",17.929376
+6,"ReferenceQueueD",17.500126
+6,"glide-disk-cach",15.386708
+6,"Measurement Wor",11.202204
+6,"mqt_v_native",5.725958
+6,"OkHttp TaskRunn",5.111291
+6,"binder:24460_5",3.049668
+6,"binder:24460_3",1.996797
+6,"ncFunctionQueue",1.993456
+6,"Firebase Backgr",1.961793
+6,"DefaultDispatch",1.694625
+6,"binder:24460_1",1.356544
+6,"GPU completion",1.149207
+6,"hwuiTask0",1.097667
+6,"queued-work-loo",1.077042
+6,"CookieMonsterCl",0.580751
+6,"FinalizerDaemon",0.436458
+6,"ScionFrontendAp",0.340459
+6,"Firebase Blocki",0.250250
+6,"binder:24460_2",0.242541
+6,"HWC release",0.145750
+6,"Expo JNI deallo",0.120958
+6,"FinalizerWatchd",0.087417
+7,"mqt_v_js",192.244170
+7,"RenderThread",112.350677
+7,"oelseisfree.app",107.591503
+7,".0.2.2:8093/...",24.014577
+7,"mqt_v_native",17.564923
+7,"Jit thread pool",10.947625
+7,"Measurement Wor",8.634794
+7,"HeapTaskDaemon",5.178000
+7,"Firebase Backgr",2.422290
+7,"DefaultDispatch",2.060041
+7,"queued-work-loo",1.640961
+7,"binder:24460_2",1.103121
+7,"CookieMonsterCl",0.973792
+7,"hwuiTask0",0.650458
+7,"binder:24460_5",0.631833
+7,"OkHttp TaskRunn",0.571459
+7,"GPU completion",0.554289
+7,"ScionFrontendAp",0.439583
+7,"hwuiTask1",0.236749
+7,"binder:24460_3",0.207374
+7,"Firebase Blocki",0.184916
+7,"binder:24460_1",0.130167
+7,"binder:24460_4",0.050625
+7,"HWC release",0.029708
+8,"RenderThread",377.316341
+8,"mqt_v_js",377.112283
+8,"oelseisfree.app",357.230504
+8,"HeapTaskDaemon",147.995998
+8,"HybridData Dest",31.715541
+8,"Jit thread pool",30.113709
+8,".0.2.2:8093/...",23.581915
+8,"ReferenceQueueD",21.160833
+8,"glide-disk-cach",19.555042
+8,"mqt_v_native",6.883542
+8,"Measurement Wor",6.831962
+8,"DefaultDispatch",3.836834
+8,"binder:24460_5",3.578418
+8,"queued-work-loo",3.364667
+8,"Firebase Backgr",1.764082
+8,"ncFunctionQueue",1.192001
+8,"OkHttp TaskRunn",1.155375
+8,"GPU completion",0.996958
+8,"hwuiTask0",0.966000
+8,"FinalizerDaemon",0.944083
+8,"GoogleApiHandle",0.808416
+8,"hwuiTask1",0.785166
+8,"binder:24460_2",0.583960
+8,"CookieMonsterCl",0.560250
+8,"HWC release",0.531459
+8,"ScionFrontendAp",0.460125
+8,"binder:24460_3",0.331498
+8,"Firebase Blocki",0.224333
+8,"Profile Saver",0.134208
+8,"Expo JNI deallo",0.093542
+9,"mqt_v_js",229.323792
+9,"oelseisfree.app",130.895751
+9,"RenderThread",129.239879
+9,".0.2.2:8093/...",24.253996
+9,"Jit thread pool",22.707292
+9,"Measurement Wor",17.431793
+9,"mqt_v_native",5.507288
+9,"Firebase Backgr",3.964916
+9,"CookieMonsterCl",2.738251
+9,"DefaultDispatch",1.377458
+9,"binder:24460_5",1.308458
+9,"queued-work-loo",1.289250
+9,"Firebase Blocki",0.857459
+9,"OkHttp TaskRunn",0.806417
+9,"ScionFrontendAp",0.725417
+9,"hwuiTask1",0.603959
+9,"hwuiTask0",0.524750
+9,"GPU completion",0.477332
+9,"binder:24460_2",0.367749
+9,"HWC release",0.246706
+9,"binder:24460_3",0.163251
+9,"FinalizerWatchd",0.102208
+9,"binder:24460_1",0.068624
+9,"binder:24460_4",0.040500
+10,"RenderThread",294.856965
+10,"mqt_v_js",278.876833
+10,"oelseisfree.app",254.443707
+10,"hades",22.006002
+10,".0.2.2:8093/...",15.635378
+10,"glide-disk-cach",13.685373
+10,"Jit thread pool",11.004418
+10,"Measurement Wor",8.153373
+10,"mqt_v_native",4.301707
+10,"DefaultDispatch",2.892462
+10,"binder:24460_5",1.911665
+10,"Firebase Backgr",1.895624
+10,"ncFunctionQueue",1.730042
+10,"OkHttp TaskRunn",1.140958
+10,"binder:24460_1",1.064332
+10,"queued-work-loo",1.021042
+10,"hwuiTask1",0.930335
+10,"HWC release",0.865376
+10,"GPU completion",0.733549
+10,"binder:24460_2",0.709210
+10,"hwuiTask0",0.613416
+10,"CookieMonsterCl",0.550166
+10,"ScionFrontendAp",0.353917
+10,"Firebase Blocki",0.272041
+10,"binder:24460_3",0.231713
+11,"mqt_v_js",201.420785
+11,"RenderThread",193.391042
+11,"oelseisfree.app",131.057501
+11,"hades",121.009248
+11,"HeapTaskDaemon",105.021289
+11,"HybridData Dest",23.809875
+11,"Measurement Wor",16.942877
+11,".0.2.2:8093/...",16.471461
+11,"mqt_v_native",15.766753
+11,"Firebase Backgr",11.122083
+11,"Jit thread pool",10.468041
+11,"ReferenceQueueD",9.368501
+11,"binder:24460_5",4.920373
+11,"DefaultDispatch",2.881041
+11,"queued-work-loo",1.415083
+11,"OkHttp TaskRunn",1.042956
+11,"hwuiTask1",0.787376
+11,"GPU completion",0.520875
+11,"hwuiTask0",0.486000
+11,"CookieMonsterCl",0.456500
+11,"ScionFrontendAp",0.399334
+11,"binder:24460_3",0.381251
+11,"FinalizerDaemon",0.379166
+11,"FinalizerWatchd",0.326125
+11,"binder:24460_2",0.257999
+11,"Firebase Blocki",0.251209
+11,"Expo JNI deallo",0.182791
+11,"HWC release",0.058584
+11,"binder:24460_1",0.051416
+12,"RenderThread",404.976417
+12,"mqt_v_js",288.173585
+12,"oelseisfree.app",237.468215
+12,"Jit thread pool",36.935580
+12,"Profile Saver",33.470047
+12,"glide-disk-cach",27.880911
+12,".0.2.2:8093/...",16.327374
+12,"Measurement Wor",10.640292
+12,"queued-work-loo",5.415542
+12,"mqt_v_native",4.102168
+12,"binder:24460_1",3.798584
+12,"Firebase Backgr",3.016708
+12,"DefaultDispatch",1.643917
+12,"ncFunctionQueue",1.198625
+12,"OkHttp TaskRunn",1.112751
+12,"ScionFrontendAp",1.099458
+12,"GPU completion",0.954374
+12,"hwuiTask0",0.799751
+12,"binder:24460_5",0.793333
+12,"hwuiTask1",0.732958
+12,"CookieMonsterCl",0.632999
+12,"HWC release",0.397168
+12,"Firebase Blocki",0.270250
+12,"binder:24460_3",0.184335
+12,"binder:24460_2",0.071374
+13,"mqt_v_js",264.447738
+13,"RenderThread",187.797617
+13,"oelseisfree.app",136.268704
+13,"HeapTaskDaemon",76.585543
+13,".0.2.2:8093/...",28.329670
+13,"Jit thread pool",15.406918
+13,"Measurement Wor",12.622625
+13,"ReferenceQueueD",9.673833
+13,"Firebase Backgr",8.578416
+13,"HybridData Dest",8.480458
+13,"mqt_v_native",6.738711
+13,"DefaultDispatch",3.019667
+13,"queued-work-loo",1.906835
+13,"OkHttp TaskRunn",1.029332
+13,"binder:24460_1",0.954249
+13,"CookieMonsterCl",0.721543
+13,"hwuiTask0",0.669751
+13,"binder:24460_2",0.656166
+13,"ScionFrontendAp",0.619960
+13,"GPU completion",0.501043
+13,"hwuiTask1",0.369500
+13,"FinalizerDaemon",0.282875
+13,"Firebase Blocki",0.198625
+13,"binder:24460_3",0.095418
+13,"HWC release",0.078542
+13,"Expo JNI deallo",0.060833
+13,"binder:24460_5",0.043876
+14,"RenderThread",438.435130
+14,"mqt_v_js",345.699914
+14,"oelseisfree.app",303.557759
+14,".0.2.2:8093/...",15.381709
+14,"glide-disk-cach",10.112709
+14,"Measurement Wor",8.554876
+14,"Jit thread pool",8.447373
+14,"binder:24460_2",5.348869
+14,"mqt_v_native",4.805127
+14,"ncFunctionQueue",2.210500
+14,"Firebase Backgr",1.748585
+14,"queued-work-loo",1.503208
+14,"DefaultDispatch",1.323333
+14,"hwuiTask0",1.039124
+14,"GPU completion",0.906751
+14,"hwuiTask1",0.780417
+14,"binder:24460_3",0.741754
+14,"OkHttp TaskRunn",0.685043
+14,"CookieMonsterCl",0.661749
+14,"binder:24460_1",0.558960
+14,"HWC release",0.545375
+14,"ScionFrontendAp",0.450334
+14,"FinalizerWatchd",0.313125
+14,"Firebase Blocki",0.144916
+15,"mqt_v_js",307.220341
+15,"RenderThread",198.766415
+15,"oelseisfree.app",146.420287
+15,".0.2.2:8093/...",36.273958
+15,"Measurement Wor",24.309208
+15,"Firebase Backgr",11.542875
+15,"Jit thread pool",9.570751
+15,"mqt_v_native",9.451538
+15,"DefaultDispatch",3.726250
+15,"Firebase Blocki",3.056792
+15,"binder:24460_1",3.012501
+15,"queued-work-loo",1.766042
+15,"CookieMonsterCl",1.442749
+15,"OkHttp TaskRunn",1.148583
+15,"hwuiTask1",1.004458
+15,"binder:24460_2",0.574833
+15,"ScionFrontendAp",0.564083
+15,"GPU completion",0.335001
+15,"hwuiTask0",0.259708
+15,"binder:24460_3",0.093459
+15,"binder:24460_5",0.080208
+16,"RenderThread",420.762415
+16,"mqt_v_js",384.489002
+16,"oelseisfree.app",329.660834
+16,"HeapTaskDaemon",95.135335
+16,".0.2.2:8093/...",29.569875
+16,"glide-disk-cach",27.666623
+16,"ReferenceQueueD",26.029874
+16,"Jit thread pool",25.893328
+16,"Measurement Wor",24.547880
+16,"HybridData Dest",19.600873
+16,"mqt_v_native",12.643417
+16,"queued-work-loo",12.089417
+16,"Firebase Backgr",4.419668
+16,"binder:24460_2",4.031454
+16,"RSMessageThread",3.146668
+16,"DefaultDispatch",2.715750
+16,"ncFunctionQueue",2.605126
+16,"binder:24460_1",2.366499
+16,"hwuiTask0",2.025958
+16,"OkHttp TaskRunn",1.128835
+16,"FinalizerDaemon",1.064833
+16,"GPU completion",0.992463
+16,"hwuiTask1",0.990624
+16,"ScionFrontendAp",0.863833
+16,"CookieMonsterCl",0.795541
+16,"Firebase Blocki",0.659166
+16,"binder:24460_5",0.553166
+16,"binder:24460_3",0.364996
+16,"HWC release",0.261750
+16,"FinalizerWatchd",0.113625
+16,"Expo JNI deallo",0.094834
+16,"binder:24460_4",0.002125
+17,"mqt_v_js",253.751699
+17,"RenderThread",131.708580
+17,"oelseisfree.app",129.945037
+17,".0.2.2:8093/...",31.221087
+17,"Measurement Wor",11.044501
+17,"mqt_v_native",10.208003
+17,"binder:24460_1",8.223458
+17,"Jit thread pool",4.804333
+17,"Firebase Backgr",3.978207
+17,"DefaultDispatch",1.812667
+17,"CookieMonsterCl",1.644667
+17,"queued-work-loo",1.515249
+17,"HeapTaskDaemon",1.329208
+17,"OkHttp TaskRunn",1.271249
+17,"ScionFrontendAp",0.875958
+17,"GPU completion",0.496373
+17,"hwuiTask0",0.472376
+17,"binder:24460_2",0.412125
+17,"hwuiTask1",0.314542
+17,"Firebase Blocki",0.162083
+17,"HWC release",0.137542
+17,"binder:24460_3",0.122751
+17,"binder:24460_5",0.001334
+18,"RenderThread",358.905046
+18,"mqt_v_js",302.098913
+18,"oelseisfree.app",270.422844
+18,"HeapTaskDaemon",115.186332
+18,"HybridData Dest",27.647001
+18,"Jit thread pool",21.009336
+18,"ReferenceQueueD",20.536166
+18,".0.2.2:8093/...",19.025626
+18,"Measurement Wor",14.284374
+18,"glide-disk-cach",13.518206
+18,"mqt_v_native",5.722418
+18,"Firebase Backgr",4.132749
+18,"DefaultDispatch",3.097708
+18,"OkHttp TaskRunn",2.538169
+18,"binder:24460_1",2.326498
+18,"ncFunctionQueue",2.294582
+18,"queued-work-loo",1.146666
+18,"GPU completion",0.859916
+18,"hwuiTask1",0.718959
+18,"hwuiTask0",0.655874
+18,"CookieMonsterCl",0.578875
+18,"HWC release",0.429123
+18,"ScionFrontendAp",0.411251
+18,"FinalizerDaemon",0.360792
+18,"Firebase Blocki",0.321208
+18,"binder:24460_3",0.181128
+18,"Expo JNI deallo",0.166375
+18,"binder:24460_5",0.132708
+18,"binder:24460_2",0.121667
+18,"Profile Saver",0.082916
+19,"mqt_v_js",197.923290
+19,"RenderThread",155.376880
+19,"oelseisfree.app",99.381424
+19,".0.2.2:8093/...",29.724418
+19,"Measurement Wor",9.844458
+19,"Jit thread pool",7.460999
+19,"mqt_v_native",6.478951
+19,"Firebase Backgr",2.122917
+19,"binder:24460_1",1.931165
+19,"DefaultDispatch",1.346459
+19,"queued-work-loo",1.316917
+19,"hwuiTask0",1.062208
+19,"OkHttp TaskRunn",0.831999
+19,"CookieMonsterCl",0.583541
+19,"ScionFrontendAp",0.551791
+19,"hwuiTask1",0.430584
+19,"GPU completion",0.386706
+19,"Firebase Blocki",0.320875
+19,"HWC release",0.190793
+19,"binder:24460_3",0.165457
+19,"FinalizerWatchd",0.161916
+19,"binder:24460_5",0.058541
+20,"RenderThread",385.694117
+20,"mqt_v_js",306.188123
+20,"oelseisfree.app",283.158385
+20,"HeapTaskDaemon",75.126669
+20,".0.2.2:8093/...",34.178458
+20,"glide-disk-cach",17.730829
+20,"Jit thread pool",13.668624
+20,"hades",13.247456
+20,"HybridData Dest",10.793753
+20,"ReferenceQueueD",9.234373
+20,"Measurement Wor",7.009833
+20,"mqt_v_native",6.997708
+20,"binder:24460_1",4.779497
+20,"hwuiTask1",1.981626
+20,"OkHttp TaskRunn",1.879542
+20,"ScionFrontendAp",1.755833
+20,"Firebase Backgr",1.320000
+20,"DefaultDispatch",1.205166
+20,"ncFunctionQueue",1.096417
+20,"binder:24460_5",1.079919
+20,"queued-work-loo",0.981084
+20,"GPU completion",0.980459
+20,"hwuiTask0",0.957209
+20,"CookieMonsterCl",0.536916
+20,"binder:24460_3",0.493126
+20,"HWC release",0.331292
+20,"FinalizerDaemon",0.299333
+20,"Firebase Blocki",0.188958
+20,"Expo JNI deallo",0.119959
+20,"FinalizerWatchd",0.057584
+20,"binder:24460_2",0.001958
+21,"RenderThread",261.252120
+21,"mqt_v_js",214.482259
+21,"oelseisfree.app",119.368184
+21,"hades",95.711369
+21,".0.2.2:8093/...",21.839292
+21,"Jit thread pool",13.056792
+21,"Measurement Wor",7.826749
+21,"binder:24460_1",7.588830
+21,"mqt_v_native",6.889244
+21,"binder:24460_2",4.302667
+21,"Firebase Backgr",2.784500
+21,"hwuiTask0",2.514166
+21,"DefaultDispatch",2.474708
+21,"queued-work-loo",1.140416
+21,"OkHttp TaskRunn",1.068168
+21,"CookieMonsterCl",0.873625
+21,"hwuiTask1",0.514958
+21,"GPU completion",0.415706
+21,"ScionFrontendAp",0.407625
+21,"Firebase Blocki",0.149167
+21,"HWC release",0.144958
+21,"binder:24460_3",0.101376
+21,"binder:24460_5",0.052750

@@ -1,0 +1,202 @@
+[
+  {
+    "index": 0,
+    "requested_age_s": 15,
+    "actual_age_s": 15.010499208932742,
+    "device_uptime_s": 1213.84,
+    "frames": 8,
+    "gfxinfo_p50_ms": 257.384325,
+    "gfxinfo_p95_ms": 325.534349,
+    "gfxinfo_p99_ms": 325.534349
+  },
+  {
+    "index": 1,
+    "requested_age_s": 19,
+    "actual_age_s": 19.00666258390993,
+    "device_uptime_s": 1217.63,
+    "frames": 22,
+    "gfxinfo_p50_ms": 75.370162,
+    "gfxinfo_p95_ms": 101.502652,
+    "gfxinfo_p99_ms": 117.317903
+  },
+  {
+    "index": 2,
+    "requested_age_s": 23,
+    "actual_age_s": 23.007795916870236,
+    "device_uptime_s": 1221.68,
+    "frames": 23,
+    "gfxinfo_p50_ms": 66.992487,
+    "gfxinfo_p95_ms": 87.475105,
+    "gfxinfo_p99_ms": 97.510979
+  },
+  {
+    "index": 3,
+    "requested_age_s": 27,
+    "actual_age_s": 27.00935420882888,
+    "device_uptime_s": 1225.8,
+    "frames": 23,
+    "gfxinfo_p50_ms": 76.995285,
+    "gfxinfo_p95_ms": 116.994612,
+    "gfxinfo_p99_ms": 119.194562
+  },
+  {
+    "index": 4,
+    "requested_age_s": 31,
+    "actual_age_s": 31.009018416982144,
+    "device_uptime_s": 1229.69,
+    "frames": 24,
+    "gfxinfo_p50_ms": 71.693979,
+    "gfxinfo_p95_ms": 97.075732,
+    "gfxinfo_p99_ms": 97.686355
+  },
+  {
+    "index": 5,
+    "requested_age_s": 35,
+    "actual_age_s": 35.008307666983455,
+    "device_uptime_s": 1233.8,
+    "frames": 23,
+    "gfxinfo_p50_ms": 79.581239,
+    "gfxinfo_p95_ms": 92.303948,
+    "gfxinfo_p99_ms": 93.749518
+  },
+  {
+    "index": 6,
+    "requested_age_s": 39,
+    "actual_age_s": 39.00942745897919,
+    "device_uptime_s": 1237.79,
+    "frames": 22,
+    "gfxinfo_p50_ms": 74.090098,
+    "gfxinfo_p95_ms": 87.070345,
+    "gfxinfo_p99_ms": 109.498334
+  },
+  {
+    "index": 7,
+    "requested_age_s": 43,
+    "actual_age_s": 43.01001208391972,
+    "device_uptime_s": 1241.7,
+    "frames": 22,
+    "gfxinfo_p50_ms": 75.696723,
+    "gfxinfo_p95_ms": 103.209829,
+    "gfxinfo_p99_ms": 104.613089
+  },
+  {
+    "index": 8,
+    "requested_age_s": 47,
+    "actual_age_s": 47.008328874828294,
+    "device_uptime_s": 1245.76,
+    "frames": 22,
+    "gfxinfo_p50_ms": 79.96291,
+    "gfxinfo_p95_ms": 95.130009,
+    "gfxinfo_p99_ms": 100.249848
+  },
+  {
+    "index": 9,
+    "requested_age_s": 51,
+    "actual_age_s": 51.01006329199299,
+    "device_uptime_s": 1249.78,
+    "frames": 20,
+    "gfxinfo_p50_ms": 83.542848,
+    "gfxinfo_p95_ms": 160.68821,
+    "gfxinfo_p99_ms": 160.68821
+  },
+  {
+    "index": 10,
+    "requested_age_s": 55,
+    "actual_age_s": 55.00625199987553,
+    "device_uptime_s": 1253.68,
+    "frames": 27,
+    "gfxinfo_p50_ms": 81.390877,
+    "gfxinfo_p95_ms": 169.647568,
+    "gfxinfo_p99_ms": 185.753402
+  },
+  {
+    "index": 11,
+    "requested_age_s": 59,
+    "actual_age_s": 59.008915999904275,
+    "device_uptime_s": 1257.79,
+    "frames": 24,
+    "gfxinfo_p50_ms": 67.074673,
+    "gfxinfo_p95_ms": 82.915783,
+    "gfxinfo_p99_ms": 83.559151
+  },
+  {
+    "index": 12,
+    "requested_age_s": 63,
+    "actual_age_s": 63.00991079187952,
+    "device_uptime_s": 1261.86,
+    "frames": 24,
+    "gfxinfo_p50_ms": 73.28233,
+    "gfxinfo_p95_ms": 89.893708,
+    "gfxinfo_p99_ms": 92.956522
+  },
+  {
+    "index": 13,
+    "requested_age_s": 67,
+    "actual_age_s": 67.01357920886949,
+    "device_uptime_s": 1265.76,
+    "frames": 20,
+    "gfxinfo_p50_ms": 90.642655,
+    "gfxinfo_p95_ms": 132.064272,
+    "gfxinfo_p99_ms": 132.064272
+  },
+  {
+    "index": 14,
+    "requested_age_s": 71,
+    "actual_age_s": 71.01084491680376,
+    "device_uptime_s": 1269.72,
+    "frames": 24,
+    "gfxinfo_p50_ms": 70.622824,
+    "gfxinfo_p95_ms": 89.596514,
+    "gfxinfo_p99_ms": 101.386018
+  },
+  {
+    "index": 15,
+    "requested_age_s": 75,
+    "actual_age_s": 75.0083796668332,
+    "device_uptime_s": 1273.95,
+    "frames": 24,
+    "gfxinfo_p50_ms": 71.010814,
+    "gfxinfo_p95_ms": 83.533595,
+    "gfxinfo_p99_ms": 83.75861
+  },
+  {
+    "index": 16,
+    "requested_age_s": 79,
+    "actual_age_s": 79.01080329180695,
+    "device_uptime_s": 1277.74,
+    "frames": 25,
+    "gfxinfo_p50_ms": 72.68917,
+    "gfxinfo_p95_ms": 84.369469,
+    "gfxinfo_p99_ms": 89.658512
+  },
+  {
+    "index": 17,
+    "requested_age_s": 83,
+    "actual_age_s": 83.00135662499815,
+    "device_uptime_s": 1281.72,
+    "frames": 25,
+    "gfxinfo_p50_ms": 73.177008,
+    "gfxinfo_p95_ms": 87.872846,
+    "gfxinfo_p99_ms": 149.777574
+  },
+  {
+    "index": 18,
+    "requested_age_s": 87,
+    "actual_age_s": 87.01131833391264,
+    "device_uptime_s": 1285.7,
+    "frames": 24,
+    "gfxinfo_p50_ms": 80.355501,
+    "gfxinfo_p95_ms": 93.241918,
+    "gfxinfo_p99_ms": 116.882608
+  },
+  {
+    "index": 19,
+    "requested_age_s": 91,
+    "actual_age_s": 91.00460337498225,
+    "device_uptime_s": 1289.68,
+    "frames": 21,
+    "gfxinfo_p50_ms": 82.275455,
+    "gfxinfo_p95_ms": 127.995568,
+    "gfxinfo_p99_ms": 127.995568
+  }
+]

@@ -16,6 +16,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppNavigator from '@navigation/AppNavigator';
+import { completeEventCreation } from '@navigation/completeEventCreation';
 import { navigationRef, resetToLogin } from '@navigation/navigationRef';
 import { colors } from '@theme/colors';
 import { BloomProvider } from '@context/BloomContext';
@@ -44,10 +45,7 @@ const App = () => {
 
   const handleGuestEventSubmitted = useCallback(() => {
     if (navigationRef.isReady()) {
-      navigationRef.navigate('Main', {
-        screen: 'MyEvents',
-        params: { showEventCreatedBadge: true },
-      });
+      void completeEventCreation(navigationRef, navigationRef.getRootState());
     }
   }, []);
 

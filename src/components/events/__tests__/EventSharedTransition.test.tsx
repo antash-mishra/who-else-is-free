@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { act, fireEvent, render } from '@testing-library/react-native';
 import * as Reanimated from 'react-native-reanimated';
@@ -17,6 +17,13 @@ import {
 const navigate = jest.fn();
 const measureCover = jest.fn();
 const measureTitle = jest.fn();
+const closed = jest.fn();
+const destinationRef = {
+  current: {
+    measureInWindow: (callback: (x: number, y: number, w: number, h: number) => void) =>
+      callback(92, 103, 228, 228),
+  } as unknown as View,
+};
 const source = {
   imageUri: 'https://example.test/cover.jpg',
   title: 'Pub quiz',
@@ -28,11 +35,14 @@ const heroFrame = { x: 92, y: 103, width: 228, height: 228 };
 const titleFrame = { x: 16, y: 420, width: 380, height: 36 };
 
 const Harness = ({ secondPage = false }: { secondPage?: boolean }) => {
-  const { open, prime, land } = useEventSharedTransition();
+  const { open, prime, land, cancel, close, progress } = useEventSharedTransition();
   const state = useEventSharedTransitionState();
   return (
     <>
+      <Text testID="progress">{progress.value}</Text>
       <Text testID="state">{`${state.eventId ?? 'idle'}:${state.phase ?? 'none'}`}</Text>
+      <Pressable testID="close" onPress={() => close('event-1', closed)} />
+      <Pressable testID="cancel" onPress={() => cancel()} />
       <Pressable testID="prime" onPress={() => prime('event-1', source)} />
       <Pressable testID="open" onPress={() => open('event-1', source, navigate)} />
       <Pressable
@@ -46,7 +56,9 @@ const Harness = ({ secondPage = false }: { secondPage?: boolean }) => {
       ) : null}
       <Pressable
         testID="land-cover"
-        onPress={() => land('event-1', 'cover', heroFrame, { rotation: 1.2 })}
+        onPress={() =>
+          land('event-1', 'cover', heroFrame, { rotation: 1.2, coverRef: destinationRef })
+        }
       />
       <Pressable
         testID="land-title"
@@ -90,6 +102,7 @@ describe('event shared transition', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     navigate.mockReset();
+    closed.mockReset();
     measureCover.mockReset();
     measureTitle.mockReset();
     jest
@@ -100,6 +113,90 @@ describe('event shared transition', () => {
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  it('remeasures the source and reverses before completing navigation', () => {
+    const timing = holdAnimations();
+    measureCard();
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('open'));
+    fireEvent.press(screen.getByTestId('land-cover'));
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    act(() => {
+      timing.mock.calls[0][2]?.(true);
+    });
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    fireEvent.press(screen.getByTestId('close'));
+    expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:closing');
+    expect(measureCover).toHaveBeenCalledTimes(2);
+    expect(closed).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByTestId('close'));
+    expect(measureCover).toHaveBeenCalledTimes(2);
+    expect(timing.mock.calls[1][0]).toBe(0);
+    // Re-evaluate the mocked animated style at the endpoint; the Jest mock
+    // does not run a native worklet when the shared value changes.
+    screen.rerender(
+      <EventSharedTransitionProvider>
+        <Harness />
+      </EventSharedTransitionProvider>,
+    );
+    // The JS completion has not run: the page must already be hidden.
+    expect(pageOpacity(screen)).toBe(0);
+    act(() => {
+      timing.mock.calls[1][2]?.(true);
+    });
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('state').props.children).toBe('event-1:closed');
+    // Simulate the Details unmount cleanup while native source worklets can
+    // still hold the closing props. Its endpoint must not jump back to 1.
+    fireEvent.press(screen.getByTestId('cancel'));
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    expect(screen.getByTestId('progress').props.children).toBe(0);
+    fireEvent.press(screen.getByTestId('open'));
+    expect(navigate).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps return image preparation bounded and completes a repeated back only once', () => {
+    const timing = holdAnimations();
+    measureCard();
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('open'));
+    fireEvent.press(screen.getByTestId('land-cover'));
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    act(() => {
+      timing.mock.calls[0][2]?.(true);
+    });
+    fireEvent.press(screen.getByTestId('close'));
+    fireEvent.press(screen.getByTestId('close'));
+    expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
+    expect(closed).not.toHaveBeenCalled();
+    act(() => {
+      jest.advanceTimersByTime(eventSharedMotion.imageGraceMs);
+    });
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    expect(timing).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back when the return source is recycled, without trapping navigation', () => {
+    const timing = holdAnimations();
+    measureCard();
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('open'));
+    fireEvent.press(screen.getByTestId('land-cover'));
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    act(() => {
+      timing.mock.calls[0][2]?.(true);
+    });
+    measureCover.mockImplementation(() => undefined);
+    fireEvent.press(screen.getByTestId('close'));
+    act(() => {
+      jest.advanceTimersByTime(eventSharedMotion.measureTimeoutMs);
+    });
+    expect(closed).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
   });
 
   it('keeps ordinary navigation working outside the provider', () => {
@@ -150,7 +247,7 @@ describe('event shared transition', () => {
     expect(pageOpacity(screen)).toBe(1);
   });
 
-  it('hides the page until the cover and title have landed, then flies both', () => {
+  it('waits for the cover bitmap, then flies only the image', () => {
     holdAnimations();
     measureCard();
     const screen = mount();
@@ -168,7 +265,8 @@ describe('event shared transition', () => {
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
     expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
     expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
-    expect(screen.getByTestId('flying-title', hidden)).toBeTruthy();
+    expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
+    expect(measureTitle).not.toHaveBeenCalled();
 
     fireEvent.press(screen.getByTestId('open'));
     expect(navigate).toHaveBeenCalledTimes(1);
@@ -181,10 +279,7 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('open'));
     fireEvent.press(screen.getByTestId('land-cover'));
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
-    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
-    act(() => {
-      jest.advanceTimersByTime(eventSharedMotion.titleGraceMs);
-    });
+    expect(measureTitle).not.toHaveBeenCalled();
     expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
     expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
@@ -233,6 +328,14 @@ describe('event shared transition', () => {
     expect(screen.getByTestId('state').props.children).toBe('idle:none');
     expect(screen.queryByTestId('flying-cover', hidden)).toBeNull();
     expect(pageOpacity(screen)).toBe(1);
+    const page = screen.getByTestId('page');
+    expect(StyleSheet.flatten(page.props.style).transform).toEqual([
+      { translateX: 0 },
+      { translateY: 0 },
+      { scaleX: 1 },
+      { scaleY: 1 },
+    ]);
+    expect(StyleSheet.flatten(page.props.children.props.style).opacity).toBe(1);
   });
 
   it('takes off after the image grace even if the bitmap never reports', () => {
@@ -285,16 +388,7 @@ describe('event shared transition', () => {
       { rotate: '0deg' },
     ]);
     expect(cover.borderRadius).toBeCloseTo(eventSharedMotion.cardRadius / scale);
-    const title = StyleSheet.flatten(screen.getByTestId('flying-title', hidden).props.style);
-    expect(title.left).toBe(112);
-    expect(title.top).toBe(200);
-    expect(title.width).toBe(titleFrame.width);
-    expect(title.fontSize).toBe(29);
-    expect(title.transform).toEqual([
-      { translateX: expect.closeTo(0) },
-      { translateY: expect.closeTo(0) },
-      { scale: 17 / 29 },
-    ]);
+    expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
   });
 
   it('releases the flight when the cover image fails to load', () => {
@@ -352,5 +446,60 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('open'));
     expect(measureCover).toHaveBeenCalledTimes(2);
     expect(navigate).toHaveBeenCalledWith(true);
+  });
+  it('ignores callbacks from a cancelled flight after the same event reopens', () => {
+    holdAnimations();
+    measureCard();
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('open'));
+    const oldImage = screen.getByTestId('flying-cover-image', hidden);
+    const oldError = oldImage.props.onError;
+    const oldLoad = oldImage.props.onLoad;
+    fireEvent.press(screen.getByTestId('cancel'));
+    fireEvent.press(screen.getByTestId('open'));
+    act(() => {
+      oldError();
+      oldLoad();
+    });
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    fireEvent.press(screen.getByTestId('land-cover'));
+    fireEvent.press(screen.getByTestId('land-title'));
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
+  });
+
+  it('does not navigate from a pending measurement after backgrounding', () => {
+    const listener = jest.spyOn(AppState, 'addEventListener');
+    measureTitle.mockImplementation((callback) => callback(112, 224, 280, 20));
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('open'));
+    act(() => {
+      listener.mock.calls.forEach(([, callback]) => callback('background'));
+      measureCover.mock.calls[0][0](16, 200, 80, 80);
+      jest.advanceTimersByTime(eventSharedMotion.measureTimeoutMs + 1);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    measureCard();
+    act(() => listener.mock.calls.forEach(([, callback]) => callback('active')));
+    fireEvent.press(screen.getByTestId('open'));
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores visible content and accepts another tap after an interrupted flight', () => {
+    holdAnimations();
+    measureCard();
+    const listener = jest.spyOn(AppState, 'addEventListener');
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('open'));
+    fireEvent.press(screen.getByTestId('land-cover'));
+    fireEvent.press(screen.getByTestId('land-title'));
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    act(() => listener.mock.calls.forEach(([, callback]) => callback('background')));
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    expect(pageOpacity(screen)).toBe(1);
+    act(() => listener.mock.calls.forEach(([, callback]) => callback('active')));
+    fireEvent.press(screen.getByTestId('open'));
+    expect(navigate).toHaveBeenCalledTimes(2);
   });
 });

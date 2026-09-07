@@ -154,6 +154,52 @@ describe('EventsContext - Rendering Tests', () => {
     jest.clearAllTimers();
   });
 
+  it('finishes creation before reconciliation and preserves the confirmed event in a stale list', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ data: [] }));
+    fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+    let ctx: ReturnType<typeof useEvents> | undefined;
+    render(
+      <EventsProvider>
+        <TestConsumer
+          onMount={(value) => {
+            ctx = value;
+          }}
+        />
+      </EventsProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('consumer').props.children).toBe('ready'));
+    fetchMock.mockResponseOnce(JSON.stringify({ id: 123 }));
+    let reconcile!: (value: string) => void;
+    fetchMock.mockResponseOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          reconcile = resolve;
+        }),
+    );
+    const created = jest.fn();
+    await act(async () => {
+      await ctx!
+        .addUserEvent({
+          title: 'Confirmed',
+          location: 'Park',
+          time: '14:00',
+          eventDate: new Date().toISOString().split('T')[0],
+          gender: 'Any',
+          minAge: 18,
+          maxAge: 99,
+          groupType: 'Group',
+          coverKey: 'sports-badminton-1',
+          userId: mockAuthUser.id,
+          hostName: 'Tester',
+        })
+        .then(created);
+    });
+    expect(created).toHaveBeenCalledWith('123');
+    expect(ctx!.events.some((event) => event.id === '123')).toBe(true);
+    await act(async () => reconcile(JSON.stringify({ data: [] })));
+    expect(ctx!.events.some((event) => event.id === '123')).toBe(true);
+  });
+
   describe('Provider initialization', () => {
     it('should render provider with loading state initially', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));

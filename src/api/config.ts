@@ -5,7 +5,7 @@ import { logger } from '@services/logger';
 
 const resolveApiBaseUrl = () => {
   const envUrl =
-    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_BASE_URL) || undefined;
+    (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_BASE_URL) || undefined;
   if (envUrl && envUrl.length > 0) {
     return envUrl.replace(/\/$/, '');
   }
@@ -38,7 +38,7 @@ export const API_BASE_URL = resolveApiBaseUrl();
 
 const resolveWsBaseUrl = () => {
   const envUrl =
-    (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_WS_BASE_URL) || undefined;
+    (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_WS_BASE_URL) || undefined;
   if (envUrl && envUrl.length > 0) {
     return envUrl.replace(/\/$/, '');
   }
@@ -56,6 +56,4 @@ const resolveWsBaseUrl = () => {
 export const WS_BASE_URL = resolveWsBaseUrl();
 
 export const CHAT_ENABLED =
-  typeof process !== 'undefined'
-    ? process.env?.EXPO_PUBLIC_CHAT_ENABLED !== 'false'
-    : true;
+  typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_CHAT_ENABLED !== 'false' : true;

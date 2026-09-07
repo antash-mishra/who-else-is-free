@@ -1,0 +1,26 @@
+{
+  "feedback": {
+    "frame": "0004.png",
+    "pts_s": 0.634867,
+    "green_column_pixels": 1410,
+    "button_red": 180.1296
+  },
+  "first_close_change": {
+    "frame": "0036.png",
+    "pts_s": 2.426356,
+    "green_column_pixels": 1216,
+    "button_red": 85.7632
+  },
+  "main_visible": {
+    "frame": "0038.png",
+    "pts_s": 2.736378,
+    "green_column_pixels": 0,
+    "button_red": 255.0
+  },
+  "feedback_to_close_ms": 1791.4890000000003,
+  "feedback_to_main_ms": 2101.5110000000004,
+  "visible_close_ms": 310.02200000000005,
+  "metric_definition": "First visible submitting feedback to Create background absent, visually verified as My Plans; not content fully loaded or animation duration.",
+  "baseline_feedback_to_destination_ms": 2892.011,
+  "reduction_pct": 27.333920929069755
+}

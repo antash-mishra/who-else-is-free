@@ -18,7 +18,10 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
-import { EventSharedTransitionProvider } from '@components/events/EventSharedTransition';
+import {
+  EventSharedTransitionProvider,
+  EventSharedTransitionSourcePage,
+} from '@components/events/EventSharedTransition';
 import NotificationBannerHost from '@components/NotificationBannerHost';
 import { BottomSheetHostProvider } from '@components/sheets';
 import { navigationRef } from '@navigation/navigationRef';
@@ -194,69 +197,71 @@ const MainTabs = () => {
   );
 
   return (
-    <Tab.Navigator
-      screenOptions={() => ({
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarStyle: tabBarBaseStyle,
-        tabBarBackground: () => <TabBarBackground />,
-        tabBarActiveTintColor: colors.activeTabIndicator,
-        tabBarInactiveTintColor: colors.tabInactive,
-        lazy: true,
-        animation: 'none',
-        detachInactiveScreens: false,
-        sceneStyle: { backgroundColor: 'transparent' },
-      })}
-    >
-      <Tab.Screen
-        name="Events"
-        component={EventsTab}
-        options={{
-          tabBarIcon: ({ focused, color }) => <EventsTabIcon focused={focused} color={color} />,
-          tabBarButton: tabButtons.events,
-        }}
-      />
-      <Tab.Screen
-        name="MyEvents"
-        component={MyEventsTab}
-        options={{
-          tabBarIcon: ({ focused, color }) => <MyEventsTabIcon focused={focused} color={color} />,
-          tabBarButton: tabButtons.myEvents,
-        }}
-      />
-      <Tab.Screen
-        name="Create"
-        component={View}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation
-              .getParent<NavigationProp<RootStackParamList>>()
-              ?.navigate('CreateEvent', { editEventId: null });
-          },
+    <EventSharedTransitionSourcePage>
+      <Tab.Navigator
+        screenOptions={() => ({
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarStyle: tabBarBaseStyle,
+          tabBarBackground: () => <TabBarBackground />,
+          tabBarActiveTintColor: colors.activeTabIndicator,
+          tabBarInactiveTintColor: colors.tabInactive,
+          lazy: true,
+          animation: 'none',
+          detachInactiveScreens: false,
+          sceneStyle: { backgroundColor: 'transparent' },
         })}
-        options={{
-          tabBarIcon: ({ focused, color }) => <CreateTabIcon focused={focused} color={color} />,
-          tabBarButton: tabButtons.create,
-        }}
-      />
-      <Tab.Screen
-        name="Messages"
-        component={MessagesTab}
-        options={{
-          tabBarIcon: ({ focused, color }) => <MessagesTabIcon focused={focused} color={color} />,
-          tabBarButton: tabButtons.messages,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileTab}
-        options={{
-          tabBarIcon: ({ focused, color }) => <ProfileTabIcon focused={focused} color={color} />,
-          tabBarButton: tabButtons.profile,
-        }}
-      />
-    </Tab.Navigator>
+      >
+        <Tab.Screen
+          name="Events"
+          component={EventsTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => <EventsTabIcon focused={focused} color={color} />,
+            tabBarButton: tabButtons.events,
+          }}
+        />
+        <Tab.Screen
+          name="MyEvents"
+          component={MyEventsTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => <MyEventsTabIcon focused={focused} color={color} />,
+            tabBarButton: tabButtons.myEvents,
+          }}
+        />
+        <Tab.Screen
+          name="Create"
+          component={View}
+          listeners={({ navigation }) => ({
+            tabPress: (e) => {
+              e.preventDefault();
+              navigation
+                .getParent<NavigationProp<RootStackParamList>>()
+                ?.navigate('CreateEvent', { editEventId: null });
+            },
+          })}
+          options={{
+            tabBarIcon: ({ focused, color }) => <CreateTabIcon focused={focused} color={color} />,
+            tabBarButton: tabButtons.create,
+          }}
+        />
+        <Tab.Screen
+          name="Messages"
+          component={MessagesTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => <MessagesTabIcon focused={focused} color={color} />,
+            tabBarButton: tabButtons.messages,
+          }}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileTab}
+          options={{
+            tabBarIcon: ({ focused, color }) => <ProfileTabIcon focused={focused} color={color} />,
+            tabBarButton: tabButtons.profile,
+          }}
+        />
+      </Tab.Navigator>
+    </EventSharedTransitionSourcePage>
   );
 };
 

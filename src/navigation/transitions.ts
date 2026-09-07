@@ -99,10 +99,13 @@ export const sheetModalScreenOptions = Platform.select({
 
 // Card-origin Event Details: the page reveals itself in step with the shared
 // flight (EventSharedTransitionPage), so on open the card is transparent and
-// fully shown while the stack merely keeps the origin list attached beneath it
-// for the hold. Closing fades the card out as before.
+// fully shown. Keep the origin attached explicitly instead of running a second
+// 1.2-second stack animation. On Android that also keeps the destination out of
+// the screen container's transitioning hardware layer during the page reveal.
+// Closing fades the card out as before.
 export const sharedCoverScreenOptions = {
   ...eventDetailsScreenOptions,
+  detachPreviousScreen: false,
   cardStyle: { backgroundColor: 'transparent' },
   cardStyleInterpolator: ({ current, closing }: StackCardInterpolationProps) => ({
     cardStyle: {
@@ -113,7 +116,7 @@ export const sharedCoverScreenOptions = {
     },
   }),
   transitionSpec: {
-    open: { animation: 'timing' as const, config: { duration: eventSharedMotion.holdMs } },
+    open: { animation: 'timing' as const, config: { duration: 0 } },
     close: { animation: 'timing' as const, config: { duration: eventSharedMotion.fadeMs } },
   },
 };

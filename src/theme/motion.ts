@@ -29,30 +29,20 @@ export const motionGeometry = {
   entryScaleFrom: 0.97,
 } as const;
 
-const sharedDurationMs = 420;
+const sharedDurationMs = 500;
 const sharedLandTimeoutMs = 700;
 
-/**
- * Shared card-to-detail flight: the cover and the title travel together and the
- * Details page reveals itself in step with them (EventSharedTransitionPage).
- * Nothing here animates a layout prop; the overlays are transform-only so no
- * frame commits a shadow tree or re-decodes the cover.
- */
+/** Image-only flight synchronized with a clipped expanding page surface. */
 export const eventSharedMotion = {
-  /** Flight duration for the cover, the title, and the page reveal. */
+  /** Opening duration for the cover and expanding page. */
   durationMs: sharedDurationMs,
+  closeDurationMs: 400,
+  backdropBlur: 4,
+  surfaceRadius: 24,
   /** Reduced-motion page fade, abandoned-flight page fade, and the close fade. */
   fadeMs: 240,
-  /**
-   * The stack keeps the origin list attached this long so the page can reveal
-   * over it: the slowest landing plus a full flight plus a margin. It also
-   * holds react-navigation's InteractionManager handle for that long.
-   */
-  holdMs: sharedLandTimeoutMs + sharedDurationMs + 80,
   /** Reveal the page without a flight if the destination never reports its frames. */
   landTimeoutMs: sharedLandTimeoutMs,
-  /** After the cover lands, wait this long for the title before flying without it. */
-  titleGraceMs: 50,
   /** After the cover lands, wait at most this long for its bitmap to paint before taking off. */
   imageGraceMs: 150,
   /** Release a started flight that never completes. */

@@ -63,7 +63,7 @@ const Harness = () => {
 };
 
 const opacityOf = (element: { props: Record<string, unknown> }) =>
-  (StyleSheet.flatten(element.props.style as StyleProp<ViewStyle>) ?? {}).opacity;
+  (StyleSheet.flatten(element.props.style as StyleProp<ViewStyle>) ?? {}).opacity ?? 1;
 
 describe('Event Details shared landing', () => {
   beforeEach(() => {
@@ -93,7 +93,7 @@ describe('Event Details shared landing', () => {
     expect(opacityOf(screen.getByTestId('event-details-title'))).toBe(1);
   });
 
-  it('hides both duplicates and lands them once their event takes off', () => {
+  it('hides and lands the image while keeping text in the page', () => {
     const screen = render(
       <EventSharedTransitionProvider>
         <Harness />
@@ -102,12 +102,12 @@ describe('Event Details shared landing', () => {
     fireEvent.press(screen.getByTestId('open'));
     expect(navigate).toHaveBeenCalledWith(true);
     expect(opacityOf(screen.getByTestId('hero-cover-card'))).toBe(0);
-    expect(opacityOf(screen.getByTestId('event-details-title'))).toBe(0);
+    expect(opacityOf(screen.getByTestId('event-details-title'))).toBe(1);
 
     fireEvent(screen.getByTestId('hero-cover-card').parent!, 'layout');
-    fireEvent(screen.getByTestId('event-details-title'), 'layout');
     fireEvent(screen.getByTestId('flying-cover-image', { includeHiddenElements: true }), 'load');
     expect(screen.getByTestId('state').props.children).toBe('e1:flying');
-    expect(screen.getByTestId('flying-title', { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.queryByTestId('flying-title', { includeHiddenElements: true })).toBeNull();
+    expect(screen.getByTestId('event-details-title').props.onLayout).toBeUndefined();
   });
 });

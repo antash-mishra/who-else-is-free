@@ -1,0 +1,12 @@
+WITH windows AS (SELECT 0 AS sample, 21385 AS pid, 10909950000000 AS start_ns, 10911688051207 AS end_ns UNION ALL SELECT 1 AS sample, 21385 AS pid, 10912600000000 AS start_ns, 10914313891208 AS end_ns UNION ALL SELECT 2 AS sample, 21385 AS pid, 10915130000000 AS start_ns, 10916800725333 AS end_ns UNION ALL SELECT 3 AS sample, 21385 AS pid, 10917620000000 AS start_ns, 10919286030750 AS end_ns UNION ALL SELECT 4 AS sample, 21385 AS pid, 10920120000000 AS start_ns, 10921791204416 AS end_ns UNION ALL SELECT 5 AS sample, 21385 AS pid, 10922670000000 AS start_ns, 10924434214082 AS end_ns UNION ALL SELECT 6 AS sample, 21385 AS pid, 10925200000000 AS start_ns, 10926867278290 AS end_ns UNION ALL SELECT 7 AS sample, 21385 AS pid, 10927750000000 AS start_ns, 10929430975207 AS end_ns UNION ALL SELECT 8 AS sample, 21385 AS pid, 10930320000000 AS start_ns, 10931992653958 AS end_ns UNION ALL SELECT 9 AS sample, 21385 AS pid, 10932840000000 AS start_ns, 10934525990375 AS end_ns UNION ALL SELECT 10 AS sample, 21385 AS pid, 10935390000000 AS start_ns, 10937060420125 AS end_ns UNION ALL SELECT 11 AS sample, 21385 AS pid, 10937810000000 AS start_ns, 10939485174916 AS end_ns UNION ALL SELECT 12 AS sample, 21385 AS pid, 10940280000000 AS start_ns, 10941946608292 AS end_ns UNION ALL SELECT 13 AS sample, 21385 AS pid, 10943050000000 AS start_ns, 10944727553499 AS end_ns UNION ALL SELECT 14 AS sample, 21385 AS pid, 10945570000000 AS start_ns, 10947279764957 AS end_ns UNION ALL SELECT 15 AS sample, 21385 AS pid, 10948170000000 AS start_ns, 10949825424500 AS end_ns)
+SELECT w.sample, count(*) AS app_frame_records,
+ sum(CASE WHEN a.jank_type LIKE '%App Deadline Missed%' THEN 1 ELSE 0 END) AS app_deadline_misses,
+ sum(CASE WHEN a.jank_type != 'None' THEN 1 ELSE 0 END) AS all_jank_records,
+ sum(CASE WHEN a.present_type = 'Dropped Frame' THEN 1 ELSE 0 END) AS dropped_frame_records,
+ round(avg(a.dur)/1e6,2) AS mean_actual_frame_ms,
+ round(max(a.dur)/1e6,2) AS max_actual_frame_ms,
+ group_concat(a.dur) AS actual_durations_ns
+FROM windows w JOIN process p ON p.pid=w.pid
+JOIN actual_frame_timeline_slice a ON a.upid=p.upid
+WHERE a.ts >= w.start_ns AND a.ts < w.end_ns AND a.dur > 0
+GROUP BY w.sample ORDER BY w.sample
