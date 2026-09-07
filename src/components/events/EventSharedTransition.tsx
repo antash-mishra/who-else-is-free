@@ -1,3 +1,4 @@
+/* global performance -- Provided by the React Native JS and Reanimated UI runtimes. */
 /* eslint-disable react-hooks/immutability -- Reanimated shared values are mutated from callbacks and effects by design. */
 import {
   createContext,
@@ -34,13 +35,16 @@ import Animated, {
   makeMutable,
   runOnJS,
   useAnimatedStyle,
+  useAnimatedReaction,
   useReducedMotion,
   useSharedValue,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 
+import { fallbackSharedCoverScreenOptions } from '@navigation/transitions';
 import { eventSharedMotion, heroCoverSize } from '@theme/motion';
+import { markTransition, transitionMetricsEnabled } from '@utils/transitionMetrics';
 
 export interface SharedFrame {
   x: number;
@@ -114,7 +118,7 @@ interface SharedTransitionActions {
   ) => void;
   /** Release the current flight; with an id, only if that event is the one in flight. */
   cancel: (eventId?: string) => void;
-  close: (eventId: string, onClosed: () => void) => boolean;
+  close: (eventId: string, onClosed: (sharedReturnCompleted: boolean) => void) => boolean;
   /** 0 at the source, 1 at Details; keep the completed endpoint until the next flight. */
   progress: SharedValue<number>;
 }
@@ -283,6 +287,33 @@ const FlyingCover = ({
   );
 };
 
+const FlightMetricProbe = ({
+  progress,
+  phase,
+}: {
+  progress: SharedValue<number>;
+  phase: SharedPhase;
+}) => {
+  const emitted = useSharedValue(false);
+  useAnimatedReaction(
+    () => progress.value,
+    (p) => {
+      if (
+        !emitted.value &&
+        ((phase === 'flying' && p > 0 && p < 1) || (phase === 'closing' && p < 1 && p > 0))
+      ) {
+        emitted.value = true;
+        runOnJS(markTransition)('first-ui-motion', {
+          phase,
+          ui_ms: performance.now(),
+          ui_wall_ms: Date.now(),
+        });
+      }
+    },
+  );
+  return null;
+};
+
 const FlightOverlay = ({
   flight,
   layoutSize,
@@ -324,8 +355,10 @@ const FlightOverlay = ({
       width: flight.targetCover.width,
       rotation: flight.rotation,
     };
-    const closing = flight.phase === 'closing';
+    const phase = flight.phase;
+    const closing = phase === 'closing';
     progress.value = closing ? 1 : 0;
+    markTransition('animation-requested', { phase: flight.phase });
     progress.value = withTiming(
       closing ? 0 : 1,
       {
@@ -333,7 +366,15 @@ const FlightOverlay = ({
         easing: Easing.out(Easing.cubic),
       },
       (finished) => {
-        if (finished) runOnJS(onComplete)();
+        if (finished) {
+          if (transitionMetricsEnabled)
+            runOnJS(markTransition)('ui-endpoint', {
+              phase,
+              ui_ms: performance.now(),
+              ui_wall_ms: Date.now(),
+            });
+          runOnJS(onComplete)();
+        }
       },
     );
   }, [flight, flying, onComplete, progress, target]);
@@ -344,6 +385,9 @@ const FlightOverlay = ({
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
+      {transitionMetricsEnabled && flying && (
+        <FlightMetricProbe key={flight.phase} phase={flight.phase} progress={progress} />
+      )}
       <FlyingCover
         flight={flight}
         layoutSize={layoutSize}
@@ -370,7 +414,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
   const opening = useRef(false);
   const flightRef = useRef<Flight>(undefined);
   const returnFlight = useRef<Flight>(undefined);
-  const closeCallback = useRef<(() => void) | undefined>(undefined);
+  const closeCallback = useRef<((sharedReturnCompleted: boolean) => void) | undefined>(undefined);
   const primed = useRef<{ eventId: string; frames: SourceFrames; at: number }>(undefined);
   const timers = useRef<Timers>({});
   const graces = useRef({ image: false });
@@ -402,6 +446,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
         returnFlight.current?.eventId !== eventId
       )
         return;
+      markTransition('cancel', { phase: flightRef.current?.phase ?? 'idle' });
       const returnedToSource = flightRef.current?.phase === 'closed';
       returnFlight.current = undefined;
       const finishClose = closeCallback.current;
@@ -416,7 +461,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
       // that image again for one frame during page unmount.
       if (!returnedToSource) progress.value = 1;
       setFlight(undefined);
-      finishClose?.();
+      finishClose?.(false);
     },
     [progress],
   );
@@ -432,6 +477,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
     const current = flightRef.current;
     if (!current || current.phase !== 'landing' || !current.targetCover) return;
     clearTimers();
+    markTransition('takeoff-ready');
     setFlight({ ...current, phase: 'flying' });
     timers.current.complete = setTimeout(
       () => cancelFlight(current.id),
@@ -461,6 +507,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
     (id: number) => {
       const current = flightRef.current;
       if (!current || current.id !== id || current.coverReady) return;
+      markTransition('cover-ready', { phase: current.phase });
       if (current.phase === 'returning') {
         clearTimers();
         setFlight({ ...current, coverReady: true, phase: 'closing' });
@@ -488,7 +535,11 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
 
   const open = useCallback<SharedTransitionActions['open']>(
     (eventId, source, navigate) => {
-      if (flightRef.current || opening.current) return;
+      markTransition('open-request', { phase: flightRef.current?.phase ?? 'idle' });
+      if (flightRef.current || opening.current) {
+        markTransition('open-rejected');
+        return;
+      }
       if (reducedMotion || !root.current || !source.imageUri) {
         navigate(reducedMotion);
         return;
@@ -513,6 +564,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
           phase: 'landing',
         });
         timers.current.land = setTimeout(() => cancelFlight(id), eventSharedMotion.landTimeoutMs);
+        markTransition('navigate');
         navigate(true);
       };
       opening.current = true;
@@ -560,6 +612,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
       measureNode(root.current, (rootFrame) => {
         const latest = flightRef.current;
         if (!latest || latest.id !== current.id || latest.phase !== 'landing') return;
+        markTransition('destination-measured');
         const local = toLocal(frame, rootFrame);
         const next: Flight = {
           ...latest,
@@ -583,10 +636,11 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
       if (current.phase === 'closing') {
         // Keep the page contracted until navigation removes it. Resetting here
         // would flash a full-size Details page during the stack's close fade.
+        markTransition('return-complete-js');
         setFlight({ ...current, phase: 'closed' });
         const callback = closeCallback.current;
         closeCallback.current = undefined;
-        callback?.();
+        callback?.(true);
       } else if (current.phase === 'flying') {
         returnFlight.current = current;
         setFlight(undefined);
@@ -599,6 +653,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
 
   const close = useCallback<SharedTransitionActions['close']>(
     (eventId, onClosed) => {
+      markTransition('close-request');
       if (
         closeCallback.current ||
         flightRef.current?.phase === 'closing' ||
@@ -751,18 +806,36 @@ export const EventSharedTransitionPage = ({
   const { eventId: activeEventId, phase, sourceCover } = useEventSharedTransitionState();
   const navigation = useContext(NavigationContext);
   const allowRemove = useRef(false);
+  const removeRequested = useRef(false);
+  const mounted = useRef(true);
+  const removeFrame = useRef<number | null>(null);
   const { width, height } = useWindowDimensions();
   useEffect(
     () =>
       navigation?.addListener('beforeRemove', (event) => {
         if (!enabled || allowRemove.current) return;
-        if (
-          close(eventId, () => {
+        event.preventDefault();
+        if (removeRequested.current) return;
+        removeRequested.current = true;
+        const finishRemoval = (sharedReturnCompleted: boolean) => {
+          if (!mounted.current) return;
+          const dispatchRemoval = () => {
+            removeFrame.current = null;
             allowRemove.current = true;
+            markTransition('close-dispatch');
             navigation.dispatch(event.data.action);
-          })
-        )
-          event.preventDefault();
+          };
+          if (sharedReturnCompleted) {
+            // The route was configured for instant removal before it opened.
+            dispatchRemoval();
+          } else {
+            navigation.setOptions(fallbackSharedCoverScreenOptions);
+            removeFrame.current = requestAnimationFrame(() => {
+              removeFrame.current = requestAnimationFrame(dispatchRemoval);
+            });
+          }
+        };
+        if (!close(eventId, finishRemoval)) finishRemoval(false);
       }),
     [close, enabled, eventId, navigation],
   );
@@ -784,12 +857,17 @@ export const EventSharedTransitionPage = ({
     }
     lastPhase.current = active ? phase : undefined;
   }, [active, enabled, fade, phase]);
-  useEffect(
-    () => () => {
-      if (enabled) cancel(eventId);
-    },
-    [cancel, enabled, eventId],
-  );
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (removeFrame.current !== null) globalThis.cancelAnimationFrame(removeFrame.current);
+      if (enabled) {
+        markTransition('page-unmount');
+        cancel(eventId);
+      }
+    };
+  }, [cancel, enabled, eventId]);
   const moving = active && phase !== 'landing' && phase !== 'returning';
   const surfaceStyle = useAnimatedStyle(() => {
     const p = progress.value;

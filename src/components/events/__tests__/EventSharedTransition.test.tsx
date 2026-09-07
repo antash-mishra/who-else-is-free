@@ -2,9 +2,11 @@ import React from 'react';
 
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { NavigationContext } from '@react-navigation/native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import * as Reanimated from 'react-native-reanimated';
 
+import { fallbackSharedCoverScreenOptions } from '@navigation/transitions';
 import { eventSharedMotion, heroCoverSize } from '@theme/motion';
 
 import {
@@ -156,6 +158,111 @@ describe('event shared transition', () => {
     expect(screen.getByTestId('progress').props.children).toBe(0);
     fireEvent.press(screen.getByTestId('open'));
     expect(navigate).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([true, false, 'unmount'])(
+    'skips the redundant stack close only after a completed return (%s)',
+    (completeReturn) => {
+      const timing = holdAnimations();
+      measureCard();
+      let beforeRemove: (event: { data: { action: object }; preventDefault: () => void }) => void;
+      const setOptions = jest.fn();
+      const dispatch = jest.fn(() => {
+        if (completeReturn) expect(setOptions).not.toHaveBeenCalled();
+        else expect(setOptions).toHaveBeenCalledWith(fallbackSharedCoverScreenOptions);
+      });
+      const navigation = {
+        addListener: (_name: string, listener: typeof beforeRemove) => {
+          beforeRemove = listener;
+          return () => undefined;
+        },
+        setOptions,
+        dispatch,
+      };
+      const screen = render(
+        <NavigationContext.Provider value={navigation as never}>
+          <EventSharedTransitionProvider>
+            <Harness />
+          </EventSharedTransitionProvider>
+        </NavigationContext.Provider>,
+        {
+          createNodeMock: () => ({
+            measureInWindow: (callback: (x: number, y: number) => void) => callback(0, 24),
+          }),
+        },
+      );
+      fireEvent.press(screen.getByTestId('open'));
+      fireEvent.press(screen.getByTestId('land-cover'));
+      fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+      act(() => {
+        timing.mock.calls[0][2]?.(true);
+      });
+      const action = { type: 'GO_BACK' };
+      const preventDefault = jest.fn();
+      act(() => {
+        beforeRemove({ data: { action }, preventDefault });
+      });
+      expect(preventDefault).toHaveBeenCalledTimes(1);
+      expect(dispatch).not.toHaveBeenCalled();
+      if (completeReturn === 'unmount') {
+        screen.unmount();
+        act(() => {
+          jest.advanceTimersByTime(1000);
+        });
+        expect(dispatch).not.toHaveBeenCalled();
+        return;
+      }
+      if (completeReturn) {
+        fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+        act(() => {
+          timing.mock.calls[1][2]?.(true);
+        });
+      } else {
+        act(() => {
+          jest.advanceTimersByTime(eventSharedMotion.imageGraceMs);
+        });
+        expect(dispatch).not.toHaveBeenCalled();
+        // A second Back while the fallback options commit must not queue
+        // another navigation action.
+        act(() => {
+          beforeRemove({ data: { action }, preventDefault });
+        });
+        act(() => {
+          jest.advanceTimersByTime(40);
+        });
+      }
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith(action);
+    },
+  );
+
+  it('does not dispatch a delayed fallback after its page has been removed', () => {
+    let beforeRemove: (event: { data: { action: object }; preventDefault: () => void }) => void;
+    const dispatch = jest.fn();
+    const navigation = {
+      addListener: (_name: string, listener: typeof beforeRemove) => {
+        beforeRemove = listener;
+        return () => undefined;
+      },
+      setOptions: jest.fn(),
+      dispatch,
+    };
+    const screen = render(
+      <NavigationContext.Provider value={navigation as never}>
+        <EventSharedTransitionPage eventId="event-1">
+          <View />
+        </EventSharedTransitionPage>
+      </NavigationContext.Provider>,
+    );
+    act(() => {
+      beforeRemove({ data: { action: { type: 'GO_BACK' } }, preventDefault: jest.fn() });
+    });
+    expect(navigation.setOptions).toHaveBeenCalledWith(fallbackSharedCoverScreenOptions);
+    screen.unmount();
+    act(() => {
+      jest.advanceTimersByTime(40);
+    });
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it('keeps return image preparation bounded and completes a repeated back only once', () => {

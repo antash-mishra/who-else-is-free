@@ -1,0 +1,434 @@
+{"name": "driver-ready", "native_ms": 24849572, "wall_ms": 1788790895996, "origin": "input", "host_monotonic": 1125322.957600708}
+{"name": "input-down", "native_ms": 24849575, "wall_ms": 1788790895998, "origin": "input", "host_monotonic": 1125322.96775575}
+{"name": "card-press-in", "js_ms": 24849617.73739, "wall_ms": 1788790896041, "native_ms": 24849575, "origin": "app", "host_monotonic": 1125323.0025255}
+{"name": "input-up", "native_ms": 24849646, "wall_ms": 1788790896069, "origin": "input", "host_monotonic": 1125323.030399208}
+{"name": "card-press", "js_ms": 24849661.703057, "wall_ms": 1788790896085, "origin": "app", "host_monotonic": 1125323.051671791}
+{"name": "open-request", "js_ms": 24849666.127723, "wall_ms": 1788790896089, "phase": "idle", "origin": "app", "host_monotonic": 1125323.053944958}
+{"name": "navigate", "js_ms": 24849673.70864, "wall_ms": 1788790896097, "origin": "app", "host_monotonic": 1125323.058616708}
+{"name": "destination-measured", "js_ms": 24849872.202932, "wall_ms": 1788790896295, "origin": "app", "host_monotonic": 1125323.256233208}
+{"name": "cover-ready", "js_ms": 24849993.044182, "wall_ms": 1788790896416, "phase": "landing", "origin": "app", "host_monotonic": 1125323.382472416}
+{"name": "takeoff-ready", "js_ms": 24849993.130557, "wall_ms": 1788790896416, "origin": "app", "host_monotonic": 1125323.385320125}
+{"name": "animation-requested", "js_ms": 24850060.165724, "wall_ms": 1788790896483, "phase": "flying", "origin": "app", "host_monotonic": 1125323.444553958}
+{"name": "first-ui-motion", "js_ms": 24850127.054265, "wall_ms": 1788790896550, "phase": "flying", "ui_ms": 24850126.233265, "ui_wall_ms": 1788790896549, "origin": "app", "host_monotonic": 1125323.512383916}
+{"name": "ui-endpoint", "js_ms": 24850649.976682, "wall_ms": 1788790897073, "phase": "flying", "ui_ms": 24850645.038266, "ui_wall_ms": 1788790897068, "origin": "app", "host_monotonic": 1125324.038558541}
+{"name": "input-back", "native_ms": 24850986, "wall_ms": 1788790897411, "origin": "input", "host_monotonic": 1125324.404413208}
+{"name": "close-request", "js_ms": 24851150.644141, "wall_ms": 1788790897574, "origin": "app", "host_monotonic": 1125324.545063958}
+{"name": "cover-ready", "js_ms": 24851232.738849, "wall_ms": 1788790897656, "phase": "returning", "origin": "app", "host_monotonic": 1125324.624166875}
+{"name": "animation-requested", "js_ms": 24851270.324349, "wall_ms": 1788790897693, "phase": "closing", "origin": "app", "host_monotonic": 1125324.654385791}
+{"name": "first-ui-motion", "js_ms": 24851278.067182, "wall_ms": 1788790897701, "phase": "closing", "ui_ms": 24851277.816182, "ui_wall_ms": 1788790897701, "origin": "app", "host_monotonic": 1125324.661761875}
+{"name": "input-down", "native_ms": 24851379, "wall_ms": 1788790897802, "origin": "input", "host_monotonic": 1125324.76359325}
+{"name": "input-up", "native_ms": 24851445, "wall_ms": 1788790897869, "origin": "input", "host_monotonic": 1125324.833667083}
+{"name": "ui-endpoint", "js_ms": 24851695.992724, "wall_ms": 1788790898119, "phase": "closing", "ui_ms": 24851693.562308, "ui_wall_ms": 1788790898116, "origin": "app", "host_monotonic": 1125325.080217208}
+{"name": "return-complete-js", "js_ms": 24851696.498433, "wall_ms": 1788790898119, "origin": "app", "host_monotonic": 1125325.0810315}
+{"name": "page-unmount", "js_ms": 24852041.235141, "wall_ms": 1788790898464, "origin": "app", "host_monotonic": 1125325.424887958}
+{"name": "cancel", "js_ms": 24852041.48135, "wall_ms": 1788790898464, "phase": "closed", "origin": "app", "host_monotonic": 1125325.426029083}
+{"name": "input-down", "native_ms": 24854707, "wall_ms": 1788790901130, "origin": "input", "host_monotonic": 1125328.092679083}
+{"name": "input-up", "native_ms": 24854793, "wall_ms": 1788790901216, "origin": "input", "host_monotonic": 1125328.179819958}
+{"name": "card-press-in", "js_ms": 24854802.398851, "wall_ms": 1788790901225, "native_ms": 24854707, "origin": "app", "host_monotonic": 1125328.187734041}
+{"name": "card-press", "js_ms": 24854810.068809, "wall_ms": 1788790901233, "origin": "app", "host_monotonic": 1125328.196351583}
+{"name": "open-request", "js_ms": 24854817.151226, "wall_ms": 1788790901240, "phase": "idle", "origin": "app", "host_monotonic": 1125328.201296166}
+{"name": "navigate", "js_ms": 24854818.234726, "wall_ms": 1788790901241, "origin": "app", "host_monotonic": 1125328.202575958}
+{"name": "destination-measured", "js_ms": 24855154.078226, "wall_ms": 1788790901577, "origin": "app", "host_monotonic": 1125328.53890975}
+{"name": "cover-ready", "js_ms": 24855314.116476, "wall_ms": 1788790901737, "phase": "landing", "origin": "app", "host_monotonic": 1125328.698657791}
+{"name": "takeoff-ready", "js_ms": 24855314.825393, "wall_ms": 1788790901738, "origin": "app", "host_monotonic": 1125328.701706916}
+{"name": "animation-requested", "js_ms": 24855351.441726, "wall_ms": 1788790901774, "phase": "flying", "origin": "app", "host_monotonic": 1125328.73529}
+{"name": "first-ui-motion", "js_ms": 24855403.687851, "wall_ms": 1788790901827, "phase": "flying", "ui_ms": 24855394.446809, "ui_wall_ms": 1788790901817, "origin": "app", "host_monotonic": 1125328.789816458}
+{"name": "ui-endpoint", "js_ms": 24855931.47381, "wall_ms": 1788790902354, "phase": "flying", "ui_ms": 24855931.355185, "ui_wall_ms": 1788790902354, "origin": "app", "host_monotonic": 1125329.320902208}
+{"name": "input-back", "native_ms": 24856241, "wall_ms": 1788790902665, "origin": "input", "host_monotonic": 1125329.64031175}
+{"name": "close-request", "js_ms": 24856279.865393, "wall_ms": 1788790902703, "origin": "app", "host_monotonic": 1125329.66418125}
+{"name": "cover-ready", "js_ms": 24856332.594185, "wall_ms": 1788790902755, "phase": "returning", "origin": "app", "host_monotonic": 1125329.717213625}
+{"name": "animation-requested", "js_ms": 24856393.937852, "wall_ms": 1788790902817, "phase": "closing", "origin": "app", "host_monotonic": 1125329.7783925}
+{"name": "first-ui-motion", "js_ms": 24856412.394602, "wall_ms": 1788790902835, "phase": "closing", "ui_ms": 24856411.920852, "ui_wall_ms": 1788790902835, "origin": "app", "host_monotonic": 1125329.79740225}
+{"name": "input-down", "native_ms": 24856717, "wall_ms": 1788790903140, "origin": "input", "host_monotonic": 1125330.107902541}
+{"name": "input-up", "native_ms": 24856784, "wall_ms": 1788790903208, "origin": "input", "host_monotonic": 1125330.170413666}
+{"name": "ui-endpoint", "js_ms": 24856812.844977, "wall_ms": 1788790903236, "phase": "closing", "ui_ms": 24856811.775185, "ui_wall_ms": 1788790903235, "origin": "app", "host_monotonic": 1125330.196682375}
+{"name": "return-complete-js", "js_ms": 24856814.679643, "wall_ms": 1788790903238, "origin": "app", "host_monotonic": 1125330.200212958}
+{"name": "page-unmount", "js_ms": 24857156.809352, "wall_ms": 1788790903580, "origin": "app", "host_monotonic": 1125330.545198416}
+{"name": "cancel", "js_ms": 24857157.031727, "wall_ms": 1788790903580, "phase": "closed", "origin": "app", "host_monotonic": 1125330.546399041}
+{"name": "input-down", "native_ms": 24859974, "wall_ms": 1788790906397, "origin": "input", "host_monotonic": 1125333.361940041}
+{"name": "card-press-in", "js_ms": 24860015.661395, "wall_ms": 1788790906439, "native_ms": 24859974, "origin": "app", "host_monotonic": 1125333.400955333}
+{"name": "input-up", "native_ms": 24860044, "wall_ms": 1788790906467, "origin": "input", "host_monotonic": 1125333.428922416}
+{"name": "card-press", "js_ms": 24860060.216728, "wall_ms": 1788790906483, "origin": "app", "host_monotonic": 1125333.443959291}
+{"name": "open-request", "js_ms": 24860067.726103, "wall_ms": 1788790906491, "phase": "idle", "origin": "app", "host_monotonic": 1125333.455861333}
+{"name": "navigate", "js_ms": 24860068.358478, "wall_ms": 1788790906491, "origin": "app", "host_monotonic": 1125333.456208791}
+{"name": "destination-measured", "js_ms": 24860314.834562, "wall_ms": 1788790906738, "origin": "app", "host_monotonic": 1125333.699094041}
+{"name": "cover-ready", "js_ms": 24860413.598562, "wall_ms": 1788790906836, "phase": "landing", "origin": "app", "host_monotonic": 1125333.797339291}
+{"name": "takeoff-ready", "js_ms": 24860414.170853, "wall_ms": 1788790906837, "origin": "app", "host_monotonic": 1125333.798898291}
+{"name": "animation-requested", "js_ms": 24860440.588395, "wall_ms": 1788790906863, "phase": "flying", "origin": "app", "host_monotonic": 1125333.824213916}
+{"name": "first-ui-motion", "js_ms": 24860516.386645, "wall_ms": 1788790906939, "phase": "flying", "ui_ms": 24860515.987312, "ui_wall_ms": 1788790906939, "origin": "app", "host_monotonic": 1125333.900264916}
+{"name": "ui-endpoint", "js_ms": 24861051.043937, "wall_ms": 1788790907474, "phase": "flying", "ui_ms": 24861050.75702, "ui_wall_ms": 1788790907474, "origin": "app", "host_monotonic": 1125334.436566958}
+{"name": "input-back", "native_ms": 24861360, "wall_ms": 1788790907784, "origin": "input", "host_monotonic": 1125334.745355458}
+{"name": "close-request", "js_ms": 24861382.455062, "wall_ms": 1788790907805, "origin": "app", "host_monotonic": 1125334.767710958}
+{"name": "cover-ready", "js_ms": 24861433.809646, "wall_ms": 1788790907857, "phase": "returning", "origin": "app", "host_monotonic": 1125334.827538708}
+{"name": "animation-requested", "js_ms": 24861484.621479, "wall_ms": 1788790907907, "phase": "closing", "origin": "app", "host_monotonic": 1125334.868631666}
+{"name": "first-ui-motion", "js_ms": 24861495.748271, "wall_ms": 1788790907919, "phase": "closing", "ui_ms": 24861495.490521, "ui_wall_ms": 1788790907918, "origin": "app", "host_monotonic": 1125334.879753291}
+{"name": "ui-endpoint", "js_ms": 24861909.075563, "wall_ms": 1788790908332, "phase": "closing", "ui_ms": 24861905.014188, "ui_wall_ms": 1788790908328, "origin": "app", "host_monotonic": 1125335.295149041}
+{"name": "return-complete-js", "js_ms": 24861910.828604, "wall_ms": 1788790908334, "origin": "app", "host_monotonic": 1125335.296665541}
+{"name": "input-down", "native_ms": 24861914, "wall_ms": 1788790908338, "origin": "input", "host_monotonic": 1125335.300043291}
+{"name": "input-up", "native_ms": 24861985, "wall_ms": 1788790908408, "origin": "input", "host_monotonic": 1125335.369487041}
+{"name": "page-unmount", "js_ms": 24862267.739188, "wall_ms": 1788790908691, "origin": "app", "host_monotonic": 1125335.651986208}
+{"name": "cancel", "js_ms": 24862268.135188, "wall_ms": 1788790908691, "phase": "closed", "origin": "app", "host_monotonic": 1125335.65386825}
+{"name": "input-down", "native_ms": 24865459, "wall_ms": 1788790911883, "origin": "input", "host_monotonic": 1125338.847006125}
+{"name": "card-press-in", "js_ms": 24865508.160148, "wall_ms": 1788790911931, "native_ms": 24865459, "origin": "app", "host_monotonic": 1125338.895478375}
+{"name": "input-up", "native_ms": 24865526, "wall_ms": 1788790911950, "origin": "input", "host_monotonic": 1125338.911437583}
+{"name": "card-press", "js_ms": 24865535.701398, "wall_ms": 1788790911959, "origin": "app", "host_monotonic": 1125338.924255916}
+{"name": "open-request", "js_ms": 24865553.978981, "wall_ms": 1788790911977, "phase": "idle", "origin": "app", "host_monotonic": 1125338.942605833}
+{"name": "navigate", "js_ms": 24865554.745939, "wall_ms": 1788790911978, "origin": "app", "host_monotonic": 1125338.942853708}
+{"name": "destination-measured", "js_ms": 24865731.720398, "wall_ms": 1788790912155, "origin": "app", "host_monotonic": 1125339.115722083}
+{"name": "cover-ready", "js_ms": 24865798.279564, "wall_ms": 1788790912221, "phase": "landing", "origin": "app", "host_monotonic": 1125339.182204541}
+{"name": "takeoff-ready", "js_ms": 24865798.970356, "wall_ms": 1788790912222, "origin": "app", "host_monotonic": 1125339.182949875}
+{"name": "animation-requested", "js_ms": 24865860.991773, "wall_ms": 1788790912284, "phase": "flying", "origin": "app", "host_monotonic": 1125339.253605458}
+{"name": "first-ui-motion", "js_ms": 24865889.503106, "wall_ms": 1788790912312, "phase": "flying", "ui_ms": 24865888.748064, "ui_wall_ms": 1788790912312, "origin": "app", "host_monotonic": 1125339.273468416}
+{"name": "ui-endpoint", "js_ms": 24866390.868315, "wall_ms": 1788790912814, "phase": "flying", "ui_ms": 24866388.265565, "ui_wall_ms": 1788790912811, "origin": "app", "host_monotonic": 1125339.781710833}
+{"name": "input-back", "native_ms": 24866704, "wall_ms": 1788790913128, "origin": "input", "host_monotonic": 1125340.092031541}
+{"name": "close-request", "js_ms": 24866733.198732, "wall_ms": 1788790913156, "origin": "app", "host_monotonic": 1125340.117032208}
+{"name": "cover-ready", "js_ms": 24866791.595148, "wall_ms": 1788790913214, "phase": "returning", "origin": "app", "host_monotonic": 1125340.176969541}
+{"name": "animation-requested", "js_ms": 24866813.135148, "wall_ms": 1788790913236, "phase": "closing", "origin": "app", "host_monotonic": 1125340.201574041}
+{"name": "first-ui-motion", "js_ms": 24866828.30919, "wall_ms": 1788790913251, "phase": "closing", "ui_ms": 24866828.138815, "ui_wall_ms": 1788790913251, "origin": "app", "host_monotonic": 1125340.212029208}
+{"name": "ui-endpoint", "js_ms": 24867227.718357, "wall_ms": 1788790913651, "phase": "closing", "ui_ms": 24867226.300273, "ui_wall_ms": 1788790913649, "origin": "app", "host_monotonic": 1125340.612578375}
+{"name": "return-complete-js", "js_ms": 24867227.890857, "wall_ms": 1788790913651, "origin": "app", "host_monotonic": 1125340.618147833}
+{"name": "input-down", "native_ms": 24867366, "wall_ms": 1788790913790, "origin": "input", "host_monotonic": 1125340.751151125}
+{"name": "input-up", "native_ms": 24867433, "wall_ms": 1788790913857, "origin": "input", "host_monotonic": 1125340.818285166}
+{"name": "page-unmount", "js_ms": 24867545.295357, "wall_ms": 1788790913968, "origin": "app", "host_monotonic": 1125340.935336875}
+{"name": "cancel", "js_ms": 24867545.624399, "wall_ms": 1788790913968, "phase": "closed", "origin": "app", "host_monotonic": 1125340.944169083}
+{"name": "input-down", "native_ms": 24870703, "wall_ms": 1788790917126, "origin": "input", "host_monotonic": 1125344.088549958}
+{"name": "card-press-in", "js_ms": 24870742.8949, "wall_ms": 1788790917166, "native_ms": 24870703, "origin": "app", "host_monotonic": 1125344.129981291}
+{"name": "input-up", "native_ms": 24870768, "wall_ms": 1788790917191, "origin": "input", "host_monotonic": 1125344.152267291}
+{"name": "card-press", "js_ms": 24870778.938733, "wall_ms": 1788790917202, "origin": "app", "host_monotonic": 1125344.163632291}
+{"name": "open-request", "js_ms": 24870781.586525, "wall_ms": 1788790917204, "phase": "idle", "origin": "app", "host_monotonic": 1125344.166707958}
+{"name": "navigate", "js_ms": 24870783.729525, "wall_ms": 1788790917207, "origin": "app", "host_monotonic": 1125344.170254958}
+{"name": "destination-measured", "js_ms": 24870962.541525, "wall_ms": 1788790917385, "origin": "app", "host_monotonic": 1125344.349005}
+{"name": "cover-ready", "js_ms": 24871059.556317, "wall_ms": 1788790917482, "phase": "landing", "origin": "app", "host_monotonic": 1125344.443482083}
+{"name": "takeoff-ready", "js_ms": 24871062.190067, "wall_ms": 1788790917485, "origin": "app", "host_monotonic": 1125344.4462385}
+{"name": "animation-requested", "js_ms": 24871095.488984, "wall_ms": 1788790917518, "phase": "flying", "origin": "app", "host_monotonic": 1125344.47920175}
+{"name": "first-ui-motion", "js_ms": 24871110.145817, "wall_ms": 1788790917533, "phase": "flying", "ui_ms": 24871109.641859, "ui_wall_ms": 1788790917533, "origin": "app", "host_monotonic": 1125344.501719916}
+{"name": "ui-endpoint", "js_ms": 24871713.976942, "wall_ms": 1788790918137, "phase": "flying", "ui_ms": 24871708.605817, "ui_wall_ms": 1788790918131, "origin": "app", "host_monotonic": 1125345.125624041}
+{"name": "input-back", "native_ms": 24872048, "wall_ms": 1788790918472, "origin": "input", "host_monotonic": 1125345.447275166}
+{"name": "close-request", "js_ms": 24872412.926568, "wall_ms": 1788790918836, "origin": "app", "host_monotonic": 1125345.797004583}
+{"name": "cover-ready", "js_ms": 24872503.588734, "wall_ms": 1788790918926, "phase": "returning", "origin": "app", "host_monotonic": 1125345.887945333}
+{"name": "animation-requested", "js_ms": 24872533.583193, "wall_ms": 1788790918956, "phase": "closing", "origin": "app", "host_monotonic": 1125345.9228995}
+{"name": "first-ui-motion", "js_ms": 24872549.725068, "wall_ms": 1788790918973, "phase": "closing", "ui_ms": 24872546.314651, "ui_wall_ms": 1788790918969, "origin": "app", "host_monotonic": 1125345.936246541}
+{"name": "input-down", "native_ms": 24872970, "wall_ms": 1788790919393, "origin": "input", "host_monotonic": 1125346.459638541}
+{"name": "input-up", "native_ms": 24873158, "wall_ms": 1788790919581, "origin": "input", "host_monotonic": 1125346.546678083}
+{"name": "ui-endpoint", "js_ms": 24873465.098943, "wall_ms": 1788790919888, "phase": "closing", "ui_ms": 24873449.812401, "ui_wall_ms": 1788790919873, "origin": "app", "host_monotonic": 1125346.858141083}
+{"name": "return-complete-js", "js_ms": 24873471.36561, "wall_ms": 1788790919894, "origin": "app", "host_monotonic": 1125346.860768458}
+{"name": "page-unmount", "js_ms": 24875100.857611, "wall_ms": 1788790921524, "origin": "app", "host_monotonic": 1125348.505892625}
+{"name": "cancel", "js_ms": 24875102.743236, "wall_ms": 1788790921526, "phase": "closed", "origin": "app", "host_monotonic": 1125348.508312541}
+{"name": "input-down", "native_ms": 24876463, "wall_ms": 1788790922887, "origin": "input", "host_monotonic": 1125349.854960375}
+{"name": "card-press-in", "js_ms": 24876552.936195, "wall_ms": 1788790922976, "native_ms": 24876463, "origin": "app", "host_monotonic": 1125349.944947958}
+{"name": "input-up", "native_ms": 24876591, "wall_ms": 1788790923015, "origin": "input", "host_monotonic": 1125349.979428125}
+{"name": "card-press", "js_ms": 24876599.967528, "wall_ms": 1788790923023, "origin": "app", "host_monotonic": 1125349.98780025}
+{"name": "open-request", "js_ms": 24876603.498236, "wall_ms": 1788790923026, "phase": "idle", "origin": "app", "host_monotonic": 1125349.988492208}
+{"name": "navigate", "js_ms": 24876607.521111, "wall_ms": 1788790923030, "origin": "app", "host_monotonic": 1125349.991608708}
+{"name": "destination-measured", "js_ms": 24876866.677111, "wall_ms": 1788790923290, "origin": "app", "host_monotonic": 1125350.254282875}
+{"name": "takeoff-ready", "js_ms": 24877157.903486, "wall_ms": 1788790923581, "origin": "app", "host_monotonic": 1125350.542361208}
+{"name": "cover-ready", "js_ms": 24877158.629403, "wall_ms": 1788790923581, "phase": "flying", "origin": "app", "host_monotonic": 1125350.557809041}
+{"name": "animation-requested", "js_ms": 24877222.765487, "wall_ms": 1788790923646, "phase": "flying", "origin": "app", "host_monotonic": 1125350.607757458}
+{"name": "first-ui-motion", "js_ms": 24877391.422445, "wall_ms": 1788790923814, "phase": "flying", "ui_ms": 24877390.55957, "ui_wall_ms": 1788790923813, "origin": "app", "host_monotonic": 1125350.796338666}
+{"name": "ui-endpoint", "js_ms": 24877946.972945, "wall_ms": 1788790924370, "phase": "flying", "ui_ms": 24877928.613695, "ui_wall_ms": 1788790924352, "origin": "app", "host_monotonic": 1125351.342959083}
+{"name": "input-back", "native_ms": 24878274, "wall_ms": 1788790924697, "origin": "input", "host_monotonic": 1125351.659093833}
+{"name": "close-request", "js_ms": 24878467.007279, "wall_ms": 1788790924890, "origin": "app", "host_monotonic": 1125351.851091}
+{"name": "cover-ready", "js_ms": 24878495.170904, "wall_ms": 1788790924918, "phase": "returning", "origin": "app", "host_monotonic": 1125351.888239875}
+{"name": "animation-requested", "js_ms": 24878517.722195, "wall_ms": 1788790924941, "phase": "closing", "origin": "app", "host_monotonic": 1125351.901886375}
+{"name": "first-ui-motion", "js_ms": 24878546.056154, "wall_ms": 1788790924969, "phase": "closing", "ui_ms": 24878544.254654, "ui_wall_ms": 1788790924967, "origin": "app", "host_monotonic": 1125351.935187666}
+{"name": "ui-endpoint", "js_ms": 24878948.153321, "wall_ms": 1788790925371, "phase": "closing", "ui_ms": 24878946.852112, "ui_wall_ms": 1788790925370, "origin": "app", "host_monotonic": 1125352.332363625}
+{"name": "return-complete-js", "js_ms": 24878948.739654, "wall_ms": 1788790925372, "origin": "app", "host_monotonic": 1125352.332854375}
+{"name": "input-down", "native_ms": 24879279, "wall_ms": 1788790925702, "origin": "input", "host_monotonic": 1125352.67083475}
+{"name": "page-unmount", "js_ms": 24879349.691238, "wall_ms": 1788790925773, "origin": "app", "host_monotonic": 1125352.73451525}
+{"name": "cancel", "js_ms": 24879349.903988, "wall_ms": 1788790925773, "phase": "closed", "origin": "app", "host_monotonic": 1125352.73739175}
+{"name": "input-up", "native_ms": 24879387, "wall_ms": 1788790925810, "origin": "input", "host_monotonic": 1125352.770907458}
+{"name": "input-down", "native_ms": 24882809, "wall_ms": 1788790929232, "origin": "input", "host_monotonic": 1125356.193849}
+{"name": "card-press-in", "js_ms": 24882844.147031, "wall_ms": 1788790929267, "native_ms": 24882809, "origin": "app", "host_monotonic": 1125356.229037791}
+{"name": "input-up", "native_ms": 24882881, "wall_ms": 1788790929304, "origin": "input", "host_monotonic": 1125356.267812166}
+{"name": "card-press", "js_ms": 24882894.393948, "wall_ms": 1788790929317, "origin": "app", "host_monotonic": 1125356.279821333}
+{"name": "open-request", "js_ms": 24882898.375864, "wall_ms": 1788790929321, "phase": "idle", "origin": "app", "host_monotonic": 1125356.282103791}
+{"name": "navigate", "js_ms": 24882904.623406, "wall_ms": 1788790929327, "origin": "app", "host_monotonic": 1125356.28902325}
+{"name": "destination-measured", "js_ms": 24883125.111531, "wall_ms": 1788790929548, "origin": "app", "host_monotonic": 1125356.509447125}
+{"name": "cover-ready", "js_ms": 24883272.663364, "wall_ms": 1788790929696, "phase": "landing", "origin": "app", "host_monotonic": 1125356.65669825}
+{"name": "takeoff-ready", "js_ms": 24883272.764656, "wall_ms": 1788790929696, "origin": "app", "host_monotonic": 1125356.657953083}
+{"name": "animation-requested", "js_ms": 24883311.626448, "wall_ms": 1788790929734, "phase": "flying", "origin": "app", "host_monotonic": 1125356.710797041}
+{"name": "first-ui-motion", "js_ms": 24883333.235156, "wall_ms": 1788790929756, "phase": "flying", "ui_ms": 24883331.557573, "ui_wall_ms": 1788790929754, "origin": "app", "host_monotonic": 1125356.71890775}
+{"name": "ui-endpoint", "js_ms": 24883845.460448, "wall_ms": 1788790930268, "phase": "flying", "ui_ms": 24883838.710406, "ui_wall_ms": 1788790930262, "origin": "app", "host_monotonic": 1125357.236070791}
+{"name": "input-back", "native_ms": 24884160, "wall_ms": 1788790930584, "origin": "input", "host_monotonic": 1125357.548505916}
+{"name": "close-request", "js_ms": 24884195.054365, "wall_ms": 1788790930618, "origin": "app", "host_monotonic": 1125357.579823291}
+{"name": "cover-ready", "js_ms": 24884249.52299, "wall_ms": 1788790930672, "phase": "returning", "origin": "app", "host_monotonic": 1125357.636242958}
+{"name": "animation-requested", "js_ms": 24884269.399115, "wall_ms": 1788790930692, "phase": "closing", "origin": "app", "host_monotonic": 1125357.654451416}
+{"name": "first-ui-motion", "js_ms": 24884281.425907, "wall_ms": 1788790930704, "phase": "closing", "ui_ms": 24884281.052573, "ui_wall_ms": 1788790930704, "origin": "app", "host_monotonic": 1125357.665594208}
+{"name": "input-down", "native_ms": 24884523, "wall_ms": 1788790930946, "origin": "input", "host_monotonic": 1125357.907305791}
+{"name": "input-up", "native_ms": 24884590, "wall_ms": 1788790931014, "origin": "input", "host_monotonic": 1125357.974559291}
+{"name": "ui-endpoint", "js_ms": 24884686.589948, "wall_ms": 1788790931109, "phase": "closing", "ui_ms": 24884685.056698, "ui_wall_ms": 1788790931108, "origin": "app", "host_monotonic": 1125358.071746125}
+{"name": "return-complete-js", "js_ms": 24884688.48949, "wall_ms": 1788790931111, "origin": "app", "host_monotonic": 1125358.073641791}
+{"name": "page-unmount", "js_ms": 24885018.26599, "wall_ms": 1788790931441, "origin": "app", "host_monotonic": 1125358.404857833}
+{"name": "cancel", "js_ms": 24885018.319824, "wall_ms": 1788790931441, "phase": "closed", "origin": "app", "host_monotonic": 1125358.407874791}
+{"name": "input-down", "native_ms": 24887771, "wall_ms": 1788790934194, "origin": "input", "host_monotonic": 1125361.155898083}
+{"name": "input-up", "native_ms": 24887851, "wall_ms": 1788790934274, "origin": "input", "host_monotonic": 1125361.238349}
+{"name": "card-press-in", "js_ms": 24887867.14645, "wall_ms": 1788790934290, "native_ms": 24887771, "origin": "app", "host_monotonic": 1125361.252584833}
+{"name": "card-press", "js_ms": 24887870.393033, "wall_ms": 1788790934293, "origin": "app", "host_monotonic": 1125361.25424375}
+{"name": "open-request", "js_ms": 24887873.90745, "wall_ms": 1788790934297, "phase": "idle", "origin": "app", "host_monotonic": 1125361.257761}
+{"name": "navigate", "js_ms": 24887877.76745, "wall_ms": 1788790934301, "origin": "app", "host_monotonic": 1125361.263896333}
+{"name": "destination-measured", "js_ms": 24888183.7122, "wall_ms": 1788790934607, "origin": "app", "host_monotonic": 1125361.568441208}
+{"name": "takeoff-ready", "js_ms": 24888514.8807, "wall_ms": 1788790934938, "origin": "app", "host_monotonic": 1125361.912847}
+{"name": "cover-ready", "js_ms": 24888921.748867, "wall_ms": 1788790935345, "phase": "flying", "origin": "app", "host_monotonic": 1125362.307630875}
+{"name": "animation-requested", "js_ms": 24888923.4577, "wall_ms": 1788790935346, "phase": "flying", "origin": "app", "host_monotonic": 1125362.308540541}
+{"name": "first-ui-motion", "js_ms": 24889023.367284, "wall_ms": 1788790935446, "phase": "flying", "ui_ms": 24889022.840617, "ui_wall_ms": 1788790935446, "origin": "app", "host_monotonic": 1125362.407409958}
+{"name": "ui-endpoint", "js_ms": 24889571.842492, "wall_ms": 1788790935995, "phase": "flying", "ui_ms": 24889571.723117, "ui_wall_ms": 1788790935995, "origin": "app", "host_monotonic": 1125362.961627}
+{"name": "input-back", "native_ms": 24889886, "wall_ms": 1788790936309, "origin": "input", "host_monotonic": 1125363.2706115}
+{"name": "close-request", "js_ms": 24889901.478826, "wall_ms": 1788790936324, "origin": "app", "host_monotonic": 1125363.285390291}
+{"name": "cover-ready", "js_ms": 24889957.911409, "wall_ms": 1788790936381, "phase": "returning", "origin": "app", "host_monotonic": 1125363.343836041}
+{"name": "animation-requested", "js_ms": 24889997.101784, "wall_ms": 1788790936420, "phase": "closing", "origin": "app", "host_monotonic": 1125363.382478166}
+{"name": "first-ui-motion", "js_ms": 24890014.822534, "wall_ms": 1788790936438, "phase": "closing", "ui_ms": 24890013.355034, "ui_wall_ms": 1788790936436, "origin": "app", "host_monotonic": 1125363.399837166}
+{"name": "input-down", "native_ms": 24890341, "wall_ms": 1788790936765, "origin": "input", "host_monotonic": 1125363.727092583}
+{"name": "input-up", "native_ms": 24890415, "wall_ms": 1788790936839, "origin": "input", "host_monotonic": 1125363.802337333}
+{"name": "ui-endpoint", "js_ms": 24890438.629868, "wall_ms": 1788790936862, "phase": "closing", "ui_ms": 24890425.201118, "ui_wall_ms": 1788790936848, "origin": "app", "host_monotonic": 1125363.824427833}
+{"name": "return-complete-js", "js_ms": 24890440.776451, "wall_ms": 1788790936864, "origin": "app", "host_monotonic": 1125363.824884416}
+{"name": "page-unmount", "js_ms": 24891145.027243, "wall_ms": 1788790937568, "origin": "app", "host_monotonic": 1125364.532043708}
+{"name": "cancel", "js_ms": 24891145.150951, "wall_ms": 1788790937568, "phase": "closed", "origin": "app", "host_monotonic": 1125364.533186875}
+{"name": "input-down", "native_ms": 24893708, "wall_ms": 1788790940132, "origin": "input", "host_monotonic": 1125367.096517}
+{"name": "card-press-in", "js_ms": 24893743.380244, "wall_ms": 1788790940166, "native_ms": 24893708, "origin": "app", "host_monotonic": 1125367.127836416}
+{"name": "input-up", "native_ms": 24893779, "wall_ms": 1788790940202, "origin": "input", "host_monotonic": 1125367.16527725}
+{"name": "card-press", "js_ms": 24893794.287786, "wall_ms": 1788790940217, "origin": "app", "host_monotonic": 1125367.181250791}
+{"name": "open-request", "js_ms": 24893799.936786, "wall_ms": 1788790940223, "phase": "idle", "origin": "app", "host_monotonic": 1125367.191051625}
+{"name": "navigate", "js_ms": 24893805.188036, "wall_ms": 1788790940228, "origin": "app", "host_monotonic": 1125367.19177725}
+{"name": "destination-measured", "js_ms": 24894039.863953, "wall_ms": 1788790940463, "origin": "app", "host_monotonic": 1125367.423939541}
+{"name": "cover-ready", "js_ms": 24894149.255328, "wall_ms": 1788790940572, "phase": "landing", "origin": "app", "host_monotonic": 1125367.534628958}
+{"name": "takeoff-ready", "js_ms": 24894149.613578, "wall_ms": 1788790940572, "origin": "app", "host_monotonic": 1125367.535050416}
+{"name": "animation-requested", "js_ms": 24894186.683786, "wall_ms": 1788790940610, "phase": "flying", "origin": "app", "host_monotonic": 1125367.57098525}
+{"name": "first-ui-motion", "js_ms": 24894210.598203, "wall_ms": 1788790940633, "phase": "flying", "ui_ms": 24894205.057578, "ui_wall_ms": 1788790940628, "origin": "app", "host_monotonic": 1125367.606970541}
+{"name": "ui-endpoint", "js_ms": 24894720.715412, "wall_ms": 1788790941144, "phase": "flying", "ui_ms": 24894715.62812, "ui_wall_ms": 1788790941139, "origin": "app", "host_monotonic": 1125368.148657833}
+{"name": "input-back", "native_ms": 24895086, "wall_ms": 1788790941510, "origin": "input", "host_monotonic": 1125368.478103208}
+{"name": "close-request", "js_ms": 24895144.493662, "wall_ms": 1788790941567, "origin": "app", "host_monotonic": 1125368.528414875}
+{"name": "cover-ready", "js_ms": 24895177.574953, "wall_ms": 1788790941600, "phase": "returning", "origin": "app", "host_monotonic": 1125368.579430916}
+{"name": "animation-requested", "js_ms": 24895223.512162, "wall_ms": 1788790941646, "phase": "closing", "origin": "app", "host_monotonic": 1125368.608946791}
+{"name": "first-ui-motion", "js_ms": 24895244.043662, "wall_ms": 1788790941667, "phase": "closing", "ui_ms": 24895243.814953, "ui_wall_ms": 1788790941667, "origin": "app", "host_monotonic": 1125368.637263041}
+{"name": "input-down", "native_ms": 24895650, "wall_ms": 1788790942074, "origin": "input", "host_monotonic": 1125369.034601291}
+{"name": "ui-endpoint", "js_ms": 24895657.108287, "wall_ms": 1788790942080, "phase": "closing", "ui_ms": 24895651.974204, "ui_wall_ms": 1788790942075, "origin": "app", "host_monotonic": 1125369.040896458}
+{"name": "return-complete-js", "js_ms": 24895657.706454, "wall_ms": 1788790942081, "origin": "app", "host_monotonic": 1125369.041468583}
+{"name": "input-up", "native_ms": 24895711, "wall_ms": 1788790942135, "origin": "input", "host_monotonic": 1125369.095598083}
+{"name": "page-unmount", "js_ms": 24895969.911704, "wall_ms": 1788790942393, "origin": "app", "host_monotonic": 1125369.354200375}
+{"name": "cancel", "js_ms": 24895970.332537, "wall_ms": 1788790942393, "phase": "closed", "origin": "app", "host_monotonic": 1125369.356133958}
+{"name": "input-down", "native_ms": 24899063, "wall_ms": 1788790945486, "origin": "input", "host_monotonic": 1125372.449310416}
+{"name": "input-up", "native_ms": 24899144, "wall_ms": 1788790945567, "origin": "input", "host_monotonic": 1125372.528575166}
+{"name": "card-press-in", "js_ms": 24899142.884289, "wall_ms": 1788790945566, "native_ms": 24899063, "origin": "app", "host_monotonic": 1125372.530658916}
+{"name": "card-press", "js_ms": 24899154.137497, "wall_ms": 1788790945577, "origin": "app", "host_monotonic": 1125372.538056458}
+{"name": "open-request", "js_ms": 24899162.254914, "wall_ms": 1788790945585, "phase": "idle", "origin": "app", "host_monotonic": 1125372.54626975}
+{"name": "navigate", "js_ms": 24899170.489497, "wall_ms": 1788790945593, "origin": "app", "host_monotonic": 1125372.55436225}
+{"name": "destination-measured", "js_ms": 24899341.47658, "wall_ms": 1788790945764, "origin": "app", "host_monotonic": 1125372.725043208}
+{"name": "cover-ready", "js_ms": 24899460.656872, "wall_ms": 1788790945884, "phase": "landing", "origin": "app", "host_monotonic": 1125372.845593625}
+{"name": "takeoff-ready", "js_ms": 24899460.749789, "wall_ms": 1788790945884, "origin": "app", "host_monotonic": 1125372.856086}
+{"name": "animation-requested", "js_ms": 24899508.356039, "wall_ms": 1788790945931, "phase": "flying", "origin": "app", "host_monotonic": 1125372.892285791}
+{"name": "first-ui-motion", "js_ms": 24899560.802039, "wall_ms": 1788790945984, "phase": "flying", "ui_ms": 24899551.507664, "ui_wall_ms": 1788790945974, "origin": "app", "host_monotonic": 1125372.944665166}
+{"name": "ui-endpoint", "js_ms": 24900106.589497, "wall_ms": 1788790946529, "phase": "flying", "ui_ms": 24900105.645789, "ui_wall_ms": 1788790946529, "origin": "app", "host_monotonic": 1125373.49427325}
+{"name": "input-back", "native_ms": 24900416, "wall_ms": 1788790946839, "origin": "input", "host_monotonic": 1125373.800705208}
+{"name": "close-request", "js_ms": 24900431.303206, "wall_ms": 1788790946854, "origin": "app", "host_monotonic": 1125373.815530875}
+{"name": "cover-ready", "js_ms": 24900483.947998, "wall_ms": 1788790946907, "phase": "returning", "origin": "app", "host_monotonic": 1125373.86808275}
+{"name": "animation-requested", "js_ms": 24900505.009706, "wall_ms": 1788790946928, "phase": "closing", "origin": "app", "host_monotonic": 1125373.889296666}
+{"name": "first-ui-motion", "js_ms": 24900527.468331, "wall_ms": 1788790946950, "phase": "closing", "ui_ms": 24900527.102956, "ui_wall_ms": 1788790946950, "origin": "app", "host_monotonic": 1125373.919967}
+{"name": "ui-endpoint", "js_ms": 24900936.749373, "wall_ms": 1788790947360, "phase": "closing", "ui_ms": 24900936.549581, "ui_wall_ms": 1788790947359, "origin": "app", "host_monotonic": 1125374.320549833}
+{"name": "return-complete-js", "js_ms": 24900937.570831, "wall_ms": 1788790947360, "origin": "app", "host_monotonic": 1125374.3280725}
+{"name": "input-down", "native_ms": 24901074, "wall_ms": 1788790947497, "origin": "input", "host_monotonic": 1125374.458056208}
+{"name": "input-up", "native_ms": 24901147, "wall_ms": 1788790947570, "origin": "input", "host_monotonic": 1125374.530951041}
+{"name": "page-unmount", "js_ms": 24901263.674748, "wall_ms": 1788790947687, "origin": "app", "host_monotonic": 1125374.648895833}
+{"name": "cancel", "js_ms": 24901263.962456, "wall_ms": 1788790947687, "phase": "closed", "origin": "app", "host_monotonic": 1125374.655216166}
+{"name": "input-down", "native_ms": 24904478, "wall_ms": 1788790950901, "origin": "input", "host_monotonic": 1125377.870642375}
+{"name": "card-press-in", "js_ms": 24904526.814666, "wall_ms": 1788790950950, "native_ms": 24904478, "origin": "app", "host_monotonic": 1125377.91482375}
+{"name": "input-up", "native_ms": 24904565, "wall_ms": 1788790950988, "origin": "input", "host_monotonic": 1125377.949460083}
+{"name": "card-press", "js_ms": 24904576.814125, "wall_ms": 1788790951000, "origin": "app", "host_monotonic": 1125377.960664625}
+{"name": "open-request", "js_ms": 24904579.185625, "wall_ms": 1788790951002, "phase": "idle", "origin": "app", "host_monotonic": 1125377.96279475}
+{"name": "navigate", "js_ms": 24904580.514166, "wall_ms": 1788790951003, "origin": "app", "host_monotonic": 1125377.964030416}
+{"name": "destination-measured", "js_ms": 24904748.555875, "wall_ms": 1788790951171, "origin": "app", "host_monotonic": 1125378.1334815}
+{"name": "cover-ready", "js_ms": 24904852.814708, "wall_ms": 1788790951276, "phase": "landing", "origin": "app", "host_monotonic": 1125378.248780625}
+{"name": "takeoff-ready", "js_ms": 24904853.090833, "wall_ms": 1788790951276, "origin": "app", "host_monotonic": 1125378.249117875}
+{"name": "animation-requested", "js_ms": 24904907.455125, "wall_ms": 1788790951330, "phase": "flying", "origin": "app", "host_monotonic": 1125378.291868666}
+{"name": "first-ui-motion", "js_ms": 24904962.2305, "wall_ms": 1788790951385, "phase": "flying", "ui_ms": 24904961.509125, "ui_wall_ms": 1788790951384, "origin": "app", "host_monotonic": 1125378.346841875}
+{"name": "ui-endpoint", "js_ms": 24905496.821583, "wall_ms": 1788790951920, "phase": "flying", "ui_ms": 24905494.318125, "ui_wall_ms": 1788790951917, "origin": "app", "host_monotonic": 1125378.891496625}
+{"name": "input-back", "native_ms": 24905823, "wall_ms": 1788790952246, "origin": "input", "host_monotonic": 1125379.206992208}
+{"name": "close-request", "js_ms": 24905840.592833, "wall_ms": 1788790952263, "origin": "app", "host_monotonic": 1125379.224338416}
+{"name": "cover-ready", "js_ms": 24905904.745834, "wall_ms": 1788790952328, "phase": "returning", "origin": "app", "host_monotonic": 1125379.288710208}
+{"name": "animation-requested", "js_ms": 24905924.748875, "wall_ms": 1788790952348, "phase": "closing", "origin": "app", "host_monotonic": 1125379.309078583}
+{"name": "first-ui-motion", "js_ms": 24905970.796375, "wall_ms": 1788790952394, "phase": "closing", "ui_ms": 24905965.195, "ui_wall_ms": 1788790952388, "origin": "app", "host_monotonic": 1125379.363160083}
+{"name": "ui-endpoint", "js_ms": 24906390.294042, "wall_ms": 1788790952813, "phase": "closing", "ui_ms": 24906389.225584, "ui_wall_ms": 1788790952812, "origin": "app", "host_monotonic": 1125379.77430025}
+{"name": "return-complete-js", "js_ms": 24906390.654917, "wall_ms": 1788790952814, "origin": "app", "host_monotonic": 1125379.776439916}
+{"name": "input-down", "native_ms": 24906627, "wall_ms": 1788790953051, "origin": "input", "host_monotonic": 1125380.020770208}
+{"name": "page-unmount", "js_ms": 24906725.141626, "wall_ms": 1788790953148, "origin": "app", "host_monotonic": 1125380.116145375}
+{"name": "input-up", "native_ms": 24906728, "wall_ms": 1788790953152, "origin": "input", "host_monotonic": 1125380.116293041}
+{"name": "cancel", "js_ms": 24906725.237584, "wall_ms": 1788790953148, "phase": "closed", "origin": "app", "host_monotonic": 1125380.116551208}
+{"name": "input-down", "native_ms": 24910241, "wall_ms": 1788790956664, "origin": "input", "host_monotonic": 1125383.625306166}
+{"name": "card-press-in", "js_ms": 24910278.778294, "wall_ms": 1788790956702, "native_ms": 24910241, "origin": "app", "host_monotonic": 1125383.663506708}
+{"name": "input-up", "native_ms": 24910307, "wall_ms": 1788790956731, "origin": "input", "host_monotonic": 1125383.691498708}
+{"name": "card-press", "js_ms": 24910311.662794, "wall_ms": 1788790956735, "origin": "app", "host_monotonic": 1125383.695575}
+{"name": "open-request", "js_ms": 24910320.942627, "wall_ms": 1788790956744, "phase": "idle", "origin": "app", "host_monotonic": 1125383.707528791}
+{"name": "navigate", "js_ms": 24910321.761919, "wall_ms": 1788790956745, "origin": "app", "host_monotonic": 1125383.709491583}
+{"name": "destination-measured", "js_ms": 24910647.643836, "wall_ms": 1788790957071, "origin": "app", "host_monotonic": 1125384.03760325}
+{"name": "cover-ready", "js_ms": 24910753.042836, "wall_ms": 1788790957176, "phase": "landing", "origin": "app", "host_monotonic": 1125384.136831833}
+{"name": "takeoff-ready", "js_ms": 24910753.648294, "wall_ms": 1788790957177, "origin": "app", "host_monotonic": 1125384.139378041}
+{"name": "animation-requested", "js_ms": 24910805.672503, "wall_ms": 1788790957229, "phase": "flying", "origin": "app", "host_monotonic": 1125384.191294375}
+{"name": "first-ui-motion", "js_ms": 24910827.890253, "wall_ms": 1788790957251, "phase": "flying", "ui_ms": 24910826.087253, "ui_wall_ms": 1788790957249, "origin": "app", "host_monotonic": 1125384.212895}
+{"name": "ui-endpoint", "js_ms": 24911469.494128, "wall_ms": 1788790957892, "phase": "flying", "ui_ms": 24911441.941044, "ui_wall_ms": 1788790957865, "origin": "app", "host_monotonic": 1125384.904204958}
+{"name": "input-back", "native_ms": 24911830, "wall_ms": 1788790958253, "origin": "input", "host_monotonic": 1125385.214943083}
+{"name": "close-request", "js_ms": 24911927.333878, "wall_ms": 1788790958350, "origin": "app", "host_monotonic": 1125385.311872}
+{"name": "cover-ready", "js_ms": 24912057.30367, "wall_ms": 1788790958480, "phase": "returning", "origin": "app", "host_monotonic": 1125385.441641583}
+{"name": "animation-requested", "js_ms": 24912089.458295, "wall_ms": 1788790958512, "phase": "closing", "origin": "app", "host_monotonic": 1125385.473413083}
+{"name": "first-ui-motion", "js_ms": 24912113.774003, "wall_ms": 1788790958537, "phase": "closing", "ui_ms": 24912111.028211, "ui_wall_ms": 1788790958534, "origin": "app", "host_monotonic": 1125385.498561208}
+{"name": "ui-endpoint", "js_ms": 24912556.173962, "wall_ms": 1788790958979, "phase": "closing", "ui_ms": 24912554.199795, "ui_wall_ms": 1788790958977, "origin": "app", "host_monotonic": 1125385.957273}
+{"name": "return-complete-js", "js_ms": 24912561.971295, "wall_ms": 1788790958985, "origin": "app", "host_monotonic": 1125385.961152333}
+{"name": "input-down", "native_ms": 24912834, "wall_ms": 1788790959258, "origin": "input", "host_monotonic": 1125386.221597125}
+{"name": "input-up", "native_ms": 24912906, "wall_ms": 1788790959329, "origin": "input", "host_monotonic": 1125386.295871166}
+{"name": "page-unmount", "js_ms": 24912987.757379, "wall_ms": 1788790959411, "origin": "app", "host_monotonic": 1125386.373583625}
+{"name": "cancel", "js_ms": 24912987.840795, "wall_ms": 1788790959411, "phase": "closed", "origin": "app", "host_monotonic": 1125386.373908583}
+{"name": "input-down", "native_ms": 24916359, "wall_ms": 1788790962782, "origin": "input", "host_monotonic": 1125389.744167375}
+{"name": "card-press-in", "js_ms": 24916396.899089, "wall_ms": 1788790962820, "native_ms": 24916359, "origin": "app", "host_monotonic": 1125389.783232791}
+{"name": "input-up", "native_ms": 24916428, "wall_ms": 1788790962852, "origin": "input", "host_monotonic": 1125389.813660625}
+{"name": "card-press", "js_ms": 24916443.230047, "wall_ms": 1788790962866, "origin": "app", "host_monotonic": 1125389.83391225}
+{"name": "open-request", "js_ms": 24916445.987714, "wall_ms": 1788790962869, "phase": "idle", "origin": "app", "host_monotonic": 1125389.834224}
+{"name": "navigate", "js_ms": 24916446.47138, "wall_ms": 1788790962869, "origin": "app", "host_monotonic": 1125389.834417125}
+{"name": "destination-measured", "js_ms": 24916895.516714, "wall_ms": 1788790963318, "origin": "app", "host_monotonic": 1125390.279805041}
+{"name": "takeoff-ready", "js_ms": 24917117.466631, "wall_ms": 1788790963540, "origin": "app", "host_monotonic": 1125390.5027615}
+{"name": "cover-ready", "js_ms": 24917142.247214, "wall_ms": 1788790963565, "phase": "flying", "origin": "app", "host_monotonic": 1125390.52631575}
+{"name": "animation-requested", "js_ms": 24917297.633422, "wall_ms": 1788790963721, "phase": "flying", "origin": "app", "host_monotonic": 1125390.681540083}
+{"name": "first-ui-motion", "js_ms": 24917329.062089, "wall_ms": 1788790963752, "phase": "flying", "ui_ms": 24917328.417131, "ui_wall_ms": 1788790963751, "origin": "app", "host_monotonic": 1125390.713169208}
+{"name": "ui-endpoint", "js_ms": 24917867.772548, "wall_ms": 1788790964291, "phase": "flying", "ui_ms": 24917836.646131, "ui_wall_ms": 1788790964260, "origin": "app", "host_monotonic": 1125391.260808625}
+{"name": "input-back", "native_ms": 24918185, "wall_ms": 1788790964608, "origin": "input", "host_monotonic": 1125391.569944666}
+{"name": "close-request", "js_ms": 24918218.678798, "wall_ms": 1788790964642, "origin": "app", "host_monotonic": 1125391.606600541}
+{"name": "cover-ready", "js_ms": 24918287.479381, "wall_ms": 1788790964710, "phase": "returning", "origin": "app", "host_monotonic": 1125391.67225575}
+{"name": "animation-requested", "js_ms": 24918319.610423, "wall_ms": 1788790964742, "phase": "closing", "origin": "app", "host_monotonic": 1125391.703902708}
+{"name": "first-ui-motion", "js_ms": 24918335.956714, "wall_ms": 1788790964759, "phase": "closing", "ui_ms": 24918335.411714, "ui_wall_ms": 1788790964758, "origin": "app", "host_monotonic": 1125391.72152325}
+{"name": "input-down", "native_ms": 24918541, "wall_ms": 1788790964964, "origin": "input", "host_monotonic": 1125391.925975375}
+{"name": "input-up", "native_ms": 24918612, "wall_ms": 1788790965035, "origin": "input", "host_monotonic": 1125391.996212708}
+{"name": "ui-endpoint", "js_ms": 24918735.040256, "wall_ms": 1788790965158, "phase": "closing", "ui_ms": 24918734.504798, "ui_wall_ms": 1788790965157, "origin": "app", "host_monotonic": 1125392.121818}
+{"name": "return-complete-js", "js_ms": 24918735.620506, "wall_ms": 1788790965158, "origin": "app", "host_monotonic": 1125392.122237416}
+{"name": "page-unmount", "js_ms": 24919058.802465, "wall_ms": 1788790965482, "origin": "app", "host_monotonic": 1125392.445544708}
+{"name": "cancel", "js_ms": 24919059.159465, "wall_ms": 1788790965482, "phase": "closed", "origin": "app", "host_monotonic": 1125392.452316458}
+{"name": "input-down", "native_ms": 24921939, "wall_ms": 1788790968362, "origin": "input", "host_monotonic": 1125395.326723041}
+{"name": "input-up", "native_ms": 24922036, "wall_ms": 1788790968460, "origin": "input", "host_monotonic": 1125395.422243791}
+{"name": "card-press-in", "js_ms": 24922056.679883, "wall_ms": 1788790968480, "native_ms": 24921939, "origin": "app", "host_monotonic": 1125395.445501875}
+{"name": "card-press", "js_ms": 24922075.91955, "wall_ms": 1788790968499, "origin": "app", "host_monotonic": 1125395.463671625}
+{"name": "open-request", "js_ms": 24922080.578633, "wall_ms": 1788790968503, "phase": "idle", "origin": "app", "host_monotonic": 1125395.464315541}
+{"name": "navigate", "js_ms": 24922081.17505, "wall_ms": 1788790968504, "origin": "app", "host_monotonic": 1125395.465560041}
+{"name": "destination-measured", "js_ms": 24922282.889591, "wall_ms": 1788790968706, "origin": "app", "host_monotonic": 1125395.667377375}
+{"name": "cover-ready", "js_ms": 24922379.137966, "wall_ms": 1788790968802, "phase": "landing", "origin": "app", "host_monotonic": 1125395.768484666}
+{"name": "takeoff-ready", "js_ms": 24922379.261716, "wall_ms": 1788790968802, "origin": "app", "host_monotonic": 1125395.76884175}
+{"name": "animation-requested", "js_ms": 24922417.657258, "wall_ms": 1788790968841, "phase": "flying", "origin": "app", "host_monotonic": 1125395.803862}
+{"name": "first-ui-motion", "js_ms": 24922468.446258, "wall_ms": 1788790968891, "phase": "flying", "ui_ms": 24922446.584175, "ui_wall_ms": 1788790968869, "origin": "app", "host_monotonic": 1125395.856586166}
+{"name": "ui-endpoint", "js_ms": 24922998.1703, "wall_ms": 1788790969421, "phase": "flying", "ui_ms": 24922997.0923, "ui_wall_ms": 1788790969420, "origin": "app", "host_monotonic": 1125396.38324825}
+{"name": "input-back", "native_ms": 24923305, "wall_ms": 1788790969728, "origin": "input", "host_monotonic": 1125396.689114458}
+{"name": "close-request", "js_ms": 24923324.408258, "wall_ms": 1788790969747, "origin": "app", "host_monotonic": 1125396.710348833}
+{"name": "cover-ready", "js_ms": 24923376.203842, "wall_ms": 1788790969799, "phase": "returning", "origin": "app", "host_monotonic": 1125396.764357458}
+{"name": "animation-requested", "js_ms": 24923411.409425, "wall_ms": 1788790969834, "phase": "closing", "origin": "app", "host_monotonic": 1125396.795413708}
+{"name": "first-ui-motion", "js_ms": 24923431.388759, "wall_ms": 1788790969854, "phase": "closing", "ui_ms": 24923430.915134, "ui_wall_ms": 1788790969854, "origin": "app", "host_monotonic": 1125396.816668666}
+{"name": "input-down", "native_ms": 24923766, "wall_ms": 1788790970189, "origin": "input", "host_monotonic": 1125397.156944375}
+{"name": "input-up", "native_ms": 24923858, "wall_ms": 1788790970281, "origin": "input", "host_monotonic": 1125397.242472875}
+{"name": "ui-endpoint", "js_ms": 24923869.415925, "wall_ms": 1788790970292, "phase": "closing", "ui_ms": 24923866.139675, "ui_wall_ms": 1788790970289, "origin": "app", "host_monotonic": 1125397.255334}
+{"name": "return-complete-js", "js_ms": 24923869.996842, "wall_ms": 1788790970293, "origin": "app", "host_monotonic": 1125397.255921583}
+{"name": "page-unmount", "js_ms": 24924239.511842, "wall_ms": 1788790970668, "origin": "app", "host_monotonic": 1125397.641791791}
+{"name": "cancel", "js_ms": 24924245.039551, "wall_ms": 1788790970668, "phase": "closed", "origin": "app", "host_monotonic": 1125397.652117208}
+{"name": "input-down", "native_ms": 24927130, "wall_ms": 1788790973553, "origin": "input", "host_monotonic": 1125400.515020916}
+{"name": "card-press-in", "js_ms": 24927153.16751, "wall_ms": 1788790973576, "native_ms": 24927130, "origin": "app", "host_monotonic": 1125400.538404416}
+{"name": "input-up", "native_ms": 24927195, "wall_ms": 1788790973619, "origin": "input", "host_monotonic": 1125400.579586791}
+{"name": "card-press", "js_ms": 24927210.059552, "wall_ms": 1788790973633, "origin": "app", "host_monotonic": 1125400.596746}
+{"name": "open-request", "js_ms": 24927213.600385, "wall_ms": 1788790973636, "phase": "idle", "origin": "app", "host_monotonic": 1125400.601817541}
+{"name": "navigate", "js_ms": 24927214.227094, "wall_ms": 1788790973637, "origin": "app", "host_monotonic": 1125400.602298875}
+{"name": "destination-measured", "js_ms": 24927410.262719, "wall_ms": 1788790973833, "origin": "app", "host_monotonic": 1125400.794100541}
+{"name": "cover-ready", "js_ms": 24927521.206052, "wall_ms": 1788790973944, "phase": "landing", "origin": "app", "host_monotonic": 1125400.910882083}
+{"name": "takeoff-ready", "js_ms": 24927521.51101, "wall_ms": 1788790973944, "origin": "app", "host_monotonic": 1125400.919954708}
+{"name": "animation-requested", "js_ms": 24927545.615636, "wall_ms": 1788790973968, "phase": "flying", "origin": "app", "host_monotonic": 1125400.929509958}
+{"name": "first-ui-motion", "js_ms": 24927570.688886, "wall_ms": 1788790973994, "phase": "flying", "ui_ms": 24927563.026719, "ui_wall_ms": 1788790973986, "origin": "app", "host_monotonic": 1125400.954437625}
+{"name": "ui-endpoint", "js_ms": 24928115.154636, "wall_ms": 1788790974538, "phase": "flying", "ui_ms": 24928114.404469, "ui_wall_ms": 1788790974537, "origin": "app", "host_monotonic": 1125401.504013583}
+{"name": "input-back", "native_ms": 24928440, "wall_ms": 1788790974864, "origin": "input", "host_monotonic": 1125401.825770083}
+{"name": "close-request", "js_ms": 24928532.366386, "wall_ms": 1788790974955, "origin": "app", "host_monotonic": 1125401.916656}
+{"name": "cover-ready", "js_ms": 24928582.426719, "wall_ms": 1788790975005, "phase": "returning", "origin": "app", "host_monotonic": 1125401.966311083}
+{"name": "animation-requested", "js_ms": 24928605.982178, "wall_ms": 1788790975029, "phase": "closing", "origin": "app", "host_monotonic": 1125401.989940541}
+{"name": "first-ui-motion", "js_ms": 24928628.232969, "wall_ms": 1788790975051, "phase": "closing", "ui_ms": 24928627.833386, "ui_wall_ms": 1788790975051, "origin": "app", "host_monotonic": 1125402.012366583}
+{"name": "input-down", "native_ms": 24928993, "wall_ms": 1788790975417, "origin": "input", "host_monotonic": 1125402.380443666}
+{"name": "ui-endpoint", "js_ms": 24929037.485261, "wall_ms": 1788790975460, "phase": "closing", "ui_ms": 24929034.702386, "ui_wall_ms": 1788790975458, "origin": "app", "host_monotonic": 1125402.421474958}
+{"name": "return-complete-js", "js_ms": 24929038.743928, "wall_ms": 1788790975462, "origin": "app", "host_monotonic": 1125402.42229875}
+{"name": "input-up", "native_ms": 24929061, "wall_ms": 1788790975484, "origin": "input", "host_monotonic": 1125402.445537916}
+{"name": "page-unmount", "js_ms": 24929347.677803, "wall_ms": 1788790975771, "origin": "app", "host_monotonic": 1125402.734231833}
+{"name": "cancel", "js_ms": 24929347.760928, "wall_ms": 1788790975771, "phase": "closed", "origin": "app", "host_monotonic": 1125402.735147416}
+{"name": "input-down", "native_ms": 24932413, "wall_ms": 1788790978837, "origin": "input", "host_monotonic": 1125405.802391208}
+{"name": "card-press-in", "js_ms": 24932451.800805, "wall_ms": 1788790978875, "native_ms": 24932413, "origin": "app", "host_monotonic": 1125405.852823958}
+{"name": "input-up", "native_ms": 24932492, "wall_ms": 1788790978915, "origin": "input", "host_monotonic": 1125405.87636575}
+{"name": "card-press", "js_ms": 24932510.15293, "wall_ms": 1788790978933, "origin": "app", "host_monotonic": 1125405.894092333}
+{"name": "open-request", "js_ms": 24932512.581138, "wall_ms": 1788790978935, "phase": "idle", "origin": "app", "host_monotonic": 1125405.896610125}
+{"name": "navigate", "js_ms": 24932518.88693, "wall_ms": 1788790978942, "origin": "app", "host_monotonic": 1125405.907289}
+{"name": "destination-measured", "js_ms": 24932706.673888, "wall_ms": 1788790979130, "origin": "app", "host_monotonic": 1125406.091093416}
+{"name": "takeoff-ready", "js_ms": 24932885.07868, "wall_ms": 1788790979308, "origin": "app", "host_monotonic": 1125406.269778958}
+{"name": "cover-ready", "js_ms": 24932886.980305, "wall_ms": 1788790979310, "phase": "flying", "origin": "app", "host_monotonic": 1125406.283466291}
+{"name": "animation-requested", "js_ms": 24932941.95418, "wall_ms": 1788790979365, "phase": "flying", "origin": "app", "host_monotonic": 1125406.326677541}
+{"name": "first-ui-motion", "js_ms": 24932989.362596, "wall_ms": 1788790979412, "phase": "flying", "ui_ms": 24932980.31593, "ui_wall_ms": 1788790979403, "origin": "app", "host_monotonic": 1125406.375343583}
+{"name": "ui-endpoint", "js_ms": 24933568.664847, "wall_ms": 1788790979992, "phase": "flying", "ui_ms": 24933565.38943, "ui_wall_ms": 1788790979988, "origin": "app", "host_monotonic": 1125406.954343875}
+{"name": "input-back", "native_ms": 24933877, "wall_ms": 1788790980301, "origin": "input", "host_monotonic": 1125407.26278475}
+{"name": "close-request", "js_ms": 24933892.922347, "wall_ms": 1788790980316, "origin": "app", "host_monotonic": 1125407.276887958}
+{"name": "cover-ready", "js_ms": 24933927.33243, "wall_ms": 1788790980350, "phase": "returning", "origin": "app", "host_monotonic": 1125407.318742958}
+{"name": "animation-requested", "js_ms": 24933948.512222, "wall_ms": 1788790980371, "phase": "closing", "origin": "app", "host_monotonic": 1125407.339220416}
+{"name": "first-ui-motion", "js_ms": 24933961.32643, "wall_ms": 1788790980384, "phase": "closing", "ui_ms": 24933961.061472, "ui_wall_ms": 1788790980384, "origin": "app", "host_monotonic": 1125407.345350291}
+{"name": "ui-endpoint", "js_ms": 24934390.275889, "wall_ms": 1788790980813, "phase": "closing", "ui_ms": 24934389.100972, "ui_wall_ms": 1788790980812, "origin": "app", "host_monotonic": 1125407.774390125}
+{"name": "return-complete-js", "js_ms": 24934390.37793, "wall_ms": 1788790980813, "origin": "app", "host_monotonic": 1125407.786406333}
+{"name": "input-down", "native_ms": 24934536, "wall_ms": 1788790980960, "origin": "input", "host_monotonic": 1125407.92393925}
+{"name": "input-up", "native_ms": 24934600, "wall_ms": 1788790981024, "origin": "input", "host_monotonic": 1125407.990873375}
+{"name": "page-unmount", "js_ms": 24934756.999806, "wall_ms": 1788790981180, "origin": "app", "host_monotonic": 1125408.140924166}
+{"name": "cancel", "js_ms": 24934757.702264, "wall_ms": 1788790981181, "phase": "closed", "origin": "app", "host_monotonic": 1125408.142039333}
+{"name": "input-down", "native_ms": 24938453, "wall_ms": 1788790984876, "origin": "input", "host_monotonic": 1125411.837617833}
+{"name": "card-press-in", "js_ms": 24938490.911307, "wall_ms": 1788790984914, "native_ms": 24938453, "origin": "app", "host_monotonic": 1125411.876870916}
+{"name": "input-up", "native_ms": 24938526, "wall_ms": 1788790984949, "origin": "input", "host_monotonic": 1125411.913086}
+{"name": "card-press", "js_ms": 24938531.994766, "wall_ms": 1788790984955, "origin": "app", "host_monotonic": 1125411.9159245}
+{"name": "open-request", "js_ms": 24938534.131141, "wall_ms": 1788790984957, "phase": "idle", "origin": "app", "host_monotonic": 1125411.917767708}
+{"name": "navigate", "js_ms": 24938534.606516, "wall_ms": 1788790984957, "origin": "app", "host_monotonic": 1125411.918426541}
+{"name": "destination-measured", "js_ms": 24938764.463266, "wall_ms": 1788790985187, "origin": "app", "host_monotonic": 1125412.148357833}
+{"name": "cover-ready", "js_ms": 24938881.008558, "wall_ms": 1788790985304, "phase": "landing", "origin": "app", "host_monotonic": 1125412.268224916}
+{"name": "takeoff-ready", "js_ms": 24938881.135141, "wall_ms": 1788790985304, "origin": "app", "host_monotonic": 1125412.268564458}
+{"name": "animation-requested", "js_ms": 24938904.386391, "wall_ms": 1788790985327, "phase": "flying", "origin": "app", "host_monotonic": 1125412.288267041}
+{"name": "first-ui-motion", "js_ms": 24938922.637849, "wall_ms": 1788790985346, "phase": "flying", "ui_ms": 24938915.147974, "ui_wall_ms": 1788790985338, "origin": "app", "host_monotonic": 1125412.306949125}
+{"name": "ui-endpoint", "js_ms": 24939431.518016, "wall_ms": 1788790985854, "phase": "flying", "ui_ms": 24939430.0726, "ui_wall_ms": 1788790985853, "origin": "app", "host_monotonic": 1125412.824917791}
+{"name": "input-back", "native_ms": 24939751, "wall_ms": 1788790986174, "origin": "input", "host_monotonic": 1125413.137074208}
+{"name": "close-request", "js_ms": 24939772.216766, "wall_ms": 1788790986195, "origin": "app", "host_monotonic": 1125413.156213916}
+{"name": "cover-ready", "js_ms": 24939831.382933, "wall_ms": 1788790986254, "phase": "returning", "origin": "app", "host_monotonic": 1125413.224233083}
+{"name": "animation-requested", "js_ms": 24939860.189933, "wall_ms": 1788790986283, "phase": "closing", "origin": "app", "host_monotonic": 1125413.251283958}
+{"name": "first-ui-motion", "js_ms": 24939878.267141, "wall_ms": 1788790986301, "phase": "closing", "ui_ms": 24939877.644475, "ui_wall_ms": 1788790986301, "origin": "app", "host_monotonic": 1125413.262101333}
+{"name": "ui-endpoint", "js_ms": 24940310.292892, "wall_ms": 1788790986733, "phase": "closing", "ui_ms": 24940309.667225, "ui_wall_ms": 1788790986733, "origin": "app", "host_monotonic": 1125413.694908708}
+{"name": "return-complete-js", "js_ms": 24940312.280225, "wall_ms": 1788790986735, "origin": "app", "host_monotonic": 1125413.696034208}
+{"name": "input-down", "native_ms": 24940559, "wall_ms": 1788790986982, "origin": "input", "host_monotonic": 1125413.9432335}
+{"name": "input-up", "native_ms": 24940627, "wall_ms": 1788790987051, "origin": "input", "host_monotonic": 1125414.012033}
+{"name": "page-unmount", "js_ms": 24940705.685933, "wall_ms": 1788790987129, "origin": "app", "host_monotonic": 1125414.0893405}
+{"name": "cancel", "js_ms": 24940705.952058, "wall_ms": 1788790987129, "phase": "closed", "origin": "app", "host_monotonic": 1125414.090058666}
+{"name": "input-down", "native_ms": 24943927, "wall_ms": 1788790990350, "origin": "input", "host_monotonic": 1125417.311395333}
+{"name": "card-press-in", "js_ms": 24943956.80931, "wall_ms": 1788790990380, "native_ms": 24943927, "origin": "app", "host_monotonic": 1125417.341957791}
+{"name": "input-up", "native_ms": 24943997, "wall_ms": 1788790990420, "origin": "input", "host_monotonic": 1125417.381904833}
+{"name": "card-press", "js_ms": 24944000.634685, "wall_ms": 1788790990424, "origin": "app", "host_monotonic": 1125417.384495166}
+{"name": "open-request", "js_ms": 24944003.050477, "wall_ms": 1788790990426, "phase": "idle", "origin": "app", "host_monotonic": 1125417.38667475}
+{"name": "navigate", "js_ms": 24944004.615727, "wall_ms": 1788790990427, "origin": "app", "host_monotonic": 1125417.388113208}
+{"name": "destination-measured", "js_ms": 24944231.305602, "wall_ms": 1788790990654, "origin": "app", "host_monotonic": 1125417.615234208}
+{"name": "takeoff-ready", "js_ms": 24944476.545435, "wall_ms": 1788790990899, "origin": "app", "host_monotonic": 1125417.861800125}
+{"name": "cover-ready", "js_ms": 24944489.395185, "wall_ms": 1788790990912, "phase": "flying", "origin": "app", "host_monotonic": 1125417.873301333}
+{"name": "animation-requested", "js_ms": 24944554.885352, "wall_ms": 1788790990978, "phase": "flying", "origin": "app", "host_monotonic": 1125417.939097166}
+{"name": "first-ui-motion", "js_ms": 24944583.474227, "wall_ms": 1788790991006, "phase": "flying", "ui_ms": 24944579.551144, "ui_wall_ms": 1788790991002, "origin": "app", "host_monotonic": 1125417.972128625}
+{"name": "ui-endpoint", "js_ms": 24945084.385186, "wall_ms": 1788790991507, "phase": "flying", "ui_ms": 24945078.046394, "ui_wall_ms": 1788790991501, "origin": "app", "host_monotonic": 1125418.470327583}
+{"name": "input-back", "native_ms": 24945390, "wall_ms": 1788790991813, "origin": "input", "host_monotonic": 1125418.773963}
+{"name": "close-request", "js_ms": 24945400.738311, "wall_ms": 1788790991824, "origin": "app", "host_monotonic": 1125418.787761625}
+{"name": "cover-ready", "js_ms": 24945456.399477, "wall_ms": 1788790991879, "phase": "returning", "origin": "app", "host_monotonic": 1125418.841544875}
+{"name": "animation-requested", "js_ms": 24945474.606561, "wall_ms": 1788790991897, "phase": "closing", "origin": "app", "host_monotonic": 1125418.858481166}
+{"name": "first-ui-motion", "js_ms": 24945495.682727, "wall_ms": 1788790991919, "phase": "closing", "ui_ms": 24945495.425936, "ui_wall_ms": 1788790991918, "origin": "app", "host_monotonic": 1125418.879794}
+{"name": "ui-endpoint", "js_ms": 24945904.335894, "wall_ms": 1788790992327, "phase": "closing", "ui_ms": 24945897.773519, "ui_wall_ms": 1788790992321, "origin": "app", "host_monotonic": 1125419.28845575}
+{"name": "return-complete-js", "js_ms": 24945905.003561, "wall_ms": 1788790992328, "origin": "app", "host_monotonic": 1125419.28937175}
+{"name": "page-unmount", "js_ms": 24946250.618728, "wall_ms": 1788790992673, "origin": "app", "host_monotonic": 1125419.635772458}
+{"name": "cancel", "js_ms": 24946251.000894, "wall_ms": 1788790992674, "phase": "closed", "origin": "app", "host_monotonic": 1125419.636894375}
+{"name": "input-down", "native_ms": 24946404, "wall_ms": 1788790992827, "origin": "input", "host_monotonic": 1125419.78782125}
+{"name": "card-press-in", "js_ms": 24946420.396395, "wall_ms": 1788790992843, "native_ms": 24946404, "origin": "app", "host_monotonic": 1125419.804363791}
+{"name": "input-up", "native_ms": 24946465, "wall_ms": 1788790992889, "origin": "input", "host_monotonic": 1125419.851534958}
+{"name": "card-press", "js_ms": 24946476.767061, "wall_ms": 1788790992900, "origin": "app", "host_monotonic": 1125419.866941708}
+{"name": "open-request", "js_ms": 24946477.850936, "wall_ms": 1788790992901, "phase": "idle", "origin": "app", "host_monotonic": 1125419.868704875}
+{"name": "navigate", "js_ms": 24946477.93077, "wall_ms": 1788790992901, "origin": "app", "host_monotonic": 1125419.868989291}
+{"name": "destination-measured", "js_ms": 24946590.976103, "wall_ms": 1788790993014, "origin": "app", "host_monotonic": 1125419.97479575}
+{"name": "cover-ready", "js_ms": 24946774.09902, "wall_ms": 1788790993197, "phase": "landing", "origin": "app", "host_monotonic": 1125420.16079825}
+{"name": "takeoff-ready", "js_ms": 24946774.972936, "wall_ms": 1788790993198, "origin": "app", "host_monotonic": 1125420.161089708}
+{"name": "animation-requested", "js_ms": 24946862.655686, "wall_ms": 1788790993286, "phase": "flying", "origin": "app", "host_monotonic": 1125420.252469375}
+{"name": "first-ui-motion", "js_ms": 24946878.942686, "wall_ms": 1788790993302, "phase": "flying", "ui_ms": 24946878.579436, "ui_wall_ms": 1788790993301, "origin": "app", "host_monotonic": 1125420.271610166}
+{"name": "ui-endpoint", "js_ms": 24947480.821145, "wall_ms": 1788790993904, "phase": "flying", "ui_ms": 24947424.571062, "ui_wall_ms": 1788790993847, "origin": "app", "host_monotonic": 1125420.870112208}
+{"name": "input-back", "native_ms": 24948076, "wall_ms": 1788790994499, "origin": "input", "host_monotonic": 1125421.460409333}
+{"name": "close-request", "js_ms": 24948088.107395, "wall_ms": 1788790994511, "origin": "app", "host_monotonic": 1125421.472174291}
+{"name": "cover-ready", "js_ms": 24948142.372895, "wall_ms": 1788790994565, "phase": "returning", "origin": "app", "host_monotonic": 1125421.527025791}
+{"name": "animation-requested", "js_ms": 24948159.549312, "wall_ms": 1788790994582, "phase": "closing", "origin": "app", "host_monotonic": 1125421.543592458}
+{"name": "first-ui-motion", "js_ms": 24948183.019604, "wall_ms": 1788790994606, "phase": "closing", "ui_ms": 24948178.394562, "ui_wall_ms": 1788790994601, "origin": "app", "host_monotonic": 1125421.567186}
+{"name": "ui-endpoint", "js_ms": 24948582.876646, "wall_ms": 1788790995006, "phase": "closing", "ui_ms": 24948582.453479, "ui_wall_ms": 1788790995005, "origin": "app", "host_monotonic": 1125421.968277208}
+{"name": "return-complete-js", "js_ms": 24948586.549854, "wall_ms": 1788790995009, "origin": "app", "host_monotonic": 1125421.970036375}
+{"name": "page-unmount", "js_ms": 24948921.506396, "wall_ms": 1788790995344, "origin": "app", "host_monotonic": 1125422.305796333}
+{"name": "cancel", "js_ms": 24948921.613354, "wall_ms": 1788790995344, "phase": "closed", "origin": "app", "host_monotonic": 1125422.306188666}

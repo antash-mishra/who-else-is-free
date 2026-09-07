@@ -1,0 +1,155 @@
+{
+  "trials": [
+    {
+      "cycle": 0,
+      "tap_after_endpoint_ms": -144.70225600153208,
+      "tap_before_unmount_ms": 218.60254700109363,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 1,
+      "tap_after_endpoint_ms": -86.2786750011146,
+      "tap_before_unmount_ms": 164.2335500009358,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 2,
+      "tap_after_endpoint_ms": 18.02590600028634,
+      "tap_before_unmount_ms": 50.98151100054383,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 3,
+      "tap_after_endpoint_ms": 162.03552899882197,
+      "tap_before_unmount_ms": -83.78619499877095,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 395.68718000128865
+    },
+    {
+      "cycle": 4,
+      "tap_after_endpoint_ms": 312.15019299834967,
+      "tap_before_unmount_ms": -237.2841509990394,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 361.26601599901915
+    },
+    {
+      "cycle": 5,
+      "tap_after_endpoint_ms": 448.7303569987416,
+      "tap_before_unmount_ms": -366.4238989986479,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 312.4833099991083
+    },
+    {
+      "cycle": 6,
+      "tap_after_endpoint_ms": -225.1667280010879,
+      "tap_before_unmount_ms": 269.1784779988229,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 7,
+      "tap_after_endpoint_ms": -97.08768900111318,
+      "tap_before_unmount_ms": 125.26006399840117,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 8,
+      "tap_after_endpoint_ms": 68.43859999999404,
+      "tap_before_unmount_ms": -0.6505579985678196,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 9,
+      "tap_after_endpoint_ms": 156.64834700152278,
+      "tap_before_unmount_ms": -128.09551399946213,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 410.1809439994395
+    },
+    {
+      "cycle": 10,
+      "tap_after_endpoint_ms": 121.6961369998753,
+      "tap_before_unmount_ms": -70.25372000038624,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 247.54573800042272
+    },
+    {
+      "cycle": 11,
+      "tap_after_endpoint_ms": 487.2522180005908,
+      "tap_before_unmount_ms": -441.73434299975634,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 217.70886600017548
+    },
+    {
+      "cycle": 12,
+      "tap_after_endpoint_ms": -141.20103399828076,
+      "tap_before_unmount_ms": 209.92136799916625,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 13,
+      "tap_after_endpoint_ms": -50.754787001758814,
+      "tap_before_unmount_ms": 103.9115369990468,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 14,
+      "tap_after_endpoint_ms": -20.294456001371145,
+      "tap_before_unmount_ms": 53.621996998786926,
+      "card_press_seen": false,
+      "reopened": false,
+      "reopen_up_to_motion_ms": null
+    },
+    {
+      "cycle": 15,
+      "tap_after_endpoint_ms": 147.75891700014472,
+      "tap_before_unmount_ms": -117.04795800149441,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 345.4927080012858
+    },
+    {
+      "cycle": 16,
+      "tap_after_endpoint_ms": 295.52170599997044,
+      "tap_before_unmount_ms": -218.88678999990225,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 315.12741899862885
+    },
+    {
+      "cycle": 17,
+      "tap_after_endpoint_ms": 490.56437100097537,
+      "tap_before_unmount_ms": -409.87557899951935,
+      "card_press_seen": true,
+      "reopened": true,
+      "reopen_up_to_motion_ms": 229.0115879997611
+    }
+  ],
+  "summary": {
+    "total_trials": 18,
+    "after_endpoint_taps": 11,
+    "after_endpoint_reopened": 9,
+    "after_endpoint_missed": 2,
+    "missing_close_endpoint": 0
+  }
+}

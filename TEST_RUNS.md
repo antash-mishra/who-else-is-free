@@ -335,3 +335,21 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - The user confirmed the installed animation implementation works correctly on their phone and requested commit/push.
 - Existing validation: 117 suites / 1,428 tests passed for the implemented design; subsequent endpoint repair passed 49 focused tests, typecheck, targeted ESLint, and release build/install verification. Four final emulator returns were reviewed frame by frame without the reported white flash.
 - Visual acceptance is confirmed by the user. Remaining work is optional measured performance tuning (rendering/blur cost and deferred heavy Details content), a comparable before/after device benchmark if access becomes available, and iOS validation. Existing emulator regressions remain documented; acceptance is not a numeric frame-rate claim.
+
+
+## 2026-09-07 — Card input latency and rapid reopening
+
+- Native input and UI-progress instrumentation on release API 36 emulator, local fixtures, no phone writes. Seven normal pairs per version and eighteen rapid-retap attempts per version; numerical capture without screenrecord.
+- Final retained change removes the redundant React Navigation animation lifecycle from successful shared returns; custom image motion and fallback fade remain. Median return endpoint → React unmount: **434.1 → 37.0 ms (91.5% lower)**. Post-endpoint retaps accepted: **1/9 → 9/11**; two residual misses at 18.0/68.4 ms. Verdict: **IMPROVED, NOT FULLY RESOLVED**.
+- Opening release → first sampled UI motion **327.2 → 387.5 ms**; no opening improvement established. Accepted final retaps: 315.1 ms median to first sampled opening motion. These are emulator UI-progress timings, not photon latency/FPS/phone performance.
+- 117 suites / 1,431 tests passed before final defensive unmount guard; final focused regression/typecheck results recorded in the report. Reviewed 32 final trial screenshots and all 85 frames of two additional visual cycles; no return-endpoint white flash observed. Background/resume fallback restored Discover.
+- No phone install, commit, or push for this task. [Report, raw measurements, screenshots and video](report/animation-repair/input-latency-report.md).
+
+- Final defensive unmount guard: 27 focused shared-transition tests and typecheck passed; targeted transition/test/metrics lint passed.
+
+
+## 2026-09-07 — Input latency cleanup build installed on phone
+
+- User requested build/install. Release ARM64 rebuilt with production API/WSS, transition timing diagnostics explicitly disabled, QA OTA disabled; original Android manifest restored.
+- Installed on Galaxy A56 (`192.168.1.9:39779`) with `adb install -r`, preserving app data. Artifact: `artifacts/animation-performance/input-latency-phone.apk`, 72,904,684 bytes, SHA-256 `5caa35c2669695346b3f4eb6a64da0daa6630bde86dea4dd45b8f4d6f1a1d4b5`. Actual installed base APK hash matched.
+- MainActivity launched successfully; process present (PID 19765). **INSTALL/LAUNCH PASS**. Includes reduced shared-return route-removal delay and defensive unmount cleanup. Opening startup delay and very early missed retaps remain documented; no new phone performance claim.

@@ -1,0 +1,14 @@
+[transition-metric] {"name":"card-press-in","js_ms":26402023.855422,"wall_ms":1788792448447,"native_ms":26401980}
+[transition-metric] {"name":"card-press","js_ms":26402033.26363,"wall_ms":1788792448456}
+[transition-metric] {"name":"open-request","js_ms":26402066.413422,"wall_ms":1788792448489,"phase":"idle"}
+[transition-metric] {"name":"navigate","js_ms":26402067.696922,"wall_ms":1788792448491}
+[transition-metric] {"name":"destination-measured","js_ms":26402295.743755,"wall_ms":1788792448719}
+[transition-metric] {"name":"cover-ready","js_ms":26402385.59438,"wall_ms":1788792448808,"phase":"landing"}
+[transition-metric] {"name":"takeoff-ready","js_ms":26402385.698172,"wall_ms":1788792448809}
+[transition-metric] {"name":"animation-requested","js_ms":26402437.648297,"wall_ms":1788792448861,"phase":"flying"}
+[transition-metric] {"name":"first-ui-motion","js_ms":26402450.808047,"wall_ms":1788792448874,"phase":"flying","ui_ms":26402444.512214,"ui_wall_ms":1788792448867}
+[transition-metric] {"name":"ui-endpoint","js_ms":26402988.343131,"wall_ms":1788792449411,"phase":"flying","ui_ms":26402987.827672,"ui_wall_ms":1788792449411}
+[transition-metric] {"name":"cancel","js_ms":26405376.959132,"wall_ms":1788792451800,"phase":"idle"}
+[transition-metric] {"name":"close-request","js_ms":26408621.016758,"wall_ms":1788792455044}
+[transition-metric] {"name":"close-dispatch","js_ms":26408674.888633,"wall_ms":1788792455098}
+[transition-metric] {"name":"page-unmount","js_ms":26409051.980675,"wall_ms":1788792455475}

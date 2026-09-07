@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks/immutability -- Reanimated press feedback mutates shared values from press handlers. */
 import { useEffect, useMemo, useRef } from 'react';
+
 import {
   AccessibilityRole,
+  GestureResponderEvent,
   AccessibilityState,
   Insets,
   LayoutChangeEvent,
@@ -25,7 +27,7 @@ import { seedFromString, seededRand } from '@utils/seededRandom';
 
 type ScalePressableProps = {
   onPress: () => void;
-  onPressIn?: () => void;
+  onPressIn?: (event: GestureResponderEvent) => void;
   children: React.ReactNode;
   /** Style applied to the inner Animated.View (content) */
   style?: StyleProp<ViewStyle>;
@@ -103,9 +105,9 @@ const ScalePressable = ({
       testID={testID}
       style={pressableStyle}
       onLayout={onLayout}
-      onPressIn={() => {
+      onPressIn={(event) => {
         if (disabled) return;
-        onPressIn?.();
+        onPressIn?.(event);
         if (reducedMotion) return;
         if (pressTimer.current) clearTimeout(pressTimer.current);
         if (delay > 0) {

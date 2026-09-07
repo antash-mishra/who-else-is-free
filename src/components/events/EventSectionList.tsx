@@ -16,6 +16,7 @@ import { Placed } from '@components/motion';
 import ScalePressable from '@components/ScalePressable';
 import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
+import { markTransition } from '@utils/transitionMetrics';
 
 import { EventSection } from './eventListSections';
 import { useEventSharedTransition, useEventSharedTransitionState } from './EventSharedTransition';
@@ -70,8 +71,12 @@ const EventCardRow = <TItem extends EventItemProps>({
   return (
     <ScalePressable
       // Measure at press-in, before the press scale distorts the card.
-      onPressIn={() => prime(item.id, source)}
+      onPressIn={(event) => {
+        markTransition('card-press-in', { native_ms: event.nativeEvent.timestamp });
+        prime(item.id, source);
+      }}
       onPress={() => {
+        markTransition('card-press');
         triggerHaptic('light');
         open(item.id, source, (shared) => onPress(item, shared));
       }}
