@@ -1,0 +1,91 @@
+{
+  "trials": [
+    {
+      "cycle": 0,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 428.4015510007739,
+      "up_to_motion": 351.4015510007739,
+      "press_to_motion": 333.68012500181794,
+      "mount_measure": 160.54929099977016,
+      "dest_to_ready": 126.04783399775624,
+      "ready_to_motion": 44.80512500181794,
+      "back_to_motion": 113.9899680018425,
+      "endpoint_to_unmount": 33.77358400076628
+    },
+    {
+      "cycle": 1,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 457.6371369995177,
+      "up_to_motion": 387.6371369995177,
+      "press_to_motion": 377.58004200086,
+      "mount_measure": 150.85449999943376,
+      "dest_to_ready": 174.2563749998808,
+      "ready_to_motion": 47.942292001098394,
+      "back_to_motion": 131.58130399882793,
+      "endpoint_to_unmount": 42.77904199808836
+    },
+    {
+      "cycle": 2,
+      "shared_open": true,
+      "shared_close": false,
+      "down_to_motion": 656.2635569982231,
+      "up_to_motion": 573.2635569982231,
+      "press_to_motion": 556.1483339965343,
+      "mount_measure": 305.99583300203085,
+      "dest_to_ready": 147.14937499910593,
+      "ready_to_motion": 88.65595899894834
+    }
+  ],
+  "summary": {
+    "back_to_motion": {
+      "n": 2,
+      "median": 122.78563600033522,
+      "min": 113.9899680018425,
+      "max": 131.58130399882793
+    },
+    "dest_to_ready": {
+      "n": 3,
+      "median": 147.14937499910593,
+      "min": 126.04783399775624,
+      "max": 174.2563749998808
+    },
+    "down_to_motion": {
+      "n": 3,
+      "median": 457.6371369995177,
+      "min": 428.4015510007739,
+      "max": 656.2635569982231
+    },
+    "endpoint_to_unmount": {
+      "n": 2,
+      "median": 38.27631299942732,
+      "min": 33.77358400076628,
+      "max": 42.77904199808836
+    },
+    "mount_measure": {
+      "n": 3,
+      "median": 160.54929099977016,
+      "min": 150.85449999943376,
+      "max": 305.99583300203085
+    },
+    "press_to_motion": {
+      "n": 3,
+      "median": 377.58004200086,
+      "min": 333.68012500181794,
+      "max": 556.1483339965343
+    },
+    "ready_to_motion": {
+      "n": 3,
+      "median": 47.942292001098394,
+      "min": 44.80512500181794,
+      "max": 88.65595899894834
+    },
+    "up_to_motion": {
+      "n": 3,
+      "median": 387.6371369995177,
+      "min": 351.4015510007739,
+      "max": 573.2635569982231
+    }
+  }
+}

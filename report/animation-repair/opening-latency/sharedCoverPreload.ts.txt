@@ -1,0 +1,48 @@
+import { Image, type ImageRef } from 'expo-image';
+
+/** One speculative image, owned by a provider. Flights retain their own reference. */
+export const createSharedCoverPreloader = () => {
+  type Entry = { uri: string; pixelSize: number; generation: number; image?: ImageRef };
+  let generation = 0;
+  let entry: Entry | undefined;
+  let loading = false;
+
+  return {
+    prime(uri: string, pixelSize: number) {
+      if (!uri || !Number.isFinite(pixelSize) || pixelSize <= 0) return;
+      if (entry?.uri === uri && entry.pixelSize === pixelSize) return;
+      generation += 1;
+      entry = undefined;
+      // At most one native decode may be pending. A different press while it
+      // runs uses the URI fallback; no queue or second speculative job.
+      if (loading) return;
+      const next: Entry = { uri, pixelSize, generation };
+      loading = true;
+      entry = next;
+      // loadAsync decodes natively. It has no cancellation handle; stale results
+      // are dropped and released by GC, never explicitly released while a flight
+      // may still hold the same native reference.
+      void Promise.resolve()
+        .then(() => Image.loadAsync(uri, { maxWidth: pixelSize, maxHeight: pixelSize }))
+        .then(
+          (image) => {
+            loading = false;
+            if (entry === next && generation === next.generation) next.image = image;
+          },
+          () => {
+            loading = false;
+            // Failure is speculative: the real image keeps its normal URI path.
+            // Permit another press-in to retry rather than retain a failed entry.
+            if (entry === next && generation === next.generation) entry = undefined;
+          },
+        );
+    },
+    ready(uri: string, pixelSize: number): ImageRef | undefined {
+      return entry?.uri === uri && entry.pixelSize === pixelSize ? entry.image : undefined;
+    },
+    clear() {
+      generation += 1;
+      entry = undefined;
+    },
+  };
+};

@@ -1,0 +1,29 @@
+[
+  {
+    "kind": "normal",
+    "cycle": 0,
+    "start_index": 1,
+    "end_index": 25,
+    "close_start_index": 14,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 1,
+    "start_index": 25,
+    "end_index": 49,
+    "close_start_index": 38,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 2,
+    "start_index": 49,
+    "end_index": 73,
+    "close_start_index": 62,
+    "shared_open": true,
+    "shared_close": true
+  }
+]

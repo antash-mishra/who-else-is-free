@@ -1,0 +1,2821 @@
+{
+  "profile": "/tmp/weif-opening-native/hermes-profile-build/opening.symbolicated.cpuprofile",
+  "timestamp_unit": "us",
+  "offset_ms": 0.0,
+  "sample_time_range_uptime_ms": [
+    53895344.624,
+    53925357.048
+  ],
+  "total_profile_samples": 2375,
+  "windows": [
+    {
+      "cycle": 0,
+      "phase": "release-to-motion",
+      "window_start_uptime_ms": 53895911,
+      "window_end_uptime_ms": 53896343.420654,
+      "transition_completed": true,
+      "samples": 29,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 29,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 11,
+              "percent_of_thread_samples": 37.93
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "_objectWithoutPropertiesLoose(/node_modules/@babel/runtime/helpers/objectWithoutPropertiesLoose.js:1:0)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "FiberNode(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9939:0)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "createWorkInProgress(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9970:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "propagateParentContextChanges(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2109:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "fastAddProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1464:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "cloneObjectProperties(/node_modules/react-native-worklets/src/memory/serializable.native.ts:377:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "mountClassInstance(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5146:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "defineAnimation$argument_1(/node_modules/react-native-reanimated/src/animation/timing.ts:156:47)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "render(/node_modules/react-native-reanimated/src/createAnimatedComponent/AnimatedComponent.tsx:395:2)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "[GC Young Gen]",
+              "category": "Metadata",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            },
+            {
+              "name": "[HostFunction] appendChild",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 3.45
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 29,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 18,
+              "percent_of_thread_samples": 62.07
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 18,
+              "percent_of_thread_samples": 62.07
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 18,
+              "percent_of_thread_samples": 62.07
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 18,
+              "percent_of_thread_samples": 62.07
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 17,
+              "percent_of_thread_samples": 58.62
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 17,
+              "percent_of_thread_samples": 58.62
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 17,
+              "percent_of_thread_samples": 58.62
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 12,
+              "percent_of_thread_samples": 41.38
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 20.69
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 17.24
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 17.24
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 17.24
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 17.24
+            },
+            {
+              "name": "_objectWithoutPropertiesLoose(/node_modules/@babel/runtime/helpers/objectWithoutPropertiesLoose.js:1:0)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "_objectWithoutProperties(/node_modules/@babel/runtime/helpers/objectWithoutProperties.js:6:36)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6635:28)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 10.34
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6781:32)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "EventDetailsScreenContent(/src/screens/EventDetailsScreen.tsx:281:32)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "finishClassComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5945:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            },
+            {
+              "name": "updateClassComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5920:29)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "phase": "moving",
+      "window_start_uptime_ms": 53896343.420654,
+      "window_end_uptime_ms": 53896927.579654,
+      "transition_completed": true,
+      "samples": 44,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 44,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 39,
+              "percent_of_thread_samples": 88.64
+            },
+            {
+              "name": "readContextForConsumer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2185:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "reconcileChildFibersImpl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:4789:2)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "commitRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9584:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 44,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performWorkOnRootViaSchedulerTask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2409:19)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 11.36
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 9.09
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 9.09
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 9.09
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 6.82
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 6.82
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 4.55
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 4.55
+            },
+            {
+              "name": "readContextForConsumer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2185:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "use(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3188:66)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "View(/node_modules/react-native/Libraries/Components/View/View.js:30:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "exports.use(/node_modules/react/cjs/react.production.js:482:35)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "readContext(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2179:31)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "<anonymous>(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:4964:52)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "reconcileChildFibersImpl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:4789:2)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "reconcileChildren(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5463:28)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5707:19)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "formatEventDetailDateLabel(/src/utils/dateTime.ts:273:41)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "EventDetailsScreenContent(/src/screens/EventDetailsScreen.tsx:281:32)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 2.27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "phase": "navigate\u2192destination-measured",
+      "window_start_uptime_ms": 53895935.847154,
+      "window_end_uptime_ms": 53896123.031529,
+      "transition_completed": true,
+      "samples": 15,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 15,
+          "top_self": [
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "_objectWithoutPropertiesLoose(/node_modules/@babel/runtime/helpers/objectWithoutPropertiesLoose.js:1:0)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "FiberNode(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9939:0)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "createWorkInProgress(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9970:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            },
+            {
+              "name": "propagateParentContextChanges(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2109:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            },
+            {
+              "name": "fastAddProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1464:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            },
+            {
+              "name": "cloneObjectProperties(/node_modules/react-native-worklets/src/memory/serializable.native.ts:377:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            },
+            {
+              "name": "mountClassInstance(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5146:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            },
+            {
+              "name": "defineAnimation$argument_1(/node_modules/react-native-reanimated/src/animation/timing.ts:156:47)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 1,
+              "percent_of_thread_samples": 6.67
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 15,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 14,
+              "percent_of_thread_samples": 93.33
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 14,
+              "percent_of_thread_samples": 93.33
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 14,
+              "percent_of_thread_samples": 93.33
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 14,
+              "percent_of_thread_samples": 93.33
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 13,
+              "percent_of_thread_samples": 86.67
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 13,
+              "percent_of_thread_samples": 86.67
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 13,
+              "percent_of_thread_samples": 86.67
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 10,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 26.67
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 26.67
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 20.0
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 20.0
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6781:32)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "EventDetailsScreenContent(/src/screens/EventDetailsScreen.tsx:281:32)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "_objectWithoutPropertiesLoose(/node_modules/@babel/runtime/helpers/objectWithoutPropertiesLoose.js:1:0)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "_objectWithoutProperties(/node_modules/@babel/runtime/helpers/objectWithoutProperties.js:6:36)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6635:28)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "FiberNode(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9939:0)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "<anonymous>(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:4964:52)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "createFiberImplClass(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9964:22)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5707:19)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 13.33
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "phase": "destination-measured\u2192takeoff-ready",
+      "window_start_uptime_ms": 53896123.031529,
+      "window_end_uptime_ms": 53896242.040945,
+      "transition_completed": true,
+      "samples": 7,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 7,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 6,
+              "percent_of_thread_samples": 85.71
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 7,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 14.29
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 0,
+      "phase": "takeoff-ready\u2192animation-requested",
+      "window_start_uptime_ms": 53896242.040945,
+      "window_end_uptime_ms": 53896288.841654,
+      "transition_completed": true,
+      "samples": 3,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 3,
+          "top_self": [
+            {
+              "name": "render(/node_modules/react-native-reanimated/src/createAnimatedComponent/AnimatedComponent.tsx:395:2)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[GC Young Gen]",
+              "category": "Metadata",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] appendChild",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "render(/node_modules/react-native-reanimated/src/createAnimatedComponent/AnimatedComponent.tsx:395:2)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6635:28)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "finishClassComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5945:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateClassComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5920:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "_objectWithoutPropertiesLoose(/node_modules/@babel/runtime/helpers/objectWithoutPropertiesLoose.js:1:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "_objectWithoutProperties(/node_modules/@babel/runtime/helpers/objectWithoutProperties.js:6:36)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "View(/node_modules/react-native/Libraries/Components/View/View.js:28:21)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[GC Young Gen]",
+              "category": "Metadata",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "appendAllChildren(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6943:21)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] appendChild",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7157:35)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "phase": "release-to-motion",
+      "window_start_uptime_ms": 53899828,
+      "window_end_uptime_ms": 53900083.473531,
+      "transition_completed": true,
+      "samples": 21,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 21,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 9,
+              "percent_of_thread_samples": 42.86
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 4,
+              "percent_of_thread_samples": 19.05
+            },
+            {
+              "name": "[HostFunction] createNode",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 9.52
+            },
+            {
+              "name": "[Native] objectDefineProperty",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "[HostFunction] createSerializableInitializer",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "[HostFunction] nativeLoggingHook",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "<global>(/node_modules/react-native-reanimated/src/common/index.ts:2:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "areHookInputsEqual(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3000:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "createSerializable(/node_modules/react-native-worklets/src/memory/serializable.native.ts:130:7)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 21,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 10,
+              "percent_of_thread_samples": 47.62
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 10,
+              "percent_of_thread_samples": 47.62
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 10,
+              "percent_of_thread_samples": 47.62
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 9,
+              "percent_of_thread_samples": 42.86
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 9,
+              "percent_of_thread_samples": 42.86
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 9,
+              "percent_of_thread_samples": 42.86
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 9,
+              "percent_of_thread_samples": 42.86
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 28.57
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 28.57
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 19.05
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 4,
+              "percent_of_thread_samples": 19.05
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 19.05
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 19.05
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 14.29
+            },
+            {
+              "name": "[HostFunction] createNode",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 9.52
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7178:34)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 9.52
+            },
+            {
+              "name": "[Native] objectDefineProperty",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "useAnimatedProps(/node_modules/react-native/src/private/animated/createAnimatedPropsHook.js:63:37)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "useAnimatedPropsMemo(/node_modules/react-native/src/private/animated/createAnimatedPropsMemoHook.js:74:31)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "constructor(/node_modules/react-native/Libraries/Animated/nodes/AnimatedProps.js:107:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "useAnimatedPropsMemo$argument_0(/node_modules/react-native/src/private/animated/createAnimatedPropsHook.js:64:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            },
+            {
+              "name": "AnimatedComponent(/node_modules/react-native/Libraries/Animated/createAnimatedComponent.js:113:56)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.76
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "phase": "moving",
+      "window_start_uptime_ms": 53900083.473531,
+      "window_end_uptime_ms": 53900561.391447,
+      "transition_completed": true,
+      "samples": 39,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 39,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 39,
+              "percent_of_thread_samples": 100.0
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 39,
+              "percent_of_thread_samples": 100.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "phase": "navigate\u2192destination-measured",
+      "window_start_uptime_ms": 53899844.602822,
+      "window_end_uptime_ms": 53899922.896322,
+      "transition_completed": true,
+      "samples": 6,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 6,
+          "top_self": [
+            {
+              "name": "[HostFunction] createNode",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[Native] objectDefineProperty",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "[HostFunction] createSerializableInitializer",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] createNode",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7178:34)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[Native] objectDefineProperty",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "useAnimatedProps(/node_modules/react-native/src/private/animated/createAnimatedPropsHook.js:63:37)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "useAnimatedPropsMemo(/node_modules/react-native/src/private/animated/createAnimatedPropsMemoHook.js:74:31)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "constructor(/node_modules/react-native/Libraries/Animated/nodes/AnimatedProps.js:107:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "useAnimatedPropsMemo$argument_0(/node_modules/react-native/src/private/animated/createAnimatedPropsHook.js:64:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "AnimatedComponent(/node_modules/react-native/Libraries/Animated/createAnimatedComponent.js:113:56)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "phase": "destination-measured\u2192takeoff-ready",
+      "window_start_uptime_ms": 53899922.896322,
+      "window_end_uptime_ms": 53899997.102864,
+      "transition_completed": true,
+      "samples": 6,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 6,
+          "top_self": [
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] nativeLoggingHook",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "<global>(/node_modules/react-native-reanimated/src/common/index.ts:2:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] measureInWindow",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "measureInWindow(/node_modules/react-native/Libraries/ReactNative/ReactFabricPublicInstance/ReactFabricHostComponent.js:82:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "executeDispatch(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:302:12)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "markTransition(/src/utils/transitionMetrics.ts:7:14)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "batchedUpdates$1(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1501:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "dispatchEvent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1532:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "batchedUpdatesImpl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:10409:13)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "forEachAccumulated(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:590:62)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "measureNode$argument_1(/src/components/events/EventSharedTransition.tsx:642:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "[HostFunction] nativeLoggingHook",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "node.measureInWindow$argument_0(/src/components/events/EventSharedTransition.tsx:161:55)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "coverRef.current.measureInWindow$argument_0(/src/screens/event-details/EventDetailsHero.tsx:67:10)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 1,
+      "phase": "takeoff-ready\u2192animation-requested",
+      "window_start_uptime_ms": 53899997.102864,
+      "window_end_uptime_ms": 53900016.586906,
+      "transition_completed": true,
+      "samples": 1,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 1,
+          "top_self": [
+            {
+              "name": "areHookInputsEqual(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3000:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "exports.useEffect(/node_modules/react/cjs/react.production.js:503:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "useSharedValue(/node_modules/react-native-reanimated/src/hook/useSharedValue.ts:21:11)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "updateEffectImpl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3707:20)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "ScalePressable(/src/components/ScalePressable.tsx:70:30)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "areHookInputsEqual(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3000:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "updateEffect(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3721:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 100.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "phase": "release-to-motion",
+      "window_start_uptime_ms": 53903219,
+      "window_end_uptime_ms": 53903499.272949,
+      "transition_completed": true,
+      "samples": 24,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 24,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 7,
+              "percent_of_thread_samples": 29.17
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 5,
+              "percent_of_thread_samples": 20.83
+            },
+            {
+              "name": "bubbleProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7056:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "useAnimatedScrollHandler(/node_modules/react-native-reanimated/src/hook/useAnimatedScrollHandler.ts:49:7)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "fastAddProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1464:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "[GC Young Gen]",
+              "category": "Metadata",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "executeForEachEventHandler(/node_modules/react-native-reanimated/src/createAnimatedComponent/NativeEventsManager.ts:126:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "diffProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1380:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "getFromCache(/node_modules/react-native-worklets/src/memory/serializable.native.ts:56:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "[Native] objectKeys",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "[Native] arrayPrototypePop",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "updateWorkInProgressHook(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3130:15)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "commitBeforeMutationEffects(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7686:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 24,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 13,
+              "percent_of_thread_samples": 54.17
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 13,
+              "percent_of_thread_samples": 54.17
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 13,
+              "percent_of_thread_samples": 54.17
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 12,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 12,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 12,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 12,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 8,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 8,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 20.83
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 5,
+              "percent_of_thread_samples": 20.83
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 20.83
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 20.83
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 12.5
+            },
+            {
+              "name": "performWorkOnRootViaSchedulerTask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2409:19)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 12.5
+            },
+            {
+              "name": "commitRootWhenReady(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9072:12)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 8.33
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9040:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 8.33
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6789:38)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 8.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7204:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "bubbleProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7056:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "EventDetailsScreenContent(/src/screens/EventDetailsScreen.tsx:104:47)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            },
+            {
+              "name": "useAnimatedScrollHandler(/node_modules/react-native-reanimated/src/hook/useAnimatedScrollHandler.ts:49:7)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 4.17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "phase": "moving",
+      "window_start_uptime_ms": 53903499.272949,
+      "window_end_uptime_ms": 53904003.290907,
+      "transition_completed": true,
+      "samples": 32,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 32,
+          "top_self": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 26,
+              "percent_of_thread_samples": 81.25
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "createWorkInProgress(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9970:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "_getPrototypeOf(/node_modules/@babel/runtime/helpers/getPrototypeOf.js:2:9)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "[Native] hermesBuiltinCopyDataProperties",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 32,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 15.62
+            },
+            {
+              "name": "performWorkOnRootViaSchedulerTask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2409:19)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 15.62
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 15.62
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 5,
+              "percent_of_thread_samples": 15.62
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 9.38
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6635:28)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 9.38
+            },
+            {
+              "name": "updateClassComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5920:29)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 9.38
+            },
+            {
+              "name": "finishClassComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5945:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 6.25
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "asyncGeneratorStep(/node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:16)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "normalizeConversation(/src/api/mappers/chat.ts:173:63)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "tryCallOne(null:null:null)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "[Native] arrayPrototypeMap",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "formatAbsoluteDateLabel(/src/utils/dateTime.ts:212:39)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "(null:null:null)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "_next(/node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:26)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "map$argument_0(/src/context/ChatContext.tsx:298:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "getScheduleDisplay(/src/utils/dateTime.ts:135:48)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            },
+            {
+              "name": "refreshConversations(/src/context/ChatContext.tsx:297:58)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 3.12
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "phase": "navigate\u2192destination-measured",
+      "window_start_uptime_ms": 53903226.503824,
+      "window_end_uptime_ms": 53903339.04624,
+      "transition_completed": true,
+      "samples": 9,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 9,
+          "top_self": [
+            {
+              "name": "bubbleProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7056:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "useAnimatedScrollHandler(/node_modules/react-native-reanimated/src/hook/useAnimatedScrollHandler.ts:49:7)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "fastAddProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1464:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "[GC Young Gen]",
+              "category": "Metadata",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "executeForEachEventHandler(/node_modules/react-native-reanimated/src/createAnimatedComponent/NativeEventsManager.ts:126:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "diffProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1380:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "[Native] datePrototypeToLocaleStringHelper",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "getFromCache(/node_modules/react-native-worklets/src/memory/serializable.native.ts:56:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 9,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 8,
+              "percent_of_thread_samples": 88.89
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 8,
+              "percent_of_thread_samples": 88.89
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 8,
+              "percent_of_thread_samples": 88.89
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 8,
+              "percent_of_thread_samples": 88.89
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 7,
+              "percent_of_thread_samples": 77.78
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 7,
+              "percent_of_thread_samples": 77.78
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 7,
+              "percent_of_thread_samples": 77.78
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 44.44
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 4,
+              "percent_of_thread_samples": 44.44
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6621:36)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7204:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "bubbleProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7056:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "EventDetailsScreenContent(/src/screens/EventDetailsScreen.tsx:104:47)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "useAnimatedScrollHandler(/node_modules/react-native-reanimated/src/hook/useAnimatedScrollHandler.ts:49:7)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "fastAddProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1464:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "fastAddProperties(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1488:38)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7173:45)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "exports.useState(/node_modules/react/cjs/react.production.js:530:40)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "createSerializableInitializer(/node_modules/react-native-worklets/src/WorkletsModule/NativeWorklets.native.ts:139:66)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "cloneInitializer(/node_modules/react-native-worklets/src/memory/serializable.native.ts:409:53)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            },
+            {
+              "name": "mountStateImpl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3439:42)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 11.11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "phase": "destination-measured\u2192takeoff-ready",
+      "window_start_uptime_ms": 53903339.04624,
+      "window_end_uptime_ms": 53903406.281116,
+      "transition_completed": true,
+      "samples": 6,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 6,
+          "top_self": [
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[Native] objectKeys",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "[Native] arrayPrototypePop",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 6,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 50.0
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performWorkOnRootViaSchedulerTask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2409:19)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "shallowEqual(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2533:25)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6789:38)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "updateSimpleMemoComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5564:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "[Native] objectKeys",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "dispatchEvent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1532:18)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "batchedUpdates$1$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1544:54)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "[Native] arrayPrototypePop",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "batchedUpdatesImpl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:10409:13)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "batchedUpdates$1(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:1501:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            },
+            {
+              "name": "createOrGetPooledEvent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:426:37)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 16.67
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cycle": 2,
+      "phase": "takeoff-ready\u2192animation-requested",
+      "window_start_uptime_ms": 53903406.281116,
+      "window_end_uptime_ms": 53903442.960199,
+      "transition_completed": true,
+      "samples": 3,
+      "threads": [
+        {
+          "tid": "19749",
+          "sample_count": 3,
+          "top_self": [
+            {
+              "name": "updateWorkInProgressHook(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3130:15)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "commitBeforeMutationEffects(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7686:0)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            }
+          ],
+          "top_inclusive": [
+            {
+              "name": "performSyncWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2417:19)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "[root]",
+              "category": "root",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "processRootScheduleInMicrotask(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2322:31)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "flushSyncWorkAcrossRoots_impl(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2294:37)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "scheduleMicrotask$argument_0(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:2427:42)",
+              "category": "JavaScript",
+              "samples": 3,
+              "percent_of_thread_samples": 100.0
+            },
+            {
+              "name": "renderRootSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9294:18)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "workLoopSync(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9313:53)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:8910:22)",
+              "category": "JavaScript",
+              "samples": 2,
+              "percent_of_thread_samples": 66.67
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9432:22)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "Pressable(/node_modules/react-native/Libraries/Components/Pressable/Pressable.js:323:39)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateRef(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3688:33)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateWorkInProgressHook(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3130:15)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateSimpleMemoComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5579:32)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "usePressability(/node_modules/react-native/Libraries/Pressability/usePressability.js:35:32)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "renderWithHooks(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:3024:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "exports.useRef(/node_modules/react/cjs/react.production.js:527:38)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateFunctionComponent(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:5693:29)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "beginWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:6789:38)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "[HostFunction] completeRoot",
+              "category": "Native",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7115:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "updateHostContainer(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:7021:16)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "completeUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9543:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performUnitOfWork(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9434:36)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "commitRootWhenReady(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9072:12)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            },
+            {
+              "name": "performWorkOnRoot(/node_modules/react-native/Libraries/Renderer/implementations/ReactFabric-prod.js:9040:27)",
+              "category": "JavaScript",
+              "samples": 1,
+              "percent_of_thread_samples": 33.33
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Sample counts, not measured CPU milliseconds. Inclusive rows overlap; do not sum. Window overlap validates plausibility, not independent proof of clock origin. Confirm native profiler-start log and sample timestamps before interpreting."
+}

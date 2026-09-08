@@ -1,0 +1,1326 @@
+{
+  "baseline": "baseline-native-analysis/results.json",
+  "candidate": "final-native-analysis/results.json",
+  "baseline_pid": 16838,
+  "candidate_pid": 23055,
+  "baseline_trials": 7,
+  "candidate_trials": 3,
+  "comparisons": {
+    "closing/motion": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 417.09448,
+        "candidate": 404.558418,
+        "candidate_minus_baseline": -12.536061999999959,
+        "reduction_percent": 3.0055689061144992
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 9.0,
+          "candidate": 16,
+          "candidate_minus_baseline": 7.0,
+          "reduction_percent": -77.77777777777777
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 8.0,
+          "candidate": 15,
+          "candidate_minus_baseline": 7.0,
+          "reduction_percent": -87.5
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 11.9265425,
+          "candidate": 10.907291,
+          "candidate_minus_baseline": -1.0192514999999993,
+          "reduction_percent": 8.546076953987289
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 326.5408125,
+          "candidate": 299.733664,
+          "candidate_minus_baseline": -26.80714850000004,
+          "reduction_percent": 8.209432779554941
+        },
+        "image_install_callbacks_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 342.4866455,
+            "candidate": 261.05379500000004,
+            "candidate_minus_baseline": -81.43285049999997,
+            "reduction_percent": 23.776941836991995
+          },
+          "median_runnable_ms": {
+            "baseline": 30.006476000000006,
+            "candidate": 18.438040000000004,
+            "candidate_minus_baseline": -11.568436000000002,
+            "reduction_percent": 38.55313099745535
+          },
+          "median_sleeping_ms": {
+            "baseline": 47.502876,
+            "candidate": 130.978375,
+            "candidate_minus_baseline": 83.475499,
+            "reduction_percent": -175.7272528088615
+          },
+          "pooled_running_percent": {
+            "baseline": 80.36200818917696,
+            "candidate": 64.1481860190493,
+            "candidate_minus_baseline": -16.213822170127656,
+            "reduction_percent": 20.17597934083398
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 45.09610400000001,
+            "candidate": 46.842252,
+            "candidate_minus_baseline": 1.746147999999991,
+            "reduction_percent": -3.8720595464299765
+          },
+          "median_runnable_ms": {
+            "baseline": 31.2003535,
+            "candidate": 49.716249,
+            "candidate_minus_baseline": 18.5158955,
+            "reduction_percent": -59.34514652213796
+          },
+          "median_sleeping_ms": {
+            "baseline": 332.871105,
+            "candidate": 307.61878800000005,
+            "candidate_minus_baseline": -25.252316999999948,
+            "reduction_percent": 7.586214790256411
+          },
+          "pooled_running_percent": {
+            "baseline": 12.565963252910814,
+            "candidate": 13.520402272688425,
+            "candidate_minus_baseline": 0.9544390197776114,
+            "reduction_percent": -7.595430613379539
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 0.226167,
+            "candidate": 0.163458,
+            "candidate_minus_baseline": -0.06270900000000001,
+            "reduction_percent": 27.72685670323257
+          },
+          "median_runnable_ms": {
+            "baseline": 1.3310205,
+            "candidate": 0.42825,
+            "candidate_minus_baseline": -0.9027704999999999,
+            "reduction_percent": 67.82543920247659
+          },
+          "median_sleeping_ms": {
+            "baseline": 415.77956300000005,
+            "candidate": 404.05771,
+            "candidate_minus_baseline": -11.721853000000067,
+            "reduction_percent": 2.819247034515755
+          },
+          "pooled_running_percent": {
+            "baseline": 0.06009053077832449,
+            "candidate": 0.038827874814346956,
+            "candidate_minus_baseline": -0.021262655963977535,
+            "reduction_percent": 35.38437036347044
+          }
+        }
+      },
+      "median_trial_gap_p50_ms": {
+        "baseline": 69.02879200000001,
+        "candidate": 22.150229000000003,
+        "candidate_minus_baseline": -46.87856300000001,
+        "reduction_percent": 67.91160853575418
+      },
+      "median_trial_gap_p95_ms": {
+        "baseline": 76.651959,
+        "candidate": 37.549291,
+        "candidate_minus_baseline": -39.10266800000001,
+        "reduction_percent": 51.013266340655434
+      },
+      "median_trial_gap_max_ms": {
+        "baseline": 104.1431035,
+        "candidate": 82.914167,
+        "candidate_minus_baseline": -21.22893649999999,
+        "reduction_percent": 20.38439011950512
+      },
+      "median_trial_unique_display_frames": {
+        "baseline": 7.0,
+        "candidate": 13,
+        "candidate_minus_baseline": 6.0,
+        "reduction_percent": -85.71428571428571
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": 54,
+          "deadline_misses": 42,
+          "miss_percent": 77.77777777777777
+        },
+        "candidate": {
+          "frame_records": 50,
+          "deadline_misses": 9,
+          "miss_percent": 18.0
+        }
+      }
+    },
+    "closing/startup": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 107.147906,
+        "candidate": 115.327138,
+        "candidate_minus_baseline": 8.179231999999999,
+        "reduction_percent": -7.633590151542485
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 2.0,
+          "candidate": 2,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 3.0,
+          "candidate": 3,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 9.230311,
+          "candidate": 14.493291,
+          "candidate_minus_baseline": 5.262979999999999,
+          "reduction_percent": -57.01844715741429
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 6.5543545000000005,
+          "candidate": 12.174583,
+          "candidate_minus_baseline": 5.6202285,
+          "reduction_percent": -85.74800920517801
+        },
+        "image_install_callbacks_started": {
+          "baseline": 1.0,
+          "candidate": 1,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 11.814104,
+            "candidate": 11.194335999999998,
+            "candidate_minus_baseline": -0.6197680000000023,
+            "reduction_percent": 5.2460008816580785
+          },
+          "median_runnable_ms": {
+            "baseline": 3.3716464999999998,
+            "candidate": 9.429582,
+            "candidate_minus_baseline": 6.0579355,
+            "reduction_percent": -179.67291351569628
+          },
+          "median_sleeping_ms": {
+            "baseline": 90.58113550000002,
+            "candidate": 109.38372100000001,
+            "candidate_minus_baseline": 18.802585499999992,
+            "reduction_percent": -20.75772775005673
+          },
+          "pooled_running_percent": {
+            "baseline": 11.350023927273988,
+            "candidate": 10.910703773187514,
+            "candidate_minus_baseline": -0.43932015408647374,
+            "reduction_percent": 3.870653990700337
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 26.196625500000003,
+            "candidate": 27.871374999999997,
+            "candidate_minus_baseline": 1.6747494999999937,
+            "reduction_percent": -6.392997067503956
+          },
+          "median_runnable_ms": {
+            "baseline": 7.614437500000001,
+            "candidate": 8.604379999999999,
+            "candidate_minus_baseline": 0.989942499999998,
+            "reduction_percent": -13.000861849611319
+          },
+          "median_sleeping_ms": {
+            "baseline": 73.89695449999999,
+            "candidate": 80.18692899999999,
+            "candidate_minus_baseline": 6.2899745,
+            "reduction_percent": -8.511818305042599
+          },
+          "pooled_running_percent": {
+            "baseline": 24.013960726651423,
+            "candidate": 27.531882278812727,
+            "candidate_minus_baseline": 3.5179215521613045,
+            "reduction_percent": -14.64948490674014
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 40.7384805,
+            "candidate": 46.28066499999999,
+            "candidate_minus_baseline": 5.5421844999999905,
+            "reduction_percent": -13.604298520657858
+          },
+          "median_runnable_ms": {
+            "baseline": 8.978209499999998,
+            "candidate": 8.891043000000002,
+            "candidate_minus_baseline": -0.08716649999999682,
+            "reduction_percent": 0.9708672982068065
+          },
+          "median_sleeping_ms": {
+            "baseline": 57.910884,
+            "candidate": 64.683555,
+            "candidate_minus_baseline": 6.7726709999999954,
+            "reduction_percent": -11.69498811311531
+          },
+          "pooled_running_percent": {
+            "baseline": 38.40413336982698,
+            "candidate": 39.24040996096875,
+            "candidate_minus_baseline": 0.8362765911417682,
+            "reduction_percent": -2.177569229563208
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    },
+    "flying/destination-ready": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 145.576708,
+        "candidate": 193.0835,
+        "candidate_minus_baseline": 47.50679199999999,
+        "reduction_percent": -32.63351167413401
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 2.5,
+          "candidate": 2,
+          "candidate_minus_baseline": -0.5,
+          "reduction_percent": 20.0
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 7.0,
+          "candidate": 7,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 38.126021,
+          "candidate": 101.930208,
+          "candidate_minus_baseline": 63.80418699999999,
+          "reduction_percent": -167.35076288186482
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 12.5316245,
+          "candidate": 14.458791,
+          "candidate_minus_baseline": 1.9271665000000002,
+          "reduction_percent": -15.378425199382573
+        },
+        "image_install_callbacks_started": {
+          "baseline": 2.0,
+          "candidate": 2,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 16.0724385,
+            "candidate": 14.232206999999997,
+            "candidate_minus_baseline": -1.8402315000000034,
+            "reduction_percent": 11.449609839851018
+          },
+          "median_runnable_ms": {
+            "baseline": 17.3981655,
+            "candidate": 18.708625,
+            "candidate_minus_baseline": 1.3104595000000003,
+            "reduction_percent": -7.532170561315791
+          },
+          "median_sleeping_ms": {
+            "baseline": 104.7108135,
+            "candidate": 144.846125,
+            "candidate_minus_baseline": 40.1353115,
+            "reduction_percent": -38.32967213075849
+          },
+          "pooled_running_percent": {
+            "baseline": 16.5957084428297,
+            "candidate": 9.20126477712096,
+            "candidate_minus_baseline": -7.3944436657087405,
+            "reduction_percent": 44.556360405955225
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 59.00114350000001,
+            "candidate": 108.76808000000005,
+            "candidate_minus_baseline": 49.76693650000004,
+            "reduction_percent": -84.34910503048138
+          },
+          "median_runnable_ms": {
+            "baseline": 32.669376,
+            "candidate": 53.448752,
+            "candidate_minus_baseline": 20.779376,
+            "reduction_percent": -63.6050593681373
+          },
+          "median_sleeping_ms": {
+            "baseline": 68.43422849999999,
+            "candidate": 28.905583999999998,
+            "candidate_minus_baseline": -39.52864449999999,
+            "reduction_percent": 57.761511112819804
+          },
+          "pooled_running_percent": {
+            "baseline": 38.14109291602635,
+            "candidate": 55.73919115362597,
+            "candidate_minus_baseline": 17.598098237599615,
+            "reduction_percent": -46.139470298726394
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 36.540377,
+            "candidate": 30.816125000000003,
+            "candidate_minus_baseline": -5.724251999999996,
+            "reduction_percent": 15.665552656996388
+          },
+          "median_runnable_ms": {
+            "baseline": 54.51774950000001,
+            "candidate": 23.069666,
+            "candidate_minus_baseline": -31.448083500000006,
+            "reduction_percent": 57.68411900421532
+          },
+          "median_sleeping_ms": {
+            "baseline": 50.953604,
+            "candidate": 73.8625,
+            "candidate_minus_baseline": 22.908896,
+            "reduction_percent": -44.96030545749031
+          },
+          "pooled_running_percent": {
+            "baseline": 27.91756685518308,
+            "candidate": 22.377552388186416,
+            "candidate_minus_baseline": -5.540014466996663,
+            "reduction_percent": 19.844188054547896
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    },
+    "flying/motion": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 515.592438,
+        "candidate": 505.056084,
+        "candidate_minus_baseline": -10.536354000000017,
+        "reduction_percent": 2.0435431599561236
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 9.0,
+          "candidate": 13,
+          "candidate_minus_baseline": 4.0,
+          "reduction_percent": -44.44444444444444
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 8.0,
+          "candidate": 13,
+          "candidate_minus_baseline": 5.0,
+          "reduction_percent": -62.5
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 17.4095625,
+          "candidate": 12.185581,
+          "candidate_minus_baseline": -5.223981499999999,
+          "reduction_percent": 30.00639160231625
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 424.331854,
+          "candidate": 431.879126,
+          "candidate_minus_baseline": 7.547271999999964,
+          "reduction_percent": -1.7786248967299927
+        },
+        "image_install_callbacks_started": {
+          "baseline": 0.0,
+          "candidate": 1,
+          "candidate_minus_baseline": 1.0,
+          "reduction_percent": null
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 403.6193335000001,
+            "candidate": 271.5350030000002,
+            "candidate_minus_baseline": -132.0843304999999,
+            "reduction_percent": 32.72497611911345
+          },
+          "median_runnable_ms": {
+            "baseline": 71.461496,
+            "candidate": 86.93666500000002,
+            "candidate_minus_baseline": 15.475169000000022,
+            "reduction_percent": -21.65525474025904
+          },
+          "median_sleeping_ms": {
+            "baseline": 18.240959,
+            "candidate": 141.655581,
+            "candidate_minus_baseline": 123.41462200000001,
+            "reduction_percent": -676.5796798293336
+          },
+          "pooled_running_percent": {
+            "baseline": 74.2177013622222,
+            "candidate": 55.52888101929226,
+            "candidate_minus_baseline": -18.688820342929944,
+            "reduction_percent": 25.181082140658702
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 54.52081249999999,
+            "candidate": 56.228913,
+            "candidate_minus_baseline": 1.7081005000000076,
+            "reduction_percent": -3.132932951063427
+          },
+          "median_runnable_ms": {
+            "baseline": 36.8663545,
+            "candidate": 82.516837,
+            "candidate_minus_baseline": 45.650482499999995,
+            "reduction_percent": -123.8269503972789
+          },
+          "median_sleeping_ms": {
+            "baseline": 408.7441055,
+            "candidate": 380.082546,
+            "candidate_minus_baseline": -28.66155950000001,
+            "reduction_percent": 7.012103444266064
+          },
+          "pooled_running_percent": {
+            "baseline": 11.445007760357749,
+            "candidate": 11.581668800565522,
+            "candidate_minus_baseline": 0.13666104020777325,
+            "reduction_percent": -1.1940668199555813
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 111.9539345,
+            "candidate": 0.448458,
+            "candidate_minus_baseline": -111.5054765,
+            "reduction_percent": 99.59942631582993
+          },
+          "median_runnable_ms": {
+            "baseline": 113.95070850000002,
+            "candidate": 9.814625,
+            "candidate_minus_baseline": -104.13608350000001,
+            "reduction_percent": 91.38695570286866
+          },
+          "median_sleeping_ms": {
+            "baseline": 278.16695749999997,
+            "candidate": 494.793001,
+            "candidate_minus_baseline": 216.62604350000004,
+            "reduction_percent": -77.87626734925915
+          },
+          "pooled_running_percent": {
+            "baseline": 21.617315385870686,
+            "candidate": 0.15812325375826017,
+            "candidate_minus_baseline": -21.459192132112427,
+            "reduction_percent": 99.26853427016376
+          }
+        }
+      },
+      "median_trial_gap_p50_ms": {
+        "baseline": 76.7972185,
+        "candidate": 28.3119375,
+        "candidate_minus_baseline": -48.485281,
+        "reduction_percent": 63.1341628603385
+      },
+      "median_trial_gap_p95_ms": {
+        "baseline": 88.0850415,
+        "candidate": 67.261334,
+        "candidate_minus_baseline": -20.823707499999998,
+        "reduction_percent": 23.64045829506704
+      },
+      "median_trial_gap_max_ms": {
+        "baseline": 98.538938,
+        "candidate": 91.808376,
+        "candidate_minus_baseline": -6.730562000000006,
+        "reduction_percent": 6.830357761720556
+      },
+      "median_trial_unique_display_frames": {
+        "baseline": 7.5,
+        "candidate": 13,
+        "candidate_minus_baseline": 5.5,
+        "reduction_percent": -73.33333333333333
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": 53,
+          "deadline_misses": 48,
+          "miss_percent": 90.56603773584905
+        },
+        "candidate": {
+          "frame_records": 45,
+          "deadline_misses": 23,
+          "miss_percent": 51.111111111111114
+        }
+      }
+    },
+    "flying/navigate-destination": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 120.58156199999999,
+        "candidate": 233.805542,
+        "candidate_minus_baseline": 113.22398000000001,
+        "reduction_percent": -93.8982528688756
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "image_install_callbacks_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 0.0,
+            "candidate": 0,
+            "candidate_minus_baseline": 0.0,
+            "reduction_percent": null
+          },
+          "median_runnable_ms": {
+            "baseline": 0.0,
+            "candidate": 0,
+            "candidate_minus_baseline": 0.0,
+            "reduction_percent": null
+          },
+          "median_sleeping_ms": {
+            "baseline": 118.29316549999999,
+            "candidate": 232.15670799999998,
+            "candidate_minus_baseline": 113.8635425,
+            "reduction_percent": -96.25538552351955
+          },
+          "pooled_running_percent": {
+            "baseline": 0.011031863758597354,
+            "candidate": 0.005547934930976999,
+            "candidate_minus_baseline": -0.005483928827620356,
+            "reduction_percent": 49.70990349066466
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 39.307916000000006,
+            "candidate": 78.412586,
+            "candidate_minus_baseline": 39.10467,
+            "reduction_percent": -99.4829387546264
+          },
+          "median_runnable_ms": {
+            "baseline": 13.216794,
+            "candidate": 27.712708,
+            "candidate_minus_baseline": 14.495913999999999,
+            "reduction_percent": -109.67798998758698
+          },
+          "median_sleeping_ms": {
+            "baseline": 74.803708,
+            "candidate": 118.53333100000002,
+            "candidate_minus_baseline": 43.72962300000002,
+            "reduction_percent": -58.45916488524876
+          },
+          "pooled_running_percent": {
+            "baseline": 29.48918582774074,
+            "candidate": 28.107802765358766,
+            "candidate_minus_baseline": -1.3813830623819747,
+            "reduction_percent": 4.684371655600255
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 89.799918,
+            "candidate": 164.49591399999997,
+            "candidate_minus_baseline": 74.69599599999997,
+            "reduction_percent": -83.18047239196807
+          },
+          "median_runnable_ms": {
+            "baseline": 31.7998985,
+            "candidate": 69.30962799999999,
+            "candidate_minus_baseline": 37.50972949999999,
+            "reduction_percent": -117.95550070702268
+          },
+          "median_sleeping_ms": {
+            "baseline": 0.0,
+            "candidate": 0,
+            "candidate_minus_baseline": 0.0,
+            "reduction_percent": null
+          },
+          "pooled_running_percent": {
+            "baseline": 75.97455809502245,
+            "candidate": 65.24416583129901,
+            "candidate_minus_baseline": -10.73039226372343,
+            "reduction_percent": 14.12366525423258
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    },
+    "flying/ready-request": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 74.571938,
+        "candidate": 40.77225,
+        "candidate_minus_baseline": -33.799688,
+        "reduction_percent": 45.324942473668855
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 2.0,
+          "candidate": 2,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 2.0,
+          "candidate": 1,
+          "candidate_minus_baseline": -1.0,
+          "reduction_percent": 50.0
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 1.4653340000000001,
+          "candidate": 0.915125,
+          "candidate_minus_baseline": -0.5502090000000002,
+          "reduction_percent": 37.54836781238954
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 10.8036665,
+          "candidate": 7.4687909999999995,
+          "candidate_minus_baseline": -3.3348755000000008,
+          "reduction_percent": 30.86799745253151
+        },
+        "image_install_callbacks_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 10.7763335,
+            "candidate": 11.841251,
+            "candidate_minus_baseline": 1.0649175,
+            "reduction_percent": -9.882002074267653
+          },
+          "median_runnable_ms": {
+            "baseline": 20.5862515,
+            "candidate": 9.723416,
+            "candidate_minus_baseline": -10.8628355,
+            "reduction_percent": 52.767428300387756
+          },
+          "median_sleeping_ms": {
+            "baseline": 39.7781885,
+            "candidate": 31.678001,
+            "candidate_minus_baseline": -8.1001875,
+            "reduction_percent": 20.363389599805434
+          },
+          "pooled_running_percent": {
+            "baseline": 10.786088889265498,
+            "candidate": 14.456253510756664,
+            "candidate_minus_baseline": 3.670164621491166,
+            "reduction_percent": -34.026834556720345
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 19.816688,
+            "candidate": 2.047332,
+            "candidate_minus_baseline": -17.769356,
+            "reduction_percent": 89.6686469504894
+          },
+          "median_runnable_ms": {
+            "baseline": 23.6700195,
+            "candidate": 13.684084,
+            "candidate_minus_baseline": -9.985935499999998,
+            "reduction_percent": 42.18811691304267
+          },
+          "median_sleeping_ms": {
+            "baseline": 41.2243335,
+            "candidate": 25.040834,
+            "candidate_minus_baseline": -16.1834995,
+            "reduction_percent": 39.257152574704456
+          },
+          "pooled_running_percent": {
+            "baseline": 23.620331272256394,
+            "candidate": 13.918624014140516,
+            "candidate_minus_baseline": -9.701707258115878,
+            "reduction_percent": 41.07354442361763
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 35.0917075,
+            "candidate": 19.719167000000002,
+            "candidate_minus_baseline": -15.372540499999996,
+            "reduction_percent": 43.80676118424844
+          },
+          "median_runnable_ms": {
+            "baseline": 42.651668,
+            "candidate": 22.336794,
+            "candidate_minus_baseline": -20.314874,
+            "reduction_percent": 47.62972927576947
+          },
+          "median_sleeping_ms": {
+            "baseline": 0.0,
+            "candidate": 0,
+            "candidate_minus_baseline": 0.0,
+            "reduction_percent": null
+          },
+          "pooled_running_percent": {
+            "baseline": 52.93558032597403,
+            "candidate": 39.96271840020898,
+            "candidate_minus_baseline": -12.972861925765052,
+            "reduction_percent": 24.506885247840813
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    },
+    "flying/release-navigate": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 15.918968,
+        "candidate": 19.23097,
+        "candidate_minus_baseline": 3.3120019999999997,
+        "reduction_percent": -20.805381353866657
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        },
+        "image_install_callbacks_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 0.0,
+            "candidate": 0,
+            "candidate_minus_baseline": 0.0,
+            "reduction_percent": null
+          },
+          "median_runnable_ms": {
+            "baseline": 0.0,
+            "candidate": 0,
+            "candidate_minus_baseline": 0.0,
+            "reduction_percent": null
+          },
+          "median_sleeping_ms": {
+            "baseline": 11.794286,
+            "candidate": 19.23097,
+            "candidate_minus_baseline": 7.436684,
+            "reduction_percent": -63.05327851130624
+          },
+          "pooled_running_percent": {
+            "baseline": 19.03655615244262,
+            "candidate": 0.0,
+            "candidate_minus_baseline": -19.03655615244262,
+            "reduction_percent": 100.0
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 1.4669789999999998,
+            "candidate": 1.669042,
+            "candidate_minus_baseline": 0.2020630000000001,
+            "reduction_percent": -13.77408947231011
+          },
+          "median_runnable_ms": {
+            "baseline": 0.4350215,
+            "candidate": 0.971083,
+            "candidate_minus_baseline": 0.5360615,
+            "reduction_percent": -123.2264382335126
+          },
+          "median_sleeping_ms": {
+            "baseline": 10.4325975,
+            "candidate": 16.590845,
+            "candidate_minus_baseline": 6.158247500000002,
+            "reduction_percent": -59.02889956216563
+          },
+          "pooled_running_percent": {
+            "baseline": 18.13711731110326,
+            "candidate": 12.1260603956717,
+            "candidate_minus_baseline": -6.01105691543156,
+            "reduction_percent": 33.14229495418042
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 1.4208135,
+            "candidate": 18.099345000000003,
+            "candidate_minus_baseline": 16.678531500000002,
+            "reduction_percent": -1173.8719754563144
+          },
+          "median_runnable_ms": {
+            "baseline": 0.48708300000000004,
+            "candidate": 1.1316249999999999,
+            "candidate_minus_baseline": 0.6445419999999998,
+            "reduction_percent": -132.32693401329954
+          },
+          "median_sleeping_ms": {
+            "baseline": 8.659677,
+            "candidate": 8.718929,
+            "candidate_minus_baseline": 0.05925199999999897,
+            "reduction_percent": -0.6842287535666627
+          },
+          "pooled_running_percent": {
+            "baseline": 26.60811633890887,
+            "candidate": 55.73385497404663,
+            "candidate_minus_baseline": 29.125738635137758,
+            "reduction_percent": -109.46185842004677
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    },
+    "flying/request-first": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 30.788750999999998,
+        "candidate": 29.465792,
+        "candidate_minus_baseline": -1.3229589999999973,
+        "reduction_percent": 4.296890770268653
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 1.0,
+          "candidate": 1,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 1.0,
+          "candidate": 1,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 9.963021,
+          "candidate": 9.805166,
+          "candidate_minus_baseline": -0.15785499999999963,
+          "reduction_percent": 1.5844089859892863
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 4.0539375,
+          "candidate": 0.776041,
+          "candidate_minus_baseline": -3.2778964999999998,
+          "reduction_percent": 80.85710497510136
+        },
+        "image_install_callbacks_started": {
+          "baseline": 0.0,
+          "candidate": 0,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": null
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 0.5176875,
+            "candidate": 0.571001,
+            "candidate_minus_baseline": 0.053313500000000014,
+            "reduction_percent": -10.298394301581556
+          },
+          "median_runnable_ms": {
+            "baseline": 2.502833,
+            "candidate": 0.31595799999999996,
+            "candidate_minus_baseline": -2.1868749999999997,
+            "reduction_percent": 87.37598553319378
+          },
+          "median_sleeping_ms": {
+            "baseline": 28.1222715,
+            "candidate": 12.535625,
+            "candidate_minus_baseline": -15.5866465,
+            "reduction_percent": 55.42456447730405
+          },
+          "pooled_running_percent": {
+            "baseline": 10.129845725299838,
+            "candidate": 26.047658639243473,
+            "candidate_minus_baseline": 15.917812913943635,
+            "reduction_percent": -157.13776246550367
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 10.660418,
+            "candidate": 11.580832000000001,
+            "candidate_minus_baseline": 0.920414000000001,
+            "reduction_percent": -8.633939119460427
+          },
+          "median_runnable_ms": {
+            "baseline": 9.801562,
+            "candidate": 2.8327489999999997,
+            "candidate_minus_baseline": -6.968813000000001,
+            "reduction_percent": 71.09900442398876
+          },
+          "median_sleeping_ms": {
+            "baseline": 11.439271000000002,
+            "candidate": 5.846667,
+            "candidate_minus_baseline": -5.5926040000000015,
+            "reduction_percent": 48.889514025850076
+          },
+          "pooled_running_percent": {
+            "baseline": 35.341174765969555,
+            "candidate": 37.97449313503173,
+            "candidate_minus_baseline": 2.6333183690621738,
+            "reduction_percent": -7.451134226578762
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 9.971895499999999,
+            "candidate": 4.076499999999999,
+            "candidate_minus_baseline": -5.895395499999999,
+            "reduction_percent": 59.12010911065003
+          },
+          "median_runnable_ms": {
+            "baseline": 12.5993955,
+            "candidate": 0.8878739999999999,
+            "candidate_minus_baseline": -11.7115215,
+            "reduction_percent": 92.95304286622321
+          },
+          "median_sleeping_ms": {
+            "baseline": 0.0,
+            "candidate": 24.488042,
+            "candidate_minus_baseline": 24.488042,
+            "reduction_percent": null
+          },
+          "pooled_running_percent": {
+            "baseline": 32.290713801849265,
+            "candidate": 20.44542598933157,
+            "candidate_minus_baseline": -11.845287812517693,
+            "reduction_percent": 36.68326406534662
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    },
+    "flying/startup": {
+      "baseline_n": 6,
+      "candidate_n": 3,
+      "duration_median_ms": {
+        "baseline": 387.276591,
+        "candidate": 491.762012,
+        "candidate_minus_baseline": 104.48542100000003,
+        "reduction_percent": -26.979534376246363
+      },
+      "native_scopes": {
+        "render_draw_frames_started": {
+          "baseline": 5.5,
+          "candidate": 6,
+          "candidate_minus_baseline": 0.5,
+          "reduction_percent": -9.090909090909092
+        },
+        "fabric_mount_batches_started": {
+          "baseline": 10.0,
+          "candidate": 10,
+          "candidate_minus_baseline": 0.0,
+          "reduction_percent": 0.0
+        },
+        "native_commit_scopes_started": {
+          "baseline": null,
+          "candidate": null,
+          "candidate_minus_baseline": null,
+          "reduction_percent": null
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "baseline": 60.5277915,
+          "candidate": 111.065416,
+          "candidate_minus_baseline": 50.5376245,
+          "reduction_percent": -83.49490911129642
+        },
+        "main_postAndWait_elapsed_ms": {
+          "baseline": 41.032604,
+          "candidate": 15.514582,
+          "candidate_minus_baseline": -25.518022,
+          "reduction_percent": 62.18962364660063
+        },
+        "image_install_callbacks_started": {
+          "baseline": 3.0,
+          "candidate": 2,
+          "candidate_minus_baseline": -1.0,
+          "reduction_percent": 33.333333333333336
+        }
+      },
+      "threads": {
+        "RenderThread": {
+          "median_running_ms": {
+            "baseline": 31.849769499999994,
+            "candidate": 22.725042000000002,
+            "candidate_minus_baseline": -9.124727499999992,
+            "reduction_percent": 28.649273270250806
+          },
+          "median_runnable_ms": {
+            "baseline": 39.959603,
+            "candidate": 30.960833,
+            "candidate_minus_baseline": -8.99877,
+            "reduction_percent": 22.51966817588253
+          },
+          "median_sleeping_ms": {
+            "baseline": 286.9209255,
+            "candidate": 440.447429,
+            "candidate_minus_baseline": 153.5265035,
+            "reduction_percent": -53.508297881187474
+          },
+          "pooled_running_percent": {
+            "baseline": 9.66368025531515,
+            "candidate": 6.409514330056649,
+            "candidate_minus_baseline": -3.2541659252585005,
+            "reduction_percent": 33.67418870744059
+          }
+        },
+        "MainThread": {
+          "median_running_ms": {
+            "baseline": 132.77695599999998,
+            "candidate": 202.78545799999995,
+            "candidate_minus_baseline": 70.00850199999996,
+            "reduction_percent": -52.72639478193789
+          },
+          "median_runnable_ms": {
+            "baseline": 79.9940425,
+            "candidate": 92.177917,
+            "candidate_minus_baseline": 12.183874499999988,
+            "reduction_percent": -15.230977356845026
+          },
+          "median_sleeping_ms": {
+            "baseline": 187.85486150000003,
+            "candidate": 196.79863699999999,
+            "candidate_minus_baseline": 8.943775499999958,
+            "reduction_percent": -4.76100295120654
+          },
+          "pooled_running_percent": {
+            "baseline": 30.564354811228426,
+            "candidate": 34.36271801589504,
+            "candidate_minus_baseline": 3.7983632046666145,
+            "reduction_percent": -12.427428055085953
+          }
+        },
+        "mqt_v_js": {
+          "median_running_ms": {
+            "baseline": 179.59654050000003,
+            "candidate": 262.769221,
+            "candidate_minus_baseline": 83.17268049999998,
+            "reduction_percent": -46.31084778606856
+          },
+          "median_runnable_ms": {
+            "baseline": 151.99106,
+            "candidate": 147.23316499999996,
+            "candidate_minus_baseline": -4.7578950000000475,
+            "reduction_percent": 3.130378194612267
+          },
+          "median_sleeping_ms": {
+            "baseline": 65.785528,
+            "candidate": 81.759626,
+            "candidate_minus_baseline": 15.974097999999998,
+            "reduction_percent": -24.282085263494427
+          },
+          "pooled_running_percent": {
+            "baseline": 49.32121694433534,
+            "candidate": 45.1438531800555,
+            "candidate_minus_baseline": -4.177363764279839,
+            "reduction_percent": 8.469709433557721
+          }
+        }
+      },
+      "frame_cohorts": {
+        "baseline": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        },
+        "candidate": {
+          "frame_records": null,
+          "deadline_misses": null,
+          "miss_percent": null
+        }
+      }
+    }
+  },
+  "limits": [
+    "Single-trace descriptive comparison; unequal runs/host load/cache state are not paired statistical proof.",
+    "Keep matching AVD,renderer,density,scenario,cache-state labels,trace configuration and diagnostics. Tool cannot prove those match.",
+    "Native mount batches are not React commits; absent native commit instrumentation is null.",
+    "Scoped wall durations and overlapping thread CPU times cannot be summed.",
+    "Display-end cadence is not physical-device FPS; cohorts use different frame start/end boundaries.",
+    "Incomplete transitions remain in source totals; compare completion counts alongside successful-window metrics."
+  ]
+}

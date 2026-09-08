@@ -1,0 +1,154 @@
+diff --git a/src/components/events/EventSharedTransition.tsx b/src/components/events/EventSharedTransition.tsx
+index 1904d21..bd2f20b 100644
+--- a/src/components/events/EventSharedTransition.tsx
++++ b/src/components/events/EventSharedTransition.tsx
+@@ -15,6 +15,7 @@ import {
+ import {
+   AppState,
+   Platform,
++  PixelRatio,
+   StyleSheet,
+   View,
+   useWindowDimensions,
+@@ -26,7 +27,7 @@ import {
+ 
+ import { NavigationContext } from '@react-navigation/native';
+ import { BlurView } from 'expo-blur';
+-import { Image } from 'expo-image';
++import { Image, type ImageRef } from 'expo-image';
+ import Animated, {
+   cancelAnimation,
+   Easing,
+@@ -46,6 +47,8 @@ import { fallbackSharedCoverScreenOptions } from '@navigation/transitions';
+ import { eventSharedMotion, heroCoverSize } from '@theme/motion';
+ import { markTransition, transitionMetricsEnabled } from '@utils/transitionMetrics';
+ 
++import { createSharedCoverPreloader } from './sharedCoverPreload';
++
+ export interface SharedFrame {
+   x: number;
+   y: number;
+@@ -91,6 +94,8 @@ interface Flight {
+   eventId: string;
+   imageUri: string;
+   source: SourceFrames;
++  /** Snapshot at open; never replace the bitmap source during a flight. */
++  imageRef?: ImageRef;
+   sourceNode: SharedTransitionSource;
+   destinationRef?: RefObject<View | null>;
+   targetCover?: SharedFrame;
+@@ -237,7 +242,10 @@ const FlyingCover = ({
+   const fromCenter = center(from);
+   // A new source object would make expo-image re-request the bitmap when the
+   // flight re-renders at take-off and blank the view for a frame.
+-  const source = useMemo(() => ({ uri: flight.imageUri }), [flight.imageUri]);
++  const source = useMemo(
++    () => flight.imageRef ?? { uri: flight.imageUri },
++    [flight.imageRef, flight.imageUri],
++  );
+   const style = useAnimatedStyle(() => {
+     const p = progress.value;
+     const to = target.value;
+@@ -330,6 +338,8 @@ const FlightOverlay = ({
+   onError: () => void;
+ }) => {
+   const flying = flight.phase === 'flying' || flight.phase === 'closing';
++  const metricPhase =
++    flight.phase === 'landing' || flight.phase === 'flying' ? 'flying' : 'closing';
+   const started = useRef<SharedPhase | undefined>(undefined);
+   const targetCenter = flight.targetCover ? center(flight.targetCover) : null;
+   const target = useSharedValue<CoverTarget | null>(
+@@ -385,8 +395,8 @@ const FlightOverlay = ({
+       accessibilityElementsHidden
+       importantForAccessibility="no-hide-descendants"
+     >
+-      {transitionMetricsEnabled && flying && (
+-        <FlightMetricProbe key={flight.phase} phase={flight.phase} progress={progress} />
++      {transitionMetricsEnabled && (
++        <FlightMetricProbe key={metricPhase} phase={metricPhase} progress={progress} />
+       )}
+       <FlyingCover
+         flight={flight}
+@@ -424,6 +434,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   const reducedMotion = useReducedMotion();
+   const { width, height } = useWindowDimensions();
+   const layoutSize = heroCoverSize(width);
++  const preloadPixelSize = PixelRatio.getPixelSizeForLayoutSize(layoutSize);
++  const coverPreloader = useMemo(createSharedCoverPreloader, []);
+ 
+   const clearTimers = () => {
+     const current = timers.current;
+@@ -447,6 +459,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+       )
+         return;
+       markTransition('cancel', { phase: flightRef.current?.phase ?? 'idle' });
++      coverPreloader.clear();
+       const returnedToSource = flightRef.current?.phase === 'closed';
+       returnFlight.current = undefined;
+       const finishClose = closeCallback.current;
+@@ -463,7 +476,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+       setFlight(undefined);
+       finishClose?.(false);
+     },
+-    [progress],
++    [coverPreloader, progress],
+   );
+ 
+   const cancelFlight = useCallback(
+@@ -523,6 +536,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   const prime = useCallback<SharedTransitionActions['prime']>(
+     (eventId, source) => {
+       if (reducedMotion || flightRef.current || opening.current) return;
++      coverPreloader.prime(source.imageUri, preloadPixelSize);
+       const generation = sequence.current;
+       measureSource(source, root, (frames) => {
+         if (frames && generation === sequence.current && !opening.current && !flightRef.current) {
+@@ -530,7 +544,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         }
+       });
+     },
+-    [reducedMotion],
++    [coverPreloader, preloadPixelSize, reducedMotion],
+   );
+ 
+   const open = useCallback<SharedTransitionActions['open']>(
+@@ -544,6 +558,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         navigate(reducedMotion);
+         return;
+       }
++      const imageRef = coverPreloader.ready(source.imageUri, preloadPixelSize);
++      markTransition('preload-snapshot', { ready: imageRef ? 1 : 0 });
+       const id = ++sequence.current;
+       const begin = (frames: SourceFrames | null) => {
+         if (sequence.current !== id) return;
+@@ -558,6 +574,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+           id,
+           eventId,
+           imageUri: source.imageUri,
++          imageRef,
+           source: frames,
+           sourceNode: source,
+           rotation: 0,
+@@ -594,7 +611,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         begin(frames);
+       });
+     },
+-    [cancelFlight, progress, reducedMotion],
++    [cancelFlight, coverPreloader, preloadPixelSize, progress, reducedMotion],
+   );
+ 
+   const land = useCallback<SharedTransitionActions['land']>(
+@@ -721,11 +738,12 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+     });
+     return () => {
+       subscription.remove();
++      coverPreloader.clear();
+       sequence.current += 1;
+       clearTimers();
+       cancelAnimation(progress);
+     };
+-  }, [cancel, progress]);
++  }, [cancel, coverPreloader, progress]);
+   useEffect(() => {
+     cancel();
+   }, [width, height, cancel]);

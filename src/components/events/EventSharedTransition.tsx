@@ -36,6 +36,7 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useAnimatedReaction,
+  useDerivedValue,
   useReducedMotion,
   useSharedValue,
   withTiming,
@@ -295,18 +296,42 @@ const FlightMetricProbe = ({
   phase: SharedPhase;
 }) => {
   const emitted = useSharedValue(false);
+  const flushed = useSharedValue(false);
+  const samples = useSharedValue<Array<{ ui_ms: number; progress: number }>>([]);
+  const dropped = useSharedValue(0);
+  // This component only mounts in an explicitly enabled diagnostic build.
+  // Collect on the UI runtime; cross to JS once after reaching the endpoint.
   useAnimatedReaction(
     () => progress.value,
     (p) => {
-      if (
-        !emitted.value &&
-        ((phase === 'flying' && p > 0 && p < 1) || (phase === 'closing' && p < 1 && p > 0))
-      ) {
+      const moving = p > 0 && p < 1;
+      const endpoint = (phase === 'flying' && p >= 1) || (phase === 'closing' && p <= 0);
+      if (flushed.value || (!moving && !(endpoint && emitted.value))) return;
+      const uiMs = performance.now();
+      if (!emitted.value && moving) {
         emitted.value = true;
         runOnJS(markTransition)('first-ui-motion', {
           phase,
-          ui_ms: performance.now(),
+          ui_ms: uiMs,
           ui_wall_ms: Date.now(),
+        });
+      }
+      // Bound diagnostic memory, reserving the final entry for the endpoint.
+      // modify avoids allocating/copying the entire array on every UI frame.
+      if (samples.value.length < 255 || endpoint) {
+        samples.modify((items) => {
+          items.push({ ui_ms: uiMs, progress: p });
+          return items;
+        });
+      } else dropped.value += 1;
+      if (endpoint) {
+        flushed.value = true;
+        runOnJS(markTransition)('ui-motion-samples', {
+          phase,
+          ui_ms: uiMs,
+          ui_wall_ms: Date.now(),
+          samples_json: JSON.stringify(samples.value),
+          dropped_samples: dropped.value,
         });
       }
     },
@@ -330,6 +355,9 @@ const FlightOverlay = ({
   onError: () => void;
 }) => {
   const flying = flight.phase === 'flying' || flight.phase === 'closing';
+  // Mount diagnostics before takeoff so React scheduling cannot delay the probe.
+  const metricPhase =
+    flight.phase === 'landing' || flight.phase === 'flying' ? 'flying' : 'closing';
   const started = useRef<SharedPhase | undefined>(undefined);
   const targetCenter = flight.targetCover ? center(flight.targetCover) : null;
   const target = useSharedValue<CoverTarget | null>(
@@ -385,8 +413,8 @@ const FlightOverlay = ({
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      {transitionMetricsEnabled && flying && (
-        <FlightMetricProbe key={flight.phase} phase={flight.phase} progress={progress} />
+      {transitionMetricsEnabled && (
+        <FlightMetricProbe key={metricPhase} phase={metricPhase} progress={progress} />
       )}
       <FlyingCover
         flight={flight}
@@ -772,10 +800,16 @@ export const EventSharedTransitionSourcePage = ({ children }: { children: ReactN
   const canBlur = Platform.OS === 'android' && Number(Platform.Version) >= 31;
   // Keep radius fixed while moving, but clear it on the UI thread near the
   // source endpoint. A delayed JS completion must not leave the feed blurred.
+  // Only radius changes should submit a native filter update. A fresh
+  // array on every progress frame defeats Reanimated's shallow style equality.
+  const blurRadius = useDerivedValue(() => {
+    if (!canBlur || !moving || progress.value <= 0.04) return 0;
+    return phase === 'flying'
+      ? eventSharedMotion.openingBackdropBlur
+      : eventSharedMotion.backdropBlur;
+  });
   const style = useAnimatedStyle(() => ({
-    filter: canBlur
-      ? [{ blur: moving && progress.value > 0.04 ? eventSharedMotion.backdropBlur : 0 }]
-      : [],
+    filter: canBlur ? [{ blur: blurRadius.value }] : [],
   }));
   return <Animated.View style={[styles.root, style]}>{children}</Animated.View>;
 };

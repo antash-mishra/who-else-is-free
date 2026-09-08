@@ -1,0 +1,1 @@
+SELECT t.tid,CASE WHEN t.is_main_thread=1 THEN 'MainThread' ELSE t.name END AS name,s.ts,s.dur,s.state,s.io_wait,s.blocked_function FROM thread_state s JOIN thread t USING(utid) JOIN process p USING(upid) WHERE p.pid=23055 AND (t.is_main_thread=1 OR t.name IN ('mqt_v_js','RenderThread')) AND s.dur>0 ORDER BY s.ts

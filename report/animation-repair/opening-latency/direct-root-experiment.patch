@@ -1,0 +1,566 @@
+diff --git a/src/components/EventCard.tsx b/src/components/EventCard.tsx
+index f112033..b934d56 100644
+--- a/src/components/EventCard.tsx
++++ b/src/components/EventCard.tsx
+@@ -34,6 +34,8 @@ export interface EventItemProps {
+   titleRef?: RefObject<Text | null>;
+   /** True while this card's cover is flying in the shared overlay. */
+   sharedElementsHidden?: boolean;
++  /** The source is prepared before opening starts on the UI thread. */
++  sharedElementsPreparing?: boolean;
+ }
+ 
+ const BADGE_ICON_SIZE = 10;
+@@ -64,11 +66,17 @@ const EventCard = ({
+   coverRef,
+   titleRef,
+   sharedElementsHidden,
++  sharedElementsPreparing,
+ }: EventItemProps) => {
+-  const { progress } = useEventSharedTransition();
++  const { progress, openingReady } = useEventSharedTransition();
+   const coverVisibility = useAnimatedStyle(() => ({
+     // Return the source image on the UI thread before JS navigation completes.
+-    opacity: sharedElementsHidden && progress.value > 0.001 ? 0 : 1,
++    opacity:
++      sharedElementsHidden &&
++      (!sharedElementsPreparing || openingReady.value) &&
++      progress.value > 0.001
++        ? 0
++        : 1,
+   }));
+   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
+   const locationName = formatEventLocationName(location);
+diff --git a/src/components/events/EventSectionList.tsx b/src/components/events/EventSectionList.tsx
+index 4922eb0..37b59c3 100644
+--- a/src/components/events/EventSectionList.tsx
++++ b/src/components/events/EventSectionList.tsx
+@@ -57,7 +57,7 @@ const EventCardRow = <TItem extends EventItemProps>({
+   const { eventId: activeEventId, phase } = useEventSharedTransitionState();
+   // Hide only the cover while its overlay travels; list text stays in place.
+   const sharedElementsHidden =
+-    activeEventId === item.id && (phase === 'flying' || phase === 'closing');
++    activeEventId === item.id && (phase === 'landing' || phase === 'flying' || phase === 'closing');
+   const source = useMemo(
+     () => ({
+       imageUri: item.imageUri,
+@@ -87,6 +87,7 @@ const EventCardRow = <TItem extends EventItemProps>({
+         coverRef={coverRef}
+         titleRef={titleRef}
+         sharedElementsHidden={sharedElementsHidden}
++        sharedElementsPreparing={phase === 'landing'}
+       />
+     </ScalePressable>
+   );
+diff --git a/src/components/events/EventSharedTransition.tsx b/src/components/events/EventSharedTransition.tsx
+index 1904d21..919bba5 100644
+--- a/src/components/events/EventSharedTransition.tsx
++++ b/src/components/events/EventSharedTransition.tsx
+@@ -84,6 +84,8 @@ export interface SharedTransitionState {
+ 
+ interface SourceFrames {
+   cover: SharedFrame;
++  /** The provider root is fixed for this opening generation. */
++  rootFrame: SharedFrame | null;
+ }
+ 
+ interface Flight {
+@@ -121,6 +123,8 @@ interface SharedTransitionActions {
+   close: (eventId: string, onClosed: (sharedReturnCompleted: boolean) => void) => boolean;
+   /** 0 at the source, 1 at Details; keep the completed endpoint until the next flight. */
+   progress: SharedValue<number>;
++  /** UI authorization for opening while the React phase is still landing. */
++  openingReady: SharedValue<boolean>;
+ }
+ 
+ const idleProgress = makeMutable(1);
+@@ -132,6 +136,7 @@ const ActionsContext = createContext<SharedTransitionActions>({
+   cancel: () => undefined,
+   close: () => false,
+   progress: idleProgress,
++  openingReady: makeMutable(false),
+ });
+ 
+ const StateContext = createContext<SharedTransitionState>({});
+@@ -186,6 +191,7 @@ const measureSource = (
+     }
+     onDone({
+       cover: toLocal(cover, rootFrame),
++      rootFrame,
+     });
+   };
+   measureNode(root.current, (frame) => {
+@@ -321,6 +327,7 @@ const FlightOverlay = ({
+   onCoverReady,
+   onComplete,
+   onError,
++  target,
+ }: {
+   flight: Flight;
+   layoutSize: number;
+@@ -328,24 +335,17 @@ const FlightOverlay = ({
+   onCoverReady: () => void;
+   onComplete: () => void;
+   onError: () => void;
++  target: SharedValue<CoverTarget | null>;
+ }) => {
+   const flying = flight.phase === 'flying' || flight.phase === 'closing';
++  const metricPhase =
++    flight.phase === 'landing' || flight.phase === 'flying' ? 'flying' : 'closing';
+   const started = useRef<SharedPhase | undefined>(undefined);
+-  const targetCenter = flight.targetCover ? center(flight.targetCover) : null;
+-  const target = useSharedValue<CoverTarget | null>(
+-    flight.targetCover && targetCenter
+-      ? {
+-          cx: targetCenter.x,
+-          cy: targetCenter.y,
+-          width: flight.targetCover.width,
+-          rotation: flight.rotation,
+-        }
+-      : null,
+-  );
+-  // The provider switches to `flying` only once the destination has landed and
+-  // the cover bitmap is painted (or its grace passed), so take off right away.
++  // Opening starts directly at readiness in the provider. Keep the proven
++  // return lifecycle here, after its overlay bitmap has committed.
+   useEffect(() => {
+-    if (!flying || started.current === flight.phase || !flight.targetCover) return;
++    if (flight.phase !== 'closing' || started.current === flight.phase || !flight.targetCover)
++      return;
+     started.current = flight.phase;
+     const to = center(flight.targetCover);
+     // Hand the UI thread the landing geometry first, then start the clock.
+@@ -385,8 +385,8 @@ const FlightOverlay = ({
+       accessibilityElementsHidden
+       importantForAccessibility="no-hide-descendants"
+     >
+-      {transitionMetricsEnabled && flying && (
+-        <FlightMetricProbe key={flight.phase} phase={flight.phase} progress={progress} />
++      {transitionMetricsEnabled && (
++        <FlightMetricProbe key={metricPhase} phase={metricPhase} progress={progress} />
+       )}
+       <FlyingCover
+         flight={flight}
+@@ -421,6 +421,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   const [flight, setFlightState] = useState<Flight>();
+   // Reset to 0 at open so the page mounts invisible; the overlay drives it to 1.
+   const progress = useSharedValue(1);
++  const target = useSharedValue<CoverTarget | null>(null);
++  const openingReady = useSharedValue(false);
+   const reducedMotion = useReducedMotion();
+   const { width, height } = useWindowDimensions();
+   const layoutSize = heroCoverSize(width);
+@@ -446,6 +448,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         returnFlight.current?.eventId !== eventId
+       )
+         return;
++      openingReady.value = false;
+       markTransition('cancel', { phase: flightRef.current?.phase ?? 'idle' });
+       const returnedToSource = flightRef.current?.phase === 'closed';
+       returnFlight.current = undefined;
+@@ -463,7 +466,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+       setFlight(undefined);
+       finishClose?.(false);
+     },
+-    [progress],
++    [progress, openingReady],
+   );
+ 
+   const cancelFlight = useCallback(
+@@ -473,17 +476,70 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+     [cancel],
+   );
+ 
++  const complete = useCallback(
++    (id: number) => {
++      const current = flightRef.current;
++      if (!current || current.id !== id) return;
++      clearTimers();
++      opening.current = false;
++      if (current.phase === 'closing') {
++        // Keep the page contracted until navigation removes it. Resetting here
++        // would flash a full-size Details page during the stack's close fade.
++        markTransition('return-complete-js');
++        setFlight({ ...current, phase: 'closed' });
++        const callback = closeCallback.current;
++        closeCallback.current = undefined;
++        callback?.(true);
++      } else if (current.phase === 'flying') {
++        returnFlight.current = current;
++        setFlight(undefined);
++      } else {
++        cancel();
++      }
++    },
++    [cancel],
++  );
++
+   const startFlight = useCallback(() => {
+     const current = flightRef.current;
+     if (!current || current.phase !== 'landing' || !current.targetCover) return;
+     clearTimers();
+     markTransition('takeoff-ready');
+     setFlight({ ...current, phase: 'flying' });
++    // Geometry and the bitmap are ready. Start on the UI thread now, without
++    // waiting for the phase update to render the provider and all card rows.
++    const to = center(current.targetCover);
++    target.value = {
++      cx: to.x,
++      cy: to.y,
++      width: current.targetCover.width,
++      rotation: current.rotation,
++    };
++    const id = current.id;
++    openingReady.value = true;
++    markTransition('animation-requested', { phase: 'flying' });
++    progress.value = withTiming(
++      1,
++      {
++        duration: eventSharedMotion.durationMs,
++        easing: Easing.out(Easing.cubic),
++      },
++      (finished) => {
++        if (!finished) return;
++        if (transitionMetricsEnabled)
++          runOnJS(markTransition)('ui-endpoint', {
++            phase: 'flying',
++            ui_ms: performance.now(),
++            ui_wall_ms: Date.now(),
++          });
++        runOnJS(complete)(id);
++      },
++    );
+     timers.current.complete = setTimeout(
+       () => cancelFlight(current.id),
+       eventSharedMotion.timeoutMs,
+     );
+-  }, [cancelFlight]);
++  }, [cancelFlight, complete, progress, target, openingReady]);
+ 
+   /** Wait for the destination cover and bitmap; text never delays take-off. */
+   const tryStart = useCallback(() => {
+@@ -552,6 +608,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+           navigate(false);
+           return;
+         }
++        openingReady.value = false;
++        target.value = null;
+         progress.value = 0;
+         graces.current = { image: false };
+         setFlight({
+@@ -594,7 +652,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         begin(frames);
+       });
+     },
+-    [cancelFlight, progress, reducedMotion],
++    [cancelFlight, progress, reducedMotion, target, openingReady],
+   );
+ 
+   const land = useCallback<SharedTransitionActions['land']>(
+@@ -609,48 +667,23 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         return;
+       if (!isValidSharedFrame(frame)) return;
+       if (current.targetCover) return;
+-      measureNode(root.current, (rootFrame) => {
+-        const latest = flightRef.current;
+-        if (!latest || latest.id !== current.id || latest.phase !== 'landing') return;
+-        markTransition('destination-measured');
+-        const local = toLocal(frame, rootFrame);
+-        const next: Flight = {
+-          ...latest,
+-          targetCover: local,
+-          rotation: extras?.rotation ?? 0,
+-          destinationRef: extras?.coverRef,
+-        };
+-        setFlight(next);
+-        tryStart();
+-      });
++      // Source and destination must use the same window-to-root conversion.
++      // The root surrounds navigation and does not move during a push; viewport
++      // changes/backgrounding invalidate this entire generation. Commit the
++      // target synchronously, so onLayout and the RAF probe cannot race.
++      markTransition('destination-measured');
++      const next: Flight = {
++        ...current,
++        targetCover: toLocal(frame, current.source.rootFrame),
++        rotation: extras?.rotation ?? 0,
++        destinationRef: extras?.coverRef,
++      };
++      setFlight(next);
++      tryStart();
+     },
+     [tryStart],
+   );
+ 
+-  const complete = useCallback(
+-    (id: number) => {
+-      const current = flightRef.current;
+-      if (!current || current.id !== id) return;
+-      clearTimers();
+-      opening.current = false;
+-      if (current.phase === 'closing') {
+-        // Keep the page contracted until navigation removes it. Resetting here
+-        // would flash a full-size Details page during the stack's close fade.
+-        markTransition('return-complete-js');
+-        setFlight({ ...current, phase: 'closed' });
+-        const callback = closeCallback.current;
+-        closeCallback.current = undefined;
+-        callback?.(true);
+-      } else if (current.phase === 'flying') {
+-        returnFlight.current = current;
+-        setFlight(undefined);
+-      } else {
+-        cancel();
+-      }
+-    },
+-    [cancel],
+-  );
+-
+   const close = useCallback<SharedTransitionActions['close']>(
+     (eventId, onClosed) => {
+       markTransition('close-request');
+@@ -694,12 +727,20 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+             if (settled || sequence.current !== id) return;
+             settled = true;
+             clearTimers();
++            const targetCover = toLocal(destination, rootFrame);
++            const to = center(targetCover);
++            target.value = {
++              cx: to.x,
++              cy: to.y,
++              width: targetCover.width,
++              rotation: previous.rotation,
++            };
+             progress.value = 1;
+             setFlight({
+               ...previous,
+               id,
+               source: frames,
+-              targetCover: toLocal(destination, rootFrame),
++              targetCover,
+               coverReady: false,
+               phase: 'returning',
+             });
+@@ -712,7 +753,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+       });
+       return true;
+     },
+-    [cancel, cancelFlight, height, progress, reducedMotion],
++    [cancel, cancelFlight, height, progress, reducedMotion, target],
+   );
+ 
+   useEffect(() => {
+@@ -731,8 +772,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   }, [width, height, cancel]);
+ 
+   const actions = useMemo(
+-    () => ({ prime, open, land, cancel, close, progress }),
+-    [prime, open, land, cancel, close, progress],
++    () => ({ prime, open, land, cancel, close, progress, openingReady }),
++    [prime, open, land, cancel, close, progress, openingReady],
+   );
+   const eventId = flight?.eventId;
+   const phase = flight?.phase;
+@@ -752,6 +793,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+               flight={flight}
+               layoutSize={layoutSize}
+               progress={progress}
++              target={target}
+               onCoverReady={() => markCoverReady(flight.id)}
+               onComplete={() => complete(flight.id)}
+               onError={() => cancelFlight(flight.id)}
+@@ -767,14 +809,21 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+  * the transparent stack card instead of the feed on this navigator. */
+ export const EventSharedTransitionSourcePage = ({ children }: { children: ReactNode }) => {
+   const { phase } = useEventSharedTransitionState();
+-  const { progress } = useEventSharedTransition();
+-  const moving = phase === 'flying' || phase === 'closing';
++  const { progress, openingReady } = useEventSharedTransition();
++  const moving = phase === 'landing' || phase === 'flying' || phase === 'closing';
+   const canBlur = Platform.OS === 'android' && Number(Platform.Version) >= 31;
+   // Keep radius fixed while moving, but clear it on the UI thread near the
+   // source endpoint. A delayed JS completion must not leave the feed blurred.
+   const style = useAnimatedStyle(() => ({
+     filter: canBlur
+-      ? [{ blur: moving && progress.value > 0.04 ? eventSharedMotion.backdropBlur : 0 }]
++      ? [
++          {
++            blur:
++              moving && (phase !== 'landing' || openingReady.value) && progress.value > 0.04
++                ? eventSharedMotion.backdropBlur
++                : 0,
++          },
++        ]
+       : [],
+   }));
+   return <Animated.View style={[styles.root, style]}>{children}</Animated.View>;
+@@ -802,7 +851,7 @@ export const EventSharedTransitionPage = ({
+   testID,
+   children,
+ }: EventSharedTransitionPageProps) => {
+-  const { progress, cancel, close } = useEventSharedTransition();
++  const { progress, cancel, close, openingReady } = useEventSharedTransition();
+   const { eventId: activeEventId, phase, sourceCover } = useEventSharedTransitionState();
+   const navigation = useContext(NavigationContext);
+   const allowRemove = useRef(false);
+@@ -868,11 +917,11 @@ export const EventSharedTransitionPage = ({
+       }
+     };
+   }, [cancel, enabled, eventId]);
+-  const moving = active && phase !== 'landing' && phase !== 'returning';
++  const moving = active && phase !== 'returning';
+   const surfaceStyle = useAnimatedStyle(() => {
+     const p = progress.value;
+     const from = sourceCover;
+-    if (!moving || !from)
++    if (!moving || !from || (phase === 'landing' && !openingReady.value))
+       return {
+         opacity: active && phase === 'landing' ? 0 : fade.value,
+         borderRadius: 0,
+@@ -900,8 +949,9 @@ export const EventSharedTransitionPage = ({
+     };
+   });
+   const contentStyle = useAnimatedStyle(() => {
+-    if (!moving || !sourceCover) return { opacity: 1, transform: [{ scaleY: 1 }] };
+     const p = progress.value;
++    if (!moving || !sourceCover || (phase === 'landing' && !openingReady.value))
++      return { opacity: 1, transform: [{ scaleY: 1 }] };
+     const sx = (sourceCover.width + (width - sourceCover.width) * p) / width;
+     const sy = (sourceCover.height + (height - sourceCover.height) * p) / height;
+     // Undo the shell's nonuniform scale: typography remains proportional and
+diff --git a/src/components/events/__tests__/EventSharedTransition.test.tsx b/src/components/events/__tests__/EventSharedTransition.test.tsx
+index 50db92c..31798bc 100644
+--- a/src/components/events/__tests__/EventSharedTransition.test.tsx
++++ b/src/components/events/__tests__/EventSharedTransition.test.tsx
+@@ -101,6 +101,86 @@ const holdAnimations = () =>
+   jest.spyOn(Reanimated, 'withTiming').mockImplementation((value: unknown) => value as never);
+ 
+ describe('event shared transition', () => {
++  it('prepares the returning cover at the remeasured hero before its bitmap handoff', () => {
++    const timing = holdAnimations();
++    measureCard();
++    const originalMeasure = destinationRef.current.measureInWindow;
++    try {
++      const screen = mount();
++      fireEvent.press(screen.getByTestId('open'));
++      fireEvent.press(screen.getByTestId('land-cover'));
++      fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
++      act(() => {
++        timing.mock.calls[0][2]?.(true);
++      });
++      expect(screen.getByTestId('state').props.children).toBe('idle:none');
++
++      // The hero moved while Details was open (e.g. its ScrollView scrolled).
++      // Keep the new frame fully visible so the shared return remains valid.
++      destinationRef.current.measureInWindow = (callback) => callback(132, 63, 228, 228);
++      fireEvent.press(screen.getByTestId('close'));
++      expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
++      expect(timing).toHaveBeenCalledTimes(1);
++      expect(closed).not.toHaveBeenCalled();
++
++      // Do not send returning image onLoad: closing's effect has not run.
++      // At progress=1 the preloaded overlay must already match the current
++      // hero, not the target retained from opening. Both frames share the
++      // same root offset, which cancels out of the center differences.
++      const transform = StyleSheet.flatten(
++        screen.getByTestId('flying-cover', hidden).props.style,
++      ).transform;
++      expect(transform).toEqual(
++        expect.arrayContaining([
++          { translateX: 132 + 228 / 2 - (16 + 80 / 2) },
++          { translateY: 63 + 228 / 2 - (224 + 80 / 2) },
++        ]),
++      );
++    } finally {
++      destinationRef.current.measureInWindow = originalMeasure;
++    }
++  });
++
++  it('uses the measured opening root without another serial round trip, but remeasures on return', () => {
++    const timing = holdAnimations();
++    measureCard();
++    const rootMeasure = jest.mocked(View.prototype.measureInWindow);
++    rootMeasure.mockClear();
++    rootMeasure.mockImplementation((callback) => callback(12, 24, 400, 800));
++    const screen = mount();
++    fireEvent.press(screen.getByTestId('open'));
++    expect(rootMeasure).toHaveBeenCalledTimes(1);
++    fireEvent.press(screen.getByTestId('land-cover'));
++    // Fails before this patch: opening requests another root measurement.
++    expect(rootMeasure).toHaveBeenCalledTimes(1);
++    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
++    act(() => {
++      timing.mock.calls[0][2]?.(true);
++    });
++    fireEvent.press(screen.getByTestId('close'));
++    // Return still measures current source/root and destination/root independently.
++    expect(rootMeasure).toHaveBeenCalledTimes(3);
++    expect(measureCover).toHaveBeenCalledTimes(2);
++    expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
++  });
++
++  it('commits the first destination synchronously so duplicate layout probes cannot start twice', () => {
++    const timing = holdAnimations();
++    measureCard();
++    const rootMeasure = jest.mocked(View.prototype.measureInWindow);
++    rootMeasure.mockClear();
++    rootMeasure.mockImplementation((callback) => callback(12, 24, 400, 800));
++    const screen = mount();
++    fireEvent.press(screen.getByTestId('open'));
++    // Bitmap arrives before destination, a valid cold/warm ordering.
++    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
++    fireEvent.press(screen.getByTestId('land-cover'));
++    fireEvent.press(screen.getByTestId('land-cover'));
++    expect(rootMeasure).toHaveBeenCalledTimes(1);
++    expect(timing).toHaveBeenCalledTimes(1);
++    expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
++  });
++
+   beforeEach(() => {
+     jest.useFakeTimers();
+     navigate.mockReset();
+@@ -475,7 +555,8 @@ describe('event shared transition', () => {
+   });
+ 
+   it('places the overlays on the card at take-off', () => {
+-    holdAnimations();
++    // Model the first native frame, before timing advances from its source.
++    jest.spyOn(Reanimated, 'withTiming').mockImplementation(() => 0 as never);
+     measureCard();
+     const screen = mount();
+     fireEvent.press(screen.getByTestId('open'));
+@@ -498,6 +579,34 @@ describe('event shared transition', () => {
+     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
+   });
+ 
++  it('prepares the landing page to follow UI progress before its phase rerenders', () => {
++    const sharedValues = jest.spyOn(Reanimated, 'useSharedValue');
++    const animatedStyles = jest.spyOn(Reanimated, 'useAnimatedStyle');
++    measureCard();
++    const screen = mount();
++    fireEvent.press(screen.getByTestId('open'));
++    const progress = sharedValues.mock.results[0].value;
++    const surface = [...animatedStyles.mock.calls].reverse().find(([style]) => {
++      const value = style() as { transform?: Array<{ scaleX?: number }>; opacity?: number };
++      return value.opacity === 0 && value.transform?.some((entry) => entry.scaleX === 1);
++    })![0];
++    expect(surface().opacity).toBe(0);
++    // Keep the React phase at landing: only the native shared value moves.
++    const readyIndex = sharedValues.mock.calls.findIndex(([initial]) => initial === false);
++    sharedValues.mock.results[readyIndex].value.value = true;
++    progress.value = 0.5;
++    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
++    expect(surface().opacity).toBe(1);
++    expect(surface().transform).toEqual(
++      expect.arrayContaining([{ scaleX: expect.any(Number) }, { scaleY: expect.any(Number) }]),
++    );
++    // Cancellation can restore progress before the React phase clears. It
++    // must revoke UI takeoff first, keeping the abandoned landing page hidden.
++    sharedValues.mock.results[readyIndex].value.value = false;
++    progress.value = 1;
++    expect(surface().opacity).toBe(0);
++  });
++
+   it('releases the flight when the cover image fails to load', () => {
+     holdAnimations();
+     measureCard();

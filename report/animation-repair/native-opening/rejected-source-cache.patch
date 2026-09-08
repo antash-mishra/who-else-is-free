@@ -1,0 +1,19 @@
+--- a/src/components/events/EventSharedTransition.tsx
++++ b/src/components/events/EventSharedTransition.tsx
+@@ -806,7 +806,15 @@
+   const style = useAnimatedStyle(() => ({
+     filter: canBlur ? [{ blur: blurActive.value ? eventSharedMotion.backdropBlur : 0 }] : [],
+   }));
+-  return <Animated.View style={[styles.root, style]}>{children}</Animated.View>;
++  return (
++    <Animated.View
++      style={[styles.root, style]}
++      // Cache only the stationary source; Details and its live blur are outside this tree.
++      renderToHardwareTextureAndroid={canBlur && moving}
++    >
++      {children}
++    </Animated.View>
++  );
+ };
+ 
+ type EventSharedTransitionPageProps = {

@@ -1,0 +1,410 @@
+{
+  "flying/startup": {
+    "n": 6,
+    "duration_median_ms": 387.276591,
+    "threads": {
+      "oelseisfree.app": {
+        "R+": 8.786187499999999,
+        "D": 0.0,
+        "Running": 132.77695599999998,
+        "R": 71.207855,
+        "S": 187.85486150000003
+      },
+      "mqt_v_js": {
+        "R": 126.386539,
+        "R+": 30.336709000000003,
+        "S": 65.785528,
+        "Running": 179.59654050000003
+      },
+      "RenderThread": {
+        "R": 19.478209,
+        "R+": 19.488270500000002,
+        "S": 286.9209255,
+        "Running": 31.849769499999994
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 132.77695599999998,
+        "median_runnable_ms": 79.9940425,
+        "median_sleeping_ms": 187.85486150000003,
+        "pooled_running_percent": 30.564354811228426
+      },
+      "mqt_v_js": {
+        "median_running_ms": 179.59654050000003,
+        "median_runnable_ms": 151.99106,
+        "median_sleeping_ms": 65.785528,
+        "pooled_running_percent": 49.32121694433534
+      },
+      "RenderThread": {
+        "median_running_ms": 31.849769499999994,
+        "median_runnable_ms": 39.959603,
+        "median_sleeping_ms": 286.9209255,
+        "pooled_running_percent": 9.66368025531515
+      }
+    }
+  },
+  "flying/motion": {
+    "n": 6,
+    "duration_median_ms": 515.592438,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 25.376396000000003,
+        "R+": 9.031271,
+        "S": 408.7441055,
+        "Running": 54.52081249999999
+      },
+      "mqt_v_js": {
+        "R": 88.17458450000001,
+        "R+": 20.4632295,
+        "S": 278.16695749999997,
+        "Running": 111.9539345
+      },
+      "RenderThread": {
+        "R": 23.310146500000002,
+        "R+": 46.38351799999999,
+        "S": 18.240959,
+        "Running": 403.6193335000001
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 54.52081249999999,
+        "median_runnable_ms": 36.8663545,
+        "median_sleeping_ms": 408.7441055,
+        "pooled_running_percent": 11.445007760357749
+      },
+      "mqt_v_js": {
+        "median_running_ms": 111.9539345,
+        "median_runnable_ms": 113.95070850000002,
+        "median_sleeping_ms": 278.16695749999997,
+        "pooled_running_percent": 21.617315385870686
+      },
+      "RenderThread": {
+        "median_running_ms": 403.6193335000001,
+        "median_runnable_ms": 71.461496,
+        "median_sleeping_ms": 18.240959,
+        "pooled_running_percent": 74.2177013622222
+      }
+    },
+    "app_frames_started": 53,
+    "app_deadline_missed": 48,
+    "median_trial_gap_p50_ms": 76.7972185,
+    "median_trial_gap_p95_ms": 88.0850415,
+    "median_trial_gap_max_ms": 98.538938,
+    "median_trial_unique_display_frames": 7.5
+  },
+  "flying/release-navigate": {
+    "n": 6,
+    "duration_median_ms": 15.918968,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 0.4255215,
+        "R+": 0.0177705,
+        "S": 10.4325975,
+        "Running": 1.4669789999999998
+      },
+      "mqt_v_js": {
+        "R": 0.1545625,
+        "R+": 0.328625,
+        "S": 8.659677,
+        "Running": 1.4208135
+      },
+      "RenderThread": {
+        "R": 0.0,
+        "R+": 0.0,
+        "S": 11.794286,
+        "Running": 0.0
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 1.4669789999999998,
+        "median_runnable_ms": 0.4350215,
+        "median_sleeping_ms": 10.4325975,
+        "pooled_running_percent": 18.13711731110326
+      },
+      "mqt_v_js": {
+        "median_running_ms": 1.4208135,
+        "median_runnable_ms": 0.48708300000000004,
+        "median_sleeping_ms": 8.659677,
+        "pooled_running_percent": 26.60811633890887
+      },
+      "RenderThread": {
+        "median_running_ms": 0.0,
+        "median_runnable_ms": 0.0,
+        "median_sleeping_ms": 11.794286,
+        "pooled_running_percent": 19.03655615244262
+      }
+    }
+  },
+  "flying/navigate-destination": {
+    "n": 6,
+    "duration_median_ms": 120.58156199999999,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 10.761273,
+        "R+": 2.6441665,
+        "S": 74.803708,
+        "Running": 39.307916000000006
+      },
+      "mqt_v_js": {
+        "R": 29.875268999999996,
+        "R+": 2.3371055000000003,
+        "Running": 89.799918
+      },
+      "RenderThread": {
+        "R": 0.0,
+        "S": 118.29316549999999,
+        "Running": 0.0
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 39.307916000000006,
+        "median_runnable_ms": 13.216794,
+        "median_sleeping_ms": 74.803708,
+        "pooled_running_percent": 29.48918582774074
+      },
+      "mqt_v_js": {
+        "median_running_ms": 89.799918,
+        "median_runnable_ms": 31.7998985,
+        "median_sleeping_ms": 0.0,
+        "pooled_running_percent": 75.97455809502245
+      },
+      "RenderThread": {
+        "median_running_ms": 0.0,
+        "median_runnable_ms": 0.0,
+        "median_sleeping_ms": 118.29316549999999,
+        "pooled_running_percent": 0.011031863758597354
+      }
+    }
+  },
+  "flying/destination-ready": {
+    "n": 6,
+    "duration_median_ms": 145.576708,
+    "threads": {
+      "oelseisfree.app": {
+        "R+": 6.013437999999999,
+        "D": 0.0,
+        "Running": 59.00114350000001,
+        "R": 24.9086645,
+        "S": 68.43422849999999
+      },
+      "mqt_v_js": {
+        "R": 36.529457,
+        "R+": 20.6030425,
+        "S": 50.953604,
+        "Running": 36.540377
+      },
+      "RenderThread": {
+        "R": 11.117917000000002,
+        "R+": 8.952354,
+        "S": 104.7108135,
+        "Running": 16.0724385
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 59.00114350000001,
+        "median_runnable_ms": 32.669376,
+        "median_sleeping_ms": 68.43422849999999,
+        "pooled_running_percent": 38.14109291602635
+      },
+      "mqt_v_js": {
+        "median_running_ms": 36.540377,
+        "median_runnable_ms": 54.51774950000001,
+        "median_sleeping_ms": 50.953604,
+        "pooled_running_percent": 27.91756685518308
+      },
+      "RenderThread": {
+        "median_running_ms": 16.0724385,
+        "median_runnable_ms": 17.3981655,
+        "median_sleeping_ms": 104.7108135,
+        "pooled_running_percent": 16.5957084428297
+      }
+    }
+  },
+  "flying/ready-request": {
+    "n": 6,
+    "duration_median_ms": 74.571938,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 19.367165,
+        "R+": 0.0886875,
+        "S": 41.2243335,
+        "Running": 19.816688
+      },
+      "mqt_v_js": {
+        "R": 41.23860500000001,
+        "R+": 3.888438,
+        "Running": 35.0917075
+      },
+      "RenderThread": {
+        "R": 5.277583,
+        "R+": 10.278728000000001,
+        "S": 39.7781885,
+        "Running": 10.7763335
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 19.816688,
+        "median_runnable_ms": 23.6700195,
+        "median_sleeping_ms": 41.2243335,
+        "pooled_running_percent": 23.620331272256394
+      },
+      "mqt_v_js": {
+        "median_running_ms": 35.0917075,
+        "median_runnable_ms": 42.651668,
+        "median_sleeping_ms": 0.0,
+        "pooled_running_percent": 52.93558032597403
+      },
+      "RenderThread": {
+        "median_running_ms": 10.7763335,
+        "median_runnable_ms": 20.5862515,
+        "median_sleeping_ms": 39.7781885,
+        "pooled_running_percent": 10.786088889265498
+      }
+    }
+  },
+  "flying/request-first": {
+    "n": 6,
+    "duration_median_ms": 30.788750999999998,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 7.3670415,
+        "R+": 0.037583,
+        "S": 11.439271000000002,
+        "Running": 10.660418
+      },
+      "mqt_v_js": {
+        "R": 10.877458,
+        "R+": 1.4050414999999998,
+        "S": 0.0,
+        "Running": 9.971895499999999
+      },
+      "RenderThread": {
+        "R": 1.6806875,
+        "R+": 0.010666499999999999,
+        "S": 28.1222715,
+        "Running": 0.5176875
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 10.660418,
+        "median_runnable_ms": 9.801562,
+        "median_sleeping_ms": 11.439271000000002,
+        "pooled_running_percent": 35.341174765969555
+      },
+      "mqt_v_js": {
+        "median_running_ms": 9.971895499999999,
+        "median_runnable_ms": 12.5993955,
+        "median_sleeping_ms": 0.0,
+        "pooled_running_percent": 32.290713801849265
+      },
+      "RenderThread": {
+        "median_running_ms": 0.5176875,
+        "median_runnable_ms": 2.502833,
+        "median_sleeping_ms": 28.1222715,
+        "pooled_running_percent": 10.129845725299838
+      }
+    }
+  },
+  "closing/startup": {
+    "n": 6,
+    "duration_median_ms": 107.147906,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 5.835895000000001,
+        "R+": 1.2947714999999997,
+        "S": 73.89695449999999,
+        "Running": 26.196625500000003
+      },
+      "mqt_v_js": {
+        "R": 8.6273555,
+        "R+": 0.1213745,
+        "S": 57.910884,
+        "Running": 40.7384805
+      },
+      "RenderThread": {
+        "R": 3.198334,
+        "R+": 0.43520749999999997,
+        "S": 90.58113550000002,
+        "Running": 11.814104
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 26.196625500000003,
+        "median_runnable_ms": 7.614437500000001,
+        "median_sleeping_ms": 73.89695449999999,
+        "pooled_running_percent": 24.013960726651423
+      },
+      "mqt_v_js": {
+        "median_running_ms": 40.7384805,
+        "median_runnable_ms": 8.978209499999998,
+        "median_sleeping_ms": 57.910884,
+        "pooled_running_percent": 38.40413336982698
+      },
+      "RenderThread": {
+        "median_running_ms": 11.814104,
+        "median_runnable_ms": 3.3716464999999998,
+        "median_sleeping_ms": 90.58113550000002,
+        "pooled_running_percent": 11.350023927273988
+      }
+    }
+  },
+  "closing/motion": {
+    "n": 6,
+    "duration_median_ms": 417.09448,
+    "threads": {
+      "oelseisfree.app": {
+        "R": 29.980812999999998,
+        "R+": 1.6392295,
+        "S": 332.871105,
+        "Running": 45.09610400000001
+      },
+      "mqt_v_js": {
+        "R": 0.9555210000000001,
+        "R+": 0.1207085,
+        "S": 415.77956300000005,
+        "Running": 0.226167
+      },
+      "RenderThread": {
+        "R": 12.713813000000002,
+        "R+": 18.1641215,
+        "S": 47.502876,
+        "Running": 342.4866455
+      }
+    },
+    "thread_derived": {
+      "oelseisfree.app": {
+        "median_running_ms": 45.09610400000001,
+        "median_runnable_ms": 31.2003535,
+        "median_sleeping_ms": 332.871105,
+        "pooled_running_percent": 12.565963252910814
+      },
+      "mqt_v_js": {
+        "median_running_ms": 0.226167,
+        "median_runnable_ms": 1.3310205,
+        "median_sleeping_ms": 415.77956300000005,
+        "pooled_running_percent": 0.06009053077832449
+      },
+      "RenderThread": {
+        "median_running_ms": 342.4866455,
+        "median_runnable_ms": 30.006476000000006,
+        "median_sleeping_ms": 47.502876,
+        "pooled_running_percent": 80.36200818917696
+      }
+    },
+    "app_frames_started": 54,
+    "app_deadline_missed": 42,
+    "median_trial_gap_p50_ms": 69.02879200000001,
+    "median_trial_gap_p95_ms": 76.651959,
+    "median_trial_gap_max_ms": 104.1431035,
+    "median_trial_unique_display_frames": 7.0
+  }
+}
+CLOCK OFFSET [-84, -83]

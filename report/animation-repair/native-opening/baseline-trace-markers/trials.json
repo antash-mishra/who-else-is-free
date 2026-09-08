@@ -1,0 +1,65 @@
+[
+  {
+    "kind": "normal",
+    "cycle": 0,
+    "start_index": 1,
+    "end_index": 23,
+    "close_start_index": 13,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 1,
+    "start_index": 23,
+    "end_index": 45,
+    "close_start_index": 35,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 2,
+    "start_index": 45,
+    "end_index": 67,
+    "close_start_index": 57,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 3,
+    "start_index": 67,
+    "end_index": 89,
+    "close_start_index": 79,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 4,
+    "start_index": 89,
+    "end_index": 111,
+    "close_start_index": 101,
+    "shared_open": true,
+    "shared_close": true
+  },
+  {
+    "kind": "normal",
+    "cycle": 5,
+    "start_index": 111,
+    "end_index": 127,
+    "close_start_index": 123,
+    "shared_open": false,
+    "shared_close": false
+  },
+  {
+    "kind": "normal",
+    "cycle": 6,
+    "start_index": 127,
+    "end_index": 149,
+    "close_start_index": 139,
+    "shared_open": true,
+    "shared_close": true
+  }
+]

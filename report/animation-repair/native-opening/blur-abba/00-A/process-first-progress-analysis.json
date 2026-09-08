@@ -1,0 +1,77 @@
+{
+  "capture": "/private/tmp/weif-opening-native/blur-abba/00-A/process-first",
+  "quantile": "Nearest-rank p95 within each trial; aggregate summarizes trial statistics.",
+  "limits": [
+    "UI progress observations are not displayed frames or FPS.",
+    "Matching endpoint and one sample buffer are required within the same trial and phase.",
+    "Gaps span consecutive buffered observations, not necessarily every vsync.",
+    "Maximum progress jump is absolute, allowing comparison of opening and return.",
+    "Endpoint-to-last-sample tail is reported separately; zero-sample and missing/fallback phases retained.",
+    "Capped trials remain detailed but are excluded from aggregate cadence statistics.",
+    "Native/UI clock alignment must be verified separately for the capture runtime."
+  ],
+  "summary": {
+    "flying": {
+      "trials": 1,
+      "status_counts": {
+        "samples-after-endpoint": 1
+      },
+      "capped_trials": 0,
+      "dropped_samples_total": 0,
+      "uncapped_complete_trials": 0,
+      "metrics": {
+        "sample_count": null,
+        "max_progress_jump": null,
+        "first_sample_to_endpoint_ms": null,
+        "last_sample_to_endpoint_ms": null,
+        "input_to_endpoint_ms": null,
+        "trial_gap_median_ms": null,
+        "trial_gap_p95_ms": null,
+        "trial_gap_max_ms": null
+      }
+    },
+    "closing": {
+      "trials": 1,
+      "status_counts": {
+        "samples-after-endpoint": 1
+      },
+      "capped_trials": 0,
+      "dropped_samples_total": 0,
+      "uncapped_complete_trials": 0,
+      "metrics": {
+        "sample_count": null,
+        "max_progress_jump": null,
+        "first_sample_to_endpoint_ms": null,
+        "last_sample_to_endpoint_ms": null,
+        "input_to_endpoint_ms": null,
+        "trial_gap_median_ms": null,
+        "trial_gap_p95_ms": null,
+        "trial_gap_max_ms": null
+      }
+    }
+  },
+  "trials": [
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 9,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "status": "samples-after-endpoint"
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 10,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "status": "samples-after-endpoint"
+    }
+  ]
+}

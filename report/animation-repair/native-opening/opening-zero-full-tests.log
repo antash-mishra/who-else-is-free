@@ -1,0 +1,741 @@
+
+> who-else-is-free@1.0.0 test
+> jest --runInBand
+
+PASS src/screens/__tests__/OnboardingScreen.rendering.test.tsx (6.175 s)
+  ● Console
+
+    console.warn
+      Profile update failed: Network error
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at src/screens/OnboardingScreen.tsx:184:14
+
+PASS src/context/__tests__/ChatContext.rendering.test.tsx (6.044 s)
+  ● Console
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to refresh messages TypeError: Cannot read properties of undefined (reading 'slice')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:241:12
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:263:16
+
+    console.error
+      Failed to load conversations ApiError: Couldn't load conversations. Please try again.
+          at requestJson (/Users/antash/workspace/who-else-is-free/src/api/client.ts:65:13)
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:286:23 {
+        status: 401,
+        code: undefined,
+        data: undefined
+      }
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:338:14
+
+    console.error
+      Failed to load conversations ApiError: Couldn't load conversations. Please try again.
+          at requestJson (/Users/antash/workspace/who-else-is-free/src/api/client.ts:65:13)
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:286:23 {
+        status: 401,
+        code: undefined,
+        data: undefined
+      }
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:338:14
+
+    console.error
+      Failed to load conversations Error: Network error
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/context/__tests__/ChatContext.rendering.test.tsx:1096:32)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:338:14
+
+    console.error
+      Failed to load conversations TypeError: Cannot read properties of undefined (reading 'conversations')
+          at /Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:297:35
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/ChatContext.tsx:338:14
+
+    console.error
+      Failed to parse WS message SyntaxError: Unexpected token 'i', "invalid json {" is not valid JSON
+          at JSON.parse (<anonymous>)
+          at MockWebSocket.socket.onmessage (/Users/antash/workspace/who-else-is-free/src/context/ChatContext.tsx:809:31)
+          at /Users/antash/workspace/who-else-is-free/src/context/__tests__/ChatContext.rendering.test.tsx:1133:14
+          at callback (/Users/antash/workspace/who-else-is-free/node_modules/@testing-library/react-native/src/act.ts:31:24)
+          at Object.<anonymous>.process.env.NODE_ENV.exports.act (/Users/antash/workspace/who-else-is-free/node_modules/react/cjs/react.development.js:789:22)
+          at actImplementation (/Users/antash/workspace/who-else-is-free/node_modules/@testing-library/react-native/src/act.ts:30:25)
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/context/__tests__/ChatContext.rendering.test.tsx:1131:16)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at MockWebSocket.socket.onmessage (src/context/ChatContext.tsx:812:16)
+      at src/context/__tests__/ChatContext.rendering.test.tsx:1133:14
+      at callback (node_modules/@testing-library/react-native/src/act.ts:31:24)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:789:22)
+      at actImplementation (node_modules/@testing-library/react-native/src/act.ts:30:25)
+      at Object.<anonymous> (src/context/__tests__/ChatContext.rendering.test.tsx:1131:16)
+
+PASS src/screens/event-details/__tests__/EventDetailsHero.test.tsx
+PASS src/components/events/__tests__/EventSharedTransition.test.tsx
+PASS src/screens/__tests__/EventDetailsScreen.rendering.test.tsx
+  ● Console
+
+    console.error
+      Failed to fetch event details Error: Request failed with status 500
+          at fetchEvent (/Users/antash/workspace/who-else-is-free/src/screens/EventDetailsScreen.tsx:636:17)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at fetchEvent (src/screens/EventDetailsScreen.tsx:648:18)
+
+    console.error
+      Failed to delete event Error: Delete failed
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/EventDetailsScreen.rendering.test.tsx:1481:69)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at handleDelete (src/screens/event-details/useEventDetailsActions.ts:315:14)
+
+    console.error
+      Failed to leave event Error: Network error
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/EventDetailsScreen.rendering.test.tsx:1534:32)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at handleLeaveEvent (src/screens/event-details/useEventDetailsActions.ts:478:14)
+
+PASS src/screens/event-details/__tests__/EventDetailsHero.shared.test.tsx
+PASS src/screens/__tests__/OneToOneHubScreen.rendering.test.tsx
+PASS src/screens/__tests__/ChatThreadScreen.rendering.test.tsx
+PASS src/components/events/__tests__/EventSectionList.test.tsx
+PASS src/screens/__tests__/PendingRequestsScreen.rendering.test.tsx
+PASS src/screens/__tests__/HomeScreen.rendering.test.tsx
+PASS src/screens/__tests__/ProfileScreen.rendering.test.tsx
+PASS src/screens/__tests__/MyEventsScreen.rendering.test.tsx
+PASS src/screens/__tests__/MessagesScreen.rendering.test.tsx
+PASS src/screens/__tests__/CreateEventScreen.rendering.test.tsx
+PASS src/screens/__tests__/NotificationsScreen.rendering.test.tsx
+  ● Console
+
+    console.warn
+      notifications: action resolution failed Error: offline
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/NotificationsScreen.rendering.test.tsx:403:53)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at src/hooks/useOpenNotifications.ts:37:16
+
+PASS src/screens/__tests__/SplashScreen.rendering.test.tsx
+PASS src/components/__tests__/NotificationBanner.test.tsx
+PASS src/components/__tests__/SelectionModal.test.tsx
+PASS src/components/__tests__/EventCard.test.tsx
+PASS src/screens/__tests__/PastEventsScreen.rendering.test.tsx
+PASS src/screens/__tests__/HelpScreen.rendering.test.tsx
+PASS src/components/__tests__/ScalePressable.test.tsx
+PASS src/screens/__tests__/JoinRequestScreen.rendering.test.tsx
+PASS src/context/__tests__/AuthContext.rendering.test.tsx
+  ● Console
+
+    console.warn
+      Failed to parse stored user profile SyntaxError: Unexpected token 'i', "invalid-json-{" is not valid JSON
+          at JSON.parse (<anonymous>)
+          at restoreSession (/Users/antash/workspace/who-else-is-free/src/context/AuthContext.tsx:136:37)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at restoreSession (src/context/AuthContext.tsx:139:20)
+
+PASS src/components/ui/__tests__/AppTabs.test.tsx
+PASS src/components/ui/__tests__/CheckboxRow.test.tsx
+PASS src/screens/__tests__/GoogleSignIn.rendering.test.tsx
+  ● Console
+
+    console.warn
+      Google Sign-In native module is unavailable. Ensure you are running on a custom Expo dev build or prebuilt binary. Error: Native module not available
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/GoogleSignIn.rendering.test.tsx:316:43)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at configureClient (src/screens/GoogleSignIn.tsx:59:16)
+
+    console.warn
+      Google Sign-In native module is unavailable. Ensure you are running on a custom Expo dev build or prebuilt binary. Error: Native module not available
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/GoogleSignIn.rendering.test.tsx:330:43)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at configureClient (src/screens/GoogleSignIn.tsx:59:16)
+
+    console.warn
+      Google sign-in failed Error: Sign in failed
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/GoogleSignIn.rendering.test.tsx:528:40)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at src/screens/GoogleSignIn.tsx:164:16
+
+    console.warn
+      Google sign-in failed Error: Backend error
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/GoogleSignIn.rendering.test.tsx:594:50)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at src/screens/GoogleSignIn.tsx:164:16
+
+    console.warn
+      Google Sign-In native module is unavailable. Ensure you are running on a custom Expo dev build or prebuilt binary. Error: Native module not available
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/screens/__tests__/GoogleSignIn.rendering.test.tsx:616:43)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      82 |       return;
+      83 |     }
+    > 84 |     originalWarn.apply(console, args);
+         |                  ^
+      85 |   });
+      86 |
+      87 |   console.error = jest.fn((...args) => {
+
+      at console.<anonymous> (jest.setup.ts:84:18)
+      at Object.warn (src/services/logger.ts:11:15)
+      at configureClient (src/screens/GoogleSignIn.tsx:59:16)
+
+PASS src/screens/event-details/__tests__/HostRequestTabs.exit.test.tsx
+PASS src/components/__tests__/EventActionOverlay.test.tsx
+PASS src/screens/event-details/__tests__/EventDetailsCTA.test.tsx
+PASS src/components/events/__tests__/EventRequestRow.test.tsx
+PASS src/components/ui/__tests__/IconButton.test.tsx
+PASS src/screens/__tests__/AdminSupportInboxScreen.rendering.test.tsx
+PASS src/components/ui/__tests__/AppButton.test.tsx
+PASS src/context/__tests__/EventsContext.rendering.test.tsx
+  ● Console
+
+    console.error
+      Failed to fetch events ApiError: Request failed with status 500
+          at requestJson (/Users/antash/workspace/who-else-is-free/src/api/client.ts:65:13)
+          at /Users/antash/workspace/who-else-is-free/src/context/EventsContext.tsx:208:23 {
+        status: 500,
+        code: undefined,
+        data: undefined
+      }
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/EventsContext.tsx:232:14
+
+    console.error
+      Failed to fetch events Error: Network error
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/context/__tests__/EventsContext.rendering.test.tsx:320:32)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/EventsContext.tsx:232:14
+
+    console.error
+      Failed to fetch events Error: Network failure
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/context/__tests__/EventsContext.rendering.test.tsx:1031:32)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/EventsContext.tsx:232:14
+
+    console.error
+      Failed to fetch events Error: Network failure
+          at Object.<anonymous> (/Users/antash/workspace/who-else-is-free/src/context/__tests__/EventsContext.rendering.test.tsx:1049:32)
+          at Promise.then.completed (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:298:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/utils.js:231:10)
+          at _callCircusTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:316:40)
+          at _runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:252:3)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:126:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at _runTestsForDescribeBlock (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:121:9)
+          at run (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/run.js:71:3)
+          at runAndTransformResultsToJestFormat (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+          at jestAdapter (/Users/antash/workspace/who-else-is-free/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+          at runTestInternal (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:367:16)
+          at runTest (/Users/antash/workspace/who-else-is-free/node_modules/jest-runner/build/runTest.js:444:34)
+
+      94 |       return;
+      95 |     }
+    > 96 |     originalError.apply(console, args);
+         |                   ^
+      97 |   });
+      98 | });
+      99 |
+
+      at console.<anonymous> (jest.setup.ts:96:19)
+      at Object.error (src/services/logger.ts:16:15)
+      at src/context/EventsContext.tsx:232:14
+
+PASS src/navigation/__tests__/AppNavigator.test.tsx
+PASS src/api/mappers/__tests__/events.test.ts
+PASS src/components/events/__tests__/eventListSections.test.ts
+PASS src/screens/event-details/__tests__/EventDetailsOverlayRoutes.test.tsx
+PASS src/navigation/__tests__/completeEventCreation.test.ts
+PASS src/components/__tests__/BottomSheet.test.tsx
+PASS src/screens/__tests__/AdminSupportSubmissionScreen.rendering.test.tsx
+PASS src/components/__tests__/SegmentedControl.test.tsx
+PASS src/components/__tests__/BottomSheetHost.test.tsx
+PASS src/screens/__tests__/PrivacyPolicyScreen.rendering.test.tsx
+PASS src/components/__tests__/EmptyState.test.tsx
+PASS src/screens/event-details/__tests__/HostRequestTabs.test.tsx
+PASS src/screens/event-details/__tests__/EventDetailsInfo.avatars.test.tsx
+PASS src/screens/__tests__/EditProfileScreen.rendering.test.tsx
+PASS src/screens/create-event/__tests__/CreateEventSubmitButton.test.tsx
+PASS src/__tests__/mocks/__tests__/reanimatedMock.test.tsx
+PASS src/hooks/__tests__/useTabbedPages.test.ts
+PASS src/components/__tests__/NotificationBannerHost.test.tsx
+PASS src/screens/__tests__/HelpSubmissionErrors.rendering.test.tsx
+PASS src/context/__tests__/EventsContext.api.test.ts
+PASS src/components/events/__tests__/EventListLoadState.test.tsx
+PASS src/components/__tests__/AnimatedPager.test.tsx
+PASS src/components/__tests__/UserAvatar.test.tsx
+PASS src/components/motion/__tests__/Placed.test.tsx
+PASS src/screens/event-details/__tests__/useEventDetailsActions.test.tsx
+PASS src/components/__tests__/ConnectionStatusIndicator.test.tsx
+PASS src/components/__tests__/EventActionBadge.test.tsx
+PASS src/utils/__tests__/distance.test.ts
+PASS src/context/__tests__/NotificationsContext.rendering.test.tsx
+PASS src/components/__tests__/ConfettiOverlay.test.tsx
+PASS src/context/__tests__/PushContext.permissions.test.tsx
+PASS src/utils/__tests__/dateTime.test.ts
+PASS src/screens/__tests__/ChatThreadScreen.test.tsx
+PASS src/hooks/__tests__/useOpenNotifications.test.tsx
+PASS src/components/ui/__tests__/TextField.test.tsx
+PASS src/hooks/__tests__/useViewerLocation.test.ts
+PASS src/api/__tests__/adminHelp.test.ts
+PASS src/screens/event-details/__tests__/eventDetailsErrors.test.ts
+PASS src/components/__tests__/EventActionConfirm.test.tsx
+PASS src/api/mappers/__tests__/notifications.test.ts
+PASS src/context/__tests__/AuthContext.test.tsx
+PASS src/screens/__tests__/MyEventsScreen.test.tsx
+PASS src/screens/create-event/__tests__/createEventForm.test.ts
+PASS src/screens/__tests__/GoogleSignIn.test.tsx
+PASS src/utils/__tests__/bottomObstruction.test.ts
+PASS src/utils/__tests__/relativeTime.test.ts
+PASS src/screens/__tests__/ProfileScreen.test.tsx
+PASS src/context/__tests__/pushRouting.test.ts
+PASS src/screens/__tests__/SplashScreen.test.tsx
+PASS src/screens/__tests__/MessagesScreen.test.tsx
+PASS src/screens/__tests__/EventDetailsScreen.test.tsx
+PASS src/screens/__tests__/OnboardingScreen.test.tsx
+PASS src/utils/__tests__/notificationCollapse.test.ts
+PASS src/api/mappers/__tests__/chat.test.ts
+PASS src/api/__tests__/client.test.ts
+PASS src/screens/__tests__/JoinRequestScreen.test.tsx
+PASS src/utils/__tests__/notificationImage.test.ts
+PASS src/utils/__tests__/eventDisplay.test.ts
+PASS src/utils/__tests__/chatHeaderSubtitle.test.ts
+PASS src/context/__tests__/EventsContext.unmark.test.ts
+PASS src/theme/__tests__/motion.test.ts
+PASS src/components/__tests__/CoverPickerModal.test.tsx
+PASS src/utils/__tests__/avatar.test.ts
+PASS src/utils/__tests__/coverSearch.test.ts
+PASS src/utils/__tests__/notificationBanner.test.ts
+PASS src/context/__tests__/ChatContext.test.tsx
+PASS src/screens/__tests__/CreateEventScreen.test.ts
+PASS src/screens/__tests__/HomeScreen.test.tsx
+PASS src/utils/__tests__/eventDiscovery.test.ts
+PASS src/utils/__tests__/seededRandom.test.ts
+PASS src/navigation/__tests__/createEventHistory.test.ts
+PASS src/constants/__tests__/covers.test.ts
+PASS src/context/__tests__/EventsContext.test.ts
+PASS src/__tests__/DateSelectionIntegration.test.ts
+PASS src/components/__tests__/ScreenContainer.test.tsx
+PASS src/utils/__tests__/notificationSections.test.ts
+PASS src/services/__tests__/logger.test.ts
+PASS src/services/__tests__/haptics.test.ts
+PASS src/api/__tests__/notifications.test.ts
+PASS src/components/motion/__tests__/staggerDelay.test.ts
+PASS src/api/__tests__/request.test.ts
+
+Test Suites: 117 passed, 117 total
+Tests:       1433 passed, 1433 total
+Snapshots:   0 total
+Time:        30.846 s, estimated 46 s
+Ran all test suites.

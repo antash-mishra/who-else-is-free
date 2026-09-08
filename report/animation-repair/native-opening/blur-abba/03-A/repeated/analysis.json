@@ -1,0 +1,91 @@
+{
+  "trials": [
+    {
+      "cycle": 0,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 477.8845599964261,
+      "up_to_motion": 402.8845599964261,
+      "press_to_motion": 391.31858399510384,
+      "mount_measure": 172.15791600197554,
+      "dest_to_ready": 125.12275099754333,
+      "ready_to_motion": 79.0591249987483,
+      "back_to_motion": 137.45851899683475,
+      "endpoint_to_unmount": 43.95020800083876
+    },
+    {
+      "cycle": 1,
+      "shared_open": true,
+      "shared_close": false,
+      "down_to_motion": 750.5873960033059,
+      "up_to_motion": 674.5873960033059,
+      "press_to_motion": 663.8550420030951,
+      "mount_measure": 411.17604199796915,
+      "dest_to_ready": 134.02000000327826,
+      "ready_to_motion": 110.59308300167322
+    },
+    {
+      "cycle": 2,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 537.3896519988775,
+      "up_to_motion": 456.3896519988775,
+      "press_to_motion": 441.94766699522734,
+      "mount_measure": 199.5576669946313,
+      "dest_to_ready": 144.1147500053048,
+      "ready_to_motion": 92.12345899641514,
+      "back_to_motion": 221.7003189995885,
+      "endpoint_to_unmount": 54.00062499940395
+    }
+  ],
+  "summary": {
+    "back_to_motion": {
+      "n": 2,
+      "median": 179.57941899821162,
+      "min": 137.45851899683475,
+      "max": 221.7003189995885
+    },
+    "dest_to_ready": {
+      "n": 3,
+      "median": 134.02000000327826,
+      "min": 125.12275099754333,
+      "max": 144.1147500053048
+    },
+    "down_to_motion": {
+      "n": 3,
+      "median": 537.3896519988775,
+      "min": 477.8845599964261,
+      "max": 750.5873960033059
+    },
+    "endpoint_to_unmount": {
+      "n": 2,
+      "median": 48.975416500121355,
+      "min": 43.95020800083876,
+      "max": 54.00062499940395
+    },
+    "mount_measure": {
+      "n": 3,
+      "median": 199.5576669946313,
+      "min": 172.15791600197554,
+      "max": 411.17604199796915
+    },
+    "press_to_motion": {
+      "n": 3,
+      "median": 441.94766699522734,
+      "min": 391.31858399510384,
+      "max": 663.8550420030951
+    },
+    "ready_to_motion": {
+      "n": 3,
+      "median": 92.12345899641514,
+      "min": 79.0591249987483,
+      "max": 110.59308300167322
+    },
+    "up_to_motion": {
+      "n": 3,
+      "median": 456.3896519988775,
+      "min": 402.8845599964261,
+      "max": 674.5873960033059
+    }
+  }
+}

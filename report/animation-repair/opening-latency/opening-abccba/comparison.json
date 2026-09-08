@@ -1,0 +1,421 @@
+{
+  "sequence": [
+    "A",
+    "B",
+    "C",
+    "C",
+    "B",
+    "A",
+    "A",
+    "B",
+    "C"
+  ],
+  "paired_sequence": [
+    "A",
+    "B",
+    "C",
+    "C",
+    "B",
+    "A"
+  ],
+  "emulator": "emulator-5554",
+  "fixed_ready_wait_seconds": 5,
+  "state": "Existing fixture account/app data and disk caches retained; process restart is not cache-cold or first-ever install.",
+  "warmup": "Each block first Details open is measured separately; it serves as warm-up for the following three repeated opens.",
+  "guard": "Discover and enabled fixture card containing (100,410) verified using ui.py before every opening tap.",
+  "apks": {
+    "A": {
+      "path": "/Users/antash/workspace/who-else-is-free/artifacts/animation-performance/input-latency/opening-baseline-stable-probe.apk",
+      "sha256": "12b0176c8bb39165ec90696a819259f128faa246ef5bfd3e3a16236bc59c33d2",
+      "bytes": 72904868
+    },
+    "B": {
+      "path": "/Users/antash/workspace/who-else-is-free/artifacts/animation-performance/input-latency/opening-direct-stable-probe.apk",
+      "sha256": "3c1e329be5fab3ded663cda67a626654cff8f32f43d239a6ca060b459564cef5",
+      "bytes": 72906468
+    },
+    "C": {
+      "path": "/Users/antash/workspace/who-else-is-free/artifacts/animation-performance/input-latency/opening-direct-root-stable-probe.apk",
+      "sha256": "11bf6cf844d7cb2f32991dada0cdc222f79ff25319ae55b1f1475dc5e793f0d9",
+      "bytes": 72906384
+    }
+  },
+  "started": {
+    "host_wall_seconds": 1788794598.887818,
+    "host_monotonic_seconds": 1129025.70544675,
+    "device_uptime": "28552.50 46545.74",
+    "device_wall_seconds": "1788794599"
+  },
+  "blocks": [
+    {
+      "index": 0,
+      "variant": "A",
+      "directory": "00-A",
+      "kind": "ABCCBA",
+      "started": {
+        "host_wall_seconds": 1788794599.218806,
+        "host_monotonic_seconds": 1129026.036431791,
+        "device_uptime": "28552.71 46545.96",
+        "device_wall_seconds": "1788794599"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794617.628119,
+        "host_monotonic_seconds": 1129044.445634416,
+        "device_uptime": "28571.10 46553.89",
+        "device_wall_seconds": "1788794617"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        },
+        "repeated": {
+          "trials": 3,
+          "shared_open_completed": 3,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 3,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794648.8325188,
+        "host_monotonic_seconds": 1129075.649847041,
+        "device_uptime": "28602.29 46590.37",
+        "device_wall_seconds": "1788794648"
+      }
+    },
+    {
+      "index": 1,
+      "variant": "B",
+      "directory": "01-B",
+      "kind": "ABCCBA",
+      "started": {
+        "host_wall_seconds": 1788794648.88942,
+        "host_monotonic_seconds": 1129075.706748208,
+        "device_uptime": "28602.34 46590.45",
+        "device_wall_seconds": "1788794648"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794663.266768,
+        "host_monotonic_seconds": 1129090.084009583,
+        "device_uptime": "28616.72 46595.98",
+        "device_wall_seconds": "1788794663"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        },
+        "repeated": {
+          "trials": 3,
+          "shared_open_completed": 3,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 3,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794694.803277,
+        "host_monotonic_seconds": 1129121.620329458,
+        "device_uptime": "28648.26 46632.15",
+        "device_wall_seconds": "1788794694"
+      }
+    },
+    {
+      "index": 2,
+      "variant": "C",
+      "directory": "02-C",
+      "kind": "ABCCBA",
+      "started": {
+        "host_wall_seconds": 1788794694.864459,
+        "host_monotonic_seconds": 1129121.681510583,
+        "device_uptime": "28648.32 46632.24",
+        "device_wall_seconds": "1788794694"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794709.421943,
+        "host_monotonic_seconds": 1129136.238907625,
+        "device_uptime": "28662.88 46637.65",
+        "device_wall_seconds": "1788794709"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        },
+        "repeated": {
+          "trials": 3,
+          "shared_open_completed": 3,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 3,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794741.048971,
+        "host_monotonic_seconds": 1129167.865745708,
+        "device_uptime": "28694.52 46674.65",
+        "device_wall_seconds": "1788794740"
+      }
+    },
+    {
+      "index": 3,
+      "variant": "C",
+      "directory": "03-C",
+      "kind": "ABCCBA",
+      "started": {
+        "host_wall_seconds": 1788794741.125725,
+        "host_monotonic_seconds": 1129167.94249925,
+        "device_uptime": "28694.59 46674.74",
+        "device_wall_seconds": "1788794741"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794755.869337,
+        "host_monotonic_seconds": 1129182.686022791,
+        "device_uptime": "28709.32 46680.54",
+        "device_wall_seconds": "1788794755"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        },
+        "repeated": {
+          "trials": 3,
+          "shared_open_completed": 3,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 3,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794787.2042902,
+        "host_monotonic_seconds": 1129214.020786875,
+        "device_uptime": "28740.67 46716.27",
+        "device_wall_seconds": "1788794787"
+      }
+    },
+    {
+      "index": 4,
+      "variant": "B",
+      "directory": "04-B",
+      "kind": "ABCCBA",
+      "started": {
+        "host_wall_seconds": 1788794787.278398,
+        "host_monotonic_seconds": 1129214.094894583,
+        "device_uptime": "28740.73 46716.36",
+        "device_wall_seconds": "1788794787"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794801.9323149,
+        "host_monotonic_seconds": 1129228.748724333,
+        "device_uptime": "28755.39 46721.60",
+        "device_wall_seconds": "1788794801"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        },
+        "repeated": {
+          "trials": 3,
+          "shared_open_completed": 3,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 2,
+          "shared_close_not_observed": 1,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794840.159748,
+        "host_monotonic_seconds": 1129266.975927166,
+        "device_uptime": "28793.63 46766.79",
+        "device_wall_seconds": "1788794840"
+      }
+    },
+    {
+      "index": 5,
+      "variant": "A",
+      "directory": "05-A",
+      "kind": "ABCCBA",
+      "started": {
+        "host_wall_seconds": 1788794840.242947,
+        "host_monotonic_seconds": 1129267.059125458,
+        "device_uptime": "28793.70 46766.88",
+        "device_wall_seconds": "1788794840"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794856.066697,
+        "host_monotonic_seconds": 1129282.882781291,
+        "device_uptime": "28809.54 46772.97",
+        "device_wall_seconds": "1788794856"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        },
+        "repeated": {
+          "trials": 3,
+          "shared_open_completed": 3,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 3,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794888.2168279,
+        "host_monotonic_seconds": 1129315.032718625,
+        "device_uptime": "28841.75 46807.91",
+        "device_wall_seconds": "1788794888"
+      }
+    },
+    {
+      "index": 6,
+      "variant": "A",
+      "directory": "06-A",
+      "kind": "additional-process-first-only",
+      "started": {
+        "host_wall_seconds": 1788794888.3753972,
+        "host_monotonic_seconds": 1129315.191286916,
+        "device_uptime": "28841.85 46808.04",
+        "device_wall_seconds": "1788794888"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794905.086866,
+        "host_monotonic_seconds": 1129331.902655,
+        "device_uptime": "28858.54 46813.39",
+        "device_wall_seconds": "1788794904"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794917.820617,
+        "host_monotonic_seconds": 1129344.636330541,
+        "device_uptime": "28871.27 46828.99",
+        "device_wall_seconds": "1788794917"
+      }
+    },
+    {
+      "index": 7,
+      "variant": "B",
+      "directory": "07-B",
+      "kind": "additional-process-first-only",
+      "started": {
+        "host_wall_seconds": 1788794917.889086,
+        "host_monotonic_seconds": 1129344.7047985,
+        "device_uptime": "28871.35 46829.09",
+        "device_wall_seconds": "1788794917"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794933.088803,
+        "host_monotonic_seconds": 1129359.904424041,
+        "device_uptime": "28886.54 46834.66",
+        "device_wall_seconds": "1788794933"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794946.0714738,
+        "host_monotonic_seconds": 1129372.887017,
+        "device_uptime": "28899.53 46849.97",
+        "device_wall_seconds": "1788794945"
+      }
+    },
+    {
+      "index": 8,
+      "variant": "C",
+      "directory": "08-C",
+      "kind": "additional-process-first-only",
+      "started": {
+        "host_wall_seconds": 1788794946.1373298,
+        "host_monotonic_seconds": 1129372.952873083,
+        "device_uptime": "28899.59 46850.05",
+        "device_wall_seconds": "1788794946"
+      },
+      "status": "complete",
+      "feed_ready": {
+        "host_wall_seconds": 1788794961.725655,
+        "host_monotonic_seconds": 1129388.541104625,
+        "device_uptime": "28915.18 46855.15",
+        "device_wall_seconds": "1788794961"
+      },
+      "outcomes": {
+        "process-first": {
+          "trials": 1,
+          "shared_open_completed": 1,
+          "shared_open_not_observed": 0,
+          "shared_close_completed": 1,
+          "shared_close_not_observed": 0,
+          "classification_note": "Absent shared endpoint is fallback/incomplete, not proof of missed input; inspect card-press, page markers and screenshots."
+        }
+      },
+      "finished": {
+        "host_wall_seconds": 1788794974.474404,
+        "host_monotonic_seconds": 1129401.289776958,
+        "device_uptime": "28927.94 46870.51",
+        "device_wall_seconds": "1788794974"
+      }
+    }
+  ],
+  "status": "complete",
+  "finished": {
+    "host_wall_seconds": 1788794974.54758,
+    "host_monotonic_seconds": 1129401.362952333,
+    "device_uptime": "28928.01 46870.60",
+    "device_wall_seconds": "1788794974"
+  }
+}

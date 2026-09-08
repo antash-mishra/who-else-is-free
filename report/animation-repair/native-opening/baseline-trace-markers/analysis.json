@@ -1,0 +1,137 @@
+{
+  "trials": [
+    {
+      "cycle": 0,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 1133.1169829964638,
+      "up_to_motion": 1064.1169829964638,
+      "press_to_motion": 1041.3110839948058,
+      "mount_measure": 256.3567090034485,
+      "dest_to_ready": 280.69095800071955,
+      "ready_to_motion": 476.7950419932604,
+      "back_to_motion": 143.1406499966979,
+      "endpoint_to_unmount": 73.30591700226068
+    },
+    {
+      "cycle": 1,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 400.8422349989414,
+      "up_to_motion": 333.8422349989414,
+      "press_to_motion": 326.97308399528265,
+      "mount_measure": 93.3511669933796,
+      "dest_to_ready": 122.89675000309944,
+      "ready_to_motion": 109.35887499898672,
+      "back_to_motion": 114.94848500192165,
+      "endpoint_to_unmount": 116.51429199427366
+    },
+    {
+      "cycle": 2,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 360.14502800256014,
+      "up_to_motion": 287.14502800256014,
+      "press_to_motion": 268.0076670050621,
+      "mount_measure": 103.48091599345207,
+      "dest_to_ready": 114.68837500363588,
+      "ready_to_motion": 48.4650420024991,
+      "back_to_motion": 100.89198700338602,
+      "endpoint_to_unmount": 162.77229200303555
+    },
+    {
+      "cycle": 3,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 510.71094600111246,
+      "up_to_motion": 440.71094600111246,
+      "press_to_motion": 432.802583001554,
+      "mount_measure": 137.68220899999142,
+      "dest_to_ready": 168.25666599720716,
+      "ready_to_motion": 125.33025000244379,
+      "back_to_motion": 106.18452999740839,
+      "endpoint_to_unmount": 71.07895799726248
+    },
+    {
+      "cycle": 4,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 316.05878099799156,
+      "up_to_motion": 252.05878099799156,
+      "press_to_motion": 241.68354099988937,
+      "mount_measure": 100.43220800161362,
+      "dest_to_ready": 47.99854200333357,
+      "ready_to_motion": 92.30079099535942,
+      "back_to_motion": 108.11128199845552,
+      "endpoint_to_unmount": 47.906125001609325
+    },
+    {
+      "cycle": 5,
+      "shared_open": false,
+      "shared_close": false
+    },
+    {
+      "cycle": 6,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 742.5143309980631,
+      "up_to_motion": 660.5143309980631,
+      "press_to_motion": 649.0651259943843,
+      "mount_measure": 207.61108399927616,
+      "dest_to_ready": 202.01883299648762,
+      "ready_to_motion": 229.94083400070667,
+      "back_to_motion": 98.9642900004983,
+      "endpoint_to_unmount": 51.27116700261831
+    }
+  ],
+  "summary": {
+    "back_to_motion": {
+      "n": 6,
+      "median": 107.14790599793196,
+      "min": 98.9642900004983,
+      "max": 143.1406499966979
+    },
+    "dest_to_ready": {
+      "n": 6,
+      "median": 145.5767080001533,
+      "min": 47.99854200333357,
+      "max": 280.69095800071955
+    },
+    "down_to_motion": {
+      "n": 6,
+      "median": 455.77659050002694,
+      "min": 316.05878099799156,
+      "max": 1133.1169829964638
+    },
+    "endpoint_to_unmount": {
+      "n": 6,
+      "median": 72.19243749976158,
+      "min": 47.906125001609325,
+      "max": 162.77229200303555
+    },
+    "mount_measure": {
+      "n": 6,
+      "median": 120.58156249672174,
+      "min": 93.3511669933796,
+      "max": 256.3567090034485
+    },
+    "press_to_motion": {
+      "n": 6,
+      "median": 379.88783349841833,
+      "min": 241.68354099988937,
+      "max": 1041.3110839948058
+    },
+    "ready_to_motion": {
+      "n": 6,
+      "median": 117.34456250071526,
+      "min": 48.4650420024991,
+      "max": 476.7950419932604
+    },
+    "up_to_motion": {
+      "n": 6,
+      "median": 387.27659050002694,
+      "min": 252.05878099799156,
+      "max": 1064.1169829964638
+    }
+  }
+}

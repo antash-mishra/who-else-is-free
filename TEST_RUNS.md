@@ -353,3 +353,28 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - User requested build/install. Release ARM64 rebuilt with production API/WSS, transition timing diagnostics explicitly disabled, QA OTA disabled; original Android manifest restored.
 - Installed on Galaxy A56 (`192.168.1.9:39779`) with `adb install -r`, preserving app data. Artifact: `artifacts/animation-performance/input-latency-phone.apk`, 72,904,684 bytes, SHA-256 `5caa35c2669695346b3f4eb6a64da0daa6630bde86dea4dd45b8f4d6f1a1d4b5`. Actual installed base APK hash matched.
 - MainActivity launched successfully; process present (PID 19765). **INSTALL/LAUNCH PASS**. Includes reduced shared-return route-removal delay and defensive unmount cleanup. Opening startup delay and very early missed retaps remain documented; no new phone performance claim.
+
+## 2026-09-07 — first-opening latency experiments
+
+- Three subagents independently audited clocks/results, native opening pipeline, and regression risks. Release captures ran sequentially on emulator-5554 with local fixtures.
+- Balanced A/B/C matrix: 27 opens, 26 shared returns and one successful fallback. Direct-start and root-frame reuse failed the end-to-end latency gate. Press-in predecode also failed to establish improvement.
+- Final A/F matrix: 18 opens, 17 shared returns and one baseline fallback. First-open median A446.4/F540.0 ms (n3 each); repeated A385.7/F366.3 ms (n6 each). Candidate rejected: modest repeat benefit did not fix first-open delay. Endpoint contact sheets reviewed. No phone optimization claim.
+- Restored production runtime to e197e53; retained only opt-in stable diagnostic probes. Post-restoration shared-transition, hero and section-list suites: 3 suites/32 tests passed. Typecheck passed.
+- Verdict: investigation complete for these five candidates; first-opening issue remains unresolved. Existing closing/flicker fix preserved. Full evidence and next profiling gate: report/animation-repair/opening-latency/README.md.
+
+
+## 2026-09-08 — Android shared opening takeoff hitch
+
+- Retained threshold-derived native blur updates; removed Android source blur during opening only (`openingBackdropBlur: 0`). Closing radius 4, navigation/release guards, durations, image/page geometry, and iOS behavior are unchanged. Radius-1 and source-cache/memo experiments rejected.
+- Isolated ARM64 API36 release emulator, local fixtures, identical opt-in UI probes, no recording/builds/tests during alternating captures. Opening-only ABBA: repeated worst first-200-ms sample gap **77.4→33.8 ms (56.3% lower, n=6)**; process-first **123.4→59.7 ms (n=3)**. Repeated release→motion **379.4→383.9 ms**, not improved. These are UI observations, not phone FPS.
+- All18 opens shared; baseline9/9 and candidate8/9 returns shared, one candidate preparation fallback retained. Closing p95 tails do not support a blanket zero-regression claim. User confirmed release/reopen feels good; no additional release-path work.
+- Separate107-frame recording:2open/return cycles, no endpoint flash, blank page, duplicate or source hole. First hero backdrop still briefly gray before its image arrives.
+- Full frontend:117suites/1433tests passed; typecheck, targetedlint, touched-sourcePrettier anddiffcheck passed. DiagnosticAPK remains emulator-only; phone unchanged.
+- Evidence, screenshots/video, rejected candidates, native attribution and limitations: [investigation](report/animation-repair/native-opening-investigation.md).
+
+
+## 2026-09-08 — Opening smoothness build delivered to phone
+
+- Connected wireless ADB at `192.168.1.9:44269` (ARM64). Built fresh release APK with production HTTP/WebSocket endpoints, transition metrics disabled, OTA loading disabled for this test build, and forced JS rebundling. Verified production URL and absence of emulator fixture URL in the bundled APK.
+- `adb install -r` succeeded; existing app data preserved. APK: `artifacts/animation-performance/opening-smooth-phone.apk`, SHA256 `de41c3e68efa020dd9054abec06e406789866d3908bd4b45d5d314bb9e452f11`.
+- Physical-device animation smoothness remains for user assessment; emulator measurements are not phone measurements.

@@ -18,3 +18,15 @@ Output directories must be new. Normal mode runs seven open/return pairs; retap 
 `events.jsonl` preserves diagnostic and native input records; `trials.json` identifies window indices. Analysis sorts by acquisition time to restore ordering between logging threads, then subtracts native/UI/JS monotonic timestamps. Clock alignment was checked against `nativeEvent.timestamp` in this session. Recheck that assumption when changing platforms or runtimes. The UI probe's mount/sampling latency and diagnostic overhead are included. Host delays merely target the retap window; actual DOWN minus closing UI endpoint determines whether a tap occurred after the return. Expected blocked taps during motion are reported separately. An absent shared endpoint is a fallback/incomplete outcome, never a zero-latency success.
 
 Historical evidence and limitations: `report/animation-repair/input-latency-report.md`.
+
+The UI progress probe now mounts during landing/return preparation, with a stable phase key through motion. Use the same probe version in both comparison APKs; older phase-mounted probes can miss early progress. Process-first opens retain disk caches. Controlled opening experiments and raw evidence: `report/animation-repair/opening-latency/README.md`.
+
+Diagnostic flights also buffer bounded UI progress samples and emit one `ui-motion-samples` marker at the endpoint. Match a real `ui-endpoint` before treating the buffer as completed: cancellation can reset progress. Terminal reaction timestamps may follow the completion callback; report this lag rather than rejecting valid samples. Never interpret progress sample gaps as presented FPS. See the native-opening investigation report for analyzers and before/after evidence.
+
+For normal open/return captures with buffered probes:
+
+```sh
+python3 scripts/performance/input-latency/analyze-progress.py artifacts/animation-performance/input-latency/my-normal
+```
+
+This analyzer preserves incomplete/capped outcomes and reports per-trial progress gaps, maximum consecutive progress changes, completion timing, and sampling lag. Use the existing `analyze.py` for retap captures.

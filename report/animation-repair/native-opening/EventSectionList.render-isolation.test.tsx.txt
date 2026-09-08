@@ -1,0 +1,85 @@
+import React, { createContext, useContext } from 'react';
+
+import { fireEvent, render } from '@testing-library/react-native';
+
+import ScalePressable from '@components/ScalePressable';
+import { resetPlacedIds } from '@components/motion';
+
+import EventSectionList from '../EventSectionList';
+import type { SharedTransitionState } from '../EventSharedTransition';
+
+const mockTransitionContext = createContext<SharedTransitionState>({});
+
+jest.mock('../EventSharedTransition', () => ({
+  ...jest.requireActual('../EventSharedTransition'),
+  useEventSharedTransitionState: () => useContext(mockTransitionContext),
+}));
+
+jest.mock('@components/ScalePressable', () => {
+  const Actual = jest.requireActual('@components/ScalePressable').default;
+  return {
+    __esModule: true,
+    default: jest.fn((props) => <Actual {...props} />),
+  };
+});
+
+const first = {
+  id: 'e1',
+  title: 'Pub quiz',
+  location: 'Dublin',
+  time: '19:00',
+  audience: 'Everyone',
+  imageUri: 'https://example.test/a.jpg',
+};
+const second = { ...first, id: 'e2', title: 'Football', imageUri: 'https://example.test/b.jpg' };
+const sections = [{ title: 'Today', data: [first, second] }];
+
+it('isolates unrelated phase updates while preserving active cover state and source refs', () => {
+  resetPlacedIds();
+  jest.mocked(ScalePressable).mockClear();
+  const onEventPress = jest.fn();
+  const list = <EventSectionList sections={sections} onEventPress={onEventPress} />;
+  const screen = render(
+    <mockTransitionContext.Provider value={{}}>{list}</mockTransitionContext.Provider>,
+  );
+  const rowCalls = (id: string) =>
+    jest
+      .mocked(ScalePressable)
+      .mock.calls.map(
+        ([props]) =>
+          props.children as React.ReactElement<{
+            id: string;
+            coverRef: unknown;
+            sharedElementsHidden: boolean;
+          }>,
+      )
+      .filter((child) => child.props.id === id);
+  const firstCount = rowCalls('e1').length;
+  const secondCount = rowCalls('e2').length;
+  expect(firstCount).toBeGreaterThan(0);
+  expect(secondCount).toBeGreaterThan(0);
+  const sourceRef = rowCalls('e1')[0].props.coverRef;
+  const phase = (value: SharedTransitionState) =>
+    screen.rerender(
+      <mockTransitionContext.Provider value={value}>{list}</mockTransitionContext.Provider>,
+    );
+
+  phase({ eventId: 'e1', phase: 'landing' });
+  expect(rowCalls('e1')).toHaveLength(firstCount);
+  phase({ eventId: 'e1', phase: 'flying' });
+  expect(rowCalls('e1')).toHaveLength(firstCount + 1);
+  expect(rowCalls('e1').at(-1)?.props.sharedElementsHidden).toBe(true);
+  phase({});
+  expect(rowCalls('e1').at(-1)?.props.sharedElementsHidden).toBe(false);
+  const afterOpen = rowCalls('e1').length;
+  phase({ eventId: 'e1', phase: 'returning' });
+  expect(rowCalls('e1')).toHaveLength(afterOpen);
+  phase({ eventId: 'e1', phase: 'closing' });
+  expect(rowCalls('e1').at(-1)?.props.sharedElementsHidden).toBe(true);
+  phase({ eventId: 'e1', phase: 'closed' });
+  expect(rowCalls('e1').at(-1)?.props.sharedElementsHidden).toBe(false);
+  expect(rowCalls('e2')).toHaveLength(secondCount);
+  expect(rowCalls('e1').every((child) => child.props.coverRef === sourceRef)).toBe(true);
+  fireEvent.press(screen.getByText('Football'));
+  expect(onEventPress).toHaveBeenCalledWith(second, false);
+});

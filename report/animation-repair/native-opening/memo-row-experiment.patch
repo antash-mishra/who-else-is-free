@@ -1,0 +1,47 @@
+diff --git a/src/components/events/EventSectionList.tsx b/src/components/events/EventSectionList.tsx
+index 4922eb0..671a762 100644
+--- a/src/components/events/EventSectionList.tsx
++++ b/src/components/events/EventSectionList.tsx
+@@ -47,17 +47,18 @@ type EventCardRowProps<TItem extends EventItemProps> = {
+   onPress: (item: TItem, sharedCover?: boolean) => void;
+ };
+ 
+-const EventCardRow = <TItem extends EventItemProps>({
++type EventCardRowBodyProps<TItem extends EventItemProps> = EventCardRowProps<TItem> & {
++  sharedElementsHidden: boolean;
++};
++
++const EventCardRowBody = <TItem extends EventItemProps>({
+   item,
+   onPress,
+-}: EventCardRowProps<TItem>) => {
++  sharedElementsHidden,
++}: EventCardRowBodyProps<TItem>) => {
+   const coverRef = useRef<View>(null);
+   const titleRef = useRef<Text>(null);
+   const { prime, open } = useEventSharedTransition();
+-  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
+-  // Hide only the cover while its overlay travels; list text stays in place.
+-  const sharedElementsHidden =
+-    activeEventId === item.id && (phase === 'flying' || phase === 'closing');
+   const source = useMemo(
+     () => ({
+       imageUri: item.imageUri,
+@@ -92,6 +93,17 @@ const EventCardRow = <TItem extends EventItemProps>({
+   );
+ };
+ 
++const MemoizedEventCardRowBody = memo(EventCardRowBody) as typeof EventCardRowBody;
++
++// Context changes reach this small selector; unchanged cards keep their press
++// handlers, native measurement refs, and animated pressable subtree intact.
++const EventCardRow = <TItem extends EventItemProps>(props: EventCardRowProps<TItem>) => {
++  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
++  const sharedElementsHidden =
++    activeEventId === props.item.id && (phase === 'flying' || phase === 'closing');
++  return <MemoizedEventCardRowBody {...props} sharedElementsHidden={sharedElementsHidden} />;
++};
++
+ const EventSectionList = <TItem extends EventItemProps>({
+   sections,
+   onEventPress,

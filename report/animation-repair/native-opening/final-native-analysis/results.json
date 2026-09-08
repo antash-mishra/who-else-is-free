@@ -1,0 +1,2320 @@
+{
+  "pid": 23055,
+  "trace": "/Users/antash/workspace/who-else-is-free/artifacts/animation-performance/native-opening/final-stable-blur.perfetto-trace",
+  "events": "/Users/antash/workspace/who-else-is-free/report/animation-repair/native-opening/final-trace-markers/events.jsonl",
+  "clock_monotonic_to_trace_offset_ns": -41.5,
+  "clock_offsets_ns": [
+    -42,
+    -41
+  ],
+  "trials_total": 3,
+  "shared_open_completed": 3,
+  "shared_close_completed": 3,
+  "windows": [
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 54815998999958,
+      "end_ns": 54816826064884,
+      "duration_ms": 827.064926,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 215.23829999999998,
+          "R": 224.97263299999997,
+          "Running": 328.68370200000015,
+          "R+": 55.39612300000001,
+          "D": 2.774168
+        },
+        "RenderThread": {
+          "S": 701.426218,
+          "R": 17.824209000000003,
+          "Running": 55.520456999999986,
+          "R+": 52.29404200000001
+        },
+        "MainThread": {
+          "S": 397.65075900000005,
+          "R": 139.808243,
+          "Running": 247.10458899999995,
+          "R+": 41.209586,
+          "D": 1.2917489999999998
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 13,
+        "fabric_mount_batch_elapsed_ms": 116.870832,
+        "main_postAndWait_elapsed_ms": 48.376291,
+        "image_install_callbacks_started": 2,
+        "render_draw_frames_started": 7
+      },
+      "frame_records_started": {
+        "n": 7,
+        "app_deadline_missed": 6,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 5,
+        "presentation_end_timestamps_ns": [
+          54816032614634,
+          54816630693551,
+          54816695100342,
+          54816732633009,
+          54816825289217
+        ],
+        "gap_ms": [
+          598.078917,
+          64.406791,
+          37.532667,
+          92.656208
+        ],
+        "gap_p50_ms": 78.5314995,
+        "gap_p95_ms": 92.656208,
+        "gap_max_ms": 598.078917,
+        "gaps_above_33_34_ms": 4,
+        "gaps_above_50_ms": 3
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 54816826064884,
+      "end_ns": 54817331120968,
+      "duration_ms": 505.056084,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 494.793001,
+          "R": 9.814625,
+          "Running": 0.448458
+        },
+        "RenderThread": {
+          "R": 58.22687400000005,
+          "Running": 269.775296,
+          "R+": 35.398333,
+          "S": 141.655581
+        },
+        "MainThread": {
+          "Running": 38.87095799999999,
+          "R": 78.865622,
+          "S": 380.082546,
+          "R+": 7.236957999999999
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 13,
+        "fabric_mount_batch_elapsed_ms": 12.185581,
+        "main_postAndWait_elapsed_ms": 442.423,
+        "image_install_callbacks_started": 1,
+        "render_draw_frames_started": 13
+      },
+      "frame_records_started": {
+        "n": 13,
+        "app_deadline_missed": 4,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 13,
+        "presentation_end_timestamps_ns": [
+          54816860282550,
+          54816887904884,
+          54816977689842,
+          54817003258217,
+          54817095066593,
+          54817124818385,
+          54817153412968,
+          54817179005135,
+          54817205755801,
+          54817238091592,
+          54817266105885,
+          54817294135177,
+          54817331064093
+        ],
+        "gap_ms": [
+          27.622334,
+          89.784958,
+          25.568375,
+          91.808376,
+          29.751792,
+          28.594583,
+          25.592167,
+          26.750666,
+          32.335791,
+          28.014293,
+          28.029292,
+          36.928916
+        ],
+        "gap_p50_ms": 28.3119375,
+        "gap_p95_ms": 89.784958,
+        "gap_max_ms": 91.808376,
+        "gaps_above_33_34_ms": 3,
+        "gaps_above_50_ms": 2
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 54818070999958,
+      "end_ns": 54818373322718,
+      "duration_ms": 302.32276,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 237.42171799999997,
+          "R": 21.738125,
+          "Running": 40.93858500000002,
+          "R+": 2.2243319999999995
+        },
+        "mqt_v_js": {
+          "S": 172.058801,
+          "R": 12.408165999999998,
+          "Running": 117.81291799999998,
+          "R+": 0.042875
+        },
+        "MainThread": {
+          "S": 166.20655100000002,
+          "R": 41.14145699999999,
+          "Running": 90.33520700000001,
+          "R+": 2.8203769999999997,
+          "D": 1.819168
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 3,
+        "fabric_mount_batch_elapsed_ms": 37.012084,
+        "main_postAndWait_elapsed_ms": 27.877291,
+        "image_install_callbacks_started": 1,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 3,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          54818309673260,
+          54818346980718
+        ],
+        "gap_ms": [
+          37.307458
+        ],
+        "gap_p50_ms": 37.307458,
+        "gap_p95_ms": 37.307458,
+        "gap_max_ms": 37.307458,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 54818373322718,
+      "end_ns": 54818774494678,
+      "duration_ms": 401.17196,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 400.78216799999996,
+          "R": 0.081042,
+          "Running": 0.23591600000000001,
+          "R+": 0.072834
+        },
+        "RenderThread": {
+          "S": 130.978375,
+          "R": 4.2908729999999995,
+          "Running": 261.05379500000004,
+          "R+": 4.848917
+        },
+        "MainThread": {
+          "Running": 40.67666799999999,
+          "R": 42.902415999999995,
+          "S": 317.02779200000003,
+          "R+": 0.565084
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 15,
+        "fabric_mount_batch_elapsed_ms": 10.907291,
+        "main_postAndWait_elapsed_ms": 352.942416,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 16
+      },
+      "frame_records_started": {
+        "n": 16,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 13,
+        "presentation_end_timestamps_ns": [
+          54818408981468,
+          54818491895635,
+          54818530352094,
+          54818551783844,
+          54818574652552,
+          54818604122677,
+          54818622606677,
+          54818642382635,
+          54818669871469,
+          54818687731677,
+          54818706917302,
+          54818726371093,
+          54818754261844
+        ],
+        "gap_ms": [
+          82.914167,
+          38.456459,
+          21.43175,
+          22.868708,
+          29.470125,
+          18.484,
+          19.775958,
+          27.488834,
+          17.860208,
+          19.185625,
+          19.453791,
+          27.890751
+        ],
+        "gap_p50_ms": 22.150229000000003,
+        "gap_p95_ms": 38.456459,
+        "gap_max_ms": 82.914167,
+        "gaps_above_33_34_ms": 2,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 54815998999958,
+      "end_ns": 54816061211510,
+      "duration_ms": 62.211552,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 16.365259,
+          "R": 8.666876000000002,
+          "Running": 31.824417000000004,
+          "R+": 5.3549999999999995
+        },
+        "RenderThread": {
+          "S": 62.211552
+        },
+        "MainThread": {
+          "S": 42.425385999999996,
+          "R": 11.405749,
+          "Running": 8.244375,
+          "R+": 0.136042
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 0,
+        "fabric_mount_batch_elapsed_ms": 0.0,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54816032614634
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 54816061211510,
+      "end_ns": 54816418256884,
+      "duration_ms": 357.045374,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 357.045374
+        },
+        "MainThread": {
+          "S": 240.85028800000003,
+          "R": 29.585999,
+          "Running": 78.412586,
+          "R+": 7.650627,
+          "D": 0.545874
+        },
+        "mqt_v_js": {
+          "Running": 205.70990500000002,
+          "R+": 48.278290999999996,
+          "R": 100.28301000000002,
+          "D": 2.774168
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 0,
+        "fabric_mount_batch_elapsed_ms": 0.0,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 54816418256884,
+      "end_ns": 54816636797842,
+      "duration_ms": 218.540958,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 185.600126,
+          "R": 14.272542000000001,
+          "Running": 14.232206999999997,
+          "R+": 4.436083
+        },
+        "MainThread": {
+          "Running": 115.27796199999997,
+          "R": 56.008077999999976,
+          "S": 28.905583999999998,
+          "R+": 18.245126000000003,
+          "D": 0.104208
+        },
+        "mqt_v_js": {
+          "Running": 30.816125000000003,
+          "R+": 0.870541,
+          "S": 164.655167,
+          "R": 22.199125000000002
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 7,
+        "fabric_mount_batch_elapsed_ms": 101.930208,
+        "main_postAndWait_elapsed_ms": 21.112499,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54816630693551
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 54816636797842,
+      "end_ns": 54816780619884,
+      "duration_ms": 143.822042,
+      "thread_state_ms": {
+        "MainThread": {
+          "R": 33.282210000000006,
+          "Running": 27.601498999999997,
+          "S": 81.03604200000001,
+          "R+": 1.2606240000000002,
+          "D": 0.641667
+        },
+        "mqt_v_js": {
+          "Running": 48.71425299999999,
+          "S": 1.271166,
+          "R": 93.29137299999996,
+          "R+": 0.54525
+        },
+        "RenderThread": {
+          "Running": 19.316665999999998,
+          "R+": 31.912625,
+          "S": 91.978541,
+          "R": 0.61421
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 2,
+        "fabric_mount_batch_elapsed_ms": 4.656749,
+        "main_postAndWait_elapsed_ms": 13.831459,
+        "image_install_callbacks_started": 2,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          54816695100342,
+          54816732633009
+        ],
+        "gap_ms": [
+          37.532667
+        ],
+        "gap_p50_ms": 37.532667,
+        "gap_p95_ms": 37.532667,
+        "gap_max_ms": 37.532667,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 54816780619884,
+      "end_ns": 54816826064884,
+      "duration_ms": 45.445,
+      "thread_state_ms": {
+        "RenderThread": {
+          "R+": 15.945333999999997,
+          "Running": 21.971584000000007,
+          "S": 4.590625,
+          "R": 2.9374569999999998
+        },
+        "MainThread": {
+          "Running": 17.568167,
+          "R": 9.526207,
+          "S": 4.433459,
+          "R+": 13.917167000000001
+        },
+        "mqt_v_js": {
+          "Running": 11.619001999999996,
+          "R+": 0.347041,
+          "R": 0.5322490000000001,
+          "S": 32.946708
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 4,
+        "fabric_mount_batch_elapsed_ms": 10.283875,
+        "main_postAndWait_elapsed_ms": 13.432332999999998,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 3
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54816825289217
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 54819853999958,
+      "end_ns": 54820345761970,
+      "duration_ms": 491.762012,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 440.447429,
+          "R": 13.752,
+          "Running": 20.35375,
+          "R+": 17.208833
+        },
+        "MainThread": {
+          "S": 196.79863699999999,
+          "R": 70.171835,
+          "Running": 202.78545799999995,
+          "R+": 22.006081999999996
+        },
+        "mqt_v_js": {
+          "Running": 262.769221,
+          "R": 113.49649799999995,
+          "R+": 33.736667000000004,
+          "S": 81.759626
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 8,
+        "fabric_mount_batch_elapsed_ms": 111.065416,
+        "main_postAndWait_elapsed_ms": 14.458791,
+        "image_install_callbacks_started": 2,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 3,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 3,
+        "presentation_end_timestamps_ns": [
+          54819857784469,
+          54820298798511,
+          54820336356844
+        ],
+        "gap_ms": [
+          441.014042,
+          37.558333
+        ],
+        "gap_p50_ms": 239.2861875,
+        "gap_p95_ms": 37.558333,
+        "gap_max_ms": 441.014042,
+        "gaps_above_33_34_ms": 2,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 54820345761970,
+      "end_ns": 54820862866512,
+      "duration_ms": 517.104542,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 503.79962700000004,
+          "R": 11.258499,
+          "Running": 1.845666,
+          "R+": 0.20075
+        },
+        "MainThread": {
+          "Running": 56.228913,
+          "R": 57.80562899999999,
+          "R+": 9.264665999999998,
+          "S": 393.80533399999996
+        },
+        "RenderThread": {
+          "S": 165.982623,
+          "R": 16.655413000000003,
+          "Running": 298.75780000000003,
+          "R+": 35.708706
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 18,
+        "fabric_mount_batch_elapsed_ms": 11.832877,
+        "main_postAndWait_elapsed_ms": 431.879126,
+        "image_install_callbacks_started": 1,
+        "render_draw_frames_started": 19
+      },
+      "frame_records_started": {
+        "n": 19,
+        "app_deadline_missed": 9,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 17,
+        "presentation_end_timestamps_ns": [
+          54820424868927,
+          54820449094011,
+          54820471490427,
+          54820520251469,
+          54820541039637,
+          54820553832804,
+          54820575314636,
+          54820611920886,
+          54820645009054,
+          54820680133679,
+          54820706895219,
+          54820732820761,
+          54820757699136,
+          54820767854428,
+          54820794241011,
+          54820826849386,
+          54820856713344
+        ],
+        "gap_ms": [
+          24.225084,
+          22.396416,
+          48.761042,
+          20.788168,
+          12.793167,
+          21.481832,
+          36.60625,
+          33.088168,
+          35.124625,
+          26.76154,
+          25.925542,
+          24.878375,
+          10.155292,
+          26.386583,
+          32.608375,
+          29.863958
+        ],
+        "gap_p50_ms": 26.1560625,
+        "gap_p95_ms": 36.60625,
+        "gap_max_ms": 48.761042,
+        "gaps_above_33_34_ms": 3,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 54821518999958,
+      "end_ns": 54821627076596,
+      "duration_ms": 108.076638,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 87.45272000000001,
+          "R": 4.7986249999999995,
+          "Running": 11.194335999999998,
+          "R+": 4.630957
+        },
+        "mqt_v_js": {
+          "S": 56.981930000000006,
+          "R": 8.821293,
+          "Running": 42.203664999999994,
+          "R+": 0.06975
+        },
+        "MainThread": {
+          "S": 74.29426099999999,
+          "R": 3.604585999999999,
+          "Running": 27.871374999999997,
+          "R+": 2.306416
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 3,
+        "fabric_mount_batch_elapsed_ms": 8.145542,
+        "main_postAndWait_elapsed_ms": 12.174583,
+        "image_install_callbacks_started": 1,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54821607973345
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 54821627076596,
+      "end_ns": 54822036535054,
+      "duration_ms": 409.458458,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 408.69341599999996,
+          "R": 0.571875,
+          "Running": 0.163458,
+          "R+": 0.029709
+        },
+        "RenderThread": {
+          "S": 135.991498,
+          "R": 15.221374999999997,
+          "Running": 232.9557130000001,
+          "R+": 25.289871999999995
+        },
+        "MainThread": {
+          "Running": 76.77949900000002,
+          "S": 282.96271,
+          "R": 47.328539,
+          "R+": 2.3877099999999998
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 13,
+        "fabric_mount_batch_elapsed_ms": 38.213292,
+        "main_postAndWait_elapsed_ms": 261.791835,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 14
+      },
+      "frame_records_started": {
+        "n": 14,
+        "app_deadline_missed": 3,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 12,
+        "presentation_end_timestamps_ns": [
+          54821637944470,
+          54821659853845,
+          54821743580720,
+          54821774791345,
+          54821812340636,
+          54821840159387,
+          54821862559137,
+          54821892220511,
+          54821927464678,
+          54821958553261,
+          54821991530012,
+          54822022382554
+        ],
+        "gap_ms": [
+          21.909375,
+          83.726875,
+          31.210625,
+          37.549291,
+          27.818751,
+          22.39975,
+          29.661374,
+          35.244167,
+          31.088583,
+          32.976751,
+          30.852542
+        ],
+        "gap_p50_ms": 31.088583,
+        "gap_p95_ms": 37.549291,
+        "gap_max_ms": 83.726875,
+        "gaps_above_33_34_ms": 3,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 54819853999958,
+      "end_ns": 54819873230928,
+      "duration_ms": 19.23097,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 19.23097
+        },
+        "MainThread": {
+          "S": 16.590845,
+          "R": 0.927,
+          "Running": 1.669042,
+          "R+": 0.044083
+        },
+        "mqt_v_js": {
+          "Running": 18.099345000000003,
+          "R": 1.1316249999999999
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 0,
+        "fabric_mount_batch_elapsed_ms": 0.0,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54819857784469
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 54819873230928,
+      "end_ns": 54820107036470,
+      "duration_ms": 233.805542,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 232.15670799999998,
+          "R": 1.612167,
+          "Running": 0.036667
+        },
+        "MainThread": {
+          "S": 118.53333100000002,
+          "R": 11.652001000000002,
+          "Running": 87.559503,
+          "R+": 16.060706999999997
+        },
+        "mqt_v_js": {
+          "Running": 164.49591399999997,
+          "R": 43.511751999999994,
+          "R+": 25.797875999999995
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 0,
+        "fabric_mount_batch_elapsed_ms": 0.0,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 54820107036470,
+      "end_ns": 54820300119970,
+      "duration_ms": 193.0835,
+      "thread_state_ms": {
+        "MainThread": {
+          "S": 30.866668,
+          "R": 47.765585,
+          "Running": 108.76808000000005,
+          "R+": 5.683166999999999
+        },
+        "RenderThread": {
+          "S": 144.846125,
+          "R": 12.134,
+          "Running": 19.730707,
+          "R+": 16.372668
+        },
+        "mqt_v_js": {
+          "Running": 56.378295000000016,
+          "R+": 0.835791,
+          "R": 62.006913999999995,
+          "S": 73.8625
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 7,
+        "fabric_mount_batch_elapsed_ms": 108.72854099999999,
+        "main_postAndWait_elapsed_ms": 14.458791,
+        "image_install_callbacks_started": 2,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54820298798511
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 54820300119970,
+      "end_ns": 54820332900470,
+      "duration_ms": 32.7805,
+      "thread_state_ms": {
+        "MainThread": {
+          "S": 24.961126,
+          "R": 7.032958,
+          "Running": 0.6067490000000001,
+          "R+": 0.179667
+        },
+        "RenderThread": {
+          "R+": 0.836165,
+          "Running": 0.26633399999999996,
+          "S": 31.678001
+        },
+        "mqt_v_js": {
+          "Running": 19.719167000000002,
+          "R": 6.123416000000001,
+          "R+": 6.937917
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 0,
+        "fabric_mount_batch_elapsed_ms": 0.0,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 54820332900470,
+      "end_ns": 54820345761970,
+      "duration_ms": 12.8615,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 12.535625,
+          "R": 0.005833,
+          "Running": 0.320042
+        },
+        "MainThread": {
+          "S": 5.846667,
+          "R": 2.794291,
+          "Running": 4.182084,
+          "R+": 0.038458
+        },
+        "mqt_v_js": {
+          "Running": 4.076499999999999,
+          "R+": 0.165083,
+          "R": 0.722791,
+          "S": 7.897126
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 1,
+        "fabric_mount_batch_elapsed_ms": 2.336875,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54820336356844
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 54823066999958,
+      "end_ns": 54823286499388,
+      "duration_ms": 219.49943,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 68.608762,
+          "R": 45.64100299999999,
+          "Running": 103.00687400000002,
+          "R+": 2.242791
+        },
+        "RenderThread": {
+          "S": 173.731013,
+          "R": 9.498000000000001,
+          "Running": 22.725042000000002,
+          "R+": 13.545374999999998
+        },
+        "MainThread": {
+          "S": 99.084558,
+          "R": 30.330168000000004,
+          "Running": 78.72070499999998,
+          "R+": 11.363999
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 10,
+        "fabric_mount_batch_elapsed_ms": 31.89096,
+        "main_postAndWait_elapsed_ms": 15.514582,
+        "image_install_callbacks_started": 3,
+        "render_draw_frames_started": 6
+      },
+      "frame_records_started": {
+        "n": 4,
+        "app_deadline_missed": 4,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          54823204367471,
+          54823239503137
+        ],
+        "gap_ms": [
+          35.135666
+        ],
+        "gap_p50_ms": 35.135666,
+        "gap_p95_ms": 35.135666,
+        "gap_max_ms": 35.135666,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 54823286499388,
+      "end_ns": 54823777187722,
+      "duration_ms": 490.688334,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 489.3905,
+          "R": 0.955459,
+          "Running": 0.098042,
+          "R+": 0.244333
+        },
+        "MainThread": {
+          "Running": 80.113285,
+          "R+": 21.660835000000002,
+          "S": 328.05821199999997,
+          "R": 60.856002
+        },
+        "RenderThread": {
+          "S": 132.216666,
+          "R": 62.810665000000014,
+          "Running": 271.5350030000002,
+          "R+": 24.12600000000001
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 12,
+        "fabric_mount_batch_elapsed_ms": 16.264375,
+        "main_postAndWait_elapsed_ms": 338.318999,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 13
+      },
+      "frame_records_started": {
+        "n": 13,
+        "app_deadline_missed": 10,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 12,
+        "presentation_end_timestamps_ns": [
+          54823290060429,
+          54823385169346,
+          54823385169554,
+          54823438555846,
+          54823497504054,
+          54823564765388,
+          54823600958888,
+          54823637801429,
+          54823658713930,
+          54823698830013,
+          54823735925013,
+          54823772377972
+        ],
+        "gap_ms": [
+          95.108917,
+          0.000208,
+          53.386292,
+          58.948208,
+          67.261334,
+          36.1935,
+          36.842541,
+          20.912501,
+          40.116083,
+          37.095,
+          36.452959
+        ],
+        "gap_p50_ms": 37.095,
+        "gap_p95_ms": 67.261334,
+        "gap_max_ms": 95.108917,
+        "gaps_above_33_34_ms": 9,
+        "gaps_above_50_ms": 4
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 54824660999958,
+      "end_ns": 54824776327096,
+      "duration_ms": 115.327138,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 109.38372100000001,
+          "R": 0.564207,
+          "Running": 5.227543999999999,
+          "R+": 0.15166600000000002
+        },
+        "mqt_v_js": {
+          "S": 64.683555,
+          "R": 4.362918000000001,
+          "Running": 46.28066499999999
+        },
+        "MainThread": {
+          "S": 80.18692899999999,
+          "R": 3.0416690000000006,
+          "Running": 26.535828999999993,
+          "R+": 5.562710999999999
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 3,
+        "fabric_mount_batch_elapsed_ms": 14.493291,
+        "main_postAndWait_elapsed_ms": 5.728042,
+        "image_install_callbacks_started": 1,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          54824738786472,
+          54824768307721
+        ],
+        "gap_ms": [
+          29.521249
+        ],
+        "gap_p50_ms": 29.521249,
+        "gap_p95_ms": 29.521249,
+        "gap_max_ms": 29.521249,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 54824776327096,
+      "end_ns": 54825180885514,
+      "duration_ms": 404.558418,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 404.05771,
+          "R": 0.42825,
+          "Running": 0.072458
+        },
+        "RenderThread": {
+          "S": 100.60829100000001,
+          "R": 9.298001000000001,
+          "Running": 285.51208699999995,
+          "R+": 9.140039000000003
+        },
+        "MainThread": {
+          "Running": 46.842252,
+          "S": 307.61878800000005,
+          "R": 43.716753999999995,
+          "R+": 6.380623999999999
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 19,
+        "fabric_mount_batch_elapsed_ms": 8.686955,
+        "main_postAndWait_elapsed_ms": 299.733664,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 20
+      },
+      "frame_records_started": {
+        "n": 20,
+        "app_deadline_missed": 4,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 17,
+        "presentation_end_timestamps_ns": [
+          54824804164180,
+          54824863310680,
+          54824885409931,
+          54824906286888,
+          54824935932431,
+          54824953660180,
+          54824970920889,
+          54824989895513,
+          54825007382806,
+          54825024751888,
+          54825055706472,
+          54825074009597,
+          54825087550263,
+          54825103679930,
+          54825122291263,
+          54825154135221,
+          54825172307931
+        ],
+        "gap_ms": [
+          59.1465,
+          22.099251,
+          20.876957,
+          29.645543,
+          17.727749,
+          17.260709,
+          18.974624,
+          17.487293,
+          17.369082,
+          30.954584,
+          18.303125,
+          13.540666,
+          16.129667,
+          18.611333,
+          31.843958,
+          18.17271
+        ],
+        "gap_p50_ms": 18.457228999999998,
+        "gap_p95_ms": 31.843958,
+        "gap_max_ms": 59.1465,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 54823066999958,
+      "end_ns": 54823076632638,
+      "duration_ms": 9.63268,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 8.718929,
+          "R": 0.077792,
+          "Running": 0.835959
+        },
+        "RenderThread": {
+          "S": 9.63268
+        },
+        "MainThread": {
+          "S": 7.925972,
+          "R": 0.5669580000000001,
+          "Running": 1.130417,
+          "R+": 0.009333
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 0,
+        "fabric_mount_batch_elapsed_ms": 0.0,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 54823076632638,
+      "end_ns": 54823146694304,
+      "duration_ms": 70.061666,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 70.061666
+        },
+        "MainThread": {
+          "S": 45.620376,
+          "R": 3.5362059999999995,
+          "Running": 19.795916,
+          "R+": 1.109168
+        },
+        "mqt_v_js": {
+          "Running": 61.001082,
+          "R": 9.060583999999997
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 1,
+        "fabric_mount_batch_elapsed_ms": 0.427,
+        "main_postAndWait_elapsed_ms": 0.0,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 0
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 54823146694304,
+      "end_ns": 54823216261346,
+      "duration_ms": 69.567042,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 46.250251000000006,
+          "R": 7.971959000000001,
+          "Running": 10.31279,
+          "R+": 5.032042
+        },
+        "mqt_v_js": {
+          "Running": 20.484460000000002,
+          "R+": 0.803833,
+          "R": 12.876957999999998,
+          "S": 35.401791
+        },
+        "MainThread": {
+          "R+": 10.164914,
+          "Running": 44.166208000000026,
+          "R": 11.027585000000002,
+          "S": 4.208335
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 7,
+        "fabric_mount_batch_elapsed_ms": 20.743669,
+        "main_postAndWait_elapsed_ms": 7.26975,
+        "image_install_callbacks_started": 3,
+        "render_draw_frames_started": 3
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54823204367471
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 54823216261346,
+      "end_ns": 54823257033596,
+      "duration_ms": 40.77225,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 19.207583,
+          "R": 1.210083,
+          "Running": 11.841251,
+          "R+": 8.513333
+        },
+        "MainThread": {
+          "S": 25.040834,
+          "R": 13.684084,
+          "Running": 2.047332
+        },
+        "mqt_v_js": {
+          "Running": 18.435456000000002,
+          "R+": 0.355834,
+          "R": 21.98096
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 1,
+        "fabric_mount_batch_elapsed_ms": 0.915125,
+        "main_postAndWait_elapsed_ms": 7.4687909999999995,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 2
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          54823239503137
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 54823257033596,
+      "end_ns": 54823286499388,
+      "duration_ms": 29.465792,
+      "thread_state_ms": {
+        "MainThread": {
+          "S": 16.289041,
+          "R": 1.5153349999999999,
+          "Running": 11.580832000000001,
+          "R+": 0.080584
+        },
+        "RenderThread": {
+          "S": 28.578833000000003,
+          "R": 0.31595799999999996,
+          "Running": 0.571001
+        },
+        "mqt_v_js": {
+          "Running": 2.249917,
+          "R+": 1.083124,
+          "R": 1.644709,
+          "S": 24.488042
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": 1,
+        "fabric_mount_batch_elapsed_ms": 9.805166,
+        "main_postAndWait_elapsed_ms": 0.776041,
+        "image_install_callbacks_started": 0,
+        "render_draw_frames_started": 1
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    }
+  ],
+  "summary": {
+    "flying/startup": {
+      "n": 3,
+      "duration_median_ms": 491.762012,
+      "threads": {
+        "MainThread": {
+          "D": 0,
+          "Running": 202.78545799999995,
+          "R+": 22.006081999999996,
+          "S": 196.79863699999999,
+          "R": 70.171835
+        },
+        "mqt_v_js": {
+          "D": 0,
+          "Running": 262.769221,
+          "R+": 33.736667000000004,
+          "S": 81.759626,
+          "R": 113.49649799999995
+        },
+        "RenderThread": {
+          "R": 13.752,
+          "R+": 17.208833,
+          "Running": 22.725042000000002,
+          "S": 440.447429
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 10,
+          "min": 8,
+          "max": 13
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 111.065416,
+          "min": 31.89096,
+          "max": 116.870832
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 15.514582,
+          "min": 14.458791,
+          "max": 48.376291
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 2,
+          "min": 2,
+          "max": 3
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 6,
+          "min": 2,
+          "max": 7
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 202.78545799999995,
+          "median_runnable_ms": 92.177917,
+          "median_sleeping_ms": 196.79863699999999,
+          "pooled_running_percent": 34.36271801589504
+        },
+        "mqt_v_js": {
+          "median_running_ms": 262.769221,
+          "median_runnable_ms": 147.23316499999996,
+          "median_sleeping_ms": 81.759626,
+          "pooled_running_percent": 45.1438531800555
+        },
+        "RenderThread": {
+          "median_running_ms": 22.725042000000002,
+          "median_runnable_ms": 30.960833,
+          "median_sleeping_ms": 440.447429,
+          "pooled_running_percent": 6.409514330056649
+        }
+      }
+    },
+    "flying/motion": {
+      "n": 3,
+      "duration_median_ms": 505.056084,
+      "threads": {
+        "MainThread": {
+          "R": 60.856002,
+          "S": 380.082546,
+          "R+": 9.264665999999998,
+          "Running": 56.228913
+        },
+        "mqt_v_js": {
+          "R": 9.814625,
+          "R+": 0.20075,
+          "Running": 0.448458,
+          "S": 494.793001
+        },
+        "RenderThread": {
+          "R": 58.22687400000005,
+          "S": 141.655581,
+          "R+": 35.398333,
+          "Running": 271.5350030000002
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 13,
+          "min": 12,
+          "max": 18
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 12.185581,
+          "min": 11.832877,
+          "max": 16.264375
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 431.879126,
+          "min": 338.318999,
+          "max": 442.423
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 1,
+          "min": 0,
+          "max": 1
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 13,
+          "min": 13,
+          "max": 19
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 56.228913,
+          "median_runnable_ms": 82.516837,
+          "median_sleeping_ms": 380.082546,
+          "pooled_running_percent": 11.581668800565522
+        },
+        "mqt_v_js": {
+          "median_running_ms": 0.448458,
+          "median_runnable_ms": 9.814625,
+          "median_sleeping_ms": 494.793001,
+          "pooled_running_percent": 0.15812325375826017
+        },
+        "RenderThread": {
+          "median_running_ms": 271.5350030000002,
+          "median_runnable_ms": 86.93666500000002,
+          "median_sleeping_ms": 141.655581,
+          "pooled_running_percent": 55.52888101929226
+        }
+      },
+      "app_frames_started": 45,
+      "app_deadline_missed": 23,
+      "median_trial_gap_p50_ms": 28.3119375,
+      "median_trial_gap_p95_ms": 67.261334,
+      "median_trial_gap_max_ms": 91.808376,
+      "median_trial_unique_display_frames": 13
+    },
+    "flying/release-navigate": {
+      "n": 3,
+      "duration_median_ms": 19.23097,
+      "threads": {
+        "MainThread": {
+          "R": 0.927,
+          "R+": 0.044083,
+          "Running": 1.669042,
+          "S": 16.590845
+        },
+        "mqt_v_js": {
+          "R": 1.1316249999999999,
+          "R+": 0,
+          "Running": 18.099345000000003,
+          "S": 8.718929
+        },
+        "RenderThread": {
+          "S": 19.23097
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 1.669042,
+          "median_runnable_ms": 0.971083,
+          "median_sleeping_ms": 16.590845,
+          "pooled_running_percent": 12.1260603956717
+        },
+        "mqt_v_js": {
+          "median_running_ms": 18.099345000000003,
+          "median_runnable_ms": 1.1316249999999999,
+          "median_sleeping_ms": 8.718929,
+          "pooled_running_percent": 55.73385497404663
+        },
+        "RenderThread": {
+          "median_running_ms": 0,
+          "median_runnable_ms": 0,
+          "median_sleeping_ms": 19.23097,
+          "pooled_running_percent": 0.0
+        }
+      }
+    },
+    "flying/navigate-destination": {
+      "n": 3,
+      "duration_median_ms": 233.805542,
+      "threads": {
+        "MainThread": {
+          "D": 0,
+          "Running": 78.412586,
+          "R+": 7.650627,
+          "S": 118.53333100000002,
+          "R": 11.652001000000002
+        },
+        "mqt_v_js": {
+          "D": 0,
+          "R": 43.511751999999994,
+          "R+": 25.797875999999995,
+          "Running": 164.49591399999997
+        },
+        "RenderThread": {
+          "R": 0,
+          "Running": 0,
+          "S": 232.15670799999998
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 1
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.427
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 78.412586,
+          "median_runnable_ms": 27.712708,
+          "median_sleeping_ms": 118.53333100000002,
+          "pooled_running_percent": 28.107802765358766
+        },
+        "mqt_v_js": {
+          "median_running_ms": 164.49591399999997,
+          "median_runnable_ms": 69.30962799999999,
+          "median_sleeping_ms": 0,
+          "pooled_running_percent": 65.24416583129901
+        },
+        "RenderThread": {
+          "median_running_ms": 0,
+          "median_runnable_ms": 0,
+          "median_sleeping_ms": 232.15670799999998,
+          "pooled_running_percent": 0.005547934930976999
+        }
+      }
+    },
+    "flying/destination-ready": {
+      "n": 3,
+      "duration_median_ms": 193.0835,
+      "threads": {
+        "MainThread": {
+          "D": 0,
+          "Running": 108.76808000000005,
+          "S": 28.905583999999998,
+          "R+": 10.164914,
+          "R": 47.765585
+        },
+        "mqt_v_js": {
+          "R": 22.199125000000002,
+          "S": 73.8625,
+          "R+": 0.835791,
+          "Running": 30.816125000000003
+        },
+        "RenderThread": {
+          "R": 12.134,
+          "R+": 5.032042,
+          "Running": 14.232206999999997,
+          "S": 144.846125
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 7,
+          "min": 7,
+          "max": 7
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 101.930208,
+          "min": 20.743669,
+          "max": 108.72854099999999
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 14.458791,
+          "min": 7.26975,
+          "max": 21.112499
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 2,
+          "min": 0,
+          "max": 3
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 2,
+          "min": 2,
+          "max": 3
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 108.76808000000005,
+          "median_runnable_ms": 53.448752,
+          "median_sleeping_ms": 28.905583999999998,
+          "pooled_running_percent": 55.73919115362597
+        },
+        "mqt_v_js": {
+          "median_running_ms": 30.816125000000003,
+          "median_runnable_ms": 23.069666,
+          "median_sleeping_ms": 73.8625,
+          "pooled_running_percent": 22.377552388186416
+        },
+        "RenderThread": {
+          "median_running_ms": 14.232206999999997,
+          "median_runnable_ms": 18.708625,
+          "median_sleeping_ms": 144.846125,
+          "pooled_running_percent": 9.20126477712096
+        }
+      }
+    },
+    "flying/ready-request": {
+      "n": 3,
+      "duration_median_ms": 40.77225,
+      "threads": {
+        "MainThread": {
+          "D": 0,
+          "Running": 2.047332,
+          "S": 25.040834,
+          "R+": 0.179667,
+          "R": 13.684084
+        },
+        "mqt_v_js": {
+          "R": 21.98096,
+          "S": 0,
+          "R+": 0.54525,
+          "Running": 19.719167000000002
+        },
+        "RenderThread": {
+          "R": 0.61421,
+          "S": 31.678001,
+          "R+": 8.513333,
+          "Running": 11.841251
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 1,
+          "min": 0,
+          "max": 2
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 0.915125,
+          "min": 0.0,
+          "max": 4.656749
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 7.4687909999999995,
+          "min": 0.0,
+          "max": 13.831459
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 2
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 2,
+          "min": 0,
+          "max": 2
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 2.047332,
+          "median_runnable_ms": 13.684084,
+          "median_sleeping_ms": 25.040834,
+          "pooled_running_percent": 13.918624014140516
+        },
+        "mqt_v_js": {
+          "median_running_ms": 19.719167000000002,
+          "median_runnable_ms": 22.336794,
+          "median_sleeping_ms": 0,
+          "pooled_running_percent": 39.96271840020898
+        },
+        "RenderThread": {
+          "median_running_ms": 11.841251,
+          "median_runnable_ms": 9.723416,
+          "median_sleeping_ms": 31.678001,
+          "pooled_running_percent": 14.456253510756664
+        }
+      }
+    },
+    "flying/request-first": {
+      "n": 3,
+      "duration_median_ms": 29.465792,
+      "threads": {
+        "MainThread": {
+          "R": 2.794291,
+          "S": 5.846667,
+          "R+": 0.080584,
+          "Running": 11.580832000000001
+        },
+        "mqt_v_js": {
+          "R": 0.722791,
+          "S": 24.488042,
+          "R+": 0.347041,
+          "Running": 4.076499999999999
+        },
+        "RenderThread": {
+          "R": 0.31595799999999996,
+          "Running": 0.571001,
+          "S": 12.535625,
+          "R+": 0
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 1,
+          "min": 1,
+          "max": 4
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 9.805166,
+          "min": 2.336875,
+          "max": 10.283875
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 0.776041,
+          "min": 0.0,
+          "max": 13.432332999999998
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 1,
+          "min": 0,
+          "max": 3
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 11.580832000000001,
+          "median_runnable_ms": 2.8327489999999997,
+          "median_sleeping_ms": 5.846667,
+          "pooled_running_percent": 37.97449313503173
+        },
+        "mqt_v_js": {
+          "median_running_ms": 4.076499999999999,
+          "median_runnable_ms": 0.8878739999999999,
+          "median_sleeping_ms": 24.488042,
+          "pooled_running_percent": 20.44542598933157
+        },
+        "RenderThread": {
+          "median_running_ms": 0.571001,
+          "median_runnable_ms": 0.31595799999999996,
+          "median_sleeping_ms": 12.535625,
+          "pooled_running_percent": 26.047658639243473
+        }
+      }
+    },
+    "closing/startup": {
+      "n": 3,
+      "duration_median_ms": 115.327138,
+      "threads": {
+        "MainThread": {
+          "D": 0,
+          "Running": 27.871374999999997,
+          "R+": 2.8203769999999997,
+          "S": 80.18692899999999,
+          "R": 3.604585999999999
+        },
+        "mqt_v_js": {
+          "R": 8.821293,
+          "R+": 0.042875,
+          "Running": 46.28066499999999,
+          "S": 64.683555
+        },
+        "RenderThread": {
+          "R": 4.7986249999999995,
+          "R+": 2.2243319999999995,
+          "Running": 11.194335999999998,
+          "S": 109.38372100000001
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 3,
+          "min": 3,
+          "max": 3
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 14.493291,
+          "min": 8.145542,
+          "max": 37.012084
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 12.174583,
+          "min": 5.728042,
+          "max": 27.877291
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 1,
+          "min": 1,
+          "max": 1
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 2,
+          "min": 2,
+          "max": 2
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 27.871374999999997,
+          "median_runnable_ms": 8.604379999999999,
+          "median_sleeping_ms": 80.18692899999999,
+          "pooled_running_percent": 27.531882278812727
+        },
+        "mqt_v_js": {
+          "median_running_ms": 46.28066499999999,
+          "median_runnable_ms": 8.891043000000002,
+          "median_sleeping_ms": 64.683555,
+          "pooled_running_percent": 39.24040996096875
+        },
+        "RenderThread": {
+          "median_running_ms": 11.194335999999998,
+          "median_runnable_ms": 9.429582,
+          "median_sleeping_ms": 109.38372100000001,
+          "pooled_running_percent": 10.910703773187514
+        }
+      }
+    },
+    "closing/motion": {
+      "n": 3,
+      "duration_median_ms": 404.558418,
+      "threads": {
+        "MainThread": {
+          "R": 43.716753999999995,
+          "S": 307.61878800000005,
+          "R+": 2.3877099999999998,
+          "Running": 46.842252
+        },
+        "mqt_v_js": {
+          "R": 0.42825,
+          "R+": 0.029709,
+          "Running": 0.163458,
+          "S": 404.05771
+        },
+        "RenderThread": {
+          "R": 9.298001000000001,
+          "R+": 9.140039000000003,
+          "Running": 261.05379500000004,
+          "S": 130.978375
+        }
+      },
+      "native_scopes": {
+        "native_commit_scopes_started": null,
+        "fabric_mount_batches_started": {
+          "n": 3,
+          "median": 15,
+          "min": 13,
+          "max": 19
+        },
+        "fabric_mount_batch_elapsed_ms": {
+          "n": 3,
+          "median": 10.907291,
+          "min": 8.686955,
+          "max": 38.213292
+        },
+        "main_postAndWait_elapsed_ms": {
+          "n": 3,
+          "median": 299.733664,
+          "min": 261.791835,
+          "max": 352.942416
+        },
+        "image_install_callbacks_started": {
+          "n": 3,
+          "median": 0,
+          "min": 0,
+          "max": 0
+        },
+        "render_draw_frames_started": {
+          "n": 3,
+          "median": 16,
+          "min": 14,
+          "max": 20
+        }
+      },
+      "thread_derived": {
+        "MainThread": {
+          "median_running_ms": 46.842252,
+          "median_runnable_ms": 49.716249,
+          "median_sleeping_ms": 307.61878800000005,
+          "pooled_running_percent": 13.520402272688425
+        },
+        "mqt_v_js": {
+          "median_running_ms": 0.163458,
+          "median_runnable_ms": 0.42825,
+          "median_sleeping_ms": 404.05771,
+          "pooled_running_percent": 0.038827874814346956
+        },
+        "RenderThread": {
+          "median_running_ms": 261.05379500000004,
+          "median_runnable_ms": 18.438040000000004,
+          "median_sleeping_ms": 130.978375,
+          "pooled_running_percent": 64.1481860190493
+        }
+      },
+      "app_frames_started": 50,
+      "app_deadline_missed": 9,
+      "median_trial_gap_p50_ms": 22.150229000000003,
+      "median_trial_gap_p95_ms": 37.549291,
+      "median_trial_gap_max_ms": 82.914167,
+      "median_trial_unique_display_frames": 13
+    }
+  },
+  "native_commit_scopes_available": false,
+  "limits": [
+    "Fabric mount-batch count is not React commit count; unavailable native commit scopes are null, not zero.",
+    "Native scoped durations include descheduled time and are not exclusive CPU milliseconds.",
+    "One trace comparison is descriptive only, not paired statistical proof.",
+    "Window boundary is first sampled UI progress, not proof of first visible motion.",
+    "Display cadence joins activity surface frame tokens to SurfaceFlinger display ends; not hardware photon timestamps.",
+    "Cadence includes only intervals between activity-associated display ends inside window; excludes partial first/last intervals and deduplicates display tokens.",
+    "App deadline cohort uses app frame start in window; presentation cadence uses display end in window; denominators differ.",
+    "Thread-state Running is CPU execution; R/R+ runnable scheduling delay; S sleeping is not necessarily harmful blocking.",
+    "Per-thread/state medians do not add to median window length; inspect per-trial values.",
+    "Incomplete transitions retained in totals; motion windows require first-motion and endpoint markers.",
+    "Some distinct display tokens have nearly coincident end timestamps in this software-rendered emulator; reported display-end cadence must not be equated with distinct physical screen refreshes or hardware FPS."
+  ]
+}

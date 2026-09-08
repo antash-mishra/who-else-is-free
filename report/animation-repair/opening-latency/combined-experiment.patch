@@ -1,0 +1,856 @@
+diff --git a/src/components/EventCard.tsx b/src/components/EventCard.tsx
+index f112033..b934d56 100644
+--- a/src/components/EventCard.tsx
++++ b/src/components/EventCard.tsx
+@@ -34,6 +34,8 @@ export interface EventItemProps {
+   titleRef?: RefObject<Text | null>;
+   /** True while this card's cover is flying in the shared overlay. */
+   sharedElementsHidden?: boolean;
++  /** The source is prepared before opening starts on the UI thread. */
++  sharedElementsPreparing?: boolean;
+ }
+ 
+ const BADGE_ICON_SIZE = 10;
+@@ -64,11 +66,17 @@ const EventCard = ({
+   coverRef,
+   titleRef,
+   sharedElementsHidden,
++  sharedElementsPreparing,
+ }: EventItemProps) => {
+-  const { progress } = useEventSharedTransition();
++  const { progress, openingReady } = useEventSharedTransition();
+   const coverVisibility = useAnimatedStyle(() => ({
+     // Return the source image on the UI thread before JS navigation completes.
+-    opacity: sharedElementsHidden && progress.value > 0.001 ? 0 : 1,
++    opacity:
++      sharedElementsHidden &&
++      (!sharedElementsPreparing || openingReady.value) &&
++      progress.value > 0.001
++        ? 0
++        : 1,
+   }));
+   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
+   const locationName = formatEventLocationName(location);
+diff --git a/src/components/events/EventSectionList.tsx b/src/components/events/EventSectionList.tsx
+index 4922eb0..37b59c3 100644
+--- a/src/components/events/EventSectionList.tsx
++++ b/src/components/events/EventSectionList.tsx
+@@ -57,7 +57,7 @@ const EventCardRow = <TItem extends EventItemProps>({
+   const { eventId: activeEventId, phase } = useEventSharedTransitionState();
+   // Hide only the cover while its overlay travels; list text stays in place.
+   const sharedElementsHidden =
+-    activeEventId === item.id && (phase === 'flying' || phase === 'closing');
++    activeEventId === item.id && (phase === 'landing' || phase === 'flying' || phase === 'closing');
+   const source = useMemo(
+     () => ({
+       imageUri: item.imageUri,
+@@ -87,6 +87,7 @@ const EventCardRow = <TItem extends EventItemProps>({
+         coverRef={coverRef}
+         titleRef={titleRef}
+         sharedElementsHidden={sharedElementsHidden}
++        sharedElementsPreparing={phase === 'landing'}
+       />
+     </ScalePressable>
+   );
+diff --git a/src/components/events/EventSharedTransition.tsx b/src/components/events/EventSharedTransition.tsx
+index 1904d21..62e695f 100644
+--- a/src/components/events/EventSharedTransition.tsx
++++ b/src/components/events/EventSharedTransition.tsx
+@@ -121,6 +121,8 @@ interface SharedTransitionActions {
+   close: (eventId: string, onClosed: (sharedReturnCompleted: boolean) => void) => boolean;
+   /** 0 at the source, 1 at Details; keep the completed endpoint until the next flight. */
+   progress: SharedValue<number>;
++  /** UI authorization for opening while the React phase is still landing. */
++  openingReady: SharedValue<boolean>;
+ }
+ 
+ const idleProgress = makeMutable(1);
+@@ -132,6 +134,7 @@ const ActionsContext = createContext<SharedTransitionActions>({
+   cancel: () => undefined,
+   close: () => false,
+   progress: idleProgress,
++  openingReady: makeMutable(false),
+ });
+ 
+ const StateContext = createContext<SharedTransitionState>({});
+@@ -321,6 +324,7 @@ const FlightOverlay = ({
+   onCoverReady,
+   onComplete,
+   onError,
++  target,
+ }: {
+   flight: Flight;
+   layoutSize: number;
+@@ -328,24 +332,17 @@ const FlightOverlay = ({
+   onCoverReady: () => void;
+   onComplete: () => void;
+   onError: () => void;
++  target: SharedValue<CoverTarget | null>;
+ }) => {
+   const flying = flight.phase === 'flying' || flight.phase === 'closing';
++  const metricPhase =
++    flight.phase === 'landing' || flight.phase === 'flying' ? 'flying' : 'closing';
+   const started = useRef<SharedPhase | undefined>(undefined);
+-  const targetCenter = flight.targetCover ? center(flight.targetCover) : null;
+-  const target = useSharedValue<CoverTarget | null>(
+-    flight.targetCover && targetCenter
+-      ? {
+-          cx: targetCenter.x,
+-          cy: targetCenter.y,
+-          width: flight.targetCover.width,
+-          rotation: flight.rotation,
+-        }
+-      : null,
+-  );
+-  // The provider switches to `flying` only once the destination has landed and
+-  // the cover bitmap is painted (or its grace passed), so take off right away.
++  // Opening starts directly at readiness in the provider. Keep the proven
++  // return lifecycle here, after its overlay bitmap has committed.
+   useEffect(() => {
+-    if (!flying || started.current === flight.phase || !flight.targetCover) return;
++    if (flight.phase !== 'closing' || started.current === flight.phase || !flight.targetCover)
++      return;
+     started.current = flight.phase;
+     const to = center(flight.targetCover);
+     // Hand the UI thread the landing geometry first, then start the clock.
+@@ -385,8 +382,8 @@ const FlightOverlay = ({
+       accessibilityElementsHidden
+       importantForAccessibility="no-hide-descendants"
+     >
+-      {transitionMetricsEnabled && flying && (
+-        <FlightMetricProbe key={flight.phase} phase={flight.phase} progress={progress} />
++      {transitionMetricsEnabled && (
++        <FlightMetricProbe key={metricPhase} phase={metricPhase} progress={progress} />
+       )}
+       <FlyingCover
+         flight={flight}
+@@ -412,6 +409,9 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   const root = useRef<View>(null);
+   const sequence = useRef(0);
+   const opening = useRef(false);
++  const pendingNavigation = useRef<
++    { id: number; frame: number; navigate: (shared: boolean) => void } | undefined
++  >(undefined);
+   const flightRef = useRef<Flight>(undefined);
+   const returnFlight = useRef<Flight>(undefined);
+   const closeCallback = useRef<((sharedReturnCompleted: boolean) => void) | undefined>(undefined);
+@@ -421,6 +421,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   const [flight, setFlightState] = useState<Flight>();
+   // Reset to 0 at open so the page mounts invisible; the overlay drives it to 1.
+   const progress = useSharedValue(1);
++  const target = useSharedValue<CoverTarget | null>(null);
++  const openingReady = useSharedValue(false);
+   const reducedMotion = useReducedMotion();
+   const { width, height } = useWindowDimensions();
+   const layoutSize = heroCoverSize(width);
+@@ -446,6 +448,10 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         returnFlight.current?.eventId !== eventId
+       )
+         return;
++      if (pendingNavigation.current)
++        globalThis.cancelAnimationFrame(pendingNavigation.current.frame);
++      pendingNavigation.current = undefined;
++      openingReady.value = false;
+       markTransition('cancel', { phase: flightRef.current?.phase ?? 'idle' });
+       const returnedToSource = flightRef.current?.phase === 'closed';
+       returnFlight.current = undefined;
+@@ -463,7 +469,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+       setFlight(undefined);
+       finishClose?.(false);
+     },
+-    [progress],
++    [progress, openingReady],
+   );
+ 
+   const cancelFlight = useCallback(
+@@ -473,17 +479,81 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+     [cancel],
+   );
+ 
++  const failOpening = useCallback(
++    (id: number) => {
++      if (flightRef.current?.id !== id) return;
++      const pending = pendingNavigation.current;
++      cancelFlight(id);
++      // A failed preload before route dispatch must still honor the tap.
++      if (pending?.id === id) pending.navigate(false);
++    },
++    [cancelFlight],
++  );
++
++  const complete = useCallback(
++    (id: number) => {
++      const current = flightRef.current;
++      if (!current || current.id !== id) return;
++      clearTimers();
++      opening.current = false;
++      if (current.phase === 'closing') {
++        // Keep the page contracted until navigation removes it. Resetting here
++        // would flash a full-size Details page during the stack's close fade.
++        markTransition('return-complete-js');
++        setFlight({ ...current, phase: 'closed' });
++        const callback = closeCallback.current;
++        closeCallback.current = undefined;
++        callback?.(true);
++      } else if (current.phase === 'flying') {
++        returnFlight.current = current;
++        setFlight(undefined);
++      } else {
++        cancel();
++      }
++    },
++    [cancel],
++  );
++
+   const startFlight = useCallback(() => {
+     const current = flightRef.current;
+     if (!current || current.phase !== 'landing' || !current.targetCover) return;
+     clearTimers();
+     markTransition('takeoff-ready');
+     setFlight({ ...current, phase: 'flying' });
++    // Geometry and the bitmap are ready. Start on the UI thread now, without
++    // waiting for the phase update to render the provider and all card rows.
++    const to = center(current.targetCover);
++    target.value = {
++      cx: to.x,
++      cy: to.y,
++      width: current.targetCover.width,
++      rotation: current.rotation,
++    };
++    const id = current.id;
++    openingReady.value = true;
++    markTransition('animation-requested', { phase: 'flying' });
++    progress.value = withTiming(
++      1,
++      {
++        duration: eventSharedMotion.durationMs,
++        easing: Easing.out(Easing.cubic),
++      },
++      (finished) => {
++        if (!finished) return;
++        if (transitionMetricsEnabled)
++          runOnJS(markTransition)('ui-endpoint', {
++            phase: 'flying',
++            ui_ms: performance.now(),
++            ui_wall_ms: Date.now(),
++          });
++        runOnJS(complete)(id);
++      },
++    );
+     timers.current.complete = setTimeout(
+       () => cancelFlight(current.id),
+       eventSharedMotion.timeoutMs,
+     );
+-  }, [cancelFlight]);
++  }, [cancelFlight, complete, progress, target, openingReady]);
+ 
+   /** Wait for the destination cover and bitmap; text never delays take-off. */
+   const tryStart = useCallback(() => {
+@@ -552,6 +622,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+           navigate(false);
+           return;
+         }
++        openingReady.value = false;
++        target.value = null;
+         progress.value = 0;
+         graces.current = { image: false };
+         setFlight({
+@@ -563,9 +635,16 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+           rotation: 0,
+           phase: 'landing',
+         });
+-        timers.current.land = setTimeout(() => cancelFlight(id), eventSharedMotion.landTimeoutMs);
+-        markTransition('navigate');
+-        navigate(true);
++        timers.current.land = setTimeout(() => failOpening(id), eventSharedMotion.landTimeoutMs);
++        // Let overlay mount/effects begin before the heavy destination render.
++        // Readiness still gates takeoff; a frame callback alone is not a paint guarantee.
++        const frame = requestAnimationFrame(() => {
++          if (sequence.current !== id || pendingNavigation.current?.id !== id) return;
++          pendingNavigation.current = undefined;
++          markTransition('navigate');
++          navigate(true);
++        });
++        pendingNavigation.current = { id, frame, navigate };
+       };
+       opening.current = true;
+       const cached = primed.current;
+@@ -594,7 +673,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+         begin(frames);
+       });
+     },
+-    [cancelFlight, progress, reducedMotion],
++    [failOpening, progress, reducedMotion, target, openingReady],
+   );
+ 
+   const land = useCallback<SharedTransitionActions['land']>(
+@@ -627,30 +706,6 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+     [tryStart],
+   );
+ 
+-  const complete = useCallback(
+-    (id: number) => {
+-      const current = flightRef.current;
+-      if (!current || current.id !== id) return;
+-      clearTimers();
+-      opening.current = false;
+-      if (current.phase === 'closing') {
+-        // Keep the page contracted until navigation removes it. Resetting here
+-        // would flash a full-size Details page during the stack's close fade.
+-        markTransition('return-complete-js');
+-        setFlight({ ...current, phase: 'closed' });
+-        const callback = closeCallback.current;
+-        closeCallback.current = undefined;
+-        callback?.(true);
+-      } else if (current.phase === 'flying') {
+-        returnFlight.current = current;
+-        setFlight(undefined);
+-      } else {
+-        cancel();
+-      }
+-    },
+-    [cancel],
+-  );
+-
+   const close = useCallback<SharedTransitionActions['close']>(
+     (eventId, onClosed) => {
+       markTransition('close-request');
+@@ -694,12 +749,20 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+             if (settled || sequence.current !== id) return;
+             settled = true;
+             clearTimers();
++            const targetCover = toLocal(destination, rootFrame);
++            const to = center(targetCover);
++            target.value = {
++              cx: to.x,
++              cy: to.y,
++              width: targetCover.width,
++              rotation: previous.rotation,
++            };
+             progress.value = 1;
+             setFlight({
+               ...previous,
+               id,
+               source: frames,
+-              targetCover: toLocal(destination, rootFrame),
++              targetCover,
+               coverReady: false,
+               phase: 'returning',
+             });
+@@ -712,7 +775,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+       });
+       return true;
+     },
+-    [cancel, cancelFlight, height, progress, reducedMotion],
++    [cancel, cancelFlight, height, progress, reducedMotion, target],
+   );
+ 
+   useEffect(() => {
+@@ -721,6 +784,9 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+     });
+     return () => {
+       subscription.remove();
++      if (pendingNavigation.current)
++        globalThis.cancelAnimationFrame(pendingNavigation.current.frame);
++      pendingNavigation.current = undefined;
+       sequence.current += 1;
+       clearTimers();
+       cancelAnimation(progress);
+@@ -731,8 +797,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+   }, [width, height, cancel]);
+ 
+   const actions = useMemo(
+-    () => ({ prime, open, land, cancel, close, progress }),
+-    [prime, open, land, cancel, close, progress],
++    () => ({ prime, open, land, cancel, close, progress, openingReady }),
++    [prime, open, land, cancel, close, progress, openingReady],
+   );
+   const eventId = flight?.eventId;
+   const phase = flight?.phase;
+@@ -752,9 +818,10 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+               flight={flight}
+               layoutSize={layoutSize}
+               progress={progress}
++              target={target}
+               onCoverReady={() => markCoverReady(flight.id)}
+               onComplete={() => complete(flight.id)}
+-              onError={() => cancelFlight(flight.id)}
++              onError={() => failOpening(flight.id)}
+             />
+           )}
+         </View>
+@@ -767,14 +834,21 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+  * the transparent stack card instead of the feed on this navigator. */
+ export const EventSharedTransitionSourcePage = ({ children }: { children: ReactNode }) => {
+   const { phase } = useEventSharedTransitionState();
+-  const { progress } = useEventSharedTransition();
+-  const moving = phase === 'flying' || phase === 'closing';
++  const { progress, openingReady } = useEventSharedTransition();
++  const moving = phase === 'landing' || phase === 'flying' || phase === 'closing';
+   const canBlur = Platform.OS === 'android' && Number(Platform.Version) >= 31;
+   // Keep radius fixed while moving, but clear it on the UI thread near the
+   // source endpoint. A delayed JS completion must not leave the feed blurred.
+   const style = useAnimatedStyle(() => ({
+     filter: canBlur
+-      ? [{ blur: moving && progress.value > 0.04 ? eventSharedMotion.backdropBlur : 0 }]
++      ? [
++          {
++            blur:
++              moving && (phase !== 'landing' || openingReady.value) && progress.value > 0.04
++                ? eventSharedMotion.backdropBlur
++                : 0,
++          },
++        ]
+       : [],
+   }));
+   return <Animated.View style={[styles.root, style]}>{children}</Animated.View>;
+@@ -802,7 +876,7 @@ export const EventSharedTransitionPage = ({
+   testID,
+   children,
+ }: EventSharedTransitionPageProps) => {
+-  const { progress, cancel, close } = useEventSharedTransition();
++  const { progress, cancel, close, openingReady } = useEventSharedTransition();
+   const { eventId: activeEventId, phase, sourceCover } = useEventSharedTransitionState();
+   const navigation = useContext(NavigationContext);
+   const allowRemove = useRef(false);
+@@ -868,11 +942,11 @@ export const EventSharedTransitionPage = ({
+       }
+     };
+   }, [cancel, enabled, eventId]);
+-  const moving = active && phase !== 'landing' && phase !== 'returning';
++  const moving = active && phase !== 'returning';
+   const surfaceStyle = useAnimatedStyle(() => {
+     const p = progress.value;
+     const from = sourceCover;
+-    if (!moving || !from)
++    if (!moving || !from || (phase === 'landing' && !openingReady.value))
+       return {
+         opacity: active && phase === 'landing' ? 0 : fade.value,
+         borderRadius: 0,
+@@ -900,8 +974,9 @@ export const EventSharedTransitionPage = ({
+     };
+   });
+   const contentStyle = useAnimatedStyle(() => {
+-    if (!moving || !sourceCover) return { opacity: 1, transform: [{ scaleY: 1 }] };
+     const p = progress.value;
++    if (!moving || !sourceCover || (phase === 'landing' && !openingReady.value))
++      return { opacity: 1, transform: [{ scaleY: 1 }] };
+     const sx = (sourceCover.width + (width - sourceCover.width) * p) / width;
+     const sy = (sourceCover.height + (height - sourceCover.height) * p) / height;
+     // Undo the shell's nonuniform scale: typography remains proportional and
+diff --git a/src/components/events/__tests__/EventSharedTransition.test.tsx b/src/components/events/__tests__/EventSharedTransition.test.tsx
+index 50db92c..4ff7432 100644
+--- a/src/components/events/__tests__/EventSharedTransition.test.tsx
++++ b/src/components/events/__tests__/EventSharedTransition.test.tsx
+@@ -100,7 +100,54 @@ const measureCard = () => {
+ const holdAnimations = () =>
+   jest.spyOn(Reanimated, 'withTiming').mockImplementation((value: unknown) => value as never);
+ 
++const openCard = (screen: ReturnType<typeof mount>) => {
++  fireEvent.press(screen.getByTestId('open'));
++  act(() => {
++    jest.advanceTimersByTime(20);
++  });
++};
++
+ describe('event shared transition', () => {
++  it('prepares the returning cover at the remeasured hero before its bitmap handoff', () => {
++    const timing = holdAnimations();
++    measureCard();
++    const originalMeasure = destinationRef.current.measureInWindow;
++    try {
++      const screen = mount();
++      openCard(screen);
++      fireEvent.press(screen.getByTestId('land-cover'));
++      fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
++      act(() => {
++        timing.mock.calls[0][2]?.(true);
++      });
++      expect(screen.getByTestId('state').props.children).toBe('idle:none');
++
++      // The hero moved while Details was open (e.g. its ScrollView scrolled).
++      // Keep the new frame fully visible so the shared return remains valid.
++      destinationRef.current.measureInWindow = (callback) => callback(132, 63, 228, 228);
++      fireEvent.press(screen.getByTestId('close'));
++      expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
++      expect(timing).toHaveBeenCalledTimes(1);
++      expect(closed).not.toHaveBeenCalled();
++
++      // Do not send returning image onLoad: closing's effect has not run.
++      // At progress=1 the preloaded overlay must already match the current
++      // hero, not the target retained from opening. Both frames share the
++      // same root offset, which cancels out of the center differences.
++      const transform = StyleSheet.flatten(
++        screen.getByTestId('flying-cover', hidden).props.style,
++      ).transform;
++      expect(transform).toEqual(
++        expect.arrayContaining([
++          { translateX: 132 + 228 / 2 - (16 + 80 / 2) },
++          { translateY: 63 + 228 / 2 - (224 + 80 / 2) },
++        ]),
++      );
++    } finally {
++      destinationRef.current.measureInWindow = originalMeasure;
++    }
++  });
++
+   beforeEach(() => {
+     jest.useFakeTimers();
+     navigate.mockReset();
+@@ -121,7 +168,7 @@ describe('event shared transition', () => {
+     const timing = holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+     act(() => {
+@@ -156,7 +203,7 @@ describe('event shared transition', () => {
+     fireEvent.press(screen.getByTestId('cancel'));
+     expect(screen.getByTestId('state').props.children).toBe('idle:none');
+     expect(screen.getByTestId('progress').props.children).toBe(0);
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledTimes(2);
+   });
+ 
+@@ -191,7 +238,7 @@ describe('event shared transition', () => {
+           }),
+         },
+       );
+-      fireEvent.press(screen.getByTestId('open'));
++      openCard(screen);
+       fireEvent.press(screen.getByTestId('land-cover'));
+       fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+       act(() => {
+@@ -269,7 +316,7 @@ describe('event shared transition', () => {
+     const timing = holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+     act(() => {
+@@ -291,7 +338,7 @@ describe('event shared transition', () => {
+     const timing = holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+     act(() => {
+@@ -306,9 +353,31 @@ describe('event shared transition', () => {
+     expect(screen.getByTestId('state').props.children).toBe('idle:none');
+   });
+ 
++  it.each(['error', 'background', 'unmount'])(
++    'handles %s before the prepared overlay dispatches navigation',
++    (reason) => {
++      measureCard();
++      const listener = jest.spyOn(AppState, 'addEventListener');
++      const screen = mount();
++      fireEvent.press(screen.getByTestId('open'));
++      expect(navigate).not.toHaveBeenCalled();
++      if (reason === 'error') fireEvent(screen.getByTestId('flying-cover-image', hidden), 'error');
++      else if (reason === 'background')
++        act(() => listener.mock.calls.forEach(([, callback]) => callback('background')));
++      else screen.unmount();
++      act(() => {
++        jest.advanceTimersByTime(1000);
++      });
++      if (reason === 'error') {
++        expect(navigate).toHaveBeenCalledTimes(1);
++        expect(navigate).toHaveBeenCalledWith(false);
++      } else expect(navigate).not.toHaveBeenCalled();
++    },
++  );
++
+   it('keeps ordinary navigation working outside the provider', () => {
+     const screen = render(<Harness />);
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledWith(false);
+     expect(pageOpacity(screen)).toBe(1);
+   });
+@@ -316,7 +385,7 @@ describe('event shared transition', () => {
+   it('uses a stationary page fade for reduced motion without measuring', () => {
+     jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true);
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledWith(true);
+     expect(measureCover).not.toHaveBeenCalled();
+     expect(screen.getByTestId('state').props.children).toBe('idle:none');
+@@ -332,7 +401,7 @@ describe('event shared transition', () => {
+   it('falls back once if a recycled source never supplies its measurement', () => {
+     measureTitle.mockImplementation((callback) => callback(112, 224, 280, 20));
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     act(() => {
+       jest.advanceTimersByTime(eventSharedMotion.measureTimeoutMs);
+     });
+@@ -349,7 +418,7 @@ describe('event shared transition', () => {
+     measureCover.mockImplementation((callback) => callback(0, 0, 0, 0));
+     measureTitle.mockImplementation((callback) => callback(112, 224, 280, 20));
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledWith(false);
+     expect(pageOpacity(screen)).toBe(1);
+   });
+@@ -358,7 +427,7 @@ describe('event shared transition', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledWith(true);
+     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+     expect(pageOpacity(screen)).toBe(0);
+@@ -375,7 +444,7 @@ describe('event shared transition', () => {
+     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
+     expect(measureTitle).not.toHaveBeenCalled();
+ 
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledTimes(1);
+   });
+ 
+@@ -383,7 +452,7 @@ describe('event shared transition', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+     expect(measureTitle).not.toHaveBeenCalled();
+@@ -395,14 +464,14 @@ describe('event shared transition', () => {
+   it('reveals the page and releases the tap if the destination never lands', () => {
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(pageOpacity(screen)).toBe(0);
+     act(() => {
+       jest.advanceTimersByTime(eventSharedMotion.landTimeoutMs);
+     });
+     expect(screen.getByTestId('state').props.children).toBe('idle:none');
+     expect(pageOpacity(screen)).toBe(1);
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledTimes(2);
+   });
+ 
+@@ -410,7 +479,7 @@ describe('event shared transition', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-title'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+@@ -426,7 +495,7 @@ describe('event shared transition', () => {
+   it('hands off to the page once the flight completes', () => {
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-title'));
+     // Landed, but take-off waits for the cover bitmap (or its grace).
+@@ -448,7 +517,7 @@ describe('event shared transition', () => {
+   it('takes off after the image grace even if the bitmap never reports', () => {
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-title'));
+     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+@@ -462,7 +531,7 @@ describe('event shared transition', () => {
+     const timing = holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-title'));
+@@ -475,10 +544,11 @@ describe('event shared transition', () => {
+   });
+ 
+   it('places the overlays on the card at take-off', () => {
+-    holdAnimations();
++    // Model the first native frame, before timing advances from its source.
++    jest.spyOn(Reanimated, 'withTiming').mockImplementation(() => 0 as never);
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-title'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+@@ -498,11 +568,39 @@ describe('event shared transition', () => {
+     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
+   });
+ 
++  it('prepares the landing page to follow UI progress before its phase rerenders', () => {
++    const sharedValues = jest.spyOn(Reanimated, 'useSharedValue');
++    const animatedStyles = jest.spyOn(Reanimated, 'useAnimatedStyle');
++    measureCard();
++    const screen = mount();
++    openCard(screen);
++    const progress = sharedValues.mock.results[0].value;
++    const surface = [...animatedStyles.mock.calls].reverse().find(([style]) => {
++      const value = style() as { transform?: Array<{ scaleX?: number }>; opacity?: number };
++      return value.opacity === 0 && value.transform?.some((entry) => entry.scaleX === 1);
++    })![0];
++    expect(surface().opacity).toBe(0);
++    // Keep the React phase at landing: only the native shared value moves.
++    const readyIndex = sharedValues.mock.calls.findIndex(([initial]) => initial === false);
++    sharedValues.mock.results[readyIndex].value.value = true;
++    progress.value = 0.5;
++    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
++    expect(surface().opacity).toBe(1);
++    expect(surface().transform).toEqual(
++      expect.arrayContaining([{ scaleX: expect.any(Number) }, { scaleY: expect.any(Number) }]),
++    );
++    // Cancellation can restore progress before the React phase clears. It
++    // must revoke UI takeoff first, keeping the abandoned landing page hidden.
++    sharedValues.mock.results[readyIndex].value.value = false;
++    progress.value = 1;
++    expect(surface().opacity).toBe(0);
++  });
++
+   it('releases the flight when the cover image fails to load', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'error');
+     expect(screen.getByTestId('state').props.children).toBe('idle:none');
+     expect(pageOpacity(screen)).toBe(1);
+@@ -512,7 +610,7 @@ describe('event shared transition', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-foreign'));
+     fireEvent.press(screen.getByTestId('land-title'));
+     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+@@ -522,7 +620,7 @@ describe('event shared transition', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount(true);
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+     screen.rerender(
+       <EventSharedTransitionProvider>
+@@ -538,7 +636,7 @@ describe('event shared transition', () => {
+     const screen = mount();
+     fireEvent.press(screen.getByTestId('prime'));
+     expect(measureCover).toHaveBeenCalledTimes(1);
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(measureCover).toHaveBeenCalledTimes(1);
+     expect(navigate).toHaveBeenCalledWith(true);
+   });
+@@ -550,7 +648,7 @@ describe('event shared transition', () => {
+     act(() => {
+       jest.advanceTimersByTime(eventSharedMotion.primedFrameTtlMs + 1);
+     });
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(measureCover).toHaveBeenCalledTimes(2);
+     expect(navigate).toHaveBeenCalledWith(true);
+   });
+@@ -558,12 +656,12 @@ describe('event shared transition', () => {
+     holdAnimations();
+     measureCard();
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     const oldImage = screen.getByTestId('flying-cover-image', hidden);
+     const oldError = oldImage.props.onError;
+     const oldLoad = oldImage.props.onLoad;
+     fireEvent.press(screen.getByTestId('cancel'));
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     act(() => {
+       oldError();
+       oldLoad();
+@@ -580,7 +678,7 @@ describe('event shared transition', () => {
+     const listener = jest.spyOn(AppState, 'addEventListener');
+     measureTitle.mockImplementation((callback) => callback(112, 224, 280, 20));
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     act(() => {
+       listener.mock.calls.forEach(([, callback]) => callback('background'));
+       measureCover.mock.calls[0][0](16, 200, 80, 80);
+@@ -589,7 +687,7 @@ describe('event shared transition', () => {
+     expect(navigate).not.toHaveBeenCalled();
+     measureCard();
+     act(() => listener.mock.calls.forEach(([, callback]) => callback('active')));
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledTimes(1);
+   });
+ 
+@@ -598,7 +696,7 @@ describe('event shared transition', () => {
+     measureCard();
+     const listener = jest.spyOn(AppState, 'addEventListener');
+     const screen = mount();
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     fireEvent.press(screen.getByTestId('land-cover'));
+     fireEvent.press(screen.getByTestId('land-title'));
+     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+@@ -606,7 +704,7 @@ describe('event shared transition', () => {
+     expect(screen.getByTestId('state').props.children).toBe('idle:none');
+     expect(pageOpacity(screen)).toBe(1);
+     act(() => listener.mock.calls.forEach(([, callback]) => callback('active')));
+-    fireEvent.press(screen.getByTestId('open'));
++    openCard(screen);
+     expect(navigate).toHaveBeenCalledTimes(2);
+   });
+ });
+diff --git a/src/screens/event-details/__tests__/EventDetailsHero.shared.test.tsx b/src/screens/event-details/__tests__/EventDetailsHero.shared.test.tsx
+index 9ef7c41..5a98cd3 100644
+--- a/src/screens/event-details/__tests__/EventDetailsHero.shared.test.tsx
++++ b/src/screens/event-details/__tests__/EventDetailsHero.shared.test.tsx
+@@ -2,7 +2,7 @@ import React from 'react';
+ 
+ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+ 
+-import { fireEvent, render } from '@testing-library/react-native';
++import { fireEvent, render, waitFor } from '@testing-library/react-native';
+ import * as Reanimated from 'react-native-reanimated';
+ 
+ import {
+@@ -93,14 +93,14 @@ describe('Event Details shared landing', () => {
+     expect(opacityOf(screen.getByTestId('event-details-title'))).toBe(1);
+   });
+ 
+-  it('hides and lands the image while keeping text in the page', () => {
++  it('hides and lands the image while keeping text in the page', async () => {
+     const screen = render(
+       <EventSharedTransitionProvider>
+         <Harness />
+       </EventSharedTransitionProvider>,
+     );
+     fireEvent.press(screen.getByTestId('open'));
+-    expect(navigate).toHaveBeenCalledWith(true);
++    await waitFor(() => expect(navigate).toHaveBeenCalledWith(true));
+     expect(opacityOf(screen.getByTestId('hero-cover-card'))).toBe(0);
+     expect(opacityOf(screen.getByTestId('event-details-title'))).toBe(1);
+ 

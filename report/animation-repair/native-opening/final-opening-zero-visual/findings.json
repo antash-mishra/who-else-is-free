@@ -1,0 +1,26 @@
+{
+  "frames_reviewed": 107,
+  "opening_cycles": 2,
+  "return_cycles": 2,
+  "method": "Reviewed every original decoded frame in three consecutive timestamped contact sheets; variable recording cadence is not device FPS.",
+  "design": "Android source feed stays clear during opening; closing retains blur radius 4 and source-endpoint cleanup. Shared cover/page geometry and duration remain unchanged.",
+  "return_endpoints": [
+    {
+      "frame": 34,
+      "pts_seconds": 5.058922,
+      "finding": "Feed clear and source image restored; subsequent frames remain stable."
+    },
+    {
+      "frame": 91,
+      "pts_seconds": 12.295944,
+      "finding": "Feed clear and source image restored; subsequent frames remain stable."
+    }
+  ],
+  "observed_defects": [],
+  "remaining_limitations": [
+    "No full-page blank, endpoint white flash, duplicate cover, or source-image hole observed in these two cycles. This is sampled visual validation, not broad lifecycle reliability proof.",
+    "Gray hero backdrop appears during first expansion in frames 12\u201314 (1.062867\u20131.125444 s), resolving to the photo by frame 15 (1.199689 s). Second opening already has the photo visible in its expanding surface. Backdrop readiness remains variable.",
+    "Some large return geometry steps remain between consecutive captured frames; this opening-only change does not claim to improve closing frame pacing.",
+    "Video review cannot establish exact input latency or app rendering FPS; use separate native/UI progress captures."
+  ]
+}

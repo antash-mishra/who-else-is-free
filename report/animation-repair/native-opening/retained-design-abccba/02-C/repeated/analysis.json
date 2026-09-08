@@ -1,0 +1,93 @@
+{
+  "trials": [
+    {
+      "cycle": 0,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 438.4430980011821,
+      "up_to_motion": 362.4430980011821,
+      "press_to_motion": 345.10008300095797,
+      "mount_measure": 169.67412499338388,
+      "dest_to_ready": 95.46987500041723,
+      "ready_to_motion": 76.18079200387001,
+      "back_to_motion": 211.29539100080729,
+      "endpoint_to_unmount": 23.54466699808836
+    },
+    {
+      "cycle": 1,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 583.3322260007262,
+      "up_to_motion": 510.3322260007262,
+      "press_to_motion": 495.7700830027461,
+      "mount_measure": 176.00295899808407,
+      "dest_to_ready": 165.14695800095797,
+      "ready_to_motion": 152.45075000077486,
+      "back_to_motion": 83.43797700107098,
+      "endpoint_to_unmount": 78.69516599923372
+    },
+    {
+      "cycle": 2,
+      "shared_open": true,
+      "shared_close": true,
+      "down_to_motion": 405.8437289968133,
+      "up_to_motion": 334.8437289968133,
+      "press_to_motion": 314.5921669974923,
+      "mount_measure": 171.2522919997573,
+      "dest_to_ready": 97.19116600602865,
+      "ready_to_motion": 31.105791993439198,
+      "back_to_motion": 133.1654800027609,
+      "endpoint_to_unmount": 33.82925000041723
+    }
+  ],
+  "summary": {
+    "back_to_motion": {
+      "n": 3,
+      "median": 133.1654800027609,
+      "min": 83.43797700107098,
+      "max": 211.29539100080729
+    },
+    "dest_to_ready": {
+      "n": 3,
+      "median": 97.19116600602865,
+      "min": 95.46987500041723,
+      "max": 165.14695800095797
+    },
+    "down_to_motion": {
+      "n": 3,
+      "median": 438.4430980011821,
+      "min": 405.8437289968133,
+      "max": 583.3322260007262
+    },
+    "endpoint_to_unmount": {
+      "n": 3,
+      "median": 33.82925000041723,
+      "min": 23.54466699808836,
+      "max": 78.69516599923372
+    },
+    "mount_measure": {
+      "n": 3,
+      "median": 171.2522919997573,
+      "min": 169.67412499338388,
+      "max": 176.00295899808407
+    },
+    "press_to_motion": {
+      "n": 3,
+      "median": 345.10008300095797,
+      "min": 314.5921669974923,
+      "max": 495.7700830027461
+    },
+    "ready_to_motion": {
+      "n": 3,
+      "median": 76.18079200387001,
+      "min": 31.105791993439198,
+      "max": 152.45075000077486
+    },
+    "up_to_motion": {
+      "n": 3,
+      "median": 362.4430980011821,
+      "min": 334.8437289968133,
+      "max": 510.3322260007262
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "path": "/Users/antash/workspace/who-else-is-free/artifacts/animation-performance/native-opening/baseline.perfetto-trace",
+  "sha256": "0c2ae8dc4cd92bb981658a6a022fcdae3ce905bb0a4566809535069174b4f23c",
+  "app_pid": 16838,
+  "marker_directory": "baseline-trace-markers",
+  "bytes": 16811693,
+  "config": "config.pbtxt",
+  "final_stable_blur": {
+    "path": "/Users/antash/workspace/who-else-is-free/artifacts/animation-performance/native-opening/final-stable-blur.perfetto-trace",
+    "sha256": "5a77ca77f03b85a6ab4aa1976d49cf3f5187b58372f10a4f58e95237dfab25bc",
+    "bytes": 10711394,
+    "app_pid": 23055,
+    "marker_directory": "final-trace-markers",
+    "config": "final-config.pbtxt",
+    "analysis_directory": "final-native-analysis",
+    "completed_shared_pairs": 3
+  },
+  "comparison_limits": "Unpaired native captures;45s baseline/35s final; analysis uses exact marker windows, not whole-trace totals. Alternating untraced matrix remains primary performance comparison."
+}

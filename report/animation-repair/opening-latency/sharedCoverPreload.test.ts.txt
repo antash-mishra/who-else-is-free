@@ -1,0 +1,121 @@
+import { Image, type ImageRef } from 'expo-image';
+
+import { createSharedCoverPreloader } from '../sharedCoverPreload';
+
+jest.mock('expo-image', () => ({ Image: { loadAsync: jest.fn() } }));
+
+const load = jest.mocked(Image.loadAsync);
+const bitmap = () => ({ release: jest.fn() }) as unknown as ImageRef;
+const flush = async () => {
+  // Flush invocation, promise adoption, and completion handlers.
+  for (let index = 0; index < 8; index += 1) await Promise.resolve();
+};
+const deferred = () => {
+  let resolve!: (image: ImageRef) => void;
+  const promise = new Promise<ImageRef>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+};
+
+beforeEach(() => load.mockReset());
+
+describe('shared cover speculative decoding', () => {
+  it('reuses only an exact URI and pixel-size match', async () => {
+    const first = bitmap();
+    const second = bitmap();
+    load.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const preload = createSharedCoverPreloader();
+    preload.prime('cover-a', 456);
+    preload.prime('cover-a', 456);
+    expect(preload.ready('cover-a', 456)).toBeUndefined();
+    await flush();
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith('cover-a', { maxWidth: 456, maxHeight: 456 });
+    expect(preload.ready('cover-a', 456)).toBe(first);
+    expect(preload.ready('cover-b', 456)).toBeUndefined();
+    expect(preload.ready('cover-a', 684)).toBeUndefined();
+    preload.prime('cover-a', 684);
+    await flush();
+    expect(preload.ready('cover-a', 684)).toBe(second);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('caps native work at one pending decode and discards a superseded result', async () => {
+    const pending = deferred();
+    load.mockReturnValueOnce(pending.promise).mockResolvedValueOnce(bitmap());
+    const preload = createSharedCoverPreloader();
+    preload.prime('cover-a', 456);
+    await flush();
+    preload.prime('cover-b', 456);
+    preload.prime('cover-c', 456);
+    await flush();
+    expect(load).toHaveBeenCalledTimes(1);
+    pending.resolve(bitmap());
+    await flush();
+    expect(preload.ready('cover-a', 456)).toBeUndefined();
+    expect(preload.ready('cover-b', 456)).toBeUndefined();
+    preload.prime('cover-c', 456);
+    await flush();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(preload.ready('cover-c', 456)).toBeDefined();
+  });
+
+  it('ignores completion after clear and allows a fresh prime once native work finishes', async () => {
+    const pending = deferred();
+    const next = bitmap();
+    load.mockReturnValueOnce(pending.promise).mockResolvedValueOnce(next);
+    const preload = createSharedCoverPreloader();
+    preload.prime('cover-a', 456);
+    await flush();
+    preload.clear();
+    preload.prime('cover-a', 456);
+    await flush();
+    expect(load).toHaveBeenCalledTimes(1);
+    pending.resolve(bitmap());
+    await flush();
+    expect(preload.ready('cover-a', 456)).toBeUndefined();
+    preload.prime('cover-a', 456);
+    await flush();
+    expect(preload.ready('cover-a', 456)).toBe(next);
+  });
+
+  it.each(['reject', 'throw'])('allows retry after native API failure: %s', async (failure) => {
+    const image = bitmap();
+    if (failure === 'reject') load.mockRejectedValueOnce(new Error('decode failed'));
+    else
+      load.mockImplementationOnce(() => {
+        throw new Error('API unavailable');
+      });
+    load.mockResolvedValueOnce(image);
+    const preload = createSharedCoverPreloader();
+    expect(() => preload.prime('cover-a', 456)).not.toThrow();
+    await flush();
+    expect(preload.ready('cover-a', 456)).toBeUndefined();
+    preload.prime('cover-a', 456);
+    await flush();
+    expect(preload.ready('cover-a', 456)).toBe(image);
+  });
+
+  it('does not release native references retained by an active flight', async () => {
+    const image = bitmap();
+    load.mockResolvedValue(image);
+    const preload = createSharedCoverPreloader();
+    preload.prime('cover-a', 456);
+    await flush();
+    const flightImage = preload.ready('cover-a', 456);
+    preload.clear();
+    preload.prime('cover-b', 456);
+    await flush();
+    expect(flightImage).toBe(image);
+    expect(image.release).not.toHaveBeenCalled();
+  });
+
+  it('does not launch speculative work for invalid inputs', async () => {
+    const preload = createSharedCoverPreloader();
+    preload.prime('', 456);
+    for (const size of [0, -1, NaN, Infinity]) preload.prime('cover-a', size);
+    await flush();
+    expect(load).not.toHaveBeenCalled();
+  });
+});

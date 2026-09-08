@@ -1,0 +1,20 @@
+diff --git a/src/components/events/EventSharedTransition.tsx b/src/components/events/EventSharedTransition.tsx
+index 1904d21..2300d7d 100644
+--- a/src/components/events/EventSharedTransition.tsx
++++ b/src/components/events/EventSharedTransition.tsx
+@@ -564,8 +564,13 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
+           phase: 'landing',
+         });
+         timers.current.land = setTimeout(() => cancelFlight(id), eventSharedMotion.landTimeoutMs);
+-        markTransition('navigate');
+-        navigate(true);
++        // Give the native overlay one commit before mounting the heavy page:
++        // bitmap preparation can then overlap the destination render.
++        requestAnimationFrame(() => {
++          if (sequence.current !== id) return;
++          markTransition('navigate');
++          navigate(true);
++        });
+       };
+       opening.current = true;
+       const cached = primed.current;

@@ -1,0 +1,2999 @@
+{
+  "pid": 16838,
+  "clock_monotonic_to_trace_offset_ns": -83.5,
+  "clock_offsets_ns": [
+    -84,
+    -83
+  ],
+  "trials_total": 7,
+  "shared_open_completed": 6,
+  "shared_close_completed": 6,
+  "windows": [
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 53013042999916,
+      "end_ns": 53014107116900,
+      "duration_ms": 1064.116984,
+      "thread_state_ms": {
+        "RenderThread": {
+          "R": 100.32015099999997,
+          "Running": 136.24183900000008,
+          "R+": 55.670454,
+          "S": 771.8845399999998
+        },
+        "oelseisfree.app": {
+          "R+": 113.43356400000002,
+          "Running": 329.59333099999986,
+          "R": 162.1856729999999,
+          "S": 458.90441599999986
+        },
+        "mqt_v_js": {
+          "R": 288.2617440000001,
+          "Running": 489.46754699999985,
+          "R+": 103.99946,
+          "S": 180.63524999999998
+        }
+      },
+      "frame_records_started": {
+        "n": 6,
+        "app_deadline_missed": 6,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 4,
+        "presentation_end_timestamps_ns": [
+          53013123844816,
+          53013506796108,
+          53013606881399,
+          53013665856024
+        ],
+        "gap_ms": [
+          382.951292,
+          100.085291,
+          58.974625
+        ],
+        "gap_p50_ms": 100.085291,
+        "gap_p95_ms": 100.085291,
+        "gap_max_ms": 382.951292,
+        "gaps_above_33_34_ms": 3,
+        "gaps_above_50_ms": 3
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 53014107116900,
+      "end_ns": 53014637530024,
+      "duration_ms": 530.413124,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 522.651833,
+          "R": 2.630124,
+          "Running": 2.1952510000000003,
+          "R+": 2.935916
+        },
+        "RenderThread": {
+          "R+": 20.589202999999998,
+          "Running": 437.9374220000001,
+          "R": 25.030457000000006,
+          "S": 46.856042
+        },
+        "oelseisfree.app": {
+          "Running": 29.146165,
+          "R": 20.518500000000003,
+          "R+": 8.877707999999998,
+          "S": 471.870751
+        }
+      },
+      "frame_records_started": {
+        "n": 8,
+        "app_deadline_missed": 8,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 7,
+        "presentation_end_timestamps_ns": [
+          53014167494233,
+          53014255242983,
+          53014344927066,
+          53014481839775,
+          53014481839941,
+          53014552079441,
+          53014616866941
+        ],
+        "gap_ms": [
+          87.74875,
+          89.684083,
+          136.912709,
+          0.000166,
+          70.2395,
+          64.7875
+        ],
+        "gap_p50_ms": 78.994125,
+        "gap_p95_ms": 89.684083,
+        "gap_max_ms": 136.912709,
+        "gaps_above_33_34_ms": 5,
+        "gaps_above_50_ms": 5
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 53015371999916,
+      "end_ns": 53015515140566,
+      "duration_ms": 143.14065,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 76.276025,
+          "R": 8.45596,
+          "Running": 58.32733199999999,
+          "R+": 0.081333
+        },
+        "RenderThread": {
+          "S": 127.32548299999999,
+          "R": 3.155,
+          "Running": 12.369376,
+          "R+": 0.290791
+        },
+        "oelseisfree.app": {
+          "S": 93.103278,
+          "R": 10.202834000000001,
+          "Running": 38.521537,
+          "R+": 1.3130009999999996
+        }
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53015497236233
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 53015515140566,
+      "end_ns": 53015928256650,
+      "duration_ms": 413.116084,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 410.684792,
+          "R": 1.425875,
+          "Running": 0.532251,
+          "R+": 0.473166
+        },
+        "RenderThread": {
+          "S": 75.03096,
+          "R": 17.360997,
+          "Running": 293.258462,
+          "R+": 27.465664999999994
+        },
+        "oelseisfree.app": {
+          "Running": 40.54062600000001,
+          "R": 73.453623,
+          "S": 297.390334,
+          "R+": 1.7315010000000002
+        }
+      },
+      "frame_records_started": {
+        "n": 8,
+        "app_deadline_missed": 5,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 7,
+        "presentation_end_timestamps_ns": [
+          53015523232859,
+          53015616603817,
+          53015616604651,
+          53015726975318,
+          53015841107817,
+          53015904352942,
+          53015915760943
+        ],
+        "gap_ms": [
+          93.370958,
+          0.000834,
+          110.370667,
+          114.132499,
+          63.245125,
+          11.408001
+        ],
+        "gap_p50_ms": 78.3080415,
+        "gap_p95_ms": 110.370667,
+        "gap_max_ms": 114.132499,
+        "gaps_above_33_34_ms": 4,
+        "gaps_above_50_ms": 4
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 53013042999916,
+      "end_ns": 53013093274190,
+      "duration_ms": 50.274274,
+      "thread_state_ms": {
+        "RenderThread": {
+          "R": 14.178318,
+          "Running": 22.983416,
+          "R+": 0.851208,
+          "S": 12.261332
+        },
+        "oelseisfree.app": {
+          "R+": 4.634192,
+          "Running": 8.099748,
+          "R": 6.044209,
+          "S": 31.496125000000003
+        },
+        "mqt_v_js": {
+          "R": 17.803582000000002,
+          "Running": 22.698208,
+          "R+": 1.783501,
+          "S": 6.236
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 53013093274190,
+      "end_ns": 53013349630900,
+      "duration_ms": 256.35671,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 256.35671
+        },
+        "oelseisfree.app": {
+          "S": 146.37304200000005,
+          "R": 32.483581,
+          "Running": 73.571004,
+          "R+": 3.929083
+        },
+        "mqt_v_js": {
+          "Running": 185.39241499999994,
+          "R+": 7.548333000000001,
+          "R": 63.41596199999998
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53013123844816
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 53013349630900,
+      "end_ns": 53013630321858,
+      "duration_ms": 280.690958,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 134.516792,
+          "R": 35.70425,
+          "Running": 69.45516800000001,
+          "R+": 41.014748000000004
+        },
+        "oelseisfree.app": {
+          "R": 36.76779,
+          "Running": 94.547752,
+          "R+": 58.539083,
+          "S": 90.83633300000001
+        },
+        "mqt_v_js": {
+          "Running": 65.28642099999999,
+          "R+": 33.348999,
+          "S": 107.819583,
+          "R": 74.235955
+        }
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 3,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53013506796108,
+          53013606881399
+        ],
+        "gap_ms": [
+          100.085291
+        ],
+        "gap_p50_ms": 100.085291,
+        "gap_p95_ms": 100.085291,
+        "gap_max_ms": 100.085291,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 53013630321858,
+      "end_ns": 53014028797608,
+      "duration_ms": 398.47575,
+      "thread_state_ms": {
+        "RenderThread": {
+          "R+": 12.160207,
+          "Running": 40.06392099999999,
+          "S": 297.59678899999994,
+          "R": 48.654833
+        },
+        "oelseisfree.app": {
+          "Running": 122.47245600000004,
+          "R+": 37.215956,
+          "S": 185.43466600000002,
+          "R": 53.352671999999984
+        },
+        "mqt_v_js": {
+          "Running": 207.03221399999995,
+          "R+": 58.93566700000001,
+          "R": 132.507869
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53013665856024
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 53014028797608,
+      "end_ns": 53014107116900,
+      "duration_ms": 78.319292,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 71.152917,
+          "R": 1.7827499999999998,
+          "Running": 3.739334,
+          "R+": 1.644291
+        },
+        "oelseisfree.app": {
+          "S": 4.76425,
+          "R": 33.537421,
+          "Running": 30.902371,
+          "R+": 9.11525
+        },
+        "mqt_v_js": {
+          "Running": 9.058288999999998,
+          "R": 0.298376,
+          "R+": 2.3829599999999997,
+          "S": 66.579667
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 53017151999916,
+      "end_ns": 53017485842152,
+      "duration_ms": 333.842236,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 66.269194,
+          "R": 91.88874700000002,
+          "Running": 167.17083800000003,
+          "R+": 8.513456999999999
+        },
+        "RenderThread": {
+          "S": 234.90444500000004,
+          "R": 50.271748,
+          "Running": 26.458961000000006,
+          "R+": 22.207082
+        },
+        "oelseisfree.app": {
+          "S": 131.253989,
+          "R": 69.59637700000002,
+          "Running": 127.900956,
+          "R+": 5.0909140000000015
+        }
+      },
+      "frame_records_started": {
+        "n": 4,
+        "app_deadline_missed": 4,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 3,
+        "presentation_end_timestamps_ns": [
+          53017381736193,
+          53017418518234,
+          53017472260151
+        ],
+        "gap_ms": [
+          36.782041,
+          53.741917
+        ],
+        "gap_p50_ms": 45.261979,
+        "gap_p95_ms": 36.782041,
+        "gap_max_ms": 53.741917,
+        "gaps_above_33_34_ms": 2,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 53017485842152,
+      "end_ns": 53017988225526,
+      "duration_ms": 502.383374,
+      "thread_state_ms": {
+        "oelseisfree.app": {
+          "Running": 58.38954199999999,
+          "R": 30.234292000000003,
+          "S": 399.05254299999996,
+          "R+": 14.706996999999996
+        },
+        "RenderThread": {
+          "R": 16.5005,
+          "Running": 378.97096100000005,
+          "R+": 101.73270500000001,
+          "S": 5.179208
+        },
+        "mqt_v_js": {
+          "R": 59.54433200000002,
+          "Running": 192.63270899999992,
+          "R+": 12.941459,
+          "S": 237.26487400000002
+        }
+      },
+      "frame_records_started": {
+        "n": 10,
+        "app_deadline_missed": 9,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 8,
+        "presentation_end_timestamps_ns": [
+          53017525507193,
+          53017616266318,
+          53017691844818,
+          53017748616526,
+          53017803926276,
+          53017864716860,
+          53017929580568,
+          53017985704693
+        ],
+        "gap_ms": [
+          90.759125,
+          75.5785,
+          56.771708,
+          55.30975,
+          60.790584,
+          64.863708,
+          56.124125
+        ],
+        "gap_p50_ms": 60.790584,
+        "gap_p95_ms": 75.5785,
+        "gap_max_ms": 90.759125,
+        "gaps_above_33_34_ms": 7,
+        "gaps_above_50_ms": 7
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 53018778999916,
+      "end_ns": 53018893948402,
+      "duration_ms": 114.948486,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 65.290402,
+          "R": 8.798751,
+          "Running": 40.82775,
+          "R+": 0.031583
+        },
+        "RenderThread": {
+          "S": 93.956361,
+          "R": 0.6937089999999999,
+          "Running": 17.694623,
+          "R+": 2.603793
+        },
+        "oelseisfree.app": {
+          "S": 76.75773699999999,
+          "R": 12.011870000000004,
+          "Running": 24.902337000000003,
+          "R+": 1.2765419999999998
+        }
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53018863660069,
+          53018888943068
+        ],
+        "gap_ms": [
+          25.282999
+        ],
+        "gap_p50_ms": 25.282999,
+        "gap_p95_ms": 25.282999,
+        "gap_max_ms": 25.282999,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 53018893948402,
+      "end_ns": 53019361859110,
+      "duration_ms": 467.910708,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 467.014082,
+          "R": 0.63575,
+          "Running": 0.260876
+        },
+        "RenderThread": {
+          "S": 99.869459,
+          "R": 28.055207,
+          "Running": 314.18183200000004,
+          "R+": 25.804209999999998
+        },
+        "oelseisfree.app": {
+          "Running": 49.13691400000002,
+          "R+": 0.45916599999999996,
+          "R": 32.563292999999994,
+          "S": 385.751335
+        }
+      },
+      "frame_records_started": {
+        "n": 9,
+        "app_deadline_missed": 9,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 7,
+        "presentation_end_timestamps_ns": [
+          53018920798861,
+          53018980952236,
+          53019126002069,
+          53019126002486,
+          53019205142486,
+          53019269895902,
+          53019351147319
+        ],
+        "gap_ms": [
+          60.153375,
+          145.049833,
+          0.000417,
+          79.14,
+          64.753416,
+          81.251417
+        ],
+        "gap_p50_ms": 71.946708,
+        "gap_p95_ms": 81.251417,
+        "gap_max_ms": 145.049833,
+        "gaps_above_33_34_ms": 5,
+        "gaps_above_50_ms": 5
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 53017151999916,
+      "end_ns": 53017160235360,
+      "duration_ms": 8.235444,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 6.389152,
+          "R": 0.155667,
+          "Running": 1.372625,
+          "R+": 0.318
+        },
+        "RenderThread": {
+          "S": 8.235444
+        },
+        "oelseisfree.app": {
+          "S": 6.5378609999999995,
+          "R": 0.17845899999999998,
+          "Running": 1.5012079999999999,
+          "R+": 0.017916
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 53017160235360,
+      "end_ns": 53017253586526,
+      "duration_ms": 93.351166,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 93.351166
+        },
+        "oelseisfree.app": {
+          "S": 55.631458,
+          "R": 6.653955000000001,
+          "Running": 29.40542,
+          "R+": 1.660333
+        },
+        "mqt_v_js": {
+          "Running": 81.78412399999999,
+          "R+": 0.610332,
+          "R": 10.956710000000003
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 53017253586526,
+      "end_ns": 53017376483276,
+      "duration_ms": 122.89675,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 78.925334,
+          "R": 16.239457,
+          "Running": 13.922126000000004,
+          "R+": 13.809833000000001
+        },
+        "mqt_v_js": {
+          "Running": 36.273002999999996,
+          "R+": 3.5328329999999997,
+          "R": 23.210872,
+          "S": 59.880042
+        },
+        "oelseisfree.app": {
+          "Running": 69.69345300000002,
+          "R": 27.881754000000004,
+          "R+": 3.249624,
+          "S": 22.071918999999998
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 53017376483276,
+      "end_ns": 53017459405984,
+      "duration_ms": 82.922708,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 45.796209000000005,
+          "R": 16.80629,
+          "Running": 11.92296,
+          "R+": 8.397249
+        },
+        "oelseisfree.app": {
+          "S": 34.310543,
+          "R": 32.032041,
+          "Running": 16.463624,
+          "R+": 0.1165
+        },
+        "mqt_v_js": {
+          "Running": 36.855583999999986,
+          "R": 43.245082000000004,
+          "R+": 2.822042
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53017381736193,
+          53017418518234
+        ],
+        "gap_ms": [
+          36.782041
+        ],
+        "gap_p50_ms": 36.782041,
+        "gap_p95_ms": 36.782041,
+        "gap_max_ms": 36.782041,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 53017459405984,
+      "end_ns": 53017485842152,
+      "duration_ms": 26.436168,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 8.596292,
+          "R": 17.226001,
+          "Running": 0.613875
+        },
+        "mqt_v_js": {
+          "Running": 10.885501999999999,
+          "R": 14.320416000000002,
+          "R+": 1.23025
+        },
+        "oelseisfree.app": {
+          "Running": 10.837251,
+          "S": 12.702208,
+          "R": 2.850168,
+          "R+": 0.046541
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53017472260151
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 53020556999916,
+      "end_ns": 53020844144944,
+      "duration_ms": 287.145028,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 65.301862,
+          "R": 80.54528300000001,
+          "Running": 135.89675799999998,
+          "R+": 5.401125
+        },
+        "RenderThread": {
+          "S": 236.24498500000004,
+          "R": 5.963540999999999,
+          "Running": 35.295706999999986,
+          "R+": 9.640794999999999
+        },
+        "oelseisfree.app": {
+          "S": 157.95252700000003,
+          "R": 37.39688199999999,
+          "Running": 88.83782900000003,
+          "R+": 2.9577899999999997
+        }
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53020791587069,
+          53020824593528
+        ],
+        "gap_ms": [
+          33.006459
+        ],
+        "gap_p50_ms": 33.006459,
+        "gap_p95_ms": 33.006459,
+        "gap_max_ms": 33.006459,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 53020844144944,
+      "end_ns": 53021356717736,
+      "duration_ms": 512.572792,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "R": 224.91770900000012,
+          "Running": 242.59446000000003,
+          "R+": 45.06062300000001
+        },
+        "oelseisfree.app": {
+          "Running": 73.989372,
+          "R": 33.791085,
+          "R+": 4.2388330000000005,
+          "S": 400.55350200000004
+        },
+        "RenderThread": {
+          "S": 30.123292,
+          "R": 18.054290000000005,
+          "Running": 398.883127,
+          "R+": 65.51208299999998
+        }
+      },
+      "frame_records_started": {
+        "n": 9,
+        "app_deadline_missed": 9,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 7,
+        "presentation_end_timestamps_ns": [
+          53020874127986,
+          53020980446737,
+          53021082377487,
+          53021135004362,
+          53021206123321,
+          53021284204986,
+          53021352282820
+        ],
+        "gap_ms": [
+          106.318751,
+          101.93075,
+          52.626875,
+          71.118959,
+          78.081665,
+          68.077834
+        ],
+        "gap_p50_ms": 74.600312,
+        "gap_p95_ms": 101.93075,
+        "gap_max_ms": 106.318751,
+        "gaps_above_33_34_ms": 6,
+        "gaps_above_50_ms": 6
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 53022274999916,
+      "end_ns": 53022375891904,
+      "duration_ms": 100.891988,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 54.196155000000005,
+          "R": 11.576208000000001,
+          "Running": 35.119625
+        },
+        "RenderThread": {
+          "S": 82.84736499999998,
+          "R": 6.41404,
+          "Running": 11.082375999999998,
+          "R+": 0.5482069999999999
+        },
+        "oelseisfree.app": {
+          "S": 71.259363,
+          "R": 7.423416000000002,
+          "Running": 21.244749999999996,
+          "R+": 0.964459
+        }
+      },
+      "frame_records_started": {
+        "n": 4,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53022337419362,
+          53022370699154
+        ],
+        "gap_ms": [
+          33.279792
+        ],
+        "gap_p50_ms": 33.279792,
+        "gap_p95_ms": 33.279792,
+        "gap_max_ms": 33.279792,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 53022375891904,
+      "end_ns": 53022835995404,
+      "duration_ms": 460.1035,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 457.613291,
+          "R": 2.072625,
+          "Running": 0.349459,
+          "R+": 0.068125
+        },
+        "RenderThread": {
+          "S": 24.693916,
+          "R": 13.753750000000004,
+          "Running": 398.55255000000005,
+          "R+": 23.103284000000002
+        },
+        "oelseisfree.app": {
+          "Running": 113.310251,
+          "R": 53.385374,
+          "S": 286.302251,
+          "R+": 7.105624000000001
+        }
+      },
+      "frame_records_started": {
+        "n": 7,
+        "app_deadline_missed": 7,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 6,
+        "presentation_end_timestamps_ns": [
+          53022391651988,
+          53022522873904,
+          53022601332446,
+          53022676161945,
+          53022743115613,
+          53022816985820
+        ],
+        "gap_ms": [
+          131.221916,
+          78.458542,
+          74.829499,
+          66.953668,
+          73.870207
+        ],
+        "gap_p50_ms": 74.829499,
+        "gap_p95_ms": 78.458542,
+        "gap_max_ms": 131.221916,
+        "gaps_above_33_34_ms": 5,
+        "gaps_above_50_ms": 5
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 53020556999916,
+      "end_ns": 53020577510612,
+      "duration_ms": 20.510696,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 18.679487,
+          "R": 0.10670800000000001,
+          "Running": 1.385251,
+          "R+": 0.33925
+        },
+        "RenderThread": {
+          "S": 20.510696
+        },
+        "oelseisfree.app": {
+          "S": 18.945154000000002,
+          "R": 0.132792,
+          "Running": 1.43275
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 53020577510612,
+      "end_ns": 53020680991528,
+      "duration_ms": 103.480916,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 102.79229,
+          "R": 0.641459,
+          "Running": 0.047167
+        },
+        "oelseisfree.app": {
+          "S": 55.663831,
+          "R": 11.141793,
+          "Running": 35.39225000000001,
+          "R+": 1.283042
+        },
+        "mqt_v_js": {
+          "Running": 83.990964,
+          "R": 19.381701999999994,
+          "R+": 0.10825000000000001
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 53020680991528,
+      "end_ns": 53020795679902,
+      "duration_ms": 114.688374,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 66.51279099999999,
+          "R": 3.626457,
+          "Running": 34.95399799999999,
+          "R+": 9.595127999999999
+        },
+        "oelseisfree.app": {
+          "S": 51.127999,
+          "R": 19.82838,
+          "Running": 42.10408,
+          "R+": 1.6279150000000002
+        },
+        "mqt_v_js": {
+          "Running": 22.347209000000003,
+          "R+": 3.011417,
+          "R": 42.707373000000004,
+          "S": 46.622375
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53020791587069
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 53020795679902,
+      "end_ns": 53020823390820,
+      "duration_ms": 27.710918,
+      "thread_state_ms": {
+        "oelseisfree.app": {
+          "S": 27.090459,
+          "R": 0.402375,
+          "Running": 0.199876,
+          "R+": 0.018208
+        },
+        "RenderThread": {
+          "S": 27.267418,
+          "R": 0.117,
+          "Running": 0.280833,
+          "R+": 0.045667
+        },
+        "mqt_v_js": {
+          "Running": 20.145168,
+          "R+": 0.078166,
+          "R": 7.487584
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 53020823390820,
+      "end_ns": 53020844144944,
+      "duration_ms": 20.754124,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 19.16179,
+          "R": 1.578625,
+          "Running": 0.013709
+        },
+        "oelseisfree.app": {
+          "S": 5.125083999999999,
+          "R": 5.891542000000001,
+          "Running": 9.708872999999999,
+          "R+": 0.028625
+        },
+        "mqt_v_js": {
+          "Running": 8.028165999999999,
+          "R": 10.861916,
+          "R+": 1.8640420000000002
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53020824593528
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 53024134999916,
+      "end_ns": 53024575710862,
+      "duration_ms": 440.710946,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 7.484947,
+          "R": 182.87829799999997,
+          "Running": 192.02224300000003,
+          "R+": 58.32545799999998
+        },
+        "RenderThread": {
+          "S": 337.596866,
+          "R": 27.225543,
+          "Running": 45.757625000000004,
+          "R+": 30.130912000000002
+        },
+        "oelseisfree.app": {
+          "S": 217.75719600000005,
+          "R": 72.81933299999999,
+          "Running": 137.652956,
+          "R+": 12.481460999999996
+        }
+      },
+      "frame_records_started": {
+        "n": 6,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 3,
+        "presentation_end_timestamps_ns": [
+          53024443928821,
+          53024473180613,
+          53024574930321
+        ],
+        "gap_ms": [
+          29.251792,
+          101.749708
+        ],
+        "gap_p50_ms": 65.50075,
+        "gap_p95_ms": 29.251792,
+        "gap_max_ms": 101.749708,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 53024575710862,
+      "end_ns": 53025094322946,
+      "duration_ms": 518.612084,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "R": 116.80483699999999,
+          "Running": 178.66607800000003,
+          "R+": 46.59079400000001,
+          "S": 176.550375
+        },
+        "oelseisfree.app": {
+          "Running": 95.13408099999997,
+          "R": 71.09650200000002,
+          "S": 346.603667,
+          "R+": 5.7778339999999995
+        },
+        "RenderThread": {
+          "R+": 27.254952999999997,
+          "Running": 205.75042199999996,
+          "R": 32.10166600000001,
+          "S": 253.50504300000003
+        }
+      },
+      "frame_records_started": {
+        "n": 7,
+        "app_deadline_missed": 6,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 7,
+        "presentation_end_timestamps_ns": [
+          53024612392654,
+          53024643848488,
+          53024774696238,
+          53024789093905,
+          53024908302446,
+          53024997079321,
+          53025088925946
+        ],
+        "gap_ms": [
+          31.455834,
+          130.84775,
+          14.397667,
+          119.208541,
+          88.776875,
+          91.846625
+        ],
+        "gap_p50_ms": 90.31175,
+        "gap_p95_ms": 119.208541,
+        "gap_max_ms": 130.84775,
+        "gaps_above_33_34_ms": 4,
+        "gaps_above_50_ms": 4
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 53025868999916,
+      "end_ns": 53025975184446,
+      "duration_ms": 106.18453,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 61.625613,
+          "R": 11.480834,
+          "Running": 32.91666699999999,
+          "R+": 0.161416
+        },
+        "RenderThread": {
+          "S": 91.68403,
+          "R": 3.2416679999999998,
+          "Running": 11.258832
+        },
+        "oelseisfree.app": {
+          "S": 72.619492,
+          "R": 2.9913730000000003,
+          "Running": 27.490914000000004,
+          "R+": 3.0827510000000005
+        }
+      },
+      "frame_records_started": {
+        "n": 4,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53025936636989,
+          53025956876239
+        ],
+        "gap_ms": [
+          20.23925
+        ],
+        "gap_p50_ms": 20.23925,
+        "gap_p95_ms": 20.23925,
+        "gap_max_ms": 20.23925,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 53025975184446,
+      "end_ns": 53026384749448,
+      "duration_ms": 409.565002,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 400.679127,
+          "R": 1.275292,
+          "Running": 0.12375,
+          "R+": 7.486833
+        },
+        "RenderThread": {
+          "S": 15.235541999999999,
+          "R": 5.4733290000000006,
+          "Running": 375.63117200000016,
+          "R+": 13.224958999999998
+        },
+        "oelseisfree.app": {
+          "Running": 41.055294,
+          "R": 20.549541,
+          "S": 347.37796,
+          "R+": 0.582207
+        }
+      },
+      "frame_records_started": {
+        "n": 9,
+        "app_deadline_missed": 6,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 7,
+        "presentation_end_timestamps_ns": [
+          53025989475239,
+          53026050771406,
+          53026114523280,
+          53026179041989,
+          53026249849906,
+          53026302356030,
+          53026360224822
+        ],
+        "gap_ms": [
+          61.296167,
+          63.751874,
+          64.518709,
+          70.807917,
+          52.506124,
+          57.868792
+        ],
+        "gap_p50_ms": 62.5240205,
+        "gap_p95_ms": 64.518709,
+        "gap_max_ms": 70.807917,
+        "gaps_above_33_34_ms": 6,
+        "gaps_above_50_ms": 6
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 53024134999916,
+      "end_ns": 53024144441738,
+      "duration_ms": 9.441822,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 7.484947,
+          "R": 0.041083,
+          "Running": 1.4563760000000001,
+          "R+": 0.45941600000000005
+        },
+        "RenderThread": {
+          "S": 9.441822
+        },
+        "oelseisfree.app": {
+          "S": 7.695531,
+          "R": 0.581209,
+          "Running": 1.165082
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 53024144441738,
+      "end_ns": 53024282123946,
+      "duration_ms": 137.682208,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 133.794041,
+          "R": 3.836167,
+          "Running": 0.052000000000000005
+        },
+        "oelseisfree.app": {
+          "S": 80.44987300000001,
+          "R": 10.380753,
+          "Running": 43.223582,
+          "R+": 3.628
+        },
+        "mqt_v_js": {
+          "Running": 95.608872,
+          "R+": 1.7045000000000001,
+          "R": 40.368836
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 53024282123946,
+      "end_ns": 53024450380612,
+      "duration_ms": 168.256666,
+      "thread_state_ms": {
+        "oelseisfree.app": {
+          "R+": 8.777251999999997,
+          "Running": 48.308834000000004,
+          "R": 25.430122,
+          "S": 85.74045799999999
+        },
+        "RenderThread": {
+          "S": 130.496293,
+          "R": 13.265166000000002,
+          "Running": 16.185627,
+          "R+": 8.309580000000002
+        },
+        "mqt_v_js": {
+          "Running": 36.807751,
+          "R+": 55.49416499999999,
+          "R": 75.95475
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53024443928821
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 53024450380612,
+      "end_ns": 53024516601780,
+      "duration_ms": 66.221168,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 33.760168,
+          "R": 7.801376,
+          "Running": 9.629707,
+          "R+": 15.029916999999998
+        },
+        "oelseisfree.app": {
+          "S": 20.852418,
+          "R": 15.130622999999998,
+          "Running": 30.177252,
+          "R+": 0.060875
+        },
+        "mqt_v_js": {
+          "Running": 26.984956,
+          "R+": 0.004084,
+          "R": 39.232128
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53024473180613
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 3,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 53024516601780,
+      "end_ns": 53024575710862,
+      "duration_ms": 59.109082,
+      "thread_state_ms": {
+        "oelseisfree.app": {
+          "S": 23.018916,
+          "R": 21.296626,
+          "Running": 14.778205999999999,
+          "R+": 0.015334
+        },
+        "RenderThread": {
+          "R+": 6.791415,
+          "Running": 19.890291000000005,
+          "R": 2.3228340000000003,
+          "S": 30.104542
+        },
+        "mqt_v_js": {
+          "Running": 31.164288,
+          "R+": 0.6632929999999999,
+          "R": 27.281500999999995
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53024574930321
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 53027714999916,
+      "end_ns": 53027967058698,
+      "duration_ms": 252.058782,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 24.589782,
+          "R": 63.82609000000001,
+          "Running": 145.66507699999997,
+          "R+": 17.977833000000004
+        },
+        "RenderThread": {
+          "S": 201.092199,
+          "R": 5.793292,
+          "Running": 28.403831999999998,
+          "R+": 16.769459000000005
+        },
+        "oelseisfree.app": {
+          "S": 147.09632600000003,
+          "R": 25.330125999999996,
+          "Running": 73.92108300000001,
+          "R+": 3.8682479999999995,
+          "D": 1.842999
+        }
+      },
+      "frame_records_started": {
+        "n": 5,
+        "app_deadline_missed": 3,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 3,
+        "presentation_end_timestamps_ns": [
+          53027887781031,
+          53027922260906,
+          53027942268448
+        ],
+        "gap_ms": [
+          34.479875,
+          20.007542
+        ],
+        "gap_p50_ms": 27.2437085,
+        "gap_p95_ms": 20.007542,
+        "gap_max_ms": 34.479875,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 53027967058698,
+      "end_ns": 53028486785156,
+      "duration_ms": 519.726458,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "R": 127.430626,
+          "Running": 45.24179099999999,
+          "R+": 27.985,
+          "S": 319.06904099999997
+        },
+        "RenderThread": {
+          "S": 6.358626,
+          "R": 38.11546100000001,
+          "Running": 408.3555400000002,
+          "R+": 66.89683100000002
+        },
+        "oelseisfree.app": {
+          "Running": 50.652083,
+          "R+": 17.678043000000002,
+          "S": 433.371584,
+          "R": 18.024748
+        }
+      },
+      "frame_records_started": {
+        "n": 9,
+        "app_deadline_missed": 7,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 8,
+        "presentation_end_timestamps_ns": [
+          53027971427031,
+          53028011941365,
+          53028075247156,
+          53028163907156,
+          53028230701365,
+          53028312116573,
+          53028398602573,
+          53028477623240
+        ],
+        "gap_ms": [
+          40.514334,
+          63.305791,
+          88.66,
+          66.794209,
+          81.415208,
+          86.486,
+          79.020667
+        ],
+        "gap_p50_ms": 79.020667,
+        "gap_p95_ms": 86.486,
+        "gap_max_ms": 88.66,
+        "gaps_above_33_34_ms": 7,
+        "gaps_above_50_ms": 6
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 53029434999916,
+      "end_ns": 53029543111198,
+      "duration_ms": 108.111282,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 48.657365000000006,
+          "R": 4.068835,
+          "Running": 50.32783199999999,
+          "R+": 5.05725
+        },
+        "RenderThread": {
+          "S": 89.47824100000001,
+          "R": 0.874583,
+          "Running": 15.93079,
+          "R+": 1.827668
+        },
+        "oelseisfree.app": {
+          "S": 72.563908,
+          "R": 4.248373999999999,
+          "Running": 28.706374000000007,
+          "R+": 2.592626
+        }
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53029508618574,
+          53029536626907
+        ],
+        "gap_ms": [
+          28.008333
+        ],
+        "gap_p50_ms": 28.008333,
+        "gap_p95_ms": 28.008333,
+        "gap_max_ms": 28.008333,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 53029543111198,
+      "end_ns": 53029964184074,
+      "duration_ms": 421.072876,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 420.87433400000003,
+          "R": 0.111042,
+          "Running": 0.0875
+        },
+        "oelseisfree.app": {
+          "Running": 27.005294,
+          "S": 383.28312600000004,
+          "R": 9.237498,
+          "R+": 1.5469579999999998
+        },
+        "RenderThread": {
+          "S": 28.319835000000005,
+          "R": 11.673876000000002,
+          "Running": 369.5971230000002,
+          "R+": 11.482042000000002
+        }
+      },
+      "frame_records_started": {
+        "n": 12,
+        "app_deadline_missed": 8,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 10,
+        "presentation_end_timestamps_ns": [
+          53029572077616,
+          53029629217366,
+          53029684511366,
+          53029743673241,
+          53029837826949,
+          53029865745865,
+          53029901681032,
+          53029920954325,
+          53029938949533,
+          53029960195700
+        ],
+        "gap_ms": [
+          57.13975,
+          55.294,
+          59.161875,
+          94.153708,
+          27.918916,
+          35.935167,
+          19.273293,
+          17.995208,
+          21.246167
+        ],
+        "gap_p50_ms": 35.935167,
+        "gap_p95_ms": 59.161875,
+        "gap_max_ms": 94.153708,
+        "gaps_above_33_34_ms": 5,
+        "gaps_above_50_ms": 4
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 53027714999916,
+      "end_ns": 53027726327156,
+      "duration_ms": 11.32724,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 9.834407,
+          "R": 0.153458,
+          "Running": 1.339375
+        },
+        "RenderThread": {
+          "S": 11.32724
+        },
+        "oelseisfree.app": {
+          "S": 9.714739999999999,
+          "R": 0.269834,
+          "Running": 1.3236659999999998,
+          "R+": 0.019
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 53027726327156,
+      "end_ns": 53027826759364,
+      "duration_ms": 100.432208,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 100.432208
+        },
+        "oelseisfree.app": {
+          "S": 69.157543,
+          "R": 4.398289,
+          "Running": 25.630918,
+          "R+": 1.245458
+        },
+        "mqt_v_js": {
+          "Running": 78.90574700000002,
+          "R": 18.324211999999996,
+          "R+": 3.202249
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 53027826759364,
+      "end_ns": 53027874757906,
+      "duration_ms": 47.998542,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 39.499167,
+          "R": 3.0235410000000003,
+          "Running": 4.950959,
+          "R+": 0.524875
+        },
+        "oelseisfree.app": {
+          "R": 8.254086000000001,
+          "Running": 31.686417,
+          "R+": 2.547624,
+          "D": 1.842999,
+          "S": 3.6674160000000002
+        },
+        "mqt_v_js": {
+          "Running": 17.330331000000008,
+          "R+": 8.240917,
+          "R": 7.671919,
+          "S": 14.755375
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 53027874757906,
+      "end_ns": 53027939824072,
+      "duration_ms": 65.066166,
+      "thread_state_ms": {
+        "RenderThread": {
+          "R+": 16.223251,
+          "Running": 23.031373,
+          "R": 2.1179590000000004,
+          "S": 23.693583
+        },
+        "oelseisfree.app": {
+          "R": 11.917209,
+          "Running": 4.98175,
+          "S": 48.138124000000005,
+          "R+": 0.029083
+        },
+        "mqt_v_js": {
+          "Running": 33.32783100000001,
+          "R+": 4.954834,
+          "R": 26.783501000000005
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 2,
+        "presentation_end_timestamps_ns": [
+          53027887781031,
+          53027922260906
+        ],
+        "gap_ms": [
+          34.479875
+        ],
+        "gap_p50_ms": 34.479875,
+        "gap_p95_ms": 34.479875,
+        "gap_max_ms": 34.479875,
+        "gaps_above_33_34_ms": 1,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 4,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 53027939824072,
+      "end_ns": 53027967058698,
+      "duration_ms": 27.234626,
+      "thread_state_ms": {
+        "oelseisfree.app": {
+          "S": 16.418503,
+          "R": 0.49070800000000003,
+          "Running": 10.298332,
+          "R+": 0.027083
+        },
+        "RenderThread": {
+          "S": 26.140001,
+          "R": 0.651792,
+          "Running": 0.42150000000000004,
+          "R+": 0.021332999999999998
+        },
+        "mqt_v_js": {
+          "Running": 14.761793,
+          "R+": 1.5798329999999998,
+          "R": 10.892999999999999
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53027942268448
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "startup",
+      "start_ns": 53043035999916,
+      "end_ns": 53043696514248,
+      "duration_ms": 660.514332,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 88.58679000000001,
+          "R": 160.88433099999997,
+          "Running": 368.347626,
+          "R+": 42.695585
+        },
+        "oelseisfree.app": {
+          "S": 352.8266619999999,
+          "R": 87.841621,
+          "Running": 170.75762800000012,
+          "R+": 49.08842099999999
+        },
+        "RenderThread": {
+          "S": 623.4550399999999,
+          "R": 11.730875000000001,
+          "Running": 21.462167,
+          "R+": 3.86625
+        }
+      },
+      "frame_records_started": {
+        "n": 4,
+        "app_deadline_missed": 4,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 4,
+        "presentation_end_timestamps_ns": [
+          53043049109455,
+          53043343343705,
+          53043397638497,
+          53043441791538
+        ],
+        "gap_ms": [
+          294.23425,
+          54.294792,
+          44.153041
+        ],
+        "gap_p50_ms": 54.294792,
+        "gap_p95_ms": 54.294792,
+        "gap_max_ms": 294.23425,
+        "gaps_above_33_34_ms": 3,
+        "gaps_above_50_ms": 2
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "motion",
+      "start_ns": 53043696514248,
+      "end_ns": 53044187207206,
+      "duration_ms": 490.692958,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 485.26512399999996,
+          "R": 2.155208,
+          "Running": 3.272626
+        },
+        "RenderThread": {
+          "S": 2.0202080000000002,
+          "R": 21.589836,
+          "Running": 451.8521249999999,
+          "R+": 15.230789000000001
+        },
+        "oelseisfree.app": {
+          "Running": 44.55416600000001,
+          "R+": 9.184834,
+          "S": 416.93470899999994,
+          "R": 20.019248999999995
+        }
+      },
+      "frame_records_started": {
+        "n": 10,
+        "app_deadline_missed": 9,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 8,
+        "presentation_end_timestamps_ns": [
+          53043741415164,
+          53043808529914,
+          53043862376330,
+          53043916203164,
+          53044001135997,
+          53044059109622,
+          53044119758247,
+          53044184588622
+        ],
+        "gap_ms": [
+          67.11475,
+          53.846416,
+          53.826834,
+          84.932833,
+          57.973625,
+          60.648625,
+          64.830375
+        ],
+        "gap_p50_ms": 60.648625,
+        "gap_p95_ms": 67.11475,
+        "gap_max_ms": 84.932833,
+        "gaps_above_33_34_ms": 7,
+        "gaps_above_50_ms": 7
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "closing",
+      "stage": "startup",
+      "start_ns": 53044944999916,
+      "end_ns": 53045043964206,
+      "duration_ms": 98.96429,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 50.707124,
+          "R": 7.345955,
+          "Running": 40.649211,
+          "R+": 0.262
+        },
+        "RenderThread": {
+          "S": 85.360707,
+          "R": 5.317832,
+          "Running": 7.963543,
+          "R+": 0.322208
+        },
+        "oelseisfree.app": {
+          "S": 75.174417,
+          "R": 3.075291,
+          "Running": 20.565832,
+          "R+": 0.14875
+        }
+      },
+      "frame_records_started": {
+        "n": 3,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53045022111706
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "closing",
+      "stage": "motion",
+      "start_ns": 53045043964206,
+      "end_ns": 53045443805872,
+      "duration_ms": 399.841666,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 398.887208,
+          "R": 0.589708,
+          "Running": 0.19145800000000002,
+          "R+": 0.173292
+        },
+        "oelseisfree.app": {
+          "Running": 52.099168,
+          "R": 27.398332999999997,
+          "S": 318.36425,
+          "R+": 1.979915
+        },
+        "RenderThread": {
+          "S": 66.685917,
+          "R": 11.041827999999999,
+          "Running": 315.37616799999984,
+          "R+": 6.737753000000001
+        }
+      },
+      "frame_records_started": {
+        "n": 9,
+        "app_deadline_missed": 7,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 8,
+        "presentation_end_timestamps_ns": [
+          53045045305540,
+          53045071256206,
+          53045146101582,
+          53045215204498,
+          53045281315374,
+          53045345507206,
+          53045426013248,
+          53045440428664
+        ],
+        "gap_ms": [
+          25.950666,
+          74.845376,
+          69.102916,
+          66.110876,
+          64.191832,
+          80.506042,
+          14.415416
+        ],
+        "gap_p50_ms": 66.110876,
+        "gap_p95_ms": 74.845376,
+        "gap_max_ms": 80.506042,
+        "gaps_above_33_34_ms": 5,
+        "gaps_above_50_ms": 5
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "release-navigate",
+      "start_ns": 53043035999916,
+      "end_ns": 53043056943496,
+      "duration_ms": 20.94358,
+      "thread_state_ms": {
+        "mqt_v_js": {
+          "S": 10.841123,
+          "R": 5.975333,
+          "Running": 3.872957,
+          "R+": 0.254167
+        },
+        "oelseisfree.app": {
+          "S": 11.150455,
+          "R": 1.4004580000000002,
+          "Running": 8.375041999999999,
+          "R+": 0.017625
+        },
+        "RenderThread": {
+          "S": 20.94358
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 1,
+        "presentation_end_timestamps_ns": [
+          53043049109455
+        ],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "navigate-destination",
+      "start_ns": 53043056943496,
+      "end_ns": 53043264554580,
+      "duration_ms": 207.611084,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 207.611084
+        },
+        "oelseisfree.app": {
+          "S": 106.112543,
+          "R": 29.607708000000006,
+          "Running": 57.85933200000001,
+          "R+": 14.031501
+        },
+        "mqt_v_js": {
+          "Running": 157.2640389999998,
+          "R": 47.37733399999999,
+          "R+": 2.9697110000000007
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "destination-ready",
+      "start_ns": 53043264554580,
+      "end_ns": 53043466573414,
+      "duration_ms": 202.018834,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 173.245166,
+          "R": 8.970668,
+          "Running": 15.959249999999999,
+          "R+": 3.84375
+        },
+        "mqt_v_js": {
+          "Running": 83.417292,
+          "R+": 32.965168,
+          "R": 30.351541,
+          "S": 55.284833
+        },
+        "oelseisfree.app": {
+          "Running": 70.86991699999994,
+          "R": 24.387207,
+          "R+": 18.744211,
+          "S": 88.017499
+        }
+      },
+      "frame_records_started": {
+        "n": 2,
+        "app_deadline_missed": 2,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 3,
+        "presentation_end_timestamps_ns": [
+          53043343343705,
+          53043397638497,
+          53043441791538
+        ],
+        "gap_ms": [
+          54.294792,
+          44.153041
+        ],
+        "gap_p50_ms": 49.2239165,
+        "gap_p95_ms": 44.153041,
+        "gap_max_ms": 54.294792,
+        "gaps_above_33_34_ms": 2,
+        "gaps_above_50_ms": 1
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "ready-request",
+      "start_ns": 53043466573414,
+      "end_ns": 53043662171372,
+      "duration_ms": 195.597958,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 187.579334,
+          "R": 2.75379,
+          "Running": 5.242333999999999,
+          "R+": 0.022500000000000003
+        },
+        "oelseisfree.app": {
+          "S": 137.369831,
+          "R": 23.603707,
+          "Running": 23.169752000000003,
+          "R+": 11.454668000000002
+        },
+        "mqt_v_js": {
+          "Running": 118.192876,
+          "R+": 6.506539000000001,
+          "R": 70.89854300000002
+        }
+      },
+      "frame_records_started": {
+        "n": 0,
+        "app_deadline_missed": 0,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    },
+    {
+      "cycle": 6,
+      "phase": "flying",
+      "stage": "request-first",
+      "start_ns": 53043662171372,
+      "end_ns": 53043696514248,
+      "duration_ms": 34.342876,
+      "thread_state_ms": {
+        "RenderThread": {
+          "S": 34.075876,
+          "R": 0.006417,
+          "Running": 0.260583
+        },
+        "oelseisfree.app": {
+          "S": 10.176334,
+          "R": 8.842540999999999,
+          "Running": 10.483585,
+          "R+": 4.840415999999999
+        },
+        "mqt_v_js": {
+          "Running": 5.600461999999999,
+          "R": 6.28158,
+          "S": 22.460834
+        }
+      },
+      "frame_records_started": {
+        "n": 1,
+        "app_deadline_missed": 1,
+        "dropped": 0
+      },
+      "display_frame_end_cadence": {
+        "unique_display_frames": 0,
+        "presentation_end_timestamps_ns": [],
+        "gap_ms": [],
+        "gap_p50_ms": null,
+        "gap_p95_ms": null,
+        "gap_max_ms": null,
+        "gaps_above_33_34_ms": 0,
+        "gaps_above_50_ms": 0
+      }
+    }
+  ],
+  "summary": {
+    "flying/startup": {
+      "n": 6,
+      "duration_median_ms": 387.276591,
+      "threads": {
+        "oelseisfree.app": {
+          "R+": 8.786187499999999,
+          "D": 0.0,
+          "Running": 132.77695599999998,
+          "R": 71.207855,
+          "S": 187.85486150000003
+        },
+        "mqt_v_js": {
+          "R": 126.386539,
+          "R+": 30.336709000000003,
+          "S": 65.785528,
+          "Running": 179.59654050000003
+        },
+        "RenderThread": {
+          "R": 19.478209,
+          "R+": 19.488270500000002,
+          "S": 286.9209255,
+          "Running": 31.849769499999994
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 132.77695599999998,
+          "median_runnable_ms": 79.9940425,
+          "median_sleeping_ms": 187.85486150000003,
+          "pooled_running_percent": 30.564354811228426
+        },
+        "mqt_v_js": {
+          "median_running_ms": 179.59654050000003,
+          "median_runnable_ms": 151.99106,
+          "median_sleeping_ms": 65.785528,
+          "pooled_running_percent": 49.32121694433534
+        },
+        "RenderThread": {
+          "median_running_ms": 31.849769499999994,
+          "median_runnable_ms": 39.959603,
+          "median_sleeping_ms": 286.9209255,
+          "pooled_running_percent": 9.66368025531515
+        }
+      }
+    },
+    "flying/motion": {
+      "n": 6,
+      "duration_median_ms": 515.592438,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 25.376396000000003,
+          "R+": 9.031271,
+          "S": 408.7441055,
+          "Running": 54.52081249999999
+        },
+        "mqt_v_js": {
+          "R": 88.17458450000001,
+          "R+": 20.4632295,
+          "S": 278.16695749999997,
+          "Running": 111.9539345
+        },
+        "RenderThread": {
+          "R": 23.310146500000002,
+          "R+": 46.38351799999999,
+          "S": 18.240959,
+          "Running": 403.6193335000001
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 54.52081249999999,
+          "median_runnable_ms": 36.8663545,
+          "median_sleeping_ms": 408.7441055,
+          "pooled_running_percent": 11.445007760357749
+        },
+        "mqt_v_js": {
+          "median_running_ms": 111.9539345,
+          "median_runnable_ms": 113.95070850000002,
+          "median_sleeping_ms": 278.16695749999997,
+          "pooled_running_percent": 21.617315385870686
+        },
+        "RenderThread": {
+          "median_running_ms": 403.6193335000001,
+          "median_runnable_ms": 71.461496,
+          "median_sleeping_ms": 18.240959,
+          "pooled_running_percent": 74.2177013622222
+        }
+      },
+      "app_frames_started": 53,
+      "app_deadline_missed": 48,
+      "median_trial_gap_p50_ms": 76.7972185,
+      "median_trial_gap_p95_ms": 88.0850415,
+      "median_trial_gap_max_ms": 98.538938,
+      "median_trial_unique_display_frames": 7.5
+    },
+    "flying/release-navigate": {
+      "n": 6,
+      "duration_median_ms": 15.918968,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 0.4255215,
+          "R+": 0.0177705,
+          "S": 10.4325975,
+          "Running": 1.4669789999999998
+        },
+        "mqt_v_js": {
+          "R": 0.1545625,
+          "R+": 0.328625,
+          "S": 8.659677,
+          "Running": 1.4208135
+        },
+        "RenderThread": {
+          "R": 0.0,
+          "R+": 0.0,
+          "S": 11.794286,
+          "Running": 0.0
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 1.4669789999999998,
+          "median_runnable_ms": 0.4350215,
+          "median_sleeping_ms": 10.4325975,
+          "pooled_running_percent": 18.13711731110326
+        },
+        "mqt_v_js": {
+          "median_running_ms": 1.4208135,
+          "median_runnable_ms": 0.48708300000000004,
+          "median_sleeping_ms": 8.659677,
+          "pooled_running_percent": 26.60811633890887
+        },
+        "RenderThread": {
+          "median_running_ms": 0.0,
+          "median_runnable_ms": 0.0,
+          "median_sleeping_ms": 11.794286,
+          "pooled_running_percent": 19.03655615244262
+        }
+      }
+    },
+    "flying/navigate-destination": {
+      "n": 6,
+      "duration_median_ms": 120.58156199999999,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 10.761273,
+          "R+": 2.6441665,
+          "S": 74.803708,
+          "Running": 39.307916000000006
+        },
+        "mqt_v_js": {
+          "R": 29.875268999999996,
+          "R+": 2.3371055000000003,
+          "Running": 89.799918
+        },
+        "RenderThread": {
+          "R": 0.0,
+          "S": 118.29316549999999,
+          "Running": 0.0
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 39.307916000000006,
+          "median_runnable_ms": 13.216794,
+          "median_sleeping_ms": 74.803708,
+          "pooled_running_percent": 29.48918582774074
+        },
+        "mqt_v_js": {
+          "median_running_ms": 89.799918,
+          "median_runnable_ms": 31.7998985,
+          "median_sleeping_ms": 0.0,
+          "pooled_running_percent": 75.97455809502245
+        },
+        "RenderThread": {
+          "median_running_ms": 0.0,
+          "median_runnable_ms": 0.0,
+          "median_sleeping_ms": 118.29316549999999,
+          "pooled_running_percent": 0.011031863758597354
+        }
+      }
+    },
+    "flying/destination-ready": {
+      "n": 6,
+      "duration_median_ms": 145.576708,
+      "threads": {
+        "oelseisfree.app": {
+          "R+": 6.013437999999999,
+          "D": 0.0,
+          "Running": 59.00114350000001,
+          "R": 24.9086645,
+          "S": 68.43422849999999
+        },
+        "mqt_v_js": {
+          "R": 36.529457,
+          "R+": 20.6030425,
+          "S": 50.953604,
+          "Running": 36.540377
+        },
+        "RenderThread": {
+          "R": 11.117917000000002,
+          "R+": 8.952354,
+          "S": 104.7108135,
+          "Running": 16.0724385
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 59.00114350000001,
+          "median_runnable_ms": 32.669376,
+          "median_sleeping_ms": 68.43422849999999,
+          "pooled_running_percent": 38.14109291602635
+        },
+        "mqt_v_js": {
+          "median_running_ms": 36.540377,
+          "median_runnable_ms": 54.51774950000001,
+          "median_sleeping_ms": 50.953604,
+          "pooled_running_percent": 27.91756685518308
+        },
+        "RenderThread": {
+          "median_running_ms": 16.0724385,
+          "median_runnable_ms": 17.3981655,
+          "median_sleeping_ms": 104.7108135,
+          "pooled_running_percent": 16.5957084428297
+        }
+      }
+    },
+    "flying/ready-request": {
+      "n": 6,
+      "duration_median_ms": 74.571938,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 19.367165,
+          "R+": 0.0886875,
+          "S": 41.2243335,
+          "Running": 19.816688
+        },
+        "mqt_v_js": {
+          "R": 41.23860500000001,
+          "R+": 3.888438,
+          "Running": 35.0917075
+        },
+        "RenderThread": {
+          "R": 5.277583,
+          "R+": 10.278728000000001,
+          "S": 39.7781885,
+          "Running": 10.7763335
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 19.816688,
+          "median_runnable_ms": 23.6700195,
+          "median_sleeping_ms": 41.2243335,
+          "pooled_running_percent": 23.620331272256394
+        },
+        "mqt_v_js": {
+          "median_running_ms": 35.0917075,
+          "median_runnable_ms": 42.651668,
+          "median_sleeping_ms": 0.0,
+          "pooled_running_percent": 52.93558032597403
+        },
+        "RenderThread": {
+          "median_running_ms": 10.7763335,
+          "median_runnable_ms": 20.5862515,
+          "median_sleeping_ms": 39.7781885,
+          "pooled_running_percent": 10.786088889265498
+        }
+      }
+    },
+    "flying/request-first": {
+      "n": 6,
+      "duration_median_ms": 30.788750999999998,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 7.3670415,
+          "R+": 0.037583,
+          "S": 11.439271000000002,
+          "Running": 10.660418
+        },
+        "mqt_v_js": {
+          "R": 10.877458,
+          "R+": 1.4050414999999998,
+          "S": 0.0,
+          "Running": 9.971895499999999
+        },
+        "RenderThread": {
+          "R": 1.6806875,
+          "R+": 0.010666499999999999,
+          "S": 28.1222715,
+          "Running": 0.5176875
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 10.660418,
+          "median_runnable_ms": 9.801562,
+          "median_sleeping_ms": 11.439271000000002,
+          "pooled_running_percent": 35.341174765969555
+        },
+        "mqt_v_js": {
+          "median_running_ms": 9.971895499999999,
+          "median_runnable_ms": 12.5993955,
+          "median_sleeping_ms": 0.0,
+          "pooled_running_percent": 32.290713801849265
+        },
+        "RenderThread": {
+          "median_running_ms": 0.5176875,
+          "median_runnable_ms": 2.502833,
+          "median_sleeping_ms": 28.1222715,
+          "pooled_running_percent": 10.129845725299838
+        }
+      }
+    },
+    "closing/startup": {
+      "n": 6,
+      "duration_median_ms": 107.147906,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 5.835895000000001,
+          "R+": 1.2947714999999997,
+          "S": 73.89695449999999,
+          "Running": 26.196625500000003
+        },
+        "mqt_v_js": {
+          "R": 8.6273555,
+          "R+": 0.1213745,
+          "S": 57.910884,
+          "Running": 40.7384805
+        },
+        "RenderThread": {
+          "R": 3.198334,
+          "R+": 0.43520749999999997,
+          "S": 90.58113550000002,
+          "Running": 11.814104
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 26.196625500000003,
+          "median_runnable_ms": 7.614437500000001,
+          "median_sleeping_ms": 73.89695449999999,
+          "pooled_running_percent": 24.013960726651423
+        },
+        "mqt_v_js": {
+          "median_running_ms": 40.7384805,
+          "median_runnable_ms": 8.978209499999998,
+          "median_sleeping_ms": 57.910884,
+          "pooled_running_percent": 38.40413336982698
+        },
+        "RenderThread": {
+          "median_running_ms": 11.814104,
+          "median_runnable_ms": 3.3716464999999998,
+          "median_sleeping_ms": 90.58113550000002,
+          "pooled_running_percent": 11.350023927273988
+        }
+      }
+    },
+    "closing/motion": {
+      "n": 6,
+      "duration_median_ms": 417.09448,
+      "threads": {
+        "oelseisfree.app": {
+          "R": 29.980812999999998,
+          "R+": 1.6392295,
+          "S": 332.871105,
+          "Running": 45.09610400000001
+        },
+        "mqt_v_js": {
+          "R": 0.9555210000000001,
+          "R+": 0.1207085,
+          "S": 415.77956300000005,
+          "Running": 0.226167
+        },
+        "RenderThread": {
+          "R": 12.713813000000002,
+          "R+": 18.1641215,
+          "S": 47.502876,
+          "Running": 342.4866455
+        }
+      },
+      "thread_derived": {
+        "oelseisfree.app": {
+          "median_running_ms": 45.09610400000001,
+          "median_runnable_ms": 31.2003535,
+          "median_sleeping_ms": 332.871105,
+          "pooled_running_percent": 12.565963252910814
+        },
+        "mqt_v_js": {
+          "median_running_ms": 0.226167,
+          "median_runnable_ms": 1.3310205,
+          "median_sleeping_ms": 415.77956300000005,
+          "pooled_running_percent": 0.06009053077832449
+        },
+        "RenderThread": {
+          "median_running_ms": 342.4866455,
+          "median_runnable_ms": 30.006476000000006,
+          "median_sleeping_ms": 47.502876,
+          "pooled_running_percent": 80.36200818917696
+        }
+      },
+      "app_frames_started": 54,
+      "app_deadline_missed": 42,
+      "median_trial_gap_p50_ms": 69.02879200000001,
+      "median_trial_gap_p95_ms": 76.651959,
+      "median_trial_gap_max_ms": 104.1431035,
+      "median_trial_unique_display_frames": 7.0
+    }
+  },
+  "limits": [
+    "Window boundary is first sampled UI progress, not proof of first visible motion.",
+    "Display cadence joins activity surface frame tokens to SurfaceFlinger display ends; not hardware photon timestamps.",
+    "Cadence includes only intervals between activity-associated display ends inside window; excludes partial first/last intervals and deduplicates display tokens.",
+    "App deadline cohort uses app frame start in window; presentation cadence uses display end in window; denominators differ.",
+    "Thread-state Running is CPU execution; R/R+ runnable scheduling delay; S sleeping is not necessarily harmful blocking.",
+    "Per-thread/state medians do not add to median window length; inspect per-trial values.",
+    "One fallback trial retained in total but lacks shared-motion window.",
+    "Some distinct display tokens have nearly coincident end timestamps in this software-rendered emulator; reported display-end cadence must not be equated with distinct physical screen refreshes or hardware FPS."
+  ]
+}

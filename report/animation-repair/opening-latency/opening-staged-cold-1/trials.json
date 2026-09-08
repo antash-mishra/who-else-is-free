@@ -1,0 +1,11 @@
+[
+  {
+    "kind": "normal",
+    "cycle": 0,
+    "start_index": 1,
+    "end_index": 18,
+    "close_start_index": 13,
+    "shared_open": true,
+    "shared_close": false
+  }
+]

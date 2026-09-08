@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NavigationContext } from '@react-navigation/native';
 import { act, fireEvent, render } from '@testing-library/react-native';
@@ -12,6 +12,7 @@ import { eventSharedMotion, heroCoverSize } from '@theme/motion';
 import {
   EventSharedTransitionPage,
   EventSharedTransitionProvider,
+  EventSharedTransitionSourcePage,
   useEventSharedTransition,
   useEventSharedTransitionState,
 } from '../EventSharedTransition';
@@ -101,6 +102,60 @@ const holdAnimations = () =>
   jest.spyOn(Reanimated, 'withTiming').mockImplementation((value: unknown) => value as never);
 
 describe('event shared transition', () => {
+  it('keeps opening unblurred while preserving the return radius and cleanup threshold', () => {
+    const osDescriptor = Object.getOwnPropertyDescriptor(Platform, 'OS');
+    const versionDescriptor = Object.getOwnPropertyDescriptor(Platform, 'Version');
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'android' });
+    Object.defineProperty(Platform, 'Version', { configurable: true, value: 31 });
+    try {
+      const timing = holdAnimations();
+      const sharedValues = jest.spyOn(Reanimated, 'useSharedValue');
+      const derivedValues = jest.spyOn(Reanimated, 'useDerivedValue');
+      measureCard();
+      const screen = render(
+        <EventSharedTransitionProvider>
+          <EventSharedTransitionSourcePage>
+            <Harness />
+          </EventSharedTransitionSourcePage>
+        </EventSharedTransitionProvider>,
+      );
+      const progress = sharedValues.mock.results[0].value;
+      const blurRadius = () => derivedValues.mock.calls[derivedValues.mock.calls.length - 1][0]();
+      expect(blurRadius()).toBe(0);
+      fireEvent.press(screen.getByTestId('open'));
+      expect(blurRadius()).toBe(0); // Landing never blurs the source.
+      fireEvent.press(screen.getByTestId('land-cover'));
+      fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+      progress.value = 0.04;
+      expect(blurRadius()).toBe(0);
+      progress.value = 0.041;
+      expect(blurRadius()).toBe(0);
+      progress.value = 0.5;
+      expect(blurRadius()).toBe(0);
+      progress.value = 1;
+      act(() => {
+        timing.mock.calls[0][2]?.(true);
+      });
+      expect(blurRadius()).toBe(0); // Idle after completed opening.
+      fireEvent.press(screen.getByTestId('close'));
+      expect(blurRadius()).toBe(0); // Returning bitmap preparation.
+      fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+      progress.value = 1;
+      expect(blurRadius()).toBe(4); // Preserve full blur from the start of return.
+      progress.value = 0.041;
+      expect(blurRadius()).toBe(4);
+      progress.value = 0.04;
+      expect(blurRadius()).toBe(0);
+      expect(screen.getByTestId('state').props.children).toBe('event-1:closing');
+      expect(closed).not.toHaveBeenCalled();
+      fireEvent.press(screen.getByTestId('cancel'));
+      expect(blurRadius()).toBe(0); // Cancellation restores an unblurred feed.
+    } finally {
+      if (osDescriptor) Object.defineProperty(Platform, 'OS', osDescriptor);
+      if (versionDescriptor) Object.defineProperty(Platform, 'Version', versionDescriptor);
+    }
+  });
+
   beforeEach(() => {
     jest.useFakeTimers();
     navigate.mockReset();

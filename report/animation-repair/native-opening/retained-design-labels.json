@@ -1,0 +1,5 @@
+{
+  "A": "Baseline retained design with blur",
+  "B": "Stable derived blur only; blur preserved",
+  "C": "Stable derived blur + source-only cache + memoized row; combined candidate, blur preserved"
+}

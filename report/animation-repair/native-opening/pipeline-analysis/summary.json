@@ -1,0 +1,170 @@
+[
+  {
+    "cycle": 0,
+    "shared_open_completed": true,
+    "release_to_first_observed_motion_ms": 1064.117,
+    "threads": {
+      "main": {
+        "running_ms": 329.593,
+        "runnable_ms": 275.62,
+        "sleep_ms": 458.904
+      },
+      "JS": {
+        "running_ms": 489.468,
+        "runnable_ms": 392.261,
+        "sleep_ms": 180.635
+      },
+      "RenderThread": {
+        "running_ms": 136.242,
+        "runnable_ms": 155.99,
+        "sleep_ms": 771.885
+      }
+    },
+    "main_postAndWait_elapsed_ms": 168.36,
+    "main_mount_dispatch_elapsed_ms": 146.551
+  },
+  {
+    "cycle": 1,
+    "shared_open_completed": true,
+    "release_to_first_observed_motion_ms": 333.842,
+    "threads": {
+      "main": {
+        "running_ms": 127.901,
+        "runnable_ms": 74.687,
+        "sleep_ms": 131.254
+      },
+      "JS": {
+        "running_ms": 167.171,
+        "runnable_ms": 100.402,
+        "sleep_ms": 66.269
+      },
+      "RenderThread": {
+        "running_ms": 26.459,
+        "runnable_ms": 72.479,
+        "sleep_ms": 234.904
+      }
+    },
+    "main_postAndWait_elapsed_ms": 32.031,
+    "main_mount_dispatch_elapsed_ms": 63.388
+  },
+  {
+    "cycle": 2,
+    "shared_open_completed": true,
+    "release_to_first_observed_motion_ms": 287.145,
+    "threads": {
+      "main": {
+        "running_ms": 88.838,
+        "runnable_ms": 40.355,
+        "sleep_ms": 157.953
+      },
+      "JS": {
+        "running_ms": 135.897,
+        "runnable_ms": 85.946,
+        "sleep_ms": 65.302
+      },
+      "RenderThread": {
+        "running_ms": 35.296,
+        "runnable_ms": 15.605,
+        "sleep_ms": 236.245
+      }
+    },
+    "main_postAndWait_elapsed_ms": 33.963,
+    "main_mount_dispatch_elapsed_ms": 35.63
+  },
+  {
+    "cycle": 3,
+    "shared_open_completed": true,
+    "release_to_first_observed_motion_ms": 440.711,
+    "threads": {
+      "main": {
+        "running_ms": 137.653,
+        "runnable_ms": 85.3,
+        "sleep_ms": 217.757
+      },
+      "JS": {
+        "running_ms": 192.022,
+        "runnable_ms": 241.203,
+        "sleep_ms": 7.485
+      },
+      "RenderThread": {
+        "running_ms": 45.758,
+        "runnable_ms": 57.357,
+        "sleep_ms": 337.597
+      }
+    },
+    "main_postAndWait_elapsed_ms": 53.029,
+    "main_mount_dispatch_elapsed_ms": 71.419
+  },
+  {
+    "cycle": 4,
+    "shared_open_completed": true,
+    "release_to_first_observed_motion_ms": 252.059,
+    "threads": {
+      "main": {
+        "running_ms": 73.921,
+        "runnable_ms": 29.198,
+        "sleep_ms": 147.096
+      },
+      "JS": {
+        "running_ms": 145.665,
+        "runnable_ms": 81.804,
+        "sleep_ms": 24.59
+      },
+      "RenderThread": {
+        "running_ms": 28.404,
+        "runnable_ms": 22.562,
+        "sleep_ms": 201.092
+      }
+    },
+    "main_postAndWait_elapsed_ms": 48.102,
+    "main_mount_dispatch_elapsed_ms": 25.272
+  },
+  {
+    "cycle": 5,
+    "shared_open_completed": false,
+    "release_to_first_observed_motion_ms": 2060.303,
+    "threads": {
+      "main": {
+        "running_ms": 320.988,
+        "runnable_ms": 549.88,
+        "sleep_ms": 1188.183
+      },
+      "JS": {
+        "running_ms": 420.435,
+        "runnable_ms": 545.02,
+        "sleep_ms": 1094.848
+      },
+      "RenderThread": {
+        "running_ms": 42.612,
+        "runnable_ms": 109.654,
+        "sleep_ms": 1908.037
+      }
+    },
+    "main_postAndWait_elapsed_ms": 159.625,
+    "main_mount_dispatch_elapsed_ms": 80.912
+  },
+  {
+    "cycle": 6,
+    "shared_open_completed": true,
+    "release_to_first_observed_motion_ms": 660.514,
+    "threads": {
+      "main": {
+        "running_ms": 170.758,
+        "runnable_ms": 136.93,
+        "sleep_ms": 352.827
+      },
+      "JS": {
+        "running_ms": 368.348,
+        "runnable_ms": 203.58,
+        "sleep_ms": 88.587
+      },
+      "RenderThread": {
+        "running_ms": 21.462,
+        "runnable_ms": 15.597,
+        "sleep_ms": 623.455
+      }
+    },
+    "main_postAndWait_elapsed_ms": 18.675,
+    "main_mount_dispatch_elapsed_ms": 59.576
+  }
+]

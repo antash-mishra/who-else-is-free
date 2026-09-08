@@ -1,0 +1,1 @@
+SELECT s.id,s.name,s.ts,s.dur,tr.name AS track,tr.type FROM slice s JOIN track tr ON tr.id=s.track_id WHERE s.name GLOB '*ExpoImage*' ORDER BY s.ts;

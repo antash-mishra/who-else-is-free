@@ -1,0 +1,290 @@
+{
+  "capture": "/private/tmp/weif-opening-native/blur-abba/00-A/process-first",
+  "quantile": "Nearest-rank p95 within each trial; aggregate summarizes trial statistics.",
+  "limits": [
+    "UI progress observations are not displayed frames or FPS.",
+    "Matching endpoint and one sample buffer are required within the same trial and phase.",
+    "Gaps span consecutive buffered observations, not necessarily every vsync.",
+    "Maximum progress jump is absolute, allowing comparison of opening and return.",
+    "ui-endpoint marks animation completion; its callback may precede the reaction observing terminal progress in the same frame.",
+    "first_sample_to_endpoint_ms uses the last buffered sample only when it reaches terminal progress. first_sample_to_completion_ms and input_to_endpoint_ms use the original completion callback.",
+    "completion_to_last_sample_ms is signed: positive means the last observation follows completion. All samples are retained, including any nonterminal observations after completion.",
+    "sampled_span_ms covers the complete buffer even when a terminal sample is absent. Zero-sample and missing/fallback phases remain visible.",
+    "Capped trials remain detailed but are excluded from aggregate cadence statistics.",
+    "Native/UI clock alignment must be verified separately for the capture runtime."
+  ],
+  "summary": {
+    "flying": {
+      "trials": 1,
+      "status_counts": {
+        "complete": 1
+      },
+      "capped_trials": 0,
+      "dropped_samples_total": 0,
+      "uncapped_complete_trials": 1,
+      "metrics": {
+        "sample_count": {
+          "n": 1,
+          "median": 9,
+          "p95": 9,
+          "min": 9,
+          "max": 9
+        },
+        "max_progress_jump": {
+          "n": 1,
+          "median": 0.37514443979331247,
+          "p95": 0.37514443979331247,
+          "min": 0.37514443979331247,
+          "max": 0.37514443979331247
+        },
+        "first_sample_to_endpoint_ms": {
+          "n": 1,
+          "median": 516.4580419957638,
+          "p95": 516.4580419957638,
+          "min": 516.4580419957638,
+          "max": 516.4580419957638
+        },
+        "sampled_span_ms": {
+          "n": 1,
+          "median": 516.4580419957638,
+          "p95": 516.4580419957638,
+          "min": 516.4580419957638,
+          "max": 516.4580419957638
+        },
+        "first_sample_to_completion_ms": {
+          "n": 1,
+          "median": 512.1708339974284,
+          "p95": 512.1708339974284,
+          "min": 512.1708339974284,
+          "max": 512.1708339974284
+        },
+        "completion_to_last_sample_ms": {
+          "n": 1,
+          "median": 4.2872079983353615,
+          "p95": 4.2872079983353615,
+          "min": 4.2872079983353615,
+          "max": 4.2872079983353615
+        },
+        "input_to_endpoint_ms": {
+          "n": 1,
+          "median": 1028.9209470003843,
+          "p95": 1028.9209470003843,
+          "min": 1028.9209470003843,
+          "max": 1028.9209470003843
+        },
+        "trial_gap_median_ms": {
+          "n": 1,
+          "median": 63.929478999227285,
+          "p95": 63.929478999227285,
+          "min": 63.929478999227285,
+          "max": 63.929478999227285
+        },
+        "trial_gap_p95_ms": {
+          "n": 1,
+          "median": 95.4401670023799,
+          "p95": 95.4401670023799,
+          "min": 95.4401670023799,
+          "max": 95.4401670023799
+        },
+        "trial_gap_max_ms": {
+          "n": 1,
+          "median": 95.4401670023799,
+          "p95": 95.4401670023799,
+          "min": 95.4401670023799,
+          "max": 95.4401670023799
+        }
+      }
+    },
+    "closing": {
+      "trials": 1,
+      "status_counts": {
+        "complete": 1
+      },
+      "capped_trials": 0,
+      "dropped_samples_total": 0,
+      "uncapped_complete_trials": 1,
+      "metrics": {
+        "sample_count": {
+          "n": 1,
+          "median": 10,
+          "p95": 10,
+          "min": 10,
+          "max": 10
+        },
+        "max_progress_jump": {
+          "n": 1,
+          "median": 0.24616274489278978,
+          "p95": 0.24616274489278978,
+          "min": 0.24616274489278978,
+          "max": 0.24616274489278978
+        },
+        "first_sample_to_endpoint_ms": {
+          "n": 1,
+          "median": 402.0658329948783,
+          "p95": 402.0658329948783,
+          "min": 402.0658329948783,
+          "max": 402.0658329948783
+        },
+        "sampled_span_ms": {
+          "n": 1,
+          "median": 402.0658329948783,
+          "p95": 402.0658329948783,
+          "min": 402.0658329948783,
+          "max": 402.0658329948783
+        },
+        "first_sample_to_completion_ms": {
+          "n": 1,
+          "median": 401.5552079975605,
+          "p95": 401.5552079975605,
+          "min": 401.5552079975605,
+          "max": 401.5552079975605
+        },
+        "completion_to_last_sample_ms": {
+          "n": 1,
+          "median": 0.510624997317791,
+          "p95": 0.510624997317791,
+          "min": 0.510624997317791,
+          "max": 0.510624997317791
+        },
+        "input_to_endpoint_ms": {
+          "n": 1,
+          "median": 512.1796140000224,
+          "p95": 512.1796140000224,
+          "min": 512.1796140000224,
+          "max": 512.1796140000224
+        },
+        "trial_gap_median_ms": {
+          "n": 1,
+          "median": 48.94820799678564,
+          "p95": 48.94820799678564,
+          "min": 48.94820799678564,
+          "max": 48.94820799678564
+        },
+        "trial_gap_p95_ms": {
+          "n": 1,
+          "median": 73.82133300602436,
+          "p95": 73.82133300602436,
+          "min": 73.82133300602436,
+          "max": 73.82133300602436
+        },
+        "trial_gap_max_ms": {
+          "n": 1,
+          "median": 73.82133300602436,
+          "p95": 73.82133300602436,
+          "min": 73.82133300602436,
+          "max": 73.82133300602436
+        }
+      }
+    }
+  },
+  "trials": [
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 9,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 8,
+        "median": 63.929478999227285,
+        "p95": 95.4401670023799,
+        "min": 20.815541997551918,
+        "max": 95.4401670023799
+      },
+      "max_progress_jump": 0.37514443979331247,
+      "first_sample_progress": 0.054417103668804034,
+      "last_sample_progress": 1.0,
+      "first_sample_to_endpoint_ms": 516.4580419957638,
+      "sampled_span_ms": 516.4580419957638,
+      "first_sample_to_completion_ms": 512.1708339974284,
+      "completion_to_last_sample_ms": 4.2872079983353615,
+      "input_to_endpoint_ms": 1028.9209470003843,
+      "first_motion_marker_to_endpoint_ms": 512.1708339974284,
+      "sample_times_ms": [
+        53461583.750113,
+        53461604.565655,
+        53461685.073488,
+        53461780.513655,
+        53461838.434197,
+        53461897.66703,
+        53461956.452863,
+        53462025.078988,
+        53462100.208155
+      ],
+      "progress": [
+        0.054417103668804034,
+        0.14752086700749334,
+        0.5226653068008058,
+        0.803348334702678,
+        0.8883529061367,
+        0.9577873556906521,
+        0.9847122354156457,
+        0.9984848711785893,
+        1.0
+      ],
+      "up_to_endpoint_ms": 1028.9209470003843
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 10,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 9,
+        "median": 48.94820799678564,
+        "p95": 73.82133300602436,
+        "min": 15.576165996491909,
+        "max": 73.82133300602436
+      },
+      "max_progress_jump": 0.24616274489278978,
+      "first_sample_progress": 0.9907353519320157,
+      "last_sample_progress": 0.0,
+      "first_sample_to_endpoint_ms": 402.0658329948783,
+      "sampled_span_ms": 402.0658329948783,
+      "first_sample_to_completion_ms": 401.5552079975605,
+      "completion_to_last_sample_ms": 0.510624997317791,
+      "input_to_endpoint_ms": 512.1796140000224,
+      "first_motion_marker_to_endpoint_ms": 401.5552079975605,
+      "sample_times_ms": [
+        53463326.624406,
+        53463342.200572,
+        53463358.172072,
+        53463376.387822,
+        53463434.571739,
+        53463488.199531,
+        53463562.020864,
+        53463610.969072,
+        53463656.880239,
+        53463728.690239
+      ],
+      "progress": [
+        0.9907353519320157,
+        0.8716284685452655,
+        0.7624719544940226,
+        0.6628317820525081,
+        0.41666903715971837,
+        0.24052836858570825,
+        0.07073650188425962,
+        0.02402971046588498,
+        0.008644857680428553,
+        0.0
+      ],
+      "back_to_endpoint_ms": 512.1796140000224
+    }
+  ]
+}

@@ -1,0 +1,533 @@
+[
+  {
+    "cycle": 0,
+    "name": "card-press-in",
+    "js_ms": 53013055.537899,
+    "wall_ms": 1788846113310,
+    "native_ms": 53012974,
+    "origin": "app",
+    "host_monotonic": 1153486.440223625
+  },
+  {
+    "cycle": 0,
+    "name": "card-press",
+    "js_ms": 53013065.805899,
+    "wall_ms": 1788846113321,
+    "origin": "app",
+    "host_monotonic": 1153486.449692083
+  },
+  {
+    "cycle": 0,
+    "name": "open-request",
+    "js_ms": 53013090.906149,
+    "wall_ms": 1788846113346,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153486.475115166
+  },
+  {
+    "cycle": 0,
+    "name": "navigate",
+    "js_ms": 53013093.274274,
+    "wall_ms": 1788846113348,
+    "origin": "app",
+    "host_monotonic": 1153486.477175541
+  },
+  {
+    "cycle": 0,
+    "name": "destination-measured",
+    "js_ms": 53013349.630983,
+    "wall_ms": 1788846113605,
+    "origin": "app",
+    "host_monotonic": 1153486.733451666
+  },
+  {
+    "cycle": 0,
+    "name": "takeoff-ready",
+    "js_ms": 53013630.321941,
+    "wall_ms": 1788846113885,
+    "origin": "app",
+    "host_monotonic": 1153487.016965416
+  },
+  {
+    "cycle": 0,
+    "name": "cover-ready",
+    "js_ms": 53013632.432108,
+    "wall_ms": 1788846113887,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153487.017382875
+  },
+  {
+    "cycle": 0,
+    "name": "animation-requested",
+    "js_ms": 53014028.797691,
+    "wall_ms": 1788846114284,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153487.416977208
+  },
+  {
+    "cycle": 0,
+    "name": "first-ui-motion",
+    "js_ms": 53014109.108066,
+    "wall_ms": 1788846114364,
+    "phase": "flying",
+    "ui_ms": 53014107.116983,
+    "ui_wall_ms": 1788846114362,
+    "origin": "app",
+    "host_monotonic": 1153487.493040208
+  },
+  {
+    "cycle": 1,
+    "name": "card-press-in",
+    "js_ms": 53017097.339943,
+    "wall_ms": 1788846117352,
+    "native_ms": 53017085,
+    "origin": "app",
+    "host_monotonic": 1153490.482081333
+  },
+  {
+    "cycle": 1,
+    "name": "card-press",
+    "js_ms": 53017158.869151,
+    "wall_ms": 1788846117414,
+    "origin": "app",
+    "host_monotonic": 1153490.544337791
+  },
+  {
+    "cycle": 1,
+    "name": "open-request",
+    "js_ms": 53017159.967318,
+    "wall_ms": 1788846117415,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153490.546133666
+  },
+  {
+    "cycle": 1,
+    "name": "navigate",
+    "js_ms": 53017160.235443,
+    "wall_ms": 1788846117415,
+    "origin": "app",
+    "host_monotonic": 1153490.54654175
+  },
+  {
+    "cycle": 1,
+    "name": "destination-measured",
+    "js_ms": 53017253.58661,
+    "wall_ms": 1788846117509,
+    "origin": "app",
+    "host_monotonic": 1153490.637654875
+  },
+  {
+    "cycle": 1,
+    "name": "cover-ready",
+    "js_ms": 53017376.299443,
+    "wall_ms": 1788846117631,
+    "phase": "landing",
+    "origin": "app",
+    "host_monotonic": 1153490.766517291
+  },
+  {
+    "cycle": 1,
+    "name": "takeoff-ready",
+    "js_ms": 53017376.48336,
+    "wall_ms": 1788846117631,
+    "origin": "app",
+    "host_monotonic": 1153490.766900125
+  },
+  {
+    "cycle": 1,
+    "name": "animation-requested",
+    "js_ms": 53017459.406068,
+    "wall_ms": 1788846117714,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153490.858381875
+  },
+  {
+    "cycle": 1,
+    "name": "first-ui-motion",
+    "js_ms": 53017571.347026,
+    "wall_ms": 1788846117826,
+    "phase": "flying",
+    "ui_ms": 53017485.842235,
+    "ui_wall_ms": 1788846117741,
+    "origin": "app",
+    "host_monotonic": 1153491.011400916
+  },
+  {
+    "cycle": 2,
+    "name": "card-press-in",
+    "js_ms": 53020509.872486,
+    "wall_ms": 1788846120765,
+    "native_ms": 53020484,
+    "origin": "app",
+    "host_monotonic": 1153493.894114625
+  },
+  {
+    "cycle": 2,
+    "name": "card-press",
+    "js_ms": 53020576.137361,
+    "wall_ms": 1788846120831,
+    "origin": "app",
+    "host_monotonic": 1153493.9598655
+  },
+  {
+    "cycle": 2,
+    "name": "open-request",
+    "js_ms": 53020577.388653,
+    "wall_ms": 1788846120832,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153493.961166291
+  },
+  {
+    "cycle": 2,
+    "name": "navigate",
+    "js_ms": 53020577.510695,
+    "wall_ms": 1788846120832,
+    "origin": "app",
+    "host_monotonic": 1153493.962055833
+  },
+  {
+    "cycle": 2,
+    "name": "destination-measured",
+    "js_ms": 53020680.991611,
+    "wall_ms": 1788846120936,
+    "origin": "app",
+    "host_monotonic": 1153494.066927541
+  },
+  {
+    "cycle": 2,
+    "name": "cover-ready",
+    "js_ms": 53020793.900153,
+    "wall_ms": 1788846121049,
+    "phase": "landing",
+    "origin": "app",
+    "host_monotonic": 1153494.18237075
+  },
+  {
+    "cycle": 2,
+    "name": "takeoff-ready",
+    "js_ms": 53020795.679986,
+    "wall_ms": 1788846121051,
+    "origin": "app",
+    "host_monotonic": 1153494.183257041
+  },
+  {
+    "cycle": 2,
+    "name": "animation-requested",
+    "js_ms": 53020823.390903,
+    "wall_ms": 1788846121078,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153494.208183375
+  },
+  {
+    "cycle": 3,
+    "name": "card-press-in",
+    "js_ms": 53024081.71278,
+    "wall_ms": 1788846124337,
+    "native_ms": 53024065,
+    "origin": "app",
+    "host_monotonic": 1153497.46650825
+  },
+  {
+    "cycle": 3,
+    "name": "card-press",
+    "js_ms": 53024142.908363,
+    "wall_ms": 1788846124398,
+    "origin": "app",
+    "host_monotonic": 1153497.526575625
+  },
+  {
+    "cycle": 3,
+    "name": "open-request",
+    "js_ms": 53024144.144571,
+    "wall_ms": 1788846124399,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153497.527624125
+  },
+  {
+    "cycle": 3,
+    "name": "navigate",
+    "js_ms": 53024144.441821,
+    "wall_ms": 1788846124399,
+    "origin": "app",
+    "host_monotonic": 1153497.528403416
+  },
+  {
+    "cycle": 3,
+    "name": "destination-measured",
+    "js_ms": 53024282.12403,
+    "wall_ms": 1788846124537,
+    "origin": "app",
+    "host_monotonic": 1153497.669119208
+  },
+  {
+    "cycle": 3,
+    "name": "cover-ready",
+    "js_ms": 53024450.213571,
+    "wall_ms": 1788846124705,
+    "phase": "landing",
+    "origin": "app",
+    "host_monotonic": 1153497.834028125
+  },
+  {
+    "cycle": 3,
+    "name": "takeoff-ready",
+    "js_ms": 53024450.380696,
+    "wall_ms": 1788846124705,
+    "origin": "app",
+    "host_monotonic": 1153497.834474666
+  },
+  {
+    "cycle": 3,
+    "name": "animation-requested",
+    "js_ms": 53024516.601863,
+    "wall_ms": 1788846124772,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153497.901347666
+  },
+  {
+    "cycle": 3,
+    "name": "first-ui-motion",
+    "js_ms": 53024583.496446,
+    "wall_ms": 1788846124838,
+    "phase": "flying",
+    "ui_ms": 53024575.710946,
+    "ui_wall_ms": 1788846124831,
+    "origin": "app",
+    "host_monotonic": 1153497.967911333
+  },
+  {
+    "cycle": 4,
+    "name": "card-press-in",
+    "js_ms": 53027663.632906,
+    "wall_ms": 1788846127919,
+    "native_ms": 53027651,
+    "origin": "app",
+    "host_monotonic": 1153501.048911958
+  },
+  {
+    "cycle": 4,
+    "name": "card-press",
+    "js_ms": 53027725.37524,
+    "wall_ms": 1788846127980,
+    "origin": "app",
+    "host_monotonic": 1153501.112074875
+  },
+  {
+    "cycle": 4,
+    "name": "open-request",
+    "js_ms": 53027726.186406,
+    "wall_ms": 1788846127981,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153501.112396666
+  },
+  {
+    "cycle": 4,
+    "name": "navigate",
+    "js_ms": 53027726.32724,
+    "wall_ms": 1788846127981,
+    "origin": "app",
+    "host_monotonic": 1153501.11250475
+  },
+  {
+    "cycle": 4,
+    "name": "destination-measured",
+    "js_ms": 53027826.759448,
+    "wall_ms": 1788846128082,
+    "origin": "app",
+    "host_monotonic": 1153501.210562208
+  },
+  {
+    "cycle": 4,
+    "name": "cover-ready",
+    "js_ms": 53027872.709031,
+    "wall_ms": 1788846128128,
+    "phase": "landing",
+    "origin": "app",
+    "host_monotonic": 1153501.256513666
+  },
+  {
+    "cycle": 4,
+    "name": "takeoff-ready",
+    "js_ms": 53027874.75799,
+    "wall_ms": 1788846128130,
+    "origin": "app",
+    "host_monotonic": 1153501.266163375
+  },
+  {
+    "cycle": 4,
+    "name": "animation-requested",
+    "js_ms": 53027939.824156,
+    "wall_ms": 1788846128195,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153501.323687916
+  },
+  {
+    "cycle": 5,
+    "name": "card-press-in",
+    "js_ms": 53030973.984991,
+    "wall_ms": 1788846131229,
+    "native_ms": 53030932,
+    "origin": "app",
+    "host_monotonic": 1153504.359239041
+  },
+  {
+    "cycle": 5,
+    "name": "card-press",
+    "js_ms": 53031013.94145,
+    "wall_ms": 1788846131269,
+    "origin": "app",
+    "host_monotonic": 1153504.400579125
+  },
+  {
+    "cycle": 5,
+    "name": "open-request",
+    "js_ms": 53031015.501575,
+    "wall_ms": 1788846131270,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153504.400921416
+  },
+  {
+    "cycle": 5,
+    "name": "navigate",
+    "js_ms": 53031015.8787,
+    "wall_ms": 1788846131271,
+    "origin": "app",
+    "host_monotonic": 1153504.4011575
+  },
+  {
+    "cycle": 5,
+    "name": "destination-measured",
+    "js_ms": 53031335.477908,
+    "wall_ms": 1788846131590,
+    "origin": "app",
+    "host_monotonic": 1153504.720289
+  },
+  {
+    "cycle": 5,
+    "name": "takeoff-ready",
+    "js_ms": 53031586.454075,
+    "wall_ms": 1788846131841,
+    "origin": "app",
+    "host_monotonic": 1153504.976293375
+  },
+  {
+    "cycle": 5,
+    "name": "cover-ready",
+    "js_ms": 53031586.680116,
+    "wall_ms": 1788846131842,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153504.976618791
+  },
+  {
+    "cycle": 5,
+    "name": "animation-requested",
+    "js_ms": 53031981.542367,
+    "wall_ms": 1788846132237,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153505.368283916
+  },
+  {
+    "cycle": 5,
+    "name": "first-ui-motion",
+    "js_ms": 53033104.518659,
+    "wall_ms": 1788846133359,
+    "phase": "flying",
+    "ui_ms": 53033057.303075,
+    "ui_wall_ms": 1788846133312,
+    "origin": "app",
+    "host_monotonic": 1153506.562405916
+  },
+  {
+    "cycle": 6,
+    "name": "card-press-in",
+    "js_ms": 53043006.782247,
+    "wall_ms": 1788846143262,
+    "native_ms": 53042954,
+    "origin": "app",
+    "host_monotonic": 1153516.392175333
+  },
+  {
+    "cycle": 6,
+    "name": "card-press",
+    "js_ms": 53043047.449205,
+    "wall_ms": 1788846143302,
+    "origin": "app",
+    "host_monotonic": 1153516.431296916
+  },
+  {
+    "cycle": 6,
+    "name": "open-request",
+    "js_ms": 53043050.677622,
+    "wall_ms": 1788846143306,
+    "phase": "idle",
+    "origin": "app",
+    "host_monotonic": 1153516.434291833
+  },
+  {
+    "cycle": 6,
+    "name": "navigate",
+    "js_ms": 53043056.94358,
+    "wall_ms": 1788846143312,
+    "origin": "app",
+    "host_monotonic": 1153516.447657583
+  },
+  {
+    "cycle": 6,
+    "name": "destination-measured",
+    "js_ms": 53043264.554664,
+    "wall_ms": 1788846143519,
+    "origin": "app",
+    "host_monotonic": 1153516.648609291
+  },
+  {
+    "cycle": 6,
+    "name": "cover-ready",
+    "js_ms": 53043465.716914,
+    "wall_ms": 1788846143721,
+    "phase": "landing",
+    "origin": "app",
+    "host_monotonic": 1153516.850145416
+  },
+  {
+    "cycle": 6,
+    "name": "takeoff-ready",
+    "js_ms": 53043466.573497,
+    "wall_ms": 1788846143722,
+    "origin": "app",
+    "host_monotonic": 1153516.85070575
+  },
+  {
+    "cycle": 6,
+    "name": "animation-requested",
+    "js_ms": 53043662.171456,
+    "wall_ms": 1788846143917,
+    "phase": "flying",
+    "origin": "app",
+    "host_monotonic": 1153517.046745
+  },
+  {
+    "cycle": 6,
+    "name": "first-ui-motion",
+    "js_ms": 53043698.631997,
+    "wall_ms": 1788846143954,
+    "phase": "flying",
+    "ui_ms": 53043696.514331,
+    "ui_wall_ms": 1788846143951,
+    "origin": "app",
+    "host_monotonic": 1153517.084269666
+  }
+]

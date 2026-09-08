@@ -38,6 +38,8 @@ export const eventSharedMotion = {
   durationMs: sharedDurationMs,
   closeDurationMs: 400,
   backdropBlur: 4,
+  /** Avoid activating an expensive Android source filter during takeoff. */
+  openingBackdropBlur: 0,
   surfaceRadius: 24,
   /** Reduced-motion page fade, abandoned-flight page fade, and the close fade. */
   fadeMs: 240,

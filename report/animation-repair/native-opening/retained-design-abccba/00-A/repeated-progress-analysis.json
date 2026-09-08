@@ -1,0 +1,516 @@
+{
+  "capture": "/private/tmp/weif-opening-native/retained-design-abccba/00-A/repeated",
+  "quantile": "Nearest-rank p95 within each trial; aggregate summarizes trial statistics.",
+  "limits": [
+    "UI progress observations are not displayed frames or FPS.",
+    "Matching endpoint and one sample buffer are required within the same trial and phase.",
+    "Gaps span consecutive buffered observations, not necessarily every vsync.",
+    "Maximum progress jump is absolute, allowing comparison of opening and return.",
+    "ui-endpoint marks animation completion; its callback may precede the reaction observing terminal progress in the same frame.",
+    "first_sample_to_endpoint_ms uses the last buffered sample only when it reaches terminal progress. first_sample_to_completion_ms and input_to_endpoint_ms use the original completion callback.",
+    "completion_to_last_sample_ms is signed: positive means the last observation follows completion. All samples are retained, including any nonterminal observations after completion.",
+    "sampled_span_ms covers the complete buffer even when a terminal sample is absent. Zero-sample and missing/fallback phases remain visible.",
+    "Capped trials remain detailed but are excluded from aggregate cadence statistics.",
+    "Native/UI clock alignment must be verified separately for the capture runtime."
+  ],
+  "summary": {
+    "flying": {
+      "trials": 3,
+      "status_counts": {
+        "complete": 3
+      },
+      "capped_trials": 0,
+      "dropped_samples_total": 0,
+      "uncapped_complete_trials": 3,
+      "metrics": {
+        "sample_count": {
+          "n": 3,
+          "median": 10,
+          "p95": 10,
+          "min": 10,
+          "max": 10
+        },
+        "max_progress_jump": {
+          "n": 3,
+          "median": 0.40220376466870633,
+          "p95": 0.427644626381789,
+          "min": 0.38004307755751354,
+          "max": 0.427644626381789
+        },
+        "first_sample_to_endpoint_ms": {
+          "n": 3,
+          "median": 532.0766249969602,
+          "p95": 535.1978750005364,
+          "min": 518.5230420008302,
+          "max": 535.1978750005364
+        },
+        "sampled_span_ms": {
+          "n": 3,
+          "median": 532.0766249969602,
+          "p95": 535.1978750005364,
+          "min": 518.5230420008302,
+          "max": 535.1978750005364
+        },
+        "first_sample_to_completion_ms": {
+          "n": 3,
+          "median": 530.3780839964747,
+          "p95": 535.0794999971986,
+          "min": 518.3482500016689,
+          "max": 535.0794999971986
+        },
+        "completion_to_last_sample_ms": {
+          "n": 3,
+          "median": 0.17479199916124344,
+          "p95": 1.6985410004854202,
+          "min": 0.11837500333786011,
+          "max": 1.6985410004854202
+        },
+        "input_to_endpoint_ms": {
+          "n": 3,
+          "median": 927.1394779980183,
+          "p95": 974.9996419996023,
+          "min": 850.9128059968352,
+          "max": 974.9996419996023
+        },
+        "trial_gap_median_ms": {
+          "n": 3,
+          "median": 61.705709002912045,
+          "p95": 62.98149999976158,
+          "min": 60.96579099446535,
+          "max": 62.98149999976158
+        },
+        "trial_gap_p95_ms": {
+          "n": 3,
+          "median": 108.72816700488329,
+          "p95": 129.12650000303984,
+          "min": 100.05908399820328,
+          "max": 129.12650000303984
+        },
+        "trial_gap_max_ms": {
+          "n": 3,
+          "median": 108.72816700488329,
+          "p95": 129.12650000303984,
+          "min": 100.05908399820328,
+          "max": 129.12650000303984
+        }
+      }
+    },
+    "closing": {
+      "trials": 3,
+      "status_counts": {
+        "complete": 3
+      },
+      "capped_trials": 0,
+      "dropped_samples_total": 0,
+      "uncapped_complete_trials": 3,
+      "metrics": {
+        "sample_count": {
+          "n": 3,
+          "median": 11,
+          "p95": 12,
+          "min": 9,
+          "max": 12
+        },
+        "max_progress_jump": {
+          "n": 3,
+          "median": 0.24580396378001712,
+          "p95": 0.2652958774235422,
+          "min": 0.23769377597687957,
+          "max": 0.2652958774235422
+        },
+        "first_sample_to_endpoint_ms": {
+          "n": 3,
+          "median": 421.4416249990463,
+          "p95": 430.87808299809694,
+          "min": 409.62337500602007,
+          "max": 430.87808299809694
+        },
+        "sampled_span_ms": {
+          "n": 3,
+          "median": 421.4416249990463,
+          "p95": 430.87808299809694,
+          "min": 409.62337500602007,
+          "max": 430.87808299809694
+        },
+        "first_sample_to_completion_ms": {
+          "n": 3,
+          "median": 420.90991700440645,
+          "p95": 428.3479579985142,
+          "min": 409.3870420008898,
+          "max": 428.3479579985142
+        },
+        "completion_to_last_sample_ms": {
+          "n": 3,
+          "median": 0.5317079946398735,
+          "p95": 2.5301249995827675,
+          "min": 0.23633300513029099,
+          "max": 2.5301249995827675
+        },
+        "input_to_endpoint_ms": {
+          "n": 3,
+          "median": 539.6635560020804,
+          "p95": 559.8660179972649,
+          "min": 537.4549370035529,
+          "max": 559.8660179972649
+        },
+        "trial_gap_median_ms": {
+          "n": 3,
+          "median": 49.46083299815655,
+          "p95": 59.007437501102686,
+          "min": 46.77045850083232,
+          "max": 59.007437501102686
+        },
+        "trial_gap_p95_ms": {
+          "n": 3,
+          "median": 74.37691699713469,
+          "p95": 80.67854199558496,
+          "min": 56.46066700667143,
+          "max": 80.67854199558496
+        },
+        "trial_gap_max_ms": {
+          "n": 3,
+          "median": 74.37691699713469,
+          "p95": 80.67854199558496,
+          "min": 56.46066700667143,
+          "max": 80.67854199558496
+        }
+      }
+    }
+  },
+  "trials": [
+    {
+      "cycle": 0,
+      "phase": "flying",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 10,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 9,
+        "median": 62.98149999976158,
+        "p95": 129.12650000303984,
+        "min": 7.744999997317791,
+        "max": 129.12650000303984
+      },
+      "max_progress_jump": 0.38004307755751354,
+      "first_sample_progress": 0.044534616399990345,
+      "last_sample_progress": 1.0,
+      "first_sample_to_endpoint_ms": 532.0766249969602,
+      "sampled_span_ms": 532.0766249969602,
+      "first_sample_to_completion_ms": 530.3780839964747,
+      "completion_to_last_sample_ms": 1.6985410004854202,
+      "input_to_endpoint_ms": 850.9128059968352,
+      "first_motion_marker_to_endpoint_ms": 530.3780839964747,
+      "sample_times_ms": [
+        54388908.534722,
+        54388924.812222,
+        54388942.629805,
+        54389005.611305,
+        54389134.737805,
+        54389142.482805,
+        54389269.732931,
+        54389297.082639,
+        54389367.724764,
+        54389440.611347
+      ],
+      "progress": [
+        0.044534616399990345,
+        0.1382970933831662,
+        0.22571559883301895,
+        0.4521295079386277,
+        0.8321725854961413,
+        0.8607967638060142,
+        0.9768681311843916,
+        0.9896022974814312,
+        0.9993874088746136,
+        1.0
+      ],
+      "up_to_endpoint_ms": 850.9128059968352
+    },
+    {
+      "cycle": 0,
+      "phase": "closing",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 11,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 10,
+        "median": 46.77045850083232,
+        "p95": 74.37691699713469,
+        "min": 15.837499998509884,
+        "max": 74.37691699713469
+      },
+      "max_progress_jump": 0.24580396378001712,
+      "first_sample_progress": 0.9737183657106036,
+      "last_sample_progress": 0.0,
+      "first_sample_to_endpoint_ms": 430.87808299809694,
+      "sampled_span_ms": 430.87808299809694,
+      "first_sample_to_completion_ms": 428.3479579985142,
+      "completion_to_last_sample_ms": 2.5301249995827675,
+      "input_to_endpoint_ms": 539.6635560020804,
+      "first_motion_marker_to_endpoint_ms": 428.3479579985142,
+      "sample_times_ms": [
+        54390359.315598,
+        54390375.153098,
+        54390392.094556,
+        54390419.623764,
+        54390451.288764,
+        54390509.367931,
+        54390583.744848,
+        54390623.045515,
+        54390677.285765,
+        54390732.756265,
+        54390790.193681
+      ],
+      "progress": [
+        0.9737183657106036,
+        0.8560081754690173,
+        0.7481885563844759,
+        0.6498254806349637,
+        0.47973284838904373,
+        0.2339288846090266,
+        0.09081850967713723,
+        0.04909286352650333,
+        0.007939544826923162,
+        0.0004134093364608349,
+        0.0
+      ],
+      "back_to_endpoint_ms": 539.6635560020804
+    },
+    {
+      "cycle": 1,
+      "phase": "flying",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 10,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 9,
+        "median": 61.705709002912045,
+        "p95": 100.05908399820328,
+        "min": 12.410625003278255,
+        "max": 100.05908399820328
+      },
+      "max_progress_jump": 0.40220376466870633,
+      "first_sample_progress": 0.061888559941507326,
+      "last_sample_progress": 1.0,
+      "first_sample_to_endpoint_ms": 535.1978750005364,
+      "sampled_span_ms": 535.1978750005364,
+      "first_sample_to_completion_ms": 535.0794999971986,
+      "completion_to_last_sample_ms": 0.11837500333786011,
+      "input_to_endpoint_ms": 974.9996419996023,
+      "first_motion_marker_to_endpoint_ms": 535.0794999971986,
+      "sample_times_ms": [
+        54395158.920142,
+        54395246.185058,
+        54395258.595683,
+        54395358.654767,
+        54395394.10535,
+        54395439.851892,
+        54395501.564183,
+        54395563.269892,
+        54395633.185975,
+        54395694.118017
+      ],
+      "progress": [
+        0.061888559941507326,
+        0.46409232461021366,
+        0.5273989305075915,
+        0.8059662009926563,
+        0.8375894257558922,
+        0.9115241376910708,
+        0.9695518034087358,
+        0.9942714186741902,
+        0.9999052040010825,
+        1.0
+      ],
+      "up_to_endpoint_ms": 974.9996419996023
+    },
+    {
+      "cycle": 1,
+      "phase": "closing",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 12,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 11,
+        "median": 49.46083299815655,
+        "p95": 56.46066700667143,
+        "min": 15.35700000077486,
+        "max": 56.46066700667143
+      },
+      "max_progress_jump": 0.23769377597687957,
+      "first_sample_progress": 0.9493660685126103,
+      "last_sample_progress": 0.0,
+      "first_sample_to_endpoint_ms": 409.62337500602007,
+      "sampled_span_ms": 409.62337500602007,
+      "first_sample_to_completion_ms": 409.3870420008898,
+      "completion_to_last_sample_ms": 0.23633300513029099,
+      "input_to_endpoint_ms": 559.8660179972649,
+      "first_motion_marker_to_endpoint_ms": 409.3870420008898,
+      "sample_times_ms": [
+        54396643.478976,
+        54396658.835976,
+        54396675.651767,
+        54396694.823017,
+        54396748.175184,
+        54396804.635851,
+        54396859.523351,
+        54396915.667309,
+        54396968.354101,
+        54397017.814934,
+        54397034.972268,
+        54397053.102351
+      ],
+      "progress": [
+        0.9493660685126103,
+        0.8336685636766679,
+        0.7277748309482869,
+        0.6312508426016885,
+        0.39355706662480894,
+        0.22456599191655757,
+        0.08586080048413314,
+        0.031603117619882104,
+        0.006985640749063049,
+        0.00028962126976328495,
+        1.4698144607194763e-05,
+        0.0
+      ],
+      "back_to_endpoint_ms": 559.8660179972649
+    },
+    {
+      "cycle": 2,
+      "phase": "flying",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 10,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 9,
+        "median": 60.96579099446535,
+        "p95": 108.72816700488329,
+        "min": 11.231958001852036,
+        "max": 108.72816700488329
+      },
+      "max_progress_jump": 0.427644626381789,
+      "first_sample_progress": 0.07143761254088499,
+      "last_sample_progress": 1.0,
+      "first_sample_to_endpoint_ms": 518.5230420008302,
+      "sampled_span_ms": 518.5230420008302,
+      "first_sample_to_completion_ms": 518.3482500016689,
+      "completion_to_last_sample_ms": 0.17479199916124344,
+      "input_to_endpoint_ms": 927.1394779980183,
+      "first_motion_marker_to_endpoint_ms": 518.3482500016689,
+      "sample_times_ms": [
+        54401230.791228,
+        54401242.023186,
+        54401350.751353,
+        54401375.456936,
+        54401450.34677,
+        54401499.24302,
+        54401556.37577,
+        54401617.341561,
+        54401681.89577,
+        54401749.31427
+      ],
+      "progress": [
+        0.07143761254088499,
+        0.16340156639822456,
+        0.5910461927800136,
+        0.6437045215525647,
+        0.8405476015765536,
+        0.9134945975842947,
+        0.9599057870264605,
+        0.9908798207714783,
+        0.9995679732033388,
+        1.0
+      ],
+      "up_to_endpoint_ms": 927.1394779980183
+    },
+    {
+      "cycle": 2,
+      "phase": "closing",
+      "shared_endpoint_flag": true,
+      "endpoint_count": 1,
+      "sample_buffer_count": 1,
+      "sample_count": 9,
+      "dropped_samples": 0,
+      "capped_samples": false,
+      "sampled_endpoint_observed": true,
+      "samples_after_completion": 1,
+      "nonterminal_samples_after_completion": 0,
+      "status": "complete",
+      "intersample_gap_ms": {
+        "n": 8,
+        "median": 59.007437501102686,
+        "p95": 80.67854199558496,
+        "min": 16.5081669986248,
+        "max": 80.67854199558496
+      },
+      "max_progress_jump": 0.2652958774235422,
+      "first_sample_progress": 0.9590601476118479,
+      "last_sample_progress": 0.0,
+      "first_sample_to_endpoint_ms": 421.4416249990463,
+      "sampled_span_ms": 421.4416249990463,
+      "first_sample_to_completion_ms": 420.90991700440645,
+      "completion_to_last_sample_ms": 0.5317079946398735,
+      "input_to_endpoint_ms": 537.4549370035529,
+      "first_motion_marker_to_endpoint_ms": 420.90991700440645,
+      "sample_times_ms": [
+        54402658.54502,
+        54402675.053187,
+        54402692.179395,
+        54402748.684395,
+        54402826.062145,
+        54402887.57202,
+        54402968.250562,
+        54403005.086645,
+        54403079.986645
+      ],
+      "progress": [
+        0.9590601476118479,
+        0.842559445827478,
+        0.7358972445832521,
+        0.4706013671597099,
+        0.22828152357476283,
+        0.08782214057120896,
+        0.021445443737317715,
+        0.003569616459177638,
+        0.0
+      ],
+      "back_to_endpoint_ms": 537.4549370035529
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "git_head": "e197e53918ef5538cee8349d161225d9eaeb40f8",
+  "files": {
+    "app-release.apk": {
+      "sha256": "01003ddea75ef0d6b46ede35f18342fbc0373d89102e1639667cc8775e853134",
+      "bytes": 72905800
+    },
+    "index.android.bundle": {
+      "sha256": "f6b43523665f5154e119e5cddd3e49791e134f13f045bb378725b42f845ebad2",
+      "bytes": 3535124
+    },
+    "index.android.bundle.map": {
+      "sha256": "f4bc3b56c169c58136d322fff51d2d7fc36baf3b5ad92168c7ffb9c05982b485",
+      "bytes": 11160900
+    },
+    "index.android.bundle.compiler.map": {
+      "sha256": "57a2761a6cd876230cd749c8e573c8b82efe4c4bd05aaab347d1d15137ad03f9",
+      "bytes": 2761868
+    },
+    "index.android.bundle.packager.map": {
+      "sha256": "16fff39a1f30cf80df60b82d168bd7a2ab3eca9d661a3cd7fb1b0f14c24447f9",
+      "bytes": 15777969
+    }
+  },
+  "profile_seconds": 30,
+  "notes": "Local emulator URLs, OTA disabled, metrics enabled; runtime changes already present in source are retained in this build."
+}
