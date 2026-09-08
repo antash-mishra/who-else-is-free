@@ -8,8 +8,7 @@ import { navigationRef } from '@navigation/navigationRef';
 import { logger } from '@services/logger';
 
 /**
- * One server-authoritative opening path shared by inbox rows and the
- * foreground banner: resolve the notification action through
+ * Server-authoritative opening for inbox rows: resolve the notification action through
  * `POST /api/notifications/actions/resolve`, navigate to the resolved
  * destination, then mirror the resolution into the inbox state.
  */

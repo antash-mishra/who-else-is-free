@@ -6,8 +6,7 @@ export type NotificationImageSource = { id: string | number; imageUri?: string }
 
 /**
  * Resolve the event cover for a notification from the already-loaded events
- * list. Shared by the inbox rows and the foreground banner so both surfaces
- * pick the same artwork (or the same monogram fallback when undefined).
+ * list. Inbox rows use a monogram fallback when no artwork is available.
  */
 export const resolveNotificationEventImageUri = (
   events: readonly NotificationImageSource[],

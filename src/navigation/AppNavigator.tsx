@@ -22,7 +22,6 @@ import {
   EventSharedTransitionProvider,
   EventSharedTransitionSourcePage,
 } from '@components/events/EventSharedTransition';
-import NotificationBannerHost from '@components/NotificationBannerHost';
 import { BottomSheetHostProvider } from '@components/sheets';
 import { navigationRef } from '@navigation/navigationRef';
 import { EventDetailsOverlaySheet, PendingRequestsSheet } from '@navigation/SheetRoutes';
@@ -482,7 +481,6 @@ const AppNavigator = () => {
           </Stack.Navigator>
         </BottomSheetHostProvider>
       </NavigationContainer>
-      <NotificationBannerHost />
     </EventSharedTransitionProvider>
   );
 };

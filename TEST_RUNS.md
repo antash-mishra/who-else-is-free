@@ -378,3 +378,10 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Connected wireless ADB at `192.168.1.9:44269` (ARM64). Built fresh release APK with production HTTP/WebSocket endpoints, transition metrics disabled, OTA loading disabled for this test build, and forced JS rebundling. Verified production URL and absence of emulator fixture URL in the bundled APK.
 - `adb install -r` succeeded; existing app data preserved. APK: `artifacts/animation-performance/opening-smooth-phone.apk`, SHA256 `de41c3e68efa020dd9054abec06e406789866d3908bd4b45d5d314bb9e452f11`.
 - Physical-device animation smoothness remains for user assessment; emulator measurements are not phone measurements.
+
+
+## 2026-09-08 — Remove foreground in-app notification banner
+
+- Removed the global banner host, animated banner, banner-only content helper, styles/tokens, observer API, and obsolete banner tests. Profile inbox, live inbox updates, server notification delivery, device push setup, and push tap routing remain.
+- Full frontend Jest: **114 suites / 1,413 tests passed**, including push/inbox/routing coverage. Typecheck and targeted lint passed; no remaining banner implementation references in source.
+- Fresh local-fixture release built and installed on `emulator-5554`; Discover and signed-out Profile launch successfully. The emulator session is signed out, so the authenticated inbox was covered by rendering/context tests rather than this device smoke check. No live FCM delivery was sent. Physical phone unchanged.

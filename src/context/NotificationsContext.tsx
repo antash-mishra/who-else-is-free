@@ -39,15 +39,7 @@ type NotificationsContextValue = {
   applyActionResolution: (ids: number[], resolution: NotificationActionResolution) => void;
   markAllRead: () => Promise<void>;
   clearAll: () => Promise<void>;
-  /**
-   * Observe notifications that arrive live over the WebSocket (after they have
-   * been merged into `notifications`). Used by the foreground banner host.
-   * Returns an unsubscribe function.
-   */
-  subscribeToIncomingNotifications: (listener: IncomingNotificationListener) => () => void;
 };
-
-export type IncomingNotificationListener = (notification: AppNotification) => void;
 
 /** True when a row contributes to the server's unread count. */
 const countsAsUnread = (notification: AppNotification) =>
@@ -67,7 +59,6 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
   const canFetch = !!token;
   const offsetRef = useRef(0);
   const exhaustedRef = useRef(false);
-  const incomingListenersRef = useRef(new Set<IncomingNotificationListener>());
 
   const fetchUnreadCount = useCallback(async () => {
     if (!canFetch) {
@@ -152,13 +143,6 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
 
   const refreshUnreadCount = fetchUnreadCount;
 
-  const subscribeToIncomingNotifications = useCallback((listener: IncomingNotificationListener) => {
-    incomingListenersRef.current.add(listener);
-    return () => {
-      incomingListenersRef.current.delete(listener);
-    };
-  }, []);
-
   // Mirror of `notifications` readable from socket callbacks without stale
   // closures; refreshed after every commit.
   const notificationsRef = useRef<AppNotification[]>(notifications);
@@ -185,13 +169,6 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
     if (countsAsUnread(row)) {
       setUnreadCount((prev) => prev + 1);
     }
-    incomingListenersRef.current.forEach((listener) => {
-      try {
-        listener(row);
-      } catch (err) {
-        logger.warn('notifications: incoming listener failed', err);
-      }
-    });
   }, []);
 
   // Live inbox: `notification:new` prepends the row; `socket:open` re-syncs the
@@ -337,7 +314,6 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       applyActionResolution,
       markAllRead,
       clearAll,
-      subscribeToIncomingNotifications,
     }),
     [
       notifications,
@@ -352,7 +328,6 @@ export const NotificationsProvider = ({ children }: { children: ReactNode }) => 
       applyActionResolution,
       markAllRead,
       clearAll,
-      subscribeToIncomingNotifications,
     ],
   );
 

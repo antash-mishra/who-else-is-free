@@ -795,22 +795,7 @@ Use it when:
 
 - Event actions need a short success/result badge.
 
-### `NotificationBanner` / `NotificationBannerHost`
-
-Files: `src/components/NotificationBanner.tsx`, `src/components/NotificationBanner.styles.ts`, `src/components/NotificationBannerHost.tsx`
-
-What it is:
-
-- The single foreground in-app notification banner: a top-anchored, tappable, swipe-up-to-dismiss preview of an inbox row that just arrived over the WebSocket (`notification:new`). Built on Reanimated + Gesture Handler; dark frosted material (`BlurView` + `componentTokens.overlay.bannerTint`/`bannerBorder`, like `EventActionBadge`), content shaped per type by `buildBannerContent` (`src/utils/notificationBanner.ts`: person-led for messages and join requests, plan-led for outcomes), `componentTokens.banner`, `layout.bannerZIndex`, and `shadows.floating`.
-- `NotificationBannerHost` owns the slot, subscribes to `useNotifications().subscribeToIncomingNotifications`, applies suppression (`shouldSuppressBanner`: navigator not ready, read/inactive rows, the `Notifications` route, the active chat conversation), and opens taps through `useOpenNotifications`.
-
-Where it is used:
-
-- `AppNavigator` (mounted once, as a sibling after the `NavigationContainer`)
-
-Use it when:
-
-- Never mount it yourself; notifications reach it through `NotificationsContext`. Use `EventActionBadge` for local action confirmations instead.
+Foreground notification banners were removed. Live inbox updates and device push notifications remain; use `EventActionBadge` for local action confirmations.
 
 ### `useOpenNotifications`
 
@@ -823,7 +808,6 @@ What it is:
 Where it is used:
 
 - `NotificationsScreen`
-- `NotificationBannerHost`
 
 ### `ConfettiOverlay`
 

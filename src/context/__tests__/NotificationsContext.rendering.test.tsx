@@ -47,12 +47,8 @@ const ErrorConsumer = () => {
   return <Text testID="notification-error">{error ?? 'none'}</Text>;
 };
 
-const InboxConsumer = ({ onIncoming }: { onIncoming?: (id: number) => void }) => {
-  const { notifications, unreadCount, subscribeToIncomingNotifications } = useNotifications();
-  React.useEffect(
-    () => subscribeToIncomingNotifications((n) => onIncoming?.(n.id)),
-    [onIncoming, subscribeToIncomingNotifications],
-  );
+const InboxConsumer = () => {
+  const { notifications, unreadCount } = useNotifications();
   return (
     <>
       <Text testID="ids">{notifications.map((n) => n.id).join(',')}</Text>
@@ -109,12 +105,11 @@ describe('NotificationsContext', () => {
   });
 
   describe('live inbox over the WebSocket', () => {
-    it('prepends a notification:new row, bumps the unread count, and notifies observers', async () => {
+    it('prepends a notification:new row, bumps the unread count', async () => {
       mockInboxRequests([apiRow(1)], 1);
-      const onIncoming = jest.fn();
       const { getByTestId } = render(
         <NotificationsProvider>
-          <InboxConsumer onIncoming={onIncoming} />
+          <InboxConsumer />
         </NotificationsProvider>,
       );
       await waitFor(() => {
@@ -128,15 +123,13 @@ describe('NotificationsContext', () => {
 
       expect(getByTestId('ids').props.children).toBe('2,1');
       expect(getByTestId('unread').props.children).toBe('2');
-      expect(onIncoming).toHaveBeenCalledWith(2);
     });
 
     it('ignores duplicates already present in the list', async () => {
       mockInboxRequests([apiRow(1)], 1);
-      const onIncoming = jest.fn();
       const { getByTestId } = render(
         <NotificationsProvider>
-          <InboxConsumer onIncoming={onIncoming} />
+          <InboxConsumer />
         </NotificationsProvider>,
       );
       await waitFor(() => {
@@ -149,7 +142,6 @@ describe('NotificationsContext', () => {
 
       expect(getByTestId('ids').props.children).toBe('1');
       expect(getByTestId('unread').props.children).toBe('1');
-      expect(onIncoming).not.toHaveBeenCalled();
     });
 
     it('does not count read or already-resolved rows as unread', async () => {

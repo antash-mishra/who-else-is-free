@@ -387,8 +387,8 @@ push is suppressed (viewing the conversation) get neither a row nor a frame.
 
 On the client, `ChatContext.subscribeToServerEvents` delivers the frame (and a synthetic
 `socket:open` event) to `NotificationsContext`, which prepends the row, bumps the unread count, and
-re-syncs the count after reconnects. `NotificationBannerHost` then shows the foreground banner unless
-the inbox route or the matching conversation is on screen.
+re-syncs the count after reconnects. Foreground in-app banners have been removed; notifications
+remain available in the Profile inbox. Device push delivery and tap routing are unchanged.
 
 Payloads also carry `coverKey` (all event-bearing types) and `senderAvatar` (chat, join requests).
 `payloadAvatar` forwards an avatar only when it is a short `http(s)` URL; inline base64 avatars are
