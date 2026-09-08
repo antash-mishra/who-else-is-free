@@ -23,7 +23,7 @@ import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import {
   EventSharedTransitionPage,
   useEventSharedTransition,
-  useEventSharedTransitionState,
+  useEventSharedTransitionMaterial,
 } from '@components/events/EventSharedTransition';
 import { AppButton } from '@components/ui';
 import { EVENT_DETAILS_INFO_SEPARATOR } from '@constants/display';
@@ -54,11 +54,12 @@ import { useHostRequestActions } from './event-details/useHostRequestActions';
 // with the experimental method, and its dark tint comes out lighter than the
 // iOS material, so a translucent dark layer sits on top of the blur there.
 const HeroButtonBlur = () => {
-  const { phase } = useEventSharedTransitionState();
+  const liveMaterial = useEventSharedTransitionMaterial();
   // Keep live blur from repeatedly capturing the moving page; use the existing
   // tint during shared motion. Layer-caching experiments also exposed a native
   // RenderScript context failure when nested live BlurViews were captured.
-  const staticMaterial = Platform.OS === 'android' && !!phase;
+  // The provider grants live material only to a page at rest.
+  const staticMaterial = Platform.OS === 'android' && !liveMaterial;
   return (
     <>
       {!staticMaterial && (

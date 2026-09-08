@@ -45,6 +45,7 @@ import Animated, {
 
 import { fallbackSharedCoverScreenOptions } from '@navigation/transitions';
 import { eventSharedMotion, heroCoverSize } from '@theme/motion';
+import { withSteadyTiming } from '@utils/steadyTiming';
 import { markTransition, transitionMetricsEnabled } from '@utils/transitionMetrics';
 
 export interface SharedFrame {
@@ -74,8 +75,17 @@ export interface SharedLandExtras {
   coverRef?: RefObject<View | null>;
 }
 
-/** `landing`: destination is mounting and reporting frames. `flying`: overlays are moving. */
-export type SharedPhase = 'landing' | 'flying' | 'returning' | 'closing' | 'closed';
+/**
+ * `primed`: a pressed card's overlay is mounted invisibly so its bitmap is ready before the
+ * destination lands. `landing`: destination is mounting and reporting frames. `flying`: the
+ * overlay is moving. `retained`: the page is open and the overlay stays mounted, hidden and
+ * pre-loaded, so a return can start without mounting anything. `closing`: returning to the card.
+ * Consumers only ever observe `landing`, `retained` and `closed`: `primed` is private, and the
+ * moving phases live in the provider's ref so that no commit precedes or interrupts motion.
+ * Motion is detected from progress: a landing page whose progress leaves 0 is opening, a
+ * retained page whose progress leaves 1 is returning.
+ */
+export type SharedPhase = 'primed' | 'landing' | 'flying' | 'retained' | 'closing' | 'closed';
 
 export interface SharedTransitionState {
   eventId?: string;
@@ -92,7 +102,10 @@ interface Flight {
   eventId: string;
   imageUri: string;
   source: SourceFrames;
+  /** Source frame the overlay was laid out on; a re-measured source only adds a UI-thread offset. */
+  layoutCover: SharedFrame;
   sourceNode: SharedTransitionSource;
+  primedAt?: number;
   destinationRef?: RefObject<View | null>;
   targetCover?: SharedFrame;
   rotation: number;
@@ -122,9 +135,12 @@ interface SharedTransitionActions {
   close: (eventId: string, onClosed: (sharedReturnCompleted: boolean) => void) => boolean;
   /** 0 at the source, 1 at Details; keep the completed endpoint until the next flight. */
   progress: SharedValue<number>;
+  /** Current source cover frame (overlay-root coordinates), written before any motion starts. */
+  sourceFrame: SharedValue<SharedFrame | null>;
 }
 
 const idleProgress = makeMutable(1);
+const idleSourceFrame = makeMutable<SharedFrame | null>(null);
 
 const ActionsContext = createContext<SharedTransitionActions>({
   prime: () => undefined,
@@ -133,11 +149,20 @@ const ActionsContext = createContext<SharedTransitionActions>({
   cancel: () => undefined,
   close: () => false,
   progress: idleProgress,
+  sourceFrame: idleSourceFrame,
 });
 
 const StateContext = createContext<SharedTransitionState>({});
 
+/**
+ * Whether expensive live materials (Android hero-button BlurViews) may mount.
+ * Kept in its own context so that flipping it at return start re-renders only
+ * those consumers, not every card, hero and page.
+ */
+const MaterialContext = createContext(true);
+
 export const useEventSharedTransition = () => useContext(ActionsContext);
+export const useEventSharedTransitionMaterial = () => useContext(MaterialContext);
 /**
  * Current image flight. Titles remain inside their respective pages.
  */
@@ -213,17 +238,19 @@ interface CoverTarget {
 }
 
 /**
- * The cover in flight. It is laid out once at hero size, centred on the card,
- * and transforms carry it to the hero, so no frame changes its layout or
- * resizes the image view. The worklet only reads shared values and per-flight
- * constants: a closure that changed at landing would reach the UI thread
- * through a React effect, which a busy JS thread delays by several frames.
+ * The cover in flight. It is laid out once at hero size, centred on the card
+ * frame it was created for, and transforms carry it to the hero, so no frame
+ * changes its layout or resizes the image view. The worklet only reads shared
+ * values and per-flight constants: the source and landing geometry are written
+ * to shared values right before the timing starts, so no React commit sits
+ * between readiness and the first moving frame.
  */
 const FlyingCover = ({
   flight,
   layoutSize,
   progress,
   target,
+  sourceFrame,
   onLoad,
   onError,
 }: {
@@ -231,16 +258,20 @@ const FlyingCover = ({
   layoutSize: number;
   progress: SharedValue<number>;
   target: SharedValue<CoverTarget | null>;
+  sourceFrame: SharedValue<SharedFrame | null>;
   onLoad: () => void;
   onError: () => void;
 }) => {
-  const from = flight.source.cover;
-  const fromCenter = center(from);
+  const layoutCover = flight.layoutCover;
+  const layoutCenter = center(layoutCover);
   // A new source object would make expo-image re-request the bitmap when the
   // flight re-renders at take-off and blank the view for a frame.
   const source = useMemo(() => ({ uri: flight.imageUri }), [flight.imageUri]);
   const style = useAnimatedStyle(() => {
     const p = progress.value;
+    const from = sourceFrame.value ?? layoutCover;
+    const fromCx = from.x + from.width / 2;
+    const fromCy = from.y + from.height / 2;
     const to = target.value;
     const toWidth = to ? to.width : from.width;
     const width = from.width + (toWidth - from.width) * p;
@@ -250,8 +281,8 @@ const FlyingCover = ({
       (eventSharedMotion.heroRadius - eventSharedMotion.cardRadius) * p;
     return {
       transform: [
-        { translateX: to ? (to.cx - fromCenter.x) * p : 0 },
-        { translateY: to ? (to.cy - fromCenter.y) * p : 0 },
+        { translateX: fromCx - layoutCenter.x + (to ? (to.cx - fromCx) * p : 0) },
+        { translateY: fromCy - layoutCenter.y + (to ? (to.cy - fromCy) * p : 0) },
         { scale },
         { rotate: `${to ? to.rotation * p : 0}deg` },
       ],
@@ -266,8 +297,8 @@ const FlyingCover = ({
       style={[
         styles.cover,
         {
-          left: fromCenter.x - layoutSize / 2,
-          top: fromCenter.y - layoutSize / 2,
+          left: layoutCenter.x - layoutSize / 2,
+          top: layoutCenter.y - layoutSize / 2,
           width: layoutSize,
           height: layoutSize,
         },
@@ -343,72 +374,32 @@ const FlightOverlay = ({
   flight,
   layoutSize,
   progress,
+  target,
+  sourceFrame,
   onCoverReady,
-  onComplete,
   onError,
 }: {
   flight: Flight;
   layoutSize: number;
   progress: SharedValue<number>;
+  target: SharedValue<CoverTarget | null>;
+  sourceFrame: SharedValue<SharedFrame | null>;
   onCoverReady: () => void;
-  onComplete: () => void;
   onError: () => void;
 }) => {
-  const flying = flight.phase === 'flying' || flight.phase === 'closing';
+  const phase = flight.phase;
   // Mount diagnostics before takeoff so React scheduling cannot delay the probe.
   const metricPhase =
-    flight.phase === 'landing' || flight.phase === 'flying' ? 'flying' : 'closing';
-  const started = useRef<SharedPhase | undefined>(undefined);
-  const targetCenter = flight.targetCover ? center(flight.targetCover) : null;
-  const target = useSharedValue<CoverTarget | null>(
-    flight.targetCover && targetCenter
-      ? {
-          cx: targetCenter.x,
-          cy: targetCenter.y,
-          width: flight.targetCover.width,
-          rotation: flight.rotation,
-        }
-      : null,
-  );
-  // The provider switches to `flying` only once the destination has landed and
-  // the cover bitmap is painted (or its grace passed), so take off right away.
-  useEffect(() => {
-    if (!flying || started.current === flight.phase || !flight.targetCover) return;
-    started.current = flight.phase;
-    const to = center(flight.targetCover);
-    // Hand the UI thread the landing geometry first, then start the clock.
-    target.value = {
-      cx: to.x,
-      cy: to.y,
-      width: flight.targetCover.width,
-      rotation: flight.rotation,
-    };
-    const phase = flight.phase;
-    const closing = phase === 'closing';
-    progress.value = closing ? 1 : 0;
-    markTransition('animation-requested', { phase: flight.phase });
-    progress.value = withTiming(
-      closing ? 0 : 1,
-      {
-        duration: closing ? eventSharedMotion.closeDurationMs : eventSharedMotion.durationMs,
-        easing: Easing.out(Easing.cubic),
-      },
-      (finished) => {
-        if (finished) {
-          if (transitionMetricsEnabled)
-            runOnJS(markTransition)('ui-endpoint', {
-              phase,
-              ui_ms: performance.now(),
-              ui_wall_ms: Date.now(),
-            });
-          runOnJS(onComplete)();
-        }
-      },
-    );
-  }, [flight, flying, onComplete, progress, target]);
+    phase === 'primed' || phase === 'landing' || phase === 'flying' ? 'flying' : 'closing';
+  // A primed overlay stays invisible over its card; a retained overlay stays
+  // invisible over the hero until a return moves progress off its endpoint.
+  const visibility = useAnimatedStyle(() => ({
+    opacity: phase === 'primed' || (phase === 'retained' && progress.value >= 0.999) ? 0 : 1,
+  }));
   return (
-    <View
-      style={[StyleSheet.absoluteFill, flight.phase === 'returning' && { opacity: 0 }]}
+    <Animated.View
+      testID="flight-overlay"
+      style={[StyleSheet.absoluteFill, visibility]}
       pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
@@ -421,10 +412,11 @@ const FlightOverlay = ({
         layoutSize={layoutSize}
         progress={progress}
         target={target}
+        sourceFrame={sourceFrame}
         onLoad={onCoverReady}
         onError={onError}
       />
-    </View>
+    </Animated.View>
   );
 };
 
@@ -433,6 +425,8 @@ type Timers = {
   land?: ReturnType<typeof setTimeout>;
   image?: ReturnType<typeof setTimeout>;
   complete?: ReturnType<typeof setTimeout>;
+  prime?: ReturnType<typeof setTimeout>;
+  takeoff?: number;
 };
 
 /** One window-coordinate overlay shared by every event list and the Details page. */
@@ -441,14 +435,16 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
   const sequence = useRef(0);
   const opening = useRef(false);
   const flightRef = useRef<Flight>(undefined);
-  const returnFlight = useRef<Flight>(undefined);
   const closeCallback = useRef<((sharedReturnCompleted: boolean) => void) | undefined>(undefined);
-  const primed = useRef<{ eventId: string; frames: SourceFrames; at: number }>(undefined);
   const timers = useRef<Timers>({});
   const graces = useRef({ image: false });
   const [flight, setFlightState] = useState<Flight>();
+  // A return in progress: live materials unmount before its clock starts.
+  const [returning, setReturning] = useState(false);
   // Reset to 0 at open so the page mounts invisible; the overlay drives it to 1.
   const progress = useSharedValue(1);
+  const target = useSharedValue<CoverTarget | null>(null);
+  const sourceFrame = useSharedValue<SharedFrame | null>(null);
   const reducedMotion = useReducedMotion();
   const { width, height } = useWindowDimensions();
   const layoutSize = heroCoverSize(width);
@@ -459,29 +455,33 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
     if (current.land) clearTimeout(current.land);
     if (current.image) clearTimeout(current.image);
     if (current.complete) clearTimeout(current.complete);
+    if (current.prime) clearTimeout(current.prime);
+    if (current.takeoff != null) globalThis.cancelAnimationFrame(current.takeoff);
     timers.current = {};
   };
   const setFlight = (next: Flight | undefined) => {
     flightRef.current = next;
     setFlightState(next);
   };
+  /**
+   * Motion phases exist only in the ref. Every visual change at take-off and
+   * return start is driven by progress on the UI thread, so a React commit
+   * here would only re-render consumers and mount prop updates on the main
+   * thread during the first moving frames.
+   */
+  const setFlightPhaseSilently = (next: Flight) => {
+    flightRef.current = next;
+  };
 
   const cancel = useCallback<SharedTransitionActions['cancel']>(
     (eventId) => {
-      if (
-        eventId &&
-        flightRef.current?.eventId !== eventId &&
-        returnFlight.current?.eventId !== eventId
-      )
-        return;
+      if (eventId && flightRef.current?.eventId !== eventId) return;
       markTransition('cancel', { phase: flightRef.current?.phase ?? 'idle' });
       const returnedToSource = flightRef.current?.phase === 'closed';
-      returnFlight.current = undefined;
       const finishClose = closeCallback.current;
       closeCallback.current = undefined;
       clearTimers();
       sequence.current += 1;
-      primed.current = undefined;
       opening.current = false;
       cancelAnimation(progress);
       // The native source may still be using its closing visibility worklet
@@ -489,6 +489,7 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
       // that image again for one frame during page unmount.
       if (!returnedToSource) progress.value = 1;
       setFlight(undefined);
+      setReturning(false);
       finishClose?.(false);
     },
     [progress],
@@ -501,61 +502,157 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
     [cancel],
   );
 
+  /** UI-thread completion of a started timing; the React commit follows, off the critical path. */
+  const completeFlight = useCallback((id: number, phase: 'flying' | 'closing') => {
+    const current = flightRef.current;
+    if (!current || current.id !== id || current.phase !== phase) return;
+    clearTimers();
+    opening.current = false;
+    if (phase === 'closing') {
+      // Keep the page contracted until navigation removes it. Resetting here
+      // would flash a full-size Details page during the stack's close fade.
+      markTransition('return-complete-js');
+      setFlight({ ...current, phase: 'closed' });
+      const callback = closeCallback.current;
+      closeCallback.current = undefined;
+      callback?.(true);
+      return;
+    }
+    // Keep the loaded overlay mounted and hidden over the hero: the return
+    // then only re-measures and starts its timing.
+    markTransition('open-complete-js');
+    setFlight({ ...current, phase: 'retained' });
+    setReturning(false);
+  }, []);
+
   const startFlight = useCallback(() => {
     const current = flightRef.current;
     if (!current || current.phase !== 'landing' || !current.targetCover) return;
     clearTimers();
     markTransition('takeoff-ready');
-    setFlight({ ...current, phase: 'flying' });
-    timers.current.complete = setTimeout(
-      () => cancelFlight(current.id),
-      eventSharedMotion.timeoutMs,
+    // Hand the UI thread the geometry first, then start the clock. The
+    // `flying` commit below re-renders consumers after motion is already running.
+    const to = center(current.targetCover);
+    target.value = {
+      cx: to.x,
+      cy: to.y,
+      width: current.targetCover.width,
+      rotation: current.rotation,
+    };
+    sourceFrame.value = current.source.cover;
+    const id = current.id;
+    // Record the phase and watchdog before the clock starts: the completion
+    // callback checks both.
+    setFlightPhaseSilently({ ...current, phase: 'flying' });
+    timers.current.complete = setTimeout(() => cancelFlight(id), eventSharedMotion.timeoutMs);
+    progress.value = 0;
+    markTransition('animation-requested', { phase: 'flying' });
+    progress.value = withSteadyTiming(
+      1,
+      {
+        duration: eventSharedMotion.durationMs,
+        easing: Easing.out(Easing.cubic),
+        steadyFrames: eventSharedMotion.steadyFrames,
+        maxStepMs: eventSharedMotion.steadyMaxStepMs,
+      },
+      (finished) => {
+        // Only Reanimated's own animation helpers get auto-workletized callbacks.
+        'worklet';
+        if (!finished) return;
+        if (transitionMetricsEnabled)
+          runOnJS(markTransition)('ui-endpoint', {
+            phase: 'flying',
+            ui_ms: performance.now(),
+            ui_wall_ms: Date.now(),
+          });
+        runOnJS(completeFlight)(id, 'flying');
+      },
     );
-  }, [cancelFlight]);
+  }, [cancelFlight, completeFlight, progress, sourceFrame, target]);
 
-  /** Wait for the destination cover and bitmap; text never delays take-off. */
-  const tryStart = useCallback(() => {
-    const current = flightRef.current;
-    if (!current || current.phase !== 'landing' || !current.targetCover) return;
-    const coverReady = !!current.coverReady || graces.current.image;
-    if (coverReady) {
-      startFlight();
-      return;
-    }
-    if (!coverReady && !timers.current.image) {
-      timers.current.image = setTimeout(() => {
-        if (flightRef.current?.id !== current.id) return;
-        graces.current.image = true;
-        tryStart();
-      }, eventSharedMotion.imageGraceMs);
-    }
-  }, [startFlight]);
+  /**
+   * Wait for the destination cover and bitmap; text never delays take-off.
+   * `afterCommit` is set when called from the destination's own layout report:
+   * a bitmap that was ready before landing must not start its clock in the
+   * same JS turn, or the first evaluated frame would be the heavy mount frame
+   * and the next one would jump ahead. The next animation frame runs after
+   * that mount and before its draw.
+   */
+  const tryStart = useCallback(
+    (afterCommit = false) => {
+      const current = flightRef.current;
+      if (!current || current.phase !== 'landing' || !current.targetCover) return;
+      const coverReady = !!current.coverReady || graces.current.image;
+      if (coverReady) {
+        if (!afterCommit) {
+          startFlight();
+        } else if (timers.current.takeoff == null) {
+          timers.current.takeoff = requestAnimationFrame(() => {
+            timers.current.takeoff = undefined;
+            startFlight();
+          });
+        }
+        return;
+      }
+      if (!timers.current.image) {
+        timers.current.image = setTimeout(() => {
+          if (flightRef.current?.id !== current.id) return;
+          graces.current.image = true;
+          tryStart();
+        }, eventSharedMotion.imageGraceMs);
+      }
+    },
+    [startFlight],
+  );
 
   const markCoverReady = useCallback(
     (id: number) => {
       const current = flightRef.current;
       if (!current || current.id !== id || current.coverReady) return;
       markTransition('cover-ready', { phase: current.phase });
-      if (current.phase === 'returning') {
-        clearTimers();
-        setFlight({ ...current, coverReady: true, phase: 'closing' });
-        timers.current.complete = setTimeout(() => cancelFlight(id), eventSharedMotion.timeoutMs);
-      } else {
-        setFlight({ ...current, coverReady: true });
-        tryStart();
-      }
+      setFlight({ ...current, coverReady: true });
+      tryStart();
     },
-    [tryStart, cancelFlight],
+    [tryStart],
   );
 
   const prime = useCallback<SharedTransitionActions['prime']>(
     (eventId, source) => {
-      if (reducedMotion || flightRef.current || opening.current) return;
-      const generation = sequence.current;
+      if (reducedMotion || opening.current || !root.current || !source.imageUri) return;
+      const current = flightRef.current;
+      if (current && current.phase !== 'primed') return;
+      const generation = ++sequence.current;
       measureSource(source, root, (frames) => {
-        if (frames && generation === sequence.current && !opening.current && !flightRef.current) {
-          primed.current = { eventId, frames, at: Date.now() };
-        }
+        if (!frames || generation !== sequence.current || opening.current) return;
+        const existing = flightRef.current;
+        if (existing && existing.phase !== 'primed') return;
+        if (timers.current.prime) clearTimeout(timers.current.prime);
+        const reuse =
+          existing && existing.eventId === eventId && existing.imageUri === source.imageUri
+            ? existing
+            : undefined;
+        const id = reuse ? reuse.id : generation;
+        // Mount the overlay invisibly now so its bitmap decodes during the
+        // press instead of after the destination has been mounted.
+        setFlight(
+          reuse
+            ? { ...reuse, source: frames, sourceNode: source, primedAt: Date.now() }
+            : {
+                id,
+                eventId,
+                imageUri: source.imageUri,
+                source: frames,
+                layoutCover: frames.cover,
+                sourceNode: source,
+                rotation: 0,
+                phase: 'primed',
+                primedAt: Date.now(),
+              },
+        );
+        timers.current.prime = setTimeout(() => {
+          const stale = flightRef.current;
+          if (stale?.id === id && stale.phase === 'primed') setFlight(undefined);
+        }, eventSharedMotion.primedFrameTtlMs);
       });
     },
     [reducedMotion],
@@ -564,7 +661,8 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
   const open = useCallback<SharedTransitionActions['open']>(
     (eventId, source, navigate) => {
       markTransition('open-request', { phase: flightRef.current?.phase ?? 'idle' });
-      if (flightRef.current || opening.current) {
+      const current = flightRef.current;
+      if ((current && current.phase !== 'primed') || opening.current) {
         markTransition('open-rejected');
         return;
       }
@@ -572,57 +670,76 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
         navigate(reducedMotion);
         return;
       }
-      const id = ++sequence.current;
-      const begin = (frames: SourceFrames | null) => {
-        if (sequence.current !== id) return;
+      const generation = ++sequence.current;
+      const begin = (frames: SourceFrames | null, primed?: Flight) => {
+        if (sequence.current !== generation) return;
         if (!frames) {
           opening.current = false;
           navigate(false);
           return;
         }
+        clearTimers();
+        setReturning(false);
         progress.value = 0;
+        target.value = null;
+        sourceFrame.value = frames.cover;
         graces.current = { image: false };
-        setFlight({
-          id,
-          eventId,
-          imageUri: source.imageUri,
-          source: frames,
-          sourceNode: source,
-          rotation: 0,
-          phase: 'landing',
-        });
+        const id = primed ? primed.id : generation;
+        setFlight(
+          primed
+            ? {
+                ...primed,
+                source: frames,
+                sourceNode: source,
+                phase: 'landing',
+                primedAt: undefined,
+              }
+            : {
+                id,
+                eventId,
+                imageUri: source.imageUri,
+                source: frames,
+                layoutCover: frames.cover,
+                sourceNode: source,
+                rotation: 0,
+                phase: 'landing',
+              },
+        );
         timers.current.land = setTimeout(() => cancelFlight(id), eventSharedMotion.landTimeoutMs);
         markTransition('navigate');
         navigate(true);
       };
       opening.current = true;
-      const cached = primed.current;
-      primed.current = undefined;
-      if (
-        cached &&
-        cached.eventId === eventId &&
-        Date.now() - cached.at < eventSharedMotion.primedFrameTtlMs
-      ) {
-        begin(cached.frames);
-        return;
+      if (current) {
+        const fresh =
+          current.eventId === eventId &&
+          current.imageUri === source.imageUri &&
+          Date.now() - (current.primedAt ?? 0) < eventSharedMotion.primedFrameTtlMs;
+        if (fresh) {
+          begin(current.source, current);
+          return;
+        }
+        // Primed for another card or stale: drop it and measure afresh.
+        clearTimers();
+        setFlight(undefined);
       }
       // Measurement can be absent for a recycled/unmounted row. Never strand a tap.
       let settled = false;
       const fallback = setTimeout(() => {
-        if (settled || sequence.current !== id) return;
+        if (settled || sequence.current !== generation) return;
         settled = true;
         opening.current = false;
         navigate(false);
       }, eventSharedMotion.measureTimeoutMs);
       timers.current.measure = fallback;
       measureSource(source, root, (frames) => {
-        if (settled || sequence.current !== id) return;
+        if (settled || sequence.current !== generation) return;
         settled = true;
         clearTimeout(fallback);
         begin(frames);
       });
     },
-    [cancelFlight, progress, reducedMotion],
+    [cancelFlight, progress, reducedMotion, sourceFrame, target],
   );
 
   const land = useCallback<SharedTransitionActions['land']>(
@@ -649,66 +766,37 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
           destinationRef: extras?.coverRef,
         };
         setFlight(next);
-        tryStart();
+        tryStart(true);
       });
     },
     [tryStart],
   );
 
-  const complete = useCallback(
-    (id: number) => {
-      const current = flightRef.current;
-      if (!current || current.id !== id) return;
-      clearTimers();
-      opening.current = false;
-      if (current.phase === 'closing') {
-        // Keep the page contracted until navigation removes it. Resetting here
-        // would flash a full-size Details page during the stack's close fade.
-        markTransition('return-complete-js');
-        setFlight({ ...current, phase: 'closed' });
-        const callback = closeCallback.current;
-        closeCallback.current = undefined;
-        callback?.(true);
-      } else if (current.phase === 'flying') {
-        returnFlight.current = current;
-        setFlight(undefined);
-      } else {
-        cancel();
-      }
-    },
-    [cancel],
-  );
-
   const close = useCallback<SharedTransitionActions['close']>(
     (eventId, onClosed) => {
       markTransition('close-request');
-      if (
-        closeCallback.current ||
-        flightRef.current?.phase === 'closing' ||
-        flightRef.current?.phase === 'closed'
-      )
+      const current = flightRef.current;
+      if (closeCallback.current || current?.phase === 'closing' || current?.phase === 'closed')
         return true;
-      const previous = returnFlight.current;
-      if (reducedMotion || !previous || previous.eventId !== eventId || flightRef.current)
+      if (reducedMotion || !current || current.phase !== 'retained' || current.eventId !== eventId)
         return false;
-      returnFlight.current = undefined;
-      const id = ++sequence.current;
+      const generation = ++sequence.current;
       closeCallback.current = onClosed;
       let settled = false;
       const fallback = () => {
-        if (settled || sequence.current !== id) return;
+        if (settled || sequence.current !== generation) return;
         settled = true;
         cancel();
       };
       timers.current.measure = setTimeout(fallback, eventSharedMotion.measureTimeoutMs);
-      measureSource(previous.sourceNode, root, (frames) => {
-        if (settled || sequence.current !== id) return;
+      measureSource(current.sourceNode, root, (frames) => {
+        if (settled || sequence.current !== generation) return;
         if (!frames || frames.cover.y < 0 || frames.cover.y + frames.cover.height > height) {
           fallback();
           return;
         }
-        measureNode(previous.destinationRef?.current, (destination) => {
-          if (settled || sequence.current !== id) return;
+        measureNode(current.destinationRef?.current, (destination) => {
+          if (settled || sequence.current !== generation) return;
           if (
             !destination ||
             !isValidSharedFrame(destination) ||
@@ -719,28 +807,58 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
             return;
           }
           measureNode(root.current, (rootFrame) => {
-            if (settled || sequence.current !== id) return;
+            if (settled || sequence.current !== generation) return;
             settled = true;
             clearTimers();
-            progress.value = 1;
-            setFlight({
-              ...previous,
-              id,
-              source: frames,
-              targetCover: toLocal(destination, rootFrame),
-              coverReady: false,
-              phase: 'returning',
-            });
-            timers.current.image = setTimeout(
+            const targetCover = toLocal(destination, rootFrame);
+            const to = center(targetCover);
+            // The overlay is already mounted and loaded: write the endpoints,
+            // drop live materials in this turn's commit and start the clock in
+            // the same turn. Its first frame coincides with that commit's mount
+            // frame and its first steps are bounded, so neither the removal nor
+            // the display's refresh-rate switch can become a visible jump.
+            sourceFrame.value = frames.cover;
+            target.value = {
+              cx: to.x,
+              cy: to.y,
+              width: targetCover.width,
+              rotation: current.rotation,
+            };
+            const id = current.id;
+            setFlightPhaseSilently({ ...current, source: frames, targetCover, phase: 'closing' });
+            setReturning(true);
+            timers.current.complete = setTimeout(
               () => cancelFlight(id),
-              eventSharedMotion.imageGraceMs,
+              eventSharedMotion.timeoutMs,
+            );
+            progress.value = 1;
+            markTransition('animation-requested', { phase: 'closing' });
+            progress.value = withSteadyTiming(
+              0,
+              {
+                duration: eventSharedMotion.closeDurationMs,
+                easing: Easing.out(Easing.cubic),
+                steadyFrames: eventSharedMotion.steadyFrames,
+                maxStepMs: eventSharedMotion.steadyMaxStepMs,
+              },
+              (finished) => {
+                'worklet';
+                if (!finished) return;
+                if (transitionMetricsEnabled)
+                  runOnJS(markTransition)('ui-endpoint', {
+                    phase: 'closing',
+                    ui_ms: performance.now(),
+                    ui_wall_ms: Date.now(),
+                  });
+                runOnJS(completeFlight)(id, 'closing');
+              },
             );
           });
         });
       });
       return true;
     },
-    [cancel, cancelFlight, height, progress, reducedMotion],
+    [cancel, cancelFlight, completeFlight, height, progress, reducedMotion, sourceFrame, target],
   );
 
   useEffect(() => {
@@ -759,34 +877,43 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
   }, [width, height, cancel]);
 
   const actions = useMemo(
-    () => ({ prime, open, land, cancel, close, progress }),
-    [prime, open, land, cancel, close, progress],
+    () => ({ prime, open, land, cancel, close, progress, sourceFrame }),
+    [prime, open, land, cancel, close, progress, sourceFrame],
   );
-  const eventId = flight?.eventId;
-  const phase = flight?.phase;
-  const sourceCover = flight?.source.cover;
+  // A primed overlay is invisible and private to the provider: consumers must
+  // not re-render on every press-in.
+  const primed = flight?.phase === 'primed';
+  const eventId = primed ? undefined : flight?.eventId;
+  const phase = primed ? undefined : flight?.phase;
+  const sourceCover = primed ? undefined : flight?.source.cover;
   const state = useMemo<SharedTransitionState>(
     () => ({ eventId, phase, sourceCover }),
     [eventId, phase, sourceCover],
   );
+  // Live materials belong to a page at rest: never while landing, flying or
+  // returning, where their capture and removal would cost moving frames.
+  const liveMaterial = !flight || primed || (flight.phase === 'retained' && !returning);
   return (
     <ActionsContext.Provider value={actions}>
-      <StateContext.Provider value={state}>
-        <View ref={root} collapsable={false} style={styles.root}>
-          {children}
-          {flight && flight.phase !== 'closed' && (
-            <FlightOverlay
-              key={flight.id}
-              flight={flight}
-              layoutSize={layoutSize}
-              progress={progress}
-              onCoverReady={() => markCoverReady(flight.id)}
-              onComplete={() => complete(flight.id)}
-              onError={() => cancelFlight(flight.id)}
-            />
-          )}
-        </View>
-      </StateContext.Provider>
+      <MaterialContext.Provider value={liveMaterial}>
+        <StateContext.Provider value={state}>
+          <View ref={root} collapsable={false} style={styles.root}>
+            {children}
+            {flight && flight.phase !== 'closed' && (
+              <FlightOverlay
+                key={flight.id}
+                flight={flight}
+                layoutSize={layoutSize}
+                progress={progress}
+                target={target}
+                sourceFrame={sourceFrame}
+                onCoverReady={() => markCoverReady(flight.id)}
+                onError={() => cancelFlight(flight.id)}
+              />
+            )}
+          </View>
+        </StateContext.Provider>
+      </MaterialContext.Provider>
     </ActionsContext.Provider>
   );
 };
@@ -796,17 +923,22 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
 export const EventSharedTransitionSourcePage = ({ children }: { children: ReactNode }) => {
   const { phase } = useEventSharedTransitionState();
   const { progress } = useEventSharedTransition();
-  const moving = phase === 'flying' || phase === 'closing';
   const canBlur = Platform.OS === 'android' && Number(Platform.Version) >= 31;
   // Keep radius fixed while moving, but clear it on the UI thread near the
   // source endpoint. A delayed JS completion must not leave the feed blurred.
   // Only radius changes should submit a native filter update. A fresh
   // array on every progress frame defeats Reanimated's shallow style equality.
+  // Motion can begin before the `flying`/`closing` commit: a retained page whose
+  // progress leaves 1 is returning, a landing page whose progress leaves 0 is opening.
   const blurRadius = useDerivedValue(() => {
-    if (!canBlur || !moving || progress.value <= 0.04) return 0;
-    return phase === 'flying'
-      ? eventSharedMotion.openingBackdropBlur
-      : eventSharedMotion.backdropBlur;
+    if (!canBlur) return 0;
+    const p = progress.value;
+    if (p <= 0.04) return 0;
+    if (phase === 'closing' || (phase === 'retained' && p < 0.999))
+      return eventSharedMotion.backdropBlur;
+    if (phase === 'flying' || (phase === 'landing' && p > 0.001))
+      return eventSharedMotion.openingBackdropBlur;
+    return 0;
   });
   const style = useAnimatedStyle(() => ({
     filter: canBlur ? [{ blur: blurRadius.value }] : [],
@@ -836,8 +968,8 @@ export const EventSharedTransitionPage = ({
   testID,
   children,
 }: EventSharedTransitionPageProps) => {
-  const { progress, cancel, close } = useEventSharedTransition();
-  const { eventId: activeEventId, phase, sourceCover } = useEventSharedTransitionState();
+  const { progress, sourceFrame, cancel, close } = useEventSharedTransition();
+  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
   const navigation = useContext(NavigationContext);
   const allowRemove = useRef(false);
   const removeRequested = useRef(false);
@@ -902,13 +1034,19 @@ export const EventSharedTransitionPage = ({
       }
     };
   }, [cancel, enabled, eventId]);
-  const moving = active && phase !== 'landing' && phase !== 'returning';
+  // Motion may start before its commit: a landing page whose progress leaves 0
+  // is opening, a retained page whose progress leaves 1 is returning.
+  const landing = active && phase === 'landing';
+  const retained = active && phase === 'retained';
+  const committedMotion =
+    active && (phase === 'flying' || phase === 'closing' || phase === 'closed');
   const surfaceStyle = useAnimatedStyle(() => {
     const p = progress.value;
-    const from = sourceCover;
+    const from = sourceFrame.value;
+    const moving = committedMotion || (landing && p > 0.001) || (retained && p < 0.999);
     if (!moving || !from)
       return {
-        opacity: active && phase === 'landing' ? 0 : fade.value,
+        opacity: landing ? 0 : fade.value,
         borderRadius: 0,
         transform: [{ translateX: 0 }, { translateY: 0 }, { scaleX: 1 }, { scaleY: 1 }],
       };
@@ -934,10 +1072,12 @@ export const EventSharedTransitionPage = ({
     };
   });
   const contentStyle = useAnimatedStyle(() => {
-    if (!moving || !sourceCover) return { opacity: 1, transform: [{ scaleY: 1 }] };
     const p = progress.value;
-    const sx = (sourceCover.width + (width - sourceCover.width) * p) / width;
-    const sy = (sourceCover.height + (height - sourceCover.height) * p) / height;
+    const from = sourceFrame.value;
+    const moving = committedMotion || (landing && p > 0.001) || (retained && p < 0.999);
+    if (!moving || !from) return { opacity: 1, transform: [{ scaleY: 1 }] };
+    const sx = (from.width + (width - from.width) * p) / width;
+    const sy = (from.height + (height - from.height) * p) / height;
     // Undo the shell's nonuniform scale: typography remains proportional and
     // appears within the page, never as a separately travelling replica.
     return {
@@ -945,11 +1085,13 @@ export const EventSharedTransitionPage = ({
       opacity: interpolate(p, [0, 0.35, 1], [0, 0, 1], Extrapolation.CLAMP),
     };
   });
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: moving
-      ? interpolate(progress.value, [0, 0.2, 0.95, 1], [0, 1, 1, 0], Extrapolation.CLAMP)
-      : 0,
-  }));
+  const backdropStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    const moving = committedMotion || (landing && p > 0.001) || (retained && p < 0.999);
+    return {
+      opacity: moving ? interpolate(p, [0, 0.2, 0.95, 1], [0, 1, 1, 0], Extrapolation.CLAMP) : 0,
+    };
+  });
   return (
     <View style={styles.root}>
       {active && Platform.OS === 'ios' && (
@@ -964,7 +1106,7 @@ export const EventSharedTransitionPage = ({
       )}
       <Animated.View
         style={[style, styles.surface, surfaceStyle]}
-        pointerEvents={active ? 'none' : 'auto'}
+        pointerEvents={active && !retained ? 'none' : 'auto'}
         testID={testID}
       >
         <Animated.View style={[styles.pageContent, contentStyle]}>{children}</Animated.View>

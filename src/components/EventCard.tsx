@@ -66,10 +66,13 @@ const EventCard = ({
   sharedElementsHidden,
 }: EventItemProps) => {
   const { progress } = useEventSharedTransition();
-  const coverVisibility = useAnimatedStyle(() => ({
-    // Return the source image on the UI thread before JS navigation completes.
-    opacity: sharedElementsHidden && progress.value > 0.001 ? 0 : 1,
-  }));
+  const coverVisibility = useAnimatedStyle(() => {
+    // Hide only while the overlay is between the endpoints: it sits exactly on
+    // the card at 0 and the page covers the card at 1. This returns the source
+    // image on the UI thread before JS navigation completes.
+    const p = progress.value;
+    return { opacity: sharedElementsHidden && p > 0.001 && p < 0.999 ? 0 : 1 };
+  });
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
   const locationName = formatEventLocationName(location);
 

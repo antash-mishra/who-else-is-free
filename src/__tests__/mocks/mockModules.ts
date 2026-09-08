@@ -380,6 +380,14 @@ jest.mock('react-native-reanimated', () => {
       runAnimation(value, callback),
     withTiming: (value: unknown, _config?: unknown, callback?: (finished?: boolean) => void) =>
       runAnimation(value, callback),
+    // Custom animations complete immediately, like the timing/spring mocks above.
+    defineAnimation: (
+      starting: unknown,
+      factory: () => { current?: unknown; callback?: (finished?: boolean) => void },
+    ) => {
+      const animation = factory();
+      return runAnimation(animation.current ?? starting, animation.callback);
+    },
     withRepeat: (value: unknown) => value,
     withDelay: (_delay: number, value: unknown) => value,
     withSequence: (...values: unknown[]) => values[values.length - 1],

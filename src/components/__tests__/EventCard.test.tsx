@@ -8,7 +8,9 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 
 import { render, screen } from '@testing-library/react-native';
+import * as Reanimated from 'react-native-reanimated';
 
+import { EventSharedTransitionProvider } from '@components/events/EventSharedTransition';
 import { spacing, typography } from '@theme/index';
 
 import EventCard from '../EventCard';
@@ -26,14 +28,30 @@ describe('EventCard', () => {
 
   describe('Rendering', () => {
     it('hides only its cover while the image flies in the shared overlay', () => {
-      render(<EventCard {...defaultProps} sharedElementsHidden />);
-
+      const sharedValues = jest.spyOn(Reanimated, 'useSharedValue');
+      // The memoised card only re-evaluates its animated style on a fresh mount.
+      const tree = (key: string) => (
+        <EventSharedTransitionProvider>
+          <EventCard key={key} {...defaultProps} sharedElementsHidden />
+        </EventSharedTransitionProvider>
+      );
+      const view = render(tree('idle'));
+      const progress = sharedValues.mock.results[0].value;
+      const coverOpacity = () =>
+        StyleSheet.flatten(screen.getByTestId('event-card').props.children[0].props.style).opacity;
+      // At the endpoints the overlay sits exactly on the card (0) or the page
+      // covers it (1), so the card only hides strictly in between.
+      expect(coverOpacity()).toBe(1);
+      progress.value = 0.5;
+      view.rerender(tree('mid'));
       expect(StyleSheet.flatten(screen.getByText('Coffee Meetup').props.style).opacity ?? 1).toBe(
         1,
       );
-      expect(
-        StyleSheet.flatten(screen.getByTestId('event-card').props.children[0].props.style).opacity,
-      ).toBe(0);
+      expect(coverOpacity()).toBe(0);
+      progress.value = 0;
+      view.rerender(tree('source'));
+      expect(coverOpacity()).toBe(1);
+      sharedValues.mockRestore();
     });
 
     it('should render event card container', () => {

@@ -55,9 +55,16 @@ const EventDetailsHero = ({
   // Exactly the flying cover's layout size, so the hero's bitmap is the same
   // cache entry and appears on the hand-off frame instead of decoding again.
   const coverSize = heroCoverSize(useWindowDimensions().width);
-  const { land } = useEventSharedTransition();
+  const { land, progress } = useEventSharedTransition();
   const { eventId: activeEventId, phase } = useEventSharedTransitionState();
-  const hidden = !!sharedCover && !!eventId && activeEventId === eventId && phase !== 'returning';
+  const active = !!sharedCover && !!eventId && activeEventId === eventId;
+  // While the overlay is retained the real cover shows; a return starts on the
+  // UI thread before its commit, so progress leaving 1 hides it again at once.
+  const hidden = active && phase !== 'retained';
+  const retained = active && phase === 'retained';
+  const coverVisibility = useAnimatedStyle(() => ({
+    opacity: hidden || (retained && progress.value < 0.999) ? 0 : 1,
+  }));
   const rotation = reducedMotion
     ? 0
     : (seededRand(seedFromString(`hero-${imageUri}`)) * 2 - 1) * motionGeometry.tiltMaxDeg;
@@ -110,17 +117,19 @@ const EventDetailsHero = ({
       <Animated.View style={[styles.imageCardContainer, { width: coverSize }, coverStyle]}>
         <View ref={coverRef} onLayout={measureCover} collapsable={false} style={{ flex: 1 }}>
           {sharedCover ? (
-            <View
+            <Animated.View
               testID="hero-cover-card"
-              style={{
-                flex: 1,
-                opacity: hidden ? 0 : 1,
-                transform: [{ rotate: `${rotation}deg` }],
-                borderRadius: eventSharedMotion.heroRadius,
-              }}
+              style={[
+                {
+                  flex: 1,
+                  transform: [{ rotate: `${rotation}deg` }],
+                  borderRadius: eventSharedMotion.heroRadius,
+                },
+                coverVisibility,
+              ]}
             >
               {cover}
-            </View>
+            </Animated.View>
           ) : (
             <Placed id={`hero-${imageUri}`} tiltMode="rest" testID="hero-cover-card">
               {cover}

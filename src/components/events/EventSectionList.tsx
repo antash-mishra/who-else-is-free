@@ -56,8 +56,12 @@ const EventCardRow = <TItem extends EventItemProps>({
   const { prime, open } = useEventSharedTransition();
   const { eventId: activeEventId, phase } = useEventSharedTransitionState();
   // Hide only the cover while its overlay travels; list text stays in place.
+  // The card decides on the UI thread from progress, so a flight that starts
+  // before its commit (landing) or a return that starts while the overlay is
+  // retained hides the cover on its first moving frame.
   const sharedElementsHidden =
-    activeEventId === item.id && (phase === 'flying' || phase === 'closing');
+    activeEventId === item.id &&
+    (phase === 'landing' || phase === 'flying' || phase === 'retained' || phase === 'closing');
   const source = useMemo(
     () => ({
       imageUri: item.imageUri,

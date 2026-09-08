@@ -8,12 +8,14 @@ import * as Reanimated from 'react-native-reanimated';
 
 import { fallbackSharedCoverScreenOptions } from '@navigation/transitions';
 import { eventSharedMotion, heroCoverSize } from '@theme/motion';
+import * as SteadyTiming from '@utils/steadyTiming';
 
 import {
   EventSharedTransitionPage,
   EventSharedTransitionProvider,
   EventSharedTransitionSourcePage,
   useEventSharedTransition,
+  useEventSharedTransitionMaterial,
   useEventSharedTransitionState,
 } from '../EventSharedTransition';
 
@@ -34,19 +36,23 @@ const source = {
   coverRef: { current: { measureInWindow: measureCover } as unknown as View },
   titleRef: { current: { measureInWindow: measureTitle } as unknown as Text },
 };
+const otherSource = { ...source, imageUri: 'https://example.test/other.jpg' };
 const heroFrame = { x: 92, y: 103, width: 228, height: 228 };
 const titleFrame = { x: 16, y: 420, width: 380, height: 36 };
 
 const Harness = ({ secondPage = false }: { secondPage?: boolean }) => {
   const { open, prime, land, cancel, close, progress } = useEventSharedTransition();
   const state = useEventSharedTransitionState();
+  const liveMaterial = useEventSharedTransitionMaterial();
   return (
     <>
       <Text testID="progress">{progress.value}</Text>
+      <Text testID="material">{liveMaterial ? 'live' : 'static'}</Text>
       <Text testID="state">{`${state.eventId ?? 'idle'}:${state.phase ?? 'none'}`}</Text>
       <Pressable testID="close" onPress={() => close('event-1', closed)} />
       <Pressable testID="cancel" onPress={() => cancel()} />
       <Pressable testID="prime" onPress={() => prime('event-1', source)} />
+      <Pressable testID="prime-other" onPress={() => prime('event-2', otherSource)} />
       <Pressable testID="open" onPress={() => open('event-1', source, navigate)} />
       <Pressable
         testID="land-foreign"
@@ -88,6 +94,14 @@ const mount = (secondPage = false) =>
 
 const pageOpacity = (screen: ReturnType<typeof mount>) =>
   StyleSheet.flatten(screen.getByTestId('page').props.style).opacity;
+const overlayOpacity = (screen: ReturnType<typeof mount>) =>
+  StyleSheet.flatten(screen.getByTestId('flight-overlay', hidden).props.style).opacity;
+const rerender = (screen: ReturnType<typeof mount>) =>
+  screen.rerender(
+    <EventSharedTransitionProvider>
+      <Harness />
+    </EventSharedTransitionProvider>,
+  );
 
 // The overlay is hidden from accessibility, so RNTL's default queries skip it.
 const hidden = { includeHiddenElements: true };
@@ -97,9 +111,11 @@ const measureCard = () => {
   measureTitle.mockImplementation((callback) => callback(112, 224, 280, 20));
 };
 
-/** Keep flights in the air: the Reanimated mock otherwise completes timing instantly. */
+/** Keep flights in the air: the mock otherwise completes the timing instantly. */
 const holdAnimations = () =>
-  jest.spyOn(Reanimated, 'withTiming').mockImplementation((value: unknown) => value as never);
+  jest
+    .spyOn(SteadyTiming, 'withSteadyTiming')
+    .mockImplementation((value: unknown) => value as never);
 
 describe('event shared transition', () => {
   it('keeps opening unblurred while preserving the return radius and cleanup threshold', () => {
@@ -137,16 +153,20 @@ describe('event shared transition', () => {
         timing.mock.calls[0][2]?.(true);
       });
       expect(blurRadius()).toBe(0); // Idle after completed opening.
-      fireEvent.press(screen.getByTestId('close'));
-      expect(blurRadius()).toBe(0); // Returning bitmap preparation.
-      fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+      progress.value = 0.5;
+      expect(blurRadius()).toBe(4); // A return already moving before its commit.
       progress.value = 1;
-      expect(blurRadius()).toBe(4); // Preserve full blur from the start of return.
+      expect(blurRadius()).toBe(0);
+      fireEvent.press(screen.getByTestId('close'));
+      progress.value = 1;
+      expect(blurRadius()).toBe(0); // The page still covers the feed at the endpoint.
+      progress.value = 0.99;
+      expect(blurRadius()).toBe(4); // Full blur from the first moving frame of the return.
       progress.value = 0.041;
       expect(blurRadius()).toBe(4);
       progress.value = 0.04;
       expect(blurRadius()).toBe(0);
-      expect(screen.getByTestId('state').props.children).toBe('event-1:closing');
+      expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
       expect(closed).not.toHaveBeenCalled();
       fireEvent.press(screen.getByTestId('cancel'));
       expect(blurRadius()).toBe(0); // Cancellation restores an unblurred feed.
@@ -182,11 +202,14 @@ describe('event shared transition', () => {
     act(() => {
       timing.mock.calls[0][2]?.(true);
     });
-    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
+    expect(screen.getByTestId('material').props.children).toBe('live');
     fireEvent.press(screen.getByTestId('close'));
-    expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
-    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
-    expect(screen.getByTestId('state').props.children).toBe('event-1:closing');
+    // The retained overlay is already loaded: live materials unmount in this
+    // commit and the clock starts in the same turn, with no closing commit.
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
+    expect(screen.getByTestId('material').props.children).toBe('static');
+    expect(timing).toHaveBeenCalledTimes(2);
     expect(measureCover).toHaveBeenCalledTimes(2);
     expect(closed).not.toHaveBeenCalled();
     fireEvent.press(screen.getByTestId('close'));
@@ -268,13 +291,13 @@ describe('event shared transition', () => {
         return;
       }
       if (completeReturn) {
-        fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
         act(() => {
           timing.mock.calls[1][2]?.(true);
         });
       } else {
+        // A return whose timing never completes is released by its watchdog.
         act(() => {
-          jest.advanceTimersByTime(eventSharedMotion.imageGraceMs);
+          jest.advanceTimersByTime(eventSharedMotion.timeoutMs);
         });
         expect(dispatch).not.toHaveBeenCalled();
         // A second Back while the fallback options commit must not queue
@@ -320,7 +343,7 @@ describe('event shared transition', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it('keeps return image preparation bounded and completes a repeated back only once', () => {
+  it('releases a return that never completes and honours a repeated back only once', () => {
     const timing = holdAnimations();
     measureCard();
     const screen = mount();
@@ -332,14 +355,15 @@ describe('event shared transition', () => {
     });
     fireEvent.press(screen.getByTestId('close'));
     fireEvent.press(screen.getByTestId('close'));
-    expect(screen.getByTestId('state').props.children).toBe('event-1:returning');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
     expect(closed).not.toHaveBeenCalled();
     act(() => {
-      jest.advanceTimersByTime(eventSharedMotion.imageGraceMs);
+      jest.advanceTimersByTime(eventSharedMotion.timeoutMs);
     });
     expect(closed).toHaveBeenCalledTimes(1);
+    expect(closed).toHaveBeenCalledWith(false);
     expect(screen.getByTestId('state').props.children).toBe('idle:none');
-    expect(timing).toHaveBeenCalledTimes(1);
+    expect(timing).toHaveBeenCalledTimes(2);
   });
 
   it('falls back when the return source is recycled, without trapping navigation', () => {
@@ -416,6 +440,7 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('open'));
     expect(navigate).toHaveBeenCalledWith(true);
     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    expect(screen.getByTestId('material').props.children).toBe('static');
     expect(pageOpacity(screen)).toBe(0);
     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
 
@@ -425,7 +450,7 @@ describe('event shared transition', () => {
     // Both landed; take-off still waits for the cover bitmap.
     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
-    expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
     expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
     expect(measureTitle).not.toHaveBeenCalled();
@@ -442,7 +467,7 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('land-cover'));
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
     expect(measureTitle).not.toHaveBeenCalled();
-    expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
     expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
   });
@@ -469,7 +494,7 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('land-cover'));
     fireEvent.press(screen.getByTestId('land-title'));
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
-    expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
     act(() => {
       jest.advanceTimersByTime(eventSharedMotion.timeoutMs);
     });
@@ -487,10 +512,14 @@ describe('event shared transition', () => {
     // Landed, but take-off waits for the cover bitmap (or its grace).
     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
-    expect(screen.getByTestId('state').props.children).toBe('idle:none');
-    expect(screen.queryByTestId('flying-cover', hidden)).toBeNull();
+    // The loaded overlay stays mounted, hidden over the hero, ready for the return.
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
+    expect(screen.getByTestId('material').props.children).toBe('live');
+    expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
+    expect(overlayOpacity(screen)).toBe(0);
     expect(pageOpacity(screen)).toBe(1);
     const page = screen.getByTestId('page');
+    expect(page.props.pointerEvents).toBe('auto');
     expect(StyleSheet.flatten(page.props.style).transform).toEqual([
       { translateX: 0 },
       { translateY: 0 },
@@ -510,7 +539,7 @@ describe('event shared transition', () => {
     act(() => {
       jest.advanceTimersByTime(eventSharedMotion.imageGraceMs);
     });
-    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
   });
 
   it('starts the timing exactly once even when frames land twice', () => {
@@ -531,12 +560,17 @@ describe('event shared transition', () => {
 
   it('places the overlays on the card at take-off', () => {
     holdAnimations();
+    const sharedValues = jest.spyOn(Reanimated, 'useSharedValue');
     measureCard();
     const screen = mount();
+    const progress = sharedValues.mock.results[0].value;
     fireEvent.press(screen.getByTestId('open'));
     fireEvent.press(screen.getByTestId('land-cover'));
     fireEvent.press(screen.getByTestId('land-title'));
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    // The timing starts before the flying commit; evaluate the style at its start.
+    progress.value = 0;
+    rerender(screen);
     const layoutSize = heroCoverSize(750);
     const cover = StyleSheet.flatten(screen.getByTestId('flying-cover', hidden).props.style);
     expect(cover.left).toBe(16 + 40 - layoutSize / 2);
@@ -588,26 +622,103 @@ describe('event shared transition', () => {
     screen.unmount();
   });
 
-  it('reuses a fresh press-in measurement instead of measuring on press', () => {
+  it('reuses a fresh press-in measurement and its loaded overlay, taking off a frame later', () => {
+    const timing = holdAnimations();
     measureCard();
     const screen = mount();
     fireEvent.press(screen.getByTestId('prime'));
     expect(measureCover).toHaveBeenCalledTimes(1);
+    // The overlay mounts invisibly during the press so its bitmap decodes early;
+    // consumers see nothing.
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    expect(overlayOpacity(screen)).toBe(0);
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
     fireEvent.press(screen.getByTestId('open'));
     expect(measureCover).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledWith(true);
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    expect(overlayOpacity(screen)).toBe(1);
+    fireEvent.press(screen.getByTestId('land-cover'));
+    // Already loaded when the destination lands: the clock must not start in
+    // the destination's own commit turn, or its first frame would be the mount.
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    expect(timing).not.toHaveBeenCalled();
+    act(() => {
+      jest.advanceTimersByTime(16);
+    });
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    expect(timing).toHaveBeenCalledTimes(1);
   });
 
   it('measures again when the primed frames are stale', () => {
     measureCard();
     const screen = mount();
     fireEvent.press(screen.getByTestId('prime'));
+    expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
     act(() => {
       jest.advanceTimersByTime(eventSharedMotion.primedFrameTtlMs + 1);
     });
+    expect(screen.queryByTestId('flying-cover', hidden)).toBeNull();
     fireEvent.press(screen.getByTestId('open'));
     expect(measureCover).toHaveBeenCalledTimes(2);
     expect(navigate).toHaveBeenCalledWith(true);
+  });
+
+  it('replaces a primed overlay when a different card is pressed', () => {
+    holdAnimations();
+    measureCard();
+    const screen = mount();
+    fireEvent.press(screen.getByTestId('prime'));
+    fireEvent.press(screen.getByTestId('prime-other'));
+    expect(measureCover).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('state').props.children).toBe('idle:none');
+    // The other card's primed overlay is not reused: the first card measures afresh.
+    fireEvent.press(screen.getByTestId('open'));
+    expect(measureCover).toHaveBeenCalledTimes(3);
+    expect(navigate).toHaveBeenCalledWith(true);
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    fireEvent.press(screen.getByTestId('land-cover'));
+    // Not loaded before landing, so the bitmap report starts the flight directly.
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+  });
+
+  it('moves the page from progress alone before the flying and closing commits', () => {
+    const timing = holdAnimations();
+    const sharedValues = jest.spyOn(Reanimated, 'useSharedValue');
+    measureCard();
+    const screen = mount();
+    const progress = sharedValues.mock.results[0].value;
+    fireEvent.press(screen.getByTestId('open'));
+    // Landing: hidden at 0, but visible and contracted as soon as the clock moves.
+    expect(pageOpacity(screen)).toBe(0);
+    progress.value = 0.3;
+    rerender(screen);
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
+    expect(pageOpacity(screen)).toBe(1);
+    expect(
+      StyleSheet.flatten(screen.getByTestId('page').props.style).transform[2].scaleX,
+    ).toBeLessThan(1);
+    progress.value = 0;
+    fireEvent.press(screen.getByTestId('land-cover'));
+    fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
+    progress.value = 1;
+    act(() => {
+      timing.mock.calls[0][2]?.(true);
+    });
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
+    rerender(screen);
+    expect(pageOpacity(screen)).toBe(1);
+    expect(StyleSheet.flatten(screen.getByTestId('page').props.style).transform[2].scaleX).toBe(1);
+    expect(overlayOpacity(screen)).toBe(0);
+    // Retained: a return already moving contracts the page and shows the overlay.
+    progress.value = 0.5;
+    rerender(screen);
+    expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
+    expect(
+      StyleSheet.flatten(screen.getByTestId('page').props.style).transform[2].scaleX,
+    ).toBeLessThan(1);
+    expect(overlayOpacity(screen)).toBe(1);
   });
   it('ignores callbacks from a cancelled flight after the same event reopens', () => {
     holdAnimations();
@@ -628,7 +739,7 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('land-title'));
     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
-    expect(screen.getByTestId('state').props.children).toBe('event-1:flying');
+    expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
   });
 
   it('does not navigate from a pending measurement after backgrounding', () => {

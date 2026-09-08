@@ -59,6 +59,14 @@ export const eventSharedMotion = {
   heroCoverWidthFraction: 0.6,
   /** The page is fully opaque at this flight progress. */
   pageRevealEnd: 0.55,
+  /**
+   * Bound the first frame steps of both timings. Motion starts right after an
+   * idle page; the display's switch back to its fast refresh rate can cost
+   * ~30 ms between the first two frames and a few 16 ms frames after that,
+   * which must not become jumps. At 120 Hz the bound never engages.
+   */
+  steadyFrames: 6,
+  steadyMaxStepMs: 12,
 } as const;
 
 /**
