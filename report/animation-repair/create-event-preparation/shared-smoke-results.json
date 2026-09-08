@@ -1,0 +1,18 @@
+[
+  {
+    "step": "shared-0-details",
+    "passed": true
+  },
+  {
+    "step": "shared-0-returned",
+    "passed": true
+  },
+  {
+    "step": "shared-1-details",
+    "passed": true
+  },
+  {
+    "step": "shared-1-returned",
+    "passed": true
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "step": "start",
+    "expected": "Discover",
+    "passed": true
+  },
+  {
+    "step": "opened",
+    "expected": "Create plan",
+    "passed": true
+  },
+  {
+    "step": "short-swipe-cancels",
+    "expected": "Create plan",
+    "passed": true
+  },
+  {
+    "step": "vertical-scroll-keeps-form",
+    "expected": "Create plan",
+    "passed": true
+  },
+  {
+    "step": "center-swipe-closes",
+    "expected": "Discover",
+    "passed": true
+  },
+  {
+    "step": "reopened",
+    "expected": "Create plan",
+    "passed": true
+  },
+  {
+    "step": "edge-swipe-closes",
+    "expected": "Discover",
+    "passed": true
+  }
+]

@@ -385,3 +385,18 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Removed the global banner host, animated banner, banner-only content helper, styles/tokens, observer API, and obsolete banner tests. Profile inbox, live inbox updates, server notification delivery, device push setup, and push tap routing remain.
 - Full frontend Jest: **114 suites / 1,413 tests passed**, including push/inbox/routing coverage. Typecheck and targeted lint passed; no remaining banner implementation references in source.
 - Fresh local-fixture release built and installed on `emulator-5554`; Discover and signed-out Profile launch successfully. The emulator session is signed out, so the authenticated inbox was covered by rendering/context tests rather than this device smoke check. No live FCM delivery was sent. Physical phone unchanged.
+
+
+## 2026-09-08 — Create Event physical-phone measurement
+
+- Measured release `0b97d56` on Samsung SM-A566E at its observed120Hz display cadence:6 blank Create/Back cycles with native tracing, followed by separate video. No submissions or app-code changes.
+- Two clock-aligned visual opens: release→first visible header118/125ms; release→visually settled layout352/358ms; visible slide234/233ms. One cover finishes crossfading about601ms after release; the other is visible by layout settling.
+- Initial frame gaps33–58ms; visible-slide approximation120–360ms delivers~120fps for5subsequent opens and~101fps for the first observed open (one42ms gap). First600ms app deadline misses18/358(5.0%). These are phone measurements, not emulator extrapolation.
+- Details and limitations: [report](report/animation-repair/create-event-phone-measurements.md). Raw phone recordings stay in ignored local artifacts.
+
+## 2026-09-08 — Create Event preparation and full-width swipe-back
+
+- Prepare one hidden form after Main interactions and cover loading; preserve prepared/live routes, defer create-start analytics to focus and refresh stale default time. Enable full-width horizontal back gestures while retaining upward entry/downward dismissal.
+- Galaxy A56 release measurements, six native trials plus two separate recorded opens: release→visible header **118/125 → 98/110 ms** (about 14% lower sample mean); release→settled layout **352/358 → 331/343 ms**. Median worst first-200-ms presentation gap **49.8 → 33.2 ms** (about 33% smaller). App deadline misses **18/358 → 13/349**. Later cadence **117–120 fps**. **16 ms latency and hitch-free opening are not achieved.**
+- Six Create/Back cycles and seven gesture-state checks passed. Full suite115/1421 passed; final focused suites2/24 and typecheck passed. Touched-source formatting passed; targeted lint retains only two existing date-picker memo warnings.
+- Production ARM64 candidate installed with app data preserved; SHA256 `5bebfe0a9b2218c7ca136831122e5559ded63e43772a112b2934bc9e8158a5c8`. No events submitted. Evidence and limitations: [report](report/animation-repair/create-event-preparation.md).

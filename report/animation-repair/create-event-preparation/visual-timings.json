@@ -1,0 +1,26 @@
+{
+  "clock_offset_seconds": 13.559422,
+  "valid_overlay_samples": 179,
+  "overlay_offset_range_seconds": [13.558889, 13.564689],
+  "method": "Device-clock overlay aligned to video PTS; first OCR-visible Create plan header; settled within 2 physical pixels of final header position, verified stable. Approximately one frame (8.3 ms) boundary uncertainty. Two recorded already-running opens, not process-cold or input hardware latency.",
+  "trials": [
+    {
+      "opening": 1,
+      "first_frame": 7,
+      "settled_frame": 35,
+      "release_to_first_visible_ms": 98,
+      "visible_to_settled_ms": 233,
+      "release_to_settled_ms": 331,
+      "down_to_settled_ms": 415
+    },
+    {
+      "opening": 2,
+      "first_frame": 113,
+      "settled_frame": 141,
+      "release_to_first_visible_ms": 110,
+      "visible_to_settled_ms": 233,
+      "release_to_settled_ms": 343,
+      "down_to_settled_ms": 425
+    }
+  ]
+}

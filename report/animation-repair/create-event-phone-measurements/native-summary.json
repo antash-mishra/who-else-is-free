@@ -1,0 +1,50 @@
+[
+  {
+    "trial": 1,
+    "frame_records_0_600ms": 56,
+    "app_deadline_misses_0_600ms": 4,
+    "max_early_gap_ms": 49.845117,
+    "cadence_120_360ms_fps": 100.9146708744176,
+    "max_gap_120_360ms": 41.608086
+  },
+  {
+    "trial": 2,
+    "frame_records_0_600ms": 66,
+    "app_deadline_misses_0_600ms": 3,
+    "max_early_gap_ms": 33.201367,
+    "cadence_120_360ms_fps": 120.18656405813161,
+    "max_gap_120_360ms": 8.43
+  },
+  {
+    "trial": 3,
+    "frame_records_0_600ms": 57,
+    "app_deadline_misses_0_600ms": 2,
+    "max_early_gap_ms": 58.126642,
+    "cadence_120_360ms_fps": 120.17129112833469,
+    "max_gap_120_360ms": 8.408593
+  },
+  {
+    "trial": 4,
+    "frame_records_0_600ms": 61,
+    "app_deadline_misses_0_600ms": 3,
+    "max_early_gap_ms": 49.810625,
+    "cadence_120_360ms_fps": 120.12314704706873,
+    "max_gap_120_360ms": 8.62836
+  },
+  {
+    "trial": 5,
+    "frame_records_0_600ms": 58,
+    "app_deadline_misses_0_600ms": 3,
+    "max_early_gap_ms": 49.797658,
+    "cadence_120_360ms_fps": 120.13044742186138,
+    "max_gap_120_360ms": 8.694765
+  },
+  {
+    "trial": 6,
+    "frame_records_0_600ms": 60,
+    "app_deadline_misses_0_600ms": 3,
+    "max_early_gap_ms": 58.138164,
+    "cadence_120_360ms_fps": 120.11691957877518,
+    "max_gap_120_360ms": 8.591875
+  }
+]

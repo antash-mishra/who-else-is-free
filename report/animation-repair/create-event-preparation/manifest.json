@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-08",
+  "device": "Samsung Galaxy A56 SM-A566E",
+  "base_commit": "0b97d564b7d818b798938f63b501a04b2ed73179",
+  "candidate_apk_sha256": "5bebfe0a9b2218c7ca136831122e5559ded63e43772a112b2934bc9e8158a5c8",
+  "baseline_apk_sha256": "f383124cb3f030cad4accddb08bb7b3d58cf1293e6aecd1184f6ce4ccfbab340",
+  "native_trials": 6,
+  "separate_video_openings": 2,
+  "refresh_rate": "observed approximately 120 Hz; unchanged",
+  "build": "ARM64 release, production API, transition diagnostics false, OTA disabled for local QA build",
+  "raw_artifacts": "artifacts/animation-performance/create-event-preparation-phone-2026-09-08",
+  "scope": "already-running app after idle preparation; no process-cold or 60 Hz test"
+}

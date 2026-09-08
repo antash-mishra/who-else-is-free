@@ -22,9 +22,9 @@ import { useCovers } from '@context/CoversContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
 import { useViewerLocation } from '@hooks/useViewerLocation';
-import { RootStackParamList } from '@navigation/types';
 import { completeEventCreation } from '@navigation/completeEventCreation';
 import { navigationRef } from '@navigation/navigationRef';
+import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
@@ -118,16 +118,15 @@ const CreateEventScreen = () => {
     [editEvent],
   );
 
-  useEffect(() => {
-    if (isEditing || createStartTrackedRef.current) {
-      return;
-    }
-
-    createStartTrackedRef.current = true;
-    trackEvent('event_create_started', {
-      source: 'create_event_screen',
-    }).catch(() => undefined);
-  }, [isEditing]);
+  useFocusEffect(
+    useCallback(() => {
+      if (isEditing || createStartTrackedRef.current) return;
+      createStartTrackedRef.current = true;
+      trackEvent('event_create_started', {
+        source: 'create_event_screen',
+      }).catch(() => undefined);
+    }, [isEditing]),
+  );
 
   // Form state
   const {
@@ -208,8 +207,22 @@ const CreateEventScreen = () => {
         // second, transition-time reset while the full-screen Create route is
         // moving in from the bottom.
         hasFocusedRef.current = true;
+        // A prepared form may have waited offscreen. Refresh the default time
+        // on first actual focus, keeping the already prepared cover and views.
+        const freshDateTime = createEmptyFormState(initialRandomCoverKey).selectedDateTime;
+        if (freshDateTime.getTime() !== initialFormState.selectedDateTime.getTime()) {
+          setSelectedDateTime(freshDateTime);
+        }
       }
-    }, [applyEventToForm, editEvent, editEventId, resetForm]),
+    }, [
+      applyEventToForm,
+      editEvent,
+      editEventId,
+      initialRandomCoverKey,
+      initialFormState,
+      resetForm,
+      setSelectedDateTime,
+    ]),
   );
 
   useEffect(() => {

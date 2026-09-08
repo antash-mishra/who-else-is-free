@@ -1,9 +1,12 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+
 import { StyleSheet, View } from 'react-native';
+
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { mockEvents, mockUsers } from '../../__tests__/mocks/mockData';
 import { mockNavigation, mockRoute } from '../../__tests__/mocks/mockModules';
+import CreateEventScreen from '../CreateEventScreen';
 
 const mockUser = { ...mockUsers[0] };
 const mockAddUserEvent = jest.fn();
@@ -15,6 +18,13 @@ let isGuestMode = false;
 let editModeEvents = [...mockEvents];
 let currentRouteParams: { editEventId?: string | null } = {};
 let mockIsPastDateTime = false;
+let mockScreenFocused = true;
+let mockDefaultDateTime = '2026-01-24T14:00:00.000Z';
+const mockTrackEvent = jest.fn((..._args: unknown[]) => Promise.resolve());
+const mockFormatPickerDateTimeValue = jest.fn((_value: Date) => '24 Jan, Sat • 14:00');
+jest.mock('@services/analytics', () => ({
+  trackEvent: (...args: unknown[]) => mockTrackEvent(...args),
+}));
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => <View>{children}</View>,
@@ -39,14 +49,14 @@ jest.mock('@context/EventsContext', () => ({
 }));
 
 jest.mock('@utils/dateTime', () => ({
-  getDefaultEventDateTime: () => new Date('2026-01-24T14:00:00.000Z'),
+  getDefaultEventDateTime: () => new Date(mockDefaultDateTime),
   getMaxEventDateTime: () => new Date('2026-02-23T14:00:00.000Z'),
   isPastDateTimeSelection: () => mockIsPastDateTime,
   combineDateAndTime: () => new Date('2026-01-24T14:00:00.000Z'),
   toDateKey: () => '2026-01-24',
   getLegacyDateLabel: () => 'Today',
   formatDateTimeValue: () => '24 Jan, Sat • 14:00',
-  formatPickerDateTimeValue: () => '24 Jan, Sat • 14:00',
+  formatPickerDateTimeValue: (value: Date) => mockFormatPickerDateTimeValue(value),
   clampDateTime: (value: Date) => value,
   formatTime: (hour: number, minute: number) =>
     `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
@@ -128,15 +138,15 @@ jest.mock('@react-navigation/native', () => {
     }),
     useRoute: () => ({ ...mockRoute, params: currentRouteParams }),
     useFocusEffect: (callback: () => (() => void) | void) => {
+      const focused = mockScreenFocused;
       React.useEffect(() => {
+        if (!focused) return undefined;
         const cleanup = callback();
         return typeof cleanup === 'function' ? cleanup : undefined;
-      }, []);
+      }, [callback, focused]);
     },
   };
 });
-
-import CreateEventScreen from '../CreateEventScreen';
 
 describe('CreateEventScreen Rendering', () => {
   const selectMockLocation = async () => {
@@ -161,8 +171,30 @@ describe('CreateEventScreen Rendering', () => {
     editModeEvents = [...mockEvents];
     isGuestMode = false;
     mockIsPastDateTime = false;
+    mockScreenFocused = true;
+    mockDefaultDateTime = '2026-01-24T14:00:00.000Z';
     mockAddUserEvent.mockResolvedValue('event-123');
     mockUpdateUserEvent.mockResolvedValue(undefined);
+  });
+
+  it('does not report Create started until a prepared form gains focus', () => {
+    mockScreenFocused = false;
+    const view = render(<CreateEventScreen />);
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('event_create_started', expect.anything());
+    mockScreenFocused = true;
+    view.rerender(<CreateEventScreen />);
+    expect(mockTrackEvent).toHaveBeenCalledWith('event_create_started', {
+      source: 'create_event_screen',
+    });
+  });
+
+  it('refreshes a prepared form default date on first focus', () => {
+    mockScreenFocused = false;
+    const view = render(<CreateEventScreen />);
+    mockDefaultDateTime = '2026-01-24T16:00:00.000Z';
+    mockScreenFocused = true;
+    view.rerender(<CreateEventScreen />);
+    expect(mockFormatPickerDateTimeValue).toHaveBeenLastCalledWith(new Date(mockDefaultDateTime));
   });
 
   it('renders core fields and current datetime value', () => {

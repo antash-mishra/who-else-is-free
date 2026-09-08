@@ -1,0 +1,18 @@
+{
+  "samples": 2,
+  "time_basis": "Device wall-clock milliseconds in screenrecord bugreport overlay, checked against native input log; one captured-frame uncertainty; separate from unrecorded native frame capture",
+  "first": {
+    "tap_down_seconds": 43.401,
+    "tap_up_seconds": 43.483,
+    "first_visible_header_seconds": 43.601,
+    "visually_settled_header_seconds": 43.835,
+    "cover_crossfade_finished_approximately_seconds": 44.084
+  },
+  "second": {
+    "tap_down_seconds": 48.42,
+    "tap_up_seconds": 48.503,
+    "first_visible_header_seconds": 48.628,
+    "visually_settled_header_seconds": 48.861,
+    "cover_present_at_settle": true
+  }
+}

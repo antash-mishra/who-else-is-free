@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useRef } from 'react';
 
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import {
   createBottomTabNavigator,
@@ -23,6 +23,7 @@ import {
   EventSharedTransitionSourcePage,
 } from '@components/events/EventSharedTransition';
 import { BottomSheetHostProvider } from '@components/sheets';
+import { usePrepareCreateEvent } from '@hooks/usePrepareCreateEvent';
 import { navigationRef } from '@navigation/navigationRef';
 import { EventDetailsOverlaySheet, PendingRequestsSheet } from '@navigation/SheetRoutes';
 import { VibratingTabBarButton } from '@navigation/TabBarButton';
@@ -160,6 +161,7 @@ const tabBarStyles = StyleSheet.create({
 
 // ─── Main tabs ───────────────────────────────────────────────────────────────
 const MainTabs = () => {
+  usePrepareCreateEvent();
   const insets = useSafeAreaInsets();
 
   const tabBarBaseStyle = useMemo(
@@ -266,6 +268,7 @@ const MainTabs = () => {
 
 // ─── Root navigator ──────────────────────────────────────────────────────────
 const AppNavigator = () => {
+  const { width: screenWidth } = useWindowDimensions();
   const routeNameRef = useRef<string | undefined>(undefined);
   const navigationTheme = {
     ...DefaultTheme,
@@ -388,6 +391,8 @@ const AppNavigator = () => {
               options={{
                 cardStyleInterpolator: slideFromBottomInterpolator,
                 transitionSpec: slideFromBottomTransitionSpec,
+                gestureDirection: 'horizontal',
+                gestureResponseDistance: screenWidth,
               }}
             />
             <Stack.Screen

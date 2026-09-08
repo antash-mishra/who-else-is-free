@@ -1,0 +1,38 @@
+[
+  {
+    "cycle": 0,
+    "main_cpu_ms": 77.904223,
+    "js_cpu_ms": 48.275469,
+    "largest_mount_batch_ms": 14.753555
+  },
+  {
+    "cycle": 1,
+    "main_cpu_ms": 84.599261,
+    "js_cpu_ms": 53.348207,
+    "largest_mount_batch_ms": 13.864648
+  },
+  {
+    "cycle": 2,
+    "main_cpu_ms": 87.64033,
+    "js_cpu_ms": 53.600509,
+    "largest_mount_batch_ms": 2.65832
+  },
+  {
+    "cycle": 3,
+    "main_cpu_ms": 79.663242,
+    "js_cpu_ms": 54.086528,
+    "largest_mount_batch_ms": 12.907578
+  },
+  {
+    "cycle": 4,
+    "main_cpu_ms": 81.022891,
+    "js_cpu_ms": 47.636955,
+    "largest_mount_batch_ms": 13.565859
+  },
+  {
+    "cycle": 5,
+    "main_cpu_ms": 77.961468,
+    "js_cpu_ms": 57.216871,
+    "largest_mount_batch_ms": 13.289883
+  }
+]
