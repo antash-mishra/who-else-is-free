@@ -425,7 +425,8 @@ const styles = StyleSheet.create({
     // Position the dot at the top-right corner of the SVG icon, not the
     // button container, so it visually sits on the bell's upper-right.
     top: 4,
-    right: 2,
+    right: 6
+    ,
     // Match the chat tab-bar unread dot: red fill with a white ring. RN draws
     // borders inside the box, so 10px outer (6px red fill + 2px ring each side)
     // keeps it the same size as the chat dot.
