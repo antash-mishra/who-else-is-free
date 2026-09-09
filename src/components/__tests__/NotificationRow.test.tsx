@@ -30,6 +30,59 @@ const renderRow = (item: AppNotification) =>
     />,
   );
 
+const chatGroup = (read: boolean) => ({
+  conversationId: 10,
+  eventName: 'Dancing',
+  senderNames: ['Alice'],
+  count: 2,
+  latestSender: 'Alice',
+  latestPreview: 'hey',
+  createdAt: new Date().toISOString(),
+  ids: [1, 2],
+  read,
+  actionState: 'active' as const,
+});
+
+const renderGroup = (read: boolean) => {
+  const group = chatGroup(read);
+  return render(
+    <NotificationRow
+      item={{
+        kind: 'chatGroup',
+        key: `c-10:${read ? 'read' : 'unread'}`,
+        createdAt: group.createdAt,
+        group,
+      }}
+      onPressSingle={jest.fn()}
+      onPressChatGroup={jest.fn()}
+      onPressJoinGroup={jest.fn()}
+      nowMs={Date.now()}
+    />,
+  );
+};
+
+describe('NotificationRow read state', () => {
+  it('shows the unread dot for an unopened chat group', () => {
+    const screen = renderGroup(false);
+    expect(screen.getByTestId('notification-unread-dot')).toBeTruthy();
+  });
+
+  it('keeps an opened chat group in the list, lighter and without the unread dot', () => {
+    const screen = renderGroup(true);
+    expect(screen.queryByTestId('notification-unread-dot')).toBeNull();
+    expect(screen.getByText(/New messages from/)).toBeTruthy();
+  });
+
+  it('shows the unread dot for an unread single notification and hides it once read', () => {
+    expect(
+      renderRow(notification({ read: false })).getByTestId('notification-unread-dot'),
+    ).toBeTruthy();
+    expect(
+      renderRow(notification({ read: true })).queryByTestId('notification-unread-dot'),
+    ).toBeNull();
+  });
+});
+
 describe('NotificationRow status line', () => {
   it('shows no status line for a handled notification', () => {
     const screen = renderRow(notification({ actionState: 'resolved' }));

@@ -133,7 +133,7 @@ const NotificationsScreen = () => {
 
   const showInitialLoading = loading && notifications.length === 0 && !refreshing;
   const showError = !!error && !loading && notifications.length === 0;
-  // Empty when nothing is left to show after collapse (e.g. all chat rows read).
+  // Empty only when the inbox itself is empty: read rows stay as lighter rows.
   const showEmpty = !loading && inboxItems.length === 0 && !error;
 
   const menuActions = [

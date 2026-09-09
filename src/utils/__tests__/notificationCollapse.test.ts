@@ -72,15 +72,32 @@ describe('collapseNotifications', () => {
     expect(items).toHaveLength(2);
   });
 
-  it('drops read chat notifications entirely', () => {
+  it('keeps read chat notifications as their own lighter group instead of dropping them', () => {
     const items = collapseNotifications([
       chat(2, 10, 'Sylvie', 'hi'),
       chat(1, 10, 'Sylvie', 'old', { read: true }),
     ]);
+    expect(items).toHaveLength(2);
+    expect(items.map((i) => i.kind)).toEqual(['chatGroup', 'chatGroup']);
+    if (items[0].kind === 'chatGroup' && items[1].kind === 'chatGroup') {
+      expect(items[0].group.ids).toEqual([2]);
+      expect(items[0].group.read).toBe(false);
+      expect(items[1].group.ids).toEqual([1]);
+      expect(items[1].group.read).toBe(true);
+      expect(items[1].group.actionState).toBe('active');
+    }
+  });
+
+  it('collapses opened chat notifications together and marks the group read', () => {
+    const items = collapseNotifications([
+      chat(3, 10, 'Sylvie', 'later', { read: true }),
+      chat(2, 10, 'Joe', 'hi', { read: true }),
+    ]);
     expect(items).toHaveLength(1);
     if (items[0].kind === 'chatGroup') {
-      expect(items[0].group.count).toBe(1);
-      expect(items[0].group.ids).toEqual([2]);
+      expect(items[0].group.count).toBe(2);
+      expect(items[0].group.read).toBe(true);
+      expect(items[0].group.senderNames).toEqual(['Sylvie', 'Joe']);
     }
   });
 
@@ -117,7 +134,7 @@ describe('collapseNotifications', () => {
     ]);
 
     expect(items).toHaveLength(2);
-    expect(items.map((item) => item.key)).toEqual(['c-10:active', 'c-10:inactive']);
+    expect(items.map((item) => item.key)).toEqual(['c-10:unread', 'c-10:inactive']);
   });
 
   it('lists unique senders, latest first', () => {
@@ -154,13 +171,17 @@ describe('collapseNotifications', () => {
     expect(items).toHaveLength(2);
   });
 
-  it('drops read join requests', () => {
+  it('keeps read join requests as their own lighter group instead of dropping them', () => {
     const items = collapseNotifications([
       join(2, 1, 'Sylvie', 'Dancing'),
       join(1, 1, 'Joe', 'Dancing', { read: true }),
     ]);
-    if (items[0].kind === 'joinGroup') {
+    expect(items).toHaveLength(2);
+    if (items[0].kind === 'joinGroup' && items[1].kind === 'joinGroup') {
       expect(items[0].group.count).toBe(1);
+      expect(items[0].group.read).toBe(false);
+      expect(items[1].group.ids).toEqual([1]);
+      expect(items[1].group.read).toBe(true);
     }
   });
 
@@ -206,6 +227,7 @@ describe('buildJoinGroupDisplay copy', () => {
     count,
     createdAt: new Date().toISOString(),
     ids: [],
+    read: false,
     actionState: 'active' as const,
   });
 
@@ -259,6 +281,7 @@ describe('buildChatGroupDisplay copy', () => {
     latestPreview: 'See you at 7 pm',
     createdAt: new Date().toISOString(),
     ids: [],
+    read: false,
     actionState: 'active' as const,
   });
 

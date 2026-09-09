@@ -60,7 +60,8 @@ const NotificationRow = ({
   const isInactive = actionState !== 'active';
   const isUnavailable = actionState === 'unavailable';
   const hasUnread =
-    actionState === 'active' && (item.kind === 'single' ? !item.notification.read : true);
+    actionState === 'active' &&
+    !(item.kind === 'single' ? item.notification.read : item.group.read);
   const timestampLabel = formatCompactRelativeTime(item.createdAt, nowMs);
 
   let segments;
@@ -109,7 +110,7 @@ const NotificationRow = ({
       disabled={isResolving}
       style={styles.row}
     >
-      {hasUnread && <UnreadDot style={styles.unreadDot} />}
+      {hasUnread && <UnreadDot testID="notification-unread-dot" style={styles.unreadDot} />}
       <View style={styles.rowContent}>
         <View style={[styles.avatar, isInactive && styles.avatarInactive]}>
           {eventImageUri ? (

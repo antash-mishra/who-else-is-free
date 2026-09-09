@@ -34,7 +34,9 @@ Who Else Is Free is an event discovery and social coordination app.
   `openNotification` in `src/context/pushRouting.ts`; never navigate from raw notification IDs or
   restore client-side entity access checks. Active request tasks open the full-page `JoinRequest`
   route (including conversation-less 1:1 requests); Messages and Event Details use the separate
-  `OneToOneHub` route. Inactive tasks remain as one muted historical group. Push and inbox copy for
+  `OneToOneHub` route. Inactive tasks remain as one muted historical group. Read active tasks are
+  never dropped from the inbox: they collapse into their own per-conversation/event group and render
+  in the lighter read style, so opening a row or "Mark all as read" only lightens it. Push and inbox copy for
   known types is centralized in `notificationCopyFor` in `server/notification_payloads.go`; single
   inbox rows render stored bodies verbatim and collapsed join groups prefer structured
   `payload.senderName` over legacy body parsing.

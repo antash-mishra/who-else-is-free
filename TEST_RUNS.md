@@ -415,3 +415,9 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 
 - Resolved notification rows no longer render the check icon and `Handled` label under their text (they stay muted); the `Unavailable` status line remains because it explains the Discover redirect. The accessibility label no longer prefixes "Handled notification.".
 - New `NotificationRow` test covers resolved, unavailable and active rows; notifications screen and open-notification suites pass (22 tests); typecheck and lint pass.
+
+
+## 2026-09-10 — Opened chat and join-request notifications stay in the inbox
+
+- `collapseNotifications` no longer drops read active chat/join-request rows: active rows collapse per conversation/event into an unread group and a separate read group (`ChatGroup`/`JoinGroup` gain `read`), so opening a row or "Mark all as read" only lightens it and removes the unread dot. Inactive history groups and the `Unavailable` line are unchanged.
+- Collapse, row, inbox screen, open-notification and notifications-context suites pass (60 tests); typecheck and lint pass. `EventsContext.rendering` has one date-dependent failure that also fails on the previous commit and is unrelated.
