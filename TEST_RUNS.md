@@ -409,3 +409,9 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Final diagnostics build (SHA256 `f6d24d15d2e6fb13…`), seven cycles: release→motion **159 ms** [143–176] (−17 %), Back→motion **31 ms** [16–45] (−76 %), 7/7 shared both ways, opening largest step 0.048, return largest step 0.083 (bounded), presented cadence 112–118 fps in the motion windows. Recording reviewed: no duplicate cover, hole, flash or endpoint washout; feed blur clears ~224 ms into the return.
 - Two runs were interrupted by other apps on the personal phone (Zomato order screen, an incoming call); those cycles were discarded and `phone-run.py` now refuses input unless our app is focused. Candidate 4 crashed the UI runtime because custom-animation callbacks are not auto-workletized; fixed with explicit `'worklet'` directives.
 - Full frontend Jest **116 suites / 1,428 tests passed**; typecheck passed; lint 0 errors with the 8 pre-existing warnings on untouched lines; Prettier on touched files. Production QA APK (diagnostics off, OTA disabled for this binary) built as `artifacts/animation-performance/shared-transition-final-phone.apk`, SHA256 `c0a81d1516e4d7e72922170028984e829341a1a5e19798e69642211c81f0a88d`. Report and limits: [report](report/animation-repair/shared-transition-phone-report.md).
+
+
+## 2026-09-10 — Remove the "Handled" status line from inbox rows
+
+- Resolved notification rows no longer render the check icon and `Handled` label under their text (they stay muted); the `Unavailable` status line remains because it explains the Discover redirect. The accessibility label no longer prefixes "Handled notification.".
+- New `NotificationRow` test covers resolved, unavailable and active rows; notifications screen and open-notification suites pass (22 tests); typecheck and lint pass.

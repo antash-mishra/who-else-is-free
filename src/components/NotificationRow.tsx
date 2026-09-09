@@ -33,20 +33,11 @@ export interface NotificationRowProps {
   isResolving?: boolean;
 }
 
-const NotificationStatusIcon = ({ unavailable }: { unavailable: boolean }) => (
+/** Only unavailable rows carry a status line; handled rows are just muted. */
+const NotificationUnavailableIcon = () => (
   <Svg width={14} height={14} viewBox="0 0 14 14" accessibilityElementsHidden>
     <Circle cx={7} cy={7} r={5.75} stroke={colors.cardMeta} strokeWidth={1.5} fill="none" />
-    {unavailable ? (
-      <Path d="M4.25 9.75l5.5-5.5" stroke={colors.cardMeta} strokeWidth={1.5} />
-    ) : (
-      <Path
-        d="M4 7.1l1.8 1.8L10 4.8"
-        stroke={colors.cardMeta}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    )}
+    <Path d="M4.25 9.75l5.5-5.5" stroke={colors.cardMeta} strokeWidth={1.5} />
   </Svg>
 );
 
@@ -95,8 +86,6 @@ const NotificationRow = ({
 
   if (isUnavailable) {
     a11yLabel = `Unavailable notification. Opens Discover and explains why. ${a11yLabel}`;
-  } else if (isInactive) {
-    a11yLabel = `Handled notification. ${a11yLabel}`;
   }
 
   const handlePress = () => {
@@ -161,10 +150,10 @@ const NotificationRow = ({
               </Text>
             ) : null}
           </View>
-          {isInactive ? (
+          {isUnavailable ? (
             <View style={styles.statusRow}>
-              <NotificationStatusIcon unavailable={isUnavailable} />
-              <Text style={styles.statusLabel}>{isUnavailable ? 'Unavailable' : 'Handled'}</Text>
+              <NotificationUnavailableIcon />
+              <Text style={styles.statusLabel}>Unavailable</Text>
             </View>
           ) : null}
         </View>
