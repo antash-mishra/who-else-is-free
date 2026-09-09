@@ -178,7 +178,7 @@ const PastEventsScreen = () => {
           />
         )}
       </ScreenContainer>
-      <FullPageEmptyState visible={showEmpty} imageHeight={245}>
+      <FullPageEmptyState visible={showEmpty} imageHeight={245} centered>
         <EmptyState
           title="No past plans"
           description="Your past plans will appear here once they've ended."

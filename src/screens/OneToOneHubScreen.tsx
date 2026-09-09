@@ -135,7 +135,7 @@ const OneToOneHubScreen = () => {
       is1to1Mode ? (
         <EmptyState
           title="No accepted members yet"
-          description="Chats from accepted members will appear here"
+          description="Chats from accepted members will appear here."
           imageSource={EMPTY_ILLUSTRATION}
           imageWidth={EMPTY_ILLUSTRATION_WIDTH}
           imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
@@ -391,6 +391,7 @@ const OneToOneHubScreen = () => {
       <FullPageEmptyState
         visible={displayRequests.length === 0}
         imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
+        centered
       >
         {listEmpty}
       </FullPageEmptyState>
