@@ -237,7 +237,7 @@ const NotificationsScreen = () => {
           <SheetActionList items={menuActions} />
         </BottomSheetModal>
       </ScreenContainer>
-      <FullPageEmptyState visible={showEmpty} imageHeight={245}>
+      <FullPageEmptyState visible={showEmpty} imageHeight={245} centered>
         <EmptyState
           title="No notifications yet"
           description="Your notifications will appear here."

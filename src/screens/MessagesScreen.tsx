@@ -10,9 +10,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import ScreenContainer from '@components/ScreenContainer';
 import EmptyState from '@components/EmptyState';
-import FullPageEmptyState, {
-  EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
-} from '@components/FullPageEmptyState';
+import FullPageEmptyState from '@components/FullPageEmptyState';
 import UserAvatar from '@components/UserAvatar';
 import { UnreadDot } from '@components/ui';
 import { colors, spacing, typography } from '@theme/index';
@@ -342,14 +340,10 @@ const MessagesScreen = () => {
             <Text style={styles.headerTitle}>Chat</Text>
           </View>
         </ScreenContainer>
-        <FullPageEmptyState
-          visible
-          imageHeight={245}
-          titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
-        >
+        <FullPageEmptyState visible imageHeight={245} centered hasAction>
           <EmptyState
             title="No messages to show"
-            description={'Get started to view conversations from plans you host or join.'}
+            description={'Get started to view your chats.'}
             actionLabel="Get started"
             onActionPress={() => setSignInVisible(true)}
             imageSource={require('@assets/empty-state/chat.png')}
@@ -395,10 +389,11 @@ const MessagesScreen = () => {
       <FullPageEmptyState
         visible={displayConversations.length === 0 && !isConversationListBusy}
         imageHeight={245}
+        centered
       >
         <EmptyState
           title="No messages to show"
-          description={'Conversations from your plans will appear here.'}
+          description={'Your chats will appear here.'}
           imageSource={require('@assets/empty-state/chat.png')}
           imageWidth={279}
           imageHeight={245}

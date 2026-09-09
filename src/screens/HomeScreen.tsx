@@ -26,7 +26,7 @@ import {
   buildSingleEventSection,
   sortEventsByCreatedAtDesc,
 } from '@components/events';
-import { emptyStateAnchorTop } from '@components/FullPageEmptyState';
+import { emptyStateCenteredTop } from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl from '@components/SegmentedControl';
 import { useAuth } from '@context/AuthContext';
@@ -89,7 +89,7 @@ const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
-  const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, 245);
+  const emptyStateTopPadding = emptyStateCenteredTop(windowHeight, 245);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const hasSignalledReady = useRef(false);
   const hasStartedPermissionSequence = useRef(false);

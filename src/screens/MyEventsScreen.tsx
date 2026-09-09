@@ -20,10 +20,7 @@ import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import { EventItemProps } from '@components/EventCard';
 import { EventListLoadState, EventListPage, buildEventSections } from '@components/events';
-import FullPageEmptyState, {
-  EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT,
-  emptyStateAnchorTop,
-} from '@components/FullPageEmptyState';
+import FullPageEmptyState, { emptyStateCenteredTop } from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl, { SegmentedOption } from '@components/SegmentedControl';
 import SignInButtons from '@components/SignInButtons';
@@ -63,7 +60,7 @@ const MyEventsScreen = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const emptyStateTopPadding = emptyStateAnchorTop(windowHeight, MY_EVENTS_EMPTY_IMAGE_HEIGHT);
+  const emptyStateTopPadding = emptyStateCenteredTop(windowHeight, MY_EVENTS_EMPTY_IMAGE_HEIGHT);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
@@ -179,11 +176,7 @@ const MyEventsScreen = () => {
             <Text style={styles.headerTitle}>My plans</Text>
           </View>
         </ScreenContainer>
-        <FullPageEmptyState
-          visible
-          imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
-          titleFraction={EMPTY_STATE_TITLE_FRACTION_SIGNED_OUT}
-        >
+        <FullPageEmptyState visible imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT} centered hasAction>
           <EmptyState
             title="Your plans are waiting"
             description="Get started to create or join plans."

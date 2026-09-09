@@ -564,7 +564,7 @@ describe('OneToOneHubScreen Rendering', () => {
       const { getByText, queryByText } = render(<OneToOneHubScreen />);
 
       expect(getByText('No accepted members yet')).toBeTruthy();
-      expect(getByText('Chats from accepted members will appear here')).toBeTruthy();
+      expect(getByText('Chats from accepted members will appear here.')).toBeTruthy();
       expect(
         queryByText("You'll see new join requests here when attendees tap Interested."),
       ).toBeNull();
