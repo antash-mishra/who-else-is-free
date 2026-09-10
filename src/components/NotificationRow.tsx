@@ -3,7 +3,6 @@ import { memo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
-import Svg, { Circle, Path } from 'react-native-svg';
 
 import { AppNotification } from '@api/mappers/notifications';
 import ScalePressable from '@components/ScalePressable';
@@ -32,14 +31,6 @@ export interface NotificationRowProps {
   eventImageUri?: string;
   isResolving?: boolean;
 }
-
-/** Only unavailable rows carry a status line; handled rows are just muted. */
-const NotificationUnavailableIcon = () => (
-  <Svg width={14} height={14} viewBox="0 0 14 14" accessibilityElementsHidden>
-    <Circle cx={7} cy={7} r={5.75} stroke={colors.cardMeta} strokeWidth={1.5} fill="none" />
-    <Path d="M4.25 9.75l5.5-5.5" stroke={colors.cardMeta} strokeWidth={1.5} />
-  </Svg>
-);
 
 /**
  * NotificationRow: 40px circular avatar/cover, blue unread dot at the left edge,
@@ -151,12 +142,6 @@ const NotificationRow = ({
               </Text>
             ) : null}
           </View>
-          {isUnavailable ? (
-            <View style={styles.statusRow}>
-              <NotificationUnavailableIcon />
-              <Text style={styles.statusLabel}>Unavailable</Text>
-            </View>
-          ) : null}
         </View>
       </View>
     </ScalePressable>
@@ -244,17 +229,6 @@ const styles = StyleSheet.create({
     color: colors.cardMeta,
     fontFamily: typography.fontFamilyRegular,
     textAlign: 'right',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  statusLabel: {
-    color: colors.cardMeta,
-    fontFamily: typography.fontFamilyMedium,
-    fontSize: typography.small,
-    lineHeight: typography.body,
   },
 });
 

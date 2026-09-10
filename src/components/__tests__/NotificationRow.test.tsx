@@ -91,9 +91,9 @@ describe('NotificationRow status line', () => {
     expect(screen.getByRole('button').props.accessibilityLabel).not.toMatch(/Handled/);
   });
 
-  it('keeps the Unavailable status line, which explains the Discover redirect', () => {
+  it('shows no status line for an unavailable notification, only the screen-reader hint', () => {
     const screen = renderRow(notification({ actionState: 'unavailable' }));
-    expect(screen.getByText('Unavailable')).toBeTruthy();
+    expect(screen.queryByText('Unavailable')).toBeNull();
     expect(screen.getByRole('button').props.accessibilityLabel).toMatch(
       /^Unavailable notification/,
     );

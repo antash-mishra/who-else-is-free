@@ -58,7 +58,7 @@ Who Else Is Free is an event discovery and social coordination app.
   `group_type` for this, and a resolution without it but with a conversation id is treated as Group
   (older servers only attach conversation ids to group requests). `JoinRequest` is the same transparent-modal sheet the in-chat requests badge
   opens (formerly `PendingRequests`); there is no full-page request review route, and `OneToOneHub`
-  is 1:1-only. Inactive tasks remain as one muted historical group. Read active tasks are
+  is 1:1-only. Inactive tasks remain as one muted historical group with no visible `Handled`/`Unavailable` status line. Read active tasks are
   never dropped from the inbox: they collapse into their own per-conversation/event group and render
   in the lighter read style, so opening a row or "Mark all as read" only lightens it. Push and inbox copy for
   known types is centralized in `notificationCopyFor` in `server/notification_payloads.go`; single

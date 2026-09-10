@@ -417,7 +417,7 @@ describe('NotificationsScreen Rendering', () => {
     expect(getByText('Unable to open this notification. Please try again.')).toBeTruthy();
   });
 
-  it('renders unavailable task history with a status label and safe accessibility copy', () => {
+  it('renders unavailable task history without a status label but with safe accessibility copy', () => {
     const unavailable = sampleNotifications()[0];
     unavailable.read = true;
     unavailable.actionState = 'unavailable';
@@ -427,9 +427,9 @@ describe('NotificationsScreen Rendering', () => {
       notifications: [unavailable],
       unreadCount: 0,
     };
-    const { getByLabelText, getByText } = render(<NotificationsScreen />);
+    const { getByLabelText, queryByText } = render(<NotificationsScreen />);
 
-    expect(getByText('Unavailable')).toBeTruthy();
+    expect(queryByText('Unavailable')).toBeNull();
     expect(
       getByLabelText(/Unavailable notification\. Opens Discover and explains why/),
     ).toBeTruthy();
