@@ -6,6 +6,7 @@
 import React from 'react';
 import { act, fireEvent, waitFor } from '@testing-library/react-native';
 import { Platform, StyleSheet } from 'react-native';
+import { StackActions } from '@react-navigation/native';
 import {
   AndroidSoftInputModes,
   KeyboardController,
@@ -26,6 +27,7 @@ import {
   mockPendingMessage,
   mockFailedMessage,
   mockEvents,
+  mockJoinRequests,
 } from '../../__tests__/mocks/mockData';
 import { mockNavigation } from '../../__tests__/mocks/mockModules';
 import { spacing } from '@theme/index';
@@ -64,6 +66,12 @@ jest.mock('@components/EventActionOverlay', () => {
     onSubmitReport,
     reportMessage,
     reportError,
+    placeholder,
+    title,
+    confirmLabel,
+    cancelLabel,
+    onConfirm,
+    onCancel,
   }: {
     isVisible: boolean;
     onBackdropPress?: () => void;
@@ -73,9 +81,29 @@ jest.mock('@components/EventActionOverlay', () => {
     onSubmitReport?: () => void;
     reportMessage?: string;
     reportError?: string | null;
+    placeholder?: string;
+    title?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
   }) => {
     if (!isVisible) {
       return null;
+    }
+
+    if (type === 'confirm') {
+      return (
+        <View testID="action-overlay-confirm">
+          <Text>{title}</Text>
+          <Pressable testID="confirm-action" onPress={onConfirm}>
+            <Text>{confirmLabel}</Text>
+          </Pressable>
+          <Pressable testID="cancel-action" onPress={onCancel}>
+            <Text>{cancelLabel}</Text>
+          </Pressable>
+        </View>
+      );
     }
 
     if (type === 'menu') {
@@ -94,6 +122,7 @@ jest.mock('@components/EventActionOverlay', () => {
     if (type === 'report') {
       return (
         <View testID="action-overlay-report">
+          {placeholder ? <Text testID="report-placeholder">{placeholder}</Text> : null}
           <Pressable testID="report-input" onPress={() => onReportMessageChange?.('Reason')}>
             <Text>{reportMessage ?? ''}</Text>
           </Pressable>
@@ -163,6 +192,8 @@ describe('ChatThreadScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockNavigation.canGoBack.mockReturnValue(true);
+    mockNavigation.isFocused.mockReturnValue(true);
+    mockNavigation.getState.mockReturnValue({ routes: [], index: 0 });
   });
 
   describe('Message List Rendering', () => {
@@ -397,9 +428,9 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('2 members')).toBeTruthy();
     });
 
-    it('should display error message when error exists', () => {
+    it('should display the thread error banner when a thread error exists', () => {
       setupMocks({
-        chatOverrides: { error: 'Connection failed' },
+        chatOverrides: { threadError: 'Connection failed' },
       });
       const { getByText } = render(<ChatThreadScreen />);
 
@@ -484,6 +515,46 @@ describe('ChatThreadScreen Rendering', () => {
       });
 
       expect(mockNavigation.goBack).not.toHaveBeenCalled();
+    });
+
+    it('should pop the thread together with a sheet above it when the conversation is cleared', () => {
+      let activeConversationId: number | null = 1;
+      mockNavigation.isFocused.mockReturnValue(false);
+      (mockNavigation.getState as jest.Mock).mockReturnValue({
+        index: 2,
+        routes: [
+          { key: 'notifications-key', name: 'Notifications' },
+          { key: 'test-key', name: 'ChatThread' },
+          { key: 'join-request-key', name: 'JoinRequest' },
+        ],
+      });
+      mockedUseChat.mockImplementation(() =>
+        createMockUseChat({
+          activeConversationId,
+          conversations: activeConversationId == null ? [] : mockConversations,
+          messages: mockMessages,
+          sendMessage: mockSendMessage,
+          retryMessage: mockRetryMessage,
+          setActiveConversation: mockSetActiveConversation,
+          refreshJoinRequests: mockRefreshJoinRequests,
+          refreshConversations: mockRefreshConversations,
+          isConnecting: false,
+          error: null,
+          joinRequestsByConversation: {},
+        })(),
+      );
+      mockedUseAuth.mockReturnValue(createMockUseAuth({ user: mockUsers[0] })());
+      mockedUseEvents.mockReturnValue(createMockUseEvents({ events: mockEvents })());
+
+      const { rerender } = render(<ChatThreadScreen />);
+
+      act(() => {
+        activeConversationId = null;
+        rerender(<ChatThreadScreen />);
+      });
+
+      expect(mockNavigation.goBack).not.toHaveBeenCalled();
+      expect(mockNavigation.dispatch).toHaveBeenCalledWith(StackActions.pop(2));
     });
 
     it('should clear active conversation after the chat route closes', () => {
@@ -784,7 +855,7 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText('Remove Liam')).toBeTruthy();
     });
 
-    it('should open the report overlay from the single-chat header menu', () => {
+    it('should confirm before opening the report prompt, matching Event Details', () => {
       setupMocks({
         chatOverrides: {
           activeConversationId: 55,
@@ -796,12 +867,20 @@ describe('ChatThreadScreen Rendering', () => {
         },
       });
 
-      const { getByTestId } = render(<ChatThreadScreen />);
+      const { getByTestId, getByText, queryByTestId } = render(<ChatThreadScreen />);
 
       fireEvent.press(getByTestId('chat-event-info-button'));
       fireEvent.press(getByTestId('menu-item-0'));
 
+      expect(getByTestId('action-overlay-confirm')).toBeTruthy();
+      expect(getByText('Report & block Liam?')).toBeTruthy();
+      expect(queryByTestId('action-overlay-report')).toBeNull();
+
+      fireEvent.press(getByTestId('confirm-action'));
+
+      expect(queryByTestId('action-overlay-confirm')).toBeNull();
       expect(getByTestId('action-overlay-report')).toBeTruthy();
+      expect(getByText("Tell us why you're reporting Liam")).toBeTruthy();
     });
 
     it('should remove the counterpart from the single-chat header menu', async () => {
@@ -889,6 +968,22 @@ describe('ChatThreadScreen Rendering', () => {
 
       expect(getByPlaceholderText('Write a message')).toBeTruthy();
       expect(getByLabelText('Send message')).toBeTruthy();
+    });
+  });
+
+  describe('Group host requests badge', () => {
+    it('opens the JoinRequest sheet over the group thread with its conversation key', () => {
+      setupMocks({
+        chatOverrides: { joinRequestsByConversation: { 1: mockJoinRequests } },
+      });
+      const { getByLabelText } = render(<ChatThreadScreen />);
+
+      fireEvent.press(getByLabelText('View requests'));
+
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('JoinRequest', {
+        conversationId: 1,
+        eventId: 1,
+      });
     });
   });
 });

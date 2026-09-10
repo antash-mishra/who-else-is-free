@@ -23,11 +23,6 @@ export type RootStackParamList = {
   JoinRequest: {
     conversationId?: number;
     eventId: number;
-    title: string;
-  };
-  PendingRequests: {
-    conversationId: number;
-    eventId: number;
     includeApproved?: boolean;
   };
   ChatThread: undefined;

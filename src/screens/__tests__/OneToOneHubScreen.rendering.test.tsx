@@ -1,11 +1,16 @@
 /**
  * Rendering tests for OneToOneHubScreen
- * Tests request list rendering, approve/deny actions, empty state, and 1:1 vs group mode
+ * Tests the 1:1 host hub: header, accepted list, pending badge, and sheet navigation
  */
 
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+
 import { Alert } from 'react-native';
+
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
+import type { ChatConversation } from '@context/ChatContext';
+
 import OneToOneHubScreen from '../OneToOneHubScreen';
 
 // Mock Alert
@@ -20,7 +25,6 @@ const mockRouteParams = {
   conversationId: 1,
   eventId: 1,
   title: 'Coffee Meetup',
-  groupType: 'Group' as 'Single' | 'Group',
 };
 
 const today = new Date();
@@ -145,35 +149,6 @@ jest.mock('@context/ChatContext', () => ({
   ChatJoinRequest: {},
 }));
 
-import type { ChatConversation } from '@context/ChatContext';
-
-const mockConversation = (overrides: Partial<ChatConversation> = {}): ChatConversation => ({
-  id: 1,
-  createdBy: 1,
-  title: 'Coffee Meetup Chat',
-  memberIds: [1, 2, 3],
-  participants: [
-    { id: 1, name: 'Test User' },
-    { id: 2, name: 'Jane Doe' },
-    { id: 3, name: 'John Smith' },
-  ],
-  displayName: 'Coffee Meetup Chat',
-  unreadCount: 0,
-  eventId: 1,
-  event: {
-    id: 1,
-    userId: 1,
-    title: 'Coffee Meetup',
-    location: 'Central Park',
-    time: '10:00 AM',
-    dateLabel: 'Today',
-    eventDate: todayKey,
-    groupType: 'Group',
-    coverKey: 'coffee',
-  },
-  ...overrides,
-});
-
 let mockEventsValue = {
   events: [
     {
@@ -289,7 +264,6 @@ jest.mock('@expo/vector-icons', () => ({
 describe('OneToOneHubScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRouteParams.groupType = 'Group';
     mockChatValue = {
       joinRequestsByConversation: { 1: mockJoinRequests },
       refreshJoinRequests: mockRefreshJoinRequests,
@@ -323,139 +297,15 @@ describe('OneToOneHubScreen Rendering', () => {
           gender: 'Any',
           minAge: 18,
           maxAge: 35,
-          groupType: 'Group' as 'Single' | 'Group',
+          groupType: 'Single' as 'Single' | 'Group',
           coverKey: 'coffee',
         },
       ],
     };
   });
 
-  describe('Group Mode - Header Rendering', () => {
-    it('should render the event title in header', () => {
-      const { getByText } = render(<OneToOneHubScreen />);
-      expect(getByText('Coffee Meetup')).toBeTruthy();
-    });
-
-    it('should render member count and date subtitle in group mode', () => {
-      mockChatValue.conversations = [mockConversation()];
-      const { getByText } = render(<OneToOneHubScreen />);
-      // Subtitle: "Group · 3 members" (two parts, dot separator).
-      expect(getByText('Group')).toBeTruthy();
-      expect(getByText('3 members')).toBeTruthy();
-    });
-
-    it('should render back button', () => {
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-      expect(getByLabelText('Go back')).toBeTruthy();
-    });
-
-    it('should navigate back when back button is pressed', () => {
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-      fireEvent.press(getByLabelText('Go back'));
-      expect(mockGoBack).toHaveBeenCalled();
-    });
-  });
-
-  describe('Group Mode - Request List Rendering', () => {
-    it('should render all pending requests', () => {
-      const { getByText } = render(<OneToOneHubScreen />);
-
-      expect(getByText('Jane Doe')).toBeTruthy();
-      expect(getByText('John Smith')).toBeTruthy();
-      expect(getByText('Alice Brown')).toBeTruthy();
-    });
-
-    it('should render request messages', () => {
-      const { getByText } = render(<OneToOneHubScreen />);
-
-      expect(getByText('I would love to join this coffee meetup!')).toBeTruthy();
-      expect(getByText('Sounds fun!')).toBeTruthy();
-    });
-
-    it('should render Accept and Decline buttons for each request', () => {
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-
-      expect(getByLabelText('Accept request from Jane Doe')).toBeTruthy();
-      expect(getByLabelText('Decline request from Jane Doe')).toBeTruthy();
-      expect(getByLabelText('Accept request from John Smith')).toBeTruthy();
-      expect(getByLabelText('Decline request from John Smith')).toBeTruthy();
-      expect(getByLabelText('Accept request from Alice Brown')).toBeTruthy();
-      expect(getByLabelText('Decline request from Alice Brown')).toBeTruthy();
-    });
-  });
-
-  describe('Group Mode - Approve Action', () => {
-    it('should call approveJoinRequest when Accept is pressed', async () => {
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-      fireEvent.press(getByLabelText('Accept request from Jane Doe'));
-
-      await waitFor(() => {
-        expect(mockApproveJoinRequest).toHaveBeenCalledWith(1, 1, 2);
-      });
-    });
-
-    it('should show alert on approval error', async () => {
-      mockApproveJoinRequest.mockRejectedValueOnce(new Error('Network error'));
-
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-      await act(async () => {
-        fireEvent.press(getByLabelText('Accept request from Jane Doe'));
-      });
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Unable to update request', 'Network error');
-      });
-    });
-  });
-
-  describe('Group Mode - Deny Action', () => {
-    it('should call denyJoinRequest when Decline is pressed', async () => {
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-      fireEvent.press(getByLabelText('Decline request from Jane Doe'));
-
-      await waitFor(() => {
-        expect(mockDenyJoinRequest).toHaveBeenCalledWith(1, 1, 2);
-      });
-    });
-
-    it('should show alert on denial error', async () => {
-      mockDenyJoinRequest.mockRejectedValueOnce(new Error('Server error'));
-
-      const { getByLabelText } = render(<OneToOneHubScreen />);
-      await act(async () => {
-        fireEvent.press(getByLabelText('Decline request from Jane Doe'));
-      });
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith('Unable to update request', 'Server error');
-      });
-    });
-  });
-
-  describe('Group Mode - Empty State', () => {
-    it('should show empty state when no pending requests', () => {
-      mockChatValue.joinRequestsByConversation = { 1: [] };
-
-      const { getByText } = render(<OneToOneHubScreen />);
-
-      expect(getByText('No pending requests')).toBeTruthy();
-      expect(
-        getByText("You'll see new join requests here when attendees tap Interested."),
-      ).toBeTruthy();
-    });
-
-    it('should show empty state when conversation has no requests entry', () => {
-      mockChatValue.joinRequestsByConversation = {};
-
-      const { getByText } = render(<OneToOneHubScreen />);
-
-      expect(getByText('No pending requests')).toBeTruthy();
-    });
-  });
-
   describe('1:1 Mode - Header Rendering', () => {
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [
         {
           ...mockEventsValue.events[0],
@@ -502,7 +352,6 @@ describe('OneToOneHubScreen Rendering', () => {
 
   describe('1:1 Mode - Request List Rendering', () => {
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
@@ -536,7 +385,6 @@ describe('OneToOneHubScreen Rendering', () => {
 
   describe('1:1 Mode - Request Press Navigation', () => {
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
@@ -554,7 +402,6 @@ describe('OneToOneHubScreen Rendering', () => {
 
   describe('1:1 Mode - Empty State', () => {
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
@@ -576,14 +423,13 @@ describe('OneToOneHubScreen Rendering', () => {
       render(<OneToOneHubScreen />);
 
       await waitFor(() => {
-        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1, { includeApproved: false });
+        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1, { includeApproved: true });
       });
     });
   });
 
   describe('Avatar Colors', () => {
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
@@ -599,7 +445,6 @@ describe('OneToOneHubScreen Rendering', () => {
 
   describe('Request Without ConversationId', () => {
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
     });
 
@@ -647,7 +492,6 @@ describe('OneToOneHubScreen Rendering', () => {
     ];
 
     beforeEach(() => {
-      mockRouteParams.groupType = 'Single';
       mockEventsValue.events = [{ ...mockEventsValue.events[0], groupType: 'Single' }];
       mockChatValue.joinRequestsByConversation = { 1: onlyPendingRequests };
     });
@@ -668,12 +512,12 @@ describe('OneToOneHubScreen Rendering', () => {
       expect(getByText('No accepted members yet')).toBeTruthy();
     });
 
-    it('should navigate to PendingRequests when badge icon is pressed', () => {
+    it('opens the JoinRequest sheet with the hub store key when the badge is pressed', () => {
       const { getByLabelText } = render(<OneToOneHubScreen />);
 
       fireEvent.press(getByLabelText('View pending requests'));
 
-      expect(mockNavigate).toHaveBeenCalledWith('PendingRequests', {
+      expect(mockNavigate).toHaveBeenCalledWith('JoinRequest', {
         conversationId: 1,
         eventId: 1,
         includeApproved: true,

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 const (
@@ -32,13 +33,26 @@ type NotificationActionResolution struct {
 	EventID        *int64                    `json:"event_id,omitempty"`
 	ConversationID *int64                    `json:"conversation_id,omitempty"`
 	Title          string                    `json:"title,omitempty"`
+	// GroupType is set for join_requests destinations so the client can land on
+	// the matching chat screen (group thread or 1:1 hub) before opening the sheet.
+	GroupType string `json:"group_type,omitempty"`
 }
 
 type notificationEventTarget struct {
-	ID        int64
-	OwnerID   int64
-	Title     string
-	GroupType string
+	ID          int64
+	OwnerID     int64
+	Title       string
+	GroupType   string
+	EventDate   string
+	ScheduledAt *time.Time
+}
+
+// ended reports whether the event's scheduled time has passed. Chat and
+// request actions on ended events resolve as `event_ended`: the Messages list
+// no longer carries their conversations, so opening them would strand the
+// user on an empty thread.
+func (e notificationEventTarget) ended(now time.Time) bool {
+	return isEventPast(&Event{EventDate: e.EventDate, ScheduledAt: e.ScheduledAt}, now)
 }
 
 type notificationConversationTarget struct {
@@ -328,12 +342,33 @@ func resolveChatNotification(
 		(conversation.EventID == nil || *conversation.EventID != *notification.EventID) {
 		return NotificationActionResolution{}, ErrNotificationActionInvalid
 	}
+	if ended, err := conversationEventEnded(ctx, tx, conversation.EventID); err != nil {
+		return NotificationActionResolution{}, err
+	} else if ended {
+		return unavailableNotification(NotificationReasonEventEnded), nil
+	}
 	return NotificationActionResolution{
 		Status:         NotificationActionActive,
 		Destination:    NotificationDestinationChat,
 		EventID:        conversation.EventID,
 		ConversationID: &conversation.ID,
 	}, nil
+}
+
+// conversationEventEnded loads the conversation's event, if any, and reports
+// whether it has ended. Event-less conversations never end.
+func conversationEventEnded(ctx context.Context, tx *sql.Tx, eventID *int64) (bool, error) {
+	if eventID == nil {
+		return false, nil
+	}
+	event, err := loadNotificationEvent(ctx, tx, *eventID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return event.ended(time.Now()), nil
 }
 
 func resolveJoinRequestNotification(
@@ -355,6 +390,9 @@ func resolveJoinRequestNotification(
 	}
 	if event.OwnerID != userID {
 		return unavailableNotification(NotificationReasonAccessRemoved), nil
+	}
+	if event.ended(time.Now()) {
+		return unavailableNotification(NotificationReasonEventEnded), nil
 	}
 
 	hasPending := false
@@ -440,6 +478,7 @@ func resolveJoinRequestNotification(
 			EventID:        &event.ID,
 			ConversationID: &conversationID,
 			Title:          event.Title,
+			GroupType:      event.GroupType,
 		}, nil
 	}
 	return NotificationActionResolution{
@@ -447,6 +486,7 @@ func resolveJoinRequestNotification(
 		Destination: NotificationDestinationJoinRequests,
 		EventID:     &event.ID,
 		Title:       event.Title,
+		GroupType:   event.GroupType,
 	}, nil
 }
 
@@ -470,6 +510,11 @@ func resolveApprovedNotification(
 			}
 			sameEvent := eventID == nil || (conversation.EventID != nil && *conversation.EventID == *eventID)
 			if conversation.Member && sameEvent {
+				if ended, err := conversationEventEnded(ctx, tx, conversation.EventID); err != nil {
+					return NotificationActionResolution{}, err
+				} else if ended {
+					return unavailableNotification(NotificationReasonEventEnded), nil
+				}
 				return NotificationActionResolution{
 					Status:         NotificationActionActive,
 					Destination:    NotificationDestinationChat,
@@ -490,6 +535,9 @@ func resolveApprovedNotification(
 			return unavailableNotification(NotificationReasonEventDeleted), nil
 		}
 		return NotificationActionResolution{}, err
+	}
+	if event.ended(time.Now()) {
+		return unavailableNotification(NotificationReasonEventEnded), nil
 	}
 	var replacementID int64
 	err = tx.QueryRowContext(ctx, `
@@ -517,11 +565,23 @@ func resolveApprovedNotification(
 
 func loadNotificationEvent(ctx context.Context, tx *sql.Tx, eventID int64) (notificationEventTarget, error) {
 	var event notificationEventTarget
+	var scheduledAt sql.NullString
 	err := tx.QueryRowContext(ctx,
-		`SELECT id, user_id, title, group_type FROM events WHERE id = ? LIMIT 1;`,
+		`SELECT id, user_id, title, group_type, event_date, scheduled_at FROM events WHERE id = ? LIMIT 1;`,
 		eventID,
-	).Scan(&event.ID, &event.OwnerID, &event.Title, &event.GroupType)
-	return event, err
+	).Scan(&event.ID, &event.OwnerID, &event.Title, &event.GroupType, &event.EventDate, &scheduledAt)
+	if err != nil {
+		return event, err
+	}
+	if scheduledAt.Valid && scheduledAt.String != "" {
+		if parsed, parseErr := time.Parse(time.RFC3339, scheduledAt.String); parseErr == nil {
+			event.ScheduledAt = &parsed
+		} else if parsed, parseErr := time.Parse("2006-01-02 15:04:05", scheduledAt.String); parseErr == nil {
+			utc := parsed.UTC()
+			event.ScheduledAt = &utc
+		}
+	}
+	return event, nil
 }
 
 func loadNotificationConversation(

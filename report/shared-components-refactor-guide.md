@@ -595,7 +595,7 @@ Where it is used:
 - `EditProfileScreen`
 - `PrivacyPolicyScreen`
 - `HelpScreen`, `HelpContactScreen`, `HelpFeedbackScreen`, `HelpFAQScreen`
-- `OneToOneHubScreen`, `JoinRequestScreen`, `PendingRequestsScreen`
+- `OneToOneHubScreen`, `JoinRequestScreen` (the Requests sheet)
 - `PastEventsScreen`
 
 Use it when:
@@ -748,7 +748,6 @@ Where it is used:
 - `ChatThreadScreen`
 - `OneToOneHubScreen`
 - `JoinRequestScreen`
-- `PendingRequestsScreen`
 - `EventDetailsScreen`
 - `OnboardingScreen`
 
@@ -1216,8 +1215,8 @@ What it is:
 Where it is used:
 
 - `EventDetailsScreen` host Requests tab.
-- `OneToOneHubScreen` and the notification-opened `JoinRequestScreen`.
-- `PendingRequestsScreen`.
+- `JoinRequestScreen`, the Requests sheet opened from `ChatThreadScreen`, `OneToOneHubScreen`, and
+  join-request notifications.
 
 Use it when:
 
@@ -1560,7 +1559,7 @@ Where it is used:
 - `ProfileScreen`
 - `OneToOneHubScreen`
 - `JoinRequestScreen`
-- `PendingRequestsScreen`
+- `JoinRequestScreen`
 - `OnboardingScreen`
 - navigation tab buttons
 

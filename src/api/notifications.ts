@@ -28,6 +28,7 @@ export type NotificationActionResolution = {
   event_id?: number;
   conversation_id?: number;
   title?: string;
+  group_type?: 'Single' | 'Group';
 };
 
 export const resolveNotificationAction = (

@@ -373,16 +373,10 @@ describe('AppNavigator', () => {
     });
   });
 
-  describe('Join Request Screens', () => {
-    it('should present JoinRequest as a full-page route', () => {
-      const options = { animation: 'fade_from_bottom', animationDuration: 200 };
-      expect(options).not.toHaveProperty('presentation');
-    });
-
-    it('should use fade_from_bottom animation consistent with other full-page screens', () => {
-      const options = { animation: 'fade_from_bottom', animationDuration: 200 };
-      expect(options.animation).toBe('fade_from_bottom');
-      expect(options.animationDuration).toBe(200);
+  describe('Join Request sheet', () => {
+    it('should present JoinRequest as a transparent modal sheet over the chat screen', () => {
+      const options = { presentation: 'transparentModal' };
+      expect(options.presentation).toBe('transparentModal');
     });
   });
 

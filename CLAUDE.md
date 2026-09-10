@@ -18,6 +18,22 @@ Who Else Is Free is an event discovery and social coordination app.
 - Text inputs use `typography.inputLetterSpacing` / `inputDetailLetterSpacing` instead of the negative text tracking tokens. Android applies negative letter spacing symmetrically, which pushes a placeholder's first glyph under the caret.
 - Event Details floating hero buttons render through `HeroButtonBlur`, which enables `experimentalBlurMethod` on Android and layers `componentTokens.overlay.heroButtonTint` over it; plain `BlurView` is a flat tint on Android.
 - Approving a join request advances the approver's read cursor server-side and the client marks that conversation read for a short grace window, so approval-generated messages (intro, join announcement) never surface as unread for the host.
+- Chat system-message copy: new rows say `<Name> joined the plan` and `Plan details updated`;
+  `backfillSystemMessageCopy` in `server/repository_schema.go` idempotently rewrites legacy
+  `joined the chat` / `Updated Event Detail` bodies (system kind only) so older threads and Messages
+  previews match. The client still recognises both spellings for rows that predate the `kind` column.
+- `ChatContext` exposes two error strings: `error` (socket or conversations-list failures, rendered by
+  Messages) and `threadError` (socket, refresh, or send failures for the active thread, cleared when
+  the active conversation changes). `ChatThreadScreen` renders `threadError`, never `error`, so a send
+  failure cannot sit on top of the Messages list.
+- When `ChatThreadScreen`'s active conversation is cleared underneath it (for example the conversations
+  refresh no longer lists it), it leaves through `StackActions.pop(n)` sized to remove itself and every
+  sheet stacked above it; a plain `goBack` would only dismiss the top sheet and strand the thread on its
+  spinner.
+- 1:1 chat member actions live in `useSingleEventMemberActions` and mirror the Event Details member
+  flow: menu → `Report & block {name}?` confirmation → reason prompt with the shared placeholder and
+  `getMemberReportError` copy. Never surface raw error text in that sheet; the remove failure keeps its
+  specified alert copy.
 - State: React Context providers for auth, events, chat, push, covers, and bloom state
 - Startup permissions: Discover waits for `BloomContext.transitionComplete`, then serializes `PushContext.requestPushPermission` and `useViewerLocation().requestPermission`. Do not prompt from `App.tsx`, provider mount effects, or the splash route; silent checks and token/location loading for existing grants may still run there.
 - Admin support: persistent authorization lives in `admin_users` by immutable user ID;
@@ -29,12 +45,20 @@ Who Else Is Free is an event discovery and social coordination app.
   action validity (`active`, `resolved`, or `unavailable`). `read` remains independent and unread
   counts include only active rows. The idempotent schema migration/backfill is in
   `server/repository_schema.go`; task types are `chat.message` and `join_request.created`.
-  Lifecycle mutations eagerly invalidate related actions. Inbox and OS-push taps must both call
+  Lifecycle mutations eagerly invalidate related actions. Ended events (`isEventPast`) resolve chat,
+  request-created and request-approved taps as `unavailable`/`event_ended` at tap time, routed to the
+  same Discover `event_unavailable` notice as deleted events, because Messages no longer lists
+  past-event conversations. Inbox and OS-push taps must both call
   the authenticated `POST /api/notifications/actions/resolve` boundary through
   `openNotification` in `src/context/pushRouting.ts`; never navigate from raw notification IDs or
-  restore client-side entity access checks. Active request tasks open the full-page `JoinRequest`
-  route (including conversation-less 1:1 requests); Messages and Event Details use the separate
-  `OneToOneHub` route. Inactive tasks remain as one muted historical group. Read active tasks are
+  restore client-side entity access checks. Active request tasks land on the chat screen the request
+  belongs to (the group `ChatThread`, or `OneToOneHub` for a 1:1 plan, keyed by the negative event id
+  when no conversation exists yet) and then raise the `JoinRequest` Requests sheet over it once the
+  push transition settles (`runAfterTransition` in `pushRouting.ts`); the server resolution carries
+  `group_type` for this, and a resolution without it but with a conversation id is treated as Group
+  (older servers only attach conversation ids to group requests). `JoinRequest` is the same transparent-modal sheet the in-chat requests badge
+  opens (formerly `PendingRequests`); there is no full-page request review route, and `OneToOneHub`
+  is 1:1-only. Inactive tasks remain as one muted historical group. Read active tasks are
   never dropped from the inbox: they collapse into their own per-conversation/event group and render
   in the lighter read style, so opening a row or "Mark all as read" only lightens it. Push and inbox copy for
   known types is centralized in `notificationCopyFor` in `server/notification_payloads.go`; single

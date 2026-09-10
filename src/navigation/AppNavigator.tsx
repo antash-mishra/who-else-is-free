@@ -25,7 +25,7 @@ import {
 import { BottomSheetHostProvider } from '@components/sheets';
 import { usePrepareCreateEvent } from '@hooks/usePrepareCreateEvent';
 import { navigationRef } from '@navigation/navigationRef';
-import { EventDetailsOverlaySheet, PendingRequestsSheet } from '@navigation/SheetRoutes';
+import { EventDetailsOverlaySheet, JoinRequestSheet } from '@navigation/SheetRoutes';
 import { VibratingTabBarButton } from '@navigation/TabBarButton';
 import {
   CreateTabIcon,
@@ -56,7 +56,6 @@ import HelpFAQScreen from '@screens/HelpFAQScreen';
 import HelpFeedbackScreen from '@screens/HelpFeedbackScreen';
 import HelpScreen from '@screens/HelpScreen';
 import HomeScreen from '@screens/HomeScreen';
-import JoinRequestScreen from '@screens/JoinRequestScreen';
 import MessagesScreen from '@screens/MessagesScreen';
 import MyEventsScreen from '@screens/MyEventsScreen';
 import NotificationsScreen from '@screens/NotificationsScreen';
@@ -363,15 +362,7 @@ const AppNavigator = () => {
             />
             <Stack.Screen
               name="JoinRequest"
-              component={JoinRequestScreen}
-              options={{
-                cardStyleInterpolator: slideFromRightInterpolator,
-                transitionSpec: slideFromRightTransitionSpec,
-              }}
-            />
-            <Stack.Screen
-              name="PendingRequests"
-              component={PendingRequestsSheet}
+              component={JoinRequestSheet}
               options={{
                 presentation: 'transparentModal',
                 ...sheetModalScreenOptions,

@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 
 import { ApiError, requestJson } from '@api/client';
 import { useAuth } from '@context/AuthContext';
+import { getMemberReportError } from '@screens/event-details/eventDetailsErrors';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 
@@ -16,42 +17,37 @@ interface UseSingleEventMemberActionsOptions {
   eventId?: number | null;
   onSuccess?: () => Promise<void> | void;
   removeErrorTitle?: string;
-  reportErrorMessages?: {
-    empty?: string;
-    duplicate?: string;
-    generic?: string;
-  };
 }
 
-const DEFAULT_REPORT_ERRORS = {
-  empty: "Please tell us why you're reporting this member.",
-  duplicate: 'You have already reported this member.',
-  generic: "Couldn't submit report. Please try again.",
-};
+// Same wording as the Event Details member report prompt (useHostRequestActions).
+const REPORT_REASON_REQUIRED = 'Please tell us why you are reporting this member.';
 
+const firstNameOf = (name: string | undefined) => name?.trim().split(/\s+/)[0] ?? '';
+
+/**
+ * Report & Block / Remove actions for the other member of a 1:1 chat. The
+ * report flow mirrors Event Details exactly: menu → confirmation → reason
+ * prompt, with the shared `getMemberReportError` copy and never a raw error.
+ */
 export const useSingleEventMemberActions = ({
   eventId,
   onSuccess,
   removeErrorTitle = "Couldn't remove this person",
-  reportErrorMessages,
 }: UseSingleEventMemberActionsOptions) => {
   const { authFetch, token } = useAuth();
   const [selectedTarget, setSelectedTarget] = useState<SingleEventMemberActionTarget | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [showReportOverlay, setShowReportOverlay] = useState(false);
   const [reportMessage, setReportMessage] = useState('');
   const [reportError, setReportError] = useState<string | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
-  const errors = {
-    ...DEFAULT_REPORT_ERRORS,
-    ...reportErrorMessages,
-  };
-
   const reset = useCallback(() => {
     setSelectedTarget(null);
     setShowMenu(false);
+    setShowReportConfirm(false);
     setShowReportOverlay(false);
     setReportMessage('');
     setReportError(null);
@@ -73,10 +69,21 @@ export const useSingleEventMemberActions = ({
     setSelectedTarget(null);
   }, [isRemovingMember]);
 
-  const openReportOverlay = useCallback(() => {
+  const openReportConfirm = useCallback(() => {
     setShowMenu(false);
     setReportError(null);
+    setShowReportConfirm(true);
+  }, []);
+
+  const cancelReport = useCallback(() => {
+    setShowReportConfirm(false);
+    setSelectedTarget(null);
+  }, []);
+
+  const confirmReport = useCallback(() => {
+    setShowReportConfirm(false);
     setReportMessage('');
+    setReportError(null);
     setShowReportOverlay(true);
   }, []);
 
@@ -143,10 +150,11 @@ export const useSingleEventMemberActions = ({
 
     const trimmed = reportMessage.trim();
     if (!trimmed.length) {
-      setReportError(errors.empty);
+      setReportError(REPORT_REASON_REQUIRED);
       return;
     }
 
+    const firstName = firstNameOf(selectedTarget.name);
     triggerHaptic('submit');
     setIsSubmittingReport(true);
     setReportError(null);
@@ -159,26 +167,28 @@ export const useSingleEventMemberActions = ({
         token,
         timeoutMs: null,
         fetchImpl: authFetch,
-        errorMessage: errors.generic,
+        errorMessage: (status) => getMemberReportError(status, firstName),
       });
 
       await onSuccess?.();
       reset();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setReportError(errors.duplicate);
+      if (err instanceof ApiError) {
+        // Already mapped through getMemberReportError (409 duplicate or a
+        // named generic failure); a duplicate is not worth a log line.
+        if (err.status !== 409) {
+          logger.error('Failed to submit member report', err);
+        }
+        setReportError(err.message);
         return;
       }
       logger.error('Failed to submit member report', err);
-      setReportError(err instanceof Error ? err.message : errors.generic);
+      setReportError(getMemberReportError(0, firstName));
     } finally {
       setIsSubmittingReport(false);
     }
   }, [
     authFetch,
-    errors.duplicate,
-    errors.empty,
-    errors.generic,
     eventId,
     isSubmittingReport,
     onSuccess,
@@ -188,13 +198,13 @@ export const useSingleEventMemberActions = ({
     token,
   ]);
 
-  const selectedTargetFirstName = selectedTarget?.name.trim().split(/\s+/)[0] ?? 'Member';
+  const selectedTargetFirstName = firstNameOf(selectedTarget?.name) || 'Member';
 
   const menuItems = useMemo(
     () => [
       {
         label: `Report & Block ${selectedTargetFirstName}`,
-        onPress: openReportOverlay,
+        onPress: openReportConfirm,
       },
       {
         label: `Remove ${selectedTargetFirstName}`,
@@ -203,19 +213,20 @@ export const useSingleEventMemberActions = ({
         destructive: true,
       },
     ],
-    [handleRemoveMember, isRemovingMember, openReportOverlay, selectedTargetFirstName],
+    [handleRemoveMember, isRemovingMember, openReportConfirm, selectedTargetFirstName],
   );
 
   return {
+    cancelReport,
     closeMenu,
     closeReportOverlay,
+    confirmReport,
     handleRemoveMember,
     handleSubmitReport,
     isRemovingMember,
     isSubmittingReport,
     menuItems,
     openMenu,
-    openReportOverlay,
     reportError,
     reportMessage,
     reset,
@@ -223,6 +234,7 @@ export const useSingleEventMemberActions = ({
     selectedTargetFirstName,
     setReportMessage: updateReportMessage,
     showMenu,
+    showReportConfirm,
     showReportOverlay,
   };
 };

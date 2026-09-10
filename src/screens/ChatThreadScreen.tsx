@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, StackActions, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AndroidSoftInputModes,
@@ -148,8 +148,18 @@ const useAndroidKeyboardLift = (safeAreaBottom: number, onSettled: () => void) =
   return lift;
 };
 
+const countRoutesAbove = (
+  navigation: NativeStackNavigationProp<RootStackParamList>,
+  routeKey: string,
+): number => {
+  const routes = navigation.getState()?.routes ?? [];
+  const index = routes.findIndex((entry) => entry.key === routeKey);
+  return index === -1 ? 0 : routes.length - 1 - index;
+};
+
 const ChatThreadScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'ChatThread'>>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { events } = useEvents();
@@ -162,7 +172,7 @@ const ChatThreadScreen = () => {
     retryMessage,
     isConnecting,
     isRefreshingConversations,
-    error,
+    threadError,
     joinRequestsByConversation,
     refreshJoinRequests,
     refreshConversations,
@@ -344,13 +354,21 @@ const ChatThreadScreen = () => {
       if (isRouteRemovingRef.current) {
         return;
       }
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      } else {
+      if (!navigation.canGoBack()) {
         navigation.navigate('Main', { screen: 'Messages' });
+        return;
+      }
+      // A sheet (Requests, member actions) may sit above this thread. `goBack`
+      // would only pop that sheet and strand this screen on its spinner, so pop
+      // the thread together with everything stacked on it.
+      const routesAbove = navigation.isFocused() ? 0 : countRoutesAbove(navigation, route.key);
+      if (routesAbove > 0) {
+        navigation.dispatch(StackActions.pop(routesAbove + 1));
+      } else {
+        navigation.goBack();
       }
     }
-  }, [activeConversationId, navigation]);
+  }, [activeConversationId, navigation, route.key]);
 
   useEffect(() => {
     if (
@@ -477,7 +495,7 @@ const ChatThreadScreen = () => {
       return;
     }
     triggerHaptic('light');
-    navigation.navigate('PendingRequests', {
+    navigation.navigate('JoinRequest', {
       conversationId: activeConversation.id,
       eventId: activeConversation.eventId,
     });
@@ -673,7 +691,7 @@ const ChatThreadScreen = () => {
           keyboardVerticalOffset={16}
         >
           <View style={styles.threadBody}>
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {threadError ? <Text style={styles.errorText}>{threadError}</Text> : null}
             <FlatList
               data={messages}
               keyExtractor={(message) => message.id}
@@ -691,7 +709,7 @@ const ChatThreadScreen = () => {
       ) : (
         <View style={styles.threadContainer}>
           <Animated.View style={[styles.threadBody, { paddingBottom: androidKeyboardLift }]}>
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {threadError ? <Text style={styles.errorText}>{threadError}</Text> : null}
             <FlatList
               data={messages}
               keyExtractor={(message) => message.id}
@@ -714,9 +732,22 @@ const ChatThreadScreen = () => {
         items={memberActions.menuItems}
       />
       <EventActionOverlay
+        isVisible={memberActions.showReportConfirm}
+        onBackdropPress={memberActions.cancelReport}
+        type="confirm"
+        title={`Report & block ${memberActions.selectedTargetFirstName}?`}
+        description="They won't be able to interact with you on future plans. Their report will be reviewed by our team."
+        confirmLabel="Report & block"
+        cancelLabel="Cancel"
+        confirmTone="destructive"
+        onConfirm={memberActions.confirmReport}
+        onCancel={memberActions.cancelReport}
+      />
+      <EventActionOverlay
         isVisible={memberActions.showReportOverlay}
         onBackdropPress={memberActions.closeReportOverlay}
         type="report"
+        placeholder={`Tell us why you're reporting ${memberActions.selectedTargetFirstName}`}
         reportMessage={memberActions.reportMessage}
         onReportMessageChange={memberActions.setReportMessage}
         onSubmitReport={memberActions.handleSubmitReport}

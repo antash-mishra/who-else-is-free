@@ -789,8 +789,9 @@ The following decisions are confirmed by this revision:
 - Open Event Details for resolved requests when the event still exists.
 - Open Discover for deleted events or lost access.
 - Show the one-shot informational result modal after the Discover redirect.
-- Pending requests on past events remain resolvable under the existing event lifecycle; no new
-  scheduled `event_ended` policy is introduced without a product expiry rule.
+- Update 2026-09-10: chat, request-created and request-approved actions on ended events now resolve
+  as `unavailable`/`event_ended` at tap time (query-time rule in `notification_actions.go`), routed to
+  the Discover `event_unavailable` notice. No scheduled invalidation; rows stay active until opened.
 - Keep the existing server-owned `join_request.denied` inbox copy; copy review remains independent
   of action validity.
 - Keep the current user-cleared/account-deletion retention behavior; no automatic expiry is added.

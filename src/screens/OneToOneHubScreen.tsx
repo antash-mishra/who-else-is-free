@@ -1,24 +1,24 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import AcceptIcon from '@assets/event-details/accept.svg';
-import RejectIcon from '@assets/event-details/reject.svg';
+
+import ChatEventHeader from '@components/ChatEventHeader';
 import EmptyState from '@components/EmptyState';
 import FullPageEmptyState from '@components/FullPageEmptyState';
 import ScalePressable from '@components/ScalePressable';
-
-import { colors, spacing, typography } from '@theme/index';
-import { useChat, ChatJoinRequest } from '@context/ChatContext';
-import { useAuth } from '@context/AuthContext';
-import { useEvents } from '@context/EventsContext';
-import { RootStackParamList } from '@navigation/types';
 import ScreenContainer from '@components/ScreenContainer';
-import ChatEventHeader from '@components/ChatEventHeader';
 import { CountBadge, UnreadDot } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
+import { useAuth } from '@context/AuthContext';
+import { useChat, ChatJoinRequest } from '@context/ChatContext';
 import { useCovers } from '@context/CoversContext';
+import { useEvents } from '@context/EventsContext';
+import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
+import { colors, spacing, typography } from '@theme/index';
 import { buildEventMemberSubtitle } from '@utils/chatHeaderSubtitle';
 
 // Shared illustration for the request/accepted empty states.
@@ -35,19 +35,16 @@ const OneToOneHubScreen = () => {
   const { getCoverSource } = useCovers();
   const { user } = useAuth();
   const { events } = useEvents();
-  const {
-    joinRequestsByConversation,
-    refreshJoinRequests,
-    approveJoinRequest,
-    denyJoinRequest,
-    setActiveConversation,
-    conversations,
-  } = useChat();
+  const { joinRequestsByConversation, refreshJoinRequests, setActiveConversation, conversations } =
+    useChat();
+  // `conversationId` is the request store key: a real 1:1 conversation id from
+  // Messages, or the negative event id from Event Details / notifications when
+  // no conversation exists yet.
   const { conversationId, eventId, title } = route.params;
-  const legacyGroupType = (
-    route.params as RootStackParamList['OneToOneHub'] & { groupType?: 'Single' | 'Group' }
-  ).groupType;
-  const requests = joinRequestsByConversation[conversationId] ?? [];
+  const requests = useMemo(
+    () => joinRequestsByConversation[conversationId] ?? [],
+    [conversationId, joinRequestsByConversation],
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const conversationById = useMemo(
@@ -66,7 +63,6 @@ const OneToOneHubScreen = () => {
   );
 
   const conversationEvent = conversation?.event ?? null;
-  const is1to1Mode = legacyGroupType !== 'Group';
   const resolvedTitle = resolvedEvent?.title ?? conversationEvent?.title ?? title;
   const resolvedCoverKey = resolvedEvent?.coverKey ?? conversationEvent?.coverKey ?? undefined;
   const resolvedSchedule = resolvedEvent ?? conversationEvent;
@@ -77,16 +73,14 @@ const OneToOneHubScreen = () => {
         setIsRefreshing(true);
       }
       try {
-        await refreshJoinRequests(conversationId, eventId, {
-          includeApproved: is1to1Mode,
-        });
+        await refreshJoinRequests(conversationId, eventId, { includeApproved: true });
       } finally {
         if (showRefreshing) {
           setIsRefreshing(false);
         }
       }
     },
-    [conversationId, eventId, refreshJoinRequests, is1to1Mode],
+    [conversationId, eventId, refreshJoinRequests],
   );
 
   const handleRefresh = useCallback(() => {
@@ -97,27 +91,6 @@ const OneToOneHubScreen = () => {
     useCallback(() => {
       loadRequests(false).catch(() => undefined);
     }, [loadRequests]),
-  );
-
-  const handleAction = useCallback(
-    async (_requestId: number, userId: number, action: 'approve' | 'deny') => {
-      try {
-        if (action === 'approve') {
-          await approveJoinRequest(conversationId, eventId, userId);
-        } else {
-          await denyJoinRequest(conversationId, eventId, userId);
-        }
-        await refreshJoinRequests(conversationId, eventId, {
-          includeApproved: is1to1Mode,
-        });
-      } catch (err) {
-        Alert.alert(
-          'Unable to update request',
-          err instanceof Error ? err.message : 'Please try again.',
-        );
-      }
-    },
-    [approveJoinRequest, conversationId, denyJoinRequest, eventId, is1to1Mode, refreshJoinRequests],
   );
 
   const handleRequesterPress = useCallback(
@@ -131,25 +104,16 @@ const OneToOneHubScreen = () => {
   );
 
   const listEmpty = useMemo(
-    () =>
-      is1to1Mode ? (
-        <EmptyState
-          title="No accepted members yet"
-          description="Chats from accepted members will appear here."
-          imageSource={EMPTY_ILLUSTRATION}
-          imageWidth={EMPTY_ILLUSTRATION_WIDTH}
-          imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-        />
-      ) : (
-        <EmptyState
-          title="No pending requests"
-          description="You'll see new join requests here when attendees tap Interested."
-          imageSource={EMPTY_ILLUSTRATION}
-          imageWidth={EMPTY_ILLUSTRATION_WIDTH}
-          imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-        />
-      ),
-    [is1to1Mode],
+    () => (
+      <EmptyState
+        title="No accepted members yet"
+        description="Chats from accepted members will appear here."
+        imageSource={EMPTY_ILLUSTRATION}
+        imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+        imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
+      />
+    ),
+    [],
   );
 
   const getApprovedPreview = useCallback(
@@ -164,10 +128,10 @@ const OneToOneHubScreen = () => {
       }
 
       // System messages (event-update notices, join announcements) are
-      // server-generated and already self-describing ("X joined the chat",
-      // "Updated Event Detail"). Show the body as-is without a "Sender: "
+      // server-generated and already self-describing ("X joined the plan",
+      // "Plan details updated"). Show the body as-is without a "Sender: "
       // prefix, which would otherwise produce awkward duplicates like
-      // "Sumit: Sumit Narang joined the chat".
+      // "Sumit: Sumit Narang joined the plan".
       if (lastMessage.kind === 'system') {
         return lastMessage.body;
       }
@@ -189,9 +153,6 @@ const OneToOneHubScreen = () => {
   );
 
   const displayRequests = useMemo(() => {
-    if (!is1to1Mode) {
-      return requests;
-    }
     return requests
       .filter((request) => request.status === 'approved')
       .sort((a, b) => {
@@ -207,14 +168,14 @@ const OneToOneHubScreen = () => {
         const bTime = Number.isNaN(rawBTime) ? 0 : rawBTime;
         return bTime - aTime;
       });
-  }, [conversationById, is1to1Mode, requests]);
+  }, [conversationById, requests]);
 
   const pendingRequests = useMemo(
     () => requests.filter((request) => request.status === 'pending'),
     [requests],
   );
 
-  // 1:1 mode header
+  // Header: plan cover, title, accepted count, and the pending-requests badge
   const render1to1Header = () => {
     return (
       <ChatEventHeader
@@ -243,10 +204,10 @@ const OneToOneHubScreen = () => {
               accessibilityLabel="View pending requests"
               onPress={() => {
                 triggerHaptic('light');
-                navigation.navigate('PendingRequests', {
+                navigation.navigate('JoinRequest', {
                   conversationId,
                   eventId,
-                  includeApproved: is1to1Mode,
+                  includeApproved: true,
                 });
               }}
               style={styles.joinIconButton}
@@ -260,7 +221,7 @@ const OneToOneHubScreen = () => {
     );
   };
 
-  // 1:1 mode request item
+  // Accepted requester row: opens that member's 1:1 conversation
   const render1to1RequestItem = ({
     item,
   }: {
@@ -302,86 +263,20 @@ const OneToOneHubScreen = () => {
     );
   };
 
-  // Group mode header
-  const renderGroupHeader = () => (
-    <ChatEventHeader
-      onBack={() => {
-        triggerHaptic('light');
-        navigation.goBack();
-      }}
-      title={resolvedTitle}
-      subtitle={buildEventMemberSubtitle({
-        groupType: 'Group',
-        memberCount: conversation?.memberIds.length ?? 0,
-        schedule: resolvedSchedule,
-      })}
-      onTitlePress={() => {
-        triggerHaptic('light');
-        navigation.navigate('EventDetailsOverlay', {
-          eventId: String(eventId),
-          readOnly: true,
-        });
-      }}
-      testID="join-requests-group-event-info-button"
-    />
-  );
-
-  // Group mode request item
-  const renderGroupRequestItem = ({ item }: { item: ChatJoinRequest }) => {
-    return (
-      <View style={styles.requestItem}>
-        <UserAvatar
-          avatar={item.requester.avatar}
-          name={item.requester.name}
-          seed={item.userId}
-          size={40}
-        />
-        <View style={styles.requestContent}>
-          <Text style={styles.requestName}>{item.requester.name}</Text>
-          {item.message ? <Text style={styles.requestMessage}>{item.message}</Text> : null}
-        </View>
-        <View style={styles.requestActions}>
-          <ScalePressable
-            haptic="destructive"
-            accessibilityLabel={`Decline request from ${item.requester.name}`}
-            onPress={() => handleAction(item.id, item.userId, 'deny')}
-            style={styles.declineButton}
-          >
-            <RejectIcon width={30} height={30} />
-          </ScalePressable>
-          <ScalePressable
-            haptic="submit"
-            accessibilityLabel={`Accept request from ${item.requester.name}`}
-            onPress={() => handleAction(item.id, item.userId, 'approve')}
-            style={styles.acceptButton}
-          >
-            <AcceptIcon width={30} height={30} />
-          </ScalePressable>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.screenRoot}>
       <ScreenContainer edges={['top', 'bottom']}>
         <View style={styles.container}>
-          {is1to1Mode ? render1to1Header() : renderGroupHeader()}
+          {render1to1Header()}
           <FlatList
             data={displayRequests}
             extraData={conversations}
             keyExtractor={(item) => String(item.id)}
-            style={is1to1Mode ? styles.flatList1to1 : undefined}
-            renderItem={is1to1Mode ? render1to1RequestItem : renderGroupRequestItem}
-            ItemSeparatorComponent={() => (
-              <View style={is1to1Mode ? styles.separator1to1 : styles.separator} />
-            )}
+            style={styles.flatList1to1}
+            renderItem={render1to1RequestItem}
+            ItemSeparatorComponent={() => <View style={styles.separator1to1} />}
             contentContainerStyle={
-              displayRequests.length === 0
-                ? styles.listEmptyContent
-                : is1to1Mode
-                  ? styles.listContent1to1
-                  : styles.listContent
+              displayRequests.length === 0 ? styles.listEmptyContent : styles.listContent1to1
             }
             onRefresh={handleRefresh}
             refreshing={isRefreshing}
@@ -413,9 +308,6 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
   },
   // List styles
-  listContent: {
-    paddingBottom: spacing.xl,
-  },
   listContent1to1: {
     paddingBottom: spacing.xl,
   },
@@ -424,62 +316,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  separator: {
-    height: 1,
-    backgroundColor: colors.divider,
-    marginLeft: 48, // avatar (40) + gap (8) — align after the avatar
-  },
   separator1to1: {
     height: 1,
     backgroundColor: colors.divider,
     marginLeft: 64, // avatar (40) + gap (8) + list marginLeft offset (16)
-  },
-  // Group mode request item styles
-  requestItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  requestContent: {
-    flex: 1,
-  },
-  requestName: {
-    fontSize: 16,
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
-    lineHeight: 20,
-    letterSpacing: -0.3,
-  },
-  requestMessage: {
-    fontSize: 15,
-    fontFamily: typography.fontFamilyRegular,
-    color: '#000000',
-    lineHeight: 22,
-    letterSpacing: -0.3,
-    marginTop: 2,
-  },
-  requestActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'flex-start',
-    marginTop: spacing.xs,
-  },
-  declineButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#E6E6E6',
-  },
-  acceptButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.text,
   },
   // 1:1 mode request row styles
   flatList1to1: {
@@ -496,18 +336,13 @@ const styles = StyleSheet.create({
   requestInfo1to1: {
     flex: 1,
   },
-  pendingHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   requesterName1to1: {
     fontSize: 16,
     fontFamily: typography.fontFamilyMedium,
     fontWeight: '500',
     lineHeight: 20,
     letterSpacing: -0.5,
-    color: '#000000',
+    color: colors.text,
   },
   requesterName1to1Unread: {
     fontFamily: typography.fontFamilySemiBold,

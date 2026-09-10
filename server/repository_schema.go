@@ -838,6 +838,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureMessageKindColumn(ctx); err != nil {
 		return err
 	}
+	if err := r.backfillSystemMessageCopy(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createTableConversationReadState); err != nil {
 		return fmt.Errorf("create conversation read state table: %w", err)
 	}
@@ -1366,6 +1369,42 @@ WHERE kind = 'user'
   );
 `); err != nil {
 		return fmt.Errorf("backfill system message kinds: %w", err)
+	}
+	return nil
+}
+
+// backfillSystemMessageCopy is the chat counterpart of
+// backfillNotificationDisplayCopy for issue #127: system announcements persisted
+// before the copy change still read "<Name> joined the chat" and
+// "Updated Event Detail", so older threads and Messages previews kept the old
+// wording after new rows switched to "joined the plan" / "Plan details updated".
+// Only kind='system' rows are rewritten, so a member's own message that happens
+// to end in "joined the chat" is left alone. Both statements are no-ops once
+// applied and therefore safe on every startup. It must run after
+// ensureMessageKindColumn so legacy rows already carry their system kind.
+func (r *EventRepository) backfillSystemMessageCopy(ctx context.Context) error {
+	statements := []struct {
+		name string
+		sql  string
+	}{
+		{
+			"join announcements",
+			`UPDATE messages
+			 SET body = substr(body, 1, length(body) - length(' joined the chat')) || ' joined the plan'
+			 WHERE kind = 'system' AND body LIKE '% joined the chat';`,
+		},
+		{
+			"plan update notices",
+			`UPDATE messages
+			 SET body = 'Plan details updated'
+			 WHERE kind = 'system' AND body = 'Updated Event Detail';`,
+		},
+	}
+
+	for _, statement := range statements {
+		if _, err := r.db.ExecContext(ctx, statement.sql); err != nil {
+			return fmt.Errorf("backfill system message copy (%s): %w", statement.name, err)
+		}
 	}
 	return nil
 }

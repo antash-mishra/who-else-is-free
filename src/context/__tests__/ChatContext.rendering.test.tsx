@@ -129,6 +129,7 @@ const TestConsumer = ({
     messages,
     isConnecting,
     error,
+    threadError,
     activeConversationId,
     joinRequestsByConversation,
     setActiveConversation,
@@ -161,6 +162,7 @@ const TestConsumer = ({
     <View>
       <Text testID="isConnecting">{isConnecting ? 'connecting' : 'not-connecting'}</Text>
       <Text testID="error">{error || 'no-error'}</Text>
+      <Text testID="threadError">{threadError || 'no-error'}</Text>
       <Text testID="conversationCount">{conversations.length}</Text>
       <Text testID="messageCount">{messages.length}</Text>
       <Text testID="activeConversationId">{activeConversationId ?? 'none'}</Text>
@@ -404,10 +406,54 @@ describe('ChatContext Rendering Tests', () => {
         await tick(100);
       });
 
-      // Should show error about connection
+      // The send failure belongs to the thread, not the Messages list.
       await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent("Couldn't send. Please try again.");
+        expect(screen.getByTestId('threadError')).toHaveTextContent(
+          "Couldn't send. Please try again.",
+        );
       });
+      expect(screen.getByTestId('error')).toHaveTextContent('no-error');
+    });
+
+    it('clears the thread error when another conversation becomes active', async () => {
+      fetchMock.mockResponse(async (request) =>
+        JSON.stringify(
+          request.url.includes('/messages')
+            ? mockApiResponses.messages.success
+            : mockApiResponses.conversations.success,
+        ),
+      );
+
+      renderWithProvider();
+
+      await act(async () => {
+        await tick(10);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('conversationCount')).not.toHaveTextContent('0');
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-1'));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('sendMessageBtn'));
+        await tick(100);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('threadError')).toHaveTextContent(
+          "Couldn't send. Please try again.",
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('conversation-2'));
+      });
+
+      expect(screen.getByTestId('threadError')).toHaveTextContent('no-error');
     });
   });
 

@@ -178,6 +178,12 @@ func TestResolveNotificationAction_MixedJoinGroupKeepsPendingDestination(t *test
 	if resolution.Status != NotificationActionActive || resolution.Destination != NotificationDestinationJoinRequests {
 		t.Fatalf("resolution = %+v", resolution)
 	}
+	if resolution.GroupType != "Group" {
+		t.Fatalf("group type = %q, want Group", resolution.GroupType)
+	}
+	if resolution.ConversationID == nil || *resolution.ConversationID != conversationID {
+		t.Fatalf("conversation = %v, want %d", resolution.ConversationID, conversationID)
+	}
 }
 
 func TestResolveNotificationAction_SinglePendingRequestOpensRequest(t *testing.T) {
@@ -209,6 +215,12 @@ func TestResolveNotificationAction_SinglePendingRequestOpensRequest(t *testing.T
 	}
 	if resolution.EventID == nil || *resolution.EventID != eventID {
 		t.Fatalf("event = %v, want %d", resolution.EventID, eventID)
+	}
+	if resolution.GroupType != "Single" {
+		t.Fatalf("group type = %q, want Single", resolution.GroupType)
+	}
+	if resolution.ConversationID != nil {
+		t.Fatalf("conversation = %v, want none for a 1:1 request", *resolution.ConversationID)
 	}
 }
 
@@ -418,5 +430,86 @@ func TestEventGroupTypeChangeInvalidatesExactChatTasks(t *testing.T) {
 	}
 	if rows[0].ActionReason == nil || *rows[0].ActionReason != NotificationReasonConversationReplaced {
 		t.Fatalf("reason = %v", rows[0].ActionReason)
+	}
+}
+
+func markNotificationActionEventEnded(t *testing.T, repo *EventRepository, eventID int64) {
+	t.Helper()
+	if _, err := repo.db.ExecContext(context.Background(),
+		`UPDATE events SET event_date = '2000-01-01', scheduled_at = '2000-01-01T10:00:00Z' WHERE id = ?;`,
+		eventID,
+	); err != nil {
+		t.Fatalf("mark event ended: %v", err)
+	}
+}
+
+func TestResolveNotificationAction_EndedEventRequestIsUnavailable(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	hostID := int64(1)
+	eventID := seedNotificationActionEvent(t, repo, hostID, "Group")
+	notification, err := repo.CreateNotification(ctx, Notification{
+		UserID: hostID, Type: NotificationTypeJoinRequestCreated, EventID: &eventID,
+		Title: "Hike", Body: "Alice wants to join your event",
+	})
+	if err != nil {
+		t.Fatalf("create notification: %v", err)
+	}
+	markNotificationActionEventEnded(t, repo, eventID)
+
+	resolution, err := repo.ResolveNotificationAction(ctx, hostID, NotificationActionResolveInput{
+		NotificationIDs: []int64{notification.ID}, MarkHandled: true,
+	})
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if resolution.Status != NotificationActionUnavailable || resolution.Reason == nil ||
+		*resolution.Reason != NotificationReasonEventEnded || resolution.Destination != NotificationDestinationEvents {
+		t.Fatalf("resolution = %+v", resolution)
+	}
+	rows, _ := repo.ListNotifications(ctx, hostID, 20, 0)
+	if len(rows) != 1 || !rows[0].Read || rows[0].ActionState != NotificationActionUnavailable {
+		t.Fatalf("persisted rows = %+v", rows)
+	}
+	count, _ := repo.CountUnreadNotifications(ctx, hostID)
+	if count != 0 {
+		t.Fatalf("unread count = %d", count)
+	}
+}
+
+func TestResolveNotificationAction_EndedEventChatIsUnavailable(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	hostID := seedNotificationActionUser(t, repo, "host")
+	memberID := seedNotificationActionUser(t, repo, "member")
+	eventID := seedNotificationActionEvent(t, repo, hostID, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, hostID, memberID)
+	chatRow, err := repo.CreateNotification(ctx, Notification{
+		UserID: memberID, Type: NotificationTypeChatMessage, EventID: &eventID, ConversationID: &conversationID,
+		Title: "Hike", Body: "host: see you there",
+	})
+	if err != nil {
+		t.Fatalf("create chat notification: %v", err)
+	}
+	approvedRow, err := repo.CreateNotification(ctx, Notification{
+		UserID: memberID, Type: NotificationTypeJoinRequestApproved, EventID: &eventID, ConversationID: &conversationID,
+		Title: "Hike", Body: "You're in",
+	})
+	if err != nil {
+		t.Fatalf("create approved notification: %v", err)
+	}
+	markNotificationActionEventEnded(t, repo, eventID)
+
+	for _, id := range []int64{chatRow.ID, approvedRow.ID} {
+		resolution, err := repo.ResolveNotificationAction(ctx, memberID, NotificationActionResolveInput{
+			NotificationIDs: []int64{id}, MarkHandled: true,
+		})
+		if err != nil {
+			t.Fatalf("resolve %d: %v", id, err)
+		}
+		if resolution.Status != NotificationActionUnavailable || resolution.Reason == nil ||
+			*resolution.Reason != NotificationReasonEventEnded || resolution.Destination != NotificationDestinationEvents {
+			t.Fatalf("resolution for %d = %+v", id, resolution)
+		}
 	}
 }

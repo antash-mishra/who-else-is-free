@@ -33,7 +33,18 @@ interface ChatContextValue {
   conversations: ChatConversation[];
   activeConversationId: number | null;
   isConnecting: boolean;
+  /**
+   * Messages-list level failure: the socket could not connect or the
+   * conversations list could not load. Never carries thread-only failures.
+   */
   error: string | null;
+  /**
+   * Active-thread failure: connection, message refresh, or send problems for
+   * the open conversation. Cleared when the active conversation changes, when
+   * messages refresh successfully, or when a later send is handed to the
+   * socket. The thread must render this, never `error`.
+   */
+  threadError: string | null;
   messages: ChatMessage[];
   joinRequestsByConversation: Record<number, ChatJoinRequest[]>;
   setActiveConversation: (conversationId: number | null) => void;
@@ -127,7 +138,9 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     Record<number, ChatMessage[]>
   >({});
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [conversationsError, setConversationsError] = useState<string | null>(null);
+  const [threadScopedError, setThreadScopedError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isRefreshingConversations, setIsRefreshingConversations] = useState(false);
   const [joinRequestsByConversation, setJoinRequestsByConversation] = useState<
@@ -253,6 +266,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           ...prev,
           [conversationId]: normalized,
         }));
+        setThreadScopedError(null);
 
         setConversations((prev) =>
           prev.map((conversation) =>
@@ -261,7 +275,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         );
       } catch (err) {
         logger.error('Failed to refresh messages', err);
-        setError(MESSAGES_ERROR);
+        setThreadScopedError(MESSAGES_ERROR);
       }
     },
     [token],
@@ -293,7 +307,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       if (requestId !== conversationsRefreshRequestIdRef.current) {
         return;
       }
-      setError(null);
+      setConversationsError(null);
       const normalized = (payload.conversations ?? []).map((conversation) =>
         normalizeConversation(conversation, user.id),
       );
@@ -336,7 +350,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       logger.error('Failed to load conversations', err);
-      setError(CONVERSATIONS_ERROR);
+      setConversationsError(CONVERSATIONS_ERROR);
     } finally {
       if (requestId === conversationsRefreshRequestIdRef.current) {
         setIsRefreshingConversations(false);
@@ -762,7 +776,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     const protocolBase = `${WS_BASE_URL}${WS_PATH}`;
     const socketUrl = `${protocolBase}?token=${encodeURIComponent(activeToken)}`;
     setIsConnecting(true);
-    setError(null);
+    setConnectionError(null);
 
     clearReconnectTimeout();
 
@@ -781,7 +795,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     };
 
     socket.onerror = async () => {
-      setError(CONNECTION_ERROR);
+      setConnectionError(CONNECTION_ERROR);
       setIsConnecting(false);
       const refreshedToken = await refreshSessionSilentlyRef.current?.();
       if (refreshedToken) {
@@ -884,7 +898,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       const timestamp = new Date().toISOString();
 
       if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-        setError(SEND_ERROR);
+        setThreadScopedError(SEND_ERROR);
         connectSocket();
 
         const failedMessage: ChatMessage = {
@@ -921,6 +935,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      setThreadScopedError(null);
       const optimisticMessage: ChatMessage = {
         id: tempId,
         conversationId,
@@ -993,6 +1008,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
   const setActiveConversation = useCallback((conversationId: number | null) => {
     setActiveConversationId(conversationId);
+    setThreadScopedError(null);
     if (conversationId !== null) {
       setConversations((prev) =>
         prev.map((conversation) =>
@@ -1014,12 +1030,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     [conversations],
   );
 
+  const error = connectionError ?? conversationsError;
+  const threadError = connectionError ?? threadScopedError;
+
   const value = useMemo(
     () => ({
       conversations,
       activeConversationId,
       isConnecting,
       error,
+      threadError,
       messages,
       joinRequestsByConversation,
       setActiveConversation,
@@ -1039,6 +1059,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       activeConversationId,
       isConnecting,
       error,
+      threadError,
       messages,
       joinRequestsByConversation,
       refreshConversations,

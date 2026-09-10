@@ -1,172 +1,299 @@
+/**
+ * Rendering tests for JoinRequestScreen (the Requests sheet)
+ * Tests header, request list, accept/decline actions, empty state, and the
+ * conversation-less 1:1 request key
+ */
+
 import React from 'react';
 
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
 
 import JoinRequestScreen from '../JoinRequestScreen';
 
+// Mock navigation
+const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
-const mockRefreshJoinRequests = jest.fn().mockResolvedValue(undefined);
-const mockApproveJoinRequest = jest.fn().mockResolvedValue(undefined);
-const mockDenyJoinRequest = jest.fn().mockResolvedValue(undefined);
-const mockRefreshEvents = jest.fn().mockResolvedValue(undefined);
 
-const routeParams: {
+type MockRouteParams = {
   conversationId?: number;
   eventId: number;
-  title: string;
-} = {
-  eventId: 7,
-  title: 'Morning Walk',
+  includeApproved?: boolean;
 };
 
-const pendingRequest = {
-  id: 11,
-  eventId: 7,
-  userId: 3,
-  message: 'I would love to join.',
-  status: 'pending' as const,
-  createdAt: '2026-08-24T10:00:00.000Z',
-  requester: { id: 3, name: 'Alex Example' },
+let mockRouteParams: MockRouteParams = {
+  conversationId: 1,
+  eventId: 1,
+  includeApproved: true,
 };
 
-let mockChatValue = {
-  approveJoinRequest: mockApproveJoinRequest,
-  conversations: [],
-  denyJoinRequest: mockDenyJoinRequest,
-  joinRequestsByConversation: { [-7]: [pendingRequest] },
-  refreshJoinRequests: mockRefreshJoinRequests,
-};
-
-jest.mock('@react-navigation/native', () => ({
-  useFocusEffect: (callback: () => void) => callback(),
-  useNavigation: () => ({ goBack: mockGoBack }),
-  useRoute: () => ({ name: 'JoinRequest', params: routeParams }),
-}));
-
-jest.mock('@context/ChatContext', () => ({
-  useChat: () => mockChatValue,
-}));
-
-jest.mock('@context/CoversContext', () => ({
-  useCovers: () => ({ getCoverSource: jest.fn(() => undefined) }),
-}));
-
-jest.mock('@context/EventsContext', () => ({
-  useEvents: () => ({
-    refreshEvents: mockRefreshEvents,
-    events: [
-      {
-        id: '7',
-        title: 'Morning Walk',
-        groupType: 'Single',
-        dateLabel: 'Today',
-      },
-    ],
-  }),
-}));
-
-jest.mock('@components/ScreenContainer', () => {
-  const { View } = require('react-native');
-  return ({ children }: { children: React.ReactNode }) => <View>{children}</View>;
-});
-
-jest.mock('@components/FullPageEmptyState', () => {
-  const { View } = require('react-native');
-  return ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
-    visible ? <View testID="full-page-empty-state">{children}</View> : null;
-});
-
-jest.mock('@components/EmptyState', () => {
-  const { Text, View } = require('react-native');
-  return ({ title, description }: { title: string; description: string }) => (
-    <View>
-      <Text>{title}</Text>
-      <Text>{description}</Text>
-    </View>
-  );
-});
-
-jest.mock('@components/ChatEventHeader', () => {
-  const { Pressable, Text, View } = require('react-native');
-  return ({ onBack, title, subtitle }: { onBack: () => void; title: string; subtitle: string }) => (
-    <View>
-      <Pressable accessibilityLabel="Go back" onPress={onBack} />
-      <Text>{title}</Text>
-      <Text>{subtitle}</Text>
-    </View>
-  );
-});
-
-jest.mock('@components/events', () => {
-  const { Pressable, Text, View } = require('react-native');
+jest.mock('@react-navigation/native', () => {
+  const actualNav = jest.requireActual('@react-navigation/native');
   return {
-    EventRequestRow: ({
-      requester,
-      message,
-      onAccept,
-      onDecline,
-      testID,
-    }: {
-      requester: { name: string };
-      message: string;
-      onAccept: () => void;
-      onDecline: () => void;
-      testID: string;
-    }) => (
-      <View testID={testID}>
-        <Text>{requester.name}</Text>
-        <Text>{message}</Text>
-        <Pressable accessibilityLabel="Accept" onPress={onAccept} />
-        <Pressable accessibilityLabel="Decline" onPress={onDecline} />
-      </View>
-    ),
-    EventRequestRowSeparator: () => <View />,
+    ...actualNav,
+    useNavigation: () => ({
+      navigate: mockNavigate,
+      goBack: mockGoBack,
+      setOptions: jest.fn(),
+    }),
+    useRoute: () => ({
+      key: 'test-key',
+      name: 'JoinRequest',
+      params: mockRouteParams,
+    }),
   };
 });
 
-describe('JoinRequestScreen', () => {
+// Mock safe area context
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+// Mock join requests data
+const mockPendingRequests = [
+  {
+    id: 1,
+    eventId: 1,
+    userId: 2,
+    message: 'I would love to join this coffee meetup!',
+    status: 'pending' as const,
+    createdAt: new Date().toISOString(),
+    requester: { id: 2, name: 'Jane Doe' },
+  },
+  {
+    id: 2,
+    eventId: 1,
+    userId: 3,
+    message: 'Sounds fun!',
+    status: 'pending' as const,
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    requester: { id: 3, name: 'John Smith' },
+  },
+];
+
+const mockMixedRequests = [
+  ...mockPendingRequests,
+  {
+    id: 3,
+    eventId: 1,
+    userId: 4,
+    message: 'Already approved',
+    status: 'approved' as const,
+    createdAt: new Date(Date.now() - 7200000).toISOString(),
+    requester: { id: 4, name: 'Alice Brown' },
+  },
+];
+
+// Mock ChatContext
+const mockApproveJoinRequest = jest.fn().mockResolvedValue(undefined);
+const mockDenyJoinRequest = jest.fn().mockResolvedValue(undefined);
+const mockRefreshJoinRequests = jest.fn().mockResolvedValue(undefined);
+
+let mockChatValue = {
+  joinRequestsByConversation: { 1: mockPendingRequests } as Record<
+    number,
+    typeof mockMixedRequests
+  >,
+  refreshJoinRequests: mockRefreshJoinRequests,
+  approveJoinRequest: mockApproveJoinRequest,
+  denyJoinRequest: mockDenyJoinRequest,
+  setActiveConversation: jest.fn(),
+  conversations: [],
+  activeConversationId: null,
+  isConnecting: false,
+  error: null,
+  refreshConversations: jest.fn(),
+  isRefreshingConversations: false,
+  messages: [],
+  sendMessage: jest.fn(),
+  retryMessage: jest.fn(),
+  reportMember: jest.fn(),
+};
+
+jest.mock('@context/ChatContext', () => ({
+  useChat: () => mockChatValue,
+  ChatJoinRequest: {},
+}));
+
+// Mock components
+jest.mock('@components/ScreenContainer', () => {
+  const { View } = require('react-native');
+  return ({ children }: { children: React.ReactNode; edges?: string[] }) => (
+    <View testID="screen-container">{children}</View>
+  );
+});
+
+// Mock Feather icons
+jest.mock('@expo/vector-icons', () => ({
+  Feather: ({ name, ...props }: { name: string }) => {
+    const { View, Text } = require('react-native');
+    return (
+      <View testID={`icon-${name}`} {...props}>
+        <Text>{name}</Text>
+      </View>
+    );
+  },
+}));
+
+describe('JoinRequestScreen Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    delete routeParams.conversationId;
+    mockRouteParams = { conversationId: 1, eventId: 1, includeApproved: true };
     mockChatValue = {
-      approveJoinRequest: mockApproveJoinRequest,
-      conversations: [],
-      denyJoinRequest: mockDenyJoinRequest,
-      joinRequestsByConversation: { [-7]: [pendingRequest] },
+      joinRequestsByConversation: { 1: mockPendingRequests },
       refreshJoinRequests: mockRefreshJoinRequests,
+      approveJoinRequest: mockApproveJoinRequest,
+      denyJoinRequest: mockDenyJoinRequest,
+      setActiveConversation: jest.fn(),
+      conversations: [],
+      activeConversationId: null,
+      isConnecting: false,
+      error: null,
+      refreshConversations: jest.fn(),
+      isRefreshingConversations: false,
+      messages: [],
+      sendMessage: jest.fn(),
+      retryMessage: jest.fn(),
+      reportMember: jest.fn(),
     };
   });
 
-  it('loads and renders a conversation-less 1:1 request from its event key', async () => {
-    const { getByText } = render(<JoinRequestScreen />);
+  describe('Header', () => {
+    it('should render header title', () => {
+      const { getByText } = render(<JoinRequestScreen />);
+      expect(getByText('Requests')).toBeTruthy();
+    });
 
-    expect(getByText('Morning Walk')).toBeTruthy();
-    expect(getByText('Alex Example')).toBeTruthy();
-    await waitFor(() => {
-      expect(mockRefreshEvents).toHaveBeenCalled();
-      expect(mockRefreshJoinRequests).toHaveBeenCalledWith(-7, 7, {
-        includeApproved: false,
+    it('should render close button', () => {
+      const { getByLabelText } = render(<JoinRequestScreen />);
+      expect(getByLabelText('Close')).toBeTruthy();
+    });
+
+    it('should navigate back when close button is pressed', () => {
+      const { getByLabelText } = render(<JoinRequestScreen />);
+      fireEvent.press(getByLabelText('Close'));
+      expect(mockGoBack).toHaveBeenCalled();
+    });
+  });
+
+  describe('Request List', () => {
+    it('should render requester names', () => {
+      const { getByText } = render(<JoinRequestScreen />);
+      expect(getByText('Jane Doe')).toBeTruthy();
+      expect(getByText('John Smith')).toBeTruthy();
+    });
+
+    it('should render request messages', () => {
+      const { getAllByText } = render(<JoinRequestScreen />);
+      expect(getAllByText('I would love to join this coffee meetup!')).toHaveLength(2);
+      expect(getAllByText('Sounds fun!')).toHaveLength(2);
+    });
+
+    it('should render avatar with correct initial', () => {
+      const { getAllByText } = render(<JoinRequestScreen />);
+      expect(getAllByText('J').length).toBe(2); // Jane & John
+    });
+
+    it('should only show pending requests, not approved', () => {
+      mockChatValue.joinRequestsByConversation = { 1: mockMixedRequests };
+      const { getByText, queryByText } = render(<JoinRequestScreen />);
+
+      expect(getByText('Jane Doe')).toBeTruthy();
+      expect(getByText('John Smith')).toBeTruthy();
+      expect(queryByText('Alice Brown')).toBeNull();
+      expect(getByText('Requests')).toBeTruthy();
+    });
+  });
+
+  describe('Accept Action', () => {
+    it('should call approveJoinRequest when accept button is pressed', async () => {
+      const { getAllByLabelText } = render(<JoinRequestScreen />);
+
+      const acceptButtons = getAllByLabelText('Accept request');
+      fireEvent.press(acceptButtons[0]);
+
+      await waitFor(() => {
+        expect(mockApproveJoinRequest).toHaveBeenCalledWith(1, 1, 2);
       });
     });
   });
 
-  it('accepts the request using the same event-scoped store key', async () => {
-    const { getByLabelText } = render(<JoinRequestScreen />);
+  describe('Decline Action', () => {
+    it('should call denyJoinRequest when decline button is pressed', async () => {
+      const { getAllByLabelText } = render(<JoinRequestScreen />);
 
-    fireEvent.press(getByLabelText('Accept'));
+      const declineButtons = getAllByLabelText('Decline request');
+      fireEvent.press(declineButtons[0]);
 
-    await waitFor(() => {
-      expect(mockApproveJoinRequest).toHaveBeenCalledWith(-7, 7, 3);
+      await waitFor(() => {
+        expect(mockDenyJoinRequest).toHaveBeenCalledWith(1, 1, 2);
+      });
     });
   });
 
-  it('uses the requested empty-state copy', () => {
-    mockChatValue.joinRequestsByConversation = { [-7]: [] };
+  describe('Empty State', () => {
+    it('should show empty state when no pending requests', () => {
+      mockChatValue.joinRequestsByConversation = { 1: [] };
+      const { getByText } = render(<JoinRequestScreen />);
+      expect(getByText('No requests')).toBeTruthy();
+    });
 
-    const { getByText, getByTestId } = render(<JoinRequestScreen />);
+    it('should show empty state when all requests are approved', () => {
+      mockChatValue.joinRequestsByConversation = {
+        1: [
+          {
+            id: 1,
+            eventId: 1,
+            userId: 2,
+            message: 'Hi',
+            status: 'approved' as const,
+            createdAt: new Date().toISOString(),
+            requester: { id: 2, name: 'Jane Doe' },
+          },
+        ],
+      };
+      const { getByText } = render(<JoinRequestScreen />);
+      expect(getByText('No requests')).toBeTruthy();
+      expect(getByText('Requests')).toBeTruthy();
+    });
+  });
 
-    expect(getByTestId('full-page-empty-state')).toBeTruthy();
-    expect(getByText('No requests')).toBeTruthy();
-    expect(getByText('Join requests will appear here.')).toBeTruthy();
+  describe('Refresh', () => {
+    it('should call refreshJoinRequests on mount', async () => {
+      render(<JoinRequestScreen />);
+
+      await waitFor(() => {
+        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(1, 1, {
+          includeApproved: true,
+        });
+      });
+    });
+  });
+
+  describe('Conversation-less 1:1 requests', () => {
+    it('loads and renders pending requests from the event-scoped store key', async () => {
+      mockRouteParams = { eventId: 1, includeApproved: true };
+      mockChatValue.joinRequestsByConversation = { [-1]: mockPendingRequests };
+
+      const { getByText } = render(<JoinRequestScreen />);
+
+      await waitFor(() => {
+        expect(mockRefreshJoinRequests).toHaveBeenCalledWith(-1, 1, { includeApproved: true });
+      });
+      expect(getByText('Jane Doe')).toBeTruthy();
+    });
+
+    it('accepts a request using the same event-scoped store key', async () => {
+      mockRouteParams = { eventId: 1 };
+      mockChatValue.joinRequestsByConversation = { [-1]: mockPendingRequests };
+
+      const { getAllByLabelText } = render(<JoinRequestScreen />);
+      fireEvent.press(getAllByLabelText('Accept request')[0]);
+
+      await waitFor(() => {
+        expect(mockApproveJoinRequest).toHaveBeenCalledWith(-1, 1, 2);
+      });
+    });
   });
 });

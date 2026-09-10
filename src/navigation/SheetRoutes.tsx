@@ -15,7 +15,7 @@ import { type StackScreenProps } from '@react-navigation/stack';
 
 import { RootStackParamList } from '@navigation/types';
 import EventDetailsScreen from '@screens/EventDetailsScreen';
-import PendingRequestsScreen from '@screens/PendingRequestsScreen';
+import JoinRequestScreen from '@screens/JoinRequestScreen';
 import { colors } from '@theme/colors';
 import { radii } from '@theme/radii';
 
@@ -153,16 +153,16 @@ export const EventDetailsOverlaySheet = ({ navigation }: EventDetailsOverlayShee
   );
 };
 
-type PendingRequestsSheetProps = StackScreenProps<RootStackParamList, 'PendingRequests'>;
+type JoinRequestSheetProps = StackScreenProps<RootStackParamList, 'JoinRequest'>;
 
-export const PendingRequestsSheet = ({ navigation }: PendingRequestsSheetProps) => {
+export const JoinRequestSheet = ({ navigation }: JoinRequestSheetProps) => {
   const handleClose = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
 
   return (
     <SheetRoute onClose={handleClose}>
-      <PendingRequestsScreen />
+      <JoinRequestScreen />
     </SheetRoute>
   );
 };
