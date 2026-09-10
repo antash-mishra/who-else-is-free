@@ -376,7 +376,7 @@ const ProfileScreen = () => {
         onBackdropPress={handleDeleteCancel}
         type="confirm"
         title="Delete your account?"
-        description="This will permanently delete your profile, created plans, joined plans, and chats. This action can't be undone."
+        description="This will permanently delete your profile, created plans, joined plans, and chats. There's no way to get them back."
         confirmLabel="Delete account"
         cancelLabel="Cancel"
         confirmTone="destructive"

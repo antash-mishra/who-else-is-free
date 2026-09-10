@@ -25,7 +25,7 @@ const REPORT_REASON_REQUIRED = 'Please tell us why you are reporting this member
 const firstNameOf = (name: string | undefined) => name?.trim().split(/\s+/)[0] ?? '';
 
 /**
- * Report & Block / Remove actions for the other member of a 1:1 chat. The
+ * Report & block / Remove actions for the other member of a 1:1 chat. The
  * report flow mirrors Event Details exactly: menu → confirmation → reason
  * prompt, with the shared `getMemberReportError` copy and never a raw error.
  */
@@ -203,7 +203,7 @@ export const useSingleEventMemberActions = ({
   const menuItems = useMemo(
     () => [
       {
-        label: `Report & Block ${selectedTargetFirstName}`,
+        label: `Report & block ${selectedTargetFirstName}`,
         onPress: openReportConfirm,
       },
       {
