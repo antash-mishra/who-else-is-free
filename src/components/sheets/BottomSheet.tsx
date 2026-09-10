@@ -170,6 +170,11 @@ const BottomSheet = ({
   const startOpenAnimation = useCallback(() => {
     slideY.value = screenHeight;
     backdropOpacity.value = 0;
+    // Entry can now begin while a previous field's keyboard is still sliding
+    // out, so a stale offset from that keyboard would start the sheet visibly
+    // displaced. Reset it here rather than relying on the keyboard being fully
+    // down before the sheet mounts.
+    keyboardOffset.value = 0;
     setIsAnimating(true);
     const handleSettled = (finished?: boolean) => {
       'worklet';
@@ -195,7 +200,7 @@ const BottomSheet = ({
       duration: animation === 'spring' ? 100 : 140,
       easing: Easing.out(Easing.cubic),
     });
-  }, [animation, backdropOpacity, notifyOpened, screenHeight, slideY]);
+  }, [animation, backdropOpacity, keyboardOffset, notifyOpened, screenHeight, slideY]);
 
   const startCloseAnimation = useCallback(() => {
     Keyboard.dismiss();
