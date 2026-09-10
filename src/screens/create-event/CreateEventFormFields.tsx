@@ -1,9 +1,9 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 
 import UploadIcon from '@assets/create-event/choose-cover.svg';
+import { FrostedSurface } from '@components/ui';
 import { colors } from '@theme/index';
 
 import styles from '../CreateEventScreen.styles';
@@ -58,9 +58,9 @@ const CreateEventFormFields = ({
         transition={150}
         testID="create-event-cover-image"
       />
-      <BlurView intensity={45} tint="dark" style={styles.coverChip}>
+      <FrostedSurface tint="dark" intensity={45} blur style={styles.coverChip}>
         <UploadIcon width={20} height={20} color="white" style={{ opacity: 0.9 }} />
-      </BlurView>
+      </FrostedSurface>
     </Pressable>
 
     <View style={styles.fieldCard}>

@@ -3,7 +3,6 @@ import { memo, type RefObject } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import MaskedView from '@react-native-masked-view/masked-view';
-import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -12,6 +11,7 @@ import HostingIcon from '@assets/event/hosting.svg';
 import JoinedIcon from '@assets/event/joined.svg';
 import PendingIcon from '@assets/event/pending.svg';
 import { useEventSharedTransition } from '@components/events/EventSharedTransition';
+import { FrostedSurface } from '@components/ui';
 import { EVENT_INFO_SEPARATOR } from '@constants/display';
 import { colors, spacing, typography } from '@theme/index';
 import { eventSharedMotion } from '@theme/motion';
@@ -102,7 +102,14 @@ const EventCard = ({
               />
             }
           >
-            <BlurView intensity={28} tint="dark" style={{ width: IMAGE_SIZE, height: BLUR_H }} />
+            {/* Tint only, no blur: this sits inside a MaskedView, and nesting a live
+                Android BlurView in that offscreen layer is the capture pattern that
+                hit a RenderScript context crash in release testing. */}
+            <FrostedSurface
+              tint="dark"
+              intensity={28}
+              style={{ width: IMAGE_SIZE, height: BLUR_H }}
+            />
             <View
               testID="event-card-badge"
               style={{

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -10,7 +9,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
@@ -23,15 +21,14 @@ import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import {
   EventSharedTransitionPage,
   useEventSharedTransition,
-  useEventSharedTransitionMaterial,
 } from '@components/events/EventSharedTransition';
-import { AppButton } from '@components/ui';
+import { AppButton, FrostedSurface } from '@components/ui';
 import { EVENT_DETAILS_INFO_SEPARATOR } from '@constants/display';
 import { useAuth } from '@context/AuthContext';
 import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import { colors, componentTokens, spacing } from '@theme/index';
+import { colors, spacing } from '@theme/index';
 import { formatEventDetailDateLabel } from '@utils/dateTime';
 import { formatEventDetailAudienceLine } from '@utils/eventDisplay';
 
@@ -50,38 +47,12 @@ import {
 } from './event-details/useEventDetailsData';
 import { useHostRequestActions } from './event-details/useHostRequestActions';
 
-// Frosted-glass backing for the floating hero buttons. Android only blurs
-// with the experimental method, and its dark tint comes out lighter than the
-// iOS material, so a translucent dark layer sits on top of the blur there.
-const HeroButtonBlur = () => {
-  const liveMaterial = useEventSharedTransitionMaterial();
-  // Keep live blur from repeatedly capturing the moving page; use the existing
-  // tint during shared motion. Layer-caching experiments also exposed a native
-  // RenderScript context failure when nested live BlurViews were captured.
-  // The provider grants live material only to a page at rest.
-  const staticMaterial = Platform.OS === 'android' && !liveMaterial;
-  return (
-    <>
-      {!staticMaterial && (
-        <BlurView
-          intensity={24}
-          tint="dark"
-          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-      {Platform.OS === 'android' ? (
-        <View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: componentTokens.overlay.heroButtonTint },
-          ]}
-        />
-      ) : null}
-    </>
-  );
-};
+// Frosted-glass backing for the floating hero buttons. A flat material fill,
+// so it is identical on both platforms and free to keep mounted during shared
+// transitions.
+const HeroButtonMaterial = () => (
+  <FrostedSurface tint="dark" intensity={24} style={StyleSheet.absoluteFill} />
+);
 
 const EventDetailsScreenContent = ({
   initialEventSnapshot,
@@ -334,7 +305,7 @@ const EventDetailsScreenContent = ({
             ]}
             hitSlop={12}
           >
-            <HeroButtonBlur />
+            <HeroButtonMaterial />
             <CloseIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         ) : !readOnly ? (
@@ -348,7 +319,7 @@ const EventDetailsScreenContent = ({
               }}
               style={[styles.backButton, { top: floatingButtonTop }]}
             >
-              <HeroButtonBlur />
+              <HeroButtonMaterial />
               <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
             <Pressable
@@ -360,7 +331,7 @@ const EventDetailsScreenContent = ({
               }}
               style={[styles.menuButton, { top: floatingButtonTop }]}
             >
-              <HeroButtonBlur />
+              <HeroButtonMaterial />
               <MoreHorizontalIcon width={24} height={24} color={colors.buttonText} />
             </Pressable>
           </>
@@ -375,7 +346,7 @@ const EventDetailsScreenContent = ({
             hitSlop={12}
             style={[styles.backButton, { top: floatingButtonTop }]}
           >
-            <HeroButtonBlur />
+            <HeroButtonMaterial />
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}

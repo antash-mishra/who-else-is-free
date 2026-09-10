@@ -1,8 +1,7 @@
 import { Platform, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
-import { BlurView } from 'expo-blur';
-
 import CameraIcon from '@assets/onboarding/camera.svg';
+import { FrostedSurface } from '@components/ui';
 import { colors } from '@theme/index';
 
 interface AvatarEditBadgeProps {
@@ -12,26 +11,27 @@ interface AvatarEditBadgeProps {
 
 /**
  * Frosted camera badge pinned to the corner of an editable avatar. Shared by
- * Onboarding and Edit Profile so the clipping and blur behavior stay identical.
+ * Onboarding and Edit Profile so the clipping and material stay identical.
  *
- * The badge is layered as shadow wrapper -> clipped circular surface -> blur
- * fill: the elevation shadow lives on its own layer while the blur/tint layer
- * is clipped to the circle. Rendering the blur unclipped (or relying on
- * `overflow: 'hidden'` alone on Android) leaks a rounded-square outline behind
- * the circular badge.
+ * The badge is layered as shadow wrapper -> clipped circular surface -> material:
+ * the shadow lives on its own layer while the material is clipped to the circle.
+ * Rendering it unclipped (or relying on `overflow: 'hidden'` alone on Android)
+ * leaks a rounded-square outline behind the circular badge.
  *
- * `experimentalBlurMethod` opts Android into real Dimezis blurring; without it
- * expo-blur only draws a flat translucent tint on Android.
+ * The material blurs. The badge straddles the avatar's edge, so a flat tint
+ * leaves that hard boundary running through it; the blur mixes the page behind
+ * the avatar into the badge, which is what iOS has always done here.
+ *
+ * The surface is deliberately translucent, so it carries no Android `elevation`.
+ * Android tessellates an elevation shadow into a polygon and draws it behind the
+ * caster, which shows straight through a 60%-opaque badge as an octagon. It went
+ * unnoticed while a `BlurView` painted the badge interior opaquely. iOS keeps its
+ * shadow: a soft 0.1-opacity gradient with no tessellation, and no artifact.
  */
 const AvatarEditBadge = ({ style }: AvatarEditBadgeProps) => (
   <View style={[styles.shadow, style]}>
     <View style={styles.surface}>
-      <BlurView
-        style={StyleSheet.absoluteFill}
-        intensity={15}
-        tint="light"
-        experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-      />
+      <FrostedSurface style={StyleSheet.absoluteFill} tint="light" intensity={15} blur />
       <CameraIcon width={20} height={20} color={colors.iconColor} />
     </View>
   </View>
@@ -45,11 +45,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    // Android cannot use `elevation` here: it tessellates its shadow into a
+    // polygon drawn behind the caster, which shows straight through this
+    // translucent badge as an octagon (visible even at elevation 1, and masked
+    // before only because a BlurView painted the badge interior opaquely).
+    // `boxShadow` is a real Gaussian shadow, so it matches the iOS material.
+    // iOS keeps its original shadow props unchanged.
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.text,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: { boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)' },
+    }),
   },
   surface: {
     flex: 1,

@@ -15,7 +15,6 @@ import {
   EventSharedTransitionProvider,
   EventSharedTransitionSourcePage,
   useEventSharedTransition,
-  useEventSharedTransitionMaterial,
   useEventSharedTransitionState,
 } from '../EventSharedTransition';
 
@@ -43,11 +42,9 @@ const titleFrame = { x: 16, y: 420, width: 380, height: 36 };
 const Harness = ({ secondPage = false }: { secondPage?: boolean }) => {
   const { open, prime, land, cancel, close, progress } = useEventSharedTransition();
   const state = useEventSharedTransitionState();
-  const liveMaterial = useEventSharedTransitionMaterial();
   return (
     <>
       <Text testID="progress">{progress.value}</Text>
-      <Text testID="material">{liveMaterial ? 'live' : 'static'}</Text>
       <Text testID="state">{`${state.eventId ?? 'idle'}:${state.phase ?? 'none'}`}</Text>
       <Pressable testID="close" onPress={() => close('event-1', closed)} />
       <Pressable testID="cancel" onPress={() => cancel()} />
@@ -203,12 +200,10 @@ describe('event shared transition', () => {
       timing.mock.calls[0][2]?.(true);
     });
     expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
-    expect(screen.getByTestId('material').props.children).toBe('live');
     fireEvent.press(screen.getByTestId('close'));
-    // The retained overlay is already loaded: live materials unmount in this
-    // commit and the clock starts in the same turn, with no closing commit.
+    // The retained overlay is already loaded: the clock starts in the same
+    // turn, with no closing commit.
     expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
-    expect(screen.getByTestId('material').props.children).toBe('static');
     expect(timing).toHaveBeenCalledTimes(2);
     expect(measureCover).toHaveBeenCalledTimes(2);
     expect(closed).not.toHaveBeenCalled();
@@ -440,7 +435,6 @@ describe('event shared transition', () => {
     fireEvent.press(screen.getByTestId('open'));
     expect(navigate).toHaveBeenCalledWith(true);
     expect(screen.getByTestId('state').props.children).toBe('event-1:landing');
-    expect(screen.getByTestId('material').props.children).toBe('static');
     expect(pageOpacity(screen)).toBe(0);
     expect(screen.queryByTestId('flying-title', hidden)).toBeNull();
 
@@ -514,7 +508,6 @@ describe('event shared transition', () => {
     fireEvent(screen.getByTestId('flying-cover-image', hidden), 'load');
     // The loaded overlay stays mounted, hidden over the hero, ready for the return.
     expect(screen.getByTestId('state').props.children).toBe('event-1:retained');
-    expect(screen.getByTestId('material').props.children).toBe('live');
     expect(screen.getByTestId('flying-cover', hidden)).toBeTruthy();
     expect(overlayOpacity(screen)).toBe(0);
     expect(pageOpacity(screen)).toBe(1);

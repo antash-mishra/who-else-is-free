@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import MaskedView from '@react-native-masked-view/masked-view';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -18,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import WarningIcon from '@assets/ui/error.svg';
+import { FrostedSurface } from '@components/ui';
 import { Springs } from '@theme/springs';
 import { spacing } from '@theme/index';
 
@@ -103,9 +103,9 @@ const CreateEventSubmitButton = ({
             buttonScaleStyle,
           ]}
         >
-          {/* Frosted-glass backing: light blur lets the content behind show through,
-              the translucent white fill (primaryButton bg) keeps it reading as white. */}
-          <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+          {/* Frosted-glass backing over the translucent white fill (primaryButton bg)
+              that keeps it reading as white. */}
+          <FrostedSurface tint="light" intensity={60} style={StyleSheet.absoluteFill} />
           {isSubmitting && !isEditing ? (
             <MaskedView
               style={shimmerStyles.root}
