@@ -46,7 +46,7 @@ Who Else Is Free is an event discovery and social coordination app.
   counts include only active rows. The idempotent schema migration/backfill is in
   `server/repository_schema.go`; task types are `chat.message` and `join_request.created`.
   Lifecycle mutations eagerly invalidate related actions. Ended events (`isEventPast`) resolve chat,
-  request-created and request-approved taps as `unavailable`/`event_ended` at tap time, routed to the
+  request-created (pending or already handled) and request-approved taps as `unavailable`/`event_ended` at tap time, routed to the
   same Discover `event_unavailable` notice as deleted events, because Messages no longer lists
   past-event conversations. Inbox and OS-push taps must both call
   the authenticated `POST /api/notifications/actions/resolve` boundary through

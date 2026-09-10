@@ -303,6 +303,11 @@ func resolvePersistedInactiveTarget(
 		if event.OwnerID != userID {
 			return unavailableNotification(NotificationReasonAccessRemoved), nil
 		}
+		// A handled request on an ended event must not open the past plan while
+		// a pending one on the same event opens the Discover notice.
+		if event.ended(time.Now()) {
+			return unavailableNotification(NotificationReasonEventEnded), nil
+		}
 		return NotificationActionResolution{
 			Status:      NotificationActionResolved,
 			Reason:      latest.ActionReason,

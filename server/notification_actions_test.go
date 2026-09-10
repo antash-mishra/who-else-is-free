@@ -513,3 +513,36 @@ func TestResolveNotificationAction_EndedEventChatIsUnavailable(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveNotificationAction_ResolvedRequestOnEndedEventIsUnavailable(t *testing.T) {
+	repo := newNotificationsTestRepo(t)
+	ctx := context.Background()
+	hostID := int64(1)
+	requesterID := seedNotificationActionUser(t, repo, "ended-resolved-request")
+	eventID := seedNotificationActionEvent(t, repo, hostID, "Single")
+	request, err := repo.CreateJoinRequest(ctx, eventID, requesterID, "hello")
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	reason := NotificationReasonRequestApproved
+	notification, err := repo.CreateNotification(ctx, Notification{
+		UserID: hostID, Type: NotificationTypeJoinRequestCreated, EventID: &eventID,
+		JoinRequestID: &request.ID, Title: "Trek", Body: "Akash wants to join your plan",
+		ActionState: NotificationActionResolved, ActionReason: &reason,
+	})
+	if err != nil {
+		t.Fatalf("create resolved notification: %v", err)
+	}
+	markNotificationActionEventEnded(t, repo, eventID)
+
+	resolution, err := repo.ResolveNotificationAction(ctx, hostID, NotificationActionResolveInput{
+		NotificationIDs: []int64{notification.ID}, MarkHandled: true,
+	})
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if resolution.Status != NotificationActionUnavailable || resolution.Reason == nil ||
+		*resolution.Reason != NotificationReasonEventEnded || resolution.Destination != NotificationDestinationEvents {
+		t.Fatalf("resolution = %+v", resolution)
+	}
+}
