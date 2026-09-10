@@ -113,7 +113,7 @@ const MyEventsScreen = () => {
     [joinedEvents],
   );
   const requestedSections = useMemo(
-    () => buildEventSections(requestedEvents, () => 'Requested'),
+    () => buildEventSections(requestedEvents, () => 'Pending'),
     [requestedEvents],
   );
 
