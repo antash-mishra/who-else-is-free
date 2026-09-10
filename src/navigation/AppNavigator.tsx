@@ -14,7 +14,6 @@ import {
   type NavigationProp,
 } from '@react-navigation/native';
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
@@ -23,6 +22,7 @@ import {
   EventSharedTransitionSourcePage,
 } from '@components/events/EventSharedTransition';
 import { BottomSheetHostProvider } from '@components/sheets';
+import { FrostedSurface } from '@components/ui';
 import { usePrepareCreateEvent } from '@hooks/usePrepareCreateEvent';
 import { navigationRef } from '@navigation/navigationRef';
 import { EventDetailsOverlaySheet, JoinRequestSheet } from '@navigation/SheetRoutes';
@@ -127,7 +127,7 @@ const ProfileTab = (_props: BottomTabScreenProps<RootTabParamList, 'Profile'>) =
 // ─── Tab bar background ──────────────────────────────────────────────────────
 const TabBarBackground = () => (
   <View style={tabBarStyles.backgroundContainer}>
-    <BlurView intensity={54} tint="light" style={StyleSheet.absoluteFill} />
+    <FrostedSurface tint="light" intensity={54} style={StyleSheet.absoluteFill} />
     <View style={tabBarStyles.frostedOverlay} />
     <View style={tabBarStyles.topBorder} />
   </View>

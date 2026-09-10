@@ -154,15 +154,7 @@ const ActionsContext = createContext<SharedTransitionActions>({
 
 const StateContext = createContext<SharedTransitionState>({});
 
-/**
- * Whether expensive live materials (Android hero-button BlurViews) may mount.
- * Kept in its own context so that flipping it at return start re-renders only
- * those consumers, not every card, hero and page.
- */
-const MaterialContext = createContext(true);
-
 export const useEventSharedTransition = () => useContext(ActionsContext);
-export const useEventSharedTransitionMaterial = () => useContext(MaterialContext);
 /**
  * Current image flight. Titles remain inside their respective pages.
  */
@@ -440,7 +432,6 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
   const graces = useRef({ image: false });
   const [flight, setFlightState] = useState<Flight>();
   // A return in progress: live materials unmount before its clock starts.
-  const [returning, setReturning] = useState(false);
   // Reset to 0 at open so the page mounts invisible; the overlay drives it to 1.
   const progress = useSharedValue(1);
   const target = useSharedValue<CoverTarget | null>(null);
@@ -489,7 +480,6 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
       // that image again for one frame during page unmount.
       if (!returnedToSource) progress.value = 1;
       setFlight(undefined);
-      setReturning(false);
       finishClose?.(false);
     },
     [progress],
@@ -522,7 +512,6 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
     // then only re-measures and starts its timing.
     markTransition('open-complete-js');
     setFlight({ ...current, phase: 'retained' });
-    setReturning(false);
   }, []);
 
   const startFlight = useCallback(() => {
@@ -679,7 +668,6 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
           return;
         }
         clearTimers();
-        setReturning(false);
         progress.value = 0;
         target.value = null;
         sourceFrame.value = frames.cover;
@@ -826,7 +814,6 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
             };
             const id = current.id;
             setFlightPhaseSilently({ ...current, source: frames, targetCover, phase: 'closing' });
-            setReturning(true);
             timers.current.complete = setTimeout(
               () => cancelFlight(id),
               eventSharedMotion.timeoutMs,
@@ -890,30 +877,25 @@ export const EventSharedTransitionProvider = ({ children }: { children: ReactNod
     () => ({ eventId, phase, sourceCover }),
     [eventId, phase, sourceCover],
   );
-  // Live materials belong to a page at rest: never while landing, flying or
-  // returning, where their capture and removal would cost moving frames.
-  const liveMaterial = !flight || primed || (flight.phase === 'retained' && !returning);
   return (
     <ActionsContext.Provider value={actions}>
-      <MaterialContext.Provider value={liveMaterial}>
-        <StateContext.Provider value={state}>
-          <View ref={root} collapsable={false} style={styles.root}>
-            {children}
-            {flight && flight.phase !== 'closed' && (
-              <FlightOverlay
-                key={flight.id}
-                flight={flight}
-                layoutSize={layoutSize}
-                progress={progress}
-                target={target}
-                sourceFrame={sourceFrame}
-                onCoverReady={() => markCoverReady(flight.id)}
-                onError={() => cancelFlight(flight.id)}
-              />
-            )}
-          </View>
-        </StateContext.Provider>
-      </MaterialContext.Provider>
+      <StateContext.Provider value={state}>
+        <View ref={root} collapsable={false} style={styles.root}>
+          {children}
+          {flight && flight.phase !== 'closed' && (
+            <FlightOverlay
+              key={flight.id}
+              flight={flight}
+              layoutSize={layoutSize}
+              progress={progress}
+              target={target}
+              sourceFrame={sourceFrame}
+              onCoverReady={() => markCoverReady(flight.id)}
+              onError={() => cancelFlight(flight.id)}
+            />
+          )}
+        </View>
+      </StateContext.Provider>
     </ActionsContext.Provider>
   );
 };

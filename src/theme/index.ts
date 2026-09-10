@@ -1,6 +1,7 @@
 export * from './colors';
 export * from './components';
 export * from './layout';
+export * from './materials';
 export * from './radii';
 export * from './shadows';
 export * from './spacing';

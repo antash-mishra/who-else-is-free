@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { Dimensions, FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CheckSelectedCoverIcon from '@assets/create-event/check-selected-cover.svg';
 import SearchIcon from '@assets/create-event/search.svg';
+import { FrostedSurface } from '@components/ui';
 import { CoverKey } from '@constants/covers';
 import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
@@ -141,9 +141,9 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
                       />
                     </View>
                     {isSelected && (
-                      <BlurView intensity={60} tint="dark" style={styles.checkBadge}>
+                      <FrostedSurface tint="dark" intensity={60} blur style={styles.checkBadge}>
                         <CheckSelectedCoverIcon width={14} height={14} />
-                      </BlurView>
+                      </FrostedSurface>
                     )}
                   </Pressable>
                 </View>

@@ -35,6 +35,7 @@ In this React Native app, "shared CSS" means:
 | Text input                                    | `TextField`                                                                            | `HelpForm`                                                            |
 | Checkbox row                                  | `CheckboxRow`                                                                          | `HelpForm`                                                            |
 | Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`, Profile notifications bell             |
+| Frosted/translucent surface                   | `FrostedSurface`                                                                       | cover chip, avatar edit badge, hero buttons, tab bar, badges          |
 | Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                                   |
 | Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                                   |
 | Numeric count badge in a header/row           | `CountBadge`                                                                           | Chat thread header, One-to-One Hub header, Profile notifications bell |
@@ -184,6 +185,29 @@ Important groups:
 Rule:
 
 - Put repeated component measurements here before copying numbers across components.
+
+### Frosted Materials
+
+File: `src/theme/materials.ts`
+
+What it is:
+
+- `frostedFill(tint, intensity)` plus the `frostedMaterials` multipliers behind `FrostedSurface`.
+- `dark` tints toward black, `light` toward white; `intensity` is the 0-100 scale the old
+  `BlurView` used, kept so each surface retains its calibrated weight.
+
+Where it is used:
+
+- `FrostedSurface` only.
+
+Rule:
+
+- Change frosted strength here, not with per-platform branches or ad-hoc rgba values at call sites.
+- The multipliers were fitted to the iOS material (sampled across four surfaces, both tints,
+  intensities 15-60 and backdrops from rgb(39) to rgb(162), matching within 1%). Re-measure before
+  changing them.
+- These apply to `FrostedSurface`'s tint-only path. Surfaces passing `blur` take their tint from
+  the platform blur instead.
 
 ### Radii
 
@@ -448,6 +472,51 @@ Where it is used:
 Use it when:
 
 - A row toggles a boolean option.
+
+### `FrostedSurface`
+
+File: `src/components/ui/FrostedSurface.tsx`
+
+What it is:
+
+- Shared frosted-glass surface. Owns the material for every frosted element and applies the same
+  treatment to iOS and Android, Android's `experimentalBlurMethod` opt-in included.
+- Replaces direct `BlurView` use, which rendered differently per platform: iOS ran a real
+  `UIVisualEffectView`, while Android painted a flat scrim unless a surface passed
+  `experimentalBlurMethod`, and only some of ours did. The same component therefore blurred on one
+  platform and not the other.
+- Two paths. `blur` runs a real blur on both platforms; the default tints with a flat fill from
+  `src/theme/materials.ts`, whose multipliers were fitted to the iOS material within 1%.
+- The material sits above the surface's own background and below its children, exactly where the
+  blur used to sit, so existing styles (including their `backgroundColor` and
+  `overflow: 'hidden'`) keep working unchanged.
+
+Where it is used:
+
+- Create/Edit Event cover chip and submit button.
+- `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip).
+- Event Details hero buttons (back, menu, overlay close).
+- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip, `EventActionBadge`.
+
+Use it when:
+
+- Any surface needs a translucent frosted backing.
+
+Rules:
+
+- Do not use `BlurView` directly. The only one left outside this component is the iOS-only
+  shared-transition backdrop in `EventSharedTransition`, a motion effect rather than a surface.
+- Pass `blur` only over photography, where a tint alone leaves image detail sharp: the cover chip
+  and the cover-picker check badge. Over an already-smooth backdrop the tint is measurably
+  indistinguishable and much cheaper, since an Android blur captures the screen behind it every
+  frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
+  offscreen-capture pattern that hit a RenderScript crash in release testing.
+- Pass the surface's existing `intensity` (0-100) so it keeps its calibrated weight, and keep the
+  surface's own background colour: the material composites over it.
+- Tune material strength in `src/theme/materials.ts`, never with per-platform branches at the call
+  site. For the blurred path, Android's radius is `intensity / blurReductionFactor`; the component
+  sets 2 because the stock 4 blurs far more weakly than iOS. Adjust that rather than layering a
+  per-platform tint, which is what the old `heroButtonTint` did and it ran ~28/255 too dark.
 
 ### `IconButton`
 
@@ -1685,7 +1754,6 @@ Screenshots captured during the shared-component review:
 - `ConfettiOverlay` mounts its particle simulation only while active and motion is allowed. Hidden celebrations allocate no particle values and register no frame callback; the active simulation explicitly stops its frame callback on cleanup. Do not keep an idle simulation mounted in every My Plans instance.
 
 - Successful event creation uses `completeEventCreation`: pass the hydrated `navigationRef.getRootState()`, select My Events with a targeted tab `jumpTo` and await its render opportunity before popping the form, so dismissal reveals My Plans directly. The helper guards against a changed top route during that wait. A stack-only state snapshot can omit the child key; `navigate` also changes parent focus. Keep the nested pop destination as the unmounted-tab fallback.
-
 
 - Card-origin shared routes set `animation: 'none'` from initial mount. A successful image return dispatches removal immediately; zero-duration timing alone still retains React Navigation's closing lifecycle. Only failed/unavailable shared returns install `fallbackSharedCoverScreenOptions` (fade), allow two animation frames for the descriptor update, then dispatch once. Cancel pending fallback dispatch on unmount and suppress repeated Back actions. Preserve the existing UI-thread endpoint opacity and progress cleanup guards.
 - Optional `EXPO_PUBLIC_TRANSITION_METRICS=true` release diagnostics and `scripts/performance/input-latency/` measure native input to the first sampled UI-thread motion on an isolated emulator. Normal builds leave this flag unset. Report opening delay, closing-start delay, and post-return input availability separately; these samples do not measure display presentation or phone FPS. See `report/animation-repair/input-latency-report.md`.

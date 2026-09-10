@@ -8,6 +8,8 @@ export { default as CheckboxRow } from './CheckboxRow';
 export type { CheckboxRowProps } from './CheckboxRow';
 export { default as CountBadge } from './CountBadge';
 export type { CountBadgeProps } from './CountBadge';
+export { default as FrostedSurface } from './FrostedSurface';
+export type { FrostedSurfaceProps } from './FrostedSurface';
 export { default as IconButton } from './IconButton';
 export type { IconButtonProps } from './IconButton';
 export { default as ListSeparator } from './ListSeparator';
