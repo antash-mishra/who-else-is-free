@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   helperError: {
-    color: "#B00020",
+    color: colors.error,
   },
   buttonGroup: {
     gap: 12,
