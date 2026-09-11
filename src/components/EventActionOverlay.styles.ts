@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   promptDescription: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.subText,
+    color: colors.mutedText,
     lineHeight: typography.body + spacing.xs,
     letterSpacing: typography.letterSpacing,
   },
@@ -70,6 +70,9 @@ const styles = StyleSheet.create({
   },
   promptButtons: {
     gap: spacing.sm,
+    // +4 on top of the prompt's own 12px gap, so the buttons sit 16 below
+    // the description. Scoped here because only the confirm sheet uses this row.
+    marginTop: spacing.xs,
   },
   secondaryButton: {
     backgroundColor: colors.actionSurface,

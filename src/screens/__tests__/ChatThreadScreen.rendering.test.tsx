@@ -851,7 +851,7 @@ describe('ChatThreadScreen Rendering', () => {
       fireEvent.press(getByTestId('chat-event-info-button'));
 
       expect(getByTestId('action-overlay-menu')).toBeTruthy();
-      expect(getByText('Report & Block Liam')).toBeTruthy();
+      expect(getByText('Report & block Liam')).toBeTruthy();
       expect(getByText('Remove Liam')).toBeTruthy();
     });
 

@@ -86,14 +86,15 @@ test('plan report keeps plan-specific wording', () => {
   const view = render(<EventDetailsOverlayRoutes {...props} showReportPrompt />);
   expect(view.getByPlaceholderText("Tell us why you're reporting this plan")).toBeTruthy();
 });
-test('remove confirmation has a concise CTA and centered header', () => {
+test('remove confirmation has a concise CTA and a left-aligned header', () => {
   const view = render(
     <EventDetailsOverlayRoutes {...props} showRemoveConfirm selectedMemberName="Taylor Test" />,
   );
   expect(view.getByRole('button', { name: 'Remove' })).toBeTruthy();
-  expect(view.getByText('Remove Taylor?')).toHaveStyle({ textAlign: 'center' });
+  // Left like every other confirmation; this sheet used to be the lone centered one.
+  expect(view.getByText('Remove Taylor?')).toHaveStyle({ textAlign: 'left' });
   expect(view.getByText('They will be removed from this plan and group chat.')).toHaveStyle({
-    textAlign: 'center',
+    textAlign: 'left',
   });
 });
 test('report confirmation has a concise CTA', () => {

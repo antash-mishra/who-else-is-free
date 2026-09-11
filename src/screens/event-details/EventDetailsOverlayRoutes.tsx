@@ -212,7 +212,7 @@ const EventDetailsOverlayRoutes = ({
         type="menu"
         items={[
           {
-            label: `Report & Block ${memberFirstName}`,
+            label: `Report & block ${memberFirstName}`,
             onPress: onReportMemberFromMenu,
           },
           {
@@ -245,7 +245,6 @@ const EventDetailsOverlayRoutes = ({
             : 'They will be removed from this plan and group chat.'
         }
         confirmLabel="Remove"
-        headerAlign="center"
         cancelLabel="Cancel"
         confirmTone="destructive"
         onConfirm={onRemoveMember}

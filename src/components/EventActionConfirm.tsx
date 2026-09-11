@@ -42,16 +42,6 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
       {errorMessage ? <Text style={styles.promptError}>{errorMessage}</Text> : null}
     </View>
     <View style={styles.promptButtons}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {
-          triggerHaptic('light');
-          onCancel();
-        }}
-        style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
-      >
-        <Text style={styles.secondaryLabel}>{cancelLabel}</Text>
-      </Pressable>
       {holdToConfirm ? (
         <HoldToConfirmButton
           label={confirmLabel}
@@ -86,6 +76,16 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
           </Text>
         </Pressable>
       )}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          triggerHaptic('light');
+          onCancel();
+        }}
+        style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+      >
+        <Text style={styles.secondaryLabel}>{cancelLabel}</Text>
+      </Pressable>
     </View>
   </View>
 );
