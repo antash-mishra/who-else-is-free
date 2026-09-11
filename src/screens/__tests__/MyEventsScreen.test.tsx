@@ -94,14 +94,14 @@ describe('MyEventsScreen', () => {
       expect(requestedEvents.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should add "Requested" badge to requested events', () => {
+    it('should add "Pending" badge to requested events', () => {
       const requestedEventIds = new Set(['3']);
       const requestedEvents = mockEvents
         .filter((e) => requestedEventIds.has(e.id))
-        .map((e) => ({ ...e, badgeLabel: 'Requested' }));
+        .map((e) => ({ ...e, badgeLabel: 'Pending' }));
 
       requestedEvents.forEach((event) => {
-        expect(event.badgeLabel).toBe('Requested');
+        expect(event.badgeLabel).toBe('Pending');
       });
     });
 

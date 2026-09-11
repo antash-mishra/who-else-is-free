@@ -517,7 +517,7 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('event-card-badge')).toBeTruthy();
     });
 
-    it('shows Requested badge for requested events', () => {
+    it('shows Pending badge for requested events', () => {
       mockEventsValue.events = [createTodayEvent({ id: '99', ownerId: 999 })];
       mockEventsValue.isEventRequested = jest.fn().mockReturnValue(true);
       const { getByTestId } = render(<HomeScreen />);

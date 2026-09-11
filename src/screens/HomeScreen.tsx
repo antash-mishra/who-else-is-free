@@ -149,7 +149,7 @@ const HomeScreen = () => {
       if (!user) return undefined;
       if (event.ownerId === user.id) return 'Hosting';
       if (joinedEventIds.has(event.id)) return 'Joined';
-      if (isEventRequested(event.id)) return 'Requested';
+      if (isEventRequested(event.id)) return 'Pending';
       return undefined;
     },
     [user, joinedEventIds, isEventRequested],

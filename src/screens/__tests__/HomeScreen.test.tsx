@@ -114,17 +114,17 @@ describe('HomeScreen', () => {
       }
     });
 
-    it('should return "Requested" for events with pending requests', () => {
+    it('should return "Pending" for events with pending requests', () => {
       const isEventRequested = (eventId: string) => eventId === '99';
       const pendingEvent = { ...mockEvents[0], id: '99', ownerId: 999 };
 
       const getBadgeLabelWithPending = (event: typeof mockEvents[0]): string | undefined => {
         if (event.ownerId === user.id) return 'Hosting';
-        if (isEventRequested(event.id)) return 'Requested';
+        if (isEventRequested(event.id)) return 'Pending';
         return undefined;
       };
 
-      expect(getBadgeLabelWithPending(pendingEvent)).toBe('Requested');
+      expect(getBadgeLabelWithPending(pendingEvent)).toBe('Pending');
     });
   });
 
