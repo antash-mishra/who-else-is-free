@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-import { spacing, typography } from "@theme/index";
+import { colors, spacing, typography } from "@theme/index";
 
 const styles = StyleSheet.create({
     container: {
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 15,
         fontFamily: typography.fontFamilyMedium,
-        color: "#FF3B30",
+        color: colors.error,
         textAlign: "center",
         lineHeight: 20,
     },

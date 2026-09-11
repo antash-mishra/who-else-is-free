@@ -29,7 +29,7 @@ export const colors = {
   avatarOverflowBadge: '#A3A3A3', // "+N" circle at the end of the going avatar stack
   avatarEditBadgeSurface: 'rgba(255,255,255,0.6)', // frosted camera badge over the editable avatar
   inputSurface: '#F4F4F4',
-  error: '#FF383C',
+  error: '#FF1519',
   tabInactive: '#A3A3A3',
   tabActive: '#000000',
   activeTabIndicator: '#000000',
