@@ -1433,7 +1433,7 @@ What they are:
   (fields, location display name, temp picker selections) with `applyFormState`, `resetForm`,
   `applyEventToForm`, `selectLocation`, and `getCurrentFormState`.
 - `useCreateEventSheets.ts` — sheet routing state machine (`activeSheet`/`renderedSheet`,
-  keyboard-settle timers, `openSheet`/`closeActiveSheet`/`closeSheetImmediately`) and the
+  keyboard handoff, `openSheet`/`closeActiveSheet`/`closeSheetImmediately`) and the
   `CreateEventSheet` type.
 - `CreateEventHeader.tsx` — fixed title + close button.
 - `CreateEventFormFields.tsx` — cover card, name/description inputs, and option rows.

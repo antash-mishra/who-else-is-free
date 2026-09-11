@@ -183,6 +183,15 @@ Use shared primitives before local UI:
   hand-editing covers. Cover images are gitignored; deploys (and fresh clones)
   populate them with `cd server && go run ./cmd/covers-sync -fetch`
 
+Create/Edit Event sheets open on `keyboardWillHide` (from `react-native-keyboard-controller`'s
+`KeyboardEvents`), not React Native's `keyboardDidHide`. The did-event only fires once the keyboard
+has finished animating, so waiting on it forced the keyboard's exit and the sheet's entry to run
+back to back; the will-event fires as the dismissal starts, letting the two overlap. React Native
+emits the will-events on iOS only, which is why the keyboard-controller version is used. Do not
+reintroduce a settle delay after the event, and keep the fallback timer for devices that never emit
+it. `BottomSheet.startOpenAnimation` resets `keyboardOffset` because entry can now begin while a
+previous field's keyboard is still on screen.
+
 Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `onOpened` for focus or heavy content that must wait for sheet entry; Android keyboard lifts use physical-screen keyboard-top coordinates to support `adjustPan`. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
 
 Places autocomplete is country-restricted server-side only when the client supplies the ISO country
