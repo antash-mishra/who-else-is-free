@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     errorRetryText: {
         fontSize: 14,
         fontFamily: typography.fontFamilyRegular,
-        color: "#8E8E93",
+        color: colors.error,
         textAlign: "center",
     },
 });

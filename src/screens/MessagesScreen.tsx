@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: typography.caption,
-    color: colors.accent,
+    color: colors.error,
   },
 
   flatList: {
