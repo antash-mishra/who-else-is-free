@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     fontWeight: "400",
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: typography.detailLetterSpacing,
     color: "#707070",
     marginTop: 2,
   },
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyRegular,
     fontWeight: "400",
     lineHeight: 20,
-    letterSpacing: -0.5,
+    letterSpacing: typography.detailLetterSpacing,
     color: "#707070",
   },
   subtitleRight: {
