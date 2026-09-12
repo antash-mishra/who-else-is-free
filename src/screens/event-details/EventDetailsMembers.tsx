@@ -118,7 +118,7 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
         {isLoading ? (
           <ActivityIndicator size="small" color={colors.primary} />
         ) : error ? (
-          <Text style={styles.emptyStateText}>{error}</Text>
+          <Text style={styles.membersErrorText}>{error}</Text>
         ) : members.length === 0 ? (
           <EmptyState
             title="No members"

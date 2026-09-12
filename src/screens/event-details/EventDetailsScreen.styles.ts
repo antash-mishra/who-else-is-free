@@ -423,10 +423,10 @@ const styles = StyleSheet.create({
   },
 
   // Empty state text
-  emptyStateText: {
+  membersErrorText: {
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
-    color: colors.subText,
+    color: colors.error,
     textAlign: 'center',
     paddingVertical: spacing.lg,
     letterSpacing: -0.3,
