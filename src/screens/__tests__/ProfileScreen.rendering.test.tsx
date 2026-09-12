@@ -348,6 +348,16 @@ describe('ProfileScreen Rendering', () => {
       expect(queryByText('Support inbox')).toBeNull();
     });
 
+    it('should navigate to PastEvents when the profile card is pressed', () => {
+      setupMocks();
+      const { getByTestId } = render(<ProfileScreen />);
+
+      fireEvent.press(getByTestId('profile-header-card'));
+
+      // The card shows identity, so its destination is not self-evident; pin it.
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('PastEvents');
+    });
+
     it('should navigate to EditProfile when Edit profile is pressed', () => {
       setupMocks();
       const { getByText } = render(<ProfileScreen />);

@@ -283,8 +283,9 @@ const ProfileScreen = () => {
         <ScalePressable
           style={styles.headerCard}
           haptic="light"
+          testID="profile-header-card"
           onPress={() => {
-            handleEditProfile();
+            handlePastEvents();
           }}
         >
           <LinearGradient
