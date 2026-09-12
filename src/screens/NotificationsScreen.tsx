@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   SectionList,
   StyleSheet,
@@ -22,7 +21,7 @@ import FullPageEmptyState from '@components/FullPageEmptyState';
 import NotificationRow from '@components/NotificationRow';
 import ScreenContainer from '@components/ScreenContainer';
 import { SheetActionList } from '@components/sheets';
-import { AppText, IconButton } from '@components/ui';
+import { AppButton, AppText, ErrorCircleIcon, IconButton } from '@components/ui';
 import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
 import { useOpenNotifications } from '@hooks/useOpenNotifications';
@@ -178,14 +177,15 @@ const NotificationsScreen = () => {
           </View>
         ) : showError ? (
           <View style={styles.centerContent}>
+            <ErrorCircleIcon accessibilityLabel="Unable to load notifications" />
             <AppText variant="body" style={styles.errorText}>
               {error}
             </AppText>
-            <Pressable hitSlop={layout.hitSlop.md} onPress={() => refresh().catch(() => undefined)}>
-              <AppText variant="button" style={styles.retryText}>
-                Try again
-              </AppText>
-            </Pressable>
+            <AppButton
+              label="Try again"
+              onPress={() => refresh().catch(() => undefined)}
+              style={styles.retryButton}
+            />
           </View>
         ) : (
           <SectionList
@@ -293,8 +293,8 @@ const styles = StyleSheet.create({
     color: colors.error,
     textAlign: 'center',
   },
-  retryText: {
-    color: colors.secondary,
+  retryButton: {
+    minWidth: 172,
   },
   list: {
     marginLeft: -spacing.md,
