@@ -284,6 +284,9 @@ const ProfileScreen = () => {
           style={styles.headerCard}
           haptic="light"
           testID="profile-header-card"
+          // Hint, not label: the card's own content (name, email, stats) should
+          // still be announced, and only its destination needs explaining.
+          accessibilityHint="Opens your past plans"
           onPress={() => {
             handlePastEvents();
           }}
