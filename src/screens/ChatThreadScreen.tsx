@@ -879,6 +879,7 @@ const styles = StyleSheet.create({
   // Quiet system notices: small (12) keeps them recessive; grey stays readable.
   systemMessageText: {
     fontSize: 13,
+    fontFamily: typography.fontFamilyRegular,
     color: colors.subText,
     textAlign: 'center',
     letterSpacing: -0.3,
