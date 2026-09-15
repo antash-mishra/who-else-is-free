@@ -6089,7 +6089,7 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 				if n.Data["notificationId"] == "" || n.Data["joinRequestId"] == "" || n.Data["requesterId"] == "" || n.Data["senderName"] == "" {
 					t.Fatalf("join request push missing resolver identity: %+v", n.Data)
 				}
-				if n.Data["title"] != "Push Join Group Event" || n.Data["body"] != "Noah Smith wants to join your plan Push Join Group Event" {
+				if n.Data["title"] != "Push Join Group Event" || n.Data["body"] != "Noah Smith wants to join your plan Push Join Group Event." {
 					t.Fatalf("join request push copy = title %q body %q", n.Data["title"], n.Data["body"])
 				}
 				found = true
@@ -6147,7 +6147,7 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 				if n.Data["notificationId"] == "" || n.Data["joinRequestId"] == "" {
 					t.Fatalf("approval push missing resolver identity: %+v", n.Data)
 				}
-				if n.Data["title"] != "Push Approve Group Event" || n.Data["body"] != "Your request to join the plan Push Approve Group Event has been approved" {
+				if n.Data["title"] != "Push Approve Group Event" || n.Data["body"] != "Your request to join the plan Push Approve Group Event has been approved." {
 					t.Fatalf("approval push copy = title %q body %q", n.Data["title"], n.Data["body"])
 				}
 				found = true
@@ -6248,7 +6248,7 @@ func TestPushOnJoinRequestFlows(t *testing.T) {
 		hasCreated, hasApproved := false, false
 		for _, n := range notifications {
 			if n.Token == "fcm-ava-device" && n.Data["type"] == "join_request.created" {
-				if n.Data["body"] != "Noah Smith wants to join your plan Push 1:1 Event" {
+				if n.Data["body"] != "Noah Smith wants to join your plan Push 1:1 Event." {
 					t.Fatalf("1:1 join push body = %q", n.Data["body"])
 				}
 				hasCreated = true
@@ -6361,7 +6361,7 @@ func TestPushOnEventDeletionAndMemberRemoval(t *testing.T) {
 				if n.Data["eventId"] != fmt.Sprintf("%d", eventID) {
 					t.Fatalf("expected eventId %d, got %s", eventID, n.Data["eventId"])
 				}
-				if n.Data["body"] != "Delete Group Push has been cancelled and is no longer happening. Explore other events nearby." {
+				if n.Data["body"] != "Delete Group Push has been cancelled and is no longer happening. Explore other plans nearby." {
 					t.Fatalf("event deleted push body = %q", n.Data["body"])
 				}
 			}
@@ -6391,7 +6391,7 @@ func TestPushOnEventDeletionAndMemberRemoval(t *testing.T) {
 				if n.Data["eventId"] != fmt.Sprintf("%d", eventID) {
 					t.Fatalf("expected eventId %d, got %s", eventID, n.Data["eventId"])
 				}
-				if n.Data["body"] != "Delete 1:1 Push has been cancelled and is no longer happening. Explore other events nearby." {
+				if n.Data["body"] != "Delete 1:1 Push has been cancelled and is no longer happening. Explore other plans nearby." {
 					t.Fatalf("1:1 event deleted push body = %q", n.Data["body"])
 				}
 			}
@@ -6433,7 +6433,7 @@ func TestPushOnEventDeletionAndMemberRemoval(t *testing.T) {
 				if n.Data["removedByUserId"] == "" {
 					t.Fatalf("expected removedByUserId to be present, got empty payload: %+v", n.Data)
 				}
-				if n.Data["body"] != "You no longer have access to the Host Remove Push. Explore other plans nearby." {
+				if n.Data["body"] != "You no longer have access to Host Remove Push. Explore other plans nearby." {
 					t.Fatalf("member removed push body = %q", n.Data["body"])
 				}
 			}

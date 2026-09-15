@@ -40,12 +40,12 @@ func TestNotificationCopyFor(t *testing.T) {
 	}{
 		{
 			"join request created", NotificationTypeJoinRequestCreated, "Hike", "Alice",
-			"Alice wants to join your plan Hike",
+			"Alice wants to join your plan Hike.",
 			"Alice wants to join your plan Hike.",
 		},
 		{
 			"join request approved", NotificationTypeJoinRequestApproved, "Hike", "",
-			"Your request to join the plan Hike has been approved",
+			"Your request to join the plan Hike has been approved.",
 			"Your request to join the plan Hike has been approved.",
 		},
 		{
@@ -55,13 +55,13 @@ func TestNotificationCopyFor(t *testing.T) {
 		},
 		{
 			"member removed", NotificationTypeMemberRemoved, "Hike", "",
-			"You no longer have access to the Hike. Explore other plans nearby.",
-			"You no longer have access to the Hike. Explore other plans nearby.",
+			"You no longer have access to Hike. Explore other plans nearby.",
+			"You no longer have access to Hike. Explore other plans nearby.",
 		},
 		{
 			"event deleted", NotificationTypeEventDeleted, "Hike", "",
-			"Hike has been cancelled and is no longer happening. Explore other events nearby.",
-			"Hike has been cancelled and is no longer happening. Explore other events nearby.",
+			"Hike has been cancelled and is no longer happening. Explore other plans nearby.",
+			"Hike has been cancelled and is no longer happening. Explore other plans nearby.",
 		},
 	}
 

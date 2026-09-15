@@ -50,7 +50,7 @@ const isLocalOrViewerOwnedEvent = (event: EventWithDistance<UserEvent>, viewerUs
   (viewerUserId != null && event.ownerId === viewerUserId);
 
 type SortOptionValue = 'upcoming' | 'nearest' | 'newest';
-type NotificationNotice = 'event_unavailable' | 'access_unavailable';
+type NotificationNotice = 'unavailable';
 
 const baseSortOptions: Array<{ label: string; value: SortOptionValue }> = [
   { label: 'Upcoming', value: 'upcoming' },
@@ -402,17 +402,12 @@ const HomeScreen = () => {
       <EventActionOverlay
         isVisible={notificationNotice != null}
         type="result"
-        title={
-          notificationNotice === 'event_unavailable'
-            ? 'Event unavailable'
-            : 'This is no longer available'
-        }
-        description={
-          notificationNotice === 'event_unavailable'
-            ? 'This event is no longer available. You can discover other events here.'
-            : 'You no longer have access to the original destination. You can discover other events here.'
-        }
-        dismissLabel="Explore events"
+        title="Plan unavailable"
+        // "to you" matters: a removed member's plan is still running for
+        // everyone else, so the bare "no longer available" would be untrue for
+        // access_removed. This reading holds for a cancelled plan too.
+        description="This plan is no longer available to you. You can discover other plans here."
+        dismissLabel="Explore"
         onDismiss={() => setNotificationNotice(null)}
         onBackdropPress={() => setNotificationNotice(null)}
       />

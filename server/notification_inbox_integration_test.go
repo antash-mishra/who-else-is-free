@@ -228,7 +228,7 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		removeResp.Body.Close()
 
 		row := waitForInboxRow(t, env, noahToken, "event.member_removed", 3*time.Second)
-		const want = "You no longer have access to the Inbox Removed. Explore other plans nearby."
+		const want = "You no longer have access to Inbox Removed. Explore other plans nearby."
 		if row.Body != want {
 			t.Fatalf("override body = %q, want %q", row.Body, want)
 		}
@@ -255,7 +255,7 @@ func TestNotificationInboxPersistsPerScenario(t *testing.T) {
 		deleteResp.Body.Close()
 
 		row := waitForInboxRow(t, env, noahToken, "event.deleted", 3*time.Second)
-		const want = "Inbox Event Deleted has been cancelled and is no longer happening. Explore other events nearby."
+		const want = "Inbox Event Deleted has been cancelled and is no longer happening. Explore other plans nearby."
 		if row.Body != want {
 			t.Fatalf("override body = %q, want %q", row.Body, want)
 		}
