@@ -48,6 +48,8 @@ type HostRequestTabsProps = {
   acceptedRequests: ChatJoinRequest[];
   confirmedMembers: MemberLike[];
   hostId?: number;
+  /** The viewer, so their own row reads "<name> (you)". */
+  currentUserId?: number;
   expandedRequestIds: Set<number>;
   acceptingUserId: number | null;
   decliningUserId: number | null;
@@ -70,6 +72,7 @@ const HostRequestTabs = ({
   acceptedRequests,
   confirmedMembers,
   hostId,
+  currentUserId,
   expandedRequestIds,
   acceptingUserId,
   decliningUserId,
@@ -283,6 +286,7 @@ const HostRequestTabs = ({
                   <View key={member.id}>
                     <EventMemberRow
                       member={member}
+                      currentUserId={currentUserId}
                       trailingLabel={member.id === hostId ? 'Host' : undefined}
                       onMenuPress={
                         member.id === hostId ? undefined : () => onOpenMemberMenu(member)

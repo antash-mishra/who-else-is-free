@@ -389,6 +389,7 @@ const EventDetailsScreenContent = ({
                 acceptedRequests={acceptedRequests}
                 confirmedMembers={overlayMembers}
                 hostId={event.ownerId}
+                currentUserId={user?.id}
                 expandedRequestIds={expandedRequestIds}
                 acceptingUserId={acceptingUserId}
                 decliningUserId={decliningUserId}
@@ -406,6 +407,7 @@ const EventDetailsScreenContent = ({
                 variant="overlay"
                 members={overlayMembers}
                 currentUserId={user?.id}
+                hostId={event.ownerId}
                 isOwner={isOwner}
                 onOpenMemberMenu={openMemberMenu}
               />
@@ -424,6 +426,7 @@ const EventDetailsScreenContent = ({
               <EventDetailsMembers
                 variant="readOnly"
                 members={readOnlyMembers}
+                currentUserId={user?.id}
                 hostId={event.ownerId}
                 isLoading={isFetchingReadOnlyMembers}
                 error={readOnlyMembersError}

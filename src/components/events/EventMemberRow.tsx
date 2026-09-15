@@ -8,6 +8,11 @@ import { colors, spacing, typography } from '@theme/index';
 
 export interface EventMemberRowProps {
   member: { id: number; name: string; avatar?: string | null };
+  /**
+   * The viewer. Their own row is suffixed "(you)", which is the only thing
+   * distinguishing it when two members share a display name.
+   */
+  currentUserId?: number;
   /** Makes the whole row pressable (e.g. open the member's chat). */
   onPress?: () => void;
   /** Renders the trailing "more" menu button. */
@@ -23,11 +28,14 @@ export interface EventMemberRowProps {
  */
 const EventMemberRow: React.FC<EventMemberRowProps> = ({
   member,
+  currentUserId,
   onPress,
   onMenuPress,
   trailingLabel,
   testID,
 }) => {
+  const isCurrentUser = currentUserId != null && member.id === currentUserId;
+  const displayName = isCurrentUser ? `${member.name} (you)` : member.name;
   const content = (
     <>
       <UserAvatar
@@ -36,14 +44,14 @@ const EventMemberRow: React.FC<EventMemberRowProps> = ({
         seed={member.id}
         size={40}
       />
-      <Text style={styles.memberName}>{member.name}</Text>
+      <Text style={styles.memberName}>{displayName}</Text>
       {trailingLabel ? <Text style={styles.trailingLabel}>{trailingLabel}</Text> : null}
       {!trailingLabel && onMenuPress ? (
         <ScalePressable
           onPress={onMenuPress}
           style={styles.menuButton}
           accessibilityRole="button"
-          accessibilityLabel={`Open actions for ${member.name}`}
+          accessibilityLabel={`Open actions for ${displayName}`}
         >
           <MoreHorizontalIcon width={24} height={24} color={colors.iconColor} />
         </ScalePressable>
