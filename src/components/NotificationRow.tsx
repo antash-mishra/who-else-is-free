@@ -103,7 +103,7 @@ const NotificationRow = ({
     >
       {hasUnread && <UnreadDot testID="notification-unread-dot" style={styles.unreadDot} />}
       <View style={styles.rowContent}>
-        <View style={[styles.avatar, isInactive && styles.avatarInactive]}>
+        <View style={styles.avatar}>
           {eventImageUri ? (
             <Image
               source={{ uri: eventImageUri }}
@@ -161,6 +161,17 @@ const styles = StyleSheet.create({
     // 10 = the header ⋯ icon's inset inside its 44px button ((44-24)/2), so the
     // timestamp's right edge lines up with the ⋯ icon above it.
     paddingRight: 10,
+    // On the row, not on the text column. Padding the text alone made the row
+    // height `max(avatar, text + padding)`, so a one-line row was shorter than a
+    // two-line one -- and since the avatar is centred in that height, its slack
+    // shrank with it and the gap between rows changed with the length of their
+    // text. Padding the row makes the height `max(avatar, text) + padding`,
+    // identical for one and two lines, so the rhythm is even.
+    //
+    // 10 a side, so two adjacent rows sit 20 apart. `NotificationsScreen`'s
+    // section header adds 14 to this on each of its sides for a 24 break, which
+    // is why the two files have to move together.
+    paddingVertical: 10,
   },
   unreadDot: {
     position: 'absolute',
@@ -182,16 +193,10 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  avatarInactive: {
-    opacity: 0.62,
-  },
   copyInner: {
     flex: 1,
     minWidth: 0,
     gap: 4,
-    // 12 (not md/16) → ~24px between rows, a tighter inbox rhythm than the
-    // MessagesScreen row this was cloned from (notifications carry more text).
-    paddingVertical: spacing.sm + spacing.xs,
   },
   titleRow: {
     flexDirection: 'row',
@@ -213,8 +218,18 @@ const styles = StyleSheet.create({
   // Read rows read "quieter": the whole sentence (incl. its SemiBold spans, which
   // inherit this color) softens from near-black to a medium grey. The blue dot
   // stays the primary unread flag; the avatar/cover keep full strength.
+  //
+  // The avatar used to dim to 0.62 for an inactive `actionState`, which is a
+  // different axis from read/unread: a read-but-still-actionable row kept a full
+  // avatar while a handled one faded. Side by side that read as inconsistent
+  // rendering rather than a state, since 0.62 on a 40px circle carries no
+  // meaning a viewer can act on. Read and handled now both show as text colour.
+  //
+  // iconColor, not cardMeta: read rows are most of this list, and cardMeta
+  // (#808080) sits at 3.95:1 on white, under the 4.5:1 AA floor for body text.
+  // #707070 clears it at 5.0:1 and is already the app's secondary-on-white grey.
   messageRead: {
-    color: colors.cardMeta,
+    color: colors.iconColor,
   },
   // Inline chat preview ("Sender: “message”") — dark grey, one step off black so
   // the message reads as a quieted preview without competing with the header.

@@ -308,8 +308,11 @@ const styles = StyleSheet.create({
   // Time-section header — matches the Discover event-list section headers.
   sectionHeader: {
     paddingLeft: spacing.md, // align with the row avatars
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
+    // Each gap is this plus the adjacent row's 10 of vertical padding, so 14
+    // gives a 24 break either side of the header against 20 between rows: the
+    // section change reads as the larger step.
+    marginTop: 14,
+    marginBottom: 14,
     fontSize: 15,
     lineHeight: typography.body + spacing.xs,
     letterSpacing: typography.detailLetterSpacing,
