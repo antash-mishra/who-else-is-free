@@ -39,6 +39,13 @@ type ScalePressableProps = {
   delay?: number;
   accessibilityRole?: AccessibilityRole;
   accessibilityLabel?: string;
+  /**
+   * What activating this does, announced after the content. Prefer this over
+   * `accessibilityLabel` when the children already describe the control and
+   * only the outcome is unclear -- a label would replace them, a hint adds to
+   * them.
+   */
+  accessibilityHint?: string;
   accessibilityState?: AccessibilityState;
   haptic?: HapticFeedback;
   testID?: string;
@@ -60,6 +67,7 @@ const ScalePressable = ({
   delay = 0,
   accessibilityRole = 'button',
   accessibilityLabel,
+  accessibilityHint,
   accessibilityState,
   haptic = 'none',
   testID,
@@ -101,6 +109,7 @@ const ScalePressable = ({
       hitSlop={hitSlop}
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityState={accessibilityState}
       testID={testID}
       style={pressableStyle}
