@@ -36,6 +36,11 @@ export const colors = {
   buttonBackground: '#2F3036',
   primaryButtonBackground: '#000000',
   secondaryButtonBackground: '#E6E6E6',
+  // Disabled is a surface, not a transparency. Dimming a filled button with
+  // opacity leaves it looking broadly like the enabled one; these give it a
+  // distinct resting state.
+  disabledButtonBackground: '#E5E5E5',
+  disabledButtonText: '#9CA3AF',
   buttonText: '#FFFFFF',
   selectedTextOnDark: '#FFFFFF',
   selectedTextMutedOnDark: 'rgba(255,255,255,0.7)',

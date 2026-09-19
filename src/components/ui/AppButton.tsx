@@ -43,8 +43,18 @@ const AppButton = ({
 }: AppButtonProps) => {
   const isDisabled = disabled || loading;
   const resolvedHaptic = haptic ?? getDefaultHaptic(variant);
-  const indicatorColor =
-    variant === 'secondary' || variant === 'ghost' ? colors.text : colors.buttonText;
+  // A caller's own icon is coloured for the enabled surface -- the Apple mark
+  // is solid white for the black button -- and cannot be recoloured from here.
+  // Swapping the surface under it would make it invisible, so a button with a
+  // custom icon dims uniformly instead, which keeps every layer legible.
+  const dimsInsteadOfSwapping = !!icon;
+  const showsDisabledSurface = isDisabled && !dimsInsteadOfSwapping && variant !== 'ghost';
+  // A white spinner would vanish on the disabled surface.
+  const indicatorColor = showsDisabledSurface
+    ? colors.disabledButtonText
+    : variant === 'secondary' || variant === 'ghost'
+      ? colors.text
+      : colors.buttonText;
 
   return (
     <ScalePressable
@@ -59,7 +69,9 @@ const AppButton = ({
         styles.button,
         styles[variant],
         fullWidth && styles.fullWidth,
-        isDisabled && styles.disabled,
+        // Ghost has no surface to swap, so it greys its label only.
+        showsDisabledSurface && styles.disabledSurface,
+        isDisabled && dimsInsteadOfSwapping && styles.disabledDimmed,
         style,
       ]}
     >
@@ -67,7 +79,15 @@ const AppButton = ({
       {loading ? (
         <ActivityIndicator color={indicatorColor} size="small" />
       ) : (
-        <AppText variant="button" style={[styles.label, styles[`${variant}Label`], textStyle]}>
+        <AppText
+          variant="button"
+          style={[
+            styles.label,
+            styles[`${variant}Label`],
+            showsDisabledSurface && styles.disabledLabel,
+            textStyle,
+          ]}
+        >
           {label}
         </AppText>
       )}
@@ -99,8 +119,14 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: colors.transparent,
   },
-  disabled: {
+  disabledSurface: {
+    backgroundColor: colors.disabledButtonBackground,
+  },
+  disabledDimmed: {
     opacity: 0.6,
+  },
+  disabledLabel: {
+    color: colors.disabledButtonText,
   },
   icon: {
     position: 'absolute',
