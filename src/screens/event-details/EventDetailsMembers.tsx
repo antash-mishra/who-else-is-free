@@ -25,6 +25,7 @@ type EventDetailsMembersProps =
       variant: 'overlay';
       members: MemberLike[];
       currentUserId?: number;
+      hostId: number;
       isOwner: boolean;
       onOpenMemberMenu: (member: MemberLike) => void;
     }
@@ -38,6 +39,7 @@ type EventDetailsMembersProps =
       /** Read-only details: members fetched from the API with loading/error states. */
       variant: 'readOnly';
       members: EventDetailMember[];
+      currentUserId?: number;
       hostId: number;
       isLoading: boolean;
       error: string | null;
@@ -53,6 +55,7 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
     const isAccepted = props.variant === 'accepted';
     const { members, onOpenMemberMenu } = props;
     const currentUserId = props.variant === 'overlay' ? props.currentUserId : undefined;
+    const hostId = props.variant === 'overlay' ? props.hostId : undefined;
     const isOwner = props.variant === 'overlay' ? props.isOwner : true;
     const tabLabel = isAccepted ? 'Accepted' : 'Members';
     const tabValue = isAccepted ? 'accepted' : 'members';
@@ -84,9 +87,8 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
               <View key={member.id}>
                 <EventMemberRow
                   member={member}
-                  trailingLabel={
-                    !isAccepted && member.id === currentUserId && isOwner ? 'Host' : undefined
-                  }
+                  currentUserId={currentUserId}
+                  trailingLabel={!isAccepted && member.id === hostId ? 'Host' : undefined}
                   onMenuPress={
                     isOwner && (isAccepted || member.id !== currentUserId)
                       ? () => onOpenMemberMenu(member)
@@ -102,7 +104,7 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
     );
   }
 
-  const { members, hostId, isLoading, error } = props;
+  const { members, currentUserId, hostId, isLoading, error } = props;
   return (
     <>
       <View>
@@ -133,6 +135,7 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
             <View key={member.id}>
               <EventMemberRow
                 member={member}
+                currentUserId={currentUserId}
                 trailingLabel={member.id === hostId ? 'Host' : undefined}
               />
               {index < members.length - 1 && <EventMemberRowSeparator />}

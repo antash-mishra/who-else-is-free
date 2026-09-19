@@ -1767,7 +1767,8 @@ describe('EventDetailsScreen Rendering Tests', () => {
         expect(getByText('Past Member')).toBeTruthy();
       });
 
-      expect(getByText('Past Host')).toBeTruthy();
+      expect(getByText('Past Host (you)')).toBeTruthy();
+      expect(getByText('Past Member')).toBeTruthy();
       expect(getByText('Host')).toBeTruthy();
       expect(queryByText('Requests')).toBeNull();
       expect(mockAuthState.authFetch).toHaveBeenCalledWith(
@@ -1840,6 +1841,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(queryByText('Requests')).toBeNull();
       // Host name should be in the list
       expect(queryAllByText('Ava Test').length).toBeGreaterThan(0);
+      // The host is labelled for every viewer, not only when the viewer is the
+      // host: this previously keyed off `isOwner` and so showed nothing here.
+      expect(getByText('Host')).toBeTruthy();
+      // ...and the viewer's own row identifies itself.
+      expect(getByText('Liam Test (you)')).toBeTruthy();
     });
 
     it('shows Members tab with action menu for host in overlay group event', () => {
@@ -2042,9 +2048,11 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const view = render(<EventDetailsScreen />);
       expect(view.getByText('1 Member')).toBeTruthy();
       fireEvent.press(view.getByTestId('event-details-tab-members'));
-      expect(view.getByText(mockOwnedEvent.hostName)).toBeTruthy();
+      expect(view.getByText(`${mockOwnedEvent.hostName} (you)`)).toBeTruthy();
       expect(view.getByText('Host')).toBeTruthy();
-      expect(view.queryByLabelText(`Open actions for ${mockOwnedEvent.hostName}`)).toBeNull();
+      expect(
+        view.queryByLabelText(`Open actions for ${mockOwnedEvent.hostName} (you)`),
+      ).toBeNull();
       expect(view.queryByText('No members')).toBeNull();
     });
     it('counts and displays host plus accepted members consistently', () => {
