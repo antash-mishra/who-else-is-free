@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: typography.caption,
-    color: colors.accent,
+    color: colors.error,
   },
   threadContainer: {
     flex: 1,
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputSurface,
   },
   messageBubbleFailed: {
-    borderColor: colors.accent,
+    borderColor: colors.error,
   },
   messageText: {
     fontSize: 16,
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
     color: colors.subText,
   },
   messageMetaFailed: {
-    color: colors.accent,
+    color: colors.error,
   },
   systemMessageRow: {
     alignItems: 'center',

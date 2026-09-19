@@ -1,8 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import Svg, { Circle, Path } from 'react-native-svg';
-
-import { AppButton } from '@components/ui';
+import { AppButton, ErrorCircleIcon } from '@components/ui';
 import { colors, spacing, typography } from '@theme/index';
 
 export type EventListLoadStateStatus = 'loading' | 'error';
@@ -32,18 +30,7 @@ const EventListLoadState = ({
       />
     ) : (
       <>
-        <Svg
-          width={38}
-          height={38}
-          viewBox="0 0 38 38"
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel="Unable to load plans"
-        >
-          <Circle cx="19" cy="19" r="16" stroke={colors.error} strokeWidth="3" fill="none" />
-          <Path d="M19 10.5v10" stroke={colors.error} strokeWidth="3" strokeLinecap="round" />
-          <Circle cx="19" cy="27" r="1.7" fill={colors.error} />
-        </Svg>
+        <ErrorCircleIcon accessibilityLabel="Unable to load plans" />
         <Text style={styles.errorText}>{errorMessage}</Text>
         {onRetry ? (
           <AppButton label="Try again" onPress={onRetry} style={styles.retryButton} />

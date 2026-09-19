@@ -7,6 +7,8 @@ export type { AppTextProps, AppTextVariant } from './AppText';
 export { default as CheckboxRow } from './CheckboxRow';
 export type { CheckboxRowProps } from './CheckboxRow';
 export { default as CountBadge } from './CountBadge';
+export { default as ErrorCircleIcon } from './ErrorCircleIcon';
+export type { ErrorCircleIconProps } from './ErrorCircleIcon';
 export type { CountBadgeProps } from './CountBadge';
 export { default as FrostedSurface } from './FrostedSurface';
 export type { FrostedSurfaceProps } from './FrostedSurface';
