@@ -1436,6 +1436,19 @@ describe('EventDetailsScreen Rendering Tests', () => {
         });
       });
     });
+
+    it('keeps the last ready event mounted when deletion clears the events context', () => {
+      mockEventsState.events = [mockOwnedEvent];
+
+      const view = render(<EventDetailsScreen />);
+
+      mockEventsState.events = [];
+      mockAuthState.token = null;
+      view.rerender(<EventDetailsScreen />);
+
+      expect(view.getByText(mockOwnedEvent.title)).toBeTruthy();
+      expect(view.queryByText("We couldn't find that plan.")).toBeNull();
+    });
   });
 
   describe('Date Label Formatting', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 
 import {
   ActivityIndicator,
@@ -11,7 +11,11 @@ import {
 } from 'react-native';
 
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedScrollHandler,
+  useReducedMotion,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '@api/config';
@@ -54,6 +58,9 @@ const HeroButtonMaterial = () => (
   <FrostedSurface tint="dark" intensity={24} style={StyleSheet.absoluteFill} />
 );
 
+const SHARED_BACK_SCROLL_THRESHOLD = 1;
+const SHARED_BACK_SCROLL_SETTLE_MS = 320;
+
 const EventDetailsScreenContent = ({
   initialEventSnapshot,
   onOverlayClose,
@@ -70,6 +77,9 @@ const EventDetailsScreenContent = ({
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ComponentRef<typeof Animated.ScrollView>>(null);
+  const pendingBackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useReducedMotion();
   // Drives the hero parallax. bounces stays disabled on the ScrollView below,
   // so this is scroll-away parallax only.
   const scrollY = useSharedValue(0);
@@ -81,6 +91,40 @@ const EventDetailsScreenContent = ({
   const origin = (route.params as { origin?: string }).origin ?? 'Events';
   const showEventUpdatedBadgeParam = (route.params as { showEventUpdatedBadge?: boolean })
     .showEventUpdatedBadge;
+
+  const handleBack = useCallback(() => {
+    if (pendingBackTimerRef.current) {
+      return;
+    }
+    triggerHaptic('light');
+    if (
+      !sharedCover ||
+      reducedMotion ||
+      scrollY.value <= SHARED_BACK_SCROLL_THRESHOLD ||
+      !scrollViewRef.current
+    ) {
+      navigation.goBack();
+      return;
+    }
+
+    // The shared return measures the live hero. Restore its landing geometry
+    // before removing the route so a scrolled/off-screen cover cannot force a
+    // rough fallback transition.
+    scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    pendingBackTimerRef.current = setTimeout(() => {
+      pendingBackTimerRef.current = null;
+      navigation.goBack();
+    }, SHARED_BACK_SCROLL_SETTLE_MS);
+  }, [navigation, reducedMotion, scrollY, sharedCover]);
+
+  useEffect(
+    () => () => {
+      if (pendingBackTimerRef.current) {
+        clearTimeout(pendingBackTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const {
     event,
@@ -313,10 +357,7 @@ const EventDetailsScreenContent = ({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Go back"
-              onPress={() => {
-                triggerHaptic('light');
-                navigation.goBack();
-              }}
+              onPress={handleBack}
               style={[styles.backButton, { top: floatingButtonTop }]}
             >
               <HeroButtonMaterial />
@@ -339,10 +380,7 @@ const EventDetailsScreenContent = ({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
-            onPress={() => {
-              triggerHaptic('light');
-              navigation.goBack();
-            }}
+            onPress={handleBack}
             hitSlop={12}
             style={[styles.backButton, { top: floatingButtonTop }]}
           >
@@ -351,6 +389,7 @@ const EventDetailsScreenContent = ({
           </Pressable>
         )}
         <Animated.ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
           bounces={false}
           alwaysBounceVertical={false}
@@ -566,6 +605,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
     [events, routeEventId],
   );
   const [fetchedEvent, setFetchedEvent] = useState<UserEvent | null>(null);
+  const [lastReadyEvent, setLastReadyEvent] = useState<UserEvent | null>(rawEvent ?? null);
   const [loadStatus, setLoadStatus] = useState<EventDetailsLoadStatus>(() =>
     rawEvent ? 'ready' : token ? 'loading' : 'notFound',
   );
@@ -630,7 +670,24 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
     };
   }, [authFetch, rawEvent, retryKey, routeEventId, token]);
 
-  const eventSnapshot = rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
+  const liveEventSnapshot = rawEvent ?? (fetchedEvent?.id === routeEventId ? fetchedEvent : null);
+
+  useEffect(() => {
+    if (liveEventSnapshot) {
+      // This state deliberately mirrors the last usable result from the events
+      // context/fetch boundary so destructive navigation can outlive removal
+      // of the live collection row.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLastReadyEvent(liveEventSnapshot);
+    }
+  }, [liveEventSnapshot]);
+
+  // Keep the last valid route snapshot mounted until navigation removes this
+  // screen. A successful delete refreshes EventsContext before the reset can
+  // complete; replacing Details with the not-found fallback at that point
+  // unmounts its action flow and strands the shared-transition route.
+  const eventSnapshot =
+    liveEventSnapshot ?? (lastReadyEvent?.id === routeEventId ? lastReadyEvent : null);
 
   // A card-origin open whose event is not cached (Past Events) shows the loading
   // fallback instead of a hero: release the flight so the page can fade in.

@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Reproduction, root-cause analysis, fix plan, implementation, and verification report for issue #158."
+    />
+    <title>Issue #158 — Delete-plan transition fix</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17211d;
+        --muted: #617068;
+        --line: #dce5df;
+        --paper: #ffffff;
+        --canvas: #f3f6f4;
+        --green-950: #102d23;
+        --green-800: #1f5742;
+        --green-700: #286c51;
+        --green-100: #dff2e8;
+        --green-050: #eef8f2;
+        --amber-100: #fff2d8;
+        --amber-700: #8b5a00;
+        --red-100: #fee9e7;
+        --red-700: #a43b32;
+        --shadow: 0 18px 50px rgba(16, 45, 35, 0.08);
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      a {
+        color: var(--green-700);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      code {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #f7faf8;
+        padding: 0.12rem 0.34rem;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+        font-size: 0.88em;
+      }
+
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 72px 24px 64px;
+        background:
+          radial-gradient(circle at 83% 20%, rgba(111, 207, 151, 0.28), transparent 28%),
+          radial-gradient(circle at 14% 92%, rgba(255, 222, 155, 0.14), transparent 28%),
+          var(--green-950);
+        color: #fff;
+      }
+
+      .hero::after {
+        position: absolute;
+        right: -100px;
+        bottom: -185px;
+        width: 450px;
+        height: 450px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 46px rgba(255, 255, 255, 0.025),
+          0 0 0 92px rgba(255, 255, 255, 0.02);
+        content: '';
+      }
+
+      .hero-inner,
+      .layout {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eyebrow {
+        margin: 0 0 14px;
+        color: #a9dbc1;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 850px;
+        margin: 0;
+        font-size: clamp(2.25rem, 5vw, 4.5rem);
+        font-weight: 750;
+        letter-spacing: -0.045em;
+        line-height: 1.02;
+      }
+
+      .dek {
+        max-width: 760px;
+        margin: 24px 0 0;
+        color: #d7e7df;
+        font-size: clamp(1rem, 2vw, 1.2rem);
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 30px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 7px 12px;
+        color: #f2f8f5;
+        font-size: 0.86rem;
+        text-decoration: none;
+      }
+
+      .pill.status::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #78d69e;
+        box-shadow: 0 0 0 4px rgba(120, 214, 158, 0.14);
+        content: '';
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 44px;
+        padding: 48px 24px 80px;
+      }
+
+      nav {
+        position: sticky;
+        top: 24px;
+        align-self: start;
+        border-left: 2px solid var(--line);
+        padding-left: 18px;
+      }
+
+      nav strong {
+        display: block;
+        margin-bottom: 10px;
+        color: var(--muted);
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      nav a {
+        display: block;
+        padding: 6px 0;
+        color: #526159;
+        font-size: 0.9rem;
+        text-decoration: none;
+      }
+
+      nav a:hover {
+        color: var(--green-700);
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      section {
+        scroll-margin-top: 24px;
+        margin-bottom: 62px;
+      }
+
+      h2 {
+        margin: 0 0 20px;
+        font-size: clamp(1.65rem, 3vw, 2.2rem);
+        letter-spacing: -0.025em;
+        line-height: 1.2;
+      }
+
+      h3 {
+        margin: 30px 0 12px;
+        font-size: 1.15rem;
+      }
+
+      p,
+      ul,
+      ol {
+        max-width: 800px;
+      }
+
+      .lead {
+        color: #3f5047;
+        font-size: 1.1rem;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper);
+        padding: clamp(22px, 4vw, 34px);
+        box-shadow: var(--shadow);
+      }
+
+      .outcome-grid,
+      .root-grid,
+      .checks {
+        display: grid;
+        gap: 14px;
+      }
+
+      .outcome-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .outcome-item {
+        border: 1px solid #cde4d7;
+        border-radius: 14px;
+        background: var(--green-050);
+        padding: 18px;
+      }
+
+      .outcome-item .mark {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        margin-bottom: 12px;
+        border-radius: 50%;
+        background: var(--green-700);
+        color: #fff;
+        font-weight: 800;
+        place-items: center;
+      }
+
+      .outcome-item p {
+        margin: 0;
+        color: #30473b;
+        font-size: 0.94rem;
+        line-height: 1.5;
+      }
+
+      .environment {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 24px;
+        margin: 0;
+      }
+
+      .environment div {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 0;
+      }
+
+      .environment dt {
+        color: var(--muted);
+        font-size: 0.78rem;
+        font-weight: 750;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .environment dd {
+        margin: 3px 0 0;
+        font-weight: 650;
+      }
+
+      .steps {
+        padding-left: 1.4rem;
+      }
+
+      .steps li,
+      .plan li {
+        margin-bottom: 10px;
+        padding-left: 6px;
+      }
+
+      .callout {
+        border-left: 4px solid var(--red-700);
+        border-radius: 0 12px 12px 0;
+        background: var(--red-100);
+        padding: 18px 20px;
+        color: #672822;
+      }
+
+      .root-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .root-item {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--paper);
+        padding: 24px;
+      }
+
+      .root-item .number {
+        color: var(--green-700);
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .root-item h3 {
+        margin: 14px 0 8px;
+      }
+
+      .root-item p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .plan {
+        margin: 0;
+        padding-left: 1.3rem;
+      }
+
+      .implementation-list {
+        margin: 0;
+        padding-left: 1.2rem;
+      }
+
+      .implementation-list li {
+        margin-bottom: 12px;
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      figure {
+        overflow: hidden;
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      figure.full {
+        grid-column: 1 / -1;
+      }
+
+      .screenshot-wrap {
+        display: grid;
+        min-height: 300px;
+        background: #e9eeeb;
+        place-items: center;
+      }
+
+      figure img {
+        display: block;
+        width: 100%;
+        max-height: 660px;
+        object-fit: contain;
+      }
+
+      figcaption {
+        padding: 16px 18px 18px;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      figcaption strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--ink);
+        font-size: 1rem;
+      }
+
+      .tag {
+        display: inline-block;
+        margin-bottom: 8px;
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .tag.before {
+        background: var(--amber-100);
+        color: var(--amber-700);
+      }
+
+      .tag.after {
+        background: var(--green-100);
+        color: var(--green-800);
+      }
+
+      .checks {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .check {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--paper);
+        padding: 17px;
+      }
+
+      .check::before {
+        display: grid;
+        flex: 0 0 auto;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: var(--green-100);
+        color: var(--green-800);
+        content: '✓';
+        font-size: 0.85rem;
+        font-weight: 900;
+        place-items: center;
+      }
+
+      .check p {
+        margin: 0;
+        color: #43534a;
+        font-size: 0.92rem;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 24px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 850px) {
+        .layout {
+          display: block;
+        }
+
+        nav {
+          position: static;
+          display: flex;
+          overflow-x: auto;
+          gap: 18px;
+          margin-bottom: 42px;
+          border: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 0 0 14px;
+          white-space: nowrap;
+        }
+
+        nav strong {
+          display: none;
+        }
+
+        nav a {
+          flex: 0 0 auto;
+        }
+
+        .outcome-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .hero {
+          padding: 54px 20px 48px;
+        }
+
+        .layout {
+          padding: 32px 16px 56px;
+        }
+
+        section {
+          margin-bottom: 48px;
+        }
+
+        .root-grid,
+        .gallery,
+        .checks,
+        .environment {
+          grid-template-columns: 1fr;
+        }
+
+        figure.full {
+          grid-column: auto;
+        }
+
+        .screenshot-wrap {
+          min-height: 220px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          font-size: 11pt;
+        }
+
+        .hero {
+          padding: 34px;
+          print-color-adjust: exact;
+        }
+
+        .layout {
+          display: block;
+          padding: 28px 0;
+        }
+
+        nav {
+          display: none;
+        }
+
+        section,
+        figure,
+        .card,
+        .root-item,
+        .check {
+          break-inside: avoid;
+        }
+
+        .card,
+        figure {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">Engineering issue report</p>
+        <h1>Delete-plan and scrolled-back transition fix</h1>
+        <p class="dek">
+          Reproduction evidence, root-cause analysis, implementation plan, completed fix, and
+          emulator verification for issue #158.
+        </p>
+        <div class="meta" aria-label="Report metadata">
+          <span class="pill status">Fixed and verified</span>
+          <span class="pill">September 19, 2026</span>
+          <a class="pill" href="https://github.com/antash-mishra/who-else-is-free/issues/158"
+            >View GitHub issue #158</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Report sections">
+        <strong>Contents</strong>
+        <a href="#outcome">Outcome</a>
+        <a href="#reproduction">Reproduction</a>
+        <a href="#root-cause">Root cause</a>
+        <a href="#fix-plan">Fix plan</a>
+        <a href="#implementation">Implementation</a>
+        <a href="#verification">Verification</a>
+        <a href="#validation">Validation</a>
+      </nav>
+
+      <main>
+        <section id="outcome">
+          <p class="eyebrow" style="color: var(--green-700)">Executive summary</p>
+          <h2>Outcome</h2>
+          <p class="lead">
+            Issue #158 was reproduced and fixed on the Android <code>WEIF_API_36</code> emulator.
+            Both affected navigation paths now preserve a coherent shared-cover transition.
+          </p>
+          <div class="outcome-grid" aria-label="Resolved behaviors">
+            <article class="outcome-item">
+              <span class="mark">✓</span>
+              <p>
+                Deleting a card-origin plan returns to its source tab and shows the existing
+                <strong>Plan deleted</strong> confirmation.
+              </p>
+            </article>
+            <article class="outcome-item">
+              <span class="mark">✓</span>
+              <p>
+                Event Details no longer switches to the missing-plan fallback while delete
+                navigation is still in progress.
+              </p>
+            </article>
+            <article class="outcome-item">
+              <span class="mark">✓</span>
+              <p>
+                Back from a scrolled page restores the hero geometry before starting the shared
+                return to the source card.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="reproduction">
+          <p class="eyebrow" style="color: var(--green-700)">Observed failure</p>
+          <h2>Reproduction</h2>
+          <div class="card">
+            <dl class="environment">
+              <div>
+                <dt>Device</dt>
+                <dd>Android API 36 emulator</dd>
+              </div>
+              <div>
+                <dt>AVD</dt>
+                <dd>WEIF_API_36 · 720 × 1600</dd>
+              </div>
+              <div>
+                <dt>Backend</dt>
+                <dd>Local Go server with dev-login</dd>
+              </div>
+              <div>
+                <dt>Client</dt>
+                <dd>Expo development client + local Metro</dd>
+              </div>
+            </dl>
+
+            <h3>Steps</h3>
+            <ol class="steps">
+              <li>Open <strong>My Plans → Hosting</strong>.</li>
+              <li>Open a hosted plan from its card.</li>
+              <li>Scroll Event Details and press Back.</li>
+              <li>
+                Open the plan again, choose <strong>More actions → Delete plan</strong>, and
+                confirm.
+              </li>
+            </ol>
+
+            <p class="callout">
+              The delete request succeeded, but the event disappeared from
+              <code>EventsContext</code> before the route reset completed. Event Details rendered
+              the missing-plan fallback and remained there.
+            </p>
+          </div>
+
+          <h3>Captured before the fix</h3>
+          <div class="gallery">
+            <figure>
+              <div class="screenshot-wrap">
+                <img
+                  src="issue-158-assets/before-scrolled-details.png"
+                  alt="Event Details screen scrolled down before pressing Back"
+                />
+              </div>
+              <figcaption>
+                <span class="tag before">Before</span>
+                <strong>Scrolled Event Details</strong>
+                The live hero was shifted away from the shared transition's expected endpoint.
+              </figcaption>
+            </figure>
+            <figure>
+              <div class="screenshot-wrap">
+                <img
+                  src="issue-158-assets/repro-delete-1s.png"
+                  alt="Missing-plan fallback shown after a successful deletion"
+                />
+              </div>
+              <figcaption>
+                <span class="tag before">Before</span>
+                <strong>Stranded after deletion</strong>
+                The successful deletion replaced ready content with the missing-plan fallback.
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section id="root-cause">
+          <p class="eyebrow" style="color: var(--green-700)">Diagnosis</p>
+          <h2>Root cause</h2>
+          <p class="lead">Two assumptions required by the shared transition were being broken.</p>
+          <div class="root-grid">
+            <article class="root-item">
+              <span class="number">01</span>
+              <h3>Ready content was tied to live collection state</h3>
+              <p>
+                <code>deleteUserEvent</code> refreshed the event collection before
+                <code>handleDelete</code> dispatched the navigation reset. The successful removal
+                therefore unmounted the detail content before the route itself was removed.
+              </p>
+            </article>
+            <article class="root-item">
+              <span class="number">02</span>
+              <h3>The return endpoint moved with scroll</h3>
+              <p>
+                A shared return re-measures the live hero cover. Once scrolled, that hero could be
+                shifted or partly offscreen, invalidating the endpoint and forcing the rough
+                fallback navigation transition.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="fix-plan">
+          <p class="eyebrow" style="color: var(--green-700)">Planned correction</p>
+          <h2>Fix plan</h2>
+          <div class="card">
+            <ol class="plan">
+              <li>Preserve the last valid event snapshot for the lifetime of the route.</li>
+              <li>
+                Keep a successful delete on stable detail content until the existing navigation
+                reset removes the route.
+              </li>
+              <li>
+                On Back from a scrolled shared-cover route, restore the hero first and start the
+                shared return after the scroll settles.
+              </li>
+              <li>Preserve reduced-motion behavior and guard repeated Back presses.</li>
+              <li>Add a regression test and document the shared-transition convention.</li>
+              <li>Run targeted tests, full validation, and the original emulator flows.</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="implementation">
+          <p class="eyebrow" style="color: var(--green-700)">Completed changes</p>
+          <h2>Implementation</h2>
+          <div class="card">
+            <p>
+              The behavior change is localized to <code>EventDetailsScreen</code>, with one focused
+              rendering regression test and documentation updates.
+            </p>
+            <ul class="implementation-list">
+              <li>
+                <code>lastReadyEvent</code> retains the most recent valid snapshot for the current
+                route ID. A live context or fetch result still takes precedence; the retained value
+                is only used when that row disappears before navigation removal.
+              </li>
+              <li>
+                The Back action reads the existing Reanimated scroll offset. On a scrolled
+                shared-cover route, it scrolls to <code>y = 0</code>, waits 320 ms for the native
+                animated scroll to settle, then calls <code>navigation.goBack()</code>.
+              </li>
+              <li>
+                The pending Back timer blocks duplicate taps and is cancelled when the component
+                unmounts.
+              </li>
+              <li>Reduced-motion and non-shared routes retain their direct Back behavior.</li>
+              <li>
+                The rendering suite now proves that removing the event from
+                <code>EventsContext</code> does not replace an already-ready route with the
+                missing-plan fallback.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="verification">
+          <p class="eyebrow" style="color: var(--green-700)">Emulator evidence</p>
+          <h2>Verification</h2>
+          <p class="lead">
+            The original reproduction paths were repeated on the emulator after the change.
+          </p>
+          <div class="gallery">
+            <figure>
+              <div class="screenshot-wrap">
+                <img
+                  src="issue-158-assets/after-back-transition.png"
+                  alt="Full Event Details hero restored before the shared return transition"
+                />
+              </div>
+              <figcaption>
+                <span class="tag after">After</span>
+                <strong>Hero restored before return</strong>
+                At 180 ms after Back, the full hero is visible instead of contracting from the
+                scrolled position.
+              </figcaption>
+            </figure>
+            <figure>
+              <div class="screenshot-wrap">
+                <img
+                  src="issue-158-assets/after-back-my-plans.png"
+                  alt="My Plans screen after the shared return completes"
+                />
+              </div>
+              <figcaption>
+                <span class="tag after">After</span>
+                <strong>Return completes on the source card</strong>
+                The cover returns cleanly to the original My Plans card.
+              </figcaption>
+            </figure>
+            <figure class="full">
+              <div class="screenshot-wrap">
+                <img
+                  src="issue-158-assets/after-delete-final.png"
+                  alt="My Plans showing the Plan deleted confirmation after the fix"
+                />
+              </div>
+              <figcaption>
+                <span class="tag after">After</span>
+                <strong>Successful deletion exits Event Details</strong>
+                The card is removed and the existing <strong>Plan deleted</strong> result badge is
+                shown on My Plans; no missing-plan fallback appears.
+              </figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section id="validation">
+          <p class="eyebrow" style="color: var(--green-700)">Quality gates</p>
+          <h2>Automated validation</h2>
+          <div class="checks">
+            <div class="check">
+              <p><strong>Full frontend suite</strong><br />118 suites · 1,438 tests passed</p>
+            </div>
+            <div class="check">
+              <p><strong>Focused transition run</strong><br />2 suites · 124 tests passed</p>
+            </div>
+            <div class="check">
+              <p><strong>TypeScript</strong><br /><code>npm run typecheck</code> passed</p>
+            </div>
+            <div class="check">
+              <p>
+                <strong>Lint</strong><br />Passed with the existing baseline: 734 warnings, 0 errors
+              </p>
+            </div>
+            <div class="check">
+              <p><strong>Formatting</strong><br />Prettier passed for all touched files</p>
+            </div>
+            <div class="check">
+              <p><strong>Patch integrity</strong><br /><code>git diff --check</code> passed</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer>Who Else Is Free · Issue #158 engineering report · Generated September 19, 2026</footer>
+  </body>
+</html>
