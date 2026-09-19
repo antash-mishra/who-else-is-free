@@ -46,7 +46,7 @@ describe('pushRouting', () => {
     );
     expect(navigator.navigate).toHaveBeenCalledWith('Main', {
       screen: 'Events',
-      params: { notificationNotice: 'event_unavailable' },
+      params: { notificationNotice: 'unavailable' },
     });
   });
 
@@ -63,7 +63,7 @@ describe('pushRouting', () => {
     );
     expect(navigator.navigate).toHaveBeenCalledWith('Main', {
       screen: 'Events',
-      params: { notificationNotice: 'event_unavailable' },
+      params: { notificationNotice: 'unavailable' },
     });
   });
 
@@ -80,7 +80,7 @@ describe('pushRouting', () => {
     );
     expect(navigator.navigate).toHaveBeenCalledWith('Main', {
       screen: 'Events',
-      params: { notificationNotice: 'access_unavailable' },
+      params: { notificationNotice: 'unavailable' },
     });
   });
 

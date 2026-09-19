@@ -41,8 +41,9 @@ func notificationCategoryForType(notificationType string) NotificationCategory {
 }
 
 // notificationCopy is the canonical copy contract shared by OS pushes and the
-// in-app inbox. The only intentional difference is that join-request creation
-// and approval omit the final full stop in the compact OS push body.
+// in-app inbox. Both surfaces carry identical text for every type; the fields
+// stay separate so a future divergence has somewhere to live without every
+// caller changing shape.
 type notificationCopy struct {
 	PushBody  string
 	InboxBody string
@@ -55,24 +56,20 @@ func notificationCopyFor(nType, eventTitle, actorName string) (notificationCopy,
 	var pushBody string
 	switch nType {
 	case NotificationTypeJoinRequestCreated:
-		pushBody = fmt.Sprintf("%s wants to join your plan %s", actor, title)
+		pushBody = fmt.Sprintf("%s wants to join your plan %s.", actor, title)
 	case NotificationTypeJoinRequestApproved:
-		pushBody = fmt.Sprintf("Your request to join the plan %s has been approved", title)
+		pushBody = fmt.Sprintf("Your request to join the plan %s has been approved.", title)
 	case NotificationTypeJoinRequestDenied:
 		pushBody = fmt.Sprintf("%s is no longer available to you. Explore other plans nearby.", title)
 	case NotificationTypeMemberRemoved:
-		pushBody = fmt.Sprintf("You no longer have access to the %s. Explore other plans nearby.", title)
+		pushBody = fmt.Sprintf("You no longer have access to %s. Explore other plans nearby.", title)
 	case NotificationTypeEventDeleted:
-		pushBody = fmt.Sprintf("%s has been cancelled and is no longer happening. Explore other events nearby.", title)
+		pushBody = fmt.Sprintf("%s has been cancelled and is no longer happening. Explore other plans nearby.", title)
 	default:
 		return notificationCopy{}, false
 	}
 
-	inboxBody := pushBody
-	if nType == NotificationTypeJoinRequestCreated || nType == NotificationTypeJoinRequestApproved {
-		inboxBody += "."
-	}
-	return notificationCopy{PushBody: pushBody, InboxBody: inboxBody}, true
+	return notificationCopy{PushBody: pushBody, InboxBody: pushBody}, true
 }
 
 func notificationPushBody(nType, eventTitle, actorName string) string {
@@ -83,14 +80,10 @@ func notificationPushBody(nType, eventTitle, actorName string) string {
 	return copy.PushBody
 }
 
-// inboxDisplayBody returns the body persisted for the inbox. New call sites
-// already pass canonical push copy, so only the two intentional punctuation
-// differences need adapting here. Unknown and chat types remain verbatim.
-func inboxDisplayBody(nType, rawPushBody string) string {
-	if (nType == NotificationTypeJoinRequestCreated || nType == NotificationTypeJoinRequestApproved) &&
-		!strings.HasSuffix(rawPushBody, ".") {
-		return rawPushBody + "."
-	}
+// inboxDisplayBody returns the body persisted for the inbox. Push and inbox copy
+// are identical for every type, so this is a pass-through; it stays as the one
+// place to adapt should a type ever need to differ.
+func inboxDisplayBody(_ string, rawPushBody string) string {
 	return rawPushBody
 }
 

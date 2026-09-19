@@ -1079,13 +1079,13 @@ func (r *EventRepository) backfillNotificationDisplayCopy(ctx context.Context) e
 		{
 			"member removed",
 			`UPDATE notifications
-			 SET body = 'You no longer have access to the ' || title || '. Explore other plans nearby.'
+			 SET body = 'You no longer have access to ' || title || '. Explore other plans nearby.'
 			 WHERE type = 'event.member_removed';`,
 		},
 		{
 			"event deleted",
 			`UPDATE notifications
-			 SET body = title || ' has been cancelled and is no longer happening. Explore other events nearby.'
+			 SET body = title || ' has been cancelled and is no longer happening. Explore other plans nearby.'
 			 WHERE type = 'event.deleted';`,
 		},
 	}

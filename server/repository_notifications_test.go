@@ -161,8 +161,8 @@ func TestBackfillNotificationDisplayCopy(t *testing.T) {
 		NotificationTypeJoinRequestCreated:  "Alice Example wants to join your plan Hike.",
 		NotificationTypeJoinRequestApproved: "Your request to join the plan Hike has been approved.",
 		NotificationTypeJoinRequestDenied:   "Hike is no longer available to you. Explore other plans nearby.",
-		NotificationTypeMemberRemoved:       "You no longer have access to the Hike. Explore other plans nearby.",
-		NotificationTypeEventDeleted:        "Hike has been cancelled and is no longer happening. Explore other events nearby.",
+		NotificationTypeMemberRemoved:       "You no longer have access to Hike. Explore other plans nearby.",
+		NotificationTypeEventDeleted:        "Hike has been cancelled and is no longer happening. Explore other plans nearby.",
 	}
 	for _, row := range rows {
 		if row.Body != want[row.Type] {

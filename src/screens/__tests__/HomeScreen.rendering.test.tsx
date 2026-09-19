@@ -194,14 +194,14 @@ describe('HomeScreen Rendering', () => {
   });
 
   it('consumes the deleted-event notice once and shows the informational prompt', () => {
-    mockRoute.params = { notificationNotice: 'event_unavailable' };
+    mockRoute.params = { notificationNotice: 'unavailable' };
     const { getByText, getByTestId, queryByTestId } = render(<HomeScreen />);
 
-    expect(getByText('Event unavailable')).toBeTruthy();
+    expect(getByText('Plan unavailable')).toBeTruthy();
     expect(
-      getByText('This event is no longer available. You can discover other events here.'),
+      getByText('This plan is no longer available to you. You can discover other plans here.'),
     ).toBeTruthy();
-    expect(getByText('Explore events')).toBeTruthy();
+    expect(getByText('Explore')).toBeTruthy();
     expect(mockNavigation.setParams).toHaveBeenCalledWith({ notificationNotice: undefined });
 
     fireEvent.press(getByTestId('notification-notice-dismiss'));

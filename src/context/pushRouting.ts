@@ -123,12 +123,10 @@ export const routeResolvedNotification = (
       if (resolution.status === 'unavailable') {
         navigator.navigate('Main', {
           screen: 'Events',
-          params: {
-            notificationNotice:
-              resolution.reason === 'event_deleted' || resolution.reason === 'event_ended'
-                ? 'event_unavailable'
-                : 'access_unavailable',
-          },
+          // Every unavailable reason shows the same notice: the user's options
+          // are identical whichever way the target died, and mapping reasons to
+          // copy meant classifying each new NotificationActionReason by hand.
+          params: { notificationNotice: 'unavailable' },
         });
       } else {
         navigator.navigate('Main', { screen: 'Events' });
