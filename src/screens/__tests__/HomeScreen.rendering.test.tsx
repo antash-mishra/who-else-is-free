@@ -26,6 +26,7 @@ let mockAuthValue: { user: typeof mockUser | null; token: string | null } = {
 let mockEventsValue = {
   events: mockEvents,
   isLoading: false,
+  hasLoadedEvents: true,
   error: null as string | null,
   refreshEvents: jest.fn().mockResolvedValue(undefined),
   refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
@@ -161,6 +162,7 @@ describe('HomeScreen Rendering', () => {
     mockEventsValue = {
       events: mockEvents,
       isLoading: false,
+      hasLoadedEvents: true,
       error: null,
       refreshEvents: jest.fn().mockResolvedValue(undefined),
       refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
@@ -211,6 +213,7 @@ describe('HomeScreen Rendering', () => {
   describe('Loading State', () => {
     it('renders loading indicator when loading with no events', () => {
       mockEventsValue.isLoading = true;
+      mockEventsValue.hasLoadedEvents = false;
       mockEventsValue.events = [];
       const { getByTestId, queryByTestId } = render(<HomeScreen />);
       expect(getByTestId('screen-container')).toBeTruthy();
@@ -221,6 +224,16 @@ describe('HomeScreen Rendering', () => {
       mockEventsValue.isLoading = true;
       const { getAllByTestId } = render(<HomeScreen />);
       expect(getAllByTestId('event-card').length).toBeGreaterThan(0);
+    });
+
+    it('keeps the resolved empty state mounted during a background refresh', () => {
+      mockEventsValue.events = [];
+      mockEventsValue.isLoading = true;
+      mockEventsValue.hasLoadedEvents = true;
+
+      const { getByTestId } = render(<HomeScreen />);
+
+      expect(getByTestId('empty-state')).toBeTruthy();
     });
 
     it('renders events while viewer location is still loading', () => {

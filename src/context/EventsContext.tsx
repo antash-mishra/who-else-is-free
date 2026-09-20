@@ -86,6 +86,8 @@ interface EventsContextValue {
   userEvents: UserEvent[];
   requestedEvents: UserEvent[];
   isLoading: boolean;
+  /** True after the first events request settles, including an empty or failed response. */
+  hasLoadedEvents: boolean;
   error: string | null;
   refreshEvents: () => Promise<void>;
   refreshRequestedEvents: () => Promise<void>;
@@ -166,6 +168,7 @@ export const EventsProvider = ({
   const { user, token, authFetch } = useAuth();
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedEvents, setHasLoadedEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingGuestEvent, setPendingGuestEvent] = useState<GuestEventDraft | null>(null);
   const metaRef = useRef<Record<string, EventMeta>>({});
@@ -237,6 +240,7 @@ export const EventsProvider = ({
       }
     } finally {
       if (requestId === eventsRequestIdRef.current) {
+        setHasLoadedEvents(true);
         setIsLoading(false);
       }
     }
@@ -608,6 +612,7 @@ export const EventsProvider = ({
       userEvents,
       requestedEvents,
       isLoading,
+      hasLoadedEvents,
       error,
       refreshEvents,
       refreshRequestedEvents,
@@ -626,6 +631,7 @@ export const EventsProvider = ({
       userEvents,
       requestedEvents,
       isLoading,
+      hasLoadedEvents,
       error,
       refreshEvents,
       refreshRequestedEvents,

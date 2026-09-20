@@ -61,15 +61,30 @@ export type RouteResolvedNotificationOptions = {
   runAfterTransition?: (task: () => void) => void;
 };
 
-const runAfterInteractions = (task: () => void) => {
-  InteractionManager.runAfterInteractions(task);
+const transitionSettleFallbackMs = 1000;
+
+/**
+ * Prefer React Native's interaction boundary, but do not let a continuously
+ * busy animation queue suppress destination UI forever. The timeout is only a
+ * safety net; the one-shot guard keeps the task from running twice.
+ */
+export const runAfterNavigationTransition = (task: () => void) => {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(fallback);
+    task();
+  };
+  const fallback = setTimeout(finish, transitionSettleFallbackMs);
+  InteractionManager.runAfterInteractions(finish);
 };
 
 export const routeResolvedNotification = (
   resolution: NotificationActionResolution,
   setActiveConversation: (id: number | null) => void,
   navigator: PushNavigator,
-  { runAfterTransition = runAfterInteractions }: RouteResolvedNotificationOptions = {},
+  { runAfterTransition = runAfterNavigationTransition }: RouteResolvedNotificationOptions = {},
 ) => {
   if (!navigator.isReady()) return;
 
@@ -121,14 +136,19 @@ export const routeResolvedNotification = (
       break;
     case 'events':
       if (resolution.status === 'unavailable') {
-        navigator.navigate('Main', {
-          screen: 'Events',
-          params: {
-            notificationNotice:
-              resolution.reason === 'event_deleted' || resolution.reason === 'event_ended'
-                ? 'event_unavailable'
-                : 'access_unavailable',
-          },
+        const notificationNotice =
+          resolution.reason === 'event_deleted' || resolution.reason === 'event_ended'
+            ? 'event_unavailable'
+            : 'access_unavailable';
+        // First return to a resting Discover screen. Presenting its native
+        // bottom sheet during the Notifications pop makes both transitions
+        // compete for the same frames on Android.
+        navigator.navigate('Main', { screen: 'Events' });
+        runAfterTransition(() => {
+          navigator.navigate('Main', {
+            screen: 'Events',
+            params: { notificationNotice },
+          });
         });
       } else {
         navigator.navigate('Main', { screen: 'Events' });

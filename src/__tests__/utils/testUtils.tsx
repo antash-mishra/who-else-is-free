@@ -154,6 +154,7 @@ export const mockEventsValues: MockEventsContextValue = {
   userEvents: mockEvents.filter((e) => e.ownerId === 1),
   requestedEvents: [],
   isLoading: false,
+  hasLoadedEvents: true,
   error: null,
   refreshEvents: jest.fn().mockResolvedValue(undefined),
   refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
@@ -340,6 +341,7 @@ interface MockEventsContextValue {
   userEvents: MockUserEvent[];
   requestedEvents: MockUserEvent[];
   isLoading: boolean;
+  hasLoadedEvents: boolean;
   error: string | null;
   refreshEvents: jest.Mock;
   refreshRequestedEvents: jest.Mock;
@@ -359,6 +361,7 @@ const defaultMockEventsContext: MockEventsContextValue = {
   userEvents: mockEvents.filter((e) => e.ownerId === 1),
   requestedEvents: [],
   isLoading: false,
+  hasLoadedEvents: true,
   error: null,
   refreshEvents: jest.fn().mockResolvedValue(undefined),
   refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),

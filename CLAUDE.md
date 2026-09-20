@@ -102,7 +102,15 @@ Who Else Is Free is an event discovery and social coordination app.
   Foreground in-app banners are removed; live inbox updates and device push notifications remain.
   Payloads carry `coverKey` for event-bearing types and `senderAvatar` only as a short remote URL
   (`payloadAvatar`), never inline base64, because the same map is the FCM data message.
-  Inbox rows open through `useOpenNotifications` (`src/hooks/useOpenNotifications.ts`).
+  Inbox rows open through `useOpenNotifications` (`src/hooks/useOpenNotifications.ts`). Unavailable
+  actions first return to a resting Discover screen and present their one-shot result sheet only after
+  navigation interactions settle; inbox row and unread reconciliation waits for that same boundary so
+  the outgoing Notifications list is not mutated during its pop transition. Use
+  `runAfterNavigationTransition` for this boundary: it prefers `InteractionManager` and has a one-shot
+  safety fallback so a continuously busy interaction queue cannot suppress destination UI forever.
+- `EventsContext.hasLoadedEvents` records the first settled events request, including empty and failed
+  results. Discover uses it to reserve the full-page loader for true initial loading and keeps an
+  already-resolved empty or populated scene mounted through focus/background refreshes.
   `EventActionBadge` remains for local action confirmations.
 
 ## Working References

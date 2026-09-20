@@ -1064,6 +1064,9 @@ Supported prompt types:
 Use it when:
 
 - A flow needs an event action prompt, confirmation, menu, report form, invite prompt, or intro view.
+- For notification fallbacks, return to Discover first and mount the result overlay only after
+  navigation interactions settle. Keep dismiss handlers stable so unrelated Discover refresh state
+  does not rebuild an already-visible sheet.
 
 ### `EventActionOverlay.prompts`
 
@@ -1749,6 +1752,15 @@ Screenshots captured during the shared-component review:
 
 ## Animation lifecycle and measurement contracts
 
+- `EventsContext.hasLoadedEvents` becomes true when the first events request settles even when the
+  response is empty or failed. Discover shows its full-page loader only before that boundary and
+  preserves its resolved empty/populated pager during focus refreshes.
+- Notification action routing completes the Notifications pop before presenting a fallback
+  `EventActionOverlay`. `useOpenNotifications` defers local row/unread reconciliation to the same
+  post-interaction boundary, keeping the outgoing list tree stable during navigation motion.
+  `runAfterNavigationTransition` uses the interaction boundary first and a guarded timeout only as a
+  safety net, so a permanently busy interaction queue cannot lose the destination sheet or local
+  reconciliation.
 - Create success (including queued guest creation) uses `StackActions.popTo('Main', ...)` with MyEvents selected. Never push another Main above the submitted form: the pop owns the downward close and preserves one Main route. MyEvents consumes the created-badge parameter once while focused, after navigation interactions settle.
 - `EventsContext.addUserEvent` returns after POST/local insertion; list reconciliation runs asynchronously. Confirmed creations remain in `unreconciledCreations` until observed in a list response, are cleared on session-token change, and are removed after successful deletion. A slow/stale refresh must not hold the form open or remove the just-created event.
 - `EventActionBadge` mounts its animated body before entry. A single hold starts after entry finishes, and opacity/travel dismiss together; unmount cancels animation/timers and guards queued completion callbacks. The submit shimmer and delayed ScalePressable feedback must stop on cleanup and respect reduced motion.

@@ -5,6 +5,8 @@
 
 import React from 'react';
 
+import { InteractionManager } from 'react-native';
+
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { AppNotification } from '@api/mappers/notifications';
@@ -204,6 +206,17 @@ const sampleNotifications = (): AppNotification[] => [
 ];
 
 describe('NotificationsScreen Rendering', () => {
+  beforeAll(() => {
+    jest.spyOn(InteractionManager, 'runAfterInteractions').mockImplementation((task) => {
+      (task as () => void)();
+      return { cancel: jest.fn(), then: jest.fn(), done: jest.fn() };
+    });
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockResolveNotificationAction.mockResolvedValue({

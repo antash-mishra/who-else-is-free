@@ -250,6 +250,23 @@ describe('EventsContext - Rendering Tests', () => {
         );
       });
     });
+
+    it('marks an empty events response as loaded', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+      let capturedCtx: EventsContextValue | null = null;
+
+      render(
+        <EventsProvider>
+          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
+        </EventsProvider>
+      );
+
+      await waitFor(() => {
+        expect(capturedCtx?.hasLoadedEvents).toBe(true);
+        expect(capturedCtx?.events).toEqual([]);
+      });
+    });
   });
 
   describe('refreshEvents', () => {

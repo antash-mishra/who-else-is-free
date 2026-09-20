@@ -74,6 +74,7 @@ const HomeScreen = () => {
   const {
     events: allEvents,
     isLoading,
+    hasLoadedEvents,
     error,
     refreshEvents,
     refreshRequestedEvents,
@@ -90,7 +91,6 @@ const HomeScreen = () => {
   const [headerHeight, setHeaderHeight] = useState(0);
   const { height: windowHeight } = useWindowDimensions();
   const emptyStateTopPadding = emptyStateCenteredTop(windowHeight, 245);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const hasSignalledReady = useRef(false);
   const hasStartedPermissionSequence = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
@@ -210,18 +210,6 @@ const HomeScreen = () => {
     return buildSingleEventSection('Nearest', knownDistanceEvents, getBadgeLabel);
   }, [discoverableEvents, getBadgeLabel]);
 
-  const markLoadedOnce = useCallback(() => {
-    setHasLoadedOnce(true);
-  }, []);
-
-  // Track if initial load has completed
-  useEffect(() => {
-    if (!isLoading && allEvents.length > 0 && !hasLoadedOnce) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Preserve the existing "first loaded" gate for full-screen loading.
-      markLoadedOnce();
-    }
-  }, [hasLoadedOnce, isLoading, allEvents.length, markLoadedOnce]);
-
   useEffect(() => {
     if (!isLoading && !hasSignalledReady.current) {
       hasSignalledReady.current = true;
@@ -257,9 +245,9 @@ const HomeScreen = () => {
     };
   }, [isFocused, requestLocationPermission, requestPushPermission, transitionComplete]);
 
-  const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedOnce;
+  const showAllEventsLoading = isLoading && allEvents.length === 0 && !hasLoadedEvents;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
-  const showAllEventsEmpty = !isLoading && allEvents.length === 0 && !error;
+  const showAllEventsEmpty = !showAllEventsLoading && allEvents.length === 0 && !error;
   const showUpcomingEmpty =
     showAllEventsEmpty || (!isLoading && !error && upcomingSections.length === 0);
   const showNearestEmpty =
@@ -297,6 +285,10 @@ const HomeScreen = () => {
     },
     [navigation],
   );
+
+  const dismissNotificationNotice = useCallback(() => {
+    setNotificationNotice(null);
+  }, []);
 
   const discoverEmptyState = (
     <EmptyState
@@ -413,8 +405,8 @@ const HomeScreen = () => {
             : 'You no longer have access to the original destination. You can discover other events here.'
         }
         dismissLabel="Explore events"
-        onDismiss={() => setNotificationNotice(null)}
-        onBackdropPress={() => setNotificationNotice(null)}
+        onDismiss={dismissNotificationNotice}
+        onBackdropPress={dismissNotificationNotice}
       />
     </ScreenContainer>
   );

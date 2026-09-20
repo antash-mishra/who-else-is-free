@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pressable, Text } from 'react-native';
+import { InteractionManager, Pressable, Text } from 'react-native';
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
@@ -10,6 +10,7 @@ const mockSetActiveConversation = jest.fn();
 const mockApplyActionResolution = jest.fn();
 const mockResolveNotificationAction = jest.fn();
 const mockNavigate = jest.fn();
+let mockAfterInteractions: (() => void) | undefined;
 
 jest.mock('@context/AuthContext', () => ({
   useAuth: () => ({ token: 'auth-token' }),
@@ -54,6 +55,11 @@ const Harness = ({ ids }: { ids: number[] }) => {
 describe('useOpenNotifications', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAfterInteractions = undefined;
+    jest.spyOn(InteractionManager, 'runAfterInteractions').mockImplementation((callback) => {
+      mockAfterInteractions = callback as () => void;
+      return { cancel: jest.fn(), then: jest.fn(), done: jest.fn() };
+    });
   });
 
   it('resolves through the server boundary, navigates, and mirrors the resolution', async () => {
@@ -74,6 +80,11 @@ describe('useOpenNotifications', () => {
     });
     expect(mockSetActiveConversation).toHaveBeenCalledWith(10);
     expect(mockNavigate).toHaveBeenCalledWith('ChatThread');
+    expect(mockApplyActionResolution).not.toHaveBeenCalled();
+    expect(getByTestId('resolving').props.children).toBe('5');
+
+    act(() => mockAfterInteractions?.());
+
     expect(mockApplyActionResolution).toHaveBeenCalledWith([5], {
       status: 'active',
       destination: 'chat',

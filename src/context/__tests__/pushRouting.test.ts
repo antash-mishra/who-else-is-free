@@ -1,4 +1,10 @@
-import { resolutionRequestFromPushData, routeResolvedNotification } from '../pushRouting';
+import { InteractionManager } from 'react-native';
+
+import {
+  resolutionRequestFromPushData,
+  routeResolvedNotification,
+  runAfterNavigationTransition,
+} from '../pushRouting';
 
 describe('pushRouting', () => {
   const createNavigator = (isReady = true) => ({
@@ -33,8 +39,36 @@ describe('pushRouting', () => {
     });
   });
 
-  it('routes unavailable deleted events to Discover with the one-shot notice', () => {
+  it('uses a one-shot fallback when the interaction queue never settles', () => {
+    jest.useFakeTimers();
+    let interactionTask: (() => void) | undefined;
+    const interactionSpy = jest
+      .spyOn(InteractionManager, 'runAfterInteractions')
+      .mockImplementation((task) => {
+        interactionTask = task as () => void;
+        return { cancel: jest.fn(), then: jest.fn(), done: jest.fn() };
+      });
+    const task = jest.fn();
+
+    try {
+      runAfterNavigationTransition(task);
+      jest.advanceTimersByTime(999);
+      expect(task).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1);
+      expect(task).toHaveBeenCalledTimes(1);
+
+      interactionTask?.();
+      expect(task).toHaveBeenCalledTimes(1);
+    } finally {
+      interactionSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
+
+  it('routes unavailable deleted events to Discover before showing the one-shot notice', () => {
     const navigator = createNavigator();
+    const runAfterTransition = jest.fn();
     routeResolvedNotification(
       {
         status: 'unavailable',
@@ -43,8 +77,15 @@ describe('pushRouting', () => {
       },
       jest.fn(),
       navigator,
+      { runAfterTransition },
     );
-    expect(navigator.navigate).toHaveBeenCalledWith('Main', {
+
+    expect(navigator.navigate).toHaveBeenCalledWith('Main', { screen: 'Events' });
+    expect(runAfterTransition).toHaveBeenCalledTimes(1);
+
+    runAfterTransition.mock.calls[0][0]();
+
+    expect(navigator.navigate).toHaveBeenLastCalledWith('Main', {
       screen: 'Events',
       params: { notificationNotice: 'event_unavailable' },
     });
@@ -52,6 +93,7 @@ describe('pushRouting', () => {
 
   it('routes ended events to Discover with the event-unavailable notice', () => {
     const navigator = createNavigator();
+    const runAfterTransition = (task: () => void) => task();
     routeResolvedNotification(
       {
         status: 'unavailable',
@@ -60,8 +102,9 @@ describe('pushRouting', () => {
       },
       jest.fn(),
       navigator,
+      { runAfterTransition },
     );
-    expect(navigator.navigate).toHaveBeenCalledWith('Main', {
+    expect(navigator.navigate).toHaveBeenLastCalledWith('Main', {
       screen: 'Events',
       params: { notificationNotice: 'event_unavailable' },
     });
@@ -69,6 +112,7 @@ describe('pushRouting', () => {
 
   it('routes lost access to Discover with the generic notice', () => {
     const navigator = createNavigator();
+    const runAfterTransition = (task: () => void) => task();
     routeResolvedNotification(
       {
         status: 'unavailable',
@@ -77,8 +121,9 @@ describe('pushRouting', () => {
       },
       jest.fn(),
       navigator,
+      { runAfterTransition },
     );
-    expect(navigator.navigate).toHaveBeenCalledWith('Main', {
+    expect(navigator.navigate).toHaveBeenLastCalledWith('Main', {
       screen: 'Events',
       params: { notificationNotice: 'access_unavailable' },
     });

@@ -89,4 +89,4 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   );
 };
 
-export default EventActionOverlay;
+export default React.memo(EventActionOverlay);
