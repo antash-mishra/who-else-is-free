@@ -66,6 +66,11 @@ CREATE TABLE IF NOT EXISTS events (
 );
 `
 
+const createEventsUserScheduleIndex = `
+CREATE INDEX IF NOT EXISTS events_user_schedule_idx
+ON events (user_id, scheduled_at DESC, event_date DESC, created_at DESC, id DESC);
+`
+
 // Schema migrations are kept inline so startup handles SQLite setup.
 const createTableConversations = `
 CREATE TABLE IF NOT EXISTS conversations (
@@ -89,6 +94,16 @@ CREATE TABLE IF NOT EXISTS conversation_members (
     FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+`
+
+const createConversationsEventIndex = `
+CREATE INDEX IF NOT EXISTS conversations_event_idx
+ON conversations (event_id);
+`
+
+const createConversationMembersUserIndex = `
+CREATE INDEX IF NOT EXISTS conversation_members_user_idx
+ON conversation_members (user_id, conversation_id);
 `
 
 const createTableMessages = `
@@ -281,23 +296,6 @@ FROM users;
 const countConversations = `
 SELECT COUNT(1)
 FROM conversations;
-`
-
-const selectUserPastEvents = `
-SELECT DISTINCT e.id, e.user_id, e.title, e.location, e.time, e.event_date,
-       e.description, e.gender, e.min_age, e.max_age, e.date_label,
-       e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at,
-       u.name AS host_name, u.avatar AS host_avatar
-FROM events e
-JOIN users u ON u.id = e.user_id
-LEFT JOIN conversations c ON c.event_id = e.id
-LEFT JOIN conversation_members cm ON cm.conversation_id = c.id
-WHERE (e.user_id = ? OR cm.user_id = ?)
-  AND (
-    (e.scheduled_at IS NOT NULL AND datetime(e.scheduled_at) < datetime('now'))
-    OR (e.scheduled_at IS NULL AND e.event_date < date('now'))
-  )
-ORDER BY COALESCE(e.scheduled_at, e.event_date) DESC, e.created_at DESC;
 `
 
 const selectConversationByEventID = `
@@ -820,14 +818,23 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if err := r.ensureEventLocationMetaColumns(ctx); err != nil {
 		return err
 	}
+	if _, err := r.db.ExecContext(ctx, createEventsUserScheduleIndex); err != nil {
+		return fmt.Errorf("create events user schedule index: %w", err)
+	}
 	if _, err := r.db.ExecContext(ctx, createTableConversations); err != nil {
 		return fmt.Errorf("create conversations table: %w", err)
 	}
 	if err := r.ensureConversationEventColumn(ctx); err != nil {
 		return err
 	}
+	if _, err := r.db.ExecContext(ctx, createConversationsEventIndex); err != nil {
+		return fmt.Errorf("create conversations event index: %w", err)
+	}
 	if _, err := r.db.ExecContext(ctx, createTableConversationMembers); err != nil {
 		return fmt.Errorf("create conversation members table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createConversationMembersUserIndex); err != nil {
+		return fmt.Errorf("create conversation members user index: %w", err)
 	}
 	if _, err := r.db.ExecContext(ctx, createTableMessages); err != nil {
 		return fmt.Errorf("create messages table: %w", err)

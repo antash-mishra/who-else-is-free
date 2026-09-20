@@ -34,6 +34,9 @@ export type EventSectionListProps<TItem extends EventItemProps = EventItemProps>
   contentHorizontalPadding?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
   emptyContentStyle?: StyleProp<ViewStyle>;
+  footer?: ReactNode;
+  onEndReached?: () => void;
+  onEndReachedThreshold?: number;
   /**
    * When set and the list is empty, the empty state is top-anchored at this
    * padding from the top of the list content (instead of `headerPaddingTop`),
@@ -109,6 +112,9 @@ const EventSectionList = <TItem extends EventItemProps>({
   contentHorizontalPadding = true,
   contentContainerStyle,
   emptyContentStyle,
+  footer,
+  onEndReached,
+  onEndReachedThreshold = 0.5,
   emptyStateTopPadding,
 }: EventSectionListProps<TItem>) => {
   const resolvedBottomPadding = bottomPadding ?? spacing.xl + bottomInset;
@@ -118,6 +124,17 @@ const EventSectionList = <TItem extends EventItemProps>({
   // it below the header, so it lands at a consistent screen position.
   const resolvedTopPadding =
     isEmpty && emptyStateTopPadding != null ? emptyStateTopPadding : headerPaddingTop;
+  const itemIndexes = useMemo(() => {
+    const indexes = new Map<string, number>();
+    let overallIndex = 0;
+    sections.forEach((section) => {
+      section.data.forEach((item) => {
+        indexes.set(item.id, overallIndex);
+        overallIndex += 1;
+      });
+    });
+    return indexes;
+  }, [sections]);
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: EventSection<TItem> }) => (
@@ -126,15 +143,13 @@ const EventSectionList = <TItem extends EventItemProps>({
     [],
   );
 
-  // Index is per-section on purpose: each date group cascades on its own,
-  // which reads better than one continuous ramp down a long list.
   const renderItem = useCallback(
     ({ item, index }: SectionListRenderItemInfo<TItem, EventSection<TItem>>) => (
-      <Placed id={item.id} index={index} testID={`placed-${item.id}`}>
+      <Placed id={item.id} index={itemIndexes.get(item.id) ?? index} testID={`placed-${item.id}`}>
         <EventCardRow item={item} onPress={onEventPress} />
       </Placed>
     ),
-    [onEventPress],
+    [itemIndexes, onEventPress],
   );
 
   return (
@@ -159,8 +174,13 @@ const EventSectionList = <TItem extends EventItemProps>({
       }
       ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
       ListFooterComponent={
-        shouldShowFooterSpacing ? (
-          <View style={[styles.footerSpacing, { height: footerSpacingHeight }]} />
+        footer || shouldShowFooterSpacing ? (
+          <View>
+            {footer}
+            {shouldShowFooterSpacing ? (
+              <View style={[styles.footerSpacing, { height: footerSpacingHeight }]} />
+            ) : null}
+          </View>
         ) : null
       }
       ListEmptyComponent={
@@ -177,6 +197,8 @@ const EventSectionList = <TItem extends EventItemProps>({
           />
         ) : undefined
       }
+      onEndReached={onEndReached}
+      onEndReachedThreshold={onEndReachedThreshold}
     />
   );
 };

@@ -122,6 +122,7 @@ Before adding or refactoring UI, read `report/shared-components-refactor-guide.m
 - Use `EVENT_INFO_SEPARATOR` for event cards and `EVENT_DETAILS_INFO_SEPARATOR` for Event Details rows; both live in `src/constants/display.ts`. Do not replace punctuation in normal prose or saved addresses.
 - Keep screens focused on composition, state orchestration, and navigation.
 - Move repeated UI, data mapping, payload construction, request helpers, haptics, and action behavior into shared components/helpers.
+- Use `EventSectionList`'s footer and end-reached props for paged event feeds. Its `Placed` entry index is global across date sections so only the first screenful animates; do not restore section-local animation indices.
 - Refactor one user-visible area at a time.
 - Do not mix structural refactors with performance optimization unless explicitly asked.
 - Do not remove user changes or unrelated untracked files.

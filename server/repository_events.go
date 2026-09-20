@@ -542,19 +542,91 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 	return events, nil
 }
 
-// ListUserPastEvents returns past events the user created or joined, newest first.
-func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) ([]Event, error) {
-	rows, err := r.db.QueryContext(ctx, selectUserPastEvents, userID, userID)
+const (
+	pastEventSortUnixExpression    = `CAST(strftime('%s', COALESCE(e.scheduled_at, e.event_date)) AS INTEGER)`
+	pastEventCreatedUnixExpression = `CAST(strftime('%s', e.created_at) AS INTEGER)`
+)
+
+type PastEventCursor struct {
+	SortAtUnix    int64 `json:"sort_at"`
+	CreatedAtUnix int64 `json:"created_at"`
+	ID            int64 `json:"id"`
+}
+
+type PastEventsPage struct {
+	Events     []Event
+	NextCursor *PastEventCursor
+}
+
+// ListUserPastEvents returns one newest-first page of past events the user
+// created or joined. The cursor is keyset-based so newly ended plans cannot
+// shift or duplicate rows while an older page is loading.
+func (r *EventRepository) ListUserPastEvents(
+	ctx context.Context,
+	userID int64,
+	limit int,
+	cursor *PastEventCursor,
+) (PastEventsPage, error) {
+	if limit <= 0 {
+		limit = 25
+	}
+
+	var query strings.Builder
+	query.WriteString(`
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date,
+       e.description, e.gender, e.min_age, e.max_age, e.date_label,
+       e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at,
+       u.name AS host_name, u.avatar AS host_avatar,
+       ` + pastEventSortUnixExpression + ` AS sort_at_unix,
+       ` + pastEventCreatedUnixExpression + ` AS created_at_unix
+FROM events e
+JOIN users u ON u.id = e.user_id
+WHERE (
+    e.user_id = ?
+    OR EXISTS (
+        SELECT 1
+        FROM conversations c
+        JOIN conversation_members cm ON cm.conversation_id = c.id
+        WHERE c.event_id = e.id AND cm.user_id = ?
+    )
+  )
+  AND (
+    (e.scheduled_at IS NOT NULL AND datetime(e.scheduled_at) < datetime('now'))
+    OR (e.scheduled_at IS NULL AND e.event_date < date('now'))
+  )`)
+	args := []any{userID, userID}
+	if cursor != nil {
+		query.WriteString(` AND (
+      ` + pastEventSortUnixExpression + ` < ?
+      OR (` + pastEventSortUnixExpression + ` = ? AND ` + pastEventCreatedUnixExpression + ` < ?)
+      OR (` + pastEventSortUnixExpression + ` = ? AND ` + pastEventCreatedUnixExpression + ` = ? AND e.id < ?)
+    )`)
+		args = append(
+			args,
+			cursor.SortAtUnix,
+			cursor.SortAtUnix,
+			cursor.CreatedAtUnix,
+			cursor.SortAtUnix,
+			cursor.CreatedAtUnix,
+			cursor.ID,
+		)
+	}
+	query.WriteString(" ORDER BY sort_at_unix DESC, created_at_unix DESC, e.id DESC LIMIT ?")
+	args = append(args, limit+1)
+
+	rows, err := r.db.QueryContext(ctx, query.String(), args...)
 	if err != nil {
-		return nil, fmt.Errorf("query past events: %w", err)
+		return PastEventsPage{}, fmt.Errorf("query past events: %w", err)
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := make([]Event, 0, limit+1)
+	cursors := make([]PastEventCursor, 0, limit+1)
 	now := time.Now()
 
 	for rows.Next() {
 		var evt Event
+		var eventCursor PastEventCursor
 		var scheduledAtStr sql.NullString
 		var placeID sql.NullString
 		var lat sql.NullFloat64
@@ -580,12 +652,15 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 			&evt.CreatedAt,
 			&evt.HostName,
 			&evt.HostAvatar,
+			&eventCursor.SortAtUnix,
+			&eventCursor.CreatedAtUnix,
 		); err != nil {
-			return nil, fmt.Errorf("scan past event: %w", err)
+			return PastEventsPage{}, fmt.Errorf("scan past event: %w", err)
 		}
+		eventCursor.ID = evt.ID
 
 		if scheduledAtStr.Valid && scheduledAtStr.String != "" {
-			if parsed, err := time.Parse(time.RFC3339, scheduledAtStr.String); err == nil {
+			if parsed, err := time.Parse(time.RFC3339Nano, scheduledAtStr.String); err == nil {
 				evt.ScheduledAt = &parsed
 			} else if parsed, err := time.Parse("2006-01-02 15:04:05", scheduledAtStr.String); err == nil {
 				utc := parsed.UTC()
@@ -605,13 +680,21 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 
 		evt.DateLabel = deriveDateLabel(evt.EventDate, now)
 		events = append(events, evt)
+		cursors = append(cursors, eventCursor)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate past events: %w", err)
+		return PastEventsPage{}, fmt.Errorf("iterate past events: %w", err)
 	}
 
-	return events, nil
+	var nextCursor *PastEventCursor
+	if len(events) > limit {
+		next := cursors[limit-1]
+		nextCursor = &next
+		events = events[:limit]
+	}
+
+	return PastEventsPage{Events: events, NextCursor: nextCursor}, nil
 }
 
 // ListForViewer returns visible events for a specific viewer, excluding events

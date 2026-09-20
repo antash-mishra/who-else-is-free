@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,37 +6,20 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { API_BASE_URL } from '@api/config';
+import { ApiEvent, mapApiEventToUserEvent } from '@api/mappers/events';
+import { listPastEvents } from '@api/pastEvents';
 import EmptyState from '@components/EmptyState';
 import { EventItemProps } from '@components/EventCard';
-import { EventSectionList, buildEventItemSections } from '@components/events';
+import { EventSectionList, buildEventItemSections, toEventCardItem } from '@components/events';
 import FullPageEmptyState from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
-import { CoverKey, resolveCoverUri } from '@constants/covers';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
+import { logger } from '@services/logger';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
-import { getScheduleDisplay, parseDateKey } from '@utils/dateTime';
-import { formatAudienceLabel, formatEventListSectionHeaderLabel } from '@utils/eventDisplay';
-
-type ApiEvent = {
-  id: number;
-  title: string;
-  location: string;
-  time: string;
-  description?: string;
-  gender: string;
-  min_age: number;
-  max_age: number;
-  date_label?: string;
-  event_date: string;
-  group_type?: 'Single' | 'Group';
-  user_id: number;
-  host_name: string;
-  cover_key?: CoverKey | null;
-  scheduled_at?: string;
-};
+import { parseDateKey } from '@utils/dateTime';
+import { formatEventListSectionHeaderLabel } from '@utils/eventDisplay';
 
 type PastEventItem = EventItemProps & { ownerId: number; eventDate: string };
 
@@ -63,57 +46,51 @@ const PastEventsScreen = () => {
   const [events, setEvents] = useState<PastEventItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cursorRef = useRef<string | null>(null);
+  const requestVersionRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
 
-  const fetchPastEvents = useCallback(async () => {
+  const mapPastEvent = useCallback(
+    (event: ApiEvent): PastEventItem => {
+      const mapped = mapApiEventToUserEvent(event);
+      return {
+        ...toEventCardItem(mapped, user && event.user_id === user.id ? 'Hosting' : 'Joined'),
+        ownerId: event.user_id,
+        eventDate: mapped.eventDate,
+      };
+    },
+    [user],
+  );
+
+  const replacePastEvents = useCallback(async () => {
     if (!authFetch || !token) return;
+    const requestVersion = ++requestVersionRef.current;
     setError(null);
+    setLoadMoreError(false);
     try {
-      const response = await authFetch(`${API_BASE_URL}/api/events/past`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-      const payload: { data: ApiEvent[] | null } = await response.json();
-      const mapped = (payload.data ?? []).map((event): PastEventItem => {
-        const schedule = getScheduleDisplay({
-          scheduledAt: event.scheduled_at,
-          eventDate: event.event_date,
-          time: event.time,
-          dateLabel: event.date_label,
-        });
-
-        return {
-          id: String(event.id),
-          title: event.title,
-          location: event.location,
-          time: schedule.displayTime,
-          audience: formatAudienceLabel({
-            gender: event.gender,
-            minAge: event.min_age,
-            maxAge: event.max_age,
-          }),
-          imageUri: resolveCoverUri(event.cover_key),
-          badgeLabel: user && event.user_id === user.id ? 'Hosting' : 'Joined',
-          ownerId: event.user_id,
-          eventDate: schedule.displayDate,
-        };
-      });
-      setEvents(mapped);
+      const page = await listPastEvents(authFetch);
+      if (requestVersion !== requestVersionRef.current) return;
+      setEvents(page.events.map(mapPastEvent));
+      cursorRef.current = page.nextCursor;
+      setHasMore(page.nextCursor !== null);
     } catch {
+      if (requestVersion !== requestVersionRef.current) return;
       setError("Couldn't load past plans.");
     }
-  }, [authFetch, token, user]);
+  }, [authFetch, mapPastEvent, token]);
 
   const loadPastEvents = useCallback(async () => {
     setIsLoading(true);
     try {
-      await fetchPastEvents();
+      await replacePastEvents();
     } finally {
       setIsLoading(false);
     }
-  }, [fetchPastEvents]);
+  }, [replacePastEvents]);
 
   useEffect(() => {
     if (!isFocused) return;
@@ -123,8 +100,35 @@ const PastEventsScreen = () => {
 
   const handleRefresh = useCallback(() => {
     setIsPullRefreshing(true);
-    fetchPastEvents().finally(() => setIsPullRefreshing(false));
-  }, [fetchPastEvents]);
+    replacePastEvents().finally(() => setIsPullRefreshing(false));
+  }, [replacePastEvents]);
+
+  const handleLoadMore = useCallback(async () => {
+    const cursor = cursorRef.current;
+    if (!authFetch || !cursor || loadMoreInFlightRef.current) return;
+
+    loadMoreInFlightRef.current = true;
+    const requestVersion = requestVersionRef.current;
+    setIsLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const page = await listPastEvents(authFetch, cursor);
+      if (requestVersion !== requestVersionRef.current) return;
+      setEvents((current) => {
+        const seen = new Set(current.map((item) => item.id));
+        return [...current, ...page.events.map(mapPastEvent).filter((item) => !seen.has(item.id))];
+      });
+      cursorRef.current = page.nextCursor;
+      setHasMore(page.nextCursor !== null);
+    } catch (requestError) {
+      if (requestVersion !== requestVersionRef.current) return;
+      logger.warn('past plans pagination failed', requestError);
+      setLoadMoreError(true);
+    } finally {
+      loadMoreInFlightRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, [authFetch, mapPastEvent]);
 
   const sections = useMemo(
     () =>
@@ -149,6 +153,13 @@ const PastEventsScreen = () => {
   const showLoading = isLoading && events.length === 0;
   const showError = !!error && !isLoading && events.length === 0;
   const showEmpty = !isLoading && events.length === 0 && !error;
+  const footer = isLoadingMore ? (
+    <ActivityIndicator style={styles.footerLoader} color={colors.primary} />
+  ) : loadMoreError ? (
+    <Pressable style={styles.loadMoreRetry} onPress={() => handleLoadMore().catch(() => undefined)}>
+      <Text style={styles.loadMoreRetryText}>{"Couldn't load more. Tap to try again."}</Text>
+    </Pressable>
+  ) : null;
 
   return (
     <View style={styles.screenRoot}>
@@ -175,6 +186,9 @@ const PastEventsScreen = () => {
             footerSpacingHeight={0}
             refreshing={isPullRefreshing}
             onRefresh={handleRefresh}
+            footer={footer}
+            onEndReached={hasMore && !loadMoreError ? handleLoadMore : undefined}
+            onEndReachedThreshold={0.5}
           />
         )}
       </ScreenContainer>
@@ -216,6 +230,20 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: colors.buttonText,
+    fontSize: typography.body,
+    fontFamily: typography.fontFamilyMedium,
+    lineHeight: typography.lineHeight,
+    letterSpacing: typography.letterSpacing,
+  },
+  footerLoader: {
+    paddingVertical: spacing.lg,
+  },
+  loadMoreRetry: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  loadMoreRetryText: {
+    color: colors.error,
     fontSize: typography.body,
     fontFamily: typography.fontFamilyMedium,
     lineHeight: typography.lineHeight,

@@ -1,8 +1,11 @@
 import React from 'react';
 
+import { SectionList } from 'react-native';
+
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { resetPlacedIds } from '@components/motion';
+import { motionTiming } from '@theme/motion';
 
 import EventSectionList from '../EventSectionList';
 
@@ -56,5 +59,32 @@ describe('EventSectionList', () => {
     const { getByText } = render(<EventSectionList sections={sections} onEventPress={jest.fn()} />);
     expect(getByText('Pub quiz')).toBeTruthy();
     expect(getByText('Five-a-side')).toBeTruthy();
+  });
+
+  it('uses the overall row position for the entry-animation cutoff across sections', () => {
+    const staticRowIndex = motionTiming.staggerMaxSteps + 1;
+    const manySections = Array.from({ length: staticRowIndex + 1 }, (_, sectionIndex) => ({
+      title: `Day ${sectionIndex}`,
+      data: [
+        {
+          id: `event-${sectionIndex}`,
+          title: `Plan ${sectionIndex}`,
+          location: 'Dublin',
+          time: '19:00',
+          audience: 'Everyone',
+          imageUri: 'https://example.test/cover.jpg',
+        },
+      ],
+    }));
+    const view = render(<EventSectionList sections={manySections} onEventPress={jest.fn()} />);
+    const list = view.UNSAFE_getByType(SectionList);
+    const firstStaticRow = list.props.renderItem({
+      item: manySections[staticRowIndex].data[0],
+      index: 0,
+      section: manySections[staticRowIndex],
+      separators: {},
+    });
+
+    expect(firstStaticRow.props.index).toBe(staticRowIndex);
   });
 });

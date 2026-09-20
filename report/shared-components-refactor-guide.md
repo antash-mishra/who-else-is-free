@@ -1258,7 +1258,10 @@ What it is:
 
 - Shared section list renderer for event cards.
 - Owns section headers, event row press behavior, separators, empty-state wrapper, refresh control,
-  footer spacing, and list padding.
+  pagination/footer hooks, footer spacing, and list padding.
+- Computes each row's `Placed` index across the complete section collection. React Native's render
+  index resets inside every section; passing that local value through makes the first row of every
+  date group animate while scrolling and defeats the global first-screen motion cutoff.
 
 Where it is used:
 
@@ -1269,6 +1272,8 @@ Where it is used:
 Use it when:
 
 - Rendering event cards grouped into sections.
+- Building an infinite event feed: pass the loading/retry element through `footer` and the guarded
+  page loader through `onEndReached` instead of wrapping the list or adding a second scroll view.
 
 ### `EventRequestRow`
 

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -14,6 +16,16 @@ import (
 
 const requestTimeout = 5 * time.Second
 const updatedEventDetailMessage = "Plan details updated"
+
+const (
+	defaultPastEventsLimit = 25
+	maxPastEventsLimit     = 100
+)
+
+type listPastEventsResponse struct {
+	Data       []Event `json:"data"`
+	NextCursor *string `json:"next_cursor"`
+}
 
 type EventHandler struct {
 	repo *EventRepository
@@ -88,13 +100,75 @@ func (h *EventHandler) listUserPastEvents(c *gin.Context) {
 		return
 	}
 
-	events, err := h.repo.ListUserPastEvents(ctx, claims.UserID)
+	limit, cursor, err := parsePastEventsPagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	page, err := h.repo.ListUserPastEvents(ctx, claims.UserID, limit, cursor)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch past events"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": events})
+	var nextCursor *string
+	if page.NextCursor != nil {
+		encoded, err := encodePastEventCursor(*page.NextCursor)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to paginate past events"})
+			return
+		}
+		nextCursor = &encoded
+	}
+	c.JSON(http.StatusOK, listPastEventsResponse{Data: page.Events, NextCursor: nextCursor})
+}
+
+func parsePastEventsPagination(c *gin.Context) (int, *PastEventCursor, error) {
+	limit := defaultPastEventsLimit
+	if value := strings.TrimSpace(c.Query("limit")); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed <= 0 {
+			return 0, nil, errors.New("limit must be a positive integer")
+		}
+		if parsed > maxPastEventsLimit {
+			parsed = maxPastEventsLimit
+		}
+		limit = parsed
+	}
+
+	var cursor *PastEventCursor
+	if value := strings.TrimSpace(c.Query("cursor")); value != "" {
+		decoded, err := decodePastEventCursor(value)
+		if err != nil {
+			return 0, nil, errors.New("invalid cursor")
+		}
+		cursor = &decoded
+	}
+	return limit, cursor, nil
+}
+
+func encodePastEventCursor(cursor PastEventCursor) (string, error) {
+	payload, err := json.Marshal(cursor)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(payload), nil
+}
+
+func decodePastEventCursor(value string) (PastEventCursor, error) {
+	var cursor PastEventCursor
+	payload, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return cursor, err
+	}
+	if err := json.Unmarshal(payload, &cursor); err != nil {
+		return cursor, err
+	}
+	if cursor.SortAtUnix <= 0 || cursor.CreatedAtUnix <= 0 || cursor.ID <= 0 {
+		return cursor, errors.New("invalid cursor values")
+	}
+	return cursor, nil
 }
 
 func (h *EventHandler) getEvent(c *gin.Context) {

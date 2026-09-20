@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Text, View } from 'react-native';
 
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import PastEventsScreen from '@screens/PastEventsScreen';
 
@@ -12,6 +12,14 @@ const mockAuthValue = {
   token: 'token',
   authFetch: mockAuthFetch,
 };
+type MockEventSectionListProps = {
+  sections: Array<{
+    title: string;
+    data: Array<{ id: string; metaLine?: string }>;
+  }>;
+  onEndReached?: () => void;
+};
+let mockEventSectionListProps: MockEventSectionListProps | null = null;
 
 jest.mock('@context/AuthContext', () => ({
   useAuth: () => mockAuthValue,
@@ -33,14 +41,17 @@ jest.mock('@components/events', () => {
 
   return {
     buildEventItemSections,
-    EventSectionList: ({ sections }: { sections: Array<{ title: string }> }) =>
-      ReactModule.createElement(
+    toEventCardItem: jest.requireActual('@components/events/eventListSections').toEventCardItem,
+    EventSectionList: (props: MockEventSectionListProps) => {
+      mockEventSectionListProps = props;
+      return ReactModule.createElement(
         MockView,
         null,
-        sections.map((section) =>
+        props.sections.map((section) =>
           ReactModule.createElement(MockText, { key: section.title }, section.title),
         ),
-      ),
+      );
+    },
   };
 });
 
@@ -90,6 +101,7 @@ const absoluteListLabel = (date: Date) => {
 describe('PastEventsScreen', () => {
   beforeEach(() => {
     mockAuthFetch.mockReset();
+    mockEventSectionListProps = null;
   });
 
   it('renders Yesterday and comma-separated absolute date headings', async () => {
@@ -125,5 +137,58 @@ describe('PastEventsScreen', () => {
 
     fireEvent.press(getByText('Please try again'));
     expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses Explore metadata and appends the next page at the scroll boundary', async () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const olderDate = new Date();
+    olderDate.setDate(olderDate.getDate() - 2);
+    mockAuthFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            {
+              ...pastEvent(1, toDateKey(yesterday)),
+              group_type: 'Single',
+              gender: 'Female',
+              min_age: 25,
+              max_age: 35,
+            },
+          ],
+          next_cursor: 'next page',
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [pastEvent(2, toDateKey(olderDate))],
+          next_cursor: null,
+        }),
+      });
+
+    render(<PastEventsScreen />);
+
+    await waitFor(() => {
+      expect(mockEventSectionListProps?.sections[0].data[0].metaLine).toBe('1:1 · Female · 25-35');
+    });
+
+    await act(async () => {
+      mockEventSectionListProps?.onEndReached?.();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      const itemCount = mockEventSectionListProps?.sections.reduce(
+        (total, section) => total + section.data.length,
+        0,
+      );
+      expect(itemCount).toBe(2);
+      expect(mockAuthFetch).toHaveBeenCalledTimes(2);
+    });
+    expect(mockAuthFetch.mock.calls[1][0]).toContain(
+      '/api/events/past?limit=25&cursor=next%20page',
+    );
   });
 });
