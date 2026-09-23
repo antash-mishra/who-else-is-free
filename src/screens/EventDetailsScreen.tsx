@@ -543,6 +543,7 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
     () => events.find((item) => item.id === routeEventId),
     [events, routeEventId],
   );
+  const [lastReadyEvent, setLastReadyEvent] = useState<UserEvent | null>(rawEvent ?? null);
   const [fetchedEvent, setFetchedEvent] = useState<UserEvent | null>(null);
   const [loadStatus, setLoadStatus] = useState<EventDetailsLoadStatus>(() =>
     rawEvent ? 'ready' : token ? 'loading' : 'notFound',
