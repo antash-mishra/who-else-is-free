@@ -199,7 +199,7 @@ Places autocomplete is country-restricted server-side only when the client suppl
 resolved from the already-granted viewer location; do not replace it with a client-only result
 filter, and leave it unrestricted when the country is unavailable.
 
-Event Details disables stack back-swiping because its host Requests/Members (or Requests/Accepted) section owns horizontal swipes. `HostRequestTabs` direction-locks its pager so vertical drags fail early to the outer screen `ScrollView`; preserve that gesture boundary when changing the tabs.
+Event Details enables an interactive stack back swipe from the left 50pt/dp edge. A transparent full-height edge layer prevents the page `ScrollView` from claiming that strip, and `HostRequestTabs` fails its pan immediately for touches beginning there; swipes starting farther inside its Requests/Members (or Requests/Accepted) pager change tabs. The pager still direction-locks so vertical drags fail early to the outer screen `ScrollView`. Keep the stack gesture, edge layer, and pager boundary tied to `EVENT_DETAILS_BACK_EDGE_WIDTH`.
 
 Do not import `expo-haptics` outside `src/services/haptics.ts`. Do not call `console.*` directly in app code; use `logger` from `src/services/logger.ts`. Hardcoded hex colors outside `src/theme` are only allowed in the documented artwork-palette files (`src/utils/avatar.ts`, `src/components/ConfettiOverlay.tsx`).
 

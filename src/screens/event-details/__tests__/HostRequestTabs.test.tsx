@@ -3,6 +3,8 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { Gesture } from 'react-native-gesture-handler';
 
+import { EVENT_DETAILS_BACK_EDGE_WIDTH } from '@navigation/transitions';
+
 import HostRequestTabs, {
   HOST_TABS_ACTIVE_OFFSET_X,
   HOST_TABS_FAIL_OFFSET_Y,
@@ -36,6 +38,21 @@ describe('HostRequestTabs', () => {
 
     expect(gesture.activeOffsetX).toHaveBeenCalledWith([...HOST_TABS_ACTIVE_OFFSET_X]);
     expect(gesture.failOffsetY).toHaveBeenCalledWith([...HOST_TABS_FAIL_OFFSET_Y]);
+  });
+
+  it('gives touches in the stack back edge to navigation rather than the pager', () => {
+    render(<HostRequestTabs {...baseProps} />);
+
+    const panMock = Gesture.Pan as jest.Mock;
+    const gesture = panMock.mock.results[panMock.mock.results.length - 1].value;
+    const onTouchesDown = gesture.onTouchesDown.mock.calls[0][0];
+    const manager = { fail: jest.fn() };
+
+    onTouchesDown({ changedTouches: [{ absoluteX: EVENT_DETAILS_BACK_EDGE_WIDTH - 1 }] }, manager);
+    expect(manager.fail).toHaveBeenCalledTimes(1);
+
+    onTouchesDown({ changedTouches: [{ absoluteX: EVENT_DETAILS_BACK_EDGE_WIDTH + 1 }] }, manager);
+    expect(manager.fail).toHaveBeenCalledTimes(1);
   });
 
   it('makes only the selected page interactive and accessible', () => {

@@ -22,6 +22,7 @@ import {
 } from '@components/events';
 import { SlidingTabs } from '@components/ui';
 import { ChatJoinRequest } from '@context/ChatContext';
+import { EVENT_DETAILS_BACK_EDGE_WIDTH } from '@navigation/transitions';
 
 import styles from './EventDetailsScreen.styles';
 
@@ -108,6 +109,13 @@ const HostRequestTabs = ({
   };
 
   const panGesture = Gesture.Pan()
+    // Fail the pager as soon as a touch begins in the stack's edge zone. A
+    // reduced hitSlop alone still let Android's nested pan change tabs here.
+    .onTouchesDown((event, manager) => {
+      if (event.changedTouches[0]?.absoluteX < EVENT_DETAILS_BACK_EDGE_WIDTH) {
+        manager.fail();
+      }
+    })
     .activeOffsetX([...HOST_TABS_ACTIVE_OFFSET_X])
     .failOffsetY([...HOST_TABS_FAIL_OFFSET_Y])
     .onBegin(() => {

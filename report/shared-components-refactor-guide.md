@@ -1490,9 +1490,11 @@ What they are:
   description (owns description measurement/expansion state).
 - `HostRequestTabs.tsx` — `SlidingTabs` header plus a direction-locked animated two-page pager
   (both pages stay rendered; 280ms slide) for request and accepted/member lists. Horizontal swipes
-  change tabs, edge swipes clamp locally, inactive pages do not receive pointer/accessibility
-  events, and vertical drags fail early to the outer Event Details `ScrollView`. The Event Details
-  stack route disables back-swiping so navigation cannot steal this horizontal gesture.
+  starting past the left 50pt/dp edge change tabs; a transparent full-height edge layer prevents
+  the page `ScrollView` from claiming the stack's interactive back swipe. Inactive pages do not
+  receive pointer/accessibility events, and vertical drags fail early to the outer Event Details
+  `ScrollView`. The pager fails its pan on edge touches; the stack, edge layer, and pager all use
+  `EVENT_DETAILS_BACK_EDGE_WIDTH` from `transitions.ts`.
 - `EventDetailsMembers.tsx` — group overlay members list and read-only members list (with
   loading/error states) under a static `SlidingTabs` header (`variant: 'overlay' | 'readOnly'`).
 - `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white

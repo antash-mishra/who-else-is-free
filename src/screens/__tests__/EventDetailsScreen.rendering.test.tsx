@@ -8,6 +8,8 @@ import React from 'react';
 import { act, render, fireEvent, waitFor, screen } from '@testing-library/react-native';
 import fetchMock from 'jest-fetch-mock';
 
+import { EVENT_DETAILS_BACK_EDGE_WIDTH } from '@navigation/transitions';
+
 import {
   mockEvents,
   mockUsers,
@@ -357,6 +359,17 @@ describe('EventDetailsScreen Rendering Tests', () => {
   });
 
   describe('Event Display - Basic Rendering', () => {
+    it('reserves the full-height left edge for the stack back gesture', () => {
+      const { getByTestId } = render(<EventDetailsScreen />);
+
+      expect(getByTestId('event-details-back-gesture-edge')).toHaveStyle({
+        width: EVENT_DETAILS_BACK_EDGE_WIDTH,
+        top: 0,
+        bottom: 0,
+        left: 0,
+      });
+    });
+
     it('renders event title correctly', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
@@ -2050,9 +2063,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       fireEvent.press(view.getByTestId('event-details-tab-members'));
       expect(view.getByText(`${mockOwnedEvent.hostName} (you)`)).toBeTruthy();
       expect(view.getByText('Host')).toBeTruthy();
-      expect(
-        view.queryByLabelText(`Open actions for ${mockOwnedEvent.hostName} (you)`),
-      ).toBeNull();
+      expect(view.queryByLabelText(`Open actions for ${mockOwnedEvent.hostName} (you)`)).toBeNull();
       expect(view.queryByText('No members')).toBeNull();
     });
     it('counts and displays host plus accepted members consistently', () => {

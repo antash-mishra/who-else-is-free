@@ -26,8 +26,14 @@ export const slideFromRightTransitionSpec = {
   close: { animation: 'spring' as const, config: Springs.snappy },
 };
 
+// Keep the stack back swipe at the screen edge. The host's Requests/Members
+// pager reserves this same strip so a drag has only one horizontal owner.
+export const EVENT_DETAILS_BACK_EDGE_WIDTH = 50;
+
 export const eventDetailsScreenOptions = {
-  gestureEnabled: false,
+  gestureEnabled: true,
+  gestureDirection: 'horizontal' as const,
+  gestureResponseDistance: EVENT_DETAILS_BACK_EDGE_WIDTH,
   cardStyleInterpolator: slideFromRightInterpolator,
   transitionSpec: slideFromRightTransitionSpec,
 };

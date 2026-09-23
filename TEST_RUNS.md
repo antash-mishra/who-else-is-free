@@ -296,7 +296,6 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 - Launched MainActivity successfully and verified the app process and resumed activity. No event creation or automated interaction test was performed on the phone; performance/visual acceptance is handed to the user.
 - Result: **INSTALL/LAUNCH PASS**, phone animation measurements still pending.
 
-
 ## 2026-09-07 — Airbnb-style image-only transition
 
 **Verdict: design/lifecycle pass on Android emulator; performance not accepted.** Implemented rounded page expansion/return with shared image only. Final release: 11 open/return cycles, all 22 endpoint screenshots checked; two recorded cycles plus 45.13-second idle and 45.24-second background/resume recordings reviewed frame by frame. Same process survived; My Plans and on-screen Back checked. Explicit cached-layer experiments were rejected after native blur/blank-screen failures. Final reset/handoff paths and static Android hero material tested without those observed failures.
@@ -304,7 +303,6 @@ Live status board for on-device (Android emulator) verification runs. Appended p
 Perfetto, ten post-warm-up trials per direction: old → final median trial p95 opening **70.6 → 145.3 ms**, return **83.4 → 108.7 ms**. Final is 17.3% / 25.6% lower than the first new-design prototype, but slower than the old design. These are emulator frame-record timings, not phone FPS. RenderThread CPU increased substantially; see the report's scheduler breakdown.
 
 Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 23 passed; typecheck passed; lint 0 errors / 774 warning baseline. No physical-device or iOS claim. [Report, screenshots, recordings and raw measurements](report/animation-repair/airbnb-implementation-report.md).
-
 
 ## 2026-09-07 — Image-only transition phone APK handoff
 
@@ -314,7 +312,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Installed with `adb install -r` successfully; no uninstall or data clearing. Pulled installed base APK and confirmed its SHA-256 matches the new artifact. MainActivity launched successfully and app process was present.
 - Result: **INSTALL/LAUNCH PASS**. Includes the image-only expanding/returning shared transition and earlier animation repairs. Phone animation smoothness and performance acceptance remain for user testing; no production event mutations or phone performance benchmark performed.
 
-
 ## 2026-09-07 — Event Details return endpoint flicker
 
 - Reproduced the reported flash in original video frame 92 (12.946844 s); both cover and badge washed out, neighboring text stayed stable.
@@ -322,20 +319,17 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Final release emulator validation: **PASS for this flicker**, four open/return cycles in two recordings, all 199 captured frames reviewed. No white flash in 87 post-return frames; minimum contrast proxy 95.45%, versus 19.9% in original damaged frame. This is not a frame-time/FPS improvement claim.
 - 49 focused tests, typecheck, targeted ESLint and diff check passed. No phone update or iOS test for this repair. [Report and evidence](report/animation-repair/return-flicker-report.md).
 
-
 ## 2026-09-07 — Return flicker fix installed on phone
 
 - Connected to the user-authorized Galaxy A56 at `192.168.1.9:39779`; built release ARM64 with fresh production API/WSS bundling and QA OTA disabled. Original manifest restored.
 - Installed `artifacts/animation-performance/return-flicker-phone.apk` with `adb install -r`, preserving app data. Actual installed APK SHA-256 verified on device: `6ad4625df423b3d5194ed748fcdc09b65695258b545edc0ac4c2a92747661be8` (72,901,540 bytes).
 - MainActivity launched successfully; process present (PID 15611). **INSTALL/LAUNCH PASS**. The return-endpoint fix is now installed; physical-device visual acceptance remains for the user to test.
 
-
 ## 2026-09-07 — User acceptance and commit handoff
 
 - The user confirmed the installed animation implementation works correctly on their phone and requested commit/push.
 - Existing validation: 117 suites / 1,428 tests passed for the implemented design; subsequent endpoint repair passed 49 focused tests, typecheck, targeted ESLint, and release build/install verification. Four final emulator returns were reviewed frame by frame without the reported white flash.
 - Visual acceptance is confirmed by the user. Remaining work is optional measured performance tuning (rendering/blur cost and deferred heavy Details content), a comparable before/after device benchmark if access becomes available, and iOS validation. Existing emulator regressions remain documented; acceptance is not a numeric frame-rate claim.
-
 
 ## 2026-09-07 — Card input latency and rapid reopening
 
@@ -346,7 +340,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - No phone install, commit, or push for this task. [Report, raw measurements, screenshots and video](report/animation-repair/input-latency-report.md).
 
 - Final defensive unmount guard: 27 focused shared-transition tests and typecheck passed; targeted transition/test/metrics lint passed.
-
 
 ## 2026-09-07 — Input latency cleanup build installed on phone
 
@@ -362,7 +355,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Restored production runtime to e197e53; retained only opt-in stable diagnostic probes. Post-restoration shared-transition, hero and section-list suites: 3 suites/32 tests passed. Typecheck passed.
 - Verdict: investigation complete for these five candidates; first-opening issue remains unresolved. Existing closing/flicker fix preserved. Full evidence and next profiling gate: report/animation-repair/opening-latency/README.md.
 
-
 ## 2026-09-08 — Android shared opening takeoff hitch
 
 - Retained threshold-derived native blur updates; removed Android source blur during opening only (`openingBackdropBlur: 0`). Closing radius 4, navigation/release guards, durations, image/page geometry, and iOS behavior are unchanged. Radius-1 and source-cache/memo experiments rejected.
@@ -372,20 +364,17 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Full frontend:117suites/1433tests passed; typecheck, targetedlint, touched-sourcePrettier anddiffcheck passed. DiagnosticAPK remains emulator-only; phone unchanged.
 - Evidence, screenshots/video, rejected candidates, native attribution and limitations: [investigation](report/animation-repair/native-opening-investigation.md).
 
-
 ## 2026-09-08 — Opening smoothness build delivered to phone
 
 - Connected wireless ADB at `192.168.1.9:44269` (ARM64). Built fresh release APK with production HTTP/WebSocket endpoints, transition metrics disabled, OTA loading disabled for this test build, and forced JS rebundling. Verified production URL and absence of emulator fixture URL in the bundled APK.
 - `adb install -r` succeeded; existing app data preserved. APK: `artifacts/animation-performance/opening-smooth-phone.apk`, SHA256 `de41c3e68efa020dd9054abec06e406789866d3908bd4b45d5d314bb9e452f11`.
 - Physical-device animation smoothness remains for user assessment; emulator measurements are not phone measurements.
 
-
 ## 2026-09-08 — Remove foreground in-app notification banner
 
 - Removed the global banner host, animated banner, banner-only content helper, styles/tokens, observer API, and obsolete banner tests. Profile inbox, live inbox updates, server notification delivery, device push setup, and push tap routing remain.
 - Full frontend Jest: **114 suites / 1,413 tests passed**, including push/inbox/routing coverage. Typecheck and targeted lint passed; no remaining banner implementation references in source.
 - Fresh local-fixture release built and installed on `emulator-5554`; Discover and signed-out Profile launch successfully. The emulator session is signed out, so the authenticated inbox was covered by rendering/context tests rather than this device smoke check. No live FCM delivery was sent. Physical phone unchanged.
-
 
 ## 2026-09-08 — Create Event physical-phone measurement
 
@@ -401,7 +390,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Six Create/Back cycles and seven gesture-state checks passed. Full suite115/1421 passed; final focused suites2/24 and typecheck passed. Touched-source formatting passed; targeted lint retains only two existing date-picker memo warnings.
 - Production ARM64 candidate installed with app data preserved; SHA256 `5bebfe0a9b2218c7ca136831122e5559ded63e43772a112b2934bc9e8158a5c8`. No events submitted. Evidence and limitations: [report](report/animation-repair/create-event-preparation.md).
 
-
 ## 2026-09-08 — Shared cover transition measured and optimized on the Galaxy A56
 
 - Audited `EventSharedTransition` and measured it on the user's SM-A566E (120 Hz) with an opt-in diagnostics release build, the native input driver, Perfetto FrameTimeline and a separate recording. Baseline: release→first opening motion **191 ms** median [181–203], Back→first return motion **131 ms** [98–152]; motion itself already ran at ~114 fps. The waits were React commits on the critical path, a bitmap that could only load after the Details mount frame, and a return overlay mounted and loaded on Back.
@@ -410,12 +398,10 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Two runs were interrupted by other apps on the personal phone (Zomato order screen, an incoming call); those cycles were discarded and `phone-run.py` now refuses input unless our app is focused. Candidate 4 crashed the UI runtime because custom-animation callbacks are not auto-workletized; fixed with explicit `'worklet'` directives.
 - Full frontend Jest **116 suites / 1,428 tests passed**; typecheck passed; lint 0 errors with the 8 pre-existing warnings on untouched lines; Prettier on touched files. Production QA APK (diagnostics off, OTA disabled for this binary) built as `artifacts/animation-performance/shared-transition-final-phone.apk`, SHA256 `c0a81d1516e4d7e72922170028984e829341a1a5e19798e69642211c81f0a88d`. Report and limits: [report](report/animation-repair/shared-transition-phone-report.md).
 
-
 ## 2026-09-10 — Remove the "Handled" status line from inbox rows
 
 - Resolved notification rows no longer render the check icon and `Handled` label under their text (they stay muted); the `Unavailable` status line remains because it explains the Discover redirect. The accessibility label no longer prefixes "Handled notification.".
 - New `NotificationRow` test covers resolved, unavailable and active rows; notifications screen and open-notification suites pass (22 tests); typecheck and lint pass.
-
 
 ## 2026-09-10 — Opened chat and join-request notifications stay in the inbox
 
@@ -430,3 +416,18 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Device result: PASS — the Group row opened `Issue 127 Group Hike / Group • 1 member` with the Requests sheet on top and the thread interactive underneath after Close; the 1:1 row opened `Issue 127 Coffee 1:1 / 1:1 • 0 Accepted` with the Requests sheet on top (server `POST /api/notifications/actions/resolve` then `GET /api/events/42/chat/requests?include_approved=1`); opened rows lightened in the inbox; accepting from the sheet updated the hub to `1:1 • 1 Accepted` with the `Tester joined the plan` preview; the thread header read `Issue 127 Coffee 1:1 • 10 Sep, Thu` with a `3:39 AM` timestamp; Report & Block showed `Report & block Tester?` with the Event Details description, then the prompt with placeholder `Tell us why you're reporting Tester` and a disabled Submit. Migration: the DB copy went from 20 `joined the chat` + 6 `Updated Event Detail` rows to 0 + 0 (23 `joined the plan`, 15 `Plan details updated`) on first start; the user's real `server/event.sqlite` was not touched.
 - Automated: `npm run typecheck` clean; full Jest 116/117 suites, 1428/1429 tests (the single failure, `EventsContext.rendering.test.tsx` "finishes creation before reconciliation…", also fails on a clean HEAD worktree and is unrelated); `cd server && go test ./...` passed; per-file ESLint warnings unchanged or reduced on every touched file (OneToOneHubScreen 22→1); Prettier clean on touched files.
 - Evidence: `report/issue-127-followup.md` and `report/issue-127-assets/followup/01`–`11`.
+
+## 2026-09-23 — Event Details edge back swipe
+
+- Change: enabled the stack's interactive rightward back swipe from the left 50pt/dp edge and made the host Requests/Members pager fail touches starting there.
+- Flow: Dev Login (host) → My Plans → Group Event Details → Requests/Members pager → My Plans on edge swipe.
+- Attempt 1: FAIL — a swipe beginning inside the pager's left edge while Members was selected changed to Requests; pager `hitSlop` did not reserve the overlap on Android.
+- Attempt 2: PASS — after switching to touch-start failure, an edge swipe beginning inside that overlap returned to My Plans from Members. Interior swipes changed Requests ↔ Members; vertical scrolling and edge back from Requests also passed on the WEIF_API_36 emulator.
+- Final: PASS. Focused Jest suites (29 tests), TypeScript typecheck, and touched source formatting passed. Temporary local test events were deleted through the API.
+
+## 2026-09-24 — Event Details full-height edge back swipe correction
+
+- Follow-up: the first implementation only yielded the Android touch stream inside the Requests/Members pager. Above the pager, the outer `ScrollView` claimed the gesture before React Navigation's stack handler could activate.
+- Change: added a transparent, full-height 50dp left-edge touch layer on the non-overlay Event Details route. The layer leaves that edge to the parent stack gesture; the existing pager touch-start failure keeps the same boundary in the tab section. Header controls remain above the layer.
+- Device result: PASS on the WEIF_API_36 emulator. A rightward swipe starting at x=5 over the title/details area returned to My Plans. After reopening and scrolling, the same edge swipe inside the Requests/Members content also returned to My Plans. Interior pager space remains outside the edge layer and available to the tab gesture.
+- Physical result: PASS on the wirelessly connected Galaxy A56. Installed the production release over existing app data, reopened the existing `Party` Event Details route, and a rightward swipe from x=5 over the details section returned to Discover. The app remained focused and running after the gesture.

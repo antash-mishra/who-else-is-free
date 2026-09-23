@@ -22,6 +22,7 @@ import { AppButton, FrostedSurface } from '@components/ui';
 import { EVENT_DETAILS_INFO_SEPARATOR } from '@constants/display';
 import { useAuth } from '@context/AuthContext';
 import { ApiEvent, mapApiEventToUserEvent, useEvents, UserEvent } from '@context/EventsContext';
+import { EVENT_DETAILS_BACK_EDGE_WIDTH } from '@navigation/transitions';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { colors, spacing } from '@theme/index';
@@ -418,6 +419,15 @@ const EventDetailsScreenContent = ({
             )}
           </View>
         </Animated.ScrollView>
+        {!isOverlay ? (
+          <View
+            testID="event-details-back-gesture-edge"
+            accessible={false}
+            collapsable={false}
+            pointerEvents="box-only"
+            style={[styles.backGestureEdge, { width: EVENT_DETAILS_BACK_EDGE_WIDTH }]}
+          />
+        ) : null}
         <EventDetailsCTA
           showStandardCta={shouldPinBottomCTA && showStandardCTA && !readOnly}
           showOpenChatCta={shouldPinBottomCTA && showOpenChatCTA && !readOnly}

@@ -6,7 +6,7 @@
 import React from 'react';
 
 import { mockUsers } from '../../__tests__/mocks/mockData';
-import { eventDetailsScreenOptions } from '../transitions';
+import { EVENT_DETAILS_BACK_EDGE_WIDTH, eventDetailsScreenOptions } from '../transitions';
 
 // Mock context modules before importing components
 
@@ -335,8 +335,10 @@ describe('AppNavigator', () => {
   });
 
   describe('Screen Options', () => {
-    it('disables stack back-swiping on Event Details so its horizontal pager owns swipes', () => {
-      expect(eventDetailsScreenOptions.gestureEnabled).toBe(false);
+    it('allows an interactive Event Details back swipe from the left screen edge', () => {
+      expect(eventDetailsScreenOptions.gestureEnabled).toBe(true);
+      expect(eventDetailsScreenOptions.gestureDirection).toBe('horizontal');
+      expect(eventDetailsScreenOptions.gestureResponseDistance).toBe(EVENT_DETAILS_BACK_EDGE_WIDTH);
     });
 
     it('should hide headers on all screens', () => {
