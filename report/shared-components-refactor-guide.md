@@ -789,6 +789,9 @@ Placement rule:
 
 - The parent list/screen owns centering and available height.
 - `EmptyState` owns the content styling.
+- Keep a resolved empty state mounted while its list refreshes. Discover gates its first loader
+  with `EventsContext.hasLoadedEvents`; Messages waits for the current user's first focus refresh
+  before showing its empty artwork. Refresh spinners may run without replacing that artwork.
 
 ### `EventCard`
 

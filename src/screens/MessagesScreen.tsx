@@ -154,11 +154,11 @@ const MessagesScreen = () => {
     isConnecting,
     error,
     refreshConversations,
-    isRefreshingConversations,
   } = useChat();
   const { events, userEvents, isEventReported } = useEvents();
   const insets = useSafeAreaInsets();
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+  const [loadedUserId, setLoadedUserId] = useState<number | null>(null);
   const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
 
   useFocusEffect(
@@ -167,8 +167,17 @@ const MessagesScreen = () => {
         return undefined;
       }
 
-      refreshConversations().catch(() => undefined);
-      return undefined;
+      let isActive = true;
+      refreshConversations()
+        .catch(() => undefined)
+        .finally(() => {
+          if (isActive) {
+            setLoadedUserId(user.id);
+          }
+        });
+      return () => {
+        isActive = false;
+      };
     }, [refreshConversations, user]),
   );
 
@@ -270,8 +279,6 @@ const MessagesScreen = () => {
 
     return consolidated;
   }, [conversations, isEventReported, user, userEvents]);
-  const isConversationListBusy = isConnecting || isRefreshingConversations || isPullRefreshing;
-
   useEffect(() => {
     const nextRefreshMs = displayConversations.reduce<number | null>((soonest, conversation) => {
       const delay = getNextCompactRelativeTimeUpdateMs(
@@ -387,7 +394,7 @@ const MessagesScreen = () => {
         </View>
       </ScreenContainer>
       <FullPageEmptyState
-        visible={displayConversations.length === 0 && !isConversationListBusy}
+        visible={displayConversations.length === 0 && loadedUserId === user.id}
         imageHeight={245}
         centered
       >

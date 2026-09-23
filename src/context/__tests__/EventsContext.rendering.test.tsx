@@ -28,7 +28,7 @@ jest.mock('../AuthContext', () => ({
 
 // Mock covers module
 jest.mock('@constants/covers', () => ({
-  resolveCoverUri: jest.fn((key?: string) => key ? `mock-uri-${key}` : 'default-uri'),
+  resolveCoverUri: jest.fn((key?: string) => (key ? `mock-uri-${key}` : 'default-uri')),
   DEFAULT_COVER_KEY: 'sports-badminton-1',
 }));
 
@@ -55,9 +55,12 @@ const TestConsumer = ({
     }
   }, [ctx, onMount]);
   return (
-    <Text testID={testID}>
-      {ctx.isLoading ? 'loading' : ctx.error ? 'error' : 'ready'}
-    </Text>
+    <>
+      <Text testID={testID}>
+        {!ctx.hasLoadedEvents || ctx.isLoading ? 'loading' : ctx.error ? 'error' : 'ready'}
+      </Text>
+      <Text testID={`${testID}-loaded`}>{String(ctx.hasLoadedEvents)}</Text>
+    </>
   );
 };
 
@@ -154,6 +157,41 @@ describe('EventsContext - Rendering Tests', () => {
     jest.clearAllTimers();
   });
 
+  it('keeps the first empty result marked as loaded during a later refresh', async () => {
+    fetchMock.mockResponseOnce(JSON.stringify({ data: [] }));
+    fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+    let context: EventsContextValue | undefined;
+    render(
+      <EventsProvider>
+        <TestConsumer onMount={(value) => (context = value)} />
+      </EventsProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('consumer').props.children).toBe('ready'));
+    expect(screen.getByTestId('consumer-loaded').props.children).toBe('true');
+
+    let finishRefresh!: (body: string) => void;
+    fetchMock.mockResponseOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          finishRefresh = resolve;
+        }),
+    );
+    let pendingRefresh!: Promise<void>;
+    act(() => {
+      pendingRefresh = context!.refreshEvents();
+    });
+
+    expect(screen.getByTestId('consumer').props.children).toBe('loading');
+    expect(screen.getByTestId('consumer-loaded').props.children).toBe('true');
+
+    await act(async () => {
+      finishRefresh(JSON.stringify({ data: [] }));
+      await pendingRefresh;
+    });
+    expect(screen.getByTestId('consumer').props.children).toBe('ready');
+  });
+
   it('finishes creation before reconciliation and preserves the confirmed event in a stale list', async () => {
     fetchMock.mockResponseOnce(JSON.stringify({ data: [] }));
     fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
@@ -183,7 +221,7 @@ describe('EventsContext - Rendering Tests', () => {
           title: 'Confirmed',
           location: 'Park',
           time: '14:00',
-          eventDate: new Date().toISOString().split('T')[0],
+          eventDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           gender: 'Any',
           minAge: 18,
           maxAge: 99,
@@ -208,7 +246,7 @@ describe('EventsContext - Rendering Tests', () => {
       render(
         <EventsProvider>
           <TestConsumer />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       // Initial loading state
@@ -238,7 +276,7 @@ describe('EventsContext - Rendering Tests', () => {
       render(
         <EventsProvider>
           <TestConsumer />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -246,7 +284,7 @@ describe('EventsContext - Rendering Tests', () => {
           'http://localhost:8080/api/events',
           expect.objectContaining({
             headers: { Authorization: `Bearer ${mockToken}` },
-          })
+          }),
         );
       });
     });
@@ -264,8 +302,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       // Wait for component to mount
@@ -291,8 +333,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -308,7 +354,7 @@ describe('EventsContext - Rendering Tests', () => {
       render(
         <EventsProvider>
           <TestConsumer />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -323,7 +369,7 @@ describe('EventsContext - Rendering Tests', () => {
       render(
         <EventsProvider>
           <TestConsumer />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -338,8 +384,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -364,9 +414,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="add"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       // Wait for initial load
@@ -405,9 +457,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="add"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -430,19 +484,18 @@ describe('EventsContext - Rendering Tests', () => {
     it('should handle API error with custom message', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.empty));
       fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
-      fetchMock.mockResponseOnce(
-        JSON.stringify({ error: 'Title is required' }),
-        { status: 400 }
-      );
+      fetchMock.mockResponseOnce(JSON.stringify({ error: 'Title is required' }), { status: 400 });
 
       let result: unknown;
       render(
         <EventsProvider>
           <InteractiveConsumer
             action="add"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -474,9 +527,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="update"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -512,9 +567,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="update"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -543,9 +600,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="update"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -577,9 +636,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="delete"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -615,9 +676,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="delete"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -646,9 +709,11 @@ describe('EventsContext - Rendering Tests', () => {
         <EventsProvider>
           <InteractiveConsumer
             action="delete"
-            onResult={(r) => { result = r; }}
+            onResult={(r) => {
+              result = r;
+            }}
           />
-        </EventsProvider>
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -677,8 +742,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -708,8 +777,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -732,15 +805,21 @@ describe('EventsContext - Rendering Tests', () => {
 
     it('should load requested events from API on mount', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
-      fetchMock.mockResponseOnce(JSON.stringify({
-        requests: [{ event_id: 1 }, { event_id: 2 }],
-      }));
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          requests: [{ event_id: 1 }, { event_id: 2 }],
+        }),
+      );
 
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -760,8 +839,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -788,8 +871,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -802,18 +889,26 @@ describe('EventsContext - Rendering Tests', () => {
   describe('requestedEvents computed property', () => {
     it('should return events that user has requested to join', async () => {
       fetchMock.mockResponseOnce(JSON.stringify(mockApiResponses.events.success));
-      fetchMock.mockResponseOnce(JSON.stringify({
-        requests: [{ event_id: 2 }],
-      }));
-      fetchMock.mockResponseOnce(JSON.stringify({
-        requests: [{ event_id: 2 }],
-      }));
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          requests: [{ event_id: 2 }],
+        }),
+      );
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          requests: [{ event_id: 2 }],
+        }),
+      );
 
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -838,8 +933,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -872,8 +971,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -908,8 +1011,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -925,7 +1032,7 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       const hasRequestedEventsError = consoleErrorMock.mock.calls.some(([message]) =>
-        String(message).includes('Failed to fetch requested events')
+        String(message).includes('Failed to fetch requested events'),
       );
       expect(hasRequestedEventsError).toBe(false);
     });
@@ -941,8 +1048,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -978,8 +1089,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -1014,9 +1129,7 @@ describe('EventsContext - Rendering Tests', () => {
       });
 
       const createCall = fetchMock.mock.calls.find(
-        ([url, init]) =>
-          url === 'http://localhost:8080/api/events' &&
-          init?.method === 'POST',
+        ([url, init]) => url === 'http://localhost:8080/api/events' && init?.method === 'POST',
       );
       expect(createCall).toBeDefined();
       const body = JSON.parse(String(createCall?.[1]?.body));
@@ -1034,8 +1147,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
@@ -1052,8 +1169,12 @@ describe('EventsContext - Rendering Tests', () => {
       let capturedCtx: EventsContextValue | null = null;
       render(
         <EventsProvider>
-          <TestConsumer onMount={(ctx) => { capturedCtx = ctx; }} />
-        </EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
       );
 
       await waitFor(() => {
