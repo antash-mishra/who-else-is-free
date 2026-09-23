@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
-
-import { View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
 
 import { Image } from 'expo-image';
 import Animated, {
@@ -9,13 +7,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import {
-  useEventSharedTransition,
-  useEventSharedTransitionState,
-} from '@components/events/EventSharedTransition';
 import { Placed } from '@components/motion';
-import { eventSharedMotion, heroCoverSize, motionGeometry } from '@theme/motion';
-import { seedFromString, seededRand } from '@utils/seededRandom';
 
 import styles from './EventDetailsScreen.styles';
 
@@ -28,8 +20,6 @@ const COVER_RATE = 0.2;
 
 type EventDetailsHeroProps = {
   imageUri: string;
-  eventId?: string;
-  sharedCover?: boolean;
   topInset: number;
   /** Vertical scroll offset of the host ScrollView, for parallax. */
   scrollY?: SharedValue<number>;
@@ -43,50 +33,8 @@ type EventDetailsHeroProps = {
  * away. The host ScrollView keeps `bounces={false}`, so this is scroll-away
  * parallax only — there is no stretchy pull-down.
  */
-const EventDetailsHero = ({
-  imageUri,
-  topInset,
-  scrollY,
-  eventId,
-  sharedCover,
-}: EventDetailsHeroProps) => {
+const EventDetailsHero = ({ imageUri, topInset, scrollY }: EventDetailsHeroProps) => {
   const reducedMotion = useReducedMotion();
-  const coverRef = useRef<View>(null);
-  // Exactly the flying cover's layout size, so the hero's bitmap is the same
-  // cache entry and appears on the hand-off frame instead of decoding again.
-  const coverSize = heroCoverSize(useWindowDimensions().width);
-  const { land, progress } = useEventSharedTransition();
-  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
-  const active = !!sharedCover && !!eventId && activeEventId === eventId;
-  // While the overlay is retained the real cover shows; a return starts on the
-  // UI thread before its commit, so progress leaving 1 hides it again at once.
-  const hidden = active && phase !== 'retained';
-  const retained = active && phase === 'retained';
-  const coverVisibility = useAnimatedStyle(() => ({
-    opacity: hidden || (retained && progress.value < 0.999) ? 0 : 1,
-  }));
-  const rotation = reducedMotion
-    ? 0
-    : (seededRand(seedFromString(`hero-${imageUri}`)) * 2 - 1) * motionGeometry.tiltMaxDeg;
-  const measureCover = useCallback(() => {
-    if (!hidden || !eventId) return;
-    coverRef.current?.measureInWindow((x, y, width, height) => {
-      land(eventId, 'cover', { x, y, width, height }, { rotation, coverRef });
-    });
-  }, [hidden, eventId, land, rotation]);
-  useEffect(() => {
-    const frame = requestAnimationFrame(measureCover);
-    return () => globalThis.cancelAnimationFrame(frame);
-  }, [measureCover]);
-  const cover = (
-    <Image
-      source={{ uri: imageUri }}
-      style={styles.imageCard}
-      contentFit="cover"
-      cachePolicy="memory-disk"
-      transition={sharedCover ? 0 : 150}
-    />
-  );
 
   const backdropStyle = useAnimatedStyle(() => {
     if (!scrollY || reducedMotion) {
@@ -114,28 +62,16 @@ const EventDetailsHero = ({
       <View pointerEvents="none" style={styles.heroOverlayDark} />
       <View pointerEvents="none" style={styles.heroOverlayLight} />
 
-      <Animated.View style={[styles.imageCardContainer, { width: coverSize }, coverStyle]}>
-        <View ref={coverRef} onLayout={measureCover} collapsable={false} style={{ flex: 1 }}>
-          {sharedCover ? (
-            <Animated.View
-              testID="hero-cover-card"
-              style={[
-                {
-                  flex: 1,
-                  transform: [{ rotate: `${rotation}deg` }],
-                  borderRadius: eventSharedMotion.heroRadius,
-                },
-                coverVisibility,
-              ]}
-            >
-              {cover}
-            </Animated.View>
-          ) : (
-            <Placed id={`hero-${imageUri}`} tiltMode="rest" testID="hero-cover-card">
-              {cover}
-            </Placed>
-          )}
-        </View>
+      {/* Elevated Image Card — settles onto the page like a placed photo. */}
+      <Animated.View style={[styles.imageCardContainer, coverStyle]}>
+        <Placed id={`hero-${imageUri}`} tiltMode="rest" testID="hero-cover-card">
+          <Image
+            source={{ uri: imageUri }}
+            style={styles.imageCard}
+            contentFit="cover"
+            transition={150}
+          />
+        </Placed>
       </Animated.View>
     </View>
   );

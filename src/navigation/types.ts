@@ -5,7 +5,6 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<RootTabParamList> | undefined;
   Onboarding: undefined;
   EventDetails: {
-    sharedCover?: boolean;
     eventId: string;
     origin?: 'Events' | 'MyEvents';
     showEventUpdatedBadge?: boolean;
