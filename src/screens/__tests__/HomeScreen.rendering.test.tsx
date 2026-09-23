@@ -26,6 +26,7 @@ let mockAuthValue: { user: typeof mockUser | null; token: string | null } = {
 let mockEventsValue = {
   events: mockEvents,
   isLoading: false,
+  hasLoadedEvents: true,
   error: null as string | null,
   refreshEvents: jest.fn().mockResolvedValue(undefined),
   refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
@@ -161,6 +162,7 @@ describe('HomeScreen Rendering', () => {
     mockEventsValue = {
       events: mockEvents,
       isLoading: false,
+      hasLoadedEvents: true,
       error: null,
       refreshEvents: jest.fn().mockResolvedValue(undefined),
       refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
@@ -211,6 +213,7 @@ describe('HomeScreen Rendering', () => {
   describe('Loading State', () => {
     it('renders loading indicator when loading with no events', () => {
       mockEventsValue.isLoading = true;
+      mockEventsValue.hasLoadedEvents = false;
       mockEventsValue.events = [];
       const { getByTestId, queryByTestId } = render(<HomeScreen />);
       expect(getByTestId('screen-container')).toBeTruthy();
@@ -261,6 +264,17 @@ describe('HomeScreen Rendering', () => {
       expect(getByTestId('empty-state')).toBeTruthy();
       expect(getByTestId('empty-state-title').props.children).toBe('Nothing happening yet');
       expect(getByTestId('empty-state-description').props.children).toContain('Create a plan');
+    });
+
+    it('keeps a resolved empty state mounted during a focus refresh', () => {
+      mockEventsValue.events = [];
+      const screen = render(<HomeScreen />);
+      const emptyState = screen.getByTestId('empty-state');
+
+      mockEventsValue.isLoading = true;
+      screen.rerender(<HomeScreen />);
+
+      expect(screen.getByTestId('empty-state')).toBe(emptyState);
     });
   });
 

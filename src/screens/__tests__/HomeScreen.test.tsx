@@ -9,7 +9,7 @@ describe('HomeScreen', () => {
   describe('Section Building', () => {
     const buildSections = (
       items: typeof mockEvents,
-      getBadgeLabel: (event: typeof mockEvents[0]) => string | undefined
+      getBadgeLabel: (event: (typeof mockEvents)[0]) => string | undefined,
     ) => {
       const sectionOrder = [
         { label: 'Today', value: 'Today' as const },
@@ -70,7 +70,7 @@ describe('HomeScreen', () => {
   describe('Badge Labels', () => {
     const user = mockUsers[0];
 
-    const getBadgeLabel = (event: typeof mockEvents[0]): string | undefined => {
+    const getBadgeLabel = (event: (typeof mockEvents)[0]): string | undefined => {
       const joinedEventIds = new Set<string>();
       mockConversations.forEach((conversation) => {
         if (conversation.eventId && conversation.createdBy !== user.id) {
@@ -92,12 +92,10 @@ describe('HomeScreen', () => {
     it('should return "Joined" for events user has joined', () => {
       // Create a joined event scenario
       const conversationWithEvent = mockConversations.find(
-        (c) => c.eventId && c.createdBy !== user.id
+        (c) => c.eventId && c.createdBy !== user.id,
       );
       if (conversationWithEvent) {
-        const joinedEvent = mockEvents.find(
-          (e) => String(conversationWithEvent.eventId) === e.id
-        );
+        const joinedEvent = mockEvents.find((e) => String(conversationWithEvent.eventId) === e.id);
         if (joinedEvent) {
           expect(getBadgeLabel(joinedEvent)).toBe('Joined');
         }
@@ -106,7 +104,7 @@ describe('HomeScreen', () => {
 
     it('should return undefined for events user has no relationship with', () => {
       const otherEvent = mockEvents.find(
-        (e) => e.ownerId !== user.id && e.ownerId !== mockUsers[1].id
+        (e) => e.ownerId !== user.id && e.ownerId !== mockUsers[1].id,
       );
       // If no such event exists, this test is skipped
       if (otherEvent) {
@@ -118,7 +116,7 @@ describe('HomeScreen', () => {
       const isEventRequested = (eventId: string) => eventId === '99';
       const pendingEvent = { ...mockEvents[0], id: '99', ownerId: 999 };
 
-      const getBadgeLabelWithPending = (event: typeof mockEvents[0]): string | undefined => {
+      const getBadgeLabelWithPending = (event: (typeof mockEvents)[0]): string | undefined => {
         if (event.ownerId === user.id) return 'Hosting';
         if (isEventRequested(event.id)) return 'Pending';
         return undefined;
@@ -131,14 +129,17 @@ describe('HomeScreen', () => {
   describe('Sort Modes', () => {
     it('should sort by schedule (upcoming mode)', () => {
       const parseTimeToMinutes = (timeLabel: string) => {
-        const match = timeLabel.trim().toLowerCase().match(/(\d{1,2}):(\d{2})(am|pm)?/);
+        const match = timeLabel
+          .trim()
+          .toLowerCase()
+          .match(/(\d{1,2}):(\d{2})(am|pm)?/);
         if (!match) return null;
         let hours = parseInt(match[1], 10);
         const minutes = parseInt(match[2], 10);
         return hours * 60 + minutes;
       };
 
-      const sortEventsBySchedule = (a: typeof mockEvents[0], b: typeof mockEvents[0]) => {
+      const sortEventsBySchedule = (a: (typeof mockEvents)[0], b: (typeof mockEvents)[0]) => {
         if (a.eventDate === b.eventDate) {
           const timeA = parseTimeToMinutes(a.time) ?? 0;
           const timeB = parseTimeToMinutes(b.time) ?? 0;
@@ -182,26 +183,6 @@ describe('HomeScreen', () => {
     });
   });
 
-  describe('Loading State', () => {
-    it('should show loading indicator when isLoading is true and no events', () => {
-      const isLoading = true;
-      const events: typeof mockEvents = [];
-      const hasLoadedOnce = false;
-
-      const showAllEventsLoading = isLoading && events.length === 0 && !hasLoadedOnce;
-      expect(showAllEventsLoading).toBe(true);
-    });
-
-    it('should not show loading when events exist', () => {
-      const isLoading = true;
-      const events = mockEvents;
-      const hasLoadedOnce = true;
-
-      const showAllEventsLoading = isLoading && events.length === 0 && !hasLoadedOnce;
-      expect(showAllEventsLoading).toBe(false);
-    });
-  });
-
   describe('Error State', () => {
     it('should show error when error exists and not loading', () => {
       const error = 'Unable to load plans.';
@@ -219,26 +200,6 @@ describe('HomeScreen', () => {
 
       const showAllEventsError = !!error && !isLoading && events.length === 0;
       expect(showAllEventsError).toBe(false);
-    });
-  });
-
-  describe('Empty State', () => {
-    it('should show empty state when no events and not loading', () => {
-      const isLoading = false;
-      const error = null;
-      const events: typeof mockEvents = [];
-
-      const showAllEventsEmpty = !isLoading && events.length === 0 && !error;
-      expect(showAllEventsEmpty).toBe(true);
-    });
-
-    it('should not show empty state when events exist', () => {
-      const isLoading = false;
-      const error = null;
-      const events = mockEvents;
-
-      const showAllEventsEmpty = !isLoading && events.length === 0 && !error;
-      expect(showAllEventsEmpty).toBe(false);
     });
   });
 

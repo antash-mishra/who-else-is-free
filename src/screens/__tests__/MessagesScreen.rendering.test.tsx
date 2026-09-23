@@ -26,7 +26,8 @@ jest.mock('@react-navigation/native', () => {
       addListener: jest.fn(() => jest.fn()),
     }),
     useFocusEffect: jest.fn((callback) => {
-      callback();
+      const React = require('react');
+      React.useEffect(callback, [callback]);
     }),
   };
 });
@@ -303,6 +304,8 @@ describe('MessagesScreen Rendering', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRefreshConversations.mockReset();
+    mockRefreshConversations.mockResolvedValue(undefined);
     mockIsEventReported.mockReturnValue(false);
     mockUserEvents = [];
     mockAuthValue = {
@@ -504,21 +507,23 @@ describe('MessagesScreen Rendering', () => {
   });
 
   describe('Empty State', () => {
-    it('should show empty state when no conversations and not loading', () => {
+    it('shows the empty state after the first conversation refresh settles', async () => {
       mockChatValue.conversations = [];
-      mockChatValue.isRefreshingConversations = false;
-      mockChatValue.isConnecting = false;
 
       const { getByTestId, getByText } = render(<MessagesScreen />);
 
-      const emptyState = getByTestId('empty-state');
-      expect(emptyState).toBeTruthy();
+      expect(mockRefreshConversations).toHaveBeenCalled();
+      await act(async () => {
+        await mockRefreshConversations.mock.results[0].value;
+      });
+      expect(getByTestId('empty-state')).toBeTruthy();
       expect(getByText('No messages to show')).toBeTruthy();
     });
 
-    it('should not show empty state while connecting', () => {
+    it('does not show an empty state before the first conversation refresh settles', () => {
       mockChatValue.conversations = [];
       mockChatValue.isConnecting = true;
+      mockRefreshConversations.mockImplementation(() => new Promise<void>(() => undefined));
 
       const { queryByTestId, getByText } = render(<MessagesScreen />);
 
@@ -526,13 +531,19 @@ describe('MessagesScreen Rendering', () => {
       expect(getByText('Connecting to chat…')).toBeTruthy();
     });
 
-    it('should not show empty state while refreshing', () => {
+    it('keeps the resolved empty state mounted during a later refresh', async () => {
       mockChatValue.conversations = [];
+      const screen = render(<MessagesScreen />);
+      await act(async () => {
+        await mockRefreshConversations.mock.results[0].value;
+      });
+      expect(screen.getByTestId('empty-state')).toBeTruthy();
+      const emptyState = screen.getByTestId('empty-state');
+
       mockChatValue.isRefreshingConversations = true;
+      screen.rerender(<MessagesScreen />);
 
-      const { queryByTestId } = render(<MessagesScreen />);
-
-      expect(queryByTestId('empty-state')).toBeNull();
+      expect(screen.getByTestId('empty-state')).toBe(emptyState);
     });
   });
 
