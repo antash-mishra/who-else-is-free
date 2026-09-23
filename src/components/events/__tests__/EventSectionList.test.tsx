@@ -43,13 +43,13 @@ describe('EventSectionList', () => {
     expect(getByTestId('placed-e2')).toBeTruthy();
   });
 
-  it('opens a pressed row without a shared flight outside the transition provider', () => {
+  it('opens a pressed row with the standard navigation callback', () => {
     const onEventPress = jest.fn();
     const { getByText } = render(
       <EventSectionList sections={sections} onEventPress={onEventPress} />,
     );
     fireEvent.press(getByText('Pub quiz'));
-    expect(onEventPress).toHaveBeenCalledWith(sections[0].data[0], false);
+    expect(onEventPress).toHaveBeenCalledWith(sections[0].data[0]);
   });
 
   it('still renders the event titles', () => {

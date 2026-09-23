@@ -301,6 +301,14 @@ Important tokens:
 
 ### Tabbed Pager Wiring
 
+Bottom-tab scene visibility lives in `TabAccessibilityBoundary` in
+`src/navigation/AppNavigator.tsx`. Keep inactive Android scenes laid out with
+`opacity: 0`, `pointerEvents="none"`, and
+`importantForAccessibility="no-hide-descendants"`. `display: 'none'` made event
+covers and empty-state art repaint when returning to Discover on a Galaxy A56.
+Preserve the existing iOS visibility behavior and pass focus to
+`AnimatedPager.isActive` for Android gesture re-registration.
+
 File: `src/hooks/useTabbedPages.ts`
 
 What it is:
@@ -504,8 +512,7 @@ Use it when:
 
 Rules:
 
-- Do not use `BlurView` directly. The only one left outside this component is the iOS-only
-  shared-transition backdrop in `EventSharedTransition`, a motion effect rather than a surface.
+- Do not use `BlurView` directly; use `FrostedSurface` for translucent backings.
 - Pass `blur` only over photography, where a tint alone leaves image detail sharp: the cover chip
   and the cover-picker check badge. Over an already-smooth backdrop the tint is measurably
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
@@ -1731,22 +1738,17 @@ Screenshots captured during the shared-component review:
 - `EventActionConfirm.headerAlign` defaults to left and every confirmation, removal included, uses that default; the prop is currently unused. Report-plan menu entries use normal text; destructive leaving/removal retains its warning color.
 - Shared `BottomSheet` entry waits for native `onShow`, runs once per opening, and does not restart on content or viewport updates. Input sheets constrain height above the keyboard; `EventActionOverlay` keeps the CTA outside the scrollable text-entry body.
 
-## Event shared transition (image-only expanding page)
+## Event Details transitions
 
-- `EventSharedTransitionProvider` owns one image overlay and the progress shared with `EventSharedTransitionPage`. `EventSectionList` primes the source cover at press-in and preserves the `sharedCover` navigation argument. Only the image is shared: never hide, measure, or fly a title for this transition.
-- The page expands from the source image bounds with a rounded, clipped surface. Its fixed-size content compensates the shell's nonuniform scale, keeping text proportional. A temporary blurred backdrop separates the page from the retained list. `EventSharedTransitionSourcePage` wraps Main tabs and uses the Android 12+ native blur filter during return, keeping the source clear during opening; iOS uses a sibling BlurView. Older Android keeps the source clear. The image stays at `heroCoverSize`, with translate/scale/rotate; no animated bitmap layout sizes. Motion runs through Reanimated UI-thread shared values.
-- `EventDetailsHero` reports its cover frame, rotation, and measurable cover ref. Opening waits for the cover destination and image readiness. Successful opening retains a return record; it does not retain a running animation. `beforeRemove` starts return measurement, preloads the returning overlay while the real hero stays visible, contracts for `closeDurationMs`, and dispatches the original navigation action once. The page stays hidden after contraction until removal to prevent a full-page flash.
-- Android hero buttons use their existing tint while a shared transition is active; live BlurView materials mount after motion ends. Explicit hardware layer caching was rejected after release failures. Do not capture nested live BlurViews in a cached transform layer: release testing hit a RenderScript context crash. Source-image visibility and final blur clearing follow UI-thread progress so JS completion cannot leave an empty or blurred source. The contracted page surface must also reach opacity 0 at the source endpoint on the UI thread, before JS removes the image overlay. Keep progress at 0 after a completed return during unmount cleanup; resetting it to 1 can re-hide the source before native visibility updates settle.
-- Re-measure both endpoints before return. Missing, offscreen, background-invalidated, or timed-out endpoints fall back to normal navigation. All callbacks are generation-scoped; background, viewport change, and unmount cancel outstanding work. Repeated back presses must not dispatch twice. Reduced motion uses a stationary fade.
-- Card-origin stack options retain the source and use a transparent, zero-duration opening. Do not add a second stack-opening animation. Other entry points retain their existing navigation. All durations and radii belong in `src/theme/motion.ts`.
-- Visual comparison, emulator measurements, and remaining limitations are recorded in `report/animation-repair/airbnb-implementation-report.md`; these are not evidence of physical-device or iOS FPS.
+- Event cards open Event Details through `eventDetailsScreenOptions` in `src/navigation/transitions.ts` (the standard right-slide stack transition). `EventSectionList` passes the event directly to its press handler; there is no shared cover or page overlay.
+- `EventDetailsHero` keeps its `Placed` cover entry and scroll-away parallax. Keep the `Placed` entry reduced-motion behavior when changing the hero.
+- `EventDetailsScreen` retains the last ready event snapshot until the route leaves, so a successful delete cannot replace the screen with the not-found fallback before its navigation reset completes.
 
 ## Animation lifecycle and measurement contracts
 
 - Create success (including queued guest creation) uses `StackActions.popTo('Main', ...)` with MyEvents selected. Never push another Main above the submitted form: the pop owns the downward close and preserves one Main route. MyEvents consumes the created-badge parameter once while focused, after navigation interactions settle.
 - `EventsContext.addUserEvent` returns after POST/local insertion; list reconciliation runs asynchronously. Confirmed creations remain in `unreconciledCreations` until observed in a list response, are cleared on session-token change, and are removed after successful deletion. A slow/stale refresh must not hold the form open or remove the just-created event.
 - `EventActionBadge` mounts its animated body before entry. A single hold starts after entry finishes, and opacity/travel dismiss together; unmount cancels animation/timers and guards queued completion callbacks. The submit shimmer and delayed ScalePressable feedback must stop on cleanup and respect reduced motion.
-- Shared-flight source/image/completion callbacks are generation-scoped. Backgrounding, viewport change, and unmount invalidate outstanding measurements and cancel the animation; late callbacks cannot navigate or cancel a replacement flight.
 - Expo public environment values must use static `process.env.EXPO_PUBLIC_*` access. Optional/computed access is not reliably inlined into a release bundle; verify the compiled build reaches the intended local server before emulator writes.
 - Emulator performance capture lives in `scripts/performance/` (see its README). Preserve configuration and per-window traces/screenshots before/after; verify destination screenshots and distinguish app deadline misses from compositor jank. Emulator FPS is not physical-device performance. Mobile verdicts remain in `TEST_RUNS.md`.
 
@@ -1754,10 +1756,5 @@ Screenshots captured during the shared-component review:
 - `ConfettiOverlay` mounts its particle simulation only while active and motion is allowed. Hidden celebrations allocate no particle values and register no frame callback; the active simulation explicitly stops its frame callback on cleanup. Do not keep an idle simulation mounted in every My Plans instance.
 
 - Successful event creation uses `completeEventCreation`: pass the hydrated `navigationRef.getRootState()`, select My Events with a targeted tab `jumpTo` and await its render opportunity before popping the form, so dismissal reveals My Plans directly. The helper guards against a changed top route during that wait. A stack-only state snapshot can omit the child key; `navigate` also changes parent focus. Keep the nested pop destination as the unmounted-tab fallback.
-
-- Card-origin shared routes set `animation: 'none'` from initial mount. A successful image return dispatches removal immediately; zero-duration timing alone still retains React Navigation's closing lifecycle. Only failed/unavailable shared returns install `fallbackSharedCoverScreenOptions` (fade), allow two animation frames for the descriptor update, then dispatch once. Cancel pending fallback dispatch on unmount and suppress repeated Back actions. Preserve the existing UI-thread endpoint opacity and progress cleanup guards.
-- Optional `EXPO_PUBLIC_TRANSITION_METRICS=true` release diagnostics and `scripts/performance/input-latency/` measure native input to the first sampled UI-thread motion on an isolated emulator. Normal builds leave this flag unset. Report opening delay, closing-start delay, and post-return input availability separately; these samples do not measure display presentation or phone FPS. See `report/animation-repair/input-latency-report.md`.
-
-- Shared source blur derives a primitive radius from the flight phase and progress threshold, then builds its filter from that value. Android opening keeps the source clear (`openingBackdropBlur: 0`) to avoid the measured takeoff hitch; closing retains `backdropBlur: 4`. iOS retains its existing sibling BlurView. Preserve UI-thread clearing at progress ≤ 0.04; rebuilding an equal filter array on every progress tick bypasses Reanimated shallow equality and causes unnecessary updates. Keep the opt-in progress probe bounded and flush it once per completed flight. Evidence: `report/animation-repair/native-opening-investigation.md`.
 
 - `usePrepareCreateEvent` prepares one hidden Create form after Main navigation interactions settle and the cover catalog finishes loading. Reuse an existing prepared route; never replace a live Create/Edit draft. Create-start analytics run on actual focus, and the initial default time is refreshed only when stale. Keep preparation cancellable on blur and keep hidden forms out of hit testing/accessibility through the stack preload mechanism. Create Event explicitly accepts horizontal back gestures across the screen width while retaining its upward opening/downward closing transition; short drags cancel and vertical form scrolling remains available.

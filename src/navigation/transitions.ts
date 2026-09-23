@@ -1,8 +1,7 @@
-import { Animated, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 import { CardStyleInterpolators, type StackCardInterpolationProps } from '@react-navigation/stack';
 
-import { eventSharedMotion } from '@theme/motion';
 import { Springs } from '@theme/springs';
 
 // ─── Stack screen animation ───────────────────────────────────────────────────
@@ -96,37 +95,3 @@ export const sheetModalScreenOptions = Platform.select({
     transitionSpec: sheetModalTransitionSpec,
   },
 });
-
-// Card-origin Details owns its shared opening and return. Configure instant
-// stack removal from the outset: changing options and popping in the same JS
-// batch can leave the closing route with its old, input-blocking descriptor.
-export const sharedCoverScreenOptions = {
-  ...eventDetailsScreenOptions,
-  animation: 'none' as const,
-  detachPreviousScreen: false,
-  cardStyle: { backgroundColor: 'transparent' },
-  cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-  transitionSpec: {
-    open: { animation: 'timing' as const, config: { duration: 0 } },
-    close: { animation: 'timing' as const, config: { duration: 0 } },
-  },
-};
-
-// The page installs this only when it cannot perform a shared return, and
-// waits for the options to commit before dispatching the fallback navigation.
-export const fallbackSharedCoverScreenOptions = {
-  ...sharedCoverScreenOptions,
-  animation: 'fade' as const,
-  cardStyleInterpolator: ({ current, closing }: StackCardInterpolationProps) => ({
-    cardStyle: {
-      opacity: Animated.subtract(
-        1,
-        Animated.multiply(closing, Animated.subtract(1, current.progress)),
-      ),
-    },
-  }),
-  transitionSpec: {
-    open: { animation: 'timing' as const, config: { duration: 0 } },
-    close: { animation: 'timing' as const, config: { duration: eventSharedMotion.fadeMs } },
-  },
-};

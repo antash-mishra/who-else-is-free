@@ -32,9 +32,6 @@ type EventDetailsInfoProps = {
   scheduleLine: string;
   audienceLine: string;
   description?: string;
-  eventId?: string;
-  /** True when the page was opened from a card: the title lands the shared flight. */
-  sharedTitle?: boolean;
 };
 
 const renderAvatar = (participant: GoingParticipant, size: number = 40) => (

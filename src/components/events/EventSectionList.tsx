@@ -1,4 +1,4 @@
-import { memo, ReactNode, useCallback, useMemo, useRef } from 'react';
+import { memo, ReactNode, useCallback, useMemo } from 'react';
 
 import {
   RefreshControl,
@@ -11,19 +11,17 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import EventCard, { EventItemProps, eventCardTitleStyle } from '@components/EventCard';
+import EventCard, { EventItemProps } from '@components/EventCard';
 import { Placed } from '@components/motion';
 import ScalePressable from '@components/ScalePressable';
 import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
-import { markTransition } from '@utils/transitionMetrics';
 
 import { EventSection } from './eventListSections';
-import { useEventSharedTransition, useEventSharedTransitionState } from './EventSharedTransition';
 
 export type EventSectionListProps<TItem extends EventItemProps = EventItemProps> = {
   sections: EventSection<TItem>[];
-  onEventPress: (item: TItem, sharedCover?: boolean) => void;
+  onEventPress: (item: TItem) => void;
   emptyState?: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
@@ -44,57 +42,25 @@ export type EventSectionListProps<TItem extends EventItemProps = EventItemProps>
 
 type EventCardRowProps<TItem extends EventItemProps> = {
   item: TItem;
-  onPress: (item: TItem, sharedCover?: boolean) => void;
+  onPress: (item: TItem) => void;
 };
 
 const EventCardRow = <TItem extends EventItemProps>({
   item,
   onPress,
-}: EventCardRowProps<TItem>) => {
-  const coverRef = useRef<View>(null);
-  const titleRef = useRef<Text>(null);
-  const { prime, open } = useEventSharedTransition();
-  const { eventId: activeEventId, phase } = useEventSharedTransitionState();
-  // Hide only the cover while its overlay travels; list text stays in place.
-  // The card decides on the UI thread from progress, so a flight that starts
-  // before its commit (landing) or a return that starts while the overlay is
-  // retained hides the cover on its first moving frame.
-  const sharedElementsHidden =
-    activeEventId === item.id &&
-    (phase === 'landing' || phase === 'flying' || phase === 'retained' || phase === 'closing');
-  const source = useMemo(
-    () => ({
-      imageUri: item.imageUri,
-      title: item.title,
-      titleStyle: eventCardTitleStyle,
-      coverRef,
-      titleRef,
-    }),
-    [item.imageUri, item.title],
-  );
-  return (
-    <ScalePressable
-      // Measure at press-in, before the press scale distorts the card.
-      onPressIn={(event) => {
-        markTransition('card-press-in', { native_ms: event.nativeEvent.timestamp });
-        prime(item.id, source);
-      }}
-      onPress={() => {
-        markTransition('card-press');
-        triggerHaptic('light');
-        open(item.id, source, (shared) => onPress(item, shared));
-      }}
-      delay={80}
-    >
-      <EventCard
-        {...item}
-        coverRef={coverRef}
-        titleRef={titleRef}
-        sharedElementsHidden={sharedElementsHidden}
-      />
-    </ScalePressable>
-  );
-};
+}: EventCardRowProps<TItem>) => (
+  <ScalePressable
+    onPress={() => {
+      triggerHaptic('light');
+      onPress(item);
+    }}
+    delay={80}
+    tilt
+    tiltSeed={item.id}
+  >
+    <EventCard {...item} />
+  </ScalePressable>
+);
 
 const EventSectionList = <TItem extends EventItemProps>({
   sections,

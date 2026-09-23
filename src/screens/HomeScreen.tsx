@@ -288,10 +288,9 @@ const HomeScreen = () => {
   }, [isFocused, refreshAll]);
 
   const handleEventPress = useCallback(
-    (item: EventItemProps, sharedCover?: boolean) => {
+    (item: EventItemProps) => {
       navigation.navigate('EventDetails', {
         eventId: item.id,
-        ...(sharedCover ? { sharedCover: true } : {}),
         origin: 'Events',
       });
     },

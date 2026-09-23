@@ -1,24 +1,21 @@
-import { memo, type RefObject } from 'react';
+import { memo } from 'react';
 
 import { StyleSheet, Text, View } from 'react-native';
 
 import MaskedView from '@react-native-masked-view/masked-view';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import HostingIcon from '@assets/event/hosting.svg';
 import JoinedIcon from '@assets/event/joined.svg';
 import PendingIcon from '@assets/event/pending.svg';
-import { useEventSharedTransition } from '@components/events/EventSharedTransition';
 import { FrostedSurface } from '@components/ui';
 import { EVENT_INFO_SEPARATOR } from '@constants/display';
 import { colors, spacing, typography } from '@theme/index';
-import { eventSharedMotion } from '@theme/motion';
 import { formatEventLocationName } from '@utils/eventDisplay';
 
 const IMAGE_SIZE = 80;
-const IMAGE_BORDER_RADIUS = eventSharedMotion.cardRadius;
+const IMAGE_BORDER_RADIUS = 10;
 const BLUR_H = 38;
 
 export interface EventItemProps {
@@ -30,10 +27,6 @@ export interface EventItemProps {
   metaLine?: string;
   imageUri: string;
   badgeLabel?: string;
-  coverRef?: RefObject<View | null>;
-  titleRef?: RefObject<Text | null>;
-  /** True while this card's cover is flying in the shared overlay. */
-  sharedElementsHidden?: boolean;
 }
 
 const BADGE_ICON_SIZE = 10;
@@ -61,28 +54,13 @@ const EventCard = ({
   metaLine,
   imageUri,
   badgeLabel,
-  coverRef,
-  titleRef,
-  sharedElementsHidden,
 }: EventItemProps) => {
-  const { progress } = useEventSharedTransition();
-  const coverVisibility = useAnimatedStyle(() => {
-    // Hide only while the overlay is between the endpoints: it sits exactly on
-    // the card at 0 and the page covers the card at 1. This returns the source
-    // image on the UI thread before JS navigation completes.
-    const p = progress.value;
-    return { opacity: sharedElementsHidden && p > 0.001 && p < 0.999 ? 0 : 1 };
-  });
   const showBadge = badgeLabel && VALID_BADGES.includes(badgeLabel);
   const locationName = formatEventLocationName(location);
 
   return (
     <View style={styles.container} testID="event-card">
-      <Animated.View
-        ref={coverRef}
-        collapsable={false}
-        style={[styles.imageWrapper, coverVisibility]}
-      >
+      <View style={styles.imageWrapper}>
         <Image
           source={{ uri: imageUri }}
           style={StyleSheet.absoluteFill}
@@ -126,9 +104,9 @@ const EventCard = ({
             </View>
           </MaskedView>
         )}
-      </Animated.View>
+      </View>
       <View style={styles.content}>
-        <Text ref={titleRef} style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -192,8 +170,5 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 });
-
-/** Card title style, replicated by the shared title flight so it lifts off pixel-exact. */
-export const eventCardTitleStyle = styles.title;
 
 export default memo(EventCard);
