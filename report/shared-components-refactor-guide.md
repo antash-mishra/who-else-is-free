@@ -301,6 +301,14 @@ Important tokens:
 
 ### Tabbed Pager Wiring
 
+Bottom-tab scene visibility lives in `TabAccessibilityBoundary` in
+`src/navigation/AppNavigator.tsx`. Keep inactive Android scenes laid out with
+`opacity: 0`, `pointerEvents="none"`, and
+`importantForAccessibility="no-hide-descendants"`. `display: 'none'` made event
+covers and empty-state art repaint when returning to Discover on a Galaxy A56.
+Preserve the existing iOS visibility behavior and pass focus to
+`AnimatedPager.isActive` for Android gesture re-registration.
+
 File: `src/hooks/useTabbedPages.ts`
 
 What it is:

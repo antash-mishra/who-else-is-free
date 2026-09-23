@@ -137,7 +137,8 @@ const tabBarStyles = StyleSheet.create({
     flex: 1,
   },
   tabSceneHidden: {
-    display: 'none',
+    // Keep native images laid out between tab visits so they do not repaint on return.
+    opacity: 0,
   },
   frostedOverlay: {
     ...StyleSheet.absoluteFillObject,
