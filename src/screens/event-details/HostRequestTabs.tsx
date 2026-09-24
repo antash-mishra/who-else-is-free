@@ -37,6 +37,10 @@ const PAGE_TIMING = { duration: 280 } as const;
 
 export const HOST_TABS_ACTIVE_OFFSET_X = [-12, 12] as const;
 export const HOST_TABS_FAIL_OFFSET_Y = [-8, 8] as const;
+// Rightward travel after which a Requests-tab drag that started in the back
+// edge zone is released to the stack. Must stay below HOST_TABS_ACTIVE_OFFSET_X
+// so the release happens before this pager can claim the drag.
+export const HOST_TABS_EDGE_BACK_RELEASE_X = 4;
 
 type MemberLike = {
   id: number;
@@ -66,10 +70,10 @@ type HostRequestTabsProps = {
  * Host-only tabs section for Event Details: `SlidingTabs` header plus the
  * direction-locked two-page pager for requests and accepted/member lists.
  * Vertical motion fails the pager early so the parent Event Details ScrollView
- * owns scrolling from either page. A touch starting in the stack's left-edge
- * strip fails the pager at once so the edge swipe closes Event Details; every
- * other horizontal drag changes tabs, with the stack back gesture waiting for
- * this pager to fail first.
+ * owns scrolling from either page. The pager has priority over the stack back
+ * swipe inside its bounds: the only drag it releases is a rightward one on
+ * Requests that starts in the back edge zone, where it has no page to move to.
+ * On Members, a rightward drag from anywhere returns to Requests.
  */
 const HostRequestTabs = ({
   isSingleEvent,
@@ -93,6 +97,7 @@ const HostRequestTabs = ({
   const pagerWidthSV = useSharedValue(0);
   const activeIndexSV = useSharedValue(0);
   const dragStartXSV = useSharedValue(0);
+  const touchStartXSV = useSharedValue(0);
   const pagerXSV = useSharedValue(0);
   const rowAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pagerXSV.value }],
@@ -114,12 +119,21 @@ const HostRequestTabs = ({
   };
 
   const panGesture = Gesture.Pan()
-    // Fail as soon as a touch begins in the stack's edge strip so the edge
-    // swipe goes back from here too. A reduced hitSlop alone still let
-    // Android's nested pan change tabs there.
-    .onTouchesDown((event, manager) => {
+    // A rightward drag on Requests that starts in the back edge zone closes
+    // Event Details: fail before this pager activates so the waiting stack
+    // gesture takes it. Leftward drags from the zone still reach Members.
+    .onTouchesDown((event) => {
       const touch = event.changedTouches[0];
-      if (touch && touch.absoluteX < EVENT_DETAILS_BACK_EDGE_WIDTH) {
+      if (touch) {
+        touchStartXSV.value = touch.absoluteX;
+      }
+    })
+    .onTouchesMove((event, manager) => {
+      if (activeIndexSV.value !== 0 || touchStartXSV.value >= EVENT_DETAILS_BACK_EDGE_WIDTH) {
+        return;
+      }
+      const touch = event.changedTouches[0];
+      if (touch && touch.absoluteX - touchStartXSV.value > HOST_TABS_EDGE_BACK_RELEASE_X) {
         manager.fail();
       }
     })
@@ -164,10 +178,10 @@ const HostRequestTabs = ({
       }
     });
 
-  // Android hands touches inside this pager to the stack pan as well: its row
-  // is two pages wide, and RNGH measures the stack's edge hitSlop against that
-  // overflowing row instead of the screen. Making the stack wait for this pager
-  // keeps interior horizontal drags on the tabs; edge touches fail above.
+  // The stack back gesture waits for this pager everywhere inside its bounds.
+  // Android also hands it touches away from the edge zone here: the row is two
+  // pages wide, and RNGH measures the stack's hitSlop against that overflowing
+  // row instead of the screen. The only release is the edge case above.
   if (stackGestureRef && typeof stackGestureRef === 'object') {
     // The stack context ref is typed with `null`; RNGH wants `undefined`.
     panGesture.blocksExternalGesture(stackGestureRef as RefObject<ComponentType | undefined>);

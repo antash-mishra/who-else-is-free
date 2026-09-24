@@ -21,17 +21,19 @@ Evidence (WEIF_API_36 emulator, temporary JS logs): the pager went BEGAN → FAI
 ## Current implementation
 
 - `patches/@react-navigation+stack+7.6.12.patch` (applied by the `postinstall` `patch-package` hook) maps `minOffsetX`/`maxDeltaY` to `activeOffsetX`/`failOffsetY` (and `minOffsetY`/`maxDeltaX` to `activeOffsetY`/`failOffsetX`). The stack pan now activates only for a rightward drag and fails on vertical movement, for every stack screen. `src/navigation/__tests__/stackGestureActivation.test.ts` fails if the patch is missing. Re-create the patch when upgrading `@react-navigation/stack`.
-- `eventDetailsScreenOptions` enables the horizontal back gesture within `EVENT_DETAILS_BACK_EDGE_WIDTH` (50dp) in `src/navigation/transitions.ts`.
-- `HostRequestTabs` fails its pan immediately when a touch starts inside that edge, leaving the edge swipe to the stack. Everywhere else it `blocksExternalGesture`s the stack pan (`GestureHandlerRefContext`), so interior horizontal drags always change tabs, in both directions and on both tabs.
+- `eventDetailsScreenOptions` enables the horizontal back gesture within `EVENT_DETAILS_BACK_EDGE_WIDTH` in `src/navigation/transitions.ts`. It was widened from 50dp to 100dp (about a quarter of a phone screen) after device testing showed the very edge was hard to find.
+- `HostRequestTabs` `blocksExternalGesture`s the stack pan (`GestureHandlerRefContext`), so inside the pager the tabs win. The one drag it releases to the stack (by failing in `onTouchesMove` after `HOST_TABS_EDGE_BACK_RELEASE_X` of rightward travel, before its own 12dp activation) is a rightward drag on Requests that starts in the edge zone, where the pager has no page to move to. Leftward drags from the zone still page to Members; on Members a rightward drag from anywhere, the zone included, returns to Requests. From the Members tab, the back swipe works from the rest of the page.
 - There is no edge touch layer over the `ScrollView`.
 
 ## Verified behavior (WEIF_API_36 emulator)
 
-1. A vertical drag beginning in the Requests rows, or in the empty area of the Members page, scrolls the outer page in both directions.
-2. Interior horizontal drags change Requests → Members and Members → Requests. An interior rightward drag on Requests does not navigate back.
-3. A rightward edge swipe closes Event Details from the details area, the Requests rows and the Members tab. A short edge drag cancels.
+1. A vertical drag beginning in the Requests rows, or in the empty area of the Members page, scrolls the outer page in both directions, including from inside the edge zone.
+2. Horizontal drags change Requests → Members (also when started inside the edge zone) and Members → Requests (also when started at the very edge). A rightward drag starting outside the zone on Requests does not navigate back.
+3. A rightward swipe starting inside the 100dp zone (tested at 69dp, beyond the old 50dp edge) closes Event Details from the details area and the Requests rows, and from the details area while on Members. A swipe starting at 143dp does not. A short edge drag cancels.
 4. Vertical drags starting at the left edge scroll and do not navigate back.
 5. The header back button works, and Create Event's full-width back swipe still closes the form.
+
+When the pager releases a drag, RNGH resets the waiting stack gesture's translation at handover. On a finger this discards about 4dp. An adb drag that jumped 100dp in its first move event lost that distance and sprang back, while a 6-step flick closed normally.
 
 Full Jest (118 suites, 1415 tests), TypeScript and Prettier pass. Details are in `TEST_RUNS.md`.
 

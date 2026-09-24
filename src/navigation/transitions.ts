@@ -26,12 +26,12 @@ export const slideFromRightTransitionSpec = {
   close: { animation: 'spring' as const, config: Springs.snappy },
 };
 
-// Keep the stack back swipe at the left screen edge so vertical drags anywhere
-// else belong to the page ScrollView. The host Requests/Members pager fails
-// for touches starting in this same strip and blocks the stack everywhere
-// else, so a horizontal drag has exactly one owner. The stack pan only
-// activates rightward because of patches/@react-navigation+stack+*.patch.
-export const EVENT_DETAILS_BACK_EDGE_WIDTH = 50;
+// Keep the stack back swipe in a left-side zone (about a quarter of a phone
+// screen, wide enough to find with a thumb) so drags elsewhere belong to the
+// page ScrollView. Inside the host Requests/Members pager the tabs keep
+// priority; see HostRequestTabs. The stack pan only activates rightward
+// because of patches/@react-navigation+stack+*.patch.
+export const EVENT_DETAILS_BACK_EDGE_WIDTH = 100;
 
 export const eventDetailsScreenOptions = {
   gestureEnabled: true,

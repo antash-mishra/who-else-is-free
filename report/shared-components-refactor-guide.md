@@ -1490,9 +1490,9 @@ What they are:
   description (owns description measurement/expansion state).
 - `HostRequestTabs.tsx` — `SlidingTabs` header plus a direction-locked animated two-page pager
   (both pages stay rendered; 280ms slide) for request and accepted/member lists. Horizontal swipes
-  starting past the left 50pt/dp edge change tabs; the pager fails its pan on edge touches so the
-  stack's interactive back swipe owns them, and `blocksExternalGesture`s the stack pan everywhere
-  else (Android offers pager touches to it via the overflowing two-page row). Inactive pages do not
+  change tabs and `blocksExternalGesture` the stack back swipe (Android offers pager touches to it
+  via the overflowing two-page row); the only drag released to the stack is a rightward one on
+  Requests that starts inside the 100pt/dp back edge zone. Inactive pages do not
   receive pointer/accessibility events, and vertical drags fail early to the outer Event Details
   `ScrollView`. There is no edge touch layer. The stack and pager both use
   `EVENT_DETAILS_BACK_EDGE_WIDTH` from `transitions.ts`; the stack pan's direction lock depends on

@@ -8,6 +8,7 @@ import { EVENT_DETAILS_BACK_EDGE_WIDTH } from '@navigation/transitions';
 
 import HostRequestTabs, {
   HOST_TABS_ACTIVE_OFFSET_X,
+  HOST_TABS_EDGE_BACK_RELEASE_X,
   HOST_TABS_FAIL_OFFSET_Y,
 } from '../HostRequestTabs';
 
@@ -45,18 +46,38 @@ describe('HostRequestTabs', () => {
     expect(gesture.failOffsetY).toHaveBeenCalledWith([...HOST_TABS_FAIL_OFFSET_Y]);
   });
 
-  it('gives touches in the stack back edge to navigation rather than the pager', () => {
-    render(<HostRequestTabs {...baseProps} />);
-
+  const dragFrom = (startX: number, deltaX: number) => {
     const gesture = latestPanGesture();
     const onTouchesDown = gesture.onTouchesDown.mock.calls[0][0];
+    const onTouchesMove = gesture.onTouchesMove.mock.calls[0][0];
     const manager = { fail: jest.fn() };
 
-    onTouchesDown({ changedTouches: [{ absoluteX: EVENT_DETAILS_BACK_EDGE_WIDTH - 1 }] }, manager);
-    expect(manager.fail).toHaveBeenCalledTimes(1);
+    onTouchesDown({ changedTouches: [{ absoluteX: startX }] }, manager);
+    onTouchesMove({ changedTouches: [{ absoluteX: startX + deltaX }] }, manager);
+    return manager.fail;
+  };
+  const RIGHTWARD = HOST_TABS_EDGE_BACK_RELEASE_X + 1;
 
-    onTouchesDown({ changedTouches: [{ absoluteX: EVENT_DETAILS_BACK_EDGE_WIDTH + 1 }] }, manager);
-    expect(manager.fail).toHaveBeenCalledTimes(1);
+  it('releases a rightward drag from the back edge zone on Requests to the stack', () => {
+    render(<HostRequestTabs {...baseProps} />);
+
+    expect(dragFrom(EVENT_DETAILS_BACK_EDGE_WIDTH - 1, RIGHTWARD)).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps other Requests drags for the pager', () => {
+    render(<HostRequestTabs {...baseProps} />);
+
+    // Leftward from the edge zone still pages to Members.
+    expect(dragFrom(EVENT_DETAILS_BACK_EDGE_WIDTH - 1, -RIGHTWARD)).not.toHaveBeenCalled();
+    // Rightward from the interior does not navigate back.
+    expect(dragFrom(EVENT_DETAILS_BACK_EDGE_WIDTH + 1, RIGHTWARD)).not.toHaveBeenCalled();
+  });
+
+  it('keeps a rightward drag from the edge zone on Members for returning to Requests', () => {
+    const { getByTestId } = render(<HostRequestTabs {...baseProps} />);
+    fireEvent.press(getByTestId('event-details-tab-members'));
+
+    expect(dragFrom(1, RIGHTWARD)).not.toHaveBeenCalled();
   });
 
   it('makes the stack back gesture wait for the pager inside its bounds', () => {

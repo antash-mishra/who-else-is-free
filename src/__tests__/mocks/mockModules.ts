@@ -92,6 +92,7 @@ jest.mock('react-native-gesture-handler', () => {
       'onFinalize',
       'onStart',
       'onTouchesDown',
+      'onTouchesMove',
       'onUpdate',
       'runOnJS',
       'simultaneousWithExternalGesture',
