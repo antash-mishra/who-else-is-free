@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/immutability, react-hooks/set-state-in-effect -- Reanimated pager shared values are intentionally mutated by gesture worklets, layout callbacks, and the group-type reset effect. */
-import { useEffect, useState } from 'react';
+import { type ComponentType, type RefObject, useContext, useEffect, useState } from 'react';
 
 import { View } from 'react-native';
 
+import { GestureHandlerRefContext } from '@react-navigation/stack';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeOutUp,
@@ -65,7 +66,10 @@ type HostRequestTabsProps = {
  * Host-only tabs section for Event Details: `SlidingTabs` header plus the
  * direction-locked two-page pager for requests and accepted/member lists.
  * Vertical motion fails the pager early so the parent Event Details ScrollView
- * owns scrolling from either page.
+ * owns scrolling from either page. A touch starting in the stack's left-edge
+ * strip fails the pager at once so the edge swipe closes Event Details; every
+ * other horizontal drag changes tabs, with the stack back gesture waiting for
+ * this pager to fail first.
  */
 const HostRequestTabs = ({
   isSingleEvent,
@@ -85,6 +89,7 @@ const HostRequestTabs = ({
 }: HostRequestTabsProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [pagerWidth, setPagerWidth] = useState(0);
+  const stackGestureRef = useContext(GestureHandlerRefContext);
   const pagerWidthSV = useSharedValue(0);
   const activeIndexSV = useSharedValue(0);
   const dragStartXSV = useSharedValue(0);
@@ -109,10 +114,12 @@ const HostRequestTabs = ({
   };
 
   const panGesture = Gesture.Pan()
-    // Fail the pager as soon as a touch begins in the stack's edge zone. A
-    // reduced hitSlop alone still let Android's nested pan change tabs here.
+    // Fail as soon as a touch begins in the stack's edge strip so the edge
+    // swipe goes back from here too. A reduced hitSlop alone still let
+    // Android's nested pan change tabs there.
     .onTouchesDown((event, manager) => {
-      if (event.changedTouches[0]?.absoluteX < EVENT_DETAILS_BACK_EDGE_WIDTH) {
+      const touch = event.changedTouches[0];
+      if (touch && touch.absoluteX < EVENT_DETAILS_BACK_EDGE_WIDTH) {
         manager.fail();
       }
     })
@@ -156,6 +163,15 @@ const HostRequestTabs = ({
         pagerXSV.value = withTiming(-activeIndexSV.value * pagerWidthSV.value, PAGE_TIMING);
       }
     });
+
+  // Android hands touches inside this pager to the stack pan as well: its row
+  // is two pages wide, and RNGH measures the stack's edge hitSlop against that
+  // overflowing row instead of the screen. Making the stack wait for this pager
+  // keeps interior horizontal drags on the tabs; edge touches fail above.
+  if (stackGestureRef && typeof stackGestureRef === 'object') {
+    // The stack context ref is typed with `null`; RNGH wants `undefined`.
+    panGesture.blocksExternalGesture(stackGestureRef as RefObject<ComponentType | undefined>);
+  }
 
   return (
     <>

@@ -8,8 +8,6 @@ import React from 'react';
 import { act, render, fireEvent, waitFor, screen } from '@testing-library/react-native';
 import fetchMock from 'jest-fetch-mock';
 
-import { EVENT_DETAILS_BACK_EDGE_WIDTH } from '@navigation/transitions';
-
 import {
   mockEvents,
   mockUsers,
@@ -359,15 +357,12 @@ describe('EventDetailsScreen Rendering Tests', () => {
   });
 
   describe('Event Display - Basic Rendering', () => {
-    it('reserves the full-height left edge for the stack back gesture', () => {
-      const { getByTestId } = render(<EventDetailsScreen />);
+    it('leaves the left edge free of touch layers so vertical drags reach the scroll view', () => {
+      // Regression: the removed full-height edge layer swallowed vertical
+      // drags starting near the left edge instead of scrolling the page.
+      const { queryByTestId } = render(<EventDetailsScreen />);
 
-      expect(getByTestId('event-details-back-gesture-edge')).toHaveStyle({
-        width: EVENT_DETAILS_BACK_EDGE_WIDTH,
-        top: 0,
-        bottom: 0,
-        left: 0,
-      });
+      expect(queryByTestId('event-details-back-gesture-edge')).toBeNull();
     });
 
     it('renders event title correctly', () => {

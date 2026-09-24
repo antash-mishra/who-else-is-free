@@ -1490,11 +1490,13 @@ What they are:
   description (owns description measurement/expansion state).
 - `HostRequestTabs.tsx` — `SlidingTabs` header plus a direction-locked animated two-page pager
   (both pages stay rendered; 280ms slide) for request and accepted/member lists. Horizontal swipes
-  starting past the left 50pt/dp edge change tabs; a transparent full-height edge layer prevents
-  the page `ScrollView` from claiming the stack's interactive back swipe. Inactive pages do not
+  starting past the left 50pt/dp edge change tabs; the pager fails its pan on edge touches so the
+  stack's interactive back swipe owns them, and `blocksExternalGesture`s the stack pan everywhere
+  else (Android offers pager touches to it via the overflowing two-page row). Inactive pages do not
   receive pointer/accessibility events, and vertical drags fail early to the outer Event Details
-  `ScrollView`. The pager fails its pan on edge touches; the stack, edge layer, and pager all use
-  `EVENT_DETAILS_BACK_EDGE_WIDTH` from `transitions.ts`.
+  `ScrollView`. There is no edge touch layer. The stack and pager both use
+  `EVENT_DETAILS_BACK_EDGE_WIDTH` from `transitions.ts`; the stack pan's direction lock depends on
+  `patches/@react-navigation+stack+7.6.12.patch`.
 - `EventDetailsMembers.tsx` — group overlay members list and read-only members list (with
   loading/error states) under a static `SlidingTabs` header (`variant: 'overlay' | 'readOnly'`).
 - `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white

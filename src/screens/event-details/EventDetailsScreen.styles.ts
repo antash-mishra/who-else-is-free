@@ -15,13 +15,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background, // Your original background color
   },
-  backGestureEdge: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 9,
-  },
   heroContainer: {
     paddingHorizontal: spacing.md,
     paddingTop: 10,
