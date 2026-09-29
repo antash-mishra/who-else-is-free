@@ -1,3 +1,4 @@
+/* global AbortController */
 import { createRequestTimeout, isAbortError } from '@api/request';
 
 describe('request api helpers', () => {
@@ -37,5 +38,21 @@ describe('request api helpers', () => {
     expect(isAbortError(abortError)).toBe(true);
     expect(isAbortError(new Error('Network error'))).toBe(false);
     expect(isAbortError('AbortError')).toBe(false);
+  });
+
+  it('combines caller cancellation with timeout and detaches listeners on cleanup', () => {
+    const controller = new AbortController();
+    const timeout = createRequestTimeout(1000, controller.signal);
+    controller.abort();
+    expect(timeout.signal.aborted).toBe(true);
+    timeout.clear();
+    expect(jest.getTimerCount()).toBe(0);
+
+    const next = new AbortController();
+    const cleared = createRequestTimeout(1000, next.signal);
+    cleared.clear();
+    next.abort();
+    expect(cleared.signal.aborted).toBe(false);
+    expect(createRequestTimeout(1000, controller.signal).signal.aborted).toBe(true);
   });
 });

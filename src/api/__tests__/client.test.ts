@@ -1,4 +1,4 @@
-/* global Request, RequestInit, Response */
+/* global Request, RequestInit, Response, AbortController */
 
 import fetchMock from 'jest-fetch-mock';
 
@@ -65,6 +65,30 @@ describe('requestJson', () => {
     expect(fetchImpl).toHaveBeenCalledWith(`${BASE_URL}/api/profile`, expect.any(Object));
     expect(fetchMock).not.toHaveBeenCalled();
     expect(payload).toEqual({ ok: true });
+  });
+
+  it('propagates caller cancellation through the timeout signal to an in-flight fetch', async () => {
+    const controller = new AbortController();
+    const fetchImpl = jest.fn(
+      (_input: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            const error = new Error('cancelled');
+            error.name = 'AbortError';
+            reject(error);
+          });
+        }),
+    );
+    const pending = requestJson('/api/events', { fetchImpl, signal: controller.signal });
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('forwards caller cancellation when the timeout is disabled', async () => {
+    const controller = new AbortController();
+    const fetchImpl = jest.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    await requestJson('/api/events', { fetchImpl, signal: controller.signal, timeoutMs: null });
+    expect(fetchImpl.mock.calls[0][1].signal).toBe(controller.signal);
   });
 
   it('throws an ApiError with the server error message on non-OK responses', async () => {

@@ -140,12 +140,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: 20,
+    paddingBottom: spacing.md + spacing.xs,
     // No gap: every vertical gap is controlled explicitly by the block's own
     // margin/padding so the number written is the number rendered (a shared
     // card gap would silently compound onto each block's margin). Rhythm:
     //   section break = 20 · heading→content / row→row = 12 · tight pair = 4
     gap: 0,
+  },
+  readOnlyDetailsHeader: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  readOnlyMemberRow: {
+    backgroundColor: colors.card,
+    paddingHorizontal: spacing.md,
+  },
+  readOnlyDetailsFooter: {
+    backgroundColor: colors.card,
+    height: spacing.md + spacing.xs,
   },
   title: {
     fontSize: 29,

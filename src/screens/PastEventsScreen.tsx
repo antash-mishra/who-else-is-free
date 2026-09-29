@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,39 +6,18 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { API_BASE_URL } from '@api/config';
+import { PastEventItem } from '@api/pastEvents';
 import EmptyState from '@components/EmptyState';
-import { EventItemProps } from '@components/EventCard';
 import { EventSectionList, buildEventItemSections } from '@components/events';
 import FullPageEmptyState from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
-import { CoverKey, resolveCoverUri } from '@constants/covers';
-import { useAuth } from '@context/AuthContext';
+import { AppButton } from '@components/ui';
+import { usePastEvents } from '@hooks/usePastEvents';
 import { RootStackParamList } from '@navigation/types';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
-import { getScheduleDisplay, parseDateKey } from '@utils/dateTime';
-import { formatAudienceLabel, formatEventListSectionHeaderLabel } from '@utils/eventDisplay';
-
-type ApiEvent = {
-  id: number;
-  title: string;
-  location: string;
-  time: string;
-  description?: string;
-  gender: string;
-  min_age: number;
-  max_age: number;
-  date_label?: string;
-  event_date: string;
-  group_type?: 'Single' | 'Group';
-  user_id: number;
-  host_name: string;
-  cover_key?: CoverKey | null;
-  scheduled_at?: string;
-};
-
-type PastEventItem = EventItemProps & { ownerId: number; eventDate: string };
+import { parseDateKey } from '@utils/dateTime';
+import { formatEventListSectionHeaderLabel } from '@utils/eventDisplay';
 
 const getPastSectionDateLabel = (eventDate: string): string => {
   const parsed = parseDateKey(eventDate);
@@ -58,73 +37,18 @@ const getPastSectionDateLabel = (eventDate: string): string => {
 const PastEventsScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom: safeBottom } = useSafeAreaInsets();
-  const { user, token, authFetch } = useAuth();
   const isFocused = useIsFocused();
-  const [events, setEvents] = useState<PastEventItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPullRefreshing, setIsPullRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchPastEvents = useCallback(async () => {
-    if (!authFetch || !token) return;
-    setError(null);
-    try {
-      const response = await authFetch(`${API_BASE_URL}/api/events/past`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-      const payload: { data: ApiEvent[] | null } = await response.json();
-      const mapped = (payload.data ?? []).map((event): PastEventItem => {
-        const schedule = getScheduleDisplay({
-          scheduledAt: event.scheduled_at,
-          eventDate: event.event_date,
-          time: event.time,
-          dateLabel: event.date_label,
-        });
-
-        return {
-          id: String(event.id),
-          title: event.title,
-          location: event.location,
-          time: schedule.displayTime,
-          audience: formatAudienceLabel({
-            gender: event.gender,
-            minAge: event.min_age,
-            maxAge: event.max_age,
-          }),
-          imageUri: resolveCoverUri(event.cover_key),
-          badgeLabel: user && event.user_id === user.id ? 'Hosting' : 'Joined',
-          ownerId: event.user_id,
-          eventDate: schedule.displayDate,
-        };
-      });
-      setEvents(mapped);
-    } catch {
-      setError("Couldn't load past plans.");
-    }
-  }, [authFetch, token, user]);
-
-  const loadPastEvents = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await fetchPastEvents();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchPastEvents]);
-
-  useEffect(() => {
-    if (!isFocused) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Focus-driven screen loading state wraps the existing fetch lifecycle.
-    loadPastEvents();
-  }, [isFocused, loadPastEvents]);
-
-  const handleRefresh = useCallback(() => {
-    setIsPullRefreshing(true);
-    fetchPastEvents().finally(() => setIsPullRefreshing(false));
-  }, [fetchPastEvents]);
+  const {
+    events,
+    loading: isLoading,
+    refreshing: isPullRefreshing,
+    error,
+    loadingMore,
+    loadMoreError,
+    refresh: handleRefresh,
+    loadMore,
+    retryLoadMore,
+  } = usePastEvents(isFocused);
 
   const sections = useMemo(
     () =>
@@ -174,6 +98,24 @@ const PastEventsScreen = () => {
             footerSpacingHeight={0}
             refreshing={isPullRefreshing}
             onRefresh={handleRefresh}
+            onEndReached={loadMore}
+            entryAnimation="initial"
+            footer={
+              loadingMore ? (
+                <View style={styles.paginationFooter}>
+                  <ActivityIndicator testID="past-events-loading-more" color={colors.primary} />
+                </View>
+              ) : loadMoreError || (error && events.length > 0) ? (
+                <View style={styles.paginationFooter}>
+                  <Text style={styles.errorText}>{loadMoreError ?? error}</Text>
+                  <AppButton
+                    label="Try again"
+                    variant="ghost"
+                    onPress={loadMoreError ? retryLoadMore : handleRefresh}
+                  />
+                </View>
+              ) : undefined
+            }
           />
         )}
       </ScreenContainer>
@@ -193,6 +135,11 @@ const PastEventsScreen = () => {
 const styles = StyleSheet.create({
   screenRoot: {
     flex: 1,
+  },
+  paginationFooter: {
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   centerContent: {
     flex: 1,

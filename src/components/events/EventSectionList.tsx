@@ -16,6 +16,7 @@ import { Placed } from '@components/motion';
 import ScalePressable from '@components/ScalePressable';
 import { triggerHaptic } from '@services/haptics';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
+import { motionTiming } from '@theme/motion';
 
 import { EventSection } from './eventListSections';
 
@@ -25,6 +26,10 @@ export type EventSectionListProps<TItem extends EventItemProps = EventItemProps>
   emptyState?: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
+  onEndReached?: () => void;
+  footer?: ReactNode;
+  /** Initial mode bounds entry staggering across date sections and appended pages. */
+  entryAnimation?: 'section' | 'initial';
   headerPaddingTop?: number;
   bottomInset?: number;
   bottomPadding?: number;
@@ -68,6 +73,9 @@ const EventSectionList = <TItem extends EventItemProps>({
   emptyState,
   refreshing = false,
   onRefresh,
+  onEndReached,
+  footer,
+  entryAnimation = 'section',
   headerPaddingTop = 0,
   bottomInset = 0,
   bottomPadding,
@@ -92,15 +100,36 @@ const EventSectionList = <TItem extends EventItemProps>({
     [],
   );
 
-  // Index is per-section on purpose: each date group cascades on its own,
-  // which reads better than one continuous ramp down a long list.
+  const initialEntryIndices = useMemo(() => {
+    const indices = new Map<string, number>();
+    if (entryAnimation === 'initial') {
+      for (const section of sections) {
+        for (const item of section.data) {
+          if (indices.size > motionTiming.staggerMaxSteps) return indices;
+          indices.set(item.id, indices.size);
+        }
+      }
+    }
+    return indices;
+  }, [entryAnimation, sections]);
+
+  // Section mode preserves the existing per-date cascade. Initial mode bounds
+  // animation work across date groups and appended pages.
   const renderItem = useCallback(
     ({ item, index }: SectionListRenderItemInfo<TItem, EventSection<TItem>>) => (
-      <Placed id={item.id} index={index} testID={`placed-${item.id}`}>
+      <Placed
+        id={item.id}
+        index={
+          entryAnimation === 'initial'
+            ? (initialEntryIndices.get(item.id) ?? motionTiming.staggerMaxSteps + 1)
+            : index
+        }
+        testID={`placed-${item.id}`}
+      >
         <EventCardRow item={item} onPress={onEventPress} />
       </Placed>
     ),
-    [onEventPress],
+    [entryAnimation, initialEntryIndices, onEventPress],
   );
 
   return (
@@ -111,6 +140,8 @@ const EventSectionList = <TItem extends EventItemProps>({
       renderSectionHeader={renderSectionHeader}
       stickySectionHeadersEnabled={false}
       showsVerticalScrollIndicator={false}
+      onEndReached={onEndReached}
+      onEndReachedThreshold={onEndReached ? 0.5 : undefined}
       contentContainerStyle={[
         contentHorizontalPadding && styles.horizontalPadding,
         {
@@ -125,8 +156,13 @@ const EventSectionList = <TItem extends EventItemProps>({
       }
       ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
       ListFooterComponent={
-        shouldShowFooterSpacing ? (
-          <View style={[styles.footerSpacing, { height: footerSpacingHeight }]} />
+        footer || shouldShowFooterSpacing ? (
+          <View>
+            {footer}
+            {shouldShowFooterSpacing && (
+              <View style={[styles.footerSpacing, { height: footerSpacingHeight }]} />
+            )}
+          </View>
         ) : null
       }
       ListEmptyComponent={

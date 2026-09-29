@@ -35,6 +35,7 @@ import EventDetailsMembers from './event-details/EventDetailsMembers';
 import EventDetailsOverlayRoutes from './event-details/EventDetailsOverlayRoutes';
 import styles from './event-details/EventDetailsScreen.styles';
 import HostRequestTabs from './event-details/HostRequestTabs';
+import ReadOnlyEventDetails from './event-details/ReadOnlyEventDetails';
 import { useEventDetailsActions } from './event-details/useEventDetailsActions';
 import {
   EventDetailsNavigation,
@@ -273,6 +274,24 @@ const EventDetailsScreenContent = ({
       : { paddingBottom: overlayBottomPadding },
   ];
 
+  const hero = (
+    <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} scrollY={scrollY} />
+  );
+  const info = (
+    <EventDetailsInfo
+      title={event.title}
+      hostLine={hostLine}
+      readOnly={readOnly}
+      isSingleEvent={isSingleEvent}
+      goingParticipants={goingParticipants}
+      goingCount={goingCount}
+      location={event.location}
+      scheduleLine={scheduleLine}
+      audienceLine={audienceLine}
+      description={event.description}
+    />
+  );
+
   const screenContent = (
     <>
       <StatusBar
@@ -342,82 +361,74 @@ const EventDetailsScreenContent = ({
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}
-        <Animated.ScrollView
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          alwaysBounceVertical={false}
-          contentContainerStyle={pageScrollContentStyle}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        >
-          <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} scrollY={scrollY} />
-          <View style={styles.card}>
-            <EventDetailsInfo
-              title={event.title}
-              hostLine={hostLine}
-              readOnly={readOnly}
-              isSingleEvent={isSingleEvent}
-              goingParticipants={goingParticipants}
-              goingCount={goingCount}
-              location={event.location}
-              scheduleLine={scheduleLine}
-              audienceLine={audienceLine}
-              description={event.description}
-            />
+        {readOnly && !isOverlay ? (
+          <ReadOnlyEventDetails
+            hero={hero}
+            info={info}
+            members={readOnlyMembers}
+            hostId={event.ownerId}
+            currentUserId={user?.id}
+            isLoading={isFetchingReadOnlyMembers}
+            error={readOnlyMembersError}
+            onScroll={handleScroll}
+            contentContainerStyle={pageScrollContentStyle}
+          />
+        ) : (
+          <Animated.ScrollView
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            alwaysBounceVertical={false}
+            contentContainerStyle={pageScrollContentStyle}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          >
+            {hero}
+            <View style={styles.card}>
+              {info}
 
-            {/* Host-only: Separator, Tabs, Requests/Members lists */}
-            {isOwner && !readOnly && !(isOverlay && !isSingleEvent) && (
-              <HostRequestTabs
-                isSingleEvent={isSingleEvent}
-                pendingRequests={pendingRequests}
-                acceptedRequests={acceptedRequests}
-                confirmedMembers={overlayMembers}
-                hostId={event.ownerId}
-                currentUserId={user?.id}
-                expandedRequestIds={expandedRequestIds}
-                acceptingUserId={acceptingUserId}
-                decliningUserId={decliningUserId}
-                onToggleRequestExpanded={toggleRequestExpanded}
-                onAcceptRequest={handleAcceptRequest}
-                onDeclineRequest={handleDeclineRequest}
-                onRequesterPress={handleRequesterPress}
-                onOpenMemberMenu={openMemberMenu}
-              />
-            )}
+              {/* Host-only: Separator, Tabs, Requests/Members lists */}
+              {isOwner && !readOnly && !(isOverlay && !isSingleEvent) && (
+                <HostRequestTabs
+                  isSingleEvent={isSingleEvent}
+                  pendingRequests={pendingRequests}
+                  acceptedRequests={acceptedRequests}
+                  confirmedMembers={overlayMembers}
+                  hostId={event.ownerId}
+                  currentUserId={user?.id}
+                  expandedRequestIds={expandedRequestIds}
+                  acceptingUserId={acceptingUserId}
+                  decliningUserId={decliningUserId}
+                  onToggleRequestExpanded={toggleRequestExpanded}
+                  onAcceptRequest={handleAcceptRequest}
+                  onDeclineRequest={handleDeclineRequest}
+                  onRequesterPress={handleRequesterPress}
+                  onOpenMemberMenu={openMemberMenu}
+                />
+              )}
 
-            {/* Overlay: Members tab for group events (all users) */}
-            {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
-              <EventDetailsMembers
-                variant="overlay"
-                members={overlayMembers}
-                currentUserId={user?.id}
-                hostId={event.ownerId}
-                isOwner={isOwner}
-                onOpenMemberMenu={openMemberMenu}
-              />
-            )}
+              {/* Overlay: Members tab for group events (all users) */}
+              {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
+                <EventDetailsMembers
+                  variant="overlay"
+                  members={overlayMembers}
+                  currentUserId={user?.id}
+                  hostId={event.ownerId}
+                  isOwner={isOwner}
+                  onOpenMemberMenu={openMemberMenu}
+                />
+              )}
 
-            {/* Overlay: Accepted tab for 1:1 hosts (approved requesters only; no host row) */}
-            {isSingleEvent && isOverlay && isOwner && (
-              <EventDetailsMembers
-                variant="accepted"
-                members={acceptedRequests.map((request) => request.requester)}
-                onOpenMemberMenu={openMemberMenu}
-              />
-            )}
-
-            {readOnly && !isOverlay && (
-              <EventDetailsMembers
-                variant="readOnly"
-                members={readOnlyMembers}
-                currentUserId={user?.id}
-                hostId={event.ownerId}
-                isLoading={isFetchingReadOnlyMembers}
-                error={readOnlyMembersError}
-              />
-            )}
-          </View>
-        </Animated.ScrollView>
+              {/* Overlay: Accepted tab for 1:1 hosts (approved requesters only; no host row) */}
+              {isSingleEvent && isOverlay && isOwner && (
+                <EventDetailsMembers
+                  variant="accepted"
+                  members={acceptedRequests.map((request) => request.requester)}
+                  onOpenMemberMenu={openMemberMenu}
+                />
+              )}
+            </View>
+          </Animated.ScrollView>
+        )}
         <EventDetailsCTA
           showStandardCta={shouldPinBottomCTA && showStandardCTA && !readOnly}
           showOpenChatCta={shouldPinBottomCTA && showOpenChatCTA && !readOnly}

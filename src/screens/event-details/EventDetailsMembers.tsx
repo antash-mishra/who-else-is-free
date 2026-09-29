@@ -19,6 +19,43 @@ type MemberLike = {
   avatar?: string;
 };
 
+interface ReadOnlyMembersHeadingProps {
+  count: number;
+}
+
+export const ReadOnlyMembersHeading = ({ count }: ReadOnlyMembersHeadingProps) => (
+  <View>
+    <SlidingTabs
+      options={[{ label: 'Members', value: 'members', count }]}
+      value="members"
+      testIDPrefix="event-details-readonly-tab"
+      style={{ paddingTop: 28 }}
+    />
+    <View style={[styles.divider, { marginVertical: 0 }]} />
+  </View>
+);
+
+interface ReadOnlyMembersStatusProps {
+  isLoading: boolean;
+  error: string | null;
+}
+
+export const ReadOnlyMembersStatus = ({ isLoading, error }: ReadOnlyMembersStatusProps) =>
+  isLoading ? (
+    <ActivityIndicator size="small" color={colors.primary} />
+  ) : error ? (
+    <Text style={styles.membersErrorText}>{error}</Text>
+  ) : (
+    <EmptyState
+      title="No members"
+      description="People you accept will appear here."
+      imageSource={EMPTY_ILLUSTRATION}
+      imageWidth={EMPTY_ILLUSTRATION_WIDTH}
+      imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
+      style={{ marginTop: 32 }}
+    />
+  );
+
 type EventDetailsMembersProps =
   | {
       /** Overlay route: all group members with the host sorted to the top. */
@@ -107,29 +144,10 @@ const EventDetailsMembers = (props: EventDetailsMembersProps) => {
   const { members, currentUserId, hostId, isLoading, error } = props;
   return (
     <>
-      <View>
-        <SlidingTabs
-          options={[{ label: 'Members', value: 'members', count: members.length }]}
-          value="members"
-          testIDPrefix="event-details-readonly-tab"
-          style={{ paddingTop: 28 }}
-        />
-        <View style={[styles.divider, { marginVertical: 0 }]} />
-      </View>
+      <ReadOnlyMembersHeading count={members.length} />
       <View style={styles.listContainer}>
-        {isLoading ? (
-          <ActivityIndicator size="small" color={colors.primary} />
-        ) : error ? (
-          <Text style={styles.membersErrorText}>{error}</Text>
-        ) : members.length === 0 ? (
-          <EmptyState
-            title="No members"
-            description="People you accept will appear here."
-            imageSource={EMPTY_ILLUSTRATION}
-            imageWidth={EMPTY_ILLUSTRATION_WIDTH}
-            imageHeight={EMPTY_ILLUSTRATION_HEIGHT}
-            style={{ marginTop: 32 }}
-          />
+        {isLoading || error || members.length === 0 ? (
+          <ReadOnlyMembersStatus isLoading={isLoading} error={error} />
         ) : (
           members.map((member, index) => (
             <View key={member.id}>

@@ -1,4 +1,4 @@
-/* global fetch, RequestInfo, RequestInit, Response, URL */
+/* global fetch, RequestInfo, RequestInit, Response, URL, AbortSignal */
 
 import { API_BASE_URL } from './config';
 import { ApiError, extractServerErrorMessage } from './errors';
@@ -9,6 +9,8 @@ export const DEFAULT_TIMEOUT_MS = 10_000;
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export interface RequestJsonOptions extends Omit<RequestInit, 'headers' | 'signal'> {
+  /** Caller cancellation combined with the request timeout. */
+  signal?: AbortSignal;
   /** Bearer token injected as an `Authorization` header when provided. */
   token?: string | null;
   /**
@@ -42,10 +44,11 @@ export const requestJson = async <T = unknown>(
     fetchImpl,
     errorMessage,
     headers,
+    signal,
     ...init
   } = options;
   const fetchClient = fetchImpl ?? fetch;
-  const timeout = timeoutMs == null ? null : createRequestTimeout(timeoutMs);
+  const timeout = timeoutMs == null ? null : createRequestTimeout(timeoutMs, signal);
 
   try {
     const response = await fetchClient(`${API_BASE_URL}${path}`, {
@@ -54,7 +57,7 @@ export const requestJson = async <T = unknown>(
         ...headers,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      ...(timeout ? { signal: timeout.signal } : {}),
+      ...((timeout?.signal ?? signal) ? { signal: timeout?.signal ?? signal } : {}),
     });
 
     if (!response.ok) {

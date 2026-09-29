@@ -829,6 +829,14 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createTableConversationMembers); err != nil {
 		return fmt.Errorf("create conversation members table: %w", err)
 	}
+	for _, query := range []string{
+		`CREATE INDEX IF NOT EXISTS events_user_history_idx ON events(user_id)`,
+		`CREATE INDEX IF NOT EXISTS conversation_members_user_history_idx ON conversation_members(user_id, conversation_id)`,
+	} {
+		if _, err := r.db.ExecContext(ctx, query); err != nil {
+			return fmt.Errorf("create past events access index: %w", err)
+		}
+	}
 	if _, err := r.db.ExecContext(ctx, createTableMessages); err != nil {
 		return fmt.Errorf("create messages table: %w", err)
 	}

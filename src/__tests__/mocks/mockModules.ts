@@ -329,7 +329,7 @@ jest.mock('react-native-safe-area-context', () => ({
 // Mock reanimated
 jest.mock('react-native-reanimated', () => {
   const React = require('react');
-  const { View, Text, ScrollView } = require('react-native');
+  const { View, Text, ScrollView, FlatList } = require('react-native');
   const createAnimatedComponent = (Component: React.ComponentType<any>) => Component;
   const runAnimation = (value: unknown, callback?: (finished?: boolean) => void) => {
     callback?.(true);
@@ -361,12 +361,14 @@ jest.mock('react-native-reanimated', () => {
       View,
       Text,
       ScrollView,
+      FlatList,
       createAnimatedComponent,
       call: jest.fn(),
     },
     View,
     Text,
     ScrollView,
+    FlatList,
     createAnimatedComponent,
     makeMutable: (value: unknown) => ({ value }),
     // Real shared values are referentially stable across renders; mirror that so

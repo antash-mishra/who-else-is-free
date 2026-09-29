@@ -79,15 +79,20 @@ func (h *EventHandler) listCovers(c *gin.Context) {
 }
 
 func (h *EventHandler) listUserPastEvents(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
-	defer cancel()
-
 	claims, exists := sessionFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return
 	}
 
+	// Pagination is opt-in so installed clients retain the legacy full-history response.
+	if c.Request.URL.Query().Has("limit") || c.Request.URL.Query().Has("cursor") {
+		h.listUserPastEventsPage(c, claims.UserID)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
 	events, err := h.repo.ListUserPastEvents(ctx, claims.UserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch past events"})

@@ -811,6 +811,14 @@ Use it when:
 
 - Rendering an event in a list.
 
+Metadata rule:
+
+- Discover, My Events, and Past Plans supply `metaLine` from `formatEventCardMetaLine` in
+  `src/utils/eventDisplay.ts`, normally through `toEventCardItem`. It includes `Group`/`1:1`,
+  restricted gender, and compact ages; unrestricted gender/age are omitted. Past Plans preserves
+  its `Hosting`/`Joined` badges and read-only Event Details destination. Verbose audience copy
+  remains appropriate inside Event Details.
+
 ### `UserAvatar`
 
 File: `src/components/UserAvatar.tsx`
@@ -1280,6 +1288,31 @@ Use it when:
 
 - Rendering event cards grouped into sections.
 
+Pagination and entry policy:
+
+- `onEndReached` triggers the caller's guarded page loader; `footer` renders pagination loading
+  and retry content alongside the existing footer spacing.
+- `entryAnimation="initial"` uses absolute row position to limit entry staggering to the first
+  rows across all date sections. Past Plans uses it so later pages and one-row date sections do
+  not each start another cascade. The default `section` policy preserves other screens' motion.
+
+### Past Plans API and state
+
+Files: `src/api/pastEvents.ts`, `src/hooks/usePastEvents.ts`
+
+- `listPastEvents` calls the authenticated cursor API with `limit=25`, maps with the existing
+  event mapper and `toEventCardItem`, and preserves Hosting/Joined badges. The response is
+  `{data,next_cursor}`; missing cursor metadata from older servers means the response is complete.
+- `usePastEvents` serializes page loads synchronously, merges/de-duplicates rows, preserves
+  unchanged item identities, and cancels obsolete requests on refresh, blur, logout, or session
+  change. Page errors retain the list and require an explicit retry; stale responses cannot append.
+- Focus returns within 60 seconds keep loaded pages; stale returns fetch bounded pages to the
+  already-loaded depth before replacing the snapshot. Pull-to-refresh starts from page one.
+- The backend's opaque viewer-bound cursor contains exact normalized UTC schedule/creation sort
+  keys plus an ID tie-breaker and fixed past cutoff. Each page re-checks current ownership or
+  conversation membership; revoked access does not survive the cursor. No-query requests retain
+  the legacy full-history response for older installed apps.
+
 ### `EventRequestRow`
 
 File: `src/components/events/EventRequestRow.tsx`
@@ -1499,6 +1532,11 @@ What they are:
   `patches/@react-navigation+stack+7.6.12.patch`.
 - `EventDetailsMembers.tsx` — group overlay members list and read-only members list (with
   loading/error states) under a static `SlidingTabs` header (`variant: 'overlay' | 'readOnly'`).
+- `ReadOnlyEventDetails.tsx` — the full-page past-plan scroll surface: one animated FlatList
+  with a dynamically sized hero/info/member heading and virtualized `EventMemberRow` rows.
+  `ReadOnlyMembersHeading`/`ReadOnlyMembersStatus` from `EventDetailsMembers` share the existing
+  heading and loading/error/empty presentation. Preserve host labels, description state, parallax,
+  and inset spacing; active host pagers and overlay routes keep their existing ScrollView paths.
 - `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white
   fade gradient.
 
@@ -1533,6 +1571,9 @@ What they are:
 - `fetchImpl` option lets call sites pass `AuthContext.authFetch` so its 401-retry/session-expiry
   semantics are preserved; `errorMessage` (string or `(status) => string`) keeps user-facing error
   strings stable at each call site.
+- Optional `signal` cancels the request on caller departure/session change. `createRequestTimeout`
+  combines this signal with its own timeout, and cleanup removes the caller listener. Passing
+  `timeoutMs: null` forwards the caller signal directly.
 - `ApiError` carries `status` plus optional `code`/`data`; `extractServerErrorMessage` replaces
   the repeated `response.json().catch(() => ({}))` + `data.error` pattern.
 
