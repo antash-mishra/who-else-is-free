@@ -1498,6 +1498,8 @@ func (h *ChatHub) sendPushForChatMessage(msg *Message, push chatPushContext) {
 			log.Printf("push: resolve event for conversation %d failed: %v", msg.ConversationID, err)
 		}
 
+		data = h.decorateCustomCover(data)
+
 		// Persist one inbox row per recipient (best-effort, before the token
 		// lookup so a recipient with no registered push token still sees the
 		// message in their inbox).

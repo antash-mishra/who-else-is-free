@@ -31,6 +31,8 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	eventHandler.RegisterRoutes(api)
 	NewHelpHandler(eventHandler.repo, signer).RegisterRoutes(api)
 	r.Static("/assets/covers", coverAssetsDir())
+	coverHandler := newEventCoverHandler(eventHandler.repo)
+	api.GET("/event-covers/:id", coverHandler.serve)
 
 	placesHandler := NewPlacesHandler()
 	api.GET("/places/autocomplete", placesHandler.autocomplete)
@@ -39,6 +41,7 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	protected := api.Group("")
 	protected.Use(sessionMiddleware(signer, eventHandler.repo))
 	eventHandler.RegisterProtectedRoutes(protected)
+	protected.POST("/event-covers", coverHandler.upload)
 	protected.POST("/events/:id/report", eventHandler.reportEvent)
 	protected.PUT("/profile", profileHandler.UpdateProfile)
 	protected.DELETE("/profile", profileHandler.DeleteProfile)

@@ -409,3 +409,19 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 - `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
 - Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
 - Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.
+
+## Custom plan covers and age selection
+
+- Exact age presets and range unions are handled by `src/utils/ageGroups.ts` and
+  `server/event_age_groups.go`. Create/Edit uses `AgeGroupsContent` with shared
+  checkboxes; gender and group-type sheets remain single-select. Keep exact gaps
+  in display and preserve legacy ranges on unrelated edits.
+- Custom photos use owned `cover_upload_id` references, separate from catalog
+  keys. Picker behavior lives in `usePickEventCover`, multipart transport in
+  `src/api/eventCovers.ts`, and upload preparation/retry caching in EventsContext.
+  Prefer `cover_url`/`coverUrl` over catalog fallback on every display surface.
+- Server upload validation/storage is in `server/event_covers.go`; orientation
+  handling is in `event_cover_orientation.go`. Never store photo bytes in event
+  rows, notifications, logs, or Git. Storage, retention, API compatibility, and
+  release prerequisites are documented in
+  `docs/custom-plan-covers-and-age-groups.md`.

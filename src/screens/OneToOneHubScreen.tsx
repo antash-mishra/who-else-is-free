@@ -189,7 +189,11 @@ const OneToOneHubScreen = () => {
           memberCount: displayRequests.length,
           schedule: resolvedSchedule,
         })}
-        coverSource={getCoverSource(resolvedCoverKey)}
+        coverSource={
+          resolvedEvent?.coverUrl || conversationEvent?.coverUrl
+            ? { uri: resolvedEvent?.coverUrl ?? conversationEvent?.coverUrl }
+            : getCoverSource(resolvedCoverKey)
+        }
         onTitlePress={() => {
           triggerHaptic('light');
           navigation.navigate('EventDetails', {

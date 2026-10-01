@@ -1889,3 +1889,17 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 - `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
 - Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
 - Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.
+
+## Create/Edit custom covers and age groups
+
+`AgeGroupsContent` composes existing `CheckboxRow`, `AppText`, and `AppButton`
+inside the Create/Edit sheet. It supports multiple presets, an exclusive All
+ages choice, and an empty-selection disabled state. Exact normalization lives in
+`src/utils/ageGroups.ts`; cards and details share `eventDisplay.ts` range labels.
+
+`usePickEventCover` lazily loads the native library picker only on a user action.
+`src/api/eventCovers.ts` owns multipart upload and relative media-URL resolution.
+Create/Edit previews local draft media; EventsContext uploads after sign-in and
+retains successful upload references for save retries. Catalog and custom cover
+choices are mutually exclusive; shared sheet and cached-image behavior remains.
+See `docs/custom-plan-covers-and-age-groups.md` for the wire/storage contract.

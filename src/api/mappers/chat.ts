@@ -1,3 +1,4 @@
+import { resolveUploadedCoverUrl } from '@api/eventCovers';
 import { getScheduleDisplay } from '@utils/dateTime';
 
 export type ConversationParticipant = {
@@ -39,6 +40,7 @@ export type ChatConversationEvent = {
   eventDate?: string;
   groupType?: string;
   coverKey?: string;
+  coverUrl?: string;
   scheduledAt?: string;
 };
 
@@ -99,6 +101,7 @@ export type RawConversationEvent = {
   event_date?: string;
   group_type?: string;
   cover_key?: string;
+  cover_url?: string;
   scheduled_at?: string;
 };
 
@@ -158,6 +161,7 @@ export const normalizeConversationEvent = (event: RawConversationEvent): ChatCon
     eventDate: schedule.displayDate,
     groupType: event.group_type,
     coverKey: event.cover_key,
+    coverUrl: resolveUploadedCoverUrl(event.cover_url),
     scheduledAt: event.scheduled_at,
   };
 };
@@ -182,7 +186,9 @@ export const normalizeConversation = (
         conversationId: conversation.id,
         senderId: conversation.last_message.sender_id,
         body: conversation.last_message.body,
-        kind: (conversation.last_message.kind === 'system' ? 'system' : 'user') as ChatMessage['kind'],
+        kind: (conversation.last_message.kind === 'system'
+          ? 'system'
+          : 'user') as ChatMessage['kind'],
         createdAt: conversation.last_message.created_at,
       }
     : undefined;

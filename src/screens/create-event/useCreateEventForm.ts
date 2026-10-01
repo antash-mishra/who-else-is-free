@@ -23,6 +23,7 @@ type CreateEventFormReducerState = {
   form: CreateEventFormState;
   locationDisplayName: string;
   tempAgeRange: [number, number];
+  tempAgeGroupIds?: string[];
   tempGender: GenderOption;
   tempGroupType: GroupOption;
 };
@@ -32,8 +33,11 @@ type CreateEventFormAction =
   | { type: 'setDescription'; value: string }
   | { type: 'setGroupType'; value: GroupOption }
   | { type: 'setGender'; value: GenderOption }
+  | { type: 'setAgeGroupIds'; value: string[] | undefined }
+  | { type: 'setTempAgeGroupIds'; value: string[] | undefined }
   | { type: 'setAgeRange'; value: [number, number] }
   | { type: 'setSelectedDateTime'; value: Date }
+  | { type: 'setCoverAsset'; value: import('@api/eventCovers').CoverAsset }
   | { type: 'setCoverKey'; value: CoverKey }
   | { type: 'selectLocation'; value: CreateEventLocationSelection }
   | { type: 'setTempAgeRange'; value: [number, number] }
@@ -59,6 +63,7 @@ const initReducerState = ({
     form: normalized,
     locationDisplayName,
     tempAgeRange: normalized.ageRange,
+    tempAgeGroupIds: normalized.ageGroupIds,
     tempGender: normalized.gender,
     tempGroupType: normalized.groupType,
   };
@@ -77,12 +82,30 @@ const reducer = (
       return { ...state, form: { ...state.form, groupType: action.value } };
     case 'setGender':
       return { ...state, form: { ...state.form, gender: action.value } };
+    case 'setAgeGroupIds':
+      return { ...state, form: { ...state.form, ageGroupIds: action.value } };
+    case 'setTempAgeGroupIds':
+      return { ...state, tempAgeGroupIds: action.value };
     case 'setAgeRange':
       return { ...state, form: { ...state.form, ageRange: action.value } };
     case 'setSelectedDateTime':
       return { ...state, form: { ...state.form, selectedDateTime: action.value } };
+    case 'setCoverAsset':
+      return {
+        ...state,
+        form: { ...state.form, coverAsset: action.value, coverUploadId: null, coverUrl: undefined },
+      };
     case 'setCoverKey':
-      return { ...state, form: { ...state.form, coverKey: action.value } };
+      return {
+        ...state,
+        form: {
+          ...state.form,
+          coverKey: action.value,
+          coverAsset: undefined,
+          coverUrl: undefined,
+          coverUploadId: null,
+        },
+      };
     case 'selectLocation':
       return {
         ...state,
@@ -143,12 +166,24 @@ export const useCreateEventForm = (
     (value: GenderOption) => dispatch({ type: 'setGender', value }),
     [],
   );
+  const setAgeGroupIds = useCallback(
+    (value: string[] | undefined) => dispatch({ type: 'setAgeGroupIds', value }),
+    [],
+  );
+  const setTempAgeGroupIds = useCallback(
+    (value: string[] | undefined) => dispatch({ type: 'setTempAgeGroupIds', value }),
+    [],
+  );
   const setAgeRange = useCallback(
     (value: [number, number]) => dispatch({ type: 'setAgeRange', value }),
     [],
   );
   const setSelectedDateTime = useCallback(
     (value: Date) => dispatch({ type: 'setSelectedDateTime', value }),
+    [],
+  );
+  const setCoverAsset = useCallback(
+    (value: import('@api/eventCovers').CoverAsset) => dispatch({ type: 'setCoverAsset', value }),
     [],
   );
   const setCoverKey = useCallback(
@@ -176,9 +211,12 @@ export const useCreateEventForm = (
     dispatch({ type: 'applyForm', form, locationDisplayName: displayLocationName });
   }, []);
 
-  const resetForm = useCallback((coverKey?: CoverKey) => {
-    applyFormState(createEmptyFormState(coverKey));
-  }, [applyFormState]);
+  const resetForm = useCallback(
+    (coverKey?: CoverKey) => {
+      applyFormState(createEmptyFormState(coverKey));
+    },
+    [applyFormState],
+  );
 
   const applyEventToForm = useCallback(
     (event: UserEvent) => {
@@ -194,6 +232,9 @@ export const useCreateEventForm = (
       form: state.form,
       locationDisplayName: state.locationDisplayName,
       tempAgeRange: state.tempAgeRange,
+      tempAgeGroupIds: state.tempAgeGroupIds,
+      setAgeGroupIds,
+      setTempAgeGroupIds,
       tempGender: state.tempGender,
       tempGroupType: state.tempGroupType,
       setEventName,
@@ -203,6 +244,7 @@ export const useCreateEventForm = (
       setAgeRange,
       setSelectedDateTime,
       setCoverKey,
+      setCoverAsset,
       selectLocation,
       setTempAgeRange,
       setTempGender,
@@ -220,6 +262,7 @@ export const useCreateEventForm = (
       selectLocation,
       setAgeRange,
       setCoverKey,
+      setCoverAsset,
       setDescription,
       setEventName,
       setGender,
@@ -231,6 +274,9 @@ export const useCreateEventForm = (
       state.form,
       state.locationDisplayName,
       state.tempAgeRange,
+      state.tempAgeGroupIds,
+      setAgeGroupIds,
+      setTempAgeGroupIds,
       state.tempGender,
       state.tempGroupType,
     ],

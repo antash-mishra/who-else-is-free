@@ -1,12 +1,14 @@
+import { View } from 'react-native';
+
 import { CoverPickerContent } from '@components/CoverPickerModal';
 import { DescriptionEditorContent } from '@components/DescriptionEditorModal';
 import { EventDateTimePickerContent } from '@components/EventDateTimeModal';
 import { LocationPickerContent } from '@components/LocationPickerModal';
 import { SelectionModalContent } from '@components/SelectionModal';
+import AppButton from '@components/ui/AppButton';
+import AppText from '@components/ui/AppText';
 import { CoverKey } from '@constants/covers';
 import {
-  AgeOption,
-  ageOptions,
   GenderOption,
   genderDisplayLabels,
   genderOptions,
@@ -15,8 +17,11 @@ import {
   groupOptions,
 } from '@constants/eventOptions';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
+import { spacing } from '@theme/index';
 
 import SignInButtons from '../../components/SignInButtons';
+
+import AgeGroupsContent from './AgeGroupsContent';
 
 import type { CreateEventSheet } from './useCreateEventSheets';
 
@@ -50,6 +55,9 @@ type CreateEventSheetContentProps = {
   pickerMaxDate: Date;
   onConfirmDateTime: (value: Date) => void;
   coverKey: CoverKey;
+  onPickCover?: () => void;
+  coverPickerError?: string | null;
+  isPickingCover?: boolean;
   onSelectCover: (key: CoverKey) => void;
   tempGroupType: GroupOption;
   onSelectTempGroupType: (value: GroupOption) => void;
@@ -57,6 +65,8 @@ type CreateEventSheetContentProps = {
   tempGender: GenderOption;
   onSelectTempGender: (value: GenderOption) => void;
   onConfirmGender: () => void;
+  tempAgeGroupIds?: string[];
+  onSelectTempAgeGroupIds: (ids: string[] | undefined) => void;
   tempAgeRange: [number, number];
   onSelectTempAgeRange: (value: [number, number]) => void;
   onConfirmAge: () => void;
@@ -78,6 +88,9 @@ const CreateEventSheetContent = ({
   pickerMaxDate,
   onConfirmDateTime,
   coverKey,
+  onPickCover,
+  coverPickerError,
+  isPickingCover,
   onSelectCover,
   tempGroupType,
   onSelectTempGroupType,
@@ -85,8 +98,9 @@ const CreateEventSheetContent = ({
   tempGender,
   onSelectTempGender,
   onConfirmGender,
+  tempAgeGroupIds,
+  onSelectTempAgeGroupIds,
   tempAgeRange,
-  onSelectTempAgeRange,
   onConfirmAge,
   selectedLocationLabel,
   countryCode,
@@ -107,7 +121,20 @@ const CreateEventSheetContent = ({
         />
       );
     case 'cover':
-      return <CoverPickerContent selectedCoverKey={coverKey} onSelect={onSelectCover} />;
+      return (
+        <View style={{ gap: spacing.md }}>
+          {onPickCover && (
+            <AppButton
+              label="Choose your own photo"
+              onPress={onPickCover}
+              loading={isPickingCover}
+              testID="choose-custom-cover"
+            />
+          )}
+          {coverPickerError && <AppText>{coverPickerError}</AppText>}
+          <CoverPickerContent selectedCoverKey={coverKey} onSelect={onSelectCover} />
+        </View>
+      );
     case 'groupType':
       return (
         <SelectionModalContent
@@ -134,14 +161,11 @@ const CreateEventSheetContent = ({
       );
     case 'age':
       return (
-        <SelectionModalContent<AgeOption>
-          options={ageOptions}
-          selectedValue={{ label: '', min: tempAgeRange[0], max: tempAgeRange[1] }}
-          onSelect={(opt) => onSelectTempAgeRange([opt.min, opt.max])}
+        <AgeGroupsContent
+          ids={tempAgeGroupIds}
+          legacyRange={tempAgeRange}
+          onChange={onSelectTempAgeGroupIds}
           onConfirm={onConfirmAge}
-          getLabel={(opt) => opt.label}
-          getKey={(opt) => opt.label}
-          isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
         />
       );
     case 'location':

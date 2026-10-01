@@ -322,11 +322,13 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.EventDate,
 		&evt.Description,
 		&evt.Gender,
+		&evt.AgeGroupIDs,
 		&evt.MinAge,
 		&evt.MaxAge,
 		&evt.DateLabel,
 		&evt.GroupType,
 		&evt.CoverKey,
+		&evt.CoverUploadID,
 		&scheduledAtStr,
 		&placeID,
 		&lat,
@@ -875,16 +877,18 @@ func (r *EventRepository) hydrateConversationSummary(ctx context.Context, convo 
 			return ConversationSummary{}, err
 		}
 		eventMeta = &ConversationEventMeta{
-			ID:          evt.ID,
-			UserID:      evt.UserID,
-			Title:       evt.Title,
-			Location:    evt.Location,
-			Time:        evt.Time,
-			EventDate:   evt.EventDate,
-			DateLabel:   evt.DateLabel,
-			GroupType:   evt.GroupType,
-			CoverKey:    evt.CoverKey,
-			ScheduledAt: evt.ScheduledAt,
+			ID:            evt.ID,
+			UserID:        evt.UserID,
+			Title:         evt.Title,
+			Location:      evt.Location,
+			Time:          evt.Time,
+			EventDate:     evt.EventDate,
+			DateLabel:     evt.DateLabel,
+			GroupType:     evt.GroupType,
+			CoverKey:      evt.CoverKey,
+			CoverUploadID: evt.CoverUploadID,
+			CoverURL:      coverURL(evt.CoverUploadID),
+			ScheduledAt:   evt.ScheduledAt,
 		}
 	}
 

@@ -140,6 +140,7 @@ func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
 				"body":    notificationPushBody(NotificationTypeEventDeleted, event.Title, ""),
 			}
 			setPayloadIfPresent(deletedData, "coverKey", event.CoverKey)
+			setPayloadIfPresent(deletedData, "coverUrl", coverURL(event.CoverUploadID))
 			h.hub.recordAndSendPushToUsers(event.RecipientIDs, deletedData)
 		}
 	}

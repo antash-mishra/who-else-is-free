@@ -17,6 +17,7 @@ export type EventCardSource = {
   createdAt?: string | null;
   groupType?: string | null;
   gender?: string | null;
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge?: number | null;
   maxAge?: number | null;
 };
@@ -37,6 +38,7 @@ export const toEventCardItem = (event: EventCardSource, badgeLabel?: string): Ev
   metaLine: formatEventCardMetaLine({
     groupType: event.groupType,
     gender: event.gender,
+    ageRanges: event.ageRanges,
     minAge: event.minAge,
     maxAge: event.maxAge,
   }),

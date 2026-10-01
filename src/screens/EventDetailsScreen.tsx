@@ -244,6 +244,7 @@ const EventDetailsScreenContent = ({
   const audienceLine = formatEventDetailAudienceLine({
     groupType: event.groupType,
     gender: event.gender,
+    ageRanges: event.ageRanges,
     minAge: event.minAge,
     maxAge: event.maxAge,
   });

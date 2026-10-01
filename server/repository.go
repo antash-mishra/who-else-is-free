@@ -37,10 +37,11 @@ type EventConversationMember struct {
 }
 
 type AccountDeletionHostedEvent struct {
-	ID           int64
-	Title        string
-	CoverKey     string
-	RecipientIDs []int64
+	CoverUploadID *string
+	ID            int64
+	Title         string
+	CoverKey      string
+	RecipientIDs  []int64
 }
 
 type DeleteUserAccountResult struct {
