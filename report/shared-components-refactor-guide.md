@@ -1191,7 +1191,9 @@ Files:
 
 What it is:
 
-- Generic option picker sheet.
+- Generic option picker sheet using wrapping chips. A separate selection type supports
+  multiple selections with the same layout; optional `confirmDisabled` and
+  `helperText` provide confirmation guards and guidance.
 - Also exports `SelectionModalContent` so Create Event can render the content inside
   `CreateEventBottomSheet`.
 
@@ -1892,8 +1894,9 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 
 ## Create/Edit custom covers and age groups
 
-`AgeGroupsContent` composes existing `CheckboxRow`, `AppText`, and `AppButton`
-inside the Create/Edit sheet. It supports multiple presets, an exclusive All
+`AgeGroupsContent` wraps the existing `SelectionModalContent` chip layout and
+Done button inside the Create/Edit sheet; it changes selection behavior without
+replacing the previous picker design. It supports multiple presets, an exclusive All
 ages choice, and an empty-selection disabled state. Exact normalization lives in
 `src/utils/ageGroups.ts`; cards and details share `eventDisplay.ts` range labels.
 

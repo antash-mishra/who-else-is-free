@@ -730,3 +730,16 @@ whole-repository formatting were not run.
   remain release checks. See `report/issue-159-design-report.md`.
 - Validation: 125 Jest suites / 1,450 tests, typecheck, full Go suite passed;
   lint passed with the existing 689-warning baseline.
+
+## 2026-10-01 — Issue #159 original age chips with multiple selection
+
+- Change: retain the original `SelectionModalContent` chip layout and Done
+  button; select multiple age chips through `AgeGroupsContent`.
+- Target: Android 16 `WEIF_API_36` emulator with the local 8180 backend and
+  fresh 8083 Metro bundle. No physical-device or production writes.
+- PASS: All ages starts selected; choosing 20-25 clears All ages; 40+ can be
+  selected alongside 20-25; removing both shows guidance and disables Done.
+  Fresh default/multiple/empty native screenshots replace the prior checkbox
+  screenshots in `report/screenshots/issue-159/`.
+- Validation: 23 relevant SelectionModal/age-picker tests and typecheck passed.
+  The remaining release matrix from the preceding entry is still pending.

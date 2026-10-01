@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { Pressable, Text, View } from 'react-native';
 
 import { triggerHaptic } from '@services/haptics';
@@ -6,22 +7,27 @@ import { triggerHaptic } from '@services/haptics';
 import BottomSheetModal from './BottomSheetModal';
 import styles from './SelectionModal.styles';
 
-export type SelectionModalProps<T> = {
+export type SelectionModalProps<T, Selection = T> = {
   visible: boolean;
   title: string;
   options: readonly T[];
-  selectedValue: T;
+  selectedValue: Selection;
   onSelect: (value: T) => void;
   onConfirm: () => void;
   onClose: () => void;
   getLabel: (option: T) => string;
   getKey: (option: T) => string;
-  isSelected: (option: T, selected: T) => boolean;
+  isSelected: (option: T, selected: Selection) => boolean;
+  confirmDisabled?: boolean;
+  helperText?: string;
 };
 
-type SelectionModalContentProps<T> = Omit<SelectionModalProps<T>, 'visible' | 'title' | 'onClose'>;
+type SelectionModalContentProps<T, Selection = T> = Omit<
+  SelectionModalProps<T, Selection>,
+  'visible' | 'title' | 'onClose'
+>;
 
-export function SelectionModalContent<T>({
+export function SelectionModalContent<T, Selection = T>({
   options,
   selectedValue,
   onSelect,
@@ -29,7 +35,9 @@ export function SelectionModalContent<T>({
   getLabel,
   getKey,
   isSelected,
-}: SelectionModalContentProps<T>) {
+  confirmDisabled = false,
+  helperText,
+}: SelectionModalContentProps<T, Selection>) {
   return (
     <>
       <View style={styles.chipsContainer}>
@@ -43,6 +51,8 @@ export function SelectionModalContent<T>({
                 triggerHaptic('selection');
                 onSelect(option);
               }}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
               testID={`option-${getKey(option)}`}
             >
               <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
@@ -52,8 +62,11 @@ export function SelectionModalContent<T>({
           );
         })}
       </View>
+      {helperText && <Text style={[styles.chipText, styles.helperText]}>{helperText}</Text>}
       <Pressable
-        style={styles.selectButton}
+        style={[styles.selectButton, confirmDisabled && styles.selectButtonDisabled]}
+        disabled={confirmDisabled}
+        accessibilityState={{ disabled: confirmDisabled }}
         onPress={() => {
           triggerHaptic('light');
           onConfirm();
@@ -61,13 +74,20 @@ export function SelectionModalContent<T>({
         testID="selection-modal-confirm"
         accessibilityRole="button"
       >
-        <Text style={styles.selectButtonText}>Done</Text>
+        <Text style={[styles.selectButtonText, confirmDisabled && styles.selectButtonTextDisabled]}>
+          Done
+        </Text>
       </Pressable>
     </>
   );
 }
 
-function SelectionModal<T>({ visible, title, onClose, ...contentProps }: SelectionModalProps<T>) {
+function SelectionModal<T, Selection = T>({
+  visible,
+  title,
+  onClose,
+  ...contentProps
+}: SelectionModalProps<T, Selection>) {
   return (
     <BottomSheetModal visible={visible} onClose={onClose} title={title}>
       <SelectionModalContent {...contentProps} />
