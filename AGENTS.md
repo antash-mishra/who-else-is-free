@@ -360,8 +360,10 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 ## Custom plan covers and age selection
 
 - Exact age presets and range unions are handled by `src/utils/ageGroups.ts` and
-  `server/event_age_groups.go`. Create/Edit uses `AgeGroupsContent` with shared
-  checkboxes; gender and group-type sheets remain single-select. Keep exact gaps
+  `server/event_age_groups.go`. Create/Edit uses `AgeGroupsContent` wrapping the original shared
+  `SelectionModalContent` chips with multiple selection; gender and group-type
+  sheets remain single-select. `SelectionModalContent` accepts a separate selection
+  type plus optional `confirmDisabled`/`helperText` for guarded confirmation. Keep exact gaps
   in display and preserve legacy ranges on unrelated edits.
 - Custom photos use owned `cover_upload_id` references, separate from catalog
   keys. Picker behavior lives in `usePickEventCover`, multipart transport in

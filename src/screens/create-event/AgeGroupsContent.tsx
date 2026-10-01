@@ -1,10 +1,5 @@
-import { StyleSheet, View } from 'react-native';
-
-import AppButton from '@components/ui/AppButton';
-import AppText from '@components/ui/AppText';
-import CheckboxRow from '@components/ui/CheckboxRow';
+import { SelectionModalContent } from '@components/SelectionModal';
 import { ageOptions } from '@constants/eventOptions';
-import { spacing } from '@theme/index';
 import { toggleAgeGroup } from '@utils/ageGroups';
 
 interface Props {
@@ -13,34 +8,25 @@ interface Props {
   onChange: (ids: string[]) => void;
   onConfirm: () => void;
 }
+
 export default function AgeGroupsContent({ ids, legacyRange, onChange, onConfirm }: Props) {
   return (
-    <View style={styles.body}>
-      {!ids && (
-        <AppText>
-          Current range: {legacyRange[0]}-{legacyRange[1]}
-        </AppText>
-      )}
-      {ageOptions.map((option) => {
-        const id = option.id;
-        return (
-          <CheckboxRow
-            key={id}
-            label={option.label}
-            checked={ids?.includes(id) ?? false}
-            testID={`age-group-${id}`}
-            onPress={() => onChange(toggleAgeGroup(ids ?? [], id))}
-          />
-        );
-      })}
-      {ids?.length === 0 && <AppText>Select at least one age group.</AppText>}
-      <AppButton
-        label="Done"
-        testID="selection-modal-confirm"
-        disabled={ids?.length === 0}
-        onPress={onConfirm}
-      />
-    </View>
+    <SelectionModalContent
+      options={ageOptions}
+      selectedValue={ids}
+      onSelect={(option) => onChange(toggleAgeGroup(ids ?? [], option.id))}
+      onConfirm={onConfirm}
+      getLabel={(option) => option.label}
+      getKey={(option) => option.id}
+      isSelected={(option, selected) => selected?.includes(option.id) ?? false}
+      confirmDisabled={ids?.length === 0}
+      helperText={
+        !ids
+          ? `Current range: ${legacyRange[0]}-${legacyRange[1]}`
+          : ids.length === 0
+            ? 'Select at least one age group.'
+            : undefined
+      }
+    />
   );
 }
-const styles = StyleSheet.create({ body: { gap: spacing.md } });

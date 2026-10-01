@@ -135,9 +135,9 @@ in `server/repository_schema.go` and verify database reopening.
 
 Update `server/models.go`, create/update handlers, event repository SQL and
 scanners, chat event reads, and paginated past-event reads together. Update
-EventsContext create/edit/guest payloads and event mappers. Replace only the age
-sheet with checkbox-based multi-selection using shared `CheckboxRow`, sheet,
-button, theme, and haptic primitives; keep gender/group selection single-select.
+EventsContext create/edit/guest payloads and event mappers. Reuse the original age
+sheet chip layout through `SelectionModalContent` with multiple selection,
+shared confirmation guards, theme, and haptic behavior; keep gender/group selection single-select.
 
 Update shared card/detail audience labels for exact range unions, preserving
 metadata separators and unrestricted-age omission. Review
@@ -251,3 +251,11 @@ See [the visual report](issue-159-design-report.md) and the October 1 entry in
 `TEST_RUNS.md`. Complete native publish/edit/reload, physical Android/iOS, final
 design, and staging storage verification remain pending. Full frontend tests,
 typecheck, lint (existing warnings), and the Go suite were rerun successfully.
+
+## October 1 age-picker design correction
+
+Per user feedback, the age picker retains the original wrapping chips and Done
+button. `AgeGroupsContent` now composes `SelectionModalContent`, keeping multiple
+selection, exclusive All ages, exact ranges, and the empty-selection guard.
+The three age screenshots in the visual report were replaced with fresh native
+captures of this design. The custom-cover design and data contracts are unchanged.

@@ -24,7 +24,8 @@ conversation artwork, notifications, and past plans.
 
 ## Multiple age groups
 
-The age sheet uses shared checkbox rows and an explicit **Done** button.
+The age sheet retains the original wrapping chips and **Done** button through
+shared `SelectionModalContent`; it now allows multiple chips to be selected.
 Specific presets can be selected together. **All ages** clears the other choices;
 selecting a specific group clears All ages. Removing every specific selection
 shows guidance and disables Done. Dismissing without confirmation discards the
@@ -47,9 +48,12 @@ The native crop screen is provided by the image picker rather than custom app UI
 | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | <img src="screenshots/issue-159/cover-picker.png" alt="Cover sheet with Choose your own photo above the existing catalog" width="260" /> | <img src="screenshots/issue-159/cover-crop.png" alt="Native crop screen for the selected test photo" width="260" /> | <img src="screenshots/issue-159/cover-preview.png" alt="Create plan showing the selected photo and 20-25, 40+ summary" width="260" /> |
 
-| All ages default                                                                                            | Multiple groups selected                                                                                         | Empty selection                                                                                                                       |
-| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| <img src="screenshots/issue-159/age-all.png" alt="Age sheet with exclusive All ages checked" width="260" /> | <img src="screenshots/issue-159/age-multiple.png" alt="Age sheet with both 20-25 and 40+ checked" width="260" /> | <img src="screenshots/issue-159/age-empty.png" alt="Age sheet showing Select at least one age group and disabled Done" width="260" /> |
+| All ages default                                                                                                        | Multiple groups selected                                                                                                     | Empty selection                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="screenshots/issue-159/age-all.png" alt="Original chip layout with exclusive All ages selected" width="260" /> | <img src="screenshots/issue-159/age-multiple.png" alt="Original chip layout with both 20-25 and 40+ selected" width="260" /> | <img src="screenshots/issue-159/age-empty.png" alt="Age sheet showing Select at least one age group and disabled Done" width="260" /> |
+
+The three age captures were refreshed after user feedback to preserve the
+original chip design. The cover captures remain from the preceding capture pass.
 
 ## Android capture verdict
 
@@ -73,7 +77,8 @@ release matrix below, and Sumit's final design review remain pending.
 ## Validation
 
 - Full frontend suite: 125 suites / 1,450 tests passed on October 1.
-- `npm run typecheck`: passed.
+- `npm run typecheck`: passed, including after the age-chip design correction.
+- Age-chip correction: 23 relevant SelectionModal/age-picker tests passed.
 - `npm run lint`: passed with 689 warnings from the existing baseline.
 - `cd server && go test ./...`: passed (cached).
 - New feature modules and contract/plan documents: Prettier check passed.
