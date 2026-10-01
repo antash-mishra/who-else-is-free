@@ -21,6 +21,7 @@ func (h *ChatHub) recordAndSendPushToUser(userID int64, data map[string]string) 
 // recipients. Best-effort: row-insert failures are logged per-user and do not
 // block the FCM dispatch or other recipients' inserts.
 func (h *ChatHub) recordAndSendPushToUsers(userIDs []int64, data map[string]string) {
+	data = h.decorateCustomCover(data)
 	nType := payloadField(data, "type")
 	title := payloadField(data, "title")
 	rawBody := payloadField(data, "body")
@@ -71,6 +72,7 @@ func (h *ChatHub) recordAndSendPushToUsers(userIDs []int64, data map[string]stri
 // chat.message — no override). Best-effort; insert failure is logged and does
 // not block the FCM dispatch.
 func (h *ChatHub) recordChatMessageNotification(recipientID int64, conversationID int64, senderName, title, body string, data map[string]string) *int64 {
+	data = h.decorateCustomCover(data)
 	convID := conversationID
 	eventID := int64PtrOrNil(payloadField(data, "eventId"))
 	payloadJSON := encodeNotificationPayload(data)
@@ -101,4 +103,24 @@ func encodeNotificationPayload(data map[string]string) string {
 		return ""
 	}
 	return string(encoded)
+}
+
+// Preserve a compact custom-cover reference alongside catalog fallback artwork.
+func (h *ChatHub) decorateCustomCover(data map[string]string) map[string]string {
+	id := int64PtrOrNil(payloadField(data, "eventId"))
+	if id == nil || payloadField(data, "coverUrl") != "" {
+		return data
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	var uploadID *string
+	if err := h.repo.db.QueryRowContext(ctx, "SELECT cover_upload_id FROM events WHERE id=?", *id).Scan(&uploadID); err != nil || uploadID == nil {
+		return data
+	}
+	copy := make(map[string]string, len(data)+1)
+	for k, v := range data {
+		copy[k] = v
+	}
+	copy["coverUrl"] = coverURL(uploadID)
+	return copy
 }

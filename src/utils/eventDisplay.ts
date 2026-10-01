@@ -6,6 +6,7 @@ import { parseDateKey } from './dateTime';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 type AudienceInput = {
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   gender?: string | null;
   minAge?: number | null;
   maxAge?: number | null;
@@ -121,10 +122,17 @@ export const formatVerboseAgeLabel = (
   return `${normalized.minAge} to ${normalized.maxAge} years`;
 };
 
-export const formatAudienceLabel = ({ gender, minAge, maxAge }: AudienceInput): string => {
+export const formatAudienceLabel = ({
+  gender,
+  minAge,
+  maxAge,
+  ageRanges,
+}: AudienceInput): string => {
   const parts: string[] = [];
   const genderLabel = isAllGender(gender) ? 'All genders' : getGenderLabel(gender);
-  const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
+  const ageLabel = ageRanges?.length
+    ? ageRanges.map((r) => formatVerboseAgeLabel(r.min, r.max)).join(', ')
+    : formatVerboseAgeLabel(minAge, maxAge);
 
   if (genderLabel) {
     parts.push(genderLabel);
@@ -142,10 +150,16 @@ export const formatEventCardMetaLine = ({
   gender,
   minAge,
   maxAge,
+  ageRanges,
 }: EventDisplayInput): string => {
   const parts: string[] = [formatEventTypeLabel(groupType)];
   const genderLabel = isAllGender(gender) ? null : getGenderLabel(gender);
-  const ageLabel = formatCompactAgeLabel(minAge, maxAge);
+  const ageLabel = ageRanges?.length
+    ? ageRanges
+        .map((r) => formatCompactAgeLabel(r.min, r.max))
+        .filter(Boolean)
+        .join(', ')
+    : formatCompactAgeLabel(minAge, maxAge);
 
   if (genderLabel) {
     parts.push(genderLabel);
@@ -163,10 +177,13 @@ export const formatEventDetailAudienceLine = ({
   gender,
   minAge,
   maxAge,
+  ageRanges,
 }: EventDisplayInput): string => {
   const parts: string[] = [formatEventTypeLabel(groupType)];
   const genderLabel = isAllGender(gender) ? 'All genders' : getGenderLabel(gender);
-  const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
+  const ageLabel = ageRanges?.length
+    ? ageRanges.map((r) => formatVerboseAgeLabel(r.min, r.max)).join(', ')
+    : formatVerboseAgeLabel(minAge, maxAge);
 
   if (genderLabel) parts.push(genderLabel);
   if (ageLabel) parts.push(ageLabel);

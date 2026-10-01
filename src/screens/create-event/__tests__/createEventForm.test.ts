@@ -87,3 +87,19 @@ describe('createEventForm', () => {
     });
   });
 });
+
+it('preserves separated age groups in create and edit payloads', () => {
+  const selected = {
+    ...form,
+    ageGroupIds: ['20-25', '40+'],
+    ageRange: [20, 60] as [number, number],
+  };
+  expect(buildGuestEventDraft(selected)).toMatchObject({
+    ageGroupIds: ['20-25', '40+'],
+    ageRanges: [
+      { min: 20, max: 25 },
+      { min: 40, max: 60 },
+    ],
+  });
+  expect(buildUpdateEventPayload(selected)).toMatchObject({ ageGroupIds: ['20-25', '40+'] });
+});

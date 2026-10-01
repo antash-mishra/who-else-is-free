@@ -445,3 +445,44 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Change: `EVENT_DETAILS_BACK_EDGE_WIDTH` 50 → 100dp after Galaxy A56 feedback that the very edge was hard to find. Inside the Requests/Members pager the tabs win: the pager only releases (fails in `onTouchesMove`) a rightward drag on Requests that starts in the zone; on Members a rightward drag from anywhere returns to Requests.
 - Device result (WEIF_API_36, density 1.75): PASS. A rightward swipe from 69dp over the details area closes; one from 143dp stays. On Requests rows: a rightward swipe from 69dp closes, a leftward swipe from 86dp pages to Members, and a vertical drag from 69dp scrolls. On Members: a rightward swipe from 34dp over the list returns to Requests and stays; a rightward swipe from 69dp over the details area closes. A 6-step flick from the zone over Requests closes. A 3-step adb flick (a 100dp first jump) sprang back because RNGH resets the waiting stack gesture's translation at handover (logged: pager `release fail` → FAILED, never ACTIVE); a finger hands over after about 4dp.
 - Automated: focused Jest suites pass (13 suites, 158 tests), and so do typecheck and Prettier.
+
+## 2026-09-30 — Issue #159 custom covers and age groups
+
+- Change: custom photo upload/preview and exact multiple age-group selection on
+  `codex/issue-159-create-plan`; final design pending.
+- Target: Android emulator `emulator-5554`, never the connected physical phone.
+  Started an isolated synthetic-data server on port 8180 and Metro on 8083 with
+  local API/WS overrides; existing app data was preserved.
+- Attempt 1: BLOCKED — installed app displayed Android's “isn't responding”
+  dialog before loading the new Metro bundle. UI hierarchy capture could not
+  complete. Screenshot retained under ignored `.data/issue159-qa/screen.png`.
+- Attempt 2: BLOCKED — force-stopped and relaunched the installed development
+  app without clearing data; hierarchy capture exited 137 and Metro recorded no
+  bundle request. No changed flow could be exercised.
+- Final: NOT VERIFIED on device. Stopped the temporary server and Metro. The
+  automated HTTP, component, mapper, and context tests do not establish native
+  permission/cropping/layout behavior. Re-run Android smoke checks on a working
+  development build, then verify iOS and the final design before release.
+
+## 2026-10-01 — Issue #159 visual report and Android capture
+
+- Branch: `codex/issue-159-visual-report`.
+- Target: Android 16 emulator `WEIF_API_36` / `emulator-5554`; no physical device.
+- Setup: isolated synthetic-data backend on 8180, Metro on 8083 with local
+  API/WS overrides, and catalog artwork copied into the emulator library as a
+  photo fixture. No production writes or personal photo publication.
+- Attempt 1: BLOCKED — existing app/emulator UI did not respond. Cold boot with
+  the default software renderer also displayed System UI ANR.
+- Recovery: cold boot with host GPU, 2048 MiB RAM and two cores, preserving saved
+  emulator/app data. The existing development build eventually loaded the new
+  bundle. A redundant native rebuild was canceled; diagnostic logging reverted.
+- Final: PASS for captured picker/draft interactions — cover sheet entry, native
+  library selection and crop, local preview/background update, exclusive All
+  ages default, two separated age presets, Done summary, and empty-selection
+  disabled state. Six unedited screenshots are in `report/screenshots/issue-159/`.
+- Scope: no native publish/edit/reload verdict; upload/save retries and exact
+  persistence remain covered by automated tests. Physical Android/iOS, the wider
+  permission/error/accessibility matrix, final design, and staging durability
+  remain release checks. See `report/issue-159-design-report.md`.
+- Validation: 125 Jest suites / 1,450 tests, typecheck, full Go suite passed;
+  lint passed with the existing 689-warning baseline.

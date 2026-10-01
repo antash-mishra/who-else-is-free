@@ -69,3 +69,7 @@ server/assets/covers/*.png
 
 # Local release APKs and full emulator performance traces
 /artifacts/animation-performance/
+
+# Local uploaded event photos
+.data/
+server/.data/

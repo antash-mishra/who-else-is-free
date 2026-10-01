@@ -104,3 +104,25 @@ describe('mapApiEventToUserEvent', () => {
     expect(mapApiEventToUserEvent(buildApiEvent({ id: 9001 })).id).toBe('9001');
   });
 });
+
+it('uses a custom cover URL instead of catalog artwork', () => {
+  const event = {
+    id: 91,
+    title: 'Photo plan',
+    location: 'Test place',
+    time: '12:00',
+    gender: 'Any',
+    min_age: 18,
+    max_age: 60,
+    date_label: 'Tomorrow',
+    event_date: '2030-01-02',
+    user_id: 1,
+    host_name: 'Synthetic host',
+    cover_url: 'https://example.test/photo.jpg',
+    cover_upload_id: 'photo-1',
+  };
+  expect(mapApiEventToUserEvent(event)).toMatchObject({
+    imageUri: event.cover_url,
+    coverUploadId: 'photo-1',
+  });
+});

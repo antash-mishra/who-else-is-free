@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
   ActivityIndicator,
   Animated,
@@ -13,34 +14,35 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { RouteProp, StackActions, useNavigation, useRoute } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   AndroidSoftInputModes,
   KeyboardController,
   KeyboardEvents,
 } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import SendIcon from '@assets/chat/send.svg';
-import ScreenContainer from '@components/ScreenContainer';
 import ChatEventHeader from '@components/ChatEventHeader';
 import ConnectionStatusIndicator from '@components/ConnectionStatusIndicator';
-import { CountBadge } from '@components/ui';
 import EventActionOverlay from '@components/EventActionOverlay';
-import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
+import ScreenContainer from '@components/ScreenContainer';
+import { CountBadge } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
-import { colors, spacing, typography } from '@theme/index';
-import { useChat } from '@context/ChatContext';
-import type { ChatMessage } from '@context/ChatContext';
-import { useAuth } from '@context/AuthContext';
-import { useEvents } from '@context/EventsContext';
 import { resolveCoverUri } from '@constants/covers';
+import { useAuth } from '@context/AuthContext';
+import type { ChatMessage } from '@context/ChatContext';
+import { useChat } from '@context/ChatContext';
+import { useEvents } from '@context/EventsContext';
+import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
-import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHeaderSubtitle';
+import { colors, spacing, typography } from '@theme/index';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
+import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHeaderSubtitle';
 import { formatTimeAmPm } from '@utils/dateTime';
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
@@ -210,6 +212,7 @@ const ChatThreadScreen = () => {
     if (activeEvent?.imageUri) {
       return activeEvent.imageUri;
     }
+    if (activeConversation?.event?.coverUrl) return activeConversation.event.coverUrl;
     if (!activeConversation?.event?.coverKey) {
       return null;
     }

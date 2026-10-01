@@ -16,6 +16,10 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		return 0, fmt.Errorf("begin event tx: %w", err)
 	}
 
+	defer tx.Rollback()
+	if err := validateCoverOwner(ctx, tx, params.CoverUploadID, params.UserID); err != nil {
+		return 0, err
+	}
 	params.EventDate = strings.TrimSpace(params.EventDate)
 	coverKey := strings.TrimSpace(params.CoverKey)
 	if coverKey == "" {
@@ -65,6 +69,8 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		placeID,
 		lat,
 		lng,
+		params.AgeGroupIDs,
+		params.CoverUploadID,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -114,6 +120,14 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 		return nil, fmt.Errorf("begin event update tx: %w", err)
 	}
 
+	defer tx.Rollback()
+	coverPresent, coverID, err := parseCoverUpdate(params.CoverUploadID)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateCoverOwner(ctx, tx, coverID, userID); err != nil {
+		return nil, err
+	}
 	params.EventDate = strings.TrimSpace(params.EventDate)
 	coverKeyParam := ""
 	if params.CoverKey != nil {
@@ -166,6 +180,8 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 	}
 
 	result, err := tx.ExecContext(ctx, updateEvent,
+		coverPresent, coverID,
+		params.AgeGroupIDs, params.AgeGroupIDs, params.MinAge, params.MaxAge,
 		params.Title,
 		params.Location,
 		params.Time,
@@ -463,11 +479,13 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.EventDate,
 			&evt.Description,
 			&evt.Gender,
+			&evt.AgeGroupIDs,
 			&evt.MinAge,
 			&evt.MaxAge,
 			&evt.DateLabel,
 			&evt.GroupType,
 			&evt.CoverKey,
+			&evt.CoverUploadID,
 			&scheduledAtStr,
 			&placeID,
 			&lat,
@@ -568,11 +586,13 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 			&evt.EventDate,
 			&evt.Description,
 			&evt.Gender,
+			&evt.AgeGroupIDs,
 			&evt.MinAge,
 			&evt.MaxAge,
 			&evt.DateLabel,
 			&evt.GroupType,
 			&evt.CoverKey,
+			&evt.CoverUploadID,
 			&scheduledAtStr,
 			&placeID,
 			&lat,

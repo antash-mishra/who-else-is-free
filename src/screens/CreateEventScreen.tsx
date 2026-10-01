@@ -20,6 +20,7 @@ import { genderDisplayLabels, getAgeLabel, groupDisplayLabels } from '@constants
 import { useAuth } from '@context/AuthContext';
 import { useCovers } from '@context/CoversContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
+import { usePickEventCover } from '@hooks/usePickEventCover';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { completeEventCreation } from '@navigation/completeEventCreation';
@@ -29,6 +30,7 @@ import { trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { spacing } from '@theme/index';
+import { getAgeGroupsLabel } from '@utils/ageGroups';
 import {
   formatPickerDateTimeValue,
   getMaxEventDateTime,
@@ -82,7 +84,14 @@ const CreateEventScreen = () => {
   const route = useRoute<CreateRoute>();
   const { height: windowHeight } = useWindowDimensions();
   const { bottom: safeBottom } = useSafeAreaInsets();
-  const { addUserEvent, updateUserEvent, events, queueGuestEvent } = useEvents();
+  const {
+    addUserEvent,
+    updateUserEvent,
+    events,
+    queueGuestEvent,
+    guestSubmissionError,
+    isSubmittingGuest,
+  } = useEvents();
   const { user } = useAuth();
   const { covers, resolveCover } = useCovers();
   const { countryCode } = useViewerLocation();
@@ -133,6 +142,9 @@ const CreateEventScreen = () => {
     form,
     locationDisplayName,
     tempAgeRange,
+    tempAgeGroupIds,
+    setAgeGroupIds,
+    setTempAgeGroupIds,
     tempGender,
     tempGroupType,
     setEventName,
@@ -142,6 +154,7 @@ const CreateEventScreen = () => {
     setAgeRange,
     setSelectedDateTime,
     setCoverKey,
+    setCoverAsset,
     selectLocation,
     setTempAgeRange,
     setTempGender,
@@ -170,6 +183,7 @@ const CreateEventScreen = () => {
   );
 
   // Submission state
+  const submitInFlight = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -232,6 +246,14 @@ const CreateEventScreen = () => {
   }, [activeSheet, closeActiveSheet, user]);
 
   // Open sheet handlers - pickers set temp to current value first
+  const onPickCover = useCallback(
+    (asset: import('@api/eventCovers').CoverAsset) => {
+      setCoverAsset(asset);
+      closeActiveSheet();
+    },
+    [setCoverAsset, closeActiveSheet],
+  );
+  const coverPicker = usePickEventCover(onPickCover);
   const openCoverPicker = useCallback(() => {
     triggerHaptic('light');
     openSheet('cover');
@@ -240,8 +262,9 @@ const CreateEventScreen = () => {
   const openAgePicker = useCallback(() => {
     triggerHaptic('light');
     setTempAgeRange(form.ageRange);
+    setTempAgeGroupIds(form.ageGroupIds);
     openSheet('age');
-  }, [form.ageRange, openSheet, setTempAgeRange]);
+  }, [form.ageRange, form.ageGroupIds, openSheet, setTempAgeRange, setTempAgeGroupIds]);
 
   const openGenderPicker = useCallback(() => {
     triggerHaptic('light');
@@ -284,8 +307,9 @@ const CreateEventScreen = () => {
   const confirmAgeSelection = useCallback(() => {
     triggerHaptic('submit');
     setAgeRange(tempAgeRange);
+    setAgeGroupIds(tempAgeGroupIds);
     closeActiveSheet();
-  }, [closeActiveSheet, setAgeRange, tempAgeRange]);
+  }, [closeActiveSheet, setAgeRange, tempAgeRange, setAgeGroupIds, tempAgeGroupIds]);
 
   const confirmGenderSelection = useCallback(() => {
     triggerHaptic('submit');
@@ -300,8 +324,8 @@ const CreateEventScreen = () => {
   }, [closeActiveSheet, setGroupType, tempGroupType]);
 
   const selectedCoverUri = useMemo(
-    () => resolveCover(form.coverKey),
-    [form.coverKey, resolveCover],
+    () => form.coverAsset?.uri ?? form.coverUrl ?? resolveCover(form.coverKey),
+    [form.coverKey, form.coverAsset, form.coverUrl, resolveCover],
   );
 
   const contentContainerStyle = useMemo(
@@ -355,7 +379,7 @@ const CreateEventScreen = () => {
 
   const handleSubmit = useCallback(
     async (formState: CreateEventFormState) => {
-      if (isSubmitting) {
+      if (submitInFlight.current || isSubmittingGuest) {
         return;
       }
 
@@ -363,6 +387,7 @@ const CreateEventScreen = () => {
         return;
       }
 
+      submitInFlight.current = true;
       setSubmitError(null);
       setIsSubmitting(true);
 
@@ -394,10 +419,11 @@ const CreateEventScreen = () => {
         triggerHaptic('error');
         setSubmitError(`Unable to ${isEditing ? 'update' : 'publish'} the event. Please try again`);
       } finally {
+        submitInFlight.current = false;
         setIsSubmitting(false);
       }
     },
-    [addUserEvent, editEventId, isEditing, isSubmitting, navigation, updateUserEvent, user],
+    [addUserEvent, editEventId, isEditing, isSubmittingGuest, navigation, updateUserEvent, user],
   );
 
   const handlePrimaryAction = () => {
@@ -424,7 +450,13 @@ const CreateEventScreen = () => {
 
   const primaryButtonLabel = isEditing ? (isSubmitting ? 'Saving...' : 'Save') : 'Create';
 
-  const ageLabel = useMemo(() => getAgeLabel(form.ageRange), [form.ageRange]);
+  const ageLabel = useMemo(
+    () =>
+      form.ageGroupIds
+        ? getAgeGroupsLabel(form.ageGroupIds, form.ageRange)
+        : getAgeLabel(form.ageRange),
+    [form.ageRange, form.ageGroupIds],
+  );
   const dateTimeLabel = useMemo(
     () => formatPickerDateTimeValue(form.selectedDateTime),
     [form.selectedDateTime],
@@ -487,8 +519,8 @@ const CreateEventScreen = () => {
 
             <CreateEventSubmitButton
               label={primaryButtonLabel}
-              submitError={submitError}
-              isSubmitting={isSubmitting}
+              submitError={submitError ?? guestSubmissionError}
+              isSubmitting={isSubmitting || isSubmittingGuest}
               isEditing={isEditing}
               bottomInset={safeBottom}
               onPress={handlePrimaryAction}
@@ -519,7 +551,10 @@ const CreateEventScreen = () => {
           pickerMinDate={pickerMinDate}
           pickerMaxDate={pickerMaxDate}
           onConfirmDateTime={handleDateTimeConfirm}
-          coverKey={form.coverKey}
+          onPickCover={coverPicker.pick}
+          coverPickerError={coverPicker.error}
+          isPickingCover={coverPicker.isPicking}
+          coverKey={form.coverAsset || form.coverUploadId ? '' : form.coverKey}
           onSelectCover={handleCoverSelect}
           tempGroupType={tempGroupType}
           onSelectTempGroupType={setTempGroupType}
@@ -527,6 +562,8 @@ const CreateEventScreen = () => {
           tempGender={tempGender}
           onSelectTempGender={setTempGender}
           onConfirmGender={confirmGenderSelection}
+          tempAgeGroupIds={tempAgeGroupIds}
+          onSelectTempAgeGroupIds={setTempAgeGroupIds}
           tempAgeRange={tempAgeRange}
           onSelectTempAgeRange={setTempAgeRange}
           onConfirmAge={confirmAgeSelection}
