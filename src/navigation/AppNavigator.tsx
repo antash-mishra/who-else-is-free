@@ -18,10 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
 import { BottomSheetHostProvider } from '@components/sheets';
-import { FrostedSurface } from '@components/ui';
 import { usePrepareCreateEvent } from '@hooks/usePrepareCreateEvent';
 import { navigationRef } from '@navigation/navigationRef';
 import { EventDetailsOverlaySheet, JoinRequestSheet } from '@navigation/SheetRoutes';
+import { TabBarBackground } from '@navigation/TabBarBackground';
 import { VibratingTabBarButton } from '@navigation/TabBarButton';
 import {
   CreateTabIcon,
@@ -119,38 +119,13 @@ const ProfileTab = (_props: BottomTabScreenProps<RootTabParamList, 'Profile'>) =
   </TabAccessibilityBoundary>
 );
 
-// ─── Tab bar background ──────────────────────────────────────────────────────
-const TabBarBackground = () => (
-  <View style={tabBarStyles.backgroundContainer}>
-    <FrostedSurface tint="light" intensity={54} style={StyleSheet.absoluteFill} />
-    <View style={tabBarStyles.frostedOverlay} />
-    <View style={tabBarStyles.topBorder} />
-  </View>
-);
-
 const tabBarStyles = StyleSheet.create({
-  backgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
   tabScene: {
     flex: 1,
   },
   tabSceneHidden: {
     // Keep native images laid out between tab visits so they do not repaint on return.
     opacity: 0,
-  },
-  frostedOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.tabBarFrostedOverlay,
-  },
-  topBorder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: colors.background,
   },
 });
 
