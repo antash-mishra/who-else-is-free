@@ -80,7 +80,7 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
   shared `FrostedSurface` primitive; do not use `BlurView` directly. `expo-blur` disagreed across
   platforms: iOS ran a real `UIVisualEffectView` while Android painted a flat scrim unless a
   surface passed `experimentalBlurMethod`, and only some of ours did. `FrostedSurface` decides once
-  per surface and applies the same treatment to both platforms, Android's opt-in included.
+  per surface, Android's opt-in included; native results still require visual validation.
 - A frosted surface blurs (`blur`) whenever anything with a hard edge passes beneath it, because a
   tint alone leaves that edge running straight through the surface: the Create Event cover chip and
   the cover-picker check badge (photography), and `AvatarEditBadge`, which straddles the avatar's
@@ -100,6 +100,14 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
   per-platform tint on top: the old `heroButtonTint` did that and pushed Android ~28/255 too dark.
   Measured on the WEIF emulator, whose software renderer is not proof of A56 output, the Android
   chip still reads ~15% lighter than iOS; confirm on a physical device before tuning further.
+- `AvatarEditBadge` uses `FrostedSurface.androidBackdrop` with `AvatarBadgeBackdrop` on
+  Android. Supply the same avatar URI, name and seed as the 120dp avatar, plus
+  `page="onboarding"` on Onboarding. Skia composes only the avatar and page before
+  blurring; the camera and shadow must stay outside this source. Keep iOS's native
+  intensity-15 material unchanged. `avatarBadgeMaterial` owns the independently
+  calibrated radius, tint and saturation. Legacy native blur callers (cover chip
+  and Cover Picker) still capture the screen on Android; never describe shared
+  intensity as guaranteed pixel parity. Capture both native platforms after changes.
 - Never put Android `elevation` on a translucent surface. Android tessellates an elevation shadow
   into a polygon and draws it behind the caster, so it shows through as a visible octagon; it is
   invisible only while something opaque (such as a `BlurView`) covers the interior, which is why

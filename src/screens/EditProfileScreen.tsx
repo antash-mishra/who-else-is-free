@@ -148,7 +148,11 @@ const EditProfileScreen = () => {
                   style={styles.avatarFrame}
                 />
               )}
-              <AvatarEditBadge />
+              <AvatarEditBadge
+                avatar={editAvatarValue}
+                name={editName.trim() || user?.name}
+                seed={user?.id ?? editName}
+              />
             </TouchableOpacity>
             {editAvatarValue && (
               <TouchableOpacity

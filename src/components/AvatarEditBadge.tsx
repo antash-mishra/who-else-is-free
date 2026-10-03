@@ -4,7 +4,9 @@ import CameraIcon from '@assets/onboarding/camera.svg';
 import { FrostedSurface } from '@components/ui';
 import { colors } from '@theme/index';
 
-interface AvatarEditBadgeProps {
+import AvatarBadgeBackdrop, { AvatarBadgeBackdropProps } from './AvatarBadgeBackdrop';
+
+interface AvatarEditBadgeProps extends AvatarBadgeBackdropProps {
   /** Overrides the default bottom-right position over the avatar. */
   style?: StyleProp<ViewStyle>;
 }
@@ -18,7 +20,8 @@ interface AvatarEditBadgeProps {
  * Rendering it unclipped (or relying on `overflow: 'hidden'` alone on Android)
  * leaks a rounded-square outline behind the circular badge.
  *
- * The material blurs. The badge straddles the avatar's edge, so a flat tint
+ * Android receives an explicit avatar/page source, excluding the camera and shadow.
+ * iOS retains its original native material. The badge straddles the avatar's edge, so a flat tint
  * leaves that hard boundary running through it; the blur mixes the page behind
  * the avatar into the badge, which is what iOS has always done here.
  *
@@ -28,10 +31,16 @@ interface AvatarEditBadgeProps {
  * unnoticed while a `BlurView` painted the badge interior opaquely. iOS keeps its
  * shadow: a soft 0.1-opacity gradient with no tessellation, and no artifact.
  */
-const AvatarEditBadge = ({ style }: AvatarEditBadgeProps) => (
+const AvatarEditBadge = ({ style, ...backdrop }: AvatarEditBadgeProps) => (
   <View style={[styles.shadow, style]}>
-    <View style={styles.surface}>
-      <FrostedSurface style={StyleSheet.absoluteFill} tint="light" intensity={15} blur />
+    <View style={[styles.surface, Platform.OS === 'android' && styles.androidSurface]}>
+      <FrostedSurface
+        style={StyleSheet.absoluteFill}
+        tint="light"
+        intensity={15}
+        blur
+        androidBackdrop={<AvatarBadgeBackdrop {...backdrop} />}
+      />
       <CameraIcon width={20} height={20} color={colors.iconColor} />
     </View>
   </View>
@@ -61,6 +70,7 @@ const styles = StyleSheet.create({
       android: { boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)' },
     }),
   },
+  androidSurface: { backgroundColor: 'transparent' },
   surface: {
     flex: 1,
     borderRadius: 20,

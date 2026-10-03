@@ -233,9 +233,7 @@ const OnboardingScreen = () => {
               {/* Header */}
               <View style={[styles.headerSection, { marginTop: headerTopMargin }]}>
                 <Text style={styles.title}>What's your name?</Text>
-                <Text style={styles.subtitle}>
-                  {"This is how you'll appear publicly."}
-                </Text>
+                <Text style={styles.subtitle}>{"This is how you'll appear publicly."}</Text>
               </View>
 
               {/* Avatar and Name */}
@@ -262,7 +260,12 @@ const OnboardingScreen = () => {
                       />
                     )}
                     {/* Camera badge */}
-                    <AvatarEditBadge />
+                    <AvatarEditBadge
+                      page="onboarding"
+                      avatar={avatarBase64}
+                      name={name.trim()}
+                      seed={user?.id}
+                    />
                   </TouchableOpacity>
                   {/* Remove photo button */}
                   {avatarBase64 && (
@@ -296,7 +299,12 @@ const OnboardingScreen = () => {
             </View>
 
             {/* Button - Fixed at bottom */}
-            <View style={[styles.buttonSection, { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 }]}>
+            <View
+              style={[
+                styles.buttonSection,
+                { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 },
+              ]}
+            >
               <AppButton
                 label="Continue"
                 variant="primary"
@@ -362,7 +370,12 @@ const OnboardingScreen = () => {
           </View>
 
           {/* Button - Fixed at bottom */}
-          <View style={[styles.buttonSection, { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 }]}>
+          <View
+            style={[
+              styles.buttonSection,
+              { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 },
+            ]}
+          >
             <AppButton
               label="Continue"
               variant="primary"
@@ -442,7 +455,12 @@ const OnboardingScreen = () => {
           </View>
 
           {/* Button - Fixed at bottom */}
-          <View style={[styles.buttonSection, { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 }]}>
+          <View
+            style={[
+              styles.buttonSection,
+              { paddingBottom: getBottomBarClearance(insets.bottom, Platform.OS) + 16 },
+            ]}
+          >
             <AppButton
               label="Let's go"
               variant="primary"
