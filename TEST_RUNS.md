@@ -472,3 +472,67 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Cross-platform sampled backdrop MAE: reference 0.480/255, Onboarding 0.680/255, Edit Profile photo 1.437/255. Exact whole-screen equality is not claimed. Original screenshots, fixtures and measurement script: `report/issue-167-material/`.
 - PASS TypeScript, changed-file Prettier, focused badge/image lifecycle tests (6), relevant screen tests and full Jest (123 suites / 1,449 tests). Full lint passes with warning debt; full formatting retains pre-existing failures. See implementation report for exact commands and release limits.
 - NOT RUN: physical/reporter devices, older Android, accessibility matrix, release APK/IPA or physical-device performance. Cover chip and Cover Picker remain legacy native-capture migration risks; no unmeasured redesign shipped. PR remains draft pending release checks.
+
+## 2026-10-03 — Issue #164: Android toast backdrop blur
+
+- Change: Enable the shared FrostedSurface blur path for EventActionBadge.
+- Environment: Android API 36 WEIF_API_36 emulator; existing development APK,
+  current branch served by Metro on 8082; isolated local backend on 8083.
+- Flow: Synthetic tester dev-login → My plans → Event Details → Edit plan → Save;
+  scroll the event cover under the visible Plan details updated toast.
+- Attempt 1: PASS — native toast renders over the cover with readable text and
+  rounded clipping; automatic dismissal completes. Screenshot:
+  [original screenshot](https://github.com/antash-mishra/who-else-is-free/blob/9cfac7b397271c42c4ca6536bbcfebab57548860/report/screenshots/issue-164-android-toast-blur.png).
+- Final: PASS on emulator. Physical Android and native iOS remain unverified.
+
+## 2026-10-03 — Issue #164: exact toast background color
+
+- Change: Shared opaque `colors.actionToastBackground` = `#585858`, sampled from
+  the previous iOS toast over a white page; replaces native blur/tint layers.
+- Flow: Actual EventActionBadge rendered on a temporary comparison screen over
+  the same photo/checkerboard backdrop on Android API 36 and iOS 26.5.
+- Attempt 1: PASS — six interior pixels per platform all equal RGB (88, 88, 88);
+  readable white label, rounded clipping, and automatic dismissal remain.
+- Evidence: [Android](https://github.com/antash-mishra/who-else-is-free/blob/e19af12b01ed33a73e90cbe43bcb1390fca30b05/report/screenshots/issue-164-android-toast-color.png) and
+  [iOS](https://github.com/antash-mishra/who-else-is-free/blob/e19af12b01ed33a73e90cbe43bcb1390fca30b05/report/screenshots/issue-164-ios-toast-color.png).
+- Final: PASS on emulator/simulator. Physical devices and release builds unverified.
+
+## 2026-10-04 — Issue #164: restore native toast blur
+
+The user clarified that the iOS frosted appearance must stay. Removed the opaque
+`#585858` replacement and restored the previously tested shared FrostedSurface
+blur, dark tint at intensity 65, and 40% black overlay. iOS uses native
+UIVisualEffectView; Android opts into dimezisBlurView. Native visual checks from
+the earlier blur implementation still apply, but no fresh device run was performed
+for this restoration. The earlier photo/checkerboard comparison showed Android
+and iOS were not pixel-identical; color parity remains unresolved.
+
+Automated restoration checks: focused badge/material suites 12/12; full frontend
+suite 121 suites / 1,444 tests; typecheck; lint (zero errors, 721 existing warnings);
+touched TypeScript/plan Prettier; and git diff --check passed. Backend tests and
+whole-repository formatting were not run.
+
+## 2026-10-04 — Issue #164: custom Android toast material
+
+- Change: Preserve iOS dark native blur (65 + existing 40% black overlay); use a
+  custom density-aware Gaussian approximation and one calibrated tint on Android.
+- Native checks: rebuilt Android API 36 development APK; actual EventActionBadge
+  on a temporary comparison screen at densities 1.75 and 3, plus iPhone 17 Pro /
+  iOS 26.5 simulator. Label, clipping, entry, and automatic dismissal passed.
+  Temporary entry point, comparison screen, and timing logs were removed.
+- Color probes: fresh black/white output matches iOS at RGB 8/8/8 and 88/88/88.
+  Alternating-bar center-row comparison: mean absolute difference 0.83/255.
+- Actual Android app: local synthetic tester dev-login → My plans → Event Details
+  → action sheet → Edit plan → Save → scroll cover under the toast. Full label,
+  live backdrop and dismissal passed; back navigation returned to My plans.
+- Navigation smoke: Discover, My plans, Create plan, Chat, Profile, event details,
+  the action sheet, and back navigation displayed correctly on Android.
+- Native QA caught text clipping from LinearLayout remeasurement; fixed by
+  preserving Yoga's measured React child sizes, rebuilt, and rechecked.
+- Automated checks: focused React suites 12 tests; full frontend 121 suites /
+  1,444 tests; typecheck; lint (0 errors, 723 warnings); native filter 5 tests;
+  native debug assembly; module lint (0 errors, 1 ViewConstructor warning).
+- Evidence: report/issue-164-implementation.md and its native screenshots.
+- Unverified: physical devices, older Android versions, release-mode performance,
+  and accessibility/OS material variants. Backend tests and whole-repo formatting
+  were not run. Native runtime 1.0.1 requires rebuilt clients.

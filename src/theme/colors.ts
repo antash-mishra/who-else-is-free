@@ -10,6 +10,8 @@ export const colors = {
   surface: '#F8F9FC',
   card: '#FFFFFF',
   actionSurface: 'rgba(0, 0, 0, 0.08)',
+  // Matches the iOS dark-65 material plus 40% scrim: black 8, white 88.
+  actionToastAndroidMaterial: 'rgba(11, 11, 11, 0.68627451)',
   primary: '#000000',
   secondary: '#2563EB',
   accent: '#4338CA',
