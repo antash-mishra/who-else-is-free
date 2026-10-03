@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -11,7 +12,6 @@ import {
 } from 'react-native';
 
 import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE_URL } from '@api/config';
@@ -63,12 +63,6 @@ const EventDetailsScreenContent = ({
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  // Drives the hero parallax. bounces stays disabled on the ScrollView below,
-  // so this is scroll-away parallax only.
-  const scrollY = useSharedValue(0);
-  const handleScroll = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
-  });
   const { height: screenHeight } = useWindowDimensions();
   const { user } = useAuth();
   const origin = (route.params as { origin?: string }).origin ?? 'Events';
@@ -274,9 +268,7 @@ const EventDetailsScreenContent = ({
       : { paddingBottom: overlayBottomPadding },
   ];
 
-  const hero = (
-    <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} scrollY={scrollY} />
-  );
+  const hero = <EventDetailsHero imageUri={event.imageUri} topInset={heroTopInset} />;
   const info = (
     <EventDetailsInfo
       title={event.title}
@@ -370,17 +362,14 @@ const EventDetailsScreenContent = ({
             currentUserId={user?.id}
             isLoading={isFetchingReadOnlyMembers}
             error={readOnlyMembersError}
-            onScroll={handleScroll}
             contentContainerStyle={pageScrollContentStyle}
           />
         ) : (
-          <Animated.ScrollView
+          <ScrollView
             showsVerticalScrollIndicator={false}
             bounces={false}
             alwaysBounceVertical={false}
             contentContainerStyle={pageScrollContentStyle}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
           >
             {hero}
             <View style={styles.card}>
@@ -427,7 +416,7 @@ const EventDetailsScreenContent = ({
                 />
               )}
             </View>
-          </Animated.ScrollView>
+          </ScrollView>
         )}
         <EventDetailsCTA
           showStandardCta={shouldPinBottomCTA && showStandardCTA && !readOnly}

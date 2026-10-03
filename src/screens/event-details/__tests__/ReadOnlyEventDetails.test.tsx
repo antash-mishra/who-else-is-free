@@ -11,7 +11,6 @@ const props = {
   currentUserId: 1,
   isLoading: false,
   error: null,
-  onScroll: jest.fn(),
   contentContainerStyle: {},
 };
 

@@ -362,7 +362,7 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 ## Event Details transitions
 
 - Event cards open Event Details through `eventDetailsScreenOptions` in `src/navigation/transitions.ts` (the standard right-slide stack transition). `EventSectionList` passes the event directly to its press handler; there is no shared cover or page overlay.
-- `EventDetailsHero` keeps its `Placed` cover entry and scroll-away parallax. Keep the `Placed` entry reduced-motion behavior when changing the hero.
+- `EventDetailsHero` renders a level, static cover with zero image-transition duration and no scroll parallax. Android has no hero shadow; iOS retains its existing shadow. Keep shared `Placed` motion on list rows and going avatars.
 - `EventDetailsScreen` retains the last ready event snapshot until the route leaves, so a successful delete cannot replace the screen with the not-found fallback before its navigation reset completes.
 
 ## Animation lifecycle and measurement contracts

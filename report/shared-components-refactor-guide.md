@@ -361,8 +361,8 @@ What it is:
 
 Where it is used:
 
-- `EventSectionList` (Discover/My Events/Past Events rows), `EventDetailsHero`
-  (cover card), `EventDetailsInfo` (going avatars).
+- `EventSectionList` (Discover/My Events/Past Events rows), `EventDetailsInfo`
+  (going avatars).
 
 Rules:
 
@@ -1553,7 +1553,7 @@ What they are:
 - `useHostRequestActions.ts` — host-side request/member actions: accept/decline join requests,
   request row expansion, the member menu, remove member, and report member (confirmation first,
   then the shared report prompt owned by `useEventDetailsActions`).
-- `EventDetailsHero.tsx` — blurred background image, dark/light overlays, elevated cover card.
+- `EventDetailsHero.tsx` — blurred background image, dark/light overlays, static level cover card.
 - `EventDetailsInfo.tsx` — title, host line, going avatars stack, detail rows, and the expandable
   description (owns description measurement/expansion state).
 - `HostRequestTabs.tsx` — `SlidingTabs` header plus a direction-locked animated two-page pager
@@ -1824,7 +1824,7 @@ Screenshots captured during the shared-component review:
 ## Event Details transitions
 
 - Event cards open Event Details through `eventDetailsScreenOptions` in `src/navigation/transitions.ts` (the standard right-slide stack transition). `EventSectionList` passes the event directly to its press handler; there is no shared cover or page overlay.
-- `EventDetailsHero` keeps its `Placed` cover entry and scroll-away parallax. Keep the `Placed` entry reduced-motion behavior when changing the hero.
+- `EventDetailsHero` renders a level, static cover with zero image-transition duration and no scroll parallax. Android has no hero shadow; iOS retains its existing shadow. Keep shared `Placed` motion on list rows and going avatars.
 - `EventDetailsScreen` retains the last ready event snapshot until the route leaves, so a successful delete cannot replace the screen with the not-found fallback before its navigation reset completes.
 
 ## Animation lifecycle and measurement contracts
