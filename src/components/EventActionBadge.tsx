@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/immutability -- Reanimated badge animation mutates shared values from effects and gesture handlers. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { PanResponder, StyleSheet, Text } from 'react-native';
+import { PanResponder, StyleSheet, Text, View } from 'react-native';
 
 import Animated, {
   cancelAnimation,
@@ -13,7 +13,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, typography, Springs } from '@theme/index';
+import { FrostedSurface } from '@components/ui';
+import { colors, componentTokens, typography, Springs } from '@theme/index';
 
 const BADGE_HOLD_MS = 3000;
 const FADE_MS = 180;
@@ -130,6 +131,13 @@ const EventActionBadgeBody = ({
       style={[styles.badge, { top: topOffset }, badgeStyle]}
       {...panResponder.panHandlers}
     >
+      <FrostedSurface
+        blur
+        tint="dark"
+        intensity={65}
+        style={[StyleSheet.absoluteFill, styles.blurClip]}
+      />
+      <View style={styles.badgeOverlay} />
       <Text style={styles.badgeText}>{label}</Text>
     </Animated.View>
   );
@@ -138,7 +146,6 @@ const EventActionBadgeBody = ({
 const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
-    backgroundColor: colors.actionToastBackground,
     alignSelf: 'center',
     zIndex: 20,
     maxWidth: '92%',
@@ -149,8 +156,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  blurClip: {
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+  },
+  badgeOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: componentTokens.overlay.backdrop,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+  },
   badgeText: {
-    color: colors.actionToastText,
+    color: colors.selectedTextOnDark,
     fontSize: 15,
     lineHeight: 20,
     fontFamily: typography.fontFamilyMedium,

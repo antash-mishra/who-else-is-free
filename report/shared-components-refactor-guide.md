@@ -504,7 +504,7 @@ Where it is used:
 - Create/Edit Event cover chip and submit button.
 - `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip).
 - Event Details hero buttons (back, menu, overlay close).
-- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip.
+- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip, `EventActionBadge`.
 
 Use it when:
 
@@ -514,7 +514,8 @@ Rules:
 
 - Do not use `BlurView` directly; use `FrostedSurface` for translucent backings.
 - Pass `blur` over photography or hard edges: the cover chip, cover-picker check badge, avatar
-  edit badge. Over an already-smooth backdrop the tint is measurably
+  edit badge, and `EventActionBadge` toast, which can cross text, cards, and images while scrolling.
+  Over an already-smooth backdrop the tint is measurably
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
   offscreen-capture pattern that hit a RenderScript crash in release testing.
@@ -869,11 +870,8 @@ File: `src/components/EventActionBadge.tsx`
 
 What it is:
 
-- Shared transient badge/toast for event action results. The opaque
-  `colors.actionToastBackground` (`#585858`) matches the sampled iOS toast over a white page;
-  `colors.actionToastText` owns its white label. Both platforms use these same tokens.
-- Native blur/tint and translucent overlays are deliberately excluded: the background must
-  remain exactly the same color over every screen. Entry/exit motion and swipe dismissal remain.
+- Shared transient badge/toast for event action results. Its dark `FrostedSurface` enables real
+  backdrop blur on both platforms, including Android's native blur opt-in.
 
 Where it is used:
 

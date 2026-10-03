@@ -468,6 +468,22 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
   the same photo/checkerboard backdrop on Android API 36 and iOS 26.5.
 - Attempt 1: PASS — six interior pixels per platform all equal RGB (88, 88, 88);
   readable white label, rounded clipping, and automatic dismissal remain.
-- Evidence: `report/screenshots/issue-164-android-toast-color.png` and
-  `report/screenshots/issue-164-ios-toast-color.png`.
+- Evidence: [Android](https://github.com/antash-mishra/who-else-is-free/blob/e19af12b01ed33a73e90cbe43bcb1390fca30b05/report/screenshots/issue-164-android-toast-color.png) and
+  [iOS](https://github.com/antash-mishra/who-else-is-free/blob/e19af12b01ed33a73e90cbe43bcb1390fca30b05/report/screenshots/issue-164-ios-toast-color.png).
 - Final: PASS on emulator/simulator. Physical devices and release builds unverified.
+
+
+## 2026-10-04 — Issue #164: restore native toast blur
+
+The user clarified that the iOS frosted appearance must stay. Removed the opaque
+`#585858` replacement and restored the previously tested shared FrostedSurface
+blur, dark tint at intensity 65, and 40% black overlay. iOS uses native
+UIVisualEffectView; Android opts into dimezisBlurView. Native visual checks from
+the earlier blur implementation still apply, but no fresh device run was performed
+for this restoration. The earlier photo/checkerboard comparison showed Android
+and iOS were not pixel-identical; color parity remains unresolved.
+
+Automated restoration checks: focused badge/material suites 12/12; full frontend
+suite 121 suites / 1,444 tests; typecheck; lint (zero errors, 721 existing warnings);
+touched TypeScript/plan Prettier; and git diff --check passed. Backend tests and
+whole-repository formatting were not run.

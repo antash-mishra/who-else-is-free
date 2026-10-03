@@ -1,48 +1,59 @@
-# Issue #164 — Exact toast background color parity
+# Issue #164 — Android toast blur
 
-## Required behavior
+## Problem
 
-Action toasts must have the exact same background color on Android and iOS,
-independent of the screen beneath them. Native blur/tint implementations produced
-visibly different results despite receiving identical props.
+The shared action toast used FrostedSurface without its blur option. It therefore
+painted a flat translucent tint, leaving text, card edges, and images sharp beneath it.
 
-## Plan and implementation
+## Plan
 
-1. Sample the existing iOS toast over a white backdrop: RGB (88, 88, 88), `#585858`.
-2. Specify a regression at the rendered toast boundary for both platforms and
-   prove it fails before implementation.
-3. Use one opaque `colors.actionToastBackground` token and a shared white
-   `colors.actionToastText` token. Remove native blur/tint and overlay layers
-   from this toast so neither the OS nor backdrop can alter the settled color.
-4. Preserve the label, spacing, clipping, reduced-motion behavior, hold timing,
-   swipe dismissal, and entry/exit animation.
-5. Verify the rendered pixels on Android and iOS, then update PR #169 and issue #164.
+1. Add a toast-boundary regression test for Android and iOS; prove it fails because
+   no BlurView is mounted.
+2. Enable the existing shared blur path on EventActionBadge, preserving its dark
+   tint, intensity, clipping, label, and animation lifecycle.
+3. Document why toasts need blur even outside photography.
+4. Run focused and full frontend tests, typecheck, lint, and touched-file formatting.
+5. Verify on an Android emulator, capture the actual rendered toast, then publish
+   the PR and screenshot evidence to the issue.
 
-The background is deliberately fixed rather than frosted: a translucent material
-changes color with its backdrop and cannot satisfy the requested exact color
-contract. The original blur-presence regression was replaced by an exact-color
-regression because the requested contract changed.
+## Implementation
+
+EventActionBadge now passes blur to FrostedSurface. The existing primitive selects
+Android's dimezisBlurView method and keeps native iOS blur. The opaque gray replacement was removed on 2026-10-04 after the user clarified
+that the iOS frosted appearance must be preserved. No custom blur is introduced.
+
+The native photo/checkerboard comparison showed different material appearance on
+Android and iOS. Restoring blur does not resolve that color discrepancy; matching
+the Android tint to iOS remains a separate outstanding adjustment.
 
 ## Verification
 
-- Red: both platform cases failed because the rendered badge had no fixed background.
-- Green: all seven badge tests passed, including exact `#585858` on both platforms
-  and absence of native tinting layers.
-- Full frontend suite: 121 suites / 1,444 tests passed. Dependencies retain the
-  repository's existing stack gesture patch; no dependency patch changes are included.
-- Typecheck, lint (zero errors; existing warnings), touched-file Prettier, and
-  `git diff --check` passed.
-- Android API 36 emulator and iOS 26.5 iPhone 17 Pro simulator rendered the actual
-  component in a temporary comparison screen over matching photo/checkerboard
-  backdrops. Six interior background pixels on each screenshot were sampled:
-  all twelve were exactly RGB (88, 88, 88), matching the sampled iOS white-page reference.
-- Verification used cached native development builds with current branch JS from
-  Metro. The iOS build used a temporary local bundle copy with synthetic Firebase
-  configuration and analytics collection disabled. The comparison screen and
-  temporary entry-point changes were restored and are not shipped.
-- Physical devices and release builds were not tested. Backend tests and
-  whole-repository formatting were not run; backend source is unchanged and the
-  repository documents a legacy formatting baseline.
+- Red: both new platform cases failed with no BlurView mounted; existing five
+  badge tests passed.
+- Green: badge and FrostedSurface suites passed (12 tests).
+- Full frontend suite: 121 suites / 1,444 tests passed after applying the existing
+  `patches/@react-navigation+stack+7.6.12.patch` to an isolated dependency copy.
+  The first run lacked that dependency patch and failed its two guard tests;
+  those same unchanged tests also failed in isolation before the patch was applied.
+- Typecheck passed. Lint passed with 724 existing warnings and zero errors.
+- Prettier passed for touched TypeScript and this plan. `git diff --check` passed.
+- Android API 36 emulator: reused the existing native development APK with Metro
+  serving this branch on port 8082 and a separate local dev-login backend on 8083.
+  Signed in as the synthetic tester, created synthetic plans through the local
+  API, opened My plans → Event Details → Edit plan → Save, and captured the
+  `Plan details updated` toast while scrolling the cover underneath it. The label
+  stays readable and the toast dismisses automatically.
+- Physical Android and native iOS verification were not run. Backend tests were
+  not run because backend source is unchanged. Whole-repository formatting was
+  not run because the repository documents a legacy formatting baseline.
 
-![Android toast color](screenshots/issue-164-android-toast-color.png)
-![iOS toast color](screenshots/issue-164-ios-toast-color.png)
+![Android toast over the scrolled cover](screenshots/issue-164-android-toast-blur.png)
+
+## Restoration checks (2026-10-04)
+
+Restored the exact blur implementation previously exercised on the native Android
+and iOS comparison harness. No fresh native screenshots or broad mobile smoke
+test were captured for this restoration.
+
+Focused badge/material tests (12), full frontend tests (121 suites / 1,444 tests),
+typecheck, lint, touched-file Prettier, and git diff --check passed.
