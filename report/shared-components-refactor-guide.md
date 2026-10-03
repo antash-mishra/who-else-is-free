@@ -35,6 +35,7 @@ In this React Native app, "shared CSS" means:
 | Text input                                    | `TextField`                                                                            | `HelpForm`                                                            |
 | Checkbox row                                  | `CheckboxRow`                                                                          | `HelpForm`                                                            |
 | Icon-only close/back/action button            | `IconButton`                                                                           | `ScreenHeader`, `SheetHeader`, Profile notifications bell             |
+| Action toast material                         | `ActionToastSurface`                                                                   | `EventActionBadge`                                                    |
 | Frosted/translucent surface                   | `FrostedSurface`                                                                       | cover chip, avatar edit badge, hero buttons, tab bar, badges          |
 | Tabs or segmented controls                    | `AppTabs`, `SegmentedControl`                                                          | Discover, My Events                                                   |
 | Sliding-underline tabs over a pager           | `SlidingTabs`                                                                          | Event Details requests/members tabs                                   |
@@ -487,7 +488,7 @@ File: `src/components/ui/FrostedSurface.tsx`
 
 What it is:
 
-- Shared frosted-glass surface. Owns the material for every frosted element and applies the same
+- Shared frosted-glass surface. Owns the material for general frosted elements and applies the same
   treatment to iOS and Android, Android's `experimentalBlurMethod` opt-in included.
 - Replaces direct `BlurView` use, which rendered differently per platform: iOS ran a real
   `UIVisualEffectView`, while Android painted a flat scrim unless a surface passed
@@ -504,7 +505,7 @@ Where it is used:
 - Create/Edit Event cover chip and submit button.
 - `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip).
 - Event Details hero buttons (back, menu, overlay close).
-- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip, `EventActionBadge`.
+- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip. Action toasts use `ActionToastSurface` below.
 
 Use it when:
 
@@ -514,7 +515,8 @@ Rules:
 
 - Do not use `BlurView` directly; use `FrostedSurface` for translucent backings.
 - Pass `blur` over photography or hard edges: the cover chip, cover-picker check badge, avatar
-  edit badge, and `EventActionBadge` toast, which can cross text, cards, and images while scrolling.
+  edit badge. Action toasts use their own capture boundary because their label and overlay
+  must be excluded together.
   Over an already-smooth backdrop the tint is measurably
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
@@ -864,14 +866,29 @@ Use it when:
 
 - A signed-out user needs to authenticate from an app surface.
 
+### `ActionToastSurface`
+
+File: `src/components/ui/ActionToastSurface.tsx`
+
+- Owns the action toast material. iOS retains `FrostedSurface` native dark blur at intensity 65
+  plus the existing 40% black scrim.
+- Android uses `modules/toast-blur`, a local Expo view module. Dimezis handles live backdrop
+  capture and lifecycle; our three-pass Gaussian approximation handles filtering on every
+  Android API. Its dp sigma and material color live in the shared theme.
+- The whole toast, including the label, is excluded from capture. Apply its tint once inside
+  the native view; a separate JS scrim would darken its own captured backdrop again.
+- Limited to small transient action toasts; do not replace general `FrostedSurface` with this
+  CPU filter. Changes require a new Android native build. Runtime 1.0.1 prevents an OTA
+  containing the new native view from reaching runtime 1.0.0 clients.
+
 ### `EventActionBadge`
 
 File: `src/components/EventActionBadge.tsx`
 
 What it is:
 
-- Shared transient badge/toast for event action results. Its dark `FrostedSurface` enables real
-  backdrop blur on both platforms, including Android's native blur opt-in.
+- Shared transient badge/toast for event action results. Its `ActionToastSurface` preserves
+  Apple's existing material and uses a calibrated custom blur on Android.
 
 Where it is used:
 

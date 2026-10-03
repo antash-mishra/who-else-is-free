@@ -18,7 +18,7 @@ Who Else Is Free is an event discovery and social coordination app.
 - Chat thread on Android keeps the window in `ADJUST_NOTHING` and pads the thread body by the keyboard lift (`useAndroidKeyboardLift` in `ChatThreadScreen.tsx`), so the composer rises and the message list shrinks together; do not translate the composer alone or the latest messages end up under the keyboard.
 - Text inputs use `typography.inputLetterSpacing` / `inputDetailLetterSpacing` instead of the negative text tracking tokens. Android applies negative letter spacing symmetrically, which pushes a placeholder's first glyph under the caret.
 - Frosted surfaces (cover chip, avatar edit badge, Event Details hero buttons, tab bar, submit
-  button, cover-picker check badge, event card badge strip, `EventActionBadge`) render through the
+  button, cover-picker check badge, event card badge strip) render through the
   shared `FrostedSurface` primitive; do not use `BlurView` directly. `expo-blur` disagreed across
   platforms: iOS ran a real `UIVisualEffectView` while Android painted a flat scrim unless a
   surface passed `experimentalBlurMethod`, and only some of ours did. `FrostedSurface` decides once
@@ -43,6 +43,14 @@ Who Else Is Free is an event discovery and social coordination app.
   per-platform tint on top: the old `heroButtonTint` did that and pushed Android ~28/255 too dark.
   Measured on the WEIF emulator, whose software renderer is not proof of A56 output, the Android
   chip still reads ~15% lighter than iOS; confirm on a physical device before tuning further.
+- Action toasts use `ActionToastSurface` inside `EventActionBadge`. iOS keeps native dark blur at
+  intensity 65 and the existing 40% black scrim. Android uses the local `modules/toast-blur`
+  module: a fixed Gaussian approximation, density-aware sigma, and one calibrated material tint.
+  Keep the label inside this native surface so the backdrop capture excludes the entire toast;
+  a JS sibling scrim is captured again and makes Android darker. Do not tune generic
+  `FrostedSurface` for the toast or add another Android overlay. Rebuild the native Android app
+  after changing this module; app-version OTA runtime 1.0.1 separates it from older clients.
+  Native filter tests: `./android/gradlew -p android :toast-blur:testDebugUnitTest`.
 - Never put Android `elevation` on a translucent surface. Android tessellates an elevation shadow
   into a polygon and draws it behind the caster, so it shows through as a visible octagon; it is
   invisible only while something opaque (such as a `BlurView`) covers the interior, which is why

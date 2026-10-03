@@ -1,96 +1,91 @@
 export default {
   expo: {
-    name: "who-else-is-free",
-    slug: "who-else-is-free",
-    version: "1.0.0",
-    orientation: "portrait",
-    icon: "./assets/weif/icon.png",
-    userInterfaceStyle: "light",
+    name: 'who-else-is-free',
+    slug: 'who-else-is-free',
+    // New Android ToastBlur native module needs a separate OTA runtime.
+    version: '1.0.1',
+    orientation: 'portrait',
+    icon: './assets/weif/icon.png',
+    userInterfaceStyle: 'light',
     newArchEnabled: true,
     splash: {
-      image: "./assets/weif/splash-logo-white.png",
-      resizeMode: "contain",
-      backgroundColor: "#000000",
+      image: './assets/weif/splash-logo-white.png',
+      resizeMode: 'contain',
+      backgroundColor: '#000000',
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.whoelseisfree.app",
-      googleServicesFile:
-        process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
+      bundleIdentifier: 'com.whoelseisfree.app',
+      googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || './GoogleService-Info.plist',
       usesAppleSignIn: true,
       entitlements: {
-        "aps-environment": "development",
+        'aps-environment': 'development',
       },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        UIBackgroundModes: ["remote-notification"],
-        NSLocationWhenInUseUsageDescription:
-          "We use your location to show nearby events first.",
+        UIBackgroundModes: ['remote-notification'],
+        NSLocationWhenInUseUsageDescription: 'We use your location to show nearby events first.',
       },
     },
     android: {
-      package: "com.whoelseisfree.app",
-      googleServicesFile:
-        process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
+      package: 'com.whoelseisfree.app',
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './google-services.json',
       adaptiveIcon: {
-        foregroundImage: "./assets/weif/adaptive-icon.png",
-        backgroundColor: "#ffffff",
+        foregroundImage: './assets/weif/adaptive-icon.png',
+        backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      softwareKeyboardLayoutMode: "pan",
-      permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      softwareKeyboardLayoutMode: 'pan',
+      permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
     },
 
     plugins: [
-      "./plugins/withModularHeaders",
+      './plugins/withModularHeaders',
       [
-        "expo-splash-screen",
+        'expo-splash-screen',
         {
-          backgroundColor: "#000000",
-          image: "./assets/weif/splash-logo-white.png",
+          backgroundColor: '#000000',
+          image: './assets/weif/splash-logo-white.png',
           imageWidth: 184,
-          resizeMode: "contain",
+          resizeMode: 'contain',
           dark: {
-            backgroundColor: "#000000",
-            image: "./assets/weif/splash-logo-white.png",
+            backgroundColor: '#000000',
+            image: './assets/weif/splash-logo-white.png',
             imageWidth: 184,
           },
         },
       ],
-      "expo-font",
+      'expo-font',
       [
-        "@react-native-google-signin/google-signin",
+        '@react-native-google-signin/google-signin',
         {
-          iosUrlScheme:
-            "com.googleusercontent.apps.413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v",
-          iosClientId:
-            "413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v.apps.googleusercontent.com",
+          iosUrlScheme: 'com.googleusercontent.apps.413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v',
+          iosClientId: '413387391765-hlhfet7m38q2m38dnj10gpkhpmtj9g3v.apps.googleusercontent.com',
         },
       ],
-      "expo-apple-authentication",
-      "expo-secure-store",
+      'expo-apple-authentication',
+      'expo-secure-store',
       [
-        "expo-location",
+        'expo-location',
         {
-          locationWhenInUsePermission:
-            "We use your location to show nearby events first.",
+          locationWhenInUsePermission: 'We use your location to show nearby events first.',
         },
       ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging",
-      "./plugins/withNotificationIcon",
+      '@react-native-firebase/app',
+      '@react-native-firebase/messaging',
+      './plugins/withNotificationIcon',
     ],
     extra: {
       eas: {
-        projectId: "c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
+        projectId: 'c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e',
       },
     },
     runtimeVersion: {
-      policy: "appVersion",
+      policy: 'appVersion',
     },
     updates: {
-      url: "https://u.expo.dev/c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e",
+      url: 'https://u.expo.dev/c20e8e63-1fc3-4f22-aca0-f6d4d2fae80e',
     },
   },
 };

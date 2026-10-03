@@ -1,10 +1,12 @@
 import React from 'react';
 
-import { Platform } from 'react-native';
+import { Platform, processColor, StyleSheet } from 'react-native';
 
 import { act, render } from '@testing-library/react-native';
 import { BlurView } from 'expo-blur';
 import * as Reanimated from 'react-native-reanimated';
+
+import { colors, componentTokens } from '@theme/index';
 
 import EventActionBadge from '../EventActionBadge';
 
@@ -26,19 +28,46 @@ describe('EventActionBadge', () => {
     jest.restoreAllMocks();
   });
 
-  it.each(['android', 'ios'] as const)('blurs the content behind the toast on %s', (os) => {
-    Platform.OS = os;
+  it('keeps the existing Apple material on iOS', () => {
+    Platform.OS = 'ios';
     holdBadgeOpen();
-    const { UNSAFE_getByType, getByText } = render(
+    const { UNSAFE_getByType, getByText, getByTestId } = render(
       <EventActionBadge visible label="Plan deleted" />,
     );
     const blur = UNSAFE_getByType(BlurView);
-    expect(blur.props.experimentalBlurMethod).toBe(
-      os === 'android' ? 'dimezisBlurView' : undefined,
-    );
     expect(blur.props.tint).toBe('dark');
     expect(blur.props.intensity).toBe(65);
-    expect(getByText('Plan deleted')).toBeTruthy();
+    expect(blur.props.experimentalBlurMethod).toBeUndefined();
+    const label = getByText('Plan deleted');
+    expect(StyleSheet.flatten(label.props.style).color).toBe(colors.selectedTextOnDark);
+    const surface = getByTestId('action-toast-surface');
+    expect(StyleSheet.flatten(surface.props.style).paddingVertical).toBe(12);
+    const overlay = getByTestId('action-toast-overlay');
+    expect(StyleSheet.flatten(overlay.props.style).backgroundColor).toBe(
+      componentTokens.overlay.backdrop,
+    );
+  });
+
+  it('puts the Android label inside the capture-excluded native material without a second scrim', () => {
+    Platform.OS = 'android';
+    holdBadgeOpen();
+    const { getByTestId, UNSAFE_queryAllByType, getByText } = render(
+      <EventActionBadge visible label="Plan deleted" />,
+    );
+    const surface = getByTestId('action-toast-surface');
+    expect(surface.props.materialColor).toBe(processColor(colors.actionToastAndroidMaterial));
+    expect(surface.props.blurSigmaDp).toBe(12.5);
+    expect(surface.findAllByProps({ children: 'Plan deleted' })).toContain(
+      getByText('Plan deleted'),
+    );
+    expect(UNSAFE_queryAllByType(BlurView)).toHaveLength(0);
+    expect(
+      surface.findAll(
+        (node) =>
+          StyleSheet.flatten(node.props.style)?.backgroundColor ===
+          componentTokens.overlay.backdrop,
+      ),
+    ).toHaveLength(0);
   });
 
   it('renders its label when visible', () => {

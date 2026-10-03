@@ -446,7 +446,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Device result (WEIF_API_36, density 1.75): PASS. A rightward swipe from 69dp over the details area closes; one from 143dp stays. On Requests rows: a rightward swipe from 69dp closes, a leftward swipe from 86dp pages to Members, and a vertical drag from 69dp scrolls. On Members: a rightward swipe from 34dp over the list returns to Requests and stays; a rightward swipe from 69dp over the details area closes. A 6-step flick from the zone over Requests closes. A 3-step adb flick (a 100dp first jump) sprang back because RNGH resets the waiting stack gesture's translation at handover (logged: pager `release fail` → FAILED, never ACTIVE); a finger hands over after about 4dp.
 - Automated: focused Jest suites pass (13 suites, 158 tests), and so do typecheck and Prettier.
 
-
 ## 2026-10-03 — Issue #164: Android toast backdrop blur
 
 - Change: Enable the shared FrostedSurface blur path for EventActionBadge.
@@ -459,7 +458,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
   [original screenshot](https://github.com/antash-mishra/who-else-is-free/blob/9cfac7b397271c42c4ca6536bbcfebab57548860/report/screenshots/issue-164-android-toast-blur.png).
 - Final: PASS on emulator. Physical Android and native iOS remain unverified.
 
-
 ## 2026-10-03 — Issue #164: exact toast background color
 
 - Change: Shared opaque `colors.actionToastBackground` = `#585858`, sampled from
@@ -471,7 +469,6 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Evidence: [Android](https://github.com/antash-mishra/who-else-is-free/blob/e19af12b01ed33a73e90cbe43bcb1390fca30b05/report/screenshots/issue-164-android-toast-color.png) and
   [iOS](https://github.com/antash-mishra/who-else-is-free/blob/e19af12b01ed33a73e90cbe43bcb1390fca30b05/report/screenshots/issue-164-ios-toast-color.png).
 - Final: PASS on emulator/simulator. Physical devices and release builds unverified.
-
 
 ## 2026-10-04 — Issue #164: restore native toast blur
 
@@ -487,3 +484,28 @@ Automated restoration checks: focused badge/material suites 12/12; full frontend
 suite 121 suites / 1,444 tests; typecheck; lint (zero errors, 721 existing warnings);
 touched TypeScript/plan Prettier; and git diff --check passed. Backend tests and
 whole-repository formatting were not run.
+
+## 2026-10-04 — Issue #164: custom Android toast material
+
+- Change: Preserve iOS dark native blur (65 + existing 40% black overlay); use a
+  custom density-aware Gaussian approximation and one calibrated tint on Android.
+- Native checks: rebuilt Android API 36 development APK; actual EventActionBadge
+  on a temporary comparison screen at densities 1.75 and 3, plus iPhone 17 Pro /
+  iOS 26.5 simulator. Label, clipping, entry, and automatic dismissal passed.
+  Temporary entry point, comparison screen, and timing logs were removed.
+- Color probes: fresh black/white output matches iOS at RGB 8/8/8 and 88/88/88.
+  Alternating-bar center-row comparison: mean absolute difference 0.83/255.
+- Actual Android app: local synthetic tester dev-login → My plans → Event Details
+  → action sheet → Edit plan → Save → scroll cover under the toast. Full label,
+  live backdrop and dismissal passed; back navigation returned to My plans.
+- Navigation smoke: Discover, My plans, Create plan, Chat, Profile, event details,
+  the action sheet, and back navigation displayed correctly on Android.
+- Native QA caught text clipping from LinearLayout remeasurement; fixed by
+  preserving Yoga's measured React child sizes, rebuilt, and rechecked.
+- Automated checks: focused React suites 12 tests; full frontend 121 suites /
+  1,444 tests; typecheck; lint (0 errors, 723 warnings); native filter 5 tests;
+  native debug assembly; module lint (0 errors, 1 ViewConstructor warning).
+- Evidence: report/issue-164-implementation.md and its native screenshots.
+- Unverified: physical devices, older Android versions, release-mode performance,
+  and accessibility/OS material variants. Backend tests and whole-repo formatting
+  were not run. Native runtime 1.0.1 requires rebuilt clients.

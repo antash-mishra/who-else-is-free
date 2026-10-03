@@ -1,59 +1,98 @@
-# Issue #164 — Android toast blur
+# Issue #164 — Match Android action toast blur to iOS
 
-## Problem
+## Cause and plan
 
-The shared action toast used FrostedSurface without its blur option. It therefore
-painted a flat translucent tint, leaving text, card edges, and images sharp beneath it.
+Enabling the missing FrostedSurface blur restored texture but did not match the
+iOS material. The solid gray replacement was removed because iOS blur must stay.
 
-## Plan
+Installed expo-blur 15.0.7 uses Apple's UIVisualEffectView on iOS and Dimezis
+BlurView on Android. Dimezis selects RenderEffect on API 31+ and RenderScript on
+older APIs. Its tint, radius, downsampling, and capture differ from Apple.
+[Expo's SDK 54 documentation](https://docs.expo.dev/versions/v54.0.0/sdk/blur-view/)
+also documents the different perceived intensity.
 
-1. Add a toast-boundary regression test for Android and iOS; prove it fails because
-   no BlurView is mounted.
-2. Enable the existing shared blur path on EventActionBadge, preserving its dark
-   tint, intensity, clipping, label, and animation lifecycle.
-3. Document why toasts need blur even outside photography.
-4. Run focused and full frontend tests, typecheck, lint, and touched-file formatting.
-5. Verify on an Android emulator, capture the actual rendered toast, then publish
-   the PR and screenshot evidence to the issue.
+The separate JS scrim and label were included in Android's backdrop capture:
+Dimezis excludes its own BlurView, not those siblings. Applying the scrim again
+made the result too dark. Changing the reduction factor alone did not fix this.
+
+1. Preserve iOS dark blur at intensity 65 and its existing 40% black overlay.
+2. Exclude the entire Android toast, including text, from backdrop capture.
+3. Use one custom filter across Android APIs, with density-aware strength and
+   one calibrated tint; preserve general FrostedSurface behavior.
+4. Compare native output over flat colors, alternating bars, and the actual
+   EventActionBadge; verify label, clipping, entry, and dismissal.
+5. Test, document the native build requirement, and update PR #169 with evidence.
+   Leave the issue thread untouched following the user's subsequent instruction.
 
 ## Implementation
 
-EventActionBadge now passes blur to FrostedSurface. The existing primitive selects
-Android's dimezisBlurView method and keeps native iOS blur. The opaque gray replacement was removed on 2026-10-04 after the user clarified
-that the iOS frosted appearance must be preserved. No custom blur is introduced.
+ActionToastSurface owns the toast material. iOS retains native FrostedSurface
+blur and its overlay. Android uses the local Expo module in modules/toast-blur.
+Dimezis handles live capture and lifecycle; our filter replaces OS-specific
+filtering with three separable box passes approximating a Gaussian.
+Premultiplied alpha avoids fringes around transparent pixels.
 
-The native photo/checkerboard comparison showed different material appearance on
-Android and iOS. Restoring blur does not resolve that color discrepancy; matching
-the Android tint to iOS remains a separate outstanding adjustment.
+The Android filter samples the toast bounds, uses sigma 12.5 dp, and compensates
+for Dimezis' rounded downsampled bitmap width. Its single tint is
+rgba(11, 11, 11, 175/255). Capture excludes the complete toast, preventing its
+overlay and label from feeding back into the background. Yoga owns text
+measurement/layout; native LinearLayout must not remeasure the label after
+allocating all available width to its backdrop.
 
-## Verification
+The new native module requires rebuilt clients. App version 1.0.1 preserves the
+appVersion OTA policy while separating this update from runtime 1.0.0. Do not
+publish its JavaScript to older native clients. Expo Go cannot load this Android
+view.
 
-- Red: both new platform cases failed with no BlurView mounted; existing five
-  badge tests passed.
-- Green: badge and FrostedSurface suites passed (12 tests).
-- Full frontend suite: 121 suites / 1,444 tests passed after applying the existing
-  `patches/@react-navigation+stack+7.6.12.patch` to an isolated dependency copy.
-  The first run lacked that dependency patch and failed its two guard tests;
-  those same unchanged tests also failed in isolation before the patch was applied.
-- Typecheck passed. Lint passed with 724 existing warnings and zero errors.
-- Prettier passed for touched TypeScript and this plan. `git diff --check` passed.
-- Android API 36 emulator: reused the existing native development APK with Metro
-  serving this branch on port 8082 and a separate local dev-login backend on 8083.
-  Signed in as the synthetic tester, created synthetic plans through the local
-  API, opened My plans → Event Details → Edit plan → Save, and captured the
-  `Plan details updated` toast while scrolling the cover underneath it. The label
-  stays readable and the toast dismisses automatically.
-- Physical Android and native iOS verification were not run. Backend tests were
-  not run because backend source is unchanged. Whole-repository formatting was
-  not run because the repository documents a legacy formatting baseline.
+## Native verification
 
-![Android toast over the scrolled cover](screenshots/issue-164-android-toast-blur.png)
+Android API 36 emulator and iPhone 17 Pro / iOS 26.5 simulator ran the actual
+shared component from this branch on a temporary comparison screen. The screen
+and entry-point change were removed. Android was checked at densities 1.75 and 3;
+its original emulator dimensions/density were restored.
 
-## Restoration checks (2026-10-04)
+- Fresh black/white material probes: RGB (8, 8, 8) / (88, 88, 88) on both platforms.
+  These depend on the backdrop; the toast is not an opaque fixed fill.
+- Alternating bars: center-row brightness at 500 normalized positions across
+  the central half of a 10-bar backdrop. iOS range 20–76; Android 20–77; mean
+  absolute difference 0.83/255. This approximation does not establish pixel
+  identity on every image, device, or future iOS version.
+- Actual toast: full label, smooth backdrop, rounded corners, entry animation,
+  and automatic dismissal on both platforms.
+- Warm development filter samples with a 13,248-pixel capture took about
+  1–1.4 ms on this emulator. Cold samples under host memory pressure were much
+  slower; this is diagnostic evidence, not a release performance benchmark.
+- QA caught clipped Android text; preserving Yoga's measured child sizes fixed
+  it. Final screenshots use that rebuilt implementation. Timing logging was
+  removed.
 
-Restored the exact blur implementation previously exercised on the native Android
-and iOS comparison harness. No fresh native screenshots or broad mobile smoke
-test were captured for this restoration.
+| iOS native material                                     | Android custom filter, density 3                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------------ |
+| ![iOS](screenshots/issue-164-ios-toast-native-blur.png) | ![Android](screenshots/issue-164-android-toast-custom-blur-3x.png) |
 
-Focused badge/material tests (12), full frontend tests (121 suites / 1,444 tests),
-typecheck, lint, touched-file Prettier, and git diff --check passed.
+[Android at density 1.75](screenshots/issue-164-android-toast-custom-blur.png).
+
+Normal Android app verification also passed: synthetic tester dev-login → My
+plans → Event Details → action sheet → Edit plan → Save, then scroll the cover
+under the toast. Back navigation, Discover, My plans, Create plan, Chat, and
+Profile displayed correctly. This is a smoke check, not exhaustive feature QA.
+
+![Toast in the normal app flow](screenshots/issue-164-android-toast-app-flow.png)
+
+## Automated verification
+
+- Focused badge/material suites: 12 tests passed.
+- Full frontend suite: 121 suites / 1,444 tests passed.
+- TypeScript typecheck passed.
+- ESLint passed: zero errors, 723 warnings.
+- Native filter: 5 tests passed, covering flat colors/alpha, symmetric edges,
+  fresh captures, tiny captures, and horizontal/vertical consistency.
+- Native debug assembly and module lint passed. Module lint reports one
+  ViewConstructor warning: Expo constructs this view with AppContext instead
+  of XML layout-editor constructors. Dependencies also report deprecated
+  Gradle APIs.
+
+Physical devices, older Android APIs, accessibility/OS material variations, and
+release-mode performance remain unverified. Backend tests and whole-repository
+formatting were not run. Prettier passed for touched JavaScript/TypeScript, JSON,
+and Markdown files; git diff --check passed.

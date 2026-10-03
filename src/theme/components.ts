@@ -28,6 +28,10 @@ export const componentTokens = {
     md: 40,
     lg: 52,
   },
+  actionToast: {
+    iosIntensity: 65,
+    androidBlurSigmaDp: 12.5,
+  },
   overlay: {
     backdrop: 'rgba(0, 0, 0, 0.4)',
     closeButtonBackground: 'rgba(120, 120, 128, 0.16)',

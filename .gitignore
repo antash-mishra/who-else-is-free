@@ -69,3 +69,8 @@ server/assets/covers/*.png
 
 # Local release APKs and full emulator performance traces
 /artifacts/animation-performance/
+
+# Local Expo module build output
+/modules/*/android/build/
+/modules/*/android/.gradle/
+/modules/*/android/.cxx/
