@@ -41,6 +41,10 @@ export default {
       softwareKeyboardLayoutMode: "pan",
       permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
     },
+    androidNavigationBar: {
+      // Let the onboarding gradient continue behind three-button navigation.
+      enforceContrast: false,
+    },
 
     plugins: [
       "./plugins/withModularHeaders",
