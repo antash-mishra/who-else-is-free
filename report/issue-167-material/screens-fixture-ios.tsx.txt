@@ -1,0 +1,86 @@
+import 'react-native-gesture-handler';
+import React, { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { AuthContext, useAuth } from '@context/AuthContext';
+import OnboardingScreen from '@screens/OnboardingScreen';
+import EditProfileScreen from '@screens/EditProfileScreen';
+
+// Development evidence only; never registered in production navigation.
+const MODE = 'EditProfile';
+const Stack = createNativeStackNavigator();
+function Screens() {
+  const { user } = useAuth();
+  if (!user) return <Text>Restoring synthetic profile</Text>;
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName={MODE}
+        screenOptions={{ headerShown: false, animation: 'none' }}
+      >
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen
+          name="Main"
+          component={() => (
+            <View>
+              <Text>Profile completed locally</Text>
+            </View>
+          )}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+export default function Issue167Fixture() {
+  const [fixtureUser, setFixtureUser] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [fonts] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  useEffect(() => {
+    void (async () => {
+      const response = await fetch('http://127.0.0.1:8090/api/dev-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'tester@who-else-is-free.test',
+          name: 'Tester',
+          profile_complete: false,
+        }),
+      });
+      const body = await response.json();
+      const user = { ...body.user, profileComplete: body.user.profile_complete };
+
+      setFixtureUser(user);
+      setReady(true);
+    })();
+  }, []);
+  if (!ready || !fonts)
+    return (
+      <Text style={{ marginTop: 100 }}>
+        Fixture preparing: profile {String(ready)}, fonts {String(fonts)}
+      </Text>
+    );
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <StatusBar style="dark" />
+        <AuthContext.Provider
+          value={{ user: fixtureUser, updateProfile: async () => fixtureUser } as never}
+        >
+          <Screens />
+        </AuthContext.Provider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}

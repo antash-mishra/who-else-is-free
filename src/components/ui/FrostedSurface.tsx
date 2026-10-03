@@ -29,21 +29,24 @@ export interface FrostedSurfaceProps extends Omit<ViewProps, 'style'> {
    * costs a live capture of the screen behind it on every frame.
    */
   blur?: boolean;
+  /** Explicit Android backdrop layer, including its tint; excludes foreground capture. */
+  androidBackdrop?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 }
 
 /**
- * Shared frosted-glass surface. Owns the material for every frosted element in
- * the app (cover chip, avatar edit badge, hero buttons, tab bar, badges) so
- * they render the same on iOS and Android.
+ * Shared policy for translucent fills and legacy native backdrop effects.
+ * Native UIKit and Android capture/tint implementations are different; matching
+ * props alone does not guarantee matching pixels. AvatarEditBadge uses an explicit
+ * Skia backdrop on Android to exclude its foreground camera from the capture.
  *
  * `expo-blur`'s `BlurView` could not do that on its own: iOS ran a real
  * `UIVisualEffectView`, while Android painted a flat scrim unless a surface
  * passed `experimentalBlurMethod`, and only some of ours did. The same
  * component therefore blurred on one platform and not the other. This component
  * makes the choice once per surface and applies it to both platforms —
- * including Android's opt-in — so the two never diverge again.
+ * including Android's opt-in. Validate native results when changing a caller.
  *
  * Layout matches the `BlurView` it replaces: the material is an absolutely
  * positioned layer above the surface's own background and below its children,
@@ -54,12 +57,15 @@ const FrostedSurface: React.FC<FrostedSurfaceProps> = ({
   tint,
   intensity = frostedMaterialDefaultIntensity,
   blur = false,
+  androidBackdrop,
   style,
   children,
   ...rest
 }) => (
   <View {...rest} style={style}>
-    {blur ? (
+    {blur && Platform.OS === 'android' && androidBackdrop ? (
+      androidBackdrop
+    ) : blur ? (
       <BlurView
         pointerEvents="none"
         tint={tint}

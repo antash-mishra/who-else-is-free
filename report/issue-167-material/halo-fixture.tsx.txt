@@ -1,0 +1,49 @@
+import React from 'react';
+import { Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useFonts, Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import UserAvatar from '@components/UserAvatar';
+import AvatarEditBadge from '@components/AvatarEditBadge';
+import AvatarBadgeBackdrop from '@components/AvatarBadgeBackdrop';
+import CameraIcon from '@assets/onboarding/camera.svg';
+
+export default function Issue167Fixture() {
+  const [ready] = useFonts({ Inter_400Regular, Inter_600SemiBold });
+  if (!ready) return null;
+  return (
+    <View style={{ flex: 1, backgroundColor: '#ffffff', alignItems: 'center', paddingTop: 110 }}>
+      <StatusBar style="dark" />
+      <Text style={{ fontFamily: 'Inter_600SemiBold', fontSize: 22 }}>
+        Current iOS material reference
+      </Text>
+      <Text style={{ marginTop: 20 }}>Synthetic avatar · identical geometry</Text>
+      <View style={{ position: 'absolute', top: 250, width: 120, height: 120 }}>
+        <UserAvatar name="Tester" seed={5} size={120} />
+        <AvatarEditBadge name="Tester" seed={5} />
+      </View>
+      {[80, 180, 280].map((left, i) => (
+        <View
+          key={left}
+          style={{
+            position: 'absolute',
+            top: 430,
+            left,
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            overflow: 'hidden',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#fff',
+          }}
+        >
+          {i !== 1 && <AvatarBadgeBackdrop avatar="data:image/jpeg;base64," />}
+          {i !== 2 && <CameraIcon width={20} height={20} color="#707070" />}
+        </View>
+      ))}
+      <Text style={{ position: 'absolute', top: 490 }}>
+        Explicit source · foreground only · no camera
+      </Text>
+    </View>
+  );
+}
