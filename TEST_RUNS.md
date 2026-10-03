@@ -553,3 +553,23 @@ whole-repository formatting were not run.
   Full gates, release build, iOS, and physical-device checks not run.
 - Plan and evidence details: `report/issue-162-plan-details-cover-fix-plan.md`;
   synthetic recordings and test harness remain ignored in `.data/issue-162/`.
+
+## 2026-10-04 — Issue #162 static cover implementation
+
+- PASS: hero is level, full size, and has no Android shadow. Cover and blurred
+  backdrop scroll with the page; both image transitions are disabled.
+- Android 16 / API 36 emulator, 720 × 1600, density 280; existing QA native
+  development client served this checkout through dedicated Metro 8084 and an
+  isolated synthetic-data backend on 8182. Main Android debug rebuild passed.
+- Native opening/reopening, expanded description, scrolling down/up, and back
+  navigation verified. Title and cover bottom each moved 238 pixels in a
+  measured scroll. Screenshot and two inspected native videos are published in
+  `report/screenshots/issue-162/`.
+- Red regression tests proved entry transforms, transition duration, scroll
+  translation, and Android elevation before implementation. Final frontend:
+  125 suites / 1,460 tests passed; typecheck passed; lint 0 errors / 751 warnings;
+  touched-file Prettier and `git diff --check` passed.
+- Unrun: backend suite, full-repository formatting, native iOS, physical phones,
+  release build, uploaded-cover and past-plan manual QA. Relevant read-only,
+  shared motion, URI, reduced-motion, and platform style tests passed.
+- Implementation, provenance, and limitations: `report/issue-162-implementation.md`.

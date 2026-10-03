@@ -1,6 +1,6 @@
 # Issue 162: Plan Details cover reproduction and fix plan
 
-Investigated October 4, 2026. Source: [plan details #162](https://github.com/antash-mishra/who-else-is-free/issues/162). Reviewed the issue and its comment. This is an investigation and implementation plan; no production fix has been made.
+Investigated October 4, 2026. Source: [plan details #162](https://github.com/antash-mishra/who-else-is-free/issues/162). Reviewed the issue and its comment. The investigation below records the original behavior. The fix was subsequently implemented; see [implementation and verification](./issue-162-implementation.md) for current results and remaining device checks.
 
 The requested outcome is a level cover that appears at its final size without a cover transition, scrolls with the page without parallax, and has no Android shadow. Tilt and Android shadow were already visible to the requester; they did not need separate reproduction.
 
