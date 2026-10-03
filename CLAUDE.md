@@ -9,6 +9,10 @@ Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented w
 Who Else Is Free is an event discovery and social coordination app.
 
 - Frontend: React Native Expo app in `src/`
+- Android system navigation uses `androidNavigationBar.enforceContrast: false` in
+  `app.config.js` so three-button navigation does not add a pale scrim over page
+  backgrounds. Preserve safe-area padding and verify system-button legibility.
+  The setting requires prebuild and a native Android rebuild, not an OTA update.
 - Backend: Go Gin server in `server/`
 - API: REST plus WebSocket chat at `/api/ws`
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`

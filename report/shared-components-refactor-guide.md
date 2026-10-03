@@ -653,6 +653,13 @@ Use it when:
 
 ### `ScreenContainer`
 
+Android system-bar appearance is owned by `app.config.js`, separately from screen
+safe-area padding. `androidNavigationBar.enforceContrast: false` lets the page show
+through the three-button navigation area. This needs a native Android rebuild;
+adding bottom padding or resizing an already full-height background cannot remove
+the operating system's contrast scrim. Verify navigation-button legibility when
+changing page backgrounds.
+
 File: `src/components/ScreenContainer.tsx`
 
 What it is:
