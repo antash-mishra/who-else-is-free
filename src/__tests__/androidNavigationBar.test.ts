@@ -1,7 +1,12 @@
 import path from 'node:path';
 
 import { getConfig } from '@expo/config';
-import { AndroidConfig, compileModsAsync, withAndroidStyles } from '@expo/config-plugins';
+import {
+  AndroidConfig,
+  compileModsAsync,
+  withAndroidStyles,
+  withGradleProperties,
+} from '@expo/config-plugins';
 import { withEdgeToEdge } from '@expo/prebuild-config/build/plugins/unversioned/edge-to-edge/withEdgeToEdge';
 
 describe('Android navigation bar native configuration', () => {
@@ -10,18 +15,26 @@ describe('Android navigation bar native configuration', () => {
     const appConfig = getConfig(projectRoot).exp;
     // Supply an existing theme as native prebuild would, including an old value
     // so a rebuild must replace it rather than leave conflicting duplicates.
-    const seededConfig = withAndroidStyles(withEdgeToEdge(appConfig, { projectRoot }), (config) => {
-      config.modResults.resources.style = [
-        {
-          $: { name: 'AppTheme', parent: 'Theme.AppCompat.DayNight.NoActionBar' },
-          item: [
-            { $: { name: 'android:enforceNavigationBarContrast' }, _: 'true' },
-            { $: { name: 'android:editTextBackground' }, _: '@drawable/rn_edit_text_material' },
-          ],
-        },
-      ];
-      return config;
-    });
+    const seededConfig = withAndroidStyles(
+      withGradleProperties(withEdgeToEdge(appConfig, { projectRoot }), (config) => {
+        // Seed the existing native property so introspection is independent of
+        // an ignored android/ directory and must replace the old value.
+        config.modResults = [{ type: 'property', key: 'edgeToEdgeEnabled', value: 'false' }];
+        return config;
+      }),
+      (config) => {
+        config.modResults.resources.style = [
+          {
+            $: { name: 'AppTheme', parent: 'Theme.AppCompat.DayNight.NoActionBar' },
+            item: [
+              { $: { name: 'android:enforceNavigationBarContrast' }, _: 'true' },
+              { $: { name: 'android:editTextBackground' }, _: '@drawable/rn_edit_text_material' },
+            ],
+          },
+        ];
+        return config;
+      },
+    );
     const result = await compileModsAsync(seededConfig, {
       projectRoot,
       platforms: ['android'],
