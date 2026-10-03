@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+- Bottom-tab chrome lives in `src/navigation/TabBarBackground.tsx`: use `FrostedSurface` with real blur at intensity 54 beneath the 60% white overlay so scrolling content is softened on both platforms.
+
 Guide for Claude and other coding agents working in this repository.
 
 Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented workflows.
@@ -9,6 +11,10 @@ Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented w
 Who Else Is Free is an event discovery and social coordination app.
 
 - Frontend: React Native Expo app in `src/`
+- Android system navigation uses `androidNavigationBar.enforceContrast: false` in
+  `app.config.js` so three-button navigation does not add a pale scrim over page
+  backgrounds. Preserve safe-area padding and verify system-button legibility.
+  The setting requires prebuild and a native Android rebuild, not an OTA update.
 - Backend: Go Gin server in `server/`
 - API: REST plus WebSocket chat at `/api/ws`
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`
@@ -22,7 +28,7 @@ Who Else Is Free is an event discovery and social coordination app.
   shared `FrostedSurface` primitive; do not use `BlurView` directly. `expo-blur` disagreed across
   platforms: iOS ran a real `UIVisualEffectView` while Android painted a flat scrim unless a
   surface passed `experimentalBlurMethod`, and only some of ours did. `FrostedSurface` decides once
-  per surface and applies the same treatment to both platforms, Android's opt-in included.
+  per surface, Android's opt-in included; native results still require visual validation.
 - A frosted surface blurs (`blur`) whenever anything with a hard edge passes beneath it, because a
   tint alone leaves that edge running straight through the surface: the Create Event cover chip and
   the cover-picker check badge (photography), and `AvatarEditBadge`, which straddles the avatar's
@@ -43,6 +49,14 @@ Who Else Is Free is an event discovery and social coordination app.
   per-platform tint on top: the old `heroButtonTint` did that and pushed Android ~28/255 too dark.
   Measured on the WEIF emulator, whose software renderer is not proof of A56 output, the Android
   chip still reads ~15% lighter than iOS; confirm on a physical device before tuning further.
+- `AvatarEditBadge` uses `FrostedSurface.androidBackdrop` with `AvatarBadgeBackdrop` on
+  Android. Supply the same avatar URI, name and seed as the 120dp avatar, plus
+  `page="onboarding"` on Onboarding. Skia composes only the avatar and page before
+  blurring; the camera and shadow must stay outside this source. Keep iOS's native
+  intensity-15 material unchanged. `avatarBadgeMaterial` owns the independently
+  calibrated radius, tint and saturation. Legacy native blur callers (cover chip
+  and Cover Picker) still capture the screen on Android; never describe shared
+  intensity as guaranteed pixel parity. Capture both native platforms after changes.
 - Action toasts use `ActionToastSurface` inside `EventActionBadge`. iOS keeps native dark blur at
   intensity 65 and the existing 40% black scrim. Android uses the local `modules/toast-blur`
   module: a fixed Gaussian approximation, density-aware sigma, and one calibrated material tint.

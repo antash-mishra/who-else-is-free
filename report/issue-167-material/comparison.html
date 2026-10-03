@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>Issue 167 camera evidence</title
+  ><style>
+    body {
+      font: 16px system-ui;
+      background: #f6f7fb;
+      color: #202332;
+      margin: 32px;
+      max-width: 960px;
+    }
+    section {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+    figure {
+      margin: 0;
+    }
+    img {
+      width: 280px;
+      height: auto;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+    }
+    .zoom {
+      width: 240px;
+      height: 240px;
+      background-size: 2358px 5112px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+    }
+    h1 {
+      font-size: 26px;
+    }
+    figcaption {
+      margin: 12px 0;
+    }
+  </style>
+  <h1>Camera badge: unchanged iOS and corrected Android</h1>
+  <p>
+    Original simulator captures, same synthetic avatar. Close material match; OS bars and text
+    rendering differ. No screenshot pixels were edited.
+  </p>
+  <section>
+    <figure>
+      <figcaption>iOS 17.4 · current design</figcaption>
+      <div
+        class="zoom"
+        style="
+          background-image: url(ios-edit-profile-photo.png);
+          background-position: -1312px -2280px;
+        "
+      ></div>
+      <p>
+        <a href="ios-edit-profile-photo.png"
+          ><img src="ios-edit-profile-photo.png" alt="iOS Edit Profile"
+        /></a>
+      </p>
+    </figure>
+    <figure>
+      <figcaption>Android 16 · corrected source</figcaption>
+      <div
+        class="zoom"
+        style="
+          background-image: url(android-edit-profile-photo.png);
+          background-position: -1312px -2190px;
+        "
+      ></div>
+      <p>
+        <a href="android-edit-profile-photo.png"
+          ><img src="android-edit-profile-photo.png" alt="Android Edit Profile"
+        /></a>
+      </p>
+    </figure>
+  </section>
+  <p>
+    The Android blur previously captured the camera itself, adding a dark blurred copy underneath.
+    It now blurs only the avatar and page; iOS remains unchanged.
+  </p>
+  <p>
+    Sampled photo backdrop: mean channel difference 1.44/255. Both camera fills are #707070.
+    Physical-device and release checks remain pending.
+  </p>
+  <h1>Onboarding</h1>
+  <section>
+    <figure>
+      <figcaption>iOS</figcaption>
+      <img src="ios-onboarding.png" alt="iOS Onboarding" />
+    </figure>
+    <figure>
+      <figcaption>Android</figcaption>
+      <img src="android-onboarding.png" alt="Android Onboarding" />
+    </figure>
+  </section>
+</html>

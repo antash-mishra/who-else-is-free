@@ -2,6 +2,14 @@
 
 Source: https://github.com/antash-mishra/who-else-is-free/issues/131
 Status: **Phase 1 (reproduction) complete — see Debug Findings below.**
+
+2026-10-03 follow-up: issue #167 clarified that the background must continue below
+the CTA. The earlier #6 explanation concerned button clearance and did not fix
+Android's three-button navigation contrast scrim. On the Android 16 emulator,
+window and screen-root heights both measure 914.286dp, and the pale strip begins
+at the system navigation region (y=1516 of 1600px). See
+`report/issue-167-background-fix-plan.md` for the corrected diagnosis and native
+configuration fix. The historical findings below describe the earlier work.
 Platform note from reporter: issues #1, #2, #4, #6 are **Android-only** (not visible on iOS); the Save-button width issue (#3b) affects **both** platforms.
 
 ## Bug Inventory And Root-Cause Hypotheses

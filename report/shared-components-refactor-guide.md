@@ -489,12 +489,14 @@ File: `src/components/ui/FrostedSurface.tsx`
 What it is:
 
 - Shared frosted-glass surface. Owns the material for general frosted elements and applies the same
-  treatment to iOS and Android, Android's `experimentalBlurMethod` opt-in included.
+  policy on iOS and Android, Android's `experimentalBlurMethod` opt-in included. Native
+  implementations need separate visual checks.
 - Replaces direct `BlurView` use, which rendered differently per platform: iOS ran a real
   `UIVisualEffectView`, while Android painted a flat scrim unless a surface passed
   `experimentalBlurMethod`, and only some of ours did. The same component therefore blurred on one
   platform and not the other.
-- Two paths. `blur` runs a real blur on both platforms; the default tints with a flat fill from
+- Three paths. `androidBackdrop` supplies an explicit composed Android source; otherwise
+  `blur` runs legacy native capture on both platforms; the default tints with a flat fill from
   `src/theme/materials.ts`, whose multipliers were fitted to the iOS material within 1%.
 - The material sits above the surface's own background and below its children, exactly where the
   blur used to sit, so existing styles (including their `backgroundColor` and
@@ -503,9 +505,15 @@ What it is:
 Where it is used:
 
 - Create/Edit Event cover chip and submit button.
-- `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip).
+- `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip): supplies an explicit
+  Android `AvatarBadgeBackdrop`; iOS retains native intensity 15. Pass matching avatar/name/seed
+  and `page="onboarding"` on the gradient page. The 120dp avatar/40dp badge geometry is fixed;
+  changes to placement or avatar size must update source coordinates and native fixtures together.
+  Android radius, tint and saturation live in `avatarBadgeMaterial`, independently calibrated
+  against the unchanged iOS badge. Foreground glyphs and shadows never enter that source.
 - Event Details hero buttons (back, menu, overlay close).
-- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip. Action toasts use `ActionToastSurface` below.
+- Tab bar background (`src/navigation/TabBarBackground.tsx`): real blur at intensity 54 beneath the 60% white overlay.
+- `CoverPickerModal` check badge and `EventCard` badge strip. Action toasts use `ActionToastSurface` below.
 
 Use it when:
 
@@ -514,15 +522,16 @@ Use it when:
 Rules:
 
 - Do not use `BlurView` directly; use `FrostedSurface` for translucent backings.
-- Pass `blur` over photography or hard edges: the cover chip, cover-picker check badge, avatar
-  edit badge. Action toasts use their own capture boundary because their label and overlay
-  must be excluded together.
-  Over an already-smooth backdrop the tint is measurably
+- Pass `blur` over photography or moving content with hard edges, where a tint alone leaves detail sharp: the cover chip,
+  cover-picker check badge, avatar edit badge, and bottom tab bar. Action toasts use their own capture boundary
+  because their label and overlay must be excluded together. Over an already-smooth backdrop the tint is measurably
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
   offscreen-capture pattern that hit a RenderScript crash in release testing.
 - Pass the surface's existing `intensity` (0-100) so it keeps its calibrated weight, and keep the
   surface's own background colour: the material composites over it.
+- Legacy live capture can include sibling foreground on Android. Audit cover chip and Cover Picker
+  before migrating them; do not treat their remaining whole-screen capture as verified parity.
 - Tune material strength in `src/theme/materials.ts`, never with per-platform branches at the call
   site. For the blurred path, Android's radius is `intensity / blurReductionFactor`; the component
   sets 2 because the stock 4 blurs far more weakly than iOS. Adjust that rather than layering a
@@ -655,6 +664,13 @@ Use it when:
 ## Layout, Interaction, And Common Visual Components
 
 ### `ScreenContainer`
+
+Android system-bar appearance is owned by `app.config.js`, separately from screen
+safe-area padding. `androidNavigationBar.enforceContrast: false` lets the page show
+through the three-button navigation area. This needs a native Android rebuild;
+adding bottom padding or resizing an already full-height background cannot remove
+the operating system's contrast scrim. Verify navigation-button legibility when
+changing page backgrounds.
 
 File: `src/components/ScreenContainer.tsx`
 

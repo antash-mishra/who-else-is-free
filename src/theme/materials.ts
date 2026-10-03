@@ -13,9 +13,10 @@
  * and the real blur are indistinguishable, and both platforms can use it.
  *
  * Over photography they are not interchangeable: the tint alone leaves the
- * image's detail sharp. Those surfaces pass `blur` instead, which drives a real
- * blur on both platforms. Android's Dimezis overlay tracks the iOS material
- * within about 5/255 there, so no per-platform compensation is needed.
+ * image's detail sharp. Native `blur` uses different capture/tint implementations
+ * per platform, so historical measurements on a cover patch do not guarantee
+ * parity for other callers. The avatar badge supplies an explicit Android source
+ * and uses its independently calibrated `avatarBadgeMaterial` below.
  *
  * `intensity` keeps the 0-100 scale the blur uses so each surface retains its
  * own calibrated weight; it is a tint strength here, not a blur radius.
@@ -43,3 +44,11 @@ export const frostedFill = (
   const alpha = Math.round((clamped / 100) * multiplier * 1000) / 1000;
   return `rgba(${rgb}, ${alpha})`;
 };
+
+/** Android avatar material fitted to the unchanged iOS light badge at intensity 15.
+ * Explicit radius and tint are independent of native Expo intensity semantics. */
+export const avatarBadgeMaterial = {
+  blurRadius: 4.5,
+  tint: 'rgba(255, 255, 255, 0.62)',
+  saturation: 1.1,
+} as const;

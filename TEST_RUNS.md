@@ -446,6 +446,33 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Device result (WEIF_API_36, density 1.75): PASS. A rightward swipe from 69dp over the details area closes; one from 143dp stays. On Requests rows: a rightward swipe from 69dp closes, a leftward swipe from 86dp pages to Members, and a vertical drag from 69dp scrolls. On Members: a rightward swipe from 34dp over the list returns to Requests and stays; a rightward swipe from 69dp over the details area closes. A 6-step flick from the zone over Requests closes. A 3-step adb flick (a 100dp first jump) sprang back because RNGH resets the waiting stack gesture's translation at handover (logged: pager `release fail` → FAILED, never ACTIVE); a finger hands over after about 4dp.
 - Automated: focused Jest suites pass (13 suites, 158 tests), and so do typecheck and Prettier.
 
+## 2026-10-03 — Issue #167 onboarding background cutoff
+
+- Change: disable Expo's Android three-button navigation contrast scrim via `androidNavigationBar.enforceContrast: false`; retain the existing full-height gradient and CTA clearance. Corrected the earlier #131 interpretation, which only addressed CTA spacing.
+- Baseline: FAIL on Android 16 `WEIF_API_36`, 720x1600 at 280dpi, three-button navigation — pale band begins at y=1516 (system navigation area), despite equal root/window heights.
+- Candidate: PASS on isolated `WEIF_ISSUE_167` / emulator-5556, matching display/OS configuration, rebuilt arm64 debug APK, Metro 8183 and fresh local backend 8090. All three steps cover the bottom in three-button and gesture modes; name keyboard shown/dismissed restores coverage; cold process restart re-enters without a persistent band; synthetic onboarding completes. Discover, My Plans, Messages, Profile and Create Plan retain visible system controls. Create Plan's empty gray background has weaker control contrast and dynamic backgrounds need release-candidate review.
+- Environment failures: initial parallel Gradle build cancelled for memory pressure; retry with two workers and limited compiler parallelism succeeded (682 tasks). Initial clean-emulator startup stalled; headless software rendering with 3GB RAM succeeded. Shared emulator/user checkout left untouched during final verification.
+- Automated: native-config regression proved red (`true` generated), then green; focused 3 suites/66 tests; full Jest 122 suites/1,443 tests; TypeScript clean; ESLint 0 errors/724 existing warnings; targeted changed-code lint clean; new test/report and agent/component references pass Prettier. Config and historical #131 report retain pre-existing formatting failures, confirmed against unchanged HEAD copies. Android prebuild and native assembleDebug passed; `git diff --check` passed.
+- Evidence: unmodified synthetic-data screenshots in `report/issue-167/`; measured diagnosis, exact check commands and limitations in `report/issue-167-background-fix-plan.md`.
+- Not run: affected physical phone, iOS visual checks, first-frame flash measurement, populated Event Details/chat-thread routes. No deployment performed. Native rebuild required; OTA cannot apply this fix. The camera-badge item remains outside scope.
+
+## 2026-10-04 — Issue #167 camera material diagnosis
+
+- Verdict: CONFIRMED on isolated `WEIF_ISSUE_167` / emulator-5556, Android 16/API 36, 720x1600 at 280dpi, SwiftShader. Existing native binary with expo-blur 15.0.7 / Dimezis 2.0.6; temporary diagnostic entry point, no backend or account.
+- Controls: live blur + camera without shadow produces the dark halo; live blur without camera does not; flat tint + same camera without shadow stays sharp. Production badge over a synthetic avatar reproduces the muddy glyph. Capture scope includes the sibling camera, unlike the intended backdrop-only material.
+- Measurement: outside a two-pixel-expanded glyph mask, 598 pixels darken >10/255 (maximum 41/255) when live blur is enabled. Evidence, source and method: `report/issue-167-material/` and `report/issue-167-material-long-term-plan.md`.
+- Automated: focused FrostedSurface suite passed (5 tests); plan formatting and diff checks passed. Production `index.ts` restored; diagnostic source archived as text. No production/dependency changes. No full quality gate needed for this documentation-only investigation.
+- Not run: replacement renderer prototype, older Android backend, affected physical phone, new live iOS comparison or release checks. Root-cause confirmation on this emulator is not a release verdict.
+
+## 2026-10-04 — Issue #167 item 2: camera source correction
+
+- PASS native rendering: isolated iPhone 15 Pro/iOS 17.4 and Android API 36, matched 393x852dp/3x captures. Onboarding gradient and Edit Profile photo/gradient use production screen components with synthetic data. iOS capture used a temporary synthetic context because the reused dev client's SecureStore write stalled; auth/persistence is not verified on iOS. Temporary export and entry point restored.
+- PASS Android native photo selection/crop, onboarding completion on disposable local backend, Edit Profile removal, and cold-start 720x1600/280dpi material control. Changing density live requires a cold JS process (Skia caches PixelRatio); an intermediate live-resize capture was discarded, not counted as a pass.
+- PASS foreground control: explicit-source camera vs foreground-only reference, no shadow, 3,741 outside-mask pixels, zero darkening >10/255, maximum zero. Previous native capture had 598 pixels >10/255. iOS before/after badge ROI: zero changed RGB channels.
+- Cross-platform sampled backdrop MAE: reference 0.480/255, Onboarding 0.680/255, Edit Profile photo 1.437/255. Exact whole-screen equality is not claimed. Original screenshots, fixtures and measurement script: `report/issue-167-material/`.
+- PASS TypeScript, changed-file Prettier, focused badge/image lifecycle tests (6), relevant screen tests and full Jest (123 suites / 1,449 tests). Full lint passes with warning debt; full formatting retains pre-existing failures. See implementation report for exact commands and release limits.
+- NOT RUN: physical/reporter devices, older Android, accessibility matrix, release APK/IPA or physical-device performance. Cover chip and Cover Picker remain legacy native-capture migration risks; no unmeasured redesign shipped. PR remains draft pending release checks.
+
 ## 2026-10-03 — Issue #164: Android toast backdrop blur
 
 - Change: Enable the shared FrostedSurface blur path for EventActionBadge.
