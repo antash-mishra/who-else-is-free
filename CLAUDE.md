@@ -26,8 +26,9 @@ Who Else Is Free is an event discovery and social coordination app.
 - A frosted surface blurs (`blur`) whenever anything with a hard edge passes beneath it, because a
   tint alone leaves that edge running straight through the surface: the Create Event cover chip and
   the cover-picker check badge (photography), and `AvatarEditBadge`, which straddles the avatar's
-  rim so the blur mixes the page behind the avatar into the badge. Measured on the cover chip, the
-  cover behind it varies by 46 (luminance sd); blurred that falls to 6, tinted alone it stays at 34.
+  rim so the blur mixes the page behind the avatar into the badge. `EventActionBadge` also blurs:
+  its toast can cross text, cards, and images as the underlying screen scrolls. Measured on the
+  cover chip, the cover behind it varies by 46 (luminance sd); blurred that falls to 6, tinted alone it stays at 34.
   Do not judge this from a sample taken over a smooth patch of the backdrop - that is how the avatar
   badge was mistakenly first shipped tint-only. Surfaces over a uniformly smooth backdrop do tint
   through `src/theme/materials.ts`, whose multipliers were fitted to the iOS material within 1%

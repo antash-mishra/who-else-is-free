@@ -445,3 +445,16 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
 - Change: `EVENT_DETAILS_BACK_EDGE_WIDTH` 50 → 100dp after Galaxy A56 feedback that the very edge was hard to find. Inside the Requests/Members pager the tabs win: the pager only releases (fails in `onTouchesMove`) a rightward drag on Requests that starts in the zone; on Members a rightward drag from anywhere returns to Requests.
 - Device result (WEIF_API_36, density 1.75): PASS. A rightward swipe from 69dp over the details area closes; one from 143dp stays. On Requests rows: a rightward swipe from 69dp closes, a leftward swipe from 86dp pages to Members, and a vertical drag from 69dp scrolls. On Members: a rightward swipe from 34dp over the list returns to Requests and stays; a rightward swipe from 69dp over the details area closes. A 6-step flick from the zone over Requests closes. A 3-step adb flick (a 100dp first jump) sprang back because RNGH resets the waiting stack gesture's translation at handover (logged: pager `release fail` → FAILED, never ACTIVE); a finger hands over after about 4dp.
 - Automated: focused Jest suites pass (13 suites, 158 tests), and so do typecheck and Prettier.
+
+
+## 2026-10-03 — Issue #164: Android toast backdrop blur
+
+- Change: Enable the shared FrostedSurface blur path for EventActionBadge.
+- Environment: Android API 36 WEIF_API_36 emulator; existing development APK,
+  current branch served by Metro on 8082; isolated local backend on 8083.
+- Flow: Synthetic tester dev-login → My plans → Event Details → Edit plan → Save;
+  scroll the event cover under the visible Plan details updated toast.
+- Attempt 1: PASS — native toast renders over the cover with readable text and
+  rounded clipping; automatic dismissal completes. Screenshot:
+  `report/screenshots/issue-164-android-toast-blur.png`.
+- Final: PASS on emulator. Physical Android and native iOS remain unverified.

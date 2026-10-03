@@ -1,6 +1,9 @@
 import React from 'react';
 
+import { Platform } from 'react-native';
+
 import { act, render } from '@testing-library/react-native';
+import { BlurView } from 'expo-blur';
 import * as Reanimated from 'react-native-reanimated';
 
 import EventActionBadge from '../EventActionBadge';
@@ -16,8 +19,26 @@ const holdBadgeOpen = () => {
 };
 
 describe('EventActionBadge', () => {
+  const originalOS = Platform.OS;
+
   afterEach(() => {
+    Platform.OS = originalOS;
     jest.restoreAllMocks();
+  });
+
+  it.each(['android', 'ios'] as const)('blurs the content behind the toast on %s', (os) => {
+    Platform.OS = os;
+    holdBadgeOpen();
+    const { UNSAFE_getByType, getByText } = render(
+      <EventActionBadge visible label="Plan deleted" />,
+    );
+    const blur = UNSAFE_getByType(BlurView);
+    expect(blur.props.experimentalBlurMethod).toBe(
+      os === 'android' ? 'dimezisBlurView' : undefined,
+    );
+    expect(blur.props.tint).toBe('dark');
+    expect(blur.props.intensity).toBe(65);
+    expect(getByText('Plan deleted')).toBeTruthy();
   });
 
   it('renders its label when visible', () => {

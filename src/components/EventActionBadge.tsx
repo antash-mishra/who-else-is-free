@@ -130,6 +130,7 @@ const EventActionBadgeBody = ({
       {...panResponder.panHandlers}
     >
       <FrostedSurface
+        blur
         tint="dark"
         intensity={65}
         style={[StyleSheet.absoluteFill, styles.blurClip]}

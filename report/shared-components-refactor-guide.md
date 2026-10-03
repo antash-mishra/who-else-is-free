@@ -513,8 +513,9 @@ Use it when:
 Rules:
 
 - Do not use `BlurView` directly; use `FrostedSurface` for translucent backings.
-- Pass `blur` only over photography, where a tint alone leaves image detail sharp: the cover chip
-  and the cover-picker check badge. Over an already-smooth backdrop the tint is measurably
+- Pass `blur` over photography or hard edges: the cover chip, cover-picker check badge, avatar
+  edit badge, and `EventActionBadge` toast, which can cross text, cards, and images while scrolling.
+  Over an already-smooth backdrop the tint is measurably
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
   offscreen-capture pattern that hit a RenderScript crash in release testing.
@@ -869,7 +870,8 @@ File: `src/components/EventActionBadge.tsx`
 
 What it is:
 
-- Shared transient badge/toast for event action results.
+- Shared transient badge/toast for event action results. Its dark `FrostedSurface` enables real
+  backdrop blur on both platforms, including Android's native blur opt-in.
 
 Where it is used:
 
