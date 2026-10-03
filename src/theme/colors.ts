@@ -10,6 +10,10 @@ export const colors = {
   surface: '#F8F9FC',
   card: '#FFFFFF',
   actionSurface: 'rgba(0, 0, 0, 0.08)',
+  // Sampled from the iOS action toast over a white page; use an opaque fill so
+  // native blur/tint and the underlying screen cannot change its color.
+  actionToastBackground: '#585858',
+  actionToastText: '#FFFFFF',
   primary: '#000000',
   secondary: '#2563EB',
   accent: '#4338CA',

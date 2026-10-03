@@ -456,5 +456,18 @@ Validation: 117 Jest suites / 1,428 tests passed; final shared-transition rerun 
   scroll the event cover under the visible Plan details updated toast.
 - Attempt 1: PASS — native toast renders over the cover with readable text and
   rounded clipping; automatic dismissal completes. Screenshot:
-  `report/screenshots/issue-164-android-toast-blur.png`.
+  [original screenshot](https://github.com/antash-mishra/who-else-is-free/blob/9cfac7b397271c42c4ca6536bbcfebab57548860/report/screenshots/issue-164-android-toast-blur.png).
 - Final: PASS on emulator. Physical Android and native iOS remain unverified.
+
+
+## 2026-10-03 — Issue #164: exact toast background color
+
+- Change: Shared opaque `colors.actionToastBackground` = `#585858`, sampled from
+  the previous iOS toast over a white page; replaces native blur/tint layers.
+- Flow: Actual EventActionBadge rendered on a temporary comparison screen over
+  the same photo/checkerboard backdrop on Android API 36 and iOS 26.5.
+- Attempt 1: PASS — six interior pixels per platform all equal RGB (88, 88, 88);
+  readable white label, rounded clipping, and automatic dismissal remain.
+- Evidence: `report/screenshots/issue-164-android-toast-color.png` and
+  `report/screenshots/issue-164-ios-toast-color.png`.
+- Final: PASS on emulator/simulator. Physical devices and release builds unverified.

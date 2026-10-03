@@ -18,7 +18,7 @@ Who Else Is Free is an event discovery and social coordination app.
 - Chat thread on Android keeps the window in `ADJUST_NOTHING` and pads the thread body by the keyboard lift (`useAndroidKeyboardLift` in `ChatThreadScreen.tsx`), so the composer rises and the message list shrinks together; do not translate the composer alone or the latest messages end up under the keyboard.
 - Text inputs use `typography.inputLetterSpacing` / `inputDetailLetterSpacing` instead of the negative text tracking tokens. Android applies negative letter spacing symmetrically, which pushes a placeholder's first glyph under the caret.
 - Frosted surfaces (cover chip, avatar edit badge, Event Details hero buttons, tab bar, submit
-  button, cover-picker check badge, event card badge strip, `EventActionBadge`) render through the
+  button, cover-picker check badge, event card badge strip) render through the
   shared `FrostedSurface` primitive; do not use `BlurView` directly. `expo-blur` disagreed across
   platforms: iOS ran a real `UIVisualEffectView` while Android painted a flat scrim unless a
   surface passed `experimentalBlurMethod`, and only some of ours did. `FrostedSurface` decides once
@@ -26,9 +26,8 @@ Who Else Is Free is an event discovery and social coordination app.
 - A frosted surface blurs (`blur`) whenever anything with a hard edge passes beneath it, because a
   tint alone leaves that edge running straight through the surface: the Create Event cover chip and
   the cover-picker check badge (photography), and `AvatarEditBadge`, which straddles the avatar's
-  rim so the blur mixes the page behind the avatar into the badge. `EventActionBadge` also blurs:
-  its toast can cross text, cards, and images as the underlying screen scrolls. Measured on the
-  cover chip, the cover behind it varies by 46 (luminance sd); blurred that falls to 6, tinted alone it stays at 34.
+  rim so the blur mixes the page behind the avatar into the badge. Measured on the cover chip, the
+  cover behind it varies by 46 (luminance sd); blurred that falls to 6, tinted alone it stays at 34.
   Do not judge this from a sample taken over a smooth patch of the backdrop - that is how the avatar
   badge was mistakenly first shipped tint-only. Surfaces over a uniformly smooth backdrop do tint
   through `src/theme/materials.ts`, whose multipliers were fitted to the iOS material within 1%
@@ -43,6 +42,9 @@ Who Else Is Free is an event discovery and social coordination app.
   per-platform tint on top: the old `heroButtonTint` did that and pushed Android ~28/255 too dark.
   Measured on the WEIF emulator, whose software renderer is not proof of A56 output, the Android
   chip still reads ~15% lighter than iOS; confirm on a physical device before tuning further.
+- `EventActionBadge` uses the opaque `colors.actionToastBackground` (`#585858`) and
+  `colors.actionToastText` tokens on both platforms. Its background must stay the exact same
+  color over every screen; do not add native blur, tint, or translucent overlay layers to it.
 - Never put Android `elevation` on a translucent surface. Android tessellates an elevation shadow
   into a polygon and draws it behind the caster, so it shows through as a visible octagon; it is
   invisible only while something opaque (such as a `BlurView`) covers the interior, which is why
