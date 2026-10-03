@@ -504,7 +504,8 @@ Where it is used:
 - Create/Edit Event cover chip and submit button.
 - `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip).
 - Event Details hero buttons (back, menu, overlay close).
-- Tab bar background, `CoverPickerModal` check badge, `EventCard` badge strip, `EventActionBadge`.
+- Tab bar background (`src/navigation/TabBarBackground.tsx`): real blur at intensity 54 beneath the 60% white overlay.
+- `CoverPickerModal` check badge, `EventCard` badge strip, `EventActionBadge`.
 
 Use it when:
 
@@ -513,8 +514,8 @@ Use it when:
 Rules:
 
 - Do not use `BlurView` directly; use `FrostedSurface` for translucent backings.
-- Pass `blur` only over photography, where a tint alone leaves image detail sharp: the cover chip
-  and the cover-picker check badge. Over an already-smooth backdrop the tint is measurably
+- Pass `blur` over photography or moving content with hard edges, where a tint alone leaves detail sharp: the cover chip,
+  cover-picker check badge, avatar edit badge, and bottom tab bar. Over an already-smooth backdrop the tint is measurably
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
   offscreen-capture pattern that hit a RenderScript crash in release testing.

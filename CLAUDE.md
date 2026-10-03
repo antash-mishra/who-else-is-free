@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+- Bottom-tab chrome lives in `src/navigation/TabBarBackground.tsx`: use `FrostedSurface` with real blur at intensity 54 beneath the 60% white overlay so scrolling content is softened on both platforms.
+
 Guide for Claude and other coding agents working in this repository.
 
 Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented workflows.
