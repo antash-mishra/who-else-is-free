@@ -585,3 +585,15 @@ whole-repository formatting were not run.
 - Evidence: `report/screenshots/issue-168/` (reviewed screenshots and two MP4 recordings).
 - Limits: native iOS, physical Android, release builds, deployment, and action-toast native rendering unverified.
 - Details: `report/issue-168-implementation.md`.
+
+## 2026-10-04 — Issue 168 full-page correction
+
+- Previous overlay proof was rejected by the user: the required presentation is the full EventDetails page without a CTA.
+- Red: six focused regressions failed on the overlay route and full-page CTA before implementation.
+- Change: group chat, private chat, and 1:1 hub headers now navigate to EventDetails with hideBottomCTA; ordinary page entry retains its CTA.
+- Android 16 emulator, synthetic local API 8168 and Metro 8169; installed development client reused.
+- Group header entry: PASS — inspected full-screen screenshot with Go back, More actions, Requests/Members, and no pinned CTA or exposed chat backdrop. Go back returned to chat.
+- Checks: 156 focused screen tests and all 126 frontend suites / 1,468 tests passed; TypeScript passed; ESLint 0 errors / 721 warnings; touched-file formatting and diff checks passed.
+- 1:1 hub header entry: PASS — inspected full-screen Requests/Accepted page without a bottom CTA.
+- Native iOS, physical Android, release builds, and backend tests were not run.
+- Evidence will be shown in chat; no new issue comment is authorized until user approval.

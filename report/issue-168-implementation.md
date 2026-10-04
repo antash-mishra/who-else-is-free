@@ -2,7 +2,7 @@
 
 Implemented October 4, 2026 for [issue #168](https://github.com/antash-mishra/who-else-is-free/issues/168), on `codex/issue-168-chat-plan-details`, based on `master` at `4eee544`.
 
-Chat headers now open the normal interactive Plan Details content inside the existing bottom sheet. The bottom CTA and its reserved space are suppressed independently of `readOnly`. Group hosts see Requests/Members; 1:1 hosts see Requests/Accepted, without duplicate sections. The member summary, description, permission-based plan actions, and existing request refresh behavior are retained. More actions is on the left; Close remains on the right. A 1:1 host's report/block/remove actions remain available from a separate header button. Historical and explicitly read-only views retain their previous behavior.
+Corrected after user review: chat headers now open the full-page EventDetails route, rather than EventDetailsOverlay. The bottom CTA and its reserved space are suppressed independently of `readOnly`. Group hosts see Requests/Members; 1:1 hosts see Requests/Accepted, without duplicate sections. The member summary, description, permission-based plan actions, and existing request refresh behavior are retained. Go back is on the left; More actions is on the right. A 1:1 host's report/block/remove actions remain available from a separate header button. Historical and explicitly read-only views retain their previous behavior.
 
 ## Validation
 
@@ -16,11 +16,22 @@ Chat headers now open the normal interactive Plan Details content inside the exi
 - Full-repository Prettier: failed on 216 files; the repository has an existing formatting baseline. No broad formatting rewrite was applied.
 - Local QA backend: compiled with `go build`; backend tests were not run because no backend code changed.
 
-## Android visual verification
+## Corrected full-page proof
+
+On October 4, the user rejected the overlay presentation. Six updated regression tests failed before the route/CTA correction; the three affected screen suites then passed all 156 tests, and the full frontend passed all 126 suites / 1,468 tests. TypeScript, ESLint (0 errors / 721 warnings), changed-file formatting, and diff checks passed. Full formatting still reports the existing 216-file baseline.
+
+Inspected fresh Android screenshots reached through the group chat and 1:1 hub headers: the hero begins below the status bar, Back and More actions are at the page top, full details and host tabs are visible, and there is no exposed chat backdrop or bottom CTA. Native iOS and release builds remain unverified. These screenshots are shown to the user in chat; a new issue comment awaits explicit approval.
+
+![Corrected group full page](./screenshots/issue-168/group-full-page-android.png)
+![Corrected 1:1 full page](./screenshots/issue-168/single-full-page-android.png)
+
+## Earlier Android overlay verification (superseded)
 
 Verified on `WEIF_ISSUE_167` / `emulator-5554`, Android 16, 720 × 1600, using the installed `com.whoelseisfree.app` development client. Metro served this branch on port 8169 and an isolated local API served synthetic data on port 8168. Tokens, the disposable database, raw logs, and setup script remain ignored under `.data/issue-168/`. The existing checkout and other running services were preserved.
 
 Verified group and 1:1 header entry, vertical scrolling, Requests/Members and Requests/Accepted tabs, absence of bottom CTAs, nested plan-action menus, the dedicated person-action button, and Close/system-back returning to the chat or hub. Opening Edit plan was additionally verified after fixing native modal focus; Back restored the details sheet. Tapping an Accepted guest opened their private chat without the sheet blocking it, and Back returned to the 1:1 hub. Videos were captured from the running app and inspected as filmstrips. These are synthetic QA plans and users, not production conversations.
+
+The following captures document the initial, incorrect overlay presentation. They are not proof of the corrected full-page behavior.
 
 ![Group plan details](./screenshots/issue-168/group-details-android.png)
 ![Group requests without a bottom CTA](./screenshots/issue-168/group-requests-android.png)

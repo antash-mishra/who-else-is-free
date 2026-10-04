@@ -652,7 +652,7 @@ const ChatThreadScreen = () => {
         onTitlePress={() => {
           if (activeConversation?.eventId) {
             triggerHaptic('light');
-            navigation.navigate('EventDetailsOverlay', {
+            navigation.navigate('EventDetails', {
               eventId: String(activeConversation.eventId),
               hideBottomCTA: true,
             });

@@ -60,8 +60,7 @@ const EventDetailsScreenContent = ({
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
   const isOverlay = route.name === 'EventDetailsOverlay';
-  const hideBottomCTA =
-    isOverlay && 'hideBottomCTA' in route.params && route.params.hideBottomCTA === true;
+  const hideBottomCTA = 'hideBottomCTA' in route.params && route.params.hideBottomCTA === true;
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();

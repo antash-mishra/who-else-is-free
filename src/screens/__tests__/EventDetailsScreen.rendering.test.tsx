@@ -1812,24 +1812,24 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
   });
 
-  describe('Chat plan details sheet', () => {
+  describe('Chat full plan details page', () => {
     let routeSpy: jest.SpyInstance;
 
     afterEach(() => {
       routeSpy?.mockRestore();
     });
 
-    const openChatSheet = (eventId: string) => {
+    const openChatPage = (eventId: string) => {
       routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue({
         key: 'chat-plan-details',
-        name: 'EventDetailsOverlay',
+        name: 'EventDetails',
         params: { eventId, hideBottomCTA: true },
       });
     };
 
     it('shows normal host group details, Requests/Members and plan actions without a CTA', async () => {
       mockEventsState.events = [mockOwnedEvent];
-      openChatSheet(mockOwnedEvent.id);
+      openChatPage(mockOwnedEvent.id);
 
       const view = render(<EventDetailsScreen />);
 
@@ -1839,7 +1839,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(view.getByText('Members')).toBeTruthy();
       expect(view.queryByText('Go to chat')).toBeNull();
       expect(view.queryByText('Request to join')).toBeNull();
-      expect(view.getByLabelText('Close')).toBeTruthy();
+      expect(view.getByLabelText('Go back')).toBeTruthy();
       fireEvent.press(view.getByLabelText('More actions'));
       expect(view.getByText('Edit plan')).toBeTruthy();
 
@@ -1856,7 +1856,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.user = mockOtherUser;
       mockEventsState.events = [mockSingleEvent];
       mockChatState.conversations = [];
-      openChatSheet(mockSingleEvent.id);
+      openChatPage(mockSingleEvent.id);
 
       const view = render(<EventDetailsScreen />);
 
@@ -1878,7 +1878,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockAuthState.user = mockOtherUser;
       mockEventsState.events = [mockNonOwnedEvent];
       mockChatState.conversations = [];
-      openChatSheet(mockNonOwnedEvent.id);
+      openChatPage(mockNonOwnedEvent.id);
 
       const view = render(<EventDetailsScreen />);
 
@@ -1886,7 +1886,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(view.queryByText('Request to join')).toBeNull();
       expect(view.queryByText('Go to chat')).toBeNull();
       expect(view.queryByText('Requests')).toBeNull();
-      fireEvent.press(view.getByLabelText('Close'));
+      fireEvent.press(view.getByLabelText('Go back'));
       expect(mockGoBack).toHaveBeenCalledTimes(1);
     });
   });

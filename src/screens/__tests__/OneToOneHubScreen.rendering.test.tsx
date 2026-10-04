@@ -317,7 +317,7 @@ describe('OneToOneHubScreen Rendering', () => {
     it('opens normal plan details without a bottom CTA from the hub header', () => {
       const view = render(<OneToOneHubScreen />);
       fireEvent.press(view.getByLabelText('View plan details'));
-      expect(mockNavigate).toHaveBeenCalledWith('EventDetailsOverlay', {
+      expect(mockNavigate).toHaveBeenCalledWith('EventDetails', {
         eventId: '1',
         hideBottomCTA: true,
       });

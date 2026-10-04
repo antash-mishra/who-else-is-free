@@ -9,6 +9,7 @@ export type RootStackParamList = {
     origin?: 'Events' | 'MyEvents';
     showEventUpdatedBadge?: boolean;
     readOnly?: boolean;
+    hideBottomCTA?: boolean;
   };
   EventDetailsOverlay: {
     eventId: string;

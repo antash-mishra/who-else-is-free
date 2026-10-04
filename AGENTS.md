@@ -354,7 +354,7 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 
 ## Plan details and input-sheet contracts
 
-- Chat headers open interactive `EventDetailsOverlay` with `hideBottomCTA: true`; this hides only the pinned CTA and its reserved space. Keep `readOnly` for historical/legacy read-only views. Interactive sheets reuse normal host Requests/Members or Requests/Accepted tabs and plan actions, with More actions on the left and Close on the right. A 1:1 host's person moderation menu remains a separate header IconButton.
+- Chat headers open the full-page `EventDetails` route with `hideBottomCTA: true`; this hides only the pinned CTA and its reserved space. Keep `readOnly` for historical/legacy read-only views. Chat plan details reuse normal host Requests/Members or Requests/Accepted tabs and plan actions, with Go back on the left and More actions on the right. A 1:1 host's person moderation menu remains a separate header IconButton.
 
 - Group member presentation includes the host exactly once, first with a Host label and no moderation menu. Group headline counts and Members lists use the same roster. The 1:1 Accepted list remains requester-only.
 - Event Details member reports carry an explicit person target; plan and person prompts must identify the same target as their submit handler. Accepted guests read their intro from More actions, not an inline Introduction section.

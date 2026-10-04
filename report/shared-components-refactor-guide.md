@@ -1573,9 +1573,9 @@ What they are:
   heading and loading/error/empty presentation. Preserve host labels, description state, parallax,
   and inset spacing; active host pagers and overlay routes keep their existing ScrollView paths.
 - `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white
-  fade gradient. Chat headers open the interactive `EventDetailsOverlay` with `hideBottomCTA: true`
-  to suppress these CTAs and their reserved space independently of `readOnly`. These sheets retain
-  normal host tabs and plan actions; Close stays on the right and More actions on the left.
+  fade gradient. Chat headers open the full-page `EventDetails` route with `hideBottomCTA: true`
+  to suppress these CTAs and their reserved space independently of `readOnly`. These pages retain
+  normal host tabs and plan actions; Go back stays on the left and More actions on the right.
   In 1:1 host chats, a separate header `IconButton` opens person moderation actions.
 
 Styling:

@@ -211,7 +211,7 @@ describe('ChatThreadScreen Rendering', () => {
       setupMocks();
       const view = render(<ChatThreadScreen />);
       fireEvent.press(view.getByTestId('chat-event-info-button'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetailsOverlay', {
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetails', {
         eventId: String(mockConversations[0].eventId),
         hideBottomCTA: true,
       });
@@ -858,7 +858,7 @@ describe('ChatThreadScreen Rendering', () => {
       const view = render(<ChatThreadScreen />);
       fireEvent.press(view.getByTestId('chat-event-info-button'));
 
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetailsOverlay', {
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetails', {
         eventId: '7',
         hideBottomCTA: true,
       });
