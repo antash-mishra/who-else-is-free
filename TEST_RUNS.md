@@ -573,3 +573,15 @@ whole-repository formatting were not run.
   release build, uploaded-cover and past-plan manual QA. Relevant read-only,
   shared motion, URI, reduced-motion, and platform style tests passed.
 - Implementation, provenance, and limitations: `report/issue-162-implementation.md`.
+
+## 2026-10-04 — Issue 168: Plan Details from chat
+
+- Change: interactive plan details in the chat sheet, with only the bottom CTA hidden; dedicated 1:1 person-action button.
+- Flow: local dev-login → Chat → group header → Requests/Members → plan actions → Close; 1:1 hub header → Requests/Accepted → Close → private chat header → system Back → person actions.
+- Attempt 1: PASS — normal details, role-specific tabs, no duplicate sections or pinned CTA; Close and Android Back returned to the originating chat/hub.
+- Attempt 2: FAIL — Edit plan opened behind the Android native sheet. Added a failing focus regression, then made native modal visibility follow route focus.
+- Attempt 3: PASS — editor exposed its controls; Android Back restored the details sheet; Accepted guest navigation opened private chat and Back returned to the 1:1 hub.
+- Final: PASS on Android emulator (`WEIF_ISSUE_167`, Android 16, 720 × 1600), synthetic local API on 8168 and branch Metro on 8169.
+- Evidence: `report/screenshots/issue-168/` (reviewed screenshots and two MP4 recordings).
+- Limits: native iOS, physical Android, release builds, deployment, and action-toast native rendering unverified.
+- Details: `report/issue-168-implementation.md`.

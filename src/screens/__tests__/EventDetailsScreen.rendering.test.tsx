@@ -1812,6 +1812,85 @@ describe('EventDetailsScreen Rendering Tests', () => {
     });
   });
 
+  describe('Chat plan details sheet', () => {
+    let routeSpy: jest.SpyInstance;
+
+    afterEach(() => {
+      routeSpy?.mockRestore();
+    });
+
+    const openChatSheet = (eventId: string) => {
+      routeSpy = jest.spyOn(require('@react-navigation/native'), 'useRoute').mockReturnValue({
+        key: 'chat-plan-details',
+        name: 'EventDetailsOverlay',
+        params: { eventId, hideBottomCTA: true },
+      });
+    };
+
+    it('shows normal host group details, Requests/Members and plan actions without a CTA', async () => {
+      mockEventsState.events = [mockOwnedEvent];
+      openChatSheet(mockOwnedEvent.id);
+
+      const view = render(<EventDetailsScreen />);
+
+      expect(view.getByTestId('going-row')).toBeTruthy();
+      expect(view.getByText('Plan details')).toBeTruthy();
+      expect(view.getByText('Requests')).toBeTruthy();
+      expect(view.getByText('Members')).toBeTruthy();
+      expect(view.queryByText('Go to chat')).toBeNull();
+      expect(view.queryByText('Request to join')).toBeNull();
+      expect(view.getByLabelText('Close')).toBeTruthy();
+      fireEvent.press(view.getByLabelText('More actions'));
+      expect(view.getByText('Edit plan')).toBeTruthy();
+
+      await waitFor(() => {
+        expect(mockChatState.refreshJoinRequests).toHaveBeenCalledWith(
+          mockEventConversation.id,
+          Number(mockOwnedEvent.id),
+          { includeApproved: false },
+        );
+      });
+    });
+
+    it('shows normal 1:1 host Requests/Accepted tabs without duplicating Accepted or showing a CTA', async () => {
+      mockAuthState.user = mockOtherUser;
+      mockEventsState.events = [mockSingleEvent];
+      mockChatState.conversations = [];
+      openChatSheet(mockSingleEvent.id);
+
+      const view = render(<EventDetailsScreen />);
+
+      expect(view.getByText('Requests')).toBeTruthy();
+      expect(view.getAllByText('Accepted')).toHaveLength(1);
+      expect(view.getByLabelText('More actions')).toBeTruthy();
+      expect(view.queryByText('Go to chat')).toBeNull();
+      expect(view.queryByText('Members')).toBeNull();
+      await waitFor(() => {
+        expect(mockChatState.refreshJoinRequests).toHaveBeenCalledWith(
+          -Number(mockSingleEvent.id),
+          Number(mockSingleEvent.id),
+          { includeApproved: true },
+        );
+      });
+    });
+
+    it('hides the join CTA for a non-member and closes back to chat', () => {
+      mockAuthState.user = mockOtherUser;
+      mockEventsState.events = [mockNonOwnedEvent];
+      mockChatState.conversations = [];
+      openChatSheet(mockNonOwnedEvent.id);
+
+      const view = render(<EventDetailsScreen />);
+
+      expect(view.getByTestId('event-details-title')).toBeTruthy();
+      expect(view.queryByText('Request to join')).toBeNull();
+      expect(view.queryByText('Go to chat')).toBeNull();
+      expect(view.queryByText('Requests')).toBeNull();
+      fireEvent.press(view.getByLabelText('Close'));
+      expect(mockGoBack).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Overlay Members Tab', () => {
     let routeSpy: jest.SpyInstance;
 
@@ -1856,7 +1935,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       expect(getByText('Liam Test (you)')).toBeTruthy();
     });
 
-    it('shows Members tab with action menu for host in overlay group event', () => {
+    it('shows normal Requests/Members tabs for host in an interactive group overlay', () => {
       // Host user viewing overlay
       mockAuthState.user = mockUser; // Ava, id: 1
       mockEventsState.events = [mockOwnedEvent]; // ownerId: 1
@@ -1882,8 +1961,8 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       // Members tab should appear
       expect(getByText('Members')).toBeTruthy();
-      // Host Requests/Members tabs should NOT appear (overlay + group)
-      expect(queryByText('Requests')).toBeNull();
+      // Interactive overlays use the same host tabs as normal plan details.
+      expect(queryByText('Requests')).toBeTruthy();
     });
 
     it('shows approved members in an Accepted tab for a 1:1 host overlay and omits the host', async () => {

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 
+import { useIsFocused } from '@react-navigation/native';
 import { type StackScreenProps } from '@react-navigation/stack';
 
 import { RootStackParamList } from '@navigation/types';
@@ -86,6 +87,7 @@ export const SheetRoute = ({
   children: SheetRouteChildren;
   onClose: () => void;
 }) => {
+  const isFocused = useIsFocused();
   const opacity = useRef(new Animated.Value(1)).current;
   const hasRequestedClose = useRef(false);
 
@@ -130,7 +132,7 @@ export const SheetRoute = ({
       onRequestClose={requestClose}
       statusBarTranslucent
       transparent
-      visible
+      visible={isFocused}
     >
       <Animated.View style={[styles.androidSheetModalBackdrop, { opacity }]}>
         <SheetWrapper onClose={requestClose}>{content}</SheetWrapper>

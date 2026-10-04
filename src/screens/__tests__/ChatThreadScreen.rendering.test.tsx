@@ -207,6 +207,17 @@ describe('ChatThreadScreen Rendering', () => {
       expect(getByText(/See you soon!/)).toBeTruthy();
     });
 
+    it('opens normal plan details without a bottom CTA from the group header', () => {
+      setupMocks();
+      const view = render(<ChatThreadScreen />);
+      fireEvent.press(view.getByTestId('chat-event-info-button'));
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetailsOverlay', {
+        eventId: String(mockConversations[0].eventId),
+        hideBottomCTA: true,
+      });
+      expect(view.queryByTestId('chat-person-actions-button')).toBeNull();
+    });
+
     it('should display conversation title in header', () => {
       setupMocks();
       const { getByText } = render(<ChatThreadScreen />);
@@ -834,6 +845,26 @@ describe('ChatThreadScreen Rendering', () => {
       imageUri: 'https://example.com/event-cover.jpg',
     };
 
+    it('opens plan details from the single-chat header without opening person actions', () => {
+      setupMocks({
+        chatOverrides: {
+          activeConversationId: 55,
+          conversations: [singleConversation],
+          messages: [],
+        },
+        eventsOverrides: { events: [singleEvent] },
+      });
+
+      const view = render(<ChatThreadScreen />);
+      fireEvent.press(view.getByTestId('chat-event-info-button'));
+
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('EventDetailsOverlay', {
+        eventId: '7',
+        hideBottomCTA: true,
+      });
+      expect(view.queryByTestId('action-overlay-menu')).toBeNull();
+    });
+
     it('should open the member action menu from the single-chat header', () => {
       setupMocks({
         chatOverrides: {
@@ -848,7 +879,7 @@ describe('ChatThreadScreen Rendering', () => {
 
       const { getByTestId, getByText } = render(<ChatThreadScreen />);
 
-      fireEvent.press(getByTestId('chat-event-info-button'));
+      fireEvent.press(getByTestId('chat-person-actions-button'));
 
       expect(getByTestId('action-overlay-menu')).toBeTruthy();
       expect(getByText('Report & block Liam')).toBeTruthy();
@@ -869,7 +900,7 @@ describe('ChatThreadScreen Rendering', () => {
 
       const { getByTestId, getByText, queryByTestId } = render(<ChatThreadScreen />);
 
-      fireEvent.press(getByTestId('chat-event-info-button'));
+      fireEvent.press(getByTestId('chat-person-actions-button'));
       fireEvent.press(getByTestId('menu-item-0'));
 
       expect(getByTestId('action-overlay-confirm')).toBeTruthy();
@@ -903,7 +934,7 @@ describe('ChatThreadScreen Rendering', () => {
 
       const { getByTestId } = render(<ChatThreadScreen />);
 
-      fireEvent.press(getByTestId('chat-event-info-button'));
+      fireEvent.press(getByTestId('chat-person-actions-button'));
       fireEvent.press(getByTestId('menu-item-1'));
 
       await waitFor(() => {

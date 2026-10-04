@@ -194,7 +194,7 @@ const OneToOneHubScreen = () => {
           triggerHaptic('light');
           navigation.navigate('EventDetailsOverlay', {
             eventId: String(eventId),
-            readOnly: true,
+            hideBottomCTA: true,
           });
         }}
         rightElement={

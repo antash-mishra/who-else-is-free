@@ -12,7 +12,8 @@ export type RootStackParamList = {
   };
   EventDetailsOverlay: {
     eventId: string;
-    readOnly: true;
+    readOnly?: true;
+    hideBottomCTA?: boolean;
   };
   OneToOneHub: {
     conversationId: number;

@@ -60,6 +60,8 @@ const EventDetailsScreenContent = ({
   const route = useRoute<EventDetailsRoute>();
   const readOnly = (route.params as { readOnly?: boolean }).readOnly ?? false;
   const isOverlay = route.name === 'EventDetailsOverlay';
+  const hideBottomCTA =
+    isOverlay && 'hideBottomCTA' in route.params && route.params.hideBottomCTA === true;
   const handleOverlayClose = onOverlayClose ?? navigation.goBack;
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -257,7 +259,7 @@ const EventDetailsScreenContent = ({
   const showOpenChatCTA = isOwner
     ? isSingleEvent || !!eventConversation
     : isConversationMember && !!eventConversation;
-  const shouldPinBottomCTA = !readOnly && (showStandardCTA || showOpenChatCTA);
+  const shouldPinBottomCTA = !readOnly && !hideBottomCTA && (showStandardCTA || showOpenChatCTA);
   const heroTopInset = isOverlay ? 0 : insets.top;
   const floatingButtonTop = isOverlay ? 12 : insets.top + 10;
   const overlayBottomPadding = isOverlay ? Math.max(insets.bottom + spacing.lg, spacing.xl) : 0;
@@ -353,6 +355,20 @@ const EventDetailsScreenContent = ({
             <ChevronLeftIcon width={24} height={24} color={colors.buttonText} />
           </Pressable>
         )}
+        {isOverlay && !readOnly && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="More actions"
+            onPress={() => {
+              triggerHaptic('light');
+              setShowMenuOverlay(true);
+            }}
+            style={[styles.backButton, { top: floatingButtonTop }]}
+          >
+            <HeroButtonMaterial />
+            <MoreHorizontalIcon width={24} height={24} color={colors.buttonText} />
+          </Pressable>
+        )}
         {readOnly && !isOverlay ? (
           <ReadOnlyEventDetails
             hero={hero}
@@ -376,7 +392,7 @@ const EventDetailsScreenContent = ({
               {info}
 
               {/* Host-only: Separator, Tabs, Requests/Members lists */}
-              {isOwner && !readOnly && !(isOverlay && !isSingleEvent) && (
+              {isOwner && !readOnly && (
                 <HostRequestTabs
                   isSingleEvent={isSingleEvent}
                   pendingRequests={pendingRequests}
@@ -396,19 +412,22 @@ const EventDetailsScreenContent = ({
               )}
 
               {/* Overlay: Members tab for group events (all users) */}
-              {!isSingleEvent && isOverlay && (isOwner || isConversationMember) && (
-                <EventDetailsMembers
-                  variant="overlay"
-                  members={overlayMembers}
-                  currentUserId={user?.id}
-                  hostId={event.ownerId}
-                  isOwner={isOwner}
-                  onOpenMemberMenu={openMemberMenu}
-                />
-              )}
+              {!isSingleEvent &&
+                isOverlay &&
+                (!isOwner || readOnly) &&
+                (isOwner || isConversationMember) && (
+                  <EventDetailsMembers
+                    variant="overlay"
+                    members={overlayMembers}
+                    currentUserId={user?.id}
+                    hostId={event.ownerId}
+                    isOwner={isOwner}
+                    onOpenMemberMenu={openMemberMenu}
+                  />
+                )}
 
               {/* Overlay: Accepted tab for 1:1 hosts (approved requesters only; no host row) */}
-              {isSingleEvent && isOverlay && isOwner && (
+              {isSingleEvent && isOverlay && isOwner && readOnly && (
                 <EventDetailsMembers
                   variant="accepted"
                   members={acceptedRequests.map((request) => request.requester)}
