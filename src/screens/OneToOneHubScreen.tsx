@@ -192,9 +192,9 @@ const OneToOneHubScreen = () => {
         coverSource={getCoverSource(resolvedCoverKey)}
         onTitlePress={() => {
           triggerHaptic('light');
-          navigation.navigate('EventDetailsOverlay', {
+          navigation.navigate('EventDetails', {
             eventId: String(eventId),
-            readOnly: true,
+            hideBottomCTA: true,
           });
         }}
         rightElement={

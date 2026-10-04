@@ -1573,7 +1573,10 @@ What they are:
   heading and loading/error/empty presentation. Preserve host labels, description state, parallax,
   and inset spacing; active host pagers and overlay routes keep their existing ScrollView paths.
 - `EventDetailsCTA.tsx` — pinned Interested/Pending Request and Go to Chat CTAs over the white
-  fade gradient.
+  fade gradient. Chat headers open the full-page `EventDetails` route with `hideBottomCTA: true`
+  to suppress these CTAs and their reserved space independently of `readOnly`. These pages retain
+  normal host tabs and plan actions; Go back stays on the left and More actions on the right.
+  In 1:1 host chats, a separate header `IconButton` opens person moderation actions.
 
 Styling:
 
@@ -1841,3 +1844,5 @@ Screenshots captured during the shared-component review:
 - Successful event creation uses `completeEventCreation`: pass the hydrated `navigationRef.getRootState()`, select My Events with a targeted tab `jumpTo` and await its render opportunity before popping the form, so dismissal reveals My Plans directly. The helper guards against a changed top route during that wait. A stack-only state snapshot can omit the child key; `navigate` also changes parent focus. Keep the nested pop destination as the unmounted-tab fallback.
 
 - `usePrepareCreateEvent` prepares one hidden Create form after Main navigation interactions settle and the cover catalog finishes loading. Reuse an existing prepared route; never replace a live Create/Edit draft. Create-start analytics run on actual focus, and the initial default time is refreshed only when stale. Keep preparation cancellable on blur and keep hidden forms out of hit testing/accessibility through the stack preload mechanism. Create Event explicitly accepts horizontal back gestures across the screen width while retaining its upward opening/downward closing transition; short drags cancel and vertical form scrolling remains available.
+
+- Android navigation sheet routes show their native modal only while focused, so opening an editor or chat hides the sheet and returning restores it.

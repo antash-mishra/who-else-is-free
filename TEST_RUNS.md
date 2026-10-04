@@ -573,3 +573,35 @@ whole-repository formatting were not run.
   release build, uploaded-cover and past-plan manual QA. Relevant read-only,
   shared motion, URI, reduced-motion, and platform style tests passed.
 - Implementation, provenance, and limitations: `report/issue-162-implementation.md`.
+
+## 2026-10-04 — Issue 168: Plan Details from chat
+
+- Change: interactive plan details in the chat sheet, with only the bottom CTA hidden; dedicated 1:1 person-action button.
+- Flow: local dev-login → Chat → group header → Requests/Members → plan actions → Close; 1:1 hub header → Requests/Accepted → Close → private chat header → system Back → person actions.
+- Attempt 1: PASS — normal details, role-specific tabs, no duplicate sections or pinned CTA; Close and Android Back returned to the originating chat/hub.
+- Attempt 2: FAIL — Edit plan opened behind the Android native sheet. Added a failing focus regression, then made native modal visibility follow route focus.
+- Attempt 3: PASS — editor exposed its controls; Android Back restored the details sheet; Accepted guest navigation opened private chat and Back returned to the 1:1 hub.
+- Final: PASS on Android emulator (`WEIF_ISSUE_167`, Android 16, 720 × 1600), synthetic local API on 8168 and branch Metro on 8169.
+- Evidence: `report/screenshots/issue-168/` (reviewed screenshots and two MP4 recordings).
+- Limits: native iOS, physical Android, release builds, deployment, and action-toast native rendering unverified.
+- Details: `report/issue-168-implementation.md`.
+
+## 2026-10-04 — Issue 168 full-page correction
+
+- Previous overlay proof was rejected by the user: the required presentation is the full EventDetails page without a CTA.
+- Red: six focused regressions failed on the overlay route and full-page CTA before implementation.
+- Change: group chat, private chat, and 1:1 hub headers now navigate to EventDetails with hideBottomCTA; ordinary page entry retains its CTA.
+- Android 16 emulator, synthetic local API 8168 and Metro 8169; installed development client reused.
+- Group header entry: PASS — inspected full-screen screenshot with Go back, More actions, Requests/Members, and no pinned CTA or exposed chat backdrop. Go back returned to chat.
+- Checks: 156 focused screen tests and all 126 frontend suites / 1,468 tests passed; TypeScript passed; ESLint 0 errors / 721 warnings; touched-file formatting and diff checks passed.
+- 1:1 hub header entry: PASS — inspected full-screen Requests/Accepted page without a bottom CTA.
+- Native iOS, physical Android, release builds, and backend tests were not run.
+- Evidence will be shown in chat; no new issue comment is authorized until user approval.
+
+## 2026-10-04 — Issue 168 approved video proof
+
+- PASS: recorded group chat → full Plan Details → Members and scroll → Back; Chat → 1:1 hub → full Plan Details → Accepted → Back.
+- Android 16 emulator and existing synthetic local API/Metro; inspected the 93-second recording as a filmstrip. Both pages fill the screen and have no bottom CTA.
+- Evidence: `report/screenshots/issue-168/full-page-flow-android.mp4`.
+- User explicitly approved posting the corrected video and pushing the change.
+- Only evidence/documentation changed in this follow-up; formatting and diff checks run, frontend tests not repeated. Previous 1,468-test result applies to unchanged production code.

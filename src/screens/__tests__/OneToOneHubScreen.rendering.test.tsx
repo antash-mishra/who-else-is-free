@@ -314,6 +314,15 @@ describe('OneToOneHubScreen Rendering', () => {
       ];
     });
 
+    it('opens normal plan details without a bottom CTA from the hub header', () => {
+      const view = render(<OneToOneHubScreen />);
+      fireEvent.press(view.getByLabelText('View plan details'));
+      expect(mockNavigate).toHaveBeenCalledWith('EventDetails', {
+        eventId: '1',
+        hideBottomCTA: true,
+      });
+    });
+
     it('should render event cover image in 1:1 mode', () => {
       const { getByTestId } = render(<OneToOneHubScreen />);
 

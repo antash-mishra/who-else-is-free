@@ -9,10 +9,12 @@ export type RootStackParamList = {
     origin?: 'Events' | 'MyEvents';
     showEventUpdatedBadge?: boolean;
     readOnly?: boolean;
+    hideBottomCTA?: boolean;
   };
   EventDetailsOverlay: {
     eventId: string;
-    readOnly: true;
+    readOnly?: true;
+    hideBottomCTA?: boolean;
   };
   OneToOneHub: {
     conversationId: number;

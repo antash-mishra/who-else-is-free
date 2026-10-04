@@ -23,10 +23,11 @@ import {
 } from 'react-native-keyboard-controller';
 
 import SendIcon from '@assets/chat/send.svg';
+import MoreHorizontalIcon from '@assets/ui/more-horizontal.svg';
 import ScreenContainer from '@components/ScreenContainer';
 import ChatEventHeader from '@components/ChatEventHeader';
 import ConnectionStatusIndicator from '@components/ConnectionStatusIndicator';
-import { CountBadge } from '@components/ui';
+import { CountBadge, IconButton } from '@components/ui';
 import EventActionOverlay from '@components/EventActionOverlay';
 import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
 import UserAvatar from '@components/UserAvatar';
@@ -649,24 +650,28 @@ const ChatThreadScreen = () => {
           ) : undefined
         }
         onTitlePress={() => {
-          if (canOpenSingleChatActions && counterpart) {
-            memberActions.openMenu({
-              userId: counterpart.id,
-              name: counterpart.name,
-            });
-            return;
-          }
           if (activeConversation?.eventId) {
             triggerHaptic('light');
-            navigation.navigate('EventDetailsOverlay', {
+            navigation.navigate('EventDetails', {
               eventId: String(activeConversation.eventId),
-              readOnly: true,
+              hideBottomCTA: true,
             });
           }
         }}
-        titleAccessibilityLabel={canOpenSingleChatActions ? 'Open actions' : 'View plan details'}
+        titleAccessibilityLabel="View plan details"
         rightElement={
           <>
+            {canOpenSingleChatActions && counterpart ? (
+              <IconButton
+                icon={<MoreHorizontalIcon width={24} height={24} color={colors.text} />}
+                accessibilityLabel={`Open actions for ${counterpart.name}`}
+                testID="chat-person-actions-button"
+                size="sm"
+                onPress={() =>
+                  memberActions.openMenu({ userId: counterpart.id, name: counterpart.name })
+                }
+              />
+            ) : null}
             {isConnecting ? (
               <ConnectionStatusIndicator visible testID="chat-connection-status" />
             ) : null}

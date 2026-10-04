@@ -306,6 +306,8 @@ Keep route params typed in `src/navigation/types.ts`. Avoid `navigation as any`,
 
 ## Plan details and input-sheet contracts
 
+- Chat headers open the full-page `EventDetails` route with `hideBottomCTA: true`; this hides only the pinned CTA and its reserved space. Keep `readOnly` for historical/legacy read-only views. Chat plan details reuse normal host Requests/Members or Requests/Accepted tabs and plan actions, with Go back on the left and More actions on the right. A 1:1 host's person moderation menu remains a separate header IconButton.
+
 - Group member presentation includes the host exactly once, first with a Host label and no moderation menu. Group headline counts and Members lists use the same roster. The 1:1 Accepted list remains requester-only.
 - Event Details member reports carry an explicit person target; plan and person prompts must identify the same target as their submit handler. Accepted guests read their intro from More actions, not an inline Introduction section.
 - `EventActionConfirm.headerAlign` defaults to left and every confirmation, removal included, uses that default; the prop is currently unused. Report-plan menu entries use normal text; destructive leaving/removal retains its warning color.
@@ -331,3 +333,5 @@ Keep route params typed in `src/navigation/types.ts`. Avoid `navigation as any`,
 - Successful event creation uses `completeEventCreation`: pass the hydrated `navigationRef.getRootState()`, select My Events with a targeted tab `jumpTo` and await its render opportunity before popping the form, so dismissal reveals My Plans directly. The helper guards against a changed top route during that wait. A stack-only state snapshot can omit the child key; `navigate` also changes parent focus. Keep the nested pop destination as the unmounted-tab fallback.
 
 - `usePrepareCreateEvent` prepares one hidden Create form after Main navigation interactions settle and the cover catalog finishes loading. Reuse an existing prepared route; never replace a live Create/Edit draft. Create-start analytics run on actual focus, and the initial default time is refreshed only when stale. Keep preparation cancellable on blur and keep hidden forms out of hit testing/accessibility through the stack preload mechanism. Create Event explicitly accepts horizontal back gestures across the screen width while retaining its upward opening/downward closing transition; short drags cancel and vertical form scrolling remains available.
+
+- Android navigation sheet routes show their native modal only while focused, so opening an editor or chat hides the sheet and returning restores it.
