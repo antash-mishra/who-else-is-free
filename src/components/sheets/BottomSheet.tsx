@@ -90,6 +90,7 @@ const BottomSheet = ({
   const shouldAnimateOnShowRef = useRef(false);
   const nativeModalShownRef = useRef(false);
   const visibleRef = useRef(visible);
+  const presentationRef = useRef(presentation);
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
   const keyboardOffset = useSharedValue(0);
@@ -227,6 +228,12 @@ const BottomSheet = ({
 
   useEffect(() => {
     visibleRef.current = visible;
+    if (presentationRef.current !== presentation) {
+      // A different native window must report its own onShow before entry starts.
+      presentationRef.current = presentation;
+      nativeModalShownRef.current = false;
+      shouldAnimateOnShowRef.current = false;
+    }
     let frame: number | undefined;
     if (visible) {
       if (closeTimerRef.current) {

@@ -99,7 +99,7 @@ const CreateEventSheetContent = ({
     case 'dateTime':
       return (
         <EventDateTimePickerContent
-          visible={activeSheet === 'dateTime' && isSheetReady}
+          visible={activeSheet === 'dateTime'}
           value={selectedDateTime}
           minDate={pickerMinDate}
           maxDate={pickerMaxDate}

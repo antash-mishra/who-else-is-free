@@ -142,3 +142,31 @@ it('cancels a pending close when reopened and permits a later close', () => {
   expect(closed).toHaveBeenCalledTimes(1);
   expect(view.queryByText('Content')).toBeNull();
 });
+
+it('waits for a new native onShow when switching modal to inline and back', () => {
+  const raf = jest.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 0);
+  const spring = jest.spyOn(Reanimated, 'withSpring');
+  const view = render(
+    <BottomSheet visible onClose={jest.fn()} presentation="modal" animation="spring">
+      <Text>Content</Text>
+    </BottomSheet>,
+  );
+  act(() => view.UNSAFE_getByType(Modal).props.onShow());
+  expect(spring).toHaveBeenCalledTimes(1);
+  view.rerender(
+    <BottomSheet visible onClose={jest.fn()} presentation="inline" animation="spring">
+      <Text>Content</Text>
+    </BottomSheet>,
+  );
+  expect(raf).toHaveBeenCalledTimes(1);
+  view.rerender(
+    <BottomSheet visible onClose={jest.fn()} presentation="modal" animation="spring">
+      <Text>Content</Text>
+    </BottomSheet>,
+  );
+  expect(raf).toHaveBeenCalledTimes(1);
+  act(() => view.UNSAFE_getByType(Modal).props.onShow());
+  expect(spring).toHaveBeenCalledTimes(2);
+  raf.mockRestore();
+  spring.mockRestore();
+});

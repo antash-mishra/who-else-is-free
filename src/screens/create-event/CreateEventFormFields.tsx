@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Image } from 'expo-image';
@@ -146,4 +148,4 @@ const CreateEventFormFields = ({
   </>
 );
 
-export default CreateEventFormFields;
+export default memo(CreateEventFormFields);

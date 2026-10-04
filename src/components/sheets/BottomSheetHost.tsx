@@ -2,18 +2,20 @@ import React, {
   ReactNode,
   createContext,
   useCallback,
+  useEffect,
   useContext,
   useMemo,
   useRef,
   useState,
 } from 'react';
 
-import { StyleProp, ViewStyle } from 'react-native';
+import { BackHandler, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
-import BottomSheet from './BottomSheet';
+import BottomSheet, { BottomSheetPresentation } from './BottomSheet';
 
 export type BottomSheetDescriptor = {
   children: ReactNode;
+  presentation?: BottomSheetPresentation;
   title?: string;
   avoidKeyboard?: boolean;
   snapHeight?: number;
@@ -71,27 +73,50 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
   const value = useMemo(() => ({ present, dismiss }), [dismiss, present]);
   const descriptor = sheet?.descriptor;
 
+  const isInline = sheet !== null && descriptor?.presentation === 'inline';
+  useEffect(() => {
+    if (!isInline) return undefined;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (visibleRef.current) sheetRef.current?.descriptor.onClose();
+      // Consume back throughout exit so it cannot also pop the underlying route.
+      return true;
+    });
+    return () => subscription.remove();
+  }, [isInline]);
+
   return (
     <BottomSheetHostContext.Provider value={value}>
-      {children}
-      {descriptor ? (
-        <BottomSheet
-          visible={visible}
-          onClose={descriptor.onClose}
-          title={descriptor.title}
-          avoidKeyboard={descriptor.avoidKeyboard}
-          snapHeight={descriptor.snapHeight}
-          testID={descriptor.testID}
-          backdropTestID={descriptor.backdropTestID}
-          closeTestID={descriptor.closeTestID}
-          contentTestID={descriptor.contentTestID}
-          contentStyle={descriptor.contentStyle}
-          onOpened={descriptor.onOpened}
-          onClosed={handleClosed}
+      <View style={styles.root}>
+        <View
+          style={styles.root}
+          testID="bottom-sheet-host-content"
+          pointerEvents={isInline ? 'none' : 'auto'}
+          accessibilityElementsHidden={isInline}
+          importantForAccessibility={isInline ? 'no-hide-descendants' : 'auto'}
         >
-          {descriptor.children}
-        </BottomSheet>
-      ) : null}
+          {children}
+        </View>
+        {descriptor ? (
+          <BottomSheet
+            visible={visible}
+            presentation={descriptor.presentation}
+            animation="spring"
+            onClose={descriptor.onClose}
+            title={descriptor.title}
+            avoidKeyboard={descriptor.avoidKeyboard}
+            snapHeight={descriptor.snapHeight}
+            testID={descriptor.testID}
+            backdropTestID={descriptor.backdropTestID}
+            closeTestID={descriptor.closeTestID}
+            contentTestID={descriptor.contentTestID}
+            contentStyle={descriptor.contentStyle}
+            onOpened={descriptor.onOpened}
+            onClosed={handleClosed}
+          >
+            {descriptor.children}
+          </BottomSheet>
+        ) : null}
+      </View>
     </BottomSheetHostContext.Provider>
   );
 };
@@ -106,3 +131,5 @@ export const useBottomSheetHost = () => {
 };
 
 export const useOptionalBottomSheetHost = () => useContext(BottomSheetHostContext);
+
+const styles = StyleSheet.create({ root: { flex: 1 } });

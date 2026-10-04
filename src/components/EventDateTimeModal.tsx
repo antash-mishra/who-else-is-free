@@ -1,5 +1,14 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InteractionManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -16,7 +25,6 @@ import styles from './EventDateTimeModal.styles';
 
 const WHEEL_ITEM_HEIGHT = 44;
 const DRAG_END_SETTLE_DELAY_MS = 16;
-const WHEEL_MOUNT_DEFER_FRAMES = 2;
 
 const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1)); // ["1".."12"]
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')); // ["00".."59"]
@@ -38,7 +46,6 @@ export type EventDateTimeModalProps = {
   maxDate: Date;
   onClose: () => void;
   onConfirm: (value: Date) => void;
-  deferWheelMount?: boolean;
 };
 
 type EventDateTimePickerContentProps = Omit<EventDateTimeModalProps, 'onClose'>;
@@ -104,17 +111,15 @@ export const EventDateTimePickerContent = ({
   minDate,
   maxDate,
   onConfirm,
-  deferWheelMount = true,
 }: EventDateTimePickerContentProps) => {
   const [draftValue, setDraftValue] = useState(() =>
     clampDateTime(toSafeDate(value), minDate, maxDate),
   );
   const [error, setError] = useState<string | null>(null);
-  const [wheelContentReady, setWheelContentReady] = useState(false);
 
-  const dateWheelRef = useRef<ScrollView>(null);
-  const hourWheelRef = useRef<ScrollView>(null);
-  const minuteWheelRef = useRef<ScrollView>(null);
+  const dateWheelRef = useRef<FlatList<string>>(null);
+  const hourWheelRef = useRef<FlatList<string>>(null);
+  const minuteWheelRef = useRef<FlatList<string>>(null);
   const amPmWheelRef = useRef<ScrollView>(null);
   const wheelMomentumStateRef = useRef<Record<string, boolean>>({});
   const wheelDragSettleTimeoutRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>(
@@ -141,53 +146,40 @@ export const EventDateTimePickerContent = ({
   const selectedHourLogical = hour24ToIndex(draftValue.getHours());
   const selectedMinuteLogical = draftValue.getMinutes();
   const selectedAmPmIndex = draftValue.getHours() >= 12 ? 1 : 0;
-  const shouldRenderWheels = !deferWheelMount || (visible && wheelContentReady);
 
   const scrollWheelToIndex = useCallback(
-    (ref: RefObject<ScrollView | null>, index: number, animated = false) => {
-      ref.current?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
+    (ref: RefObject<ScrollView | FlatList<string> | null>, index: number, animated = false) => {
+      const wheel = ref.current;
+      if (wheel instanceof FlatList) {
+        wheel.scrollToOffset({ offset: index * WHEEL_ITEM_HEIGHT, animated });
+      } else {
+        wheel?.scrollTo({ y: index * WHEEL_ITEM_HEIGHT, animated });
+      }
     },
     [],
   );
 
+  const cancelPendingWheelSettles = useCallback(() => {
+    Object.values(wheelDragSettleTimeoutRef.current).forEach((timeout) => {
+      if (timeout !== null) clearTimeout(timeout);
+    });
+    wheelDragSettleTimeoutRef.current = {};
+    wheelMomentumStateRef.current = {};
+    wheelOffsetRef.current = {};
+    wheelUserDragRef.current = {};
+  }, []);
+
   useEffect(() => {
+    cancelPendingWheelSettles();
     if (!visible) return;
     const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
-    setDraftValue(initialDraft);
+    setDraftValue((current) =>
+      current.getTime() === initialDraft.getTime() ? current : initialDraft,
+    );
     setError(null);
-  }, [maxDate, minDate, value, visible]);
+  }, [cancelPendingWheelSettles, maxDate, minDate, value, visible]);
 
-  useEffect(() => {
-    if (!visible || !deferWheelMount) {
-      return undefined;
-    }
-
-    let isCancelled = false;
-    const animationFrames: number[] = [];
-    const scheduleWheelMount = (remainingFrames: number) => {
-      const frame = requestAnimationFrame(() => {
-        if (isCancelled) {
-          return;
-        }
-        if (remainingFrames <= 1) {
-          setWheelContentReady(true);
-          return;
-        }
-        scheduleWheelMount(remainingFrames - 1);
-      });
-      animationFrames.push(frame);
-    };
-
-    const interactionHandle = InteractionManager.runAfterInteractions(() => {
-      scheduleWheelMount(WHEEL_MOUNT_DEFER_FRAMES);
-    });
-
-    return () => {
-      isCancelled = true;
-      interactionHandle.cancel();
-      animationFrames.forEach((frame) => globalThis.cancelAnimationFrame(frame));
-    };
-  }, [deferWheelMount, visible]);
+  useEffect(() => cancelPendingWheelSettles, [cancelPendingWheelSettles]);
 
   const applyDateIndex = useCallback(
     (index: number) => {
@@ -259,7 +251,7 @@ export const EventDateTimePickerContent = ({
 
   const renderWheel = useCallback(
     (
-      ref: RefObject<ScrollView | null>,
+      ref: RefObject<ScrollView | FlatList<string> | null>,
       items: string[],
       snapOffsets: number[],
       isSelected: (index: number) => boolean,
@@ -295,62 +287,89 @@ export const EventDateTimePickerContent = ({
         }
       };
 
-      return (
-        <ScrollView
-          ref={ref}
-          contentOffset={{ x: 0, y: initialOffset }}
-          showsVerticalScrollIndicator={false}
-          snapToOffsets={snapOffsets}
-          decelerationRate="fast"
-          contentContainerStyle={styles.wheelContentContainer}
-          onScroll={(e) => {
-            wheelOffsetRef.current[keyPrefix] = e.nativeEvent.contentOffset.y;
-          }}
-          scrollEventThrottle={16}
-          onScrollBeginDrag={() => {
-            clearDragSettleTimeout();
-            wheelMomentumStateRef.current[keyPrefix] = false;
-            wheelUserDragRef.current[keyPrefix] = true;
-          }}
-          onMomentumScrollBegin={() => {
-            clearDragSettleTimeout();
-            wheelMomentumStateRef.current[keyPrefix] = true;
-          }}
-          onScrollEndDrag={(e) => {
-            const y =
-              e.nativeEvent.targetContentOffset?.y ??
-              wheelOffsetRef.current[keyPrefix] ??
-              e.nativeEvent.contentOffset.y;
-            clearDragSettleTimeout();
-            wheelDragSettleTimeoutRef.current[keyPrefix] = setTimeout(() => {
-              if (wheelMomentumStateRef.current[keyPrefix]) {
-                return;
-              }
-              settleWheelAtOffset(y, true);
-              wheelDragSettleTimeoutRef.current[keyPrefix] = null;
-            }, DRAG_END_SETTLE_DELAY_MS);
-          }}
-          onMomentumScrollEnd={(e) => {
-            wheelMomentumStateRef.current[keyPrefix] = false;
-            clearDragSettleTimeout();
-            settleWheelAtOffset(wheelOffsetRef.current[keyPrefix] ?? e.nativeEvent.contentOffset.y);
+      const renderItem = ({ item, index }: { item: string; index: number }) => (
+        <Text
+          key={`${keyPrefix}-${index}`}
+          accessibilityRole="button"
+          style={[
+            styles.wheelItem,
+            styles.wheelText,
+            isSelected(index) && styles.wheelTextSelected,
+          ]}
+          onPress={() => {
+            const target = toMiddleIndex ? toMiddleIndex(index) : index;
+            onScrollIndex(target);
+            scrollWheelToIndex(ref, target, true);
           }}
         >
-          {items.map((item, index) => (
-            <Pressable
-              key={`${keyPrefix}-${index}`}
-              style={styles.wheelItem}
-              onPress={() => {
-                const target = toMiddleIndex ? toMiddleIndex(index) : index;
-                onScrollIndex(target);
-                scrollWheelToIndex(ref, target, true);
-              }}
-            >
-              <Text style={[styles.wheelText, isSelected(index) && styles.wheelTextSelected]}>
-                {item}
-              </Text>
-            </Pressable>
-          ))}
+          {item}
+        </Text>
+      );
+      const scrollProps = {
+        contentOffset: { x: 0, y: initialOffset },
+        showsVerticalScrollIndicator: false,
+        snapToOffsets: snapOffsets,
+        decelerationRate: 'fast' as const,
+        contentContainerStyle: styles.wheelContentContainer,
+        onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+          wheelOffsetRef.current[keyPrefix] = e.nativeEvent.contentOffset.y;
+        },
+        scrollEventThrottle: 16,
+        onScrollBeginDrag: () => {
+          clearDragSettleTimeout();
+          wheelMomentumStateRef.current[keyPrefix] = false;
+          wheelUserDragRef.current[keyPrefix] = true;
+        },
+        onMomentumScrollBegin: () => {
+          clearDragSettleTimeout();
+          wheelMomentumStateRef.current[keyPrefix] = true;
+        },
+        onScrollEndDrag: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const y =
+            e.nativeEvent.targetContentOffset?.y ??
+            wheelOffsetRef.current[keyPrefix] ??
+            e.nativeEvent.contentOffset.y;
+          clearDragSettleTimeout();
+          wheelDragSettleTimeoutRef.current[keyPrefix] = setTimeout(() => {
+            if (wheelMomentumStateRef.current[keyPrefix]) {
+              return;
+            }
+            settleWheelAtOffset(y, true);
+            wheelDragSettleTimeoutRef.current[keyPrefix] = null;
+          }, DRAG_END_SETTLE_DELAY_MS);
+        },
+        onMomentumScrollEnd: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+          wheelMomentumStateRef.current[keyPrefix] = false;
+          clearDragSettleTimeout();
+          settleWheelAtOffset(wheelOffsetRef.current[keyPrefix] ?? e.nativeEvent.contentOffset.y);
+        },
+      };
+      if (keyPrefix !== 'ampm') {
+        return (
+          <FlatList
+            ref={ref as RefObject<FlatList<string> | null>}
+            {...scrollProps}
+            data={items}
+            renderItem={renderItem}
+            keyExtractor={(_, index) => `${keyPrefix}-${index}`}
+            // The viewport has two padded rows above the selected center row.
+            // contentOffset positions selection; the initial window must include those rows too.
+            initialScrollIndex={Math.max(0, Math.round(initialOffset / WHEEL_ITEM_HEIGHT) - 2)}
+            getItemLayout={(_, index) => ({
+              length: WHEEL_ITEM_HEIGHT,
+              offset: index * WHEEL_ITEM_HEIGHT,
+              index,
+            })}
+            initialNumToRender={7}
+            maxToRenderPerBatch={7}
+            windowSize={3}
+            removeClippedSubviews={false}
+          />
+        );
+      }
+      return (
+        <ScrollView ref={ref as RefObject<ScrollView | null>} {...scrollProps}>
+          {items.map((item, index) => renderItem({ item, index }))}
         </ScrollView>
       );
     },
@@ -367,84 +386,78 @@ export const EventDateTimePickerContent = ({
           <View style={styles.selectionLine} />
         </View>
 
-        {shouldRenderWheels ? (
-          <>
-            <View style={styles.wheelRow}>
-              {/* Date column — bounded, no looping */}
-              <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
-                {renderWheel(
-                  dateWheelRef,
-                  dateLabels,
-                  dateSnapOffsets,
-                  (i) => i === selectedDateIndex,
-                  applyDateIndex,
-                  'date',
-                  undefined,
-                  selectedDateIndex * WHEEL_ITEM_HEIGHT,
-                )}
-              </View>
+        <View style={styles.wheelRow}>
+          {/* Date column — bounded, no looping */}
+          <View style={[styles.wheelColumn, styles.dateWheelColumn]}>
+            {renderWheel(
+              dateWheelRef,
+              dateLabels,
+              dateSnapOffsets,
+              (i) => i === selectedDateIndex,
+              applyDateIndex,
+              'date',
+              undefined,
+              selectedDateIndex * WHEEL_ITEM_HEIGHT,
+            )}
+          </View>
 
-              {/* Hour column — looped */}
-              <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
-                {renderWheel(
-                  hourWheelRef,
-                  HOURS_LOOPED,
-                  HOUR_SNAP_OFFSETS,
-                  (i) => i % HOURS_12.length === selectedHourLogical,
-                  handleHourScrollIndex,
-                  'hour',
-                  (i) => HOUR_LOOP_OFFSET + (i % HOURS_12.length),
-                  (HOUR_LOOP_OFFSET + selectedHourLogical) * WHEEL_ITEM_HEIGHT,
-                )}
-              </View>
+          {/* Hour column — looped */}
+          <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+            {renderWheel(
+              hourWheelRef,
+              HOURS_LOOPED,
+              HOUR_SNAP_OFFSETS,
+              (i) => i % HOURS_12.length === selectedHourLogical,
+              handleHourScrollIndex,
+              'hour',
+              (i) => HOUR_LOOP_OFFSET + (i % HOURS_12.length),
+              (HOUR_LOOP_OFFSET + selectedHourLogical) * WHEEL_ITEM_HEIGHT,
+            )}
+          </View>
 
-              {/* Separator */}
-              <Text style={styles.timeSeparator}>:</Text>
+          {/* Separator */}
+          <Text style={styles.timeSeparator}>:</Text>
 
-              {/* Minute column — looped */}
-              <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
-                {renderWheel(
-                  minuteWheelRef,
-                  MINUTES_LOOPED,
-                  MINUTE_SNAP_OFFSETS,
-                  (i) => i % MINUTES.length === selectedMinuteLogical,
-                  handleMinuteScrollIndex,
-                  'minute',
-                  (i) => MINUTE_LOOP_OFFSET + (i % MINUTES.length),
-                  (MINUTE_LOOP_OFFSET + selectedMinuteLogical) * WHEEL_ITEM_HEIGHT,
-                )}
-              </View>
+          {/* Minute column — looped */}
+          <View style={[styles.wheelColumn, styles.timeWheelColumn]}>
+            {renderWheel(
+              minuteWheelRef,
+              MINUTES_LOOPED,
+              MINUTE_SNAP_OFFSETS,
+              (i) => i % MINUTES.length === selectedMinuteLogical,
+              handleMinuteScrollIndex,
+              'minute',
+              (i) => MINUTE_LOOP_OFFSET + (i % MINUTES.length),
+              (MINUTE_LOOP_OFFSET + selectedMinuteLogical) * WHEEL_ITEM_HEIGHT,
+            )}
+          </View>
 
-              {/* AM/PM column — only 2 items, no looping needed */}
-              <View style={[styles.wheelColumn, styles.amPmWheelColumn]}>
-                {renderWheel(
-                  amPmWheelRef,
-                  AMPM,
-                  AMPM_SNAP_OFFSETS,
-                  (i) => i === selectedAmPmIndex,
-                  applyAmPmIndex,
-                  'ampm',
-                  undefined,
-                  selectedAmPmIndex * WHEEL_ITEM_HEIGHT,
-                )}
-              </View>
-            </View>
+          {/* AM/PM column — only 2 items, no looping needed */}
+          <View style={[styles.wheelColumn, styles.amPmWheelColumn]}>
+            {renderWheel(
+              amPmWheelRef,
+              AMPM,
+              AMPM_SNAP_OFFSETS,
+              (i) => i === selectedAmPmIndex,
+              applyAmPmIndex,
+              'ampm',
+              undefined,
+              selectedAmPmIndex * WHEEL_ITEM_HEIGHT,
+            )}
+          </View>
+        </View>
 
-            {/* Fade gradients — each covers 2 items above/below centre */}
-            <LinearGradient
-              colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
-              style={styles.fadeTop}
-              pointerEvents="none"
-            />
-            <LinearGradient
-              colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
-              style={styles.fadeBottom}
-              pointerEvents="none"
-            />
-          </>
-        ) : (
-          <View style={styles.wheelPlaceholder} pointerEvents="none" />
-        )}
+        {/* Fade gradients — each covers 2 items above/below centre */}
+        <LinearGradient
+          colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+          style={styles.fadeTop}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
+          style={styles.fadeBottom}
+          pointerEvents="none"
+        />
       </View>
 
       {error ? <Text style={errorStyle.text}>{error}</Text> : null}

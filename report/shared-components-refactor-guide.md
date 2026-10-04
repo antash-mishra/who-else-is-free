@@ -1229,6 +1229,14 @@ What it is:
 
 - Date/time picker sheet/content for events.
 - Also exports `EventDateTimePickerContent`.
+- On Android, Create/Edit Event hosts this picker as an inline overlay in the existing app window;
+  iOS keeps native modal presentation.
+- Renders wheels immediately when its sheet becomes active; current values must appear during entry,
+  without an `onOpened`, interaction, or frame deferral. Fixed-height pressable text avoids a native
+  wrapper per row. Date, hour, and minute wheels use bounded FlatLists with fixed item layout and
+  initial windows including both rows above selection; content offsets center selection
+  (middle-copy offsets for looping columns). Pending drag-settle timers are cancelled on close, draft
+  reset, and unmount.
 
 Where it is used:
 
@@ -1841,3 +1849,11 @@ Screenshots captured during the shared-component review:
 - Successful event creation uses `completeEventCreation`: pass the hydrated `navigationRef.getRootState()`, select My Events with a targeted tab `jumpTo` and await its render opportunity before popping the form, so dismissal reveals My Plans directly. The helper guards against a changed top route during that wait. A stack-only state snapshot can omit the child key; `navigate` also changes parent focus. Keep the nested pop destination as the unmounted-tab fallback.
 
 - `usePrepareCreateEvent` prepares one hidden Create form after Main navigation interactions settle and the cover catalog finishes loading. Reuse an existing prepared route; never replace a live Create/Edit draft. Create-start analytics run on actual focus, and the initial default time is refreshed only when stale. Keep preparation cancellable on blur and keep hidden forms out of hit testing/accessibility through the stack preload mechanism. Create Event explicitly accepts horizontal back gestures across the screen width while retaining its upward opening/downward closing transition; short drags cancel and vertical form scrolling remains available.
+
+### Hosted inline picker presentation
+
+`BottomSheetModal.presentation` is forwarded through the shared host descriptor. An inline sheet uses
+the same spring and surface as a modal without creating an Android Dialog or waiting for `onShow`.
+The host blocks underlying touch/accessibility and consumes hardware Back until exit completes.
+Standalone callers without a host retain native modal presentation. Only the Android Create/Edit
+Event date picker opts into this path; other sheet flows retain their modal presentation.

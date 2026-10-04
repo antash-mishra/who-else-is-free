@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
-import { Pressable, Text, View } from 'react-native';
+import { BackHandler, Modal, Pressable, Text, View } from 'react-native';
 
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import BottomSheetModal from '../BottomSheetModal';
-import { BottomSheetHostProvider } from '../sheets';
+import { BottomSheet, BottomSheetHostProvider } from '../sheets';
 
 const HostHarness = ({ onSecondClose = jest.fn() }: { onSecondClose?: jest.Mock }) => {
   const [showFirst, setShowFirst] = useState(false);
@@ -108,5 +108,81 @@ describe('BottomSheetHostProvider', () => {
     fireEvent.press(getByTestId('bottom-sheet-backdrop'));
 
     expect(onSecondClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('inline hosted sheets', () => {
+  const InlineHarness = ({ onClose = jest.fn() }: { onClose?: jest.Mock }) => {
+    const [visible, setVisible] = useState(true);
+    return (
+      <BottomSheetHostProvider>
+        <Text>Underlying screen</Text>
+        <BottomSheetModal
+          visible={visible}
+          presentation="inline"
+          onClose={() => {
+            onClose();
+            setVisible(false);
+          }}
+        >
+          <Text>Inline sheet</Text>
+        </BottomSheetModal>
+      </BottomSheetHostProvider>
+    );
+  };
+
+  it('renders in the existing window with the shared spring instead of a native modal', () => {
+    const view = render(<InlineHarness />);
+    expect(view.UNSAFE_queryByType(Modal)).toBeNull();
+    const sheet = view.UNSAFE_getByType(BottomSheet);
+    expect(sheet.props.presentation).toBe('inline');
+    expect(sheet.props.animation).toBe('spring');
+    expect(view.getByText('Inline sheet')).toBeTruthy();
+  });
+
+  it('hides the underlying screen from accessibility until the overlay has closed', () => {
+    const view = render(<InlineHarness />);
+    expect(
+      view.getByTestId('bottom-sheet-host-content', { includeHiddenElements: true }).props
+        .importantForAccessibility,
+    ).toBe('no-hide-descendants');
+    expect(
+      view.getByTestId('bottom-sheet-host-content', { includeHiddenElements: true }).props
+        .pointerEvents,
+    ).toBe('none');
+    fireEvent.press(view.getByTestId('bottom-sheet-backdrop'));
+    expect(
+      view.getByTestId('bottom-sheet-host-content', { includeHiddenElements: true }).props
+        .importantForAccessibility,
+    ).toBe('no-hide-descendants');
+    act(() => jest.advanceTimersByTime(300));
+    expect(
+      view.getByTestId('bottom-sheet-host-content', { includeHiddenElements: true }).props
+        .importantForAccessibility,
+    ).toBe('auto');
+  });
+
+  it('consumes hardware back while closing and removes its listener after unmount', () => {
+    const handlers: (() => boolean | null | undefined)[] = [];
+    const removed = jest.fn();
+    const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_, handler) => {
+      handlers.push(handler);
+      return { remove: removed };
+    });
+    const onClose = jest.fn();
+    const view = render(<InlineHarness onClose={onClose} />);
+    expect(handlers).toHaveLength(1);
+    act(() => {
+      expect(handlers[0]()).toBe(true);
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    act(() => {
+      expect(handlers[0]()).toBe(true);
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    act(() => jest.advanceTimersByTime(300));
+    expect(removed).toHaveBeenCalledTimes(1);
+    view.unmount();
+    spy.mockRestore();
   });
 });

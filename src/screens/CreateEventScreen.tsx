@@ -499,6 +499,9 @@ const CreateEventScreen = () => {
 
       <CreateEventBottomSheet
         visible={activeSheet !== null}
+        presentation={
+          Platform.OS === 'android' && renderedSheet === 'dateTime' ? 'inline' : 'modal'
+        }
         title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
         avoidKeyboard={renderedSheet === 'description'}

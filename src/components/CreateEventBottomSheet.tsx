@@ -2,8 +2,11 @@ import React from 'react';
 
 import BottomSheetModal from './BottomSheetModal';
 
+import type { BottomSheetPresentation } from './sheets';
+
 type CreateEventBottomSheetProps = {
   visible: boolean;
+  presentation?: BottomSheetPresentation;
   title?: string;
   children: React.ReactNode;
   onClose: () => void;
@@ -15,6 +18,7 @@ type CreateEventBottomSheetProps = {
 
 const CreateEventBottomSheet = ({
   visible,
+  presentation,
   title,
   children,
   onClose,
@@ -24,6 +28,7 @@ const CreateEventBottomSheet = ({
 }: CreateEventBottomSheetProps) => (
   <BottomSheetModal
     visible={visible}
+    presentation={presentation}
     onClose={onClose}
     title={title}
     snapHeight={snapHeight}

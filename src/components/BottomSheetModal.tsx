@@ -2,10 +2,16 @@ import React, { useEffect, useId, useMemo } from 'react';
 
 import { StyleProp, ViewStyle } from 'react-native';
 
-import { BottomSheet, useOptionalBottomSheetHost } from '@components/sheets';
+import {
+  BottomSheet,
+  BottomSheetPresentation,
+  useOptionalBottomSheetHost,
+} from '@components/sheets';
 
 export type BottomSheetModalProps = {
   visible: boolean;
+  /** Inline overlays require the shared host; standalone usage stays a native modal. */
+  presentation?: BottomSheetPresentation;
   onClose: () => void;
   children: React.ReactNode;
   /** Variant A: renders title + close header. Omit for Variant B (content-only). */
@@ -25,6 +31,7 @@ export type BottomSheetModalProps = {
 
 const BottomSheetModal = ({
   visible,
+  presentation = 'modal',
   onClose,
   children,
   title,
@@ -42,6 +49,7 @@ const BottomSheetModal = ({
   const descriptor = useMemo(
     () => ({
       children,
+      presentation,
       title,
       avoidKeyboard,
       snapHeight,
@@ -55,6 +63,7 @@ const BottomSheetModal = ({
     }),
     [
       avoidKeyboard,
+      presentation,
       backdropTestID,
       children,
       closeTestID,
