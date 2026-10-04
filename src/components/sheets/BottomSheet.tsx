@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/immutability, react-hooks/set-state-in-effect -- Reanimated sheet transitions mutate shared values and mount state around animations. */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import {
   Dimensions,
@@ -42,6 +42,8 @@ export type BottomSheetProps = {
   avoidKeyboard?: boolean;
   snapHeight?: number;
   presentation?: BottomSheetPresentation;
+  /** Retain an inline sheet's native layout while hidden. Never retains a native Modal. */
+  keepMounted?: boolean;
   animation?: BottomSheetAnimation;
   testID?: string;
   backdropTestID?: string;
@@ -66,6 +68,7 @@ const BottomSheet = ({
   avoidKeyboard = true,
   snapHeight,
   presentation = 'modal',
+  keepMounted = false,
   animation = presentation === 'modal' ? 'spring' : 'timing',
   testID = 'bottom-sheet-modal',
   backdropTestID = 'bottom-sheet-backdrop',
@@ -90,6 +93,8 @@ const BottomSheet = ({
   const shouldAnimateOnShowRef = useRef(false);
   const nativeModalShownRef = useRef(false);
   const visibleRef = useRef(visible);
+  const presentationRef = useRef(presentation);
+  const measuredSheetHeightRef = useRef(0);
   const slideY = useSharedValue(screenHeight);
   const backdropOpacity = useSharedValue(0);
   const keyboardOffset = useSharedValue(0);
@@ -98,6 +103,7 @@ const BottomSheet = ({
   const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
   const closeDuration =
     presentation === 'modal' ? MODAL_CLOSE_DURATION_MS : INLINE_CLOSE_DURATION_MS;
+  const retainInline = presentation === 'inline' && keepMounted;
 
   const sheetStyle = useAnimatedStyle(() => {
     return {
@@ -168,7 +174,12 @@ const BottomSheet = ({
   }, [avoidKeyboard, keyboardOffset, safeBottom]);
 
   const startOpenAnimation = useCallback(() => {
-    slideY.value = screenHeight;
+    // Prepared sheets have already laid out. Start just below the viewport, not
+    // an entire screen below it: that dead travel delays the first visible row.
+    slideY.value =
+      retainInline && measuredSheetHeightRef.current > 0
+        ? measuredSheetHeightRef.current
+        : screenHeight;
     backdropOpacity.value = 0;
     // Entry can now begin while a previous field's keyboard is still sliding
     // out, so a stale offset from that keyboard would start the sheet visibly
@@ -200,7 +211,15 @@ const BottomSheet = ({
       duration: animation === 'spring' ? 100 : 140,
       easing: Easing.out(Easing.cubic),
     });
-  }, [animation, backdropOpacity, keyboardOffset, notifyOpened, screenHeight, slideY]);
+  }, [
+    animation,
+    backdropOpacity,
+    keyboardOffset,
+    notifyOpened,
+    retainInline,
+    screenHeight,
+    slideY,
+  ]);
 
   const startCloseAnimation = useCallback(() => {
     Keyboard.dismiss();
@@ -221,12 +240,18 @@ const BottomSheet = ({
 
   // Layout/keyboard changes update the geometry without replaying entry motion.
   const animationCallbacksRef = useRef({ startOpenAnimation, startCloseAnimation });
-  useEffect(() => {
+  useLayoutEffect(() => {
     animationCallbacksRef.current = { startOpenAnimation, startCloseAnimation };
   }, [startOpenAnimation, startCloseAnimation]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     visibleRef.current = visible;
+    if (presentationRef.current !== presentation) {
+      // A different native window must report its own onShow before entry starts.
+      presentationRef.current = presentation;
+      nativeModalShownRef.current = false;
+      shouldAnimateOnShowRef.current = false;
+    }
     let frame: number | undefined;
     if (visible) {
       if (closeTimerRef.current) {
@@ -239,7 +264,12 @@ const BottomSheet = ({
       if (presentation === 'modal' && !nativeModalShownRef.current) {
         shouldAnimateOnShowRef.current = true;
       } else {
-        frame = requestAnimationFrame(() => animationCallbacksRef.current.startOpenAnimation());
+        if (retainInline) {
+          // Prepared content already has native geometry; do not spend another frame waiting.
+          animationCallbacksRef.current.startOpenAnimation();
+        } else {
+          frame = requestAnimationFrame(() => animationCallbacksRef.current.startOpenAnimation());
+        }
       }
     } else if (hasBeenVisible.current && isMountedRef.current) {
       shouldAnimateOnShowRef.current = false;
@@ -248,14 +278,15 @@ const BottomSheet = ({
         isMountedRef.current = false;
         nativeModalShownRef.current = false;
         setIsMounted(false);
+        setIsAnimating(false);
         closeTimerRef.current = null;
         onClosedRef.current?.();
       }, closeDuration);
     }
     return () => {
-      if (frame !== undefined) cancelAnimationFrame(frame);
+      if (frame !== undefined) globalThis.cancelAnimationFrame(frame);
     };
-  }, [closeDuration, presentation, visible]);
+  }, [closeDuration, presentation, retainInline, visible]);
 
   useEffect(() => {
     return () => {
@@ -272,7 +303,7 @@ const BottomSheet = ({
     animationCallbacksRef.current.startOpenAnimation();
   }, []);
 
-  if (!isMounted) {
+  if (!isMounted && !retainInline) {
     return null;
   }
 
@@ -304,6 +335,13 @@ const BottomSheet = ({
         ]}
         renderToHardwareTextureAndroid={isAnimating}
         testID={testID}
+        onLayout={
+          retainInline
+            ? (event) => {
+                measuredSheetHeightRef.current = event.nativeEvent.layout.height;
+              }
+            : undefined
+        }
       >
         <Animated.View
           style={[
@@ -328,7 +366,12 @@ const BottomSheet = ({
 
   if (presentation === 'inline') {
     return (
-      <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+      <View
+        style={[StyleSheet.absoluteFill, !isMounted && styles.prepared]}
+        pointerEvents={visible ? 'auto' : 'none'}
+        accessibilityElementsHidden={!isMounted}
+        importantForAccessibility={isMounted ? 'auto' : 'no-hide-descendants'}
+      >
         {sheet}
       </View>
     );
@@ -348,6 +391,7 @@ const BottomSheet = ({
 };
 
 const styles = StyleSheet.create({
+  prepared: { opacity: 0 },
   backdrop: {
     backgroundColor: componentTokens.overlay.backdrop,
   },

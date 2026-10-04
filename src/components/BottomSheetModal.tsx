@@ -1,11 +1,19 @@
-import React, { useEffect, useId, useMemo } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo } from 'react';
 
 import { StyleProp, ViewStyle } from 'react-native';
 
-import { BottomSheet, useOptionalBottomSheetHost } from '@components/sheets';
+import {
+  BottomSheet,
+  BottomSheetPresentation,
+  useOptionalBottomSheetHost,
+} from '@components/sheets';
 
 export type BottomSheetModalProps = {
   visible: boolean;
+  /** Inline overlays require the shared host; standalone usage stays a native modal. */
+  presentation?: BottomSheetPresentation;
+  /** Prepare/retain an inline sheet through the host for this owner's lifetime. */
+  keepMounted?: boolean;
   onClose: () => void;
   children: React.ReactNode;
   /** Variant A: renders title + close header. Omit for Variant B (content-only). */
@@ -25,6 +33,8 @@ export type BottomSheetModalProps = {
 
 const BottomSheetModal = ({
   visible,
+  presentation = 'modal',
+  keepMounted = false,
   onClose,
   children,
   title,
@@ -39,9 +49,12 @@ const BottomSheetModal = ({
 }: BottomSheetModalProps) => {
   const host = useOptionalBottomSheetHost();
   const ownerId = useId();
+  const prepareInline = keepMounted && presentation === 'inline';
   const descriptor = useMemo(
     () => ({
       children,
+      presentation,
+      keepMounted: prepareInline,
       title,
       avoidKeyboard,
       snapHeight,
@@ -55,6 +68,8 @@ const BottomSheetModal = ({
     }),
     [
       avoidKeyboard,
+      presentation,
+      prepareInline,
       backdropTestID,
       children,
       closeTestID,
@@ -68,23 +83,29 @@ const BottomSheetModal = ({
     ],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!host) {
       return;
     }
 
+    if (prepareInline) host.prepare(ownerId, descriptor);
     if (visible) {
       host.present(ownerId, descriptor);
     } else {
       host.dismiss(ownerId);
     }
-  }, [descriptor, host, ownerId, visible]);
+  }, [descriptor, host, ownerId, prepareInline, visible]);
 
   useEffect(() => {
     return () => {
       host?.dismiss(ownerId);
     };
   }, [host, ownerId]);
+
+  useEffect(() => {
+    if (!prepareInline) return undefined;
+    return () => host?.release(ownerId);
+  }, [host, ownerId, prepareInline]);
 
   if (host) {
     return null;

@@ -1,8 +1,10 @@
 import React from 'react';
 
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+
+import CreateEventBottomSheet from '@components/CreateEventBottomSheet';
 
 import { mockEvents, mockUsers } from '../../__tests__/mocks/mockData';
 import { mockNavigation, mockRoute } from '../../__tests__/mocks/mockModules';
@@ -132,6 +134,7 @@ jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native');
   return {
     ...actualNav,
+    useIsFocused: () => mockScreenFocused,
     useNavigation: () => ({
       ...mockNavigation,
       getParent: () => ({ navigate: mockRootNavigate }),
@@ -229,6 +232,26 @@ describe('CreateEventScreen Rendering', () => {
     const footerStyle = StyleSheet.flatten(screen.getByTestId('create-event-footer').props.style);
 
     expect(footerStyle.paddingBottom).toBe(80);
+  });
+
+  it.each(['android', 'ios'] as const)('uses an inline date picker only on Android (%s)', (os) => {
+    const platform = jest.replaceProperty(Platform, 'OS', os);
+    try {
+      const view = render(<CreateEventScreen />);
+      fireEvent.press(screen.getByText('Date & time'));
+      const active = view
+        .UNSAFE_getAllByType(CreateEventBottomSheet)
+        .find((sheet) => sheet.props.visible);
+      expect(active?.props.presentation ?? 'modal').toBe(os === 'android' ? 'inline' : 'modal');
+      act(() => active?.props.onClose());
+      fireEvent.press(screen.getByText('Group type'));
+      const group = view
+        .UNSAFE_getAllByType(CreateEventBottomSheet)
+        .find((sheet) => sheet.props.visible);
+      expect(group?.props.presentation ?? 'modal').toBe('modal');
+    } finally {
+      platform.restore();
+    }
   });
 
   it('opens datetime modal from Date & time row', () => {
