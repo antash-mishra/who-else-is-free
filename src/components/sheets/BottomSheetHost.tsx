@@ -16,6 +16,7 @@ import BottomSheet, { BottomSheetPresentation } from './BottomSheet';
 export type BottomSheetDescriptor = {
   children: ReactNode;
   presentation?: BottomSheetPresentation;
+  keepMounted?: boolean;
   title?: string;
   avoidKeyboard?: boolean;
   snapHeight?: number;
@@ -36,6 +37,8 @@ type HostedBottomSheet = {
 type BottomSheetHostContextValue = {
   present: (ownerId: string, descriptor: BottomSheetDescriptor) => void;
   dismiss: (ownerId: string) => void;
+  prepare: (ownerId: string, descriptor: BottomSheetDescriptor) => void;
+  release: (ownerId: string) => void;
 };
 
 const BottomSheetHostContext = createContext<BottomSheetHostContextValue | null>(null);
@@ -43,6 +46,7 @@ const BottomSheetHostContext = createContext<BottomSheetHostContextValue | null>
 export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) => {
   const [sheet, setSheet] = useState<HostedBottomSheet | null>(null);
   const [visible, setVisible] = useState(false);
+  const [preparedSheets, setPreparedSheets] = useState<HostedBottomSheet[]>([]);
   const sheetRef = useRef<HostedBottomSheet | null>(null);
   const visibleRef = useRef(false);
 
@@ -62,16 +66,45 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
     setVisible(false);
   }, []);
 
-  const handleClosed = useCallback(() => {
-    if (visibleRef.current) {
+  const prepare = useCallback((ownerId: string, descriptor: BottomSheetDescriptor) => {
+    if (descriptor.presentation !== 'inline' || !descriptor.keepMounted) return;
+    setPreparedSheets((current) => {
+      const previous = current.find((entry) => entry.ownerId === ownerId);
+      if (previous?.descriptor === descriptor) return current;
+      const next = { ownerId, descriptor };
+      return previous
+        ? current.map((entry) => (entry.ownerId === ownerId ? next : entry))
+        : [...current, next];
+    });
+  }, []);
+
+  const release = useCallback((ownerId: string) => {
+    setPreparedSheets((current) => current.filter((entry) => entry.ownerId !== ownerId));
+    if (sheetRef.current?.ownerId === ownerId && sheetRef.current.descriptor.keepMounted) {
+      sheetRef.current = null;
+      visibleRef.current = false;
+      setSheet(null);
+      setVisible(false);
+    }
+  }, []);
+
+  const handleClosed = useCallback((ownerId: string) => {
+    if (visibleRef.current || sheetRef.current?.ownerId !== ownerId) {
       return;
     }
     sheetRef.current = null;
     setSheet(null);
   }, []);
 
-  const value = useMemo(() => ({ present, dismiss }), [dismiss, present]);
+  const value = useMemo(
+    () => ({ present, dismiss, prepare, release }),
+    [dismiss, present, prepare, release],
+  );
   const descriptor = sheet?.descriptor;
+  const renderedSheets = [...preparedSheets];
+  if (sheet && !preparedSheets.some((entry) => entry.ownerId === sheet.ownerId)) {
+    renderedSheets.push(sheet);
+  }
 
   const isInline = sheet !== null && descriptor?.presentation === 'inline';
   useEffect(() => {
@@ -96,26 +129,28 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
         >
           {children}
         </View>
-        {descriptor ? (
+        {renderedSheets.map(({ ownerId, descriptor: renderedDescriptor }) => (
           <BottomSheet
-            visible={visible}
-            presentation={descriptor.presentation}
+            key={renderedDescriptor.keepMounted ? ownerId : 'active'}
+            visible={visible && sheet?.ownerId === ownerId}
+            presentation={renderedDescriptor.presentation}
+            keepMounted={renderedDescriptor.keepMounted}
             animation="spring"
-            onClose={descriptor.onClose}
-            title={descriptor.title}
-            avoidKeyboard={descriptor.avoidKeyboard}
-            snapHeight={descriptor.snapHeight}
-            testID={descriptor.testID}
-            backdropTestID={descriptor.backdropTestID}
-            closeTestID={descriptor.closeTestID}
-            contentTestID={descriptor.contentTestID}
-            contentStyle={descriptor.contentStyle}
-            onOpened={descriptor.onOpened}
-            onClosed={handleClosed}
+            onClose={renderedDescriptor.onClose}
+            title={renderedDescriptor.title}
+            avoidKeyboard={renderedDescriptor.avoidKeyboard}
+            snapHeight={renderedDescriptor.snapHeight}
+            testID={renderedDescriptor.testID}
+            backdropTestID={renderedDescriptor.backdropTestID}
+            closeTestID={renderedDescriptor.closeTestID}
+            contentTestID={renderedDescriptor.contentTestID}
+            contentStyle={renderedDescriptor.contentStyle}
+            onOpened={renderedDescriptor.onOpened}
+            onClosed={() => handleClosed(ownerId)}
           >
-            {descriptor.children}
+            {renderedDescriptor.children}
           </BottomSheet>
-        ) : null}
+        ))}
       </View>
     </BottomSheetHostContext.Provider>
   );

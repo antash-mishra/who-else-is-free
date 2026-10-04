@@ -1857,3 +1857,11 @@ the same spring and surface as a modal without creating an Android Dialog or wai
 The host blocks underlying touch/accessibility and consumes hardware Back until exit completes.
 Standalone callers without a host retain native modal presentation. Only the Android Create/Edit
 Event date picker opts into this path; other sheet flows retain their modal presentation.
+
+### Prepared date picker layout
+
+`src/screens/create-event/CreateEventDateTimeSheet.tsx` owns Android Create/Edit picker preparation after navigation settles and releases it on blur/unmount. `BottomSheetModal.keepMounted` forwards an inline-only retention opt-in through the shared host. The host keeps each prepared owner's native subtree stable even while another sheet uses the shared native modal. Idle prepared surfaces remain laid out at opacity zero, with no touch/accessibility/Back interception. Opening skips the extra frame wait and starts from the measured sheet height to avoid invisible full-screen travel; the existing shared spring still owns the transition. Closing stops texture rasterization and restores form access after exit; adapter removal releases prepared content immediately. Other sheets and iOS retain their previous native modal lifecycle.
+
+`EventDateTimePickerContent` synchronizes unconfirmed drafts and all native wheel offsets while hidden, cancels pending settle timers, and ignores late hidden momentum events. Preparation does not postpone an early tap or gate visible values on interactions. Bounded rows limit retained memory; retention is scoped to the focused form, never the app lifetime. Measurements belong in `report/issue-163-date-picker-sub100-results.md`.
+
+Prepared picker rows are memoized by logical selection and calendar-day bounds. Keep visibility and late-event guards in a stable ref so opening does not replace FlatList props or reconcile every row. Hosted sheet registration and shared visibility/animation setup use layout effects; native modal entry still waits for `onShow`.

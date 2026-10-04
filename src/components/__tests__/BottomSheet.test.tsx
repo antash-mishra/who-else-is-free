@@ -170,3 +170,42 @@ it('waits for a new native onShow when switching modal to inline and back', () =
   raf.mockRestore();
   spring.mockRestore();
 });
+
+it('keeps prepared inline layout mounted, starts entry without a frame wait, and never retains a hidden Modal', () => {
+  const raf = jest.spyOn(globalThis, 'requestAnimationFrame');
+  const spring = jest.spyOn(Reanimated, 'withSpring');
+  const props = { onClose: jest.fn(), keepMounted: true, animation: 'spring' as const };
+  const view = render(
+    <BottomSheet {...props} presentation="inline" visible={false}>
+      <Text>Prepared</Text>
+    </BottomSheet>,
+  );
+  expect(view.queryByText('Prepared')).toBeNull();
+  const content = view.getByText('Prepared', { includeHiddenElements: true });
+  const initialFrames = raf.mock.calls.length;
+  const initialSprings = spring.mock.calls.length;
+  view.rerender(
+    <BottomSheet {...props} presentation="inline" visible>
+      <Text>Prepared</Text>
+    </BottomSheet>,
+  );
+  expect(spring.mock.calls.length).toBe(initialSprings + 1);
+  expect(raf.mock.calls.length).toBe(initialFrames);
+  expect(view.getByText('Prepared')).toBe(content);
+  view.rerender(
+    <BottomSheet {...props} presentation="inline" visible={false}>
+      <Text>Prepared</Text>
+    </BottomSheet>,
+  );
+  act(() => jest.advanceTimersByTime(300));
+  expect(view.queryByText('Prepared')).toBeNull();
+  expect(view.getByText('Prepared', { includeHiddenElements: true })).toBe(content);
+  view.rerender(
+    <BottomSheet {...props} presentation="modal" visible={false}>
+      <Text>Prepared</Text>
+    </BottomSheet>,
+  );
+  expect(view.UNSAFE_queryByType(Modal)).toBeNull();
+  raf.mockRestore();
+  spring.mockRestore();
+});

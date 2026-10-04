@@ -134,6 +134,7 @@ jest.mock('@react-navigation/native', () => {
   const actualNav = jest.requireActual('@react-navigation/native');
   return {
     ...actualNav,
+    useIsFocused: () => mockScreenFocused,
     useNavigation: () => ({
       ...mockNavigation,
       getParent: () => ({ navigate: mockRootNavigate }),
@@ -238,12 +239,16 @@ describe('CreateEventScreen Rendering', () => {
     try {
       const view = render(<CreateEventScreen />);
       fireEvent.press(screen.getByText('Date & time'));
-      expect(view.UNSAFE_getByType(CreateEventBottomSheet).props.presentation).toBe(
-        os === 'android' ? 'inline' : 'modal',
-      );
-      act(() => view.UNSAFE_getByType(CreateEventBottomSheet).props.onClose());
+      const active = view
+        .UNSAFE_getAllByType(CreateEventBottomSheet)
+        .find((sheet) => sheet.props.visible);
+      expect(active?.props.presentation ?? 'modal').toBe(os === 'android' ? 'inline' : 'modal');
+      act(() => active?.props.onClose());
       fireEvent.press(screen.getByText('Group type'));
-      expect(view.UNSAFE_getByType(CreateEventBottomSheet).props.presentation).toBe('modal');
+      const group = view
+        .UNSAFE_getAllByType(CreateEventBottomSheet)
+        .find((sheet) => sheet.props.visible);
+      expect(group?.props.presentation ?? 'modal').toBe('modal');
     } finally {
       platform.restore();
     }

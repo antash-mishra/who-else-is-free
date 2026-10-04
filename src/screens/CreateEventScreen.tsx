@@ -35,6 +35,7 @@ import {
   isPastDateTimeSelection,
 } from '@utils/dateTime';
 
+import CreateEventDateTimeSheet from './create-event/CreateEventDateTimeSheet';
 import {
   CreateEventFormState,
   buildCreateEventPayload,
@@ -497,11 +498,18 @@ const CreateEventScreen = () => {
         </View>
       </SafeAreaView>
 
+      {Platform.OS === 'android' ? (
+        <CreateEventDateTimeSheet
+          visible={activeSheet === 'dateTime'}
+          value={form.selectedDateTime}
+          minDate={pickerMinDate}
+          maxDate={pickerMaxDate}
+          onConfirm={handleDateTimeConfirm}
+          onClose={closeActiveSheet}
+        />
+      ) : null}
       <CreateEventBottomSheet
-        visible={activeSheet !== null}
-        presentation={
-          Platform.OS === 'android' && renderedSheet === 'dateTime' ? 'inline' : 'modal'
-        }
+        visible={activeSheet !== null && !(Platform.OS === 'android' && activeSheet === 'dateTime')}
         title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
         avoidKeyboard={renderedSheet === 'description'}
@@ -515,7 +523,9 @@ const CreateEventScreen = () => {
         }
       >
         <CreateEventSheetContent
-          renderedSheet={renderedSheet}
+          renderedSheet={
+            Platform.OS === 'android' && renderedSheet === 'dateTime' ? null : renderedSheet
+          }
           activeSheet={activeSheet}
           isSheetReady={isSheetReady}
           selectedDateTime={form.selectedDateTime}

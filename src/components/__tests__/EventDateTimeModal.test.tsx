@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ScrollView, Text } from 'react-native';
+import { FlatList, ScrollView, Text } from 'react-native';
 
 import { act, fireEvent, render, within } from '@testing-library/react-native';
 
@@ -216,4 +216,59 @@ describe('EventDateTimePickerContent', () => {
     picker.view.unmount();
     expect(jest.getTimerCount()).toBe(before);
   });
+});
+
+it('resets a retained draft while hidden and ignores late native momentum', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date(2026, 9, 4, 12));
+  const value = new Date(2026, 9, 5, 19, 30);
+  const props = {
+    value,
+    minDate: new Date(2026, 9, 4, 12),
+    maxDate: new Date(2026, 10, 3, 12),
+    onConfirm: jest.fn(),
+    prepareWhileHidden: true,
+  };
+  const view = render(<EventDateTimePickerContent {...props} visible />);
+  const wheels = () => view.UNSAFE_getAllByType(ScrollView);
+  fireEvent(wheels()[2], 'momentumScrollEnd', { nativeEvent: { contentOffset: { y: 91 * 44 } } });
+  view.rerender(<EventDateTimePickerContent {...props} visible={false} />);
+  fireEvent(wheels()[2], 'momentumScrollEnd', { nativeEvent: { contentOffset: { y: 95 * 44 } } });
+  expect(wheels()[2].props.contentOffset.y).toBe(90 * 44);
+  view.rerender(<EventDateTimePickerContent {...props} visible />);
+  fireEvent.press(view.getByText('Done'));
+  expect(props.onConfirm).toHaveBeenCalledWith(value);
+  view.unmount();
+  jest.useRealTimers();
+});
+
+it('keeps prepared list props stable when visibility and time-of-day bounds change', () => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date(2026, 9, 4, 12));
+  const props = {
+    value: new Date(2026, 9, 5, 19, 59),
+    minDate: new Date(2026, 9, 4, 12),
+    maxDate: new Date(2026, 10, 3, 12),
+    onConfirm: jest.fn(),
+  };
+  const view = render(<EventDateTimePickerContent {...props} visible={false} />);
+  const original = view.UNSAFE_getAllByType(FlatList).map((wheel) => wheel.props);
+  view.rerender(
+    <EventDateTimePickerContent
+      {...props}
+      visible
+      minDate={new Date(2026, 9, 4, 12, 1)}
+      maxDate={new Date(2026, 10, 3, 12, 1)}
+    />,
+  );
+  const opened = view.UNSAFE_getAllByType(FlatList).map((wheel) => wheel.props);
+  opened.forEach((props, index) => {
+    expect(props.data).toBe(original[index].data);
+    expect(props.renderItem).toBe(original[index].renderItem);
+    expect(props.onMomentumScrollEnd).toBe(original[index].onMomentumScrollEnd);
+  });
+  fireEvent.press(view.getByText('Done'));
+  expect(props.onConfirm).toHaveBeenCalledWith(props.value);
+  view.unmount();
+  jest.useRealTimers();
 });

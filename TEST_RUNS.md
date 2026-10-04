@@ -573,3 +573,25 @@ whole-repository formatting were not run.
   release build, uploaded-cover and past-plan manual QA. Relevant read-only,
   shared motion, URI, reduced-motion, and platform style tests passed.
 - Implementation, provenance, and limitations: `report/issue-162-implementation.md`.
+
+## 2026-10-04 — Issue #163 prepared date-picker performance
+
+- Reviewed commit `7107bd0` and all issue discussion comments; prepared Android
+  inline picker layout after navigation, cached wheel elements/props, and removed
+  the prepared opening's extra frame wait and full-screen invisible travel.
+- Release/Hermes API 36 ARM64 emulator comparison: first UI motion median
+  163.5 → 51 ms; first picker opening 515 → 61 ms; 9/10 candidate openings below
+  100 ms. A 293 ms outlier is retained. This is UI-thread spring progress, not
+  presented-pixel latency or a proven p95/per-device guarantee.
+- PASS: 128 frontend suites / 1,493 tests, typecheck, lint (0 errors / 748
+  warnings), touched-file Prettier, diff whitespace and clean Android release
+  assembly including native lint. Temporary probes removed from source/APK.
+- PASS: clean-release native selection, Done, cancel/Back, saved-selection
+  reopening, fast minute fling, five other input sheets, date reopening after
+  those sheets and retained subtree release after leaving Create. Screenshots
+  visually inspected; Location/Details keyboard presentation remains correct.
+- Unverified: physical Android/iOS, signed-in Edit Event, direct form-keyboard
+  handoff, input-to-presented-values latency, sustained FPS and reliable tail
+  latency. Backend suite/full-repository formatting not run (no backend change).
+- Evidence, measurement exclusions and remaining profiling plan:
+  `report/issue-163-date-picker-sub100-results.md`.

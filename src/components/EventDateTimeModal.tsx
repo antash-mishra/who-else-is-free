@@ -1,4 +1,13 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
 import {
   FlatList,
   NativeScrollEvent,
@@ -20,6 +29,7 @@ import {
   isPastDateTimeSelection,
   toDateKey,
 } from '@utils/dateTime';
+
 import BottomSheetModal from './BottomSheetModal';
 import styles from './EventDateTimeModal.styles';
 
@@ -48,7 +58,10 @@ export type EventDateTimeModalProps = {
   onConfirm: (value: Date) => void;
 };
 
-type EventDateTimePickerContentProps = Omit<EventDateTimeModalProps, 'onClose'>;
+type EventDateTimePickerContentProps = Omit<EventDateTimeModalProps, 'onClose'> & {
+  /** Reset retained native offsets while hidden; ordinary modal exit keeps its draft. */
+  prepareWhileHidden?: boolean;
+};
 
 const toSafeDate = (value: Date) => {
   if (Number.isNaN(value.getTime())) {
@@ -111,11 +124,17 @@ export const EventDateTimePickerContent = ({
   minDate,
   maxDate,
   onConfirm,
+  prepareWhileHidden = false,
 }: EventDateTimePickerContentProps) => {
   const [draftValue, setDraftValue] = useState(() =>
     clampDateTime(toSafeDate(value), minDate, maxDate),
   );
   const [error, setError] = useState<string | null>(null);
+
+  const visibleRef = useRef(visible);
+  useLayoutEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
 
   const dateWheelRef = useRef<FlatList<string>>(null);
   const hourWheelRef = useRef<FlatList<string>>(null);
@@ -128,7 +147,13 @@ export const EventDateTimePickerContent = ({
   const wheelOffsetRef = useRef<Record<string, number>>({});
   const wheelUserDragRef = useRef<Record<string, boolean>>({});
 
-  const dateOptions = useMemo(() => buildDateOptions(minDate, maxDate), [minDate, maxDate]);
+  // Time-of-day bounds refresh on opening, but labels and rows only change by calendar day.
+  const minDay = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate()).getTime();
+  const maxDay = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate()).getTime();
+  const dateOptions = useMemo(
+    () => buildDateOptions(new Date(minDay), new Date(maxDay)),
+    [minDay, maxDay],
+  );
   const dateLabels = useMemo(() => dateOptions.map((option) => option.label), [dateOptions]);
 
   const selectedDateIndex = useMemo(() => {
@@ -171,15 +196,33 @@ export const EventDateTimePickerContent = ({
 
   useEffect(() => {
     cancelPendingWheelSettles();
-    if (!visible) return;
+    if (!visible && !prepareWhileHidden) return;
+    // A retained picker must discard unconfirmed edits and synchronize while hidden,
+    // before its next entry, rather than reusing last session's native scroll position.
     const initialDraft = clampDateTime(toSafeDate(value), minDate, maxDate);
     setDraftValue((current) =>
       current.getTime() === initialDraft.getTime() ? current : initialDraft,
     );
     setError(null);
-  }, [cancelPendingWheelSettles, maxDate, minDate, value, visible]);
+  }, [cancelPendingWheelSettles, maxDate, minDate, prepareWhileHidden, value, visible]);
 
   useEffect(() => cancelPendingWheelSettles, [cancelPendingWheelSettles]);
+
+  useEffect(() => {
+    if (visible || !prepareWhileHidden) return;
+    scrollWheelToIndex(dateWheelRef, selectedDateIndex);
+    scrollWheelToIndex(hourWheelRef, HOUR_LOOP_OFFSET + selectedHourLogical);
+    scrollWheelToIndex(minuteWheelRef, MINUTE_LOOP_OFFSET + selectedMinuteLogical);
+    scrollWheelToIndex(amPmWheelRef, selectedAmPmIndex);
+  }, [
+    prepareWhileHidden,
+    scrollWheelToIndex,
+    selectedAmPmIndex,
+    selectedDateIndex,
+    selectedHourLogical,
+    selectedMinuteLogical,
+    visible,
+  ]);
 
   const applyDateIndex = useCallback(
     (index: number) => {
@@ -270,6 +313,7 @@ export const EventDateTimePickerContent = ({
       };
 
       const settleWheelAtOffset = (offsetY: number, animateToSnap = false) => {
+        if (!visibleRef.current) return;
         const index = clampWheelIndex(offsetY, items.length);
         const target = toMiddleIndex ? toMiddleIndex(index) : index;
         if (wheelUserDragRef.current[keyPrefix]) {
@@ -325,6 +369,7 @@ export const EventDateTimePickerContent = ({
           wheelMomentumStateRef.current[keyPrefix] = true;
         },
         onScrollEndDrag: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+          if (!visibleRef.current) return;
           const y =
             e.nativeEvent.targetContentOffset?.y ??
             wheelOffsetRef.current[keyPrefix] ??
@@ -376,8 +421,8 @@ export const EventDateTimePickerContent = ({
     [scrollWheelToIndex],
   );
 
-  return (
-    <>
+  const pickerWheels = useMemo(
+    () => (
       <View style={styles.pickerContainer}>
         {/* Selection indicator: two thin lines framing the centre row */}
         <View pointerEvents="none" style={styles.selectionIndicator}>
@@ -459,6 +504,25 @@ export const EventDateTimePickerContent = ({
           pointerEvents="none"
         />
       </View>
+    ),
+    [
+      applyAmPmIndex,
+      applyDateIndex,
+      dateLabels,
+      dateSnapOffsets,
+      handleHourScrollIndex,
+      handleMinuteScrollIndex,
+      renderWheel,
+      selectedAmPmIndex,
+      selectedDateIndex,
+      selectedHourLogical,
+      selectedMinuteLogical,
+    ],
+  );
+
+  return (
+    <>
+      {pickerWheels}
 
       {error ? <Text style={errorStyle.text}>{error}</Text> : null}
       <Pressable style={styles.confirmButton} onPress={handleConfirm}>
