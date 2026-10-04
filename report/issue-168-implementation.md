@@ -20,10 +20,12 @@ Corrected after user review: chat headers now open the full-page EventDetails ro
 
 On October 4, the user rejected the overlay presentation. Six updated regression tests failed before the route/CTA correction; the three affected screen suites then passed all 156 tests, and the full frontend passed all 126 suites / 1,468 tests. TypeScript, ESLint (0 errors / 721 warnings), changed-file formatting, and diff checks passed. Full formatting still reports the existing 216-file baseline.
 
-Inspected fresh Android screenshots reached through the group chat and 1:1 hub headers: the hero begins below the status bar, Back and More actions are at the page top, full details and host tabs are visible, and there is no exposed chat backdrop or bottom CTA. Native iOS and release builds remain unverified. These screenshots are shown to the user in chat; a new issue comment awaits explicit approval.
+Inspected fresh Android screenshots reached through the group chat and 1:1 hub headers: the hero begins below the status bar, Back and More actions are at the page top, full details and host tabs are visible, and there is no exposed chat backdrop or bottom CTA. Native iOS and release builds remain unverified. The user approved posting corrected proof. A fresh 93-second Android recording demonstrates the group chat and 1:1 hub full-page flows, tab changes, scrolling, and Back navigation. Its filmstrip was visually inspected before posting.
 
 ![Corrected group full page](./screenshots/issue-168/group-full-page-android.png)
 ![Corrected 1:1 full page](./screenshots/issue-168/single-full-page-android.png)
+
+- [Corrected full-page flow (MP4)](./screenshots/issue-168/full-page-flow-android.mp4)
 
 ## Earlier Android overlay verification (superseded)
 

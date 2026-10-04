@@ -597,3 +597,11 @@ whole-repository formatting were not run.
 - 1:1 hub header entry: PASS — inspected full-screen Requests/Accepted page without a bottom CTA.
 - Native iOS, physical Android, release builds, and backend tests were not run.
 - Evidence will be shown in chat; no new issue comment is authorized until user approval.
+
+## 2026-10-04 — Issue 168 approved video proof
+
+- PASS: recorded group chat → full Plan Details → Members and scroll → Back; Chat → 1:1 hub → full Plan Details → Accepted → Back.
+- Android 16 emulator and existing synthetic local API/Metro; inspected the 93-second recording as a filmstrip. Both pages fill the screen and have no bottom CTA.
+- Evidence: `report/screenshots/issue-168/full-page-flow-android.mp4`.
+- User explicitly approved posting the corrected video and pushing the change.
+- Only evidence/documentation changed in this follow-up; formatting and diff checks run, frontend tests not repeated. Previous 1,468-test result applies to unchanged production code.
