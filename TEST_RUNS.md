@@ -536,3 +536,40 @@ whole-repository formatting were not run.
 - Unverified: physical devices, older Android versions, release-mode performance,
   and accessibility/OS material variants. Backend tests and whole-repo formatting
   were not run. Native runtime 1.0.1 requires rebuilt clients.
+
+## 2026-10-04 — Issue #162 Plan Details cover investigation
+
+- Target: local Android 16 / API 36 `WEIF_API_36`, 720 × 1600, density 280;
+  existing synthetic-data `com.whoelseisfree.app.toastqa` development app.
+- REPRODUCED: scroll parallax. Details title moved up 233 pixels while the
+  cover's bottom moved up 186 pixels, matching the 0.2 scroll compensation.
+- RENDER-CONFIRMED: first cover entry starts at scale 0.97, opacity 0, and
+  translateY 14; reopening the same URI skips entry. Two deterministic tests
+  passed. Fresh-process videos show delayed image appearance/fade but do not
+  clearly isolate the small scale change from loading and the route slide.
+- Tilt and Android shadow: separate reproduction omitted at user request;
+  traced to hero `Placed` resting tilt and image `elevation: 15`.
+- Existing hero tests: 1 suite / 2 tests passed. No production fix implemented.
+  Full gates, release build, iOS, and physical-device checks not run.
+- Plan and evidence details: `report/issue-162-plan-details-cover-fix-plan.md`;
+  synthetic recordings and test harness remain ignored in `.data/issue-162/`.
+
+## 2026-10-04 — Issue #162 static cover implementation
+
+- PASS: hero is level, full size, and has no Android shadow. Cover and blurred
+  backdrop scroll with the page; both image transitions are disabled.
+- Android 16 / API 36 emulator, 720 × 1600, density 280; existing QA native
+  development client served this checkout through dedicated Metro 8084 and an
+  isolated synthetic-data backend on 8182. Main Android debug rebuild passed.
+- Native opening/reopening, expanded description, scrolling down/up, and back
+  navigation verified. Title and cover bottom each moved 238 pixels in a
+  measured scroll. Screenshot and two inspected native videos are published in
+  `report/screenshots/issue-162/`.
+- Red regression tests proved entry transforms, transition duration, scroll
+  translation, and Android elevation before implementation. Final frontend:
+  125 suites / 1,460 tests passed; typecheck passed; lint 0 errors / 751 warnings;
+  touched-file Prettier and `git diff --check` passed.
+- Unrun: backend suite, full-repository formatting, native iOS, physical phones,
+  release build, uploaded-cover and past-plan manual QA. Relevant read-only,
+  shared motion, URI, reduced-motion, and platform style tests passed.
+- Implementation, provenance, and limitations: `report/issue-162-implementation.md`.

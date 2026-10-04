@@ -1,8 +1,6 @@
 import { ReactNode, useCallback } from 'react';
 
-import { FlatListProps, ListRenderItemInfo, StyleProp, View, ViewStyle } from 'react-native';
-
-import Animated from 'react-native-reanimated';
+import { FlatList, ListRenderItemInfo, StyleProp, View, ViewStyle } from 'react-native';
 
 import { EventMemberRow, EventMemberRowSeparator } from '@components/events';
 
@@ -18,7 +16,6 @@ interface ReadOnlyEventDetailsProps {
   currentUserId?: number;
   isLoading: boolean;
   error: string | null;
-  onScroll: FlatListProps<EventDetailMember>['onScroll'];
   contentContainerStyle: StyleProp<ViewStyle>;
 }
 
@@ -37,7 +34,6 @@ const ReadOnlyEventDetails = ({
   currentUserId,
   isLoading,
   error,
-  onScroll,
   contentContainerStyle,
 }: ReadOnlyEventDetailsProps) => {
   const renderItem = useCallback(
@@ -54,7 +50,7 @@ const ReadOnlyEventDetails = ({
   );
 
   return (
-    <Animated.FlatList<EventDetailMember>
+    <FlatList<EventDetailMember>
       testID="read-only-event-details-list"
       data={isLoading || error ? [] : members}
       keyExtractor={(member) => String(member.id)}
@@ -79,8 +75,6 @@ const ReadOnlyEventDetails = ({
       showsVerticalScrollIndicator={false}
       bounces={false}
       alwaysBounceVertical={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
       contentContainerStyle={contentContainerStyle}
     />
   );

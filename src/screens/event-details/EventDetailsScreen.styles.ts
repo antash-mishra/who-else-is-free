@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import { colors, componentTokens, spacing, typography } from '@theme/index';
 
@@ -117,20 +117,20 @@ const styles = StyleSheet.create({
     width: '50%',
   },
 
-  // The elevated image card
+  // Keep the iOS shadow; Android Plan Details covers are flat.
   imageCard: {
     width: '100%',
     height: '100%',
     borderRadius: 20,
     borderCurve: 'continuous',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 12,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 15, // For Android
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+      },
+    }),
   },
 
   pageScrollContent: {
