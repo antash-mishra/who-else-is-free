@@ -1,5 +1,9 @@
 # Issue #167 — Android onboarding background cutoff
 
+2026-10-05 scope correction: this report records the earlier global contrast setting.
+The current candidate restores default contrast on other routes and overrides it only during
+onboarding. See [onboarding-only screenshots and signed APK](issue-167-onboarding-only.md).
+
 Status: implemented and verified on Android 16 emulators; release and affected-phone verification pending.
 Scope: the first reported problem only, across all three onboarding steps.
 

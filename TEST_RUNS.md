@@ -667,3 +667,13 @@ whole-repository formatting were not run.
 - Emulator: fresh `WEIF_ISSUE_167_RELEASE` Android 16, 720 × 1600/280 dpi, three-button navigation. Explicit `adb -s emulator-5554` used throughout; connected physical phone untouched.
 - PASS: clean install → permission prompts denied → guest Discover → Profile → Google sign-in sheet → force-stop/relaunch → Discover; no Metro, no dev-login controls, no account/profile writes.
 - PENDING: onboarding in this signed APK and affected physical phone. Previous debug-source reproduction/layout matrix remains green. Tester instructions and artifact checksum/build links are in `report/issue-167-window-background.md`.
+
+## 2026-10-05 — issue #167 fix scoped to onboarding, signed 1.0.2
+
+- Source: `2e0a38e`. Default Android contrast restored to true; focused onboarding opts out through the new local SystemNavigation module. Blur/unmount and activity resume own restoration/reapplication. Runtime 1.0.2 separates older binaries.
+- PASS: Android 16 `WEIF_ISSUE_167`, 720 × 1600/280 dpi. Original renderer with controlled shorter-window dimensions shows white crossing Continue; scoped renderer removes it with the same dimensions. Normal steps 1–3, keyboard open/dismiss, background/resume, gesture navigation, activity recreation and completion to Discover passed. Profile before/after the scoped change is identical across all pixels. Only synthetic local profiles were used; the completed fixture was reset through the local DELETE /api/profile endpoint for gesture checks.
+- Activity navigation-mode changes produced the already-observed transient development navigation-ref warning; it is separate from background coverage and was not changed. Native appearance retained the onboarding override.
+- Validation: full Jest 131 suites / 1,509 tests passed on final source; typecheck/formatting passed; lint no errors/seven existing onboarding warnings. The temporary original renderer made the two background regression checks fail; restored final source passed them. Native debug assembleDebug passed (722 tasks).
+- Signed release: EAS `6ddf0760-9317-4aa1-bd9f-4755ab259fc8`, 1.0.2/build 5/runtime 1.0.2, created before the comparison report. Signature v2 valid and signer unchanged; compiled default contrast true, native module/scoped JS bridge present, production API present and local URL absent. Not debuggable.
+- PASS: installed over the earlier signed 1.0.1 APK on `WEIF_ISSUE_167_RELEASE`, then guest Discover → Profile → Google sign-in sheet without Metro or dev-login controls. No production account/profile writes.
+- PENDING: onboarding on the affected physical phone with this signed APK, older Android, iOS visuals. Report/screenshots/download: `report/issue-167-onboarding-only.md` and `.html`.

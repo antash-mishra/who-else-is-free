@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Issue 167 — onboarding-only fix</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f5f5f7;
+        color: #17171b;
+        font:
+          16px/1.55 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.2;
+        margin: 8px 0 16px;
+      }
+      h2 {
+        font-size: 24px;
+        margin: 0 0 12px;
+      }
+      p {
+        max-width: 800px;
+      }
+      a {
+        color: #2359ad;
+      }
+      section {
+        margin-top: 32px;
+        padding: 28px;
+        background: white;
+        border: 1px solid #dedee5;
+        border-radius: 16px;
+      }
+      .eyebrow {
+        font-size: 13px;
+        color: #5b5b66;
+      }
+      .download {
+        display: inline-block;
+        padding: 12px 18px;
+        background: #17171b;
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      img {
+        display: block;
+        width: 100%;
+        max-width: 360px;
+        height: auto;
+        border: 1px solid #e2e2e6;
+        border-radius: 10px;
+      }
+      code {
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .result {
+        font-weight: 650;
+        color: #245f45;
+      }
+      @media (max-width: 600px) {
+        main {
+          padding: 24px 12px;
+        }
+        section {
+          padding: 18px;
+        }
+        .pair {
+          gap: 12px;
+        }
+        h1 {
+          font-size: 28px;
+        }
+        figcaption {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">WHO ELSE IS FREE · ISSUE #167 · OCTOBER 5, 2026</div>
+      <h1>Fix onboarding.<br />Preserve the other pages.</h1>
+      <p>
+        The background fills the onboarding page. Android's system-bar shading is removed only while
+        onboarding is visible, and restored when you leave.
+      </p>
+      <a
+        class="download"
+        href="https://expo.dev/artifacts/eas/YyJQze08mBOp1n500bo8keOYRMeJC_49grn8q2JI6eI.apk"
+        >Download signed APK · 1.0.2</a
+      >
+      <p class="eyebrow">Release built before this report · source 2e0a38e · Android build 5</p>
+      <section>
+        <h2>1. Onboarding: white cutoff removed</h2>
+        <p>
+          Both captures use the same controlled window-size mismatch. The blue background now
+          continues below Continue and behind the system buttons.
+        </p>
+        <div class="pair">
+          <figure>
+            <figcaption>Before — original renderer</figcaption>
+            <a href="issue-167-onboarding-only/onboarding-before.png"
+              ><img
+                src="issue-167-onboarding-only/onboarding-before.png"
+                width="720"
+                height="1600"
+                alt="Before — original renderer"
+            /></a>
+          </figure>
+          <figure>
+            <figcaption>After — onboarding-only fix</figcaption>
+            <a href="issue-167-onboarding-only/onboarding-after.png"
+              ><img
+                src="issue-167-onboarding-only/onboarding-after.png"
+                width="720"
+                height="1600"
+                alt="After — onboarding-only fix"
+            /></a>
+          </figure>
+        </div>
+      </section>
+      <section>
+        <h2>2. Profile: original appearance preserved</h2>
+        <p>
+          The entire 720 × 1600 comparison has 0 changed pixels, including the system-navigation
+          area. The baseline is the original appearance before global transparency, not the earlier
+          1.0.1 test APK.
+        </p>
+        <div class="pair">
+          <figure>
+            <figcaption>Before — original appearance</figcaption>
+            <a href="issue-167-onboarding-only/profile-before.png"
+              ><img
+                src="issue-167-onboarding-only/profile-before.png"
+                width="720"
+                height="1600"
+                alt="Before — original appearance"
+            /></a>
+          </figure>
+          <figure>
+            <figcaption>After — leaving onboarding</figcaption>
+            <a href="issue-167-onboarding-only/profile-after.png"
+              ><img
+                src="issue-167-onboarding-only/profile-after.png"
+                width="720"
+                height="1600"
+                alt="After — leaving onboarding"
+            /></a>
+          </figure>
+        </div>
+      </section>
+      <section>
+        <h2>Verification and test instructions</h2>
+        <p class="result">
+          131 suites / 1,509 tests passed. Signature verified. Upgrade from the prior APK passed.
+        </p>
+        <p>
+          These are unedited Android 16 emulator screenshots. The onboarding pair uses the original
+          renderer and fixed renderer with the same simulated shorter window; that diagnostic was
+          removed before the release. The Profile pair verifies restoration after onboarding. The
+          signed APK uses the same committed source; onboarding in that APK still needs your
+          device/account test.
+        </p>
+        <p>
+          Use a new test account or incomplete onboarding. Check all three pages, keyboard
+          dismissal, restart, and both navigation modes, then check Profile. Keep issue #167 open
+          until the affected phone passes.
+        </p>
+        <p>
+          <a href="issue-167-onboarding-only.md">Detailed evidence and reproduction</a> ·
+          <a
+            href="https://expo.dev/accounts/stoned_monk/projects/who-else-is-free/builds/6ddf0760-9317-4aa1-bd9f-4755ab259fc8"
+            >EAS build record</a
+          >
+        </p>
+        <p class="eyebrow">
+          APK SHA-256<br /><code
+            >51b264d9cc3571fe7f5dc2eee4bd3fb309ab4f07286faf11ea1da452ea93b7e5</code
+          >
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

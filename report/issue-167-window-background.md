@@ -1,5 +1,9 @@
 # Issue #167 follow-up: onboarding background ends inside Continue
 
+2026-10-05 scope correction: this report records the earlier global contrast setting.
+The current candidate restores default contrast on other routes and overrides it only during
+onboarding. See [onboarding-only screenshots and signed APK](issue-167-onboarding-only.md).
+
 Date: 2026-10-05. Status: implemented locally, emulator verified; affected phone and release verification pending.
 
 ## Finding

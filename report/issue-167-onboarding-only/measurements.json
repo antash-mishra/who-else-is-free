@@ -1,0 +1,84 @@
+{
+  "profile": {
+    "size": [
+      720,
+      1600
+    ],
+    "diffBounds": null,
+    "differentPixels": 0
+  },
+  "onboarding": {
+    "onboarding-before": {
+      "belowCta": [
+        255,
+        255,
+        255
+      ],
+      "systemBar": [
+        255,
+        255,
+        255
+      ]
+    },
+    "onboarding-after": {
+      "belowCta": [
+        215,
+        236,
+        252
+      ],
+      "systemBar": [
+        214,
+        236,
+        252
+      ]
+    },
+    "onboarding-normal": {
+      "belowCta": [
+        215,
+        236,
+        252
+      ],
+      "systemBar": [
+        214,
+        236,
+        252
+      ]
+    },
+    "step2": {
+      "belowCta": [
+        215,
+        236,
+        252
+      ],
+      "systemBar": [
+        214,
+        236,
+        252
+      ]
+    },
+    "step3": {
+      "belowCta": [
+        215,
+        236,
+        252
+      ],
+      "systemBar": [
+        214,
+        236,
+        252
+      ]
+    },
+    "resumed": {
+      "belowCta": [
+        215,
+        236,
+        252
+      ],
+      "systemBar": [
+        214,
+        236,
+        252
+      ]
+    }
+  }
+}
