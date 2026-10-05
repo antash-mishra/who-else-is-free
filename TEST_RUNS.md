@@ -659,3 +659,11 @@ whole-repository formatting were not run.
 - Unverified: affected physical phone/OEM behavior, older Android, iOS visuals, signed release
   and production delivery. Reporter metadata remains needed to identify which mechanism their
   installed build exercises. Evidence: `report/issue-167-window-background.md`.
+
+## 2026-10-05 — issue #167 signed release candidate
+
+- Candidate: EAS preview release APK 1.0.1/build 5, source `8cefd23`, build `71f75e6a-1782-4f08-af2d-5c934a61a70f`.
+- Artifact: APK v2 signature verified; package is not debuggable; compiled navigation contrast is false; embedded bundle uses production API and includes the fixed onboarding marker.
+- Emulator: fresh `WEIF_ISSUE_167_RELEASE` Android 16, 720 × 1600/280 dpi, three-button navigation. Explicit `adb -s emulator-5554` used throughout; connected physical phone untouched.
+- PASS: clean install → permission prompts denied → guest Discover → Profile → Google sign-in sheet → force-stop/relaunch → Discover; no Metro, no dev-login controls, no account/profile writes.
+- PENDING: onboarding in this signed APK and affected physical phone. Previous debug-source reproduction/layout matrix remains green. Tester instructions and artifact checksum/build links are in `report/issue-167-window-background.md`.

@@ -133,4 +133,31 @@ measure page layout, reported window/screen sizes and safe-area insets on that p
 inside the CTA points to app background coverage; a strip only in the system bar points to the
 native window setting/OEM treatment. Do not add another guessed bottom margin.
 
-Physical affected phone, older Android, iOS visuals and a signed release APK remain unverified.
+Physical affected phone, older Android and iOS visuals remain unverified. Signed release
+artifact checks and guest-launch verification are recorded below; onboarding in that signed
+artifact still needs a test account on the affected phone.
+
+## Signed release candidate — 2026-10-05
+
+- Source commit: `8cefd2327fa4a807fad59bc021f47f46ef73bf79` (`Fix Android onboarding background coverage`).
+- EAS `preview` build (internal distribution, release APK): **1.0.1 / Android versionCode 5**.
+- [Build record](https://expo.dev/accounts/stoned_monk/projects/who-else-is-free/builds/71f75e6a-1782-4f08-af2d-5c934a61a70f).
+- [Download test APK](https://expo.dev/artifacts/eas/IALIk8uEKBM3KklLSf9-4h7gMyrMzhPO6Vpt9q7dUzo.apk).
+- APK SHA-256: `b7ec3d570a673150331162ad1ca994b8daa703a63d345a3f9097c289e104b383`.
+- Built with the existing EAS Android keystore; `apksigner verify` passed with APK signature v2.
+- Compiled `AppTheme` v29 has `android:enforceNavigationBarContrast=false`.
+- Installed package is not debuggable. Embedded bundle contains the production API URL and
+  `onboarding-page` marker, with neither local emulator test-server URL.
+- Fresh Android 16 AVD `WEIF_ISSUE_167_RELEASE`, 720 × 1600 at 280 dpi, three-button navigation:
+  install, guest Discover, Profile → Get started → Google sign-in sheet, and force-stop/relaunch
+  passed without Metro. Notification/location prompts were denied on the emulator. No dev-login
+  controls appeared. No account was created and no production profile was changed.
+- This smoke check does not verify signed-release onboarding: the preceding layout matrix used
+  the debug binary from the same source. Forward this candidate to an affected tester with a new
+  test account or incomplete onboarding; keep #167 open pending their result.
+
+Ask the tester to check name/gender/age pages in three-button navigation, open/dismiss the name
+keyboard, force-close/reopen, then repeat in gesture navigation. Request PASS/FAIL, full-bottom
+screenshots, phone model, Android/OEM version, and whether they installed over the previous app.
+Do not delete a real account to reach onboarding. The APK has been prepared; no GitHub comment
+or external message has been sent.
