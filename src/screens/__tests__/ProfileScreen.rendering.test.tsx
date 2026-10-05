@@ -356,18 +356,18 @@ describe('ProfileScreen Rendering', () => {
 
       // A hint, so the card's own name/email/stats are still announced; a label
       // would replace them.
-      expect(card.props.accessibilityHint).toBe('Opens your past plans');
+      expect(card.props.accessibilityHint).toBe('Opens edit profile');
       expect(card.props.accessibilityRole).toBe('button');
     });
 
-    it('should navigate to PastEvents when the profile card is pressed', () => {
+    it('should navigate to EditProfile when the profile card is pressed', () => {
       setupMocks();
       const { getByTestId } = render(<ProfileScreen />);
 
       fireEvent.press(getByTestId('profile-header-card'));
 
       // The card shows identity, so its destination is not self-evident; pin it.
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('PastEvents');
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('EditProfile');
     });
 
     it('should navigate to EditProfile when Edit profile is pressed', () => {
