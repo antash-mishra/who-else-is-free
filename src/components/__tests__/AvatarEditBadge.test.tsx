@@ -70,6 +70,17 @@ it('passes the current avatar identity only to the Android backdrop', () => {
   expect(backdrop.findAllByType(CameraIcon)).toHaveLength(0);
 });
 
+it('matches the measured onboarding gradient when the page exceeds the app window', () => {
+  Platform.OS = 'android';
+  const { UNSAFE_getByType } = render(
+    <AvatarEditBadge page="onboarding" pageSize={{ width: 411, height: 914 }} />,
+  );
+  const backdrop = UNSAFE_getByType(require('../AvatarBadgeBackdrop').default);
+  const gradient = backdrop.find((node) => node.props.positions !== undefined);
+  expect(gradient.props.c).toEqual({ x: 205.5, y: -0 });
+  expect(gradient.props.r).toBe(914);
+});
+
 it('uses the same avatar URI decoder without substituting a gradient for a loading photo', () => {
   const { Skia } = require('@shopify/react-native-skia');
   // This regression covers Android; a missing decoded photo is transparent, like expo-image.

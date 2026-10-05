@@ -15,6 +15,10 @@ Who Else Is Free is an event discovery and social coordination app.
   `app.config.js` so three-button navigation does not add a pale scrim over page
   backgrounds. Preserve safe-area padding and verify system-button legibility.
   The setting requires prebuild and a native Android rebuild, not an OTA update.
+- Onboarding background coverage belongs to an unpadded full-page root; put safe-area/header
+  padding on the pager. Measure the page with `onLayout` for radial-gradient geometry and pass
+  `pageSize` to `AvatarEditBadge`. Android's reported app window can be shorter than the page.
+  Check the contrast setting in the compiled APK, not just source config or version name.
 - Backend: Go Gin server in `server/`
 - API: REST plus WebSocket chat at `/api/ws`
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`

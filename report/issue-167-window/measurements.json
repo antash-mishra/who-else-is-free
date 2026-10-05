@@ -1,0 +1,79 @@
+{
+  "scale": 1.75,
+  "pageHeightDp": 914.2857055664062,
+  "simulatedWindowHeightDp": 814.2857142857143,
+  "insetsDp": {
+    "top": 52,
+    "bottom": 48
+  },
+  "continueBoundsPx": [28, 1397, 692, 1488],
+  "navigationTopPx": 1516,
+  "screenshots": [
+    {
+      "file": "android-gesture-step1.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-gesture-step2.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-gesture-step3.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-normal-step1.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-normal-step2.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-normal-step3.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-simulated-window-after.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-simulated-window-before.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": 1425,
+      "bottomLeftRGB": [255, 255, 255]
+    },
+    {
+      "file": "android-simulated-window-step2.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-keyboard-dismissed.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    },
+    {
+      "file": "android-cold-launch.png",
+      "size": [720, 1600],
+      "firstWhiteEdgeRowBelow1200": null,
+      "bottomLeftRGB": [214, 236, 252]
+    }
+  ]
+}

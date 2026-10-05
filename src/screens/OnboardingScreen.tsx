@@ -14,6 +14,7 @@ import {
   ScrollView,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  LayoutChangeEvent,
 } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +31,7 @@ import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import ProfileIcon from '@assets/onboarding/profile.svg';
 import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
+import AvatarBackground from '@components/AvatarBackground';
 import AvatarEditBadge from '@components/AvatarEditBadge';
 import { AppButton, IconButton } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
@@ -39,7 +41,6 @@ import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { colors, typography } from '@theme/index';
-import AvatarBackground from '@components/AvatarBackground';
 import { getAvatarColor } from '@utils/avatar';
 import { getBottomBarClearance } from '@utils/bottomObstruction';
 
@@ -61,6 +62,15 @@ const OnboardingScreen = () => {
   const { user, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const { width, height: screenHeight } = useWindowDimensions();
+  const [pageSize, setPageSize] = useState({ width, height: screenHeight });
+  const handlePageLayout = useCallback(({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    if (layout.width <= 0 || layout.height <= 0) return;
+    setPageSize((previous) =>
+      previous.width === layout.width && previous.height === layout.height
+        ? previous
+        : { width: layout.width, height: layout.height },
+    );
+  }, []);
   const avatarColor = getAvatarColor(user?.id);
 
   const [step, setStep] = useState<OnboardingStep>(1);
@@ -208,23 +218,25 @@ const OnboardingScreen = () => {
   const headerTopMargin = Math.max(0, headerTopOffset - containerTopPadding);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <Svg style={StyleSheet.absoluteFillObject} width={width} height={screenHeight}>
+    <View testID="onboarding-page" onLayout={handlePageLayout} style={styles.container}>
+      {/* Android's reported window can exclude system bars while this page is
+          edge-to-edge. Fill the parent immediately; measure only the gradient. */}
+      <Svg style={StyleSheet.absoluteFillObject} width="100%" height="100%" pointerEvents="none">
         <Defs>
           <RadialGradient
             id="onboardingBg"
-            cx={width / 2}
+            cx={pageSize.width / 2}
             cy={0}
-            r={screenHeight}
+            r={pageSize.height}
             gradientUnits="userSpaceOnUse"
           >
             <Stop offset="0.24" stopColor={colors.onboardingGradientStart} stopOpacity="1" />
             <Stop offset="1" stopColor={colors.onboardingGradientEnd} stopOpacity="1" />
           </RadialGradient>
         </Defs>
-        <Rect width={width} height={screenHeight} fill="url(#onboardingBg)" opacity={0.7} />
+        <Rect width="100%" height="100%" fill="url(#onboardingBg)" opacity={0.7} />
       </Svg>
-      <Animated.View style={pagerAnimStyle}>
+      <Animated.View style={[pagerAnimStyle, { paddingTop: insets.top + 16 }]}>
         {/* Step 1 */}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={[styles.stepContainer, { width }]}>
@@ -262,6 +274,7 @@ const OnboardingScreen = () => {
                     {/* Camera badge */}
                     <AvatarEditBadge
                       page="onboarding"
+                      pageSize={pageSize}
                       avatar={avatarBase64}
                       name={name.trim()}
                       seed={user?.id}

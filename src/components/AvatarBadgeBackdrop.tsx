@@ -29,6 +29,8 @@ export interface AvatarBadgeBackdropProps {
   seed?: number | string | null;
   /** The page under the avatar: onboarding radial gradient or default white. */
   page?: 'onboarding';
+  /** Measured onboarding page, which can be taller than Android's app window. */
+  pageSize?: { width: number; height: number };
 }
 
 /** Android's badge receives only its backdrop, never a capture of the camera. */
@@ -37,6 +39,7 @@ export default function AvatarBadgeBackdrop({
   name,
   seed,
   page,
+  pageSize,
 }: AvatarBadgeBackdropProps) {
   const frame = useRef<View>(null);
   const [origin, setOrigin] = useState({ x: 0, y: 0 });
@@ -97,8 +100,8 @@ export default function AvatarBadgeBackdrop({
             {page === 'onboarding' && (
               <Rect x={-120} y={-120} width={280} height={280} opacity={0.7}>
                 <RadialGradient
-                  c={vec(width / 2 - origin.x, -origin.y)}
-                  r={height}
+                  c={vec((pageSize?.width ?? width) / 2 - origin.x, -origin.y)}
+                  r={pageSize?.height ?? height}
                   colors={[colors.onboardingGradientStart, colors.onboardingGradientEnd]}
                   positions={[0.24, 1]}
                 />

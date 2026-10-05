@@ -3,6 +3,12 @@
 Status: implemented and verified on Android 16 emulators; release and affected-phone verification pending.
 Scope: the first reported problem only, across all three onboarding steps.
 
+2026-10-05 follow-up: the reporter's cutoff through Continue is a separate background-sizing
+case that the equal-window/page Android 16 test below did not cover. See
+[window/page reproduction and fix](issue-167-window-background.md). The contrast fix remains
+necessary, but does not make a short SVG fill its page. Source configuration also does not
+prove a previously compiled or installed APK includes the native setting.
+
 ## Measured diagnosis and selected fix (2026-10-03)
 
 The original sizing hypothesis below was not observed on the Android 16 emulator.

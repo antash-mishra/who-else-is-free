@@ -636,3 +636,26 @@ whole-repository formatting were not run.
   merged reference-document formatting and staged diff whitespace checks.
 - No new native build or timing sample: the picker source is unchanged from the
   validated branch; physical-device and consistent sub-100 ms limits still apply.
+
+## 2026-10-05 — Issue #167 background coverage follow-up
+
+- Change: Onboarding background fills an unpadded page; radial geometry and Android avatar
+  backdrop use measured page size. Existing content/CTA spacing is preserved on the pager.
+- Flow: Profile → Get started → Dev Login (onboarding) → name/gender/age, with a synthetic
+  account on an isolated local backend (8097), Metro (8197), WEIF_ISSUE_167/API 36 emulator.
+- Reproduction: temporary excluded-bar window dimensions (814.286dp versus 914.286dp page)
+  put the old renderer's white boundary at y=1425 inside Continue (1397–1488). Diagnostic
+  injection was removed from production source.
+- Attempt 1: FAIL — percentage SVG bounds still excluded padded parent content.
+- Attempt 2: FAIL — cached 1.0.1 APK retained native navigation contrast=true despite source
+  config=false. Verified its compiled resources, rebuilt and installed contrast=false APK.
+- Final: PASS — identical simulated mismatch fills the screen with the final renderer;
+  normal three-button/gesture steps, keyboard dismissal and cold re-entry preserve coverage.
+- PASS: 4 focused suites/75 tests; 129 full frontend suites/1,504 tests; typecheck; touched-file
+  lint (existing screen warnings only), formatting, diff checks, native debug assembly and
+  compiled contrast inspection. No backend source changes.
+- A transient development navigation-ref initialization warning appeared when switching
+  system navigation mode recreated the activity; it is separate and not investigated here.
+- Unverified: affected physical phone/OEM behavior, older Android, iOS visuals, signed release
+  and production delivery. Reporter metadata remains needed to identify which mechanism their
+  installed build exercises. Evidence: `report/issue-167-window-background.md`.

@@ -507,7 +507,9 @@ Where it is used:
 - Create/Edit Event cover chip and submit button.
 - `AvatarEditBadge` (Onboarding and Edit Profile profile-picture chip): supplies an explicit
   Android `AvatarBadgeBackdrop`; iOS retains native intensity 15. Pass matching avatar/name/seed
-  and `page="onboarding"` on the gradient page. The 120dp avatar/40dp badge geometry is fixed;
+  and `page="onboarding"` plus the measured `pageSize` on the gradient page. The backdrop uses
+  that size for its radial gradient; the window size is only a fallback for other callers.
+  The 120dp avatar/40dp badge geometry is fixed;
   changes to placement or avatar size must update source coordinates and native fixtures together.
   Android radius, tint and saturation live in `avatarBadgeMaterial`, independently calibrated
   against the unchanged iOS badge. Foreground glyphs and shadows never enter that source.
@@ -671,6 +673,13 @@ through the three-button navigation area. This needs a native Android rebuild;
 adding bottom padding or resizing an already full-height background cannot remove
 the operating system's contrast scrim. Verify navigation-button legibility when
 changing page backgrounds.
+
+Onboarding's gradient fills its unpadded root with percentage SVG/Rect bounds; the pager owns
+safe-area/header padding. Root `onLayout` owns radial-gradient geometry, also passed as
+`pageSize` to `AvatarEditBadge`. A window-sized SVG can end inside the CTA when Android reports
+an app window shorter than the edge-to-edge page. Test this mismatch separately from the
+navigation contrast scrim, and verify the compiled APK setting after rebuilding. QA history:
+`report/issue-167-window-background.md`.
 
 File: `src/components/ScreenContainer.tsx`
 

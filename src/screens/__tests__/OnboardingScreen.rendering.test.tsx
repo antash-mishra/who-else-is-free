@@ -5,9 +5,12 @@
 
 import React from 'react';
 
-import { Alert } from 'react-native';
+import { Alert, Dimensions, StyleSheet } from 'react-native';
 
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import Svg, { RadialGradient, Rect } from 'react-native-svg';
+
+// eslint-disable-next-line import/order -- The screen import below must follow initialized native-module mocks.
 import { mockUsers } from '../../__tests__/mocks/mockData';
 
 // Mock Alert
@@ -73,6 +76,48 @@ describe('OnboardingScreen Rendering', () => {
     });
     mockRequestMediaLibraryPermissionsAsync.mockResolvedValue({ granted: true });
     mockLaunchImageLibraryAsync.mockResolvedValue({ canceled: true });
+  });
+
+  describe('Background coverage', () => {
+    it('fills the page even when Android reports a shorter app window', () => {
+      render(<OnboardingScreen />);
+      const window = Dimensions.get('window');
+      const pageHeight = window.height + 100;
+      fireEvent(screen.getByTestId('onboarding-page'), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width: window.width, height: pageHeight } },
+      });
+      // Coverage must follow the parent, including the part outside the reported
+      // app window. Increasing CTA clearance cannot fix a short SVG viewport.
+      const background = screen.UNSAFE_getAllByType(Svg)[0];
+      // Yoga resolves percentage SVG bounds against the parent's content box.
+      // Safe-area padding belongs on the pager, not on the background's parent.
+      expect(
+        StyleSheet.flatten(screen.getByTestId('onboarding-page').props.style).paddingTop,
+      ).toBeUndefined();
+      expect(background.props.width).toBe('100%');
+      expect(background.props.height).toBe('100%');
+      const fill = background.findByType(Rect);
+      expect(fill.props.width).toBe('100%');
+      expect(fill.props.height).toBe('100%');
+      expect(background.findByType(RadialGradient).props.r).toBe(pageHeight);
+    });
+
+    it('uses the measured page for the gradient and follows page resizing', () => {
+      render(<OnboardingScreen />);
+      const layoutPage = (width: number, height: number) =>
+        fireEvent(screen.getByTestId('onboarding-page'), 'layout', {
+          nativeEvent: { layout: { x: 0, y: 0, width, height } },
+        });
+      layoutPage(411, 914);
+      const gradient = () => screen.UNSAFE_getAllByType(RadialGradient)[0];
+      expect(gradient().props.cx).toBe(205.5);
+      expect(gradient().props.r).toBe(914);
+      layoutPage(600, 800);
+      expect(gradient().props.cx).toBe(300);
+      expect(gradient().props.r).toBe(800);
+      layoutPage(0, 0);
+      expect(gradient().props.r).toBe(800);
+    });
   });
 
   describe('Step 1 - Name Input', () => {
@@ -245,9 +290,7 @@ describe('OnboardingScreen Rendering', () => {
       selectAge(25);
       pressDone();
       await waitFor(() => {
-        expect(mockUpdateProfile).toHaveBeenCalledWith(
-          expect.objectContaining({ age: 25 }),
-        );
+        expect(mockUpdateProfile).toHaveBeenCalledWith(expect.objectContaining({ age: 25 }));
       });
     });
 

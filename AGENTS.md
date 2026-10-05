@@ -66,6 +66,12 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
   making full-screen backgrounds look cut off. Keep content safe-area clearance and
   check system-button legibility on changed backgrounds. This native setting requires
   prebuild and an Android rebuild; Metro reloads and OTA updates cannot apply it.
+- Onboarding backgrounds fill an unpadded page; safe-area/header padding belongs on the
+  pager. Use the page's `onLayout` size for the radial gradient and pass that `pageSize`
+  to `AvatarEditBadge` so Android's explicit backdrop matches. Do not size background
+  coverage from `useWindowDimensions`: Android can report a shorter app window than
+  the edge-to-edge page. Verify the compiled APK's contrast setting after native builds;
+  source config and version name alone do not prove an installed binary has the fix.
 - Backend: Go Gin HTTP server in `server/` using SQLite.
 - API: REST endpoints plus WebSocket chat at `/api/ws`.
 - Navigation: React Navigation stack and bottom tabs in `src/navigation`.
