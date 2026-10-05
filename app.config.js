@@ -2,8 +2,8 @@ export default {
   expo: {
     name: 'who-else-is-free',
     slug: 'who-else-is-free',
-    // New Android ToastBlur native module needs a separate OTA runtime.
-    version: '1.0.1',
+    // Route-scoped Android SystemNavigation needs a separate native OTA runtime.
+    version: '1.0.2',
     orientation: 'portrait',
     icon: './assets/weif/icon.png',
     userInterfaceStyle: 'light',
@@ -40,8 +40,9 @@ export default {
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
     },
     androidNavigationBar: {
-      // Let the onboarding gradient continue behind three-button navigation.
-      enforceContrast: false,
+      // Preserve the original appearance outside onboarding. The focused
+      // onboarding route disables contrast through the SystemNavigation module.
+      enforceContrast: true,
     },
 
     plugins: [

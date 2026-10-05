@@ -11,10 +11,10 @@ Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented w
 Who Else Is Free is an event discovery and social coordination app.
 
 - Frontend: React Native Expo app in `src/`
-- Android system navigation uses `androidNavigationBar.enforceContrast: false` in
-  `app.config.js` so three-button navigation does not add a pale scrim over page
-  backgrounds. Preserve safe-area padding and verify system-button legibility.
-  The setting requires prebuild and a native Android rebuild, not an OTA update.
+- Android's default navigation contrast stays enabled (`androidNavigationBar.enforceContrast: true`).
+  Only focused onboarding disables it, through `useOnboardingNavigationBar` and the local
+  `modules/system-navigation` Expo module. Blur/unmount restores other screens; native resume
+  reapplies the active policy. Keep safe-area padding. Native rebuild and runtime 1.0.2 are required.
 - Onboarding background coverage belongs to an unpadded full-page root; put safe-area/header
   padding on the pager. Measure the page with `onLayout` for radial-gradient geometry and pass
   `pageSize` to `AvatarEditBadge`. Android's reported app window can be shorter than the page.

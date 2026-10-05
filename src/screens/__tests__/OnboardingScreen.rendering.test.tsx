@@ -16,6 +16,10 @@ import { mockUsers } from '../../__tests__/mocks/mockData';
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
+jest.mock('@hooks/useOnboardingNavigationBar', () => ({
+  useOnboardingNavigationBar: jest.fn(),
+}));
+
 // Mock navigation
 const mockNavigate = jest.fn();
 const mockReset = jest.fn();

@@ -1,0 +1,12 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.systemnavigation'
+version = '1.0.0'
+
+android {
+  namespace 'expo.modules.systemnavigation'
+  defaultConfig { versionCode 1; versionName '1.0.0' }
+}

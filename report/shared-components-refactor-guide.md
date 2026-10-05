@@ -667,12 +667,16 @@ Use it when:
 
 ### `ScreenContainer`
 
-Android system-bar appearance is owned by `app.config.js`, separately from screen
-safe-area padding. `androidNavigationBar.enforceContrast: false` lets the page show
-through the three-button navigation area. This needs a native Android rebuild;
-adding bottom padding or resizing an already full-height background cannot remove
-the operating system's contrast scrim. Verify navigation-button legibility when
-changing page backgrounds.
+Android system-bar defaults are owned by `app.config.js`, separately from screen safe-area
+padding. Keep `androidNavigationBar.enforceContrast: true` so other screens retain their original
+three-button system-navigation appearance. `useOnboardingNavigationBar` owns the focused
+Onboarding route's opt-out through `src/services/systemNavigation.ts` and the Android-only local
+`modules/system-navigation` Expo module. Focus removes the system scrim, blur/unmount restores
+it, and the native lifecycle listener reapplies the policy after activity resume/recreation. The
+three onboarding steps share that route; do not copy window controls into individual steps or
+other screens. The native module requires a rebuild and app-version OTA runtime 1.0.2. Verify the
+default compiled theme and the focused/restored native appearance, including system-button
+legibility, independently of background coverage.
 
 Onboarding's gradient fills its unpadded root with percentage SVG/Rect bounds; the pager owns
 safe-area/header padding. Root `onLayout` owns radial-gradient geometry, also passed as

@@ -37,6 +37,7 @@ import { AppButton, IconButton } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { userGenderOptions, type UserGender } from '@constants/profileOptions';
 import { useAuth, type ApiError } from '@context/AuthContext';
+import { useOnboardingNavigationBar } from '@hooks/useOnboardingNavigationBar';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
@@ -58,6 +59,7 @@ type OnboardingStep = 1 | 2 | 3;
 const BackArrowIcon = () => <ChevronLeftIcon width={28} height={28} color={colors.text} />;
 
 const OnboardingScreen = () => {
+  useOnboardingNavigationBar();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();

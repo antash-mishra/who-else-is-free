@@ -10,7 +10,7 @@ import {
 import { withEdgeToEdge } from '@expo/prebuild-config/build/plugins/unversioned/edge-to-edge/withEdgeToEdge';
 
 describe('Android navigation bar native configuration', () => {
-  it('removes the three-button contrast scrim in the generated app theme', async () => {
+  it('preserves the default three-button contrast outside onboarding', async () => {
     const projectRoot = path.resolve(__dirname, '../..');
     const appConfig = getConfig(projectRoot).exp;
     // Supply an existing theme as native prebuild would, including an old value
@@ -27,7 +27,7 @@ describe('Android navigation bar native configuration', () => {
           {
             $: { name: 'AppTheme', parent: 'Theme.AppCompat.DayNight.NoActionBar' },
             item: [
-              { $: { name: 'android:enforceNavigationBarContrast' }, _: 'true' },
+              { $: { name: 'android:enforceNavigationBarContrast' }, _: 'false' },
               { $: { name: 'android:editTextBackground' }, _: '@drawable/rn_edit_text_material' },
             ],
           },
@@ -48,7 +48,7 @@ describe('Android navigation bar native configuration', () => {
     ).toEqual([
       {
         $: { name: 'android:enforceNavigationBarContrast', 'tools:targetApi': '29' },
-        _: 'false',
+        _: 'true',
       },
     ]);
     expect(appTheme?.item).toContainEqual({
