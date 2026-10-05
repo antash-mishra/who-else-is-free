@@ -68,9 +68,11 @@ The repo is linked to the original authorâ€™s Expo/EAS project, so we first reâ€
 3. Open `app.config.js` in the project root.
 4. **Keep the existing name and slug**, for example:
    ```js
-   name: "who-else-is-free",
+   name: "Weif",
    slug: "who-else-is-free",
    ```
+   `name` is the installed display name. Keep the slug and bundle identifier stable when renaming
+   the app. Store titles are configured separately; see [`docs/app-display-name.md`](docs/app-display-name.md).
 5. Remove the `extra.eas` block that links to the original project, e.g. delete this part:
    ```js
    extra: {

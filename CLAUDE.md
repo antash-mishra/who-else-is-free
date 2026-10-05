@@ -11,6 +11,9 @@ Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented w
 Who Else Is Free is an event discovery and social coordination app.
 
 - Frontend: React Native Expo app in `src/`
+- Installed app display name is `Weif`, owned by `expo.name` in `app.config.js`. Keep the Expo slug,
+  EAS project ID, package/bundle identifiers, and persisted storage keys stable during display-name
+  changes. Native rebuilds and separate store-title updates are required; see `docs/app-display-name.md`.
 - Android's default navigation contrast stays enabled (`androidNavigationBar.enforceContrast: true`).
   Only focused onboarding disables it, through `useOnboardingNavigationBar` and the local
   `modules/system-navigation` Expo module. Blur/unmount restores other screens; native resume

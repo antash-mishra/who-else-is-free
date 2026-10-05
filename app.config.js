@@ -1,6 +1,6 @@
 export default {
   expo: {
-    name: 'who-else-is-free',
+    name: 'Weif',
     slug: 'who-else-is-free',
     // Route-scoped Android SystemNavigation needs a separate native OTA runtime.
     version: '1.0.2',
