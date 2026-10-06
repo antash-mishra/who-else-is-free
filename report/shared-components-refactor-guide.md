@@ -1883,3 +1883,9 @@ Event date picker opts into this path; other sheet flows retain their modal pres
 `EventDateTimePickerContent` synchronizes unconfirmed drafts and all native wheel offsets while hidden, cancels pending settle timers, and ignores late hidden momentum events. Preparation does not postpone an early tap or gate visible values on interactions. Bounded rows limit retained memory; retention is scoped to the focused form, never the app lifetime. Measurements belong in `report/issue-163-date-picker-sub100-results.md`.
 
 Prepared picker rows are memoized by logical selection and calendar-day bounds. Keep visibility and late-event guards in a stable ref so opening does not replace FlatList props or reconcile every row. Hosted sheet registration and shared visibility/animation setup use layout effects; native modal entry still waits for `onShow`.
+
+### Long text presentation
+
+- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
+- Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
+- Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.

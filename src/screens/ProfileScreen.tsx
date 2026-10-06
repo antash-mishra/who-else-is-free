@@ -308,7 +308,9 @@ const ProfileScreen = () => {
                 size={64}
                 style={styles.avatar}
               />
-              <Text style={styles.name}>{user.name}</Text>
+              <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+                {user.name}
+              </Text>
               <Text style={styles.email}>{user.email}</Text>
 
               {/* Stats Row */}
@@ -427,8 +429,7 @@ const styles = StyleSheet.create({
     // Position the dot at the top-right corner of the SVG icon, not the
     // button container, so it visually sits on the bell's upper-right.
     top: 4,
-    right: 6
-    ,
+    right: 6,
     // Match the chat tab-bar unread dot: red fill with a white ring. RN draws
     // borders inside the box, so 10px outer (6px red fill + 2px ring each side)
     // keeps it the same size as the chat dot.
@@ -468,6 +469,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   name: {
+    maxWidth: '100%',
     fontSize: 20,
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,

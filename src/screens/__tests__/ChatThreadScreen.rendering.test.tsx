@@ -303,7 +303,8 @@ describe('ChatThreadScreen Rendering', () => {
       });
       const { getByText } = render(<ChatThreadScreen />);
 
-      expect(getByText('John joined the chat')).toBeTruthy();
+      expect(getByText('John')).toBeTruthy();
+      expect(getByText(' joined the chat')).toBeTruthy();
     });
 
     it('should render system messages for event detail updates', () => {

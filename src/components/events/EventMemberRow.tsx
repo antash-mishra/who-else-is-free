@@ -44,7 +44,9 @@ const EventMemberRow: React.FC<EventMemberRowProps> = ({
         seed={member.id}
         size={40}
       />
-      <Text style={styles.memberName}>{displayName}</Text>
+      <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">
+        {displayName}
+      </Text>
       {trailingLabel ? <Text style={styles.trailingLabel}>{trailingLabel}</Text> : null}
       {!trailingLabel && onMenuPress ? (
         <ScalePressable

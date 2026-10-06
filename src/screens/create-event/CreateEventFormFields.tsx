@@ -1,11 +1,11 @@
 import { memo } from 'react';
 
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Image } from 'expo-image';
 
 import UploadIcon from '@assets/create-event/choose-cover.svg';
-import { FrostedSurface } from '@components/ui';
+import { FrostedSurface, OverflowTextInput } from '@components/ui';
 import { colors } from '@theme/index';
 
 import styles from '../CreateEventScreen.styles';
@@ -67,7 +67,7 @@ const CreateEventFormFields = ({
 
     <View style={styles.fieldCard}>
       <View style={styles.fieldCardInner}>
-        <TextInput
+        <OverflowTextInput
           placeholder="Event name"
           value={eventName}
           onChangeText={onChangeEventName}

@@ -31,7 +31,7 @@ import { CountBadge, IconButton } from '@components/ui';
 import EventActionOverlay from '@components/EventActionOverlay';
 import useSingleEventMemberActions from '@hooks/useSingleEventMemberActions';
 import UserAvatar from '@components/UserAvatar';
-import { colors, spacing, typography } from '@theme/index';
+import { colors, componentTokens, radii, spacing, typography } from '@theme/index';
 import { useChat } from '@context/ChatContext';
 import type { ChatMessage } from '@context/ChatContext';
 import { useAuth } from '@context/AuthContext';
@@ -60,37 +60,47 @@ const ChatComposer = ({
   isSendDisabled,
   onDraftChange,
   onSend,
-}: ComposerProps) => (
-  <View
-    style={[styles.composerContainer, { paddingBottom: composerBottomPadding }]}
-    testID="chat-composer-container"
-  >
-    <View style={styles.composerInputWrapper}>
-      <TextInput
-        placeholder="Write a message"
-        value={draft}
-        onChangeText={onDraftChange}
-        style={styles.composerInput}
-        placeholderTextColor={colors.tabInactive}
-        multiline
-      />
-      <Pressable
-        onPress={onSend}
-        disabled={isSendDisabled}
-        style={[styles.sendIconButton, isSendDisabled && styles.sendIconButtonDisabled]}
-        accessibilityRole="button"
-        accessibilityLabel="Send message"
-        accessibilityState={{ disabled: isSendDisabled }}
-      >
-        <SendIcon
-          width={15}
-          height={16}
-          color={isSendDisabled ? colors.tabInactive : colors.buttonText}
+}: ComposerProps) => {
+  const [isMultiline, setIsMultiline] = useState(false);
+  return (
+    <View
+      style={[styles.composerContainer, { paddingBottom: composerBottomPadding }]}
+      testID="chat-composer-container"
+    >
+      <View style={[styles.composerInputWrapper, isMultiline && styles.composerMultiline]}>
+        <TextInput
+          placeholder="Write a message"
+          value={draft}
+          onChangeText={onDraftChange}
+          style={styles.composerInput}
+          placeholderTextColor={colors.tabInactive}
+          multiline
+          scrollEnabled
+          onLayout={({ nativeEvent }) =>
+            setIsMultiline(
+              nativeEvent.layout.height >
+                componentTokens.input.composerLineHeight + spacing.xs * 2 + 2,
+            )
+          }
         />
-      </Pressable>
+        <Pressable
+          onPress={onSend}
+          disabled={isSendDisabled}
+          style={[styles.sendIconButton, isSendDisabled && styles.sendIconButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          accessibilityState={{ disabled: isSendDisabled }}
+        >
+          <SendIcon
+            width={15}
+            height={16}
+            color={isSendDisabled ? colors.tabInactive : colors.buttonText}
+          />
+        </Pressable>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 /**
  * Android keyboard handling for the thread. The window is kept in
@@ -509,9 +519,23 @@ const ChatThreadScreen = () => {
       lowerBody === 'updated event detail' || lowerBody === 'plan details updated';
 
     if (item.kind === 'system' || isJoinSystemMessage || isEventUpdateSystemMessage) {
+      const joinNotice = item.body.match(/^(.*)( joined the (?:plan|chat))$/s);
       return (
-        <View style={styles.systemMessageRow}>
-          <Text style={styles.systemMessageText}>{item.body}</Text>
+        <View style={styles.systemMessageRow} accessible accessibilityLabel={item.body}>
+          {joinNotice ? (
+            <View style={styles.joinNotice}>
+              <Text
+                style={[styles.systemMessageText, styles.joinNoticeName]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {joinNotice[1]}
+              </Text>
+              <Text style={styles.systemMessageText}>{joinNotice[2]}</Text>
+            </View>
+          ) : (
+            <Text style={styles.systemMessageText}>{item.body}</Text>
+          )}
         </View>
       );
     }
@@ -617,7 +641,11 @@ const ChatThreadScreen = () => {
           )
         ) : null}
         <View style={styles.messageBubbleContainer}>
-          {showName && firstName ? <Text style={styles.senderName}>{firstName}</Text> : null}
+          {showName && firstName ? (
+            <Text style={styles.senderName} numberOfLines={1} ellipsizeMode="tail">
+              {firstName}
+            </Text>
+          ) : null}
           {bubbleContent}
         </View>
       </View>
@@ -883,6 +911,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   // Quiet system notices: small (12) keeps them recessive; grey stays readable.
+  joinNotice: {
+    flexDirection: 'row',
+    maxWidth: '100%',
+    alignItems: 'center',
+  },
+  joinNoticeName: { flexShrink: 1 },
   systemMessageText: {
     fontSize: 13,
     fontFamily: typography.fontFamilyRegular,
@@ -899,13 +933,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.inputSurface,
-    borderRadius: 999,
+    borderRadius: radii.pill,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
+  composerMultiline: {
+    borderRadius: radii.xl,
+  },
   composerInput: {
+    overflow: 'hidden',
     flex: 1,
-    maxHeight: 100,
+    maxHeight: componentTokens.input.composerMaxHeight,
+    lineHeight: componentTokens.input.composerLineHeight,
+    includeFontPadding: false,
+    textAlignVertical: 'top',
     paddingVertical: spacing.xs,
     paddingLeft: 12,
     paddingRight: spacing.sm,

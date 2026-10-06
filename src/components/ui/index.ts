@@ -18,6 +18,7 @@ export { default as ListSeparator } from './ListSeparator';
 export { default as SectionHeaderText } from './SectionHeaderText';
 export { default as SlidingTabs } from './SlidingTabs';
 export type { SlidingTabOption, SlidingTabsProps } from './SlidingTabs';
+export { default as OverflowTextInput } from './OverflowTextInput';
 export { default as TextField } from './TextField';
 export type { TextFieldProps } from './TextField';
 export { default as UnreadDot } from './UnreadDot';

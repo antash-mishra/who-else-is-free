@@ -3,7 +3,6 @@ import { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   StyleSheet,
@@ -33,7 +32,7 @@ import ChevronLeftIcon from '@assets/ui/chevron-left.svg';
 import CloseIcon from '@assets/ui/close.svg';
 import AvatarBackground from '@components/AvatarBackground';
 import AvatarEditBadge from '@components/AvatarEditBadge';
-import { AppButton, IconButton } from '@components/ui';
+import { AppButton, IconButton, OverflowTextInput } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { userGenderOptions, type UserGender } from '@constants/profileOptions';
 import { useAuth, type ApiError } from '@context/AuthContext';
@@ -298,7 +297,7 @@ const OnboardingScreen = () => {
                   )}
                 </View>
 
-                <TextInput
+                <OverflowTextInput
                   style={styles.nameInput}
                   value={name}
                   onChangeText={handleNameChange}

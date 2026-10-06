@@ -16,8 +16,16 @@ const styles = StyleSheet.create({
   promptHeader: {
     gap: spacing.xs,
   },
+  inputViewport: {
+    flexShrink: 1,
+    borderRadius: radii.xl,
+    overflow: 'hidden',
+  },
   inviteInput: {
-    minHeight: 140,
+    overflow: 'hidden',
+    minHeight: componentTokens.input.multilineMinHeight,
+    maxHeight: componentTokens.input.multilineMaxHeight,
+    flexShrink: 1,
     borderRadius: radii.xl,
     backgroundColor: colors.inputSurface,
     paddingHorizontal: componentTokens.input.paddingHorizontal - spacing.xs,

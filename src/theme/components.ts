@@ -6,6 +6,10 @@ export const componentTokens = {
   },
   input: {
     height: 52,
+    multilineMinHeight: 140,
+    multilineMaxHeight: 240,
+    composerMaxHeight: 88,
+    composerLineHeight: 20,
     radius: 16,
     pillRadius: 26,
     paddingHorizontal: 20,

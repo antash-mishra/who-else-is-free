@@ -677,3 +677,15 @@ whole-repository formatting were not run.
 - Signed release: EAS `6ddf0760-9317-4aa1-bd9f-4755ab259fc8`, 1.0.2/build 5/runtime 1.0.2, created before the comparison report. Signature v2 valid and signer unchanged; compiled default contrast true, native module/scoped JS bridge present, production API present and local URL absent. Not debuggable.
 - PASS: installed over the earlier signed 1.0.1 APK on `WEIF_ISSUE_167_RELEASE`, then guest Discover → Profile → Google sign-in sheet without Metro or dev-login controls. No production account/profile writes.
 - PENDING: onboarding on the affected physical phone with this signed APK, older Android, iOS visuals. Report/screenshots/download: `report/issue-167-onboarding-only.md` and `.html`.
+
+## 2026-10-06 — Issue #177: long text
+
+- Change: bounded native request/chat scrolling, multiline composer corners, ellipsized display names, and shared full-value name/title editing with overflow previews.
+- Fixtures: isolated API/database; 1,596-character paragraph ending `END OF LONG TEXT`.
+- Flow: Profile/Edit Profile → Event Details host/Requests/Members/Accepted → Requests sheet → 1:1 hub → Messages/Chat → Create/Edit → Onboarding.
+- Attempt 1: FAIL — Android native name editor clipped a saved value to 50 characters; removed that input cap. An Android Create preview also retained cached native paint; added a low native alpha while retaining UIKit hit testing.
+- Attempt 2: FAIL — iOS scrolling could paint above the request input; added a clipped viewport. A native-alpha value at UIKit's hit-test cutoff prevented focus; moved above the cutoff and retested focus/edit/blur.
+- Final: PASS for the captured iOS page checks and Android subset. Start/end markers are visible in request/chat captures, and full values remain available in focused single-line editors. Final complete Android rerun is pending because the emulator became unresponsive.
+- Setup limitation: onboarding used a temporary navigation-only dev-login fallback for the simulator's missing keychain entitlement; reverted before final checks.
+- Automated: 132 suites / 1,512 tests, typecheck and lint passed.
+- Evidence and device details: [Issue #177 validation](report/issue-177-long-text-validation.md).

@@ -97,7 +97,9 @@ const EventDetailsInfo = ({
         <Text style={styles.title} testID="event-details-title">
           {title}
         </Text>
-        <Text style={styles.hostedBy}>{hostLine}</Text>
+        <Text style={styles.hostedBy} numberOfLines={1} ellipsizeMode="tail">
+          {hostLine}
+        </Text>
         {!readOnly && !isSingleEvent && (
           <View style={styles.goingRow} testID="going-row">
             <View style={styles.goingAvatarStack}>

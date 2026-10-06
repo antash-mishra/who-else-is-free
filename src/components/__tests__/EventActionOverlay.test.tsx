@@ -6,7 +6,7 @@
 
 import React from 'react';
 
-import { ScrollView } from 'react-native';
+import { ScrollView, TextInput } from 'react-native';
 
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
@@ -749,8 +749,9 @@ it.each(['invite', 'report'] as const)(
             onSubmitReport: jest.fn(),
           };
     const view = render(<EventActionOverlay isVisible {...props} />);
-    const body = view.UNSAFE_getByType(ScrollView);
-    expect(body.props.keyboardShouldPersistTaps).toBe('handled');
+    const body = view.UNSAFE_getByType(TextInput);
+    expect(body.props.scrollEnabled).toBe(true);
+    expect(view.UNSAFE_queryByType(ScrollView)).toBeNull();
     const button = view.getByTestId(
       type === 'invite' ? 'action-item-invite' : 'action-item-submit-report',
     );

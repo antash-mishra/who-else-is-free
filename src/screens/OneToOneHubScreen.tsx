@@ -249,7 +249,11 @@ const OneToOneHubScreen = () => {
           size={40}
         />
         <View style={styles.requestInfo1to1}>
-          <Text style={[styles.requesterName1to1, hasUnread && styles.requesterName1to1Unread]}>
+          <Text
+            style={[styles.requesterName1to1, hasUnread && styles.requesterName1to1Unread]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {item.requester.name}
           </Text>
           <Text

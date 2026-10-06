@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -7,7 +7,7 @@ import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import UserAvatar from '@components/UserAvatar';
 import AvatarEditBadge from '@components/AvatarEditBadge';
-import { AppButton } from '@components/ui';
+import { AppButton, OverflowTextInput } from '@components/ui';
 import { useAuth, type ApiError } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
@@ -166,7 +166,7 @@ const EditProfileScreen = () => {
             )}
           </View>
 
-          <TextInput
+          <OverflowTextInput
             style={styles.nameInput}
             value={editName}
             onChangeText={setEditName}
@@ -176,7 +176,6 @@ const EditProfileScreen = () => {
             autoCorrect={false}
             textAlign="center"
             returnKeyType="done"
-            maxLength={50}
           />
         </View>
 

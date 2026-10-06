@@ -81,7 +81,9 @@ const EventRequestRow: React.FC<EventRequestRowProps> = ({
       />
 
       <View style={styles.requestContent}>
-        <Text style={styles.requestName}>{requester.name}</Text>
+        <Text style={styles.requestName} numberOfLines={1} ellipsizeMode="tail">
+          {requester.name}
+        </Text>
         <View style={styles.messageContent}>
           <Text
             style={[styles.requestMessage, styles.measureMessage]}
