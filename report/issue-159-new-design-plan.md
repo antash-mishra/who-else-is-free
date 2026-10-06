@@ -2,7 +2,7 @@
 
 Date: October 6, 2026 (Asia/Kolkata).
 Status: implemented on `codex/issue-159-new-design`; native evidence and validation are in
-`report/issue-159-new-design-validation.md`. Screenshots await user review before issue posting.
+`report/issue-159-new-design-validation.md`. Screenshots were reviewed by the user and posted to [issue #159](https://github.com/antash-mishra/who-else-is-free/issues/159#issuecomment-6021657473).
 
 ## Design sources and scope
 

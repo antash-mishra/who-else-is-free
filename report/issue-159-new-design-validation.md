@@ -66,5 +66,7 @@ checks. Emulator evidence does not certify those environments.
 
 ## Issue update
 
-Show these screenshots to the user first. The short note and screenshots are pending
-that review, as requested; no issue comment has been posted for this implementation.
+The user reviewed the native captures and requested publication and merge. The four
+Cover/Age screenshots and short implementation note are posted in
+[issue #159](https://github.com/antash-mishra/who-else-is-free/issues/159#issuecomment-6021657473).
+Implementation PR: [#178](https://github.com/antash-mishra/who-else-is-free/pull/178).

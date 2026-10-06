@@ -765,4 +765,5 @@ whole-repository formatting were not run.
   adjustments and the minimum gap.
 - Unedited screenshots and scope: `report/issue-159-new-design-validation.md`.
   Physical-device visuals, VoiceOver/TalkBack, permission/error matrix and staging
-  media durability remain release checks. Show captures to user before issue posting.
+  media durability remain release checks. User-reviewed Cover/Age captures were posted
+  to issue #159 in comment 6021657473; implementation PR is #178.
