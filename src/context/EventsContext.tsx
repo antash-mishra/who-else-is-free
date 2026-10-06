@@ -31,6 +31,7 @@ interface CreateEventInput {
   dateLabel?: DateLabel;
   description?: string;
   gender: string;
+  ageSelectionMode?: 'range';
   ageGroupIds?: string[];
   ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
@@ -57,6 +58,7 @@ interface UpdateEventInput {
   dateLabel?: DateLabel;
   description?: string;
   gender: string;
+  ageSelectionMode?: 'range';
   ageGroupIds?: string[];
   ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
@@ -81,6 +83,7 @@ export interface GuestEventDraft {
   dateLabel?: DateLabel;
   description?: string;
   gender: string;
+  ageSelectionMode?: 'range';
   ageGroupIds?: string[];
   ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
@@ -386,6 +389,7 @@ export const EventsProvider = ({
         time: event.time,
         description: event.description ?? '',
         gender: event.gender,
+        age_selection_mode: event.ageSelectionMode,
         age_group_ids: event.ageGroupIds,
         age_ranges: event.ageRanges,
         min_age: event.minAge,
@@ -458,6 +462,7 @@ export const EventsProvider = ({
         event_date: event.eventDate,
         description: event.description,
         gender: event.gender,
+        age_selection_mode: event.ageSelectionMode,
         age_group_ids: event.ageGroupIds,
         age_ranges: event.ageRanges,
         min_age: event.minAge,
@@ -508,6 +513,7 @@ export const EventsProvider = ({
         time: event.time,
         description: event.description ?? '',
         gender: event.gender,
+        age_selection_mode: event.ageSelectionMode,
         age_group_ids: event.ageGroupIds,
         age_ranges: event.ageRanges,
         min_age: event.minAge,
@@ -614,6 +620,7 @@ export const EventsProvider = ({
           dateLabel: pendingGuestEvent.dateLabel,
           description: pendingGuestEvent.description,
           gender: pendingGuestEvent.gender,
+          ageSelectionMode: pendingGuestEvent.ageSelectionMode,
           ageGroupIds: pendingGuestEvent.ageGroupIds,
           ageRanges: pendingGuestEvent.ageRanges,
           minAge: pendingGuestEvent.minAge,

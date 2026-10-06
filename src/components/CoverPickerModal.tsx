@@ -1,6 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
-import { Dimensions, FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  useWindowDimensions,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { Image } from 'expo-image';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -8,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CheckSelectedCoverIcon from '@assets/create-event/check-selected-cover.svg';
 import SearchIcon from '@assets/create-event/search.svg';
-import { FrostedSurface } from '@components/ui';
+import { AppButton, AppText, FrostedSurface } from '@components/ui';
 import { CoverKey } from '@constants/covers';
 import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
@@ -25,31 +33,28 @@ export type CoverPickerModalProps = {
   onClose: () => void;
 };
 
-type CoverPickerContentProps = Omit<CoverPickerModalProps, 'visible' | 'onClose'>;
-
-// Fixed content height that lands the whole sheet (content + title chrome)
-// at ~80% of the screen, so more covers are visible per scroll.
-const LIST_HEIGHT = Dimensions.get('window').height * 0.73;
-// Mount the image grid only after the sheet's open animation has settled —
-// inflating ~130 image cells competes with the UI-thread spring and stutters.
-// The bouncyUp spring needs ~400ms to settle.
-const GRID_MOUNT_DELAY_MS = 500;
+interface CoverPickerContentProps {
+  selectedCoverKey?: CoverKey;
+  onSelect: (key: CoverKey) => void;
+  onPickPhoto?: () => void;
+  isPickingPhoto?: boolean;
+  pickerError?: string | null;
+  isReady?: boolean;
+}
 
 export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
   selectedCoverKey,
   onSelect,
+  onPickPhoto,
+  isPickingPhoto,
+  pickerError,
+  isReady = true,
 }) => {
+  const { height } = useWindowDimensions();
   const { bottom } = useSafeAreaInsets();
   const { covers, categories } = useCovers();
   const [query, setQuery] = useState('');
   const [categoryKey, setCategoryKey] = useState<string | null>(null);
-  const [gridReady, setGridReady] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setGridReady(true), GRID_MOUNT_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
   const results = useMemo(
     () => searchCovers(covers, categories, { query, categoryKey }),
     [covers, categories, query, categoryKey],
@@ -69,7 +74,13 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
   };
 
   return (
-    <View style={{ height: LIST_HEIGHT, marginBottom: -(8 + bottom) }}>
+    <View
+      style={{
+        height: height * 0.73,
+        flexShrink: 1,
+        marginBottom: onPickPhoto ? 0 : -(spacing.sm + bottom),
+      }}
+    >
       <View style={styles.searchContainer}>
         <SearchIcon width={16} height={16} color={colors.cardMeta} />
         <TextInput
@@ -108,14 +119,14 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
           })}
         </ScrollView>
       )}
-      {gridReady && (
+      {isReady && (
         <Animated.View entering={FadeIn.duration(180)} style={styles.gridContainer}>
           <FlatList
             data={results}
             numColumns={3}
             keyExtractor={(item) => item.key}
             columnWrapperStyle={styles.column}
-            contentContainerStyle={styles.grid}
+            contentContainerStyle={[styles.grid, onPickPhoto && styles.gridWithAction]}
             keyboardShouldPersistTaps="handled"
             initialNumToRender={18}
             maxToRenderPerBatch={9}
@@ -153,6 +164,19 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
             showsVerticalScrollIndicator={false}
           />
         </Animated.View>
+      )}
+      {onPickPhoto && (
+        <View style={styles.libraryAction}>
+          {pickerError && <AppText style={styles.pickerError}>{pickerError}</AppText>}
+          <AppButton
+            label="Choose from library"
+            fullWidth
+            onPress={onPickPhoto}
+            loading={isPickingPhoto}
+            style={styles.libraryButton}
+            testID="choose-custom-cover"
+          />
+        </View>
       )}
     </View>
   );

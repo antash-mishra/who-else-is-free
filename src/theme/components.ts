@@ -32,6 +32,7 @@ export const componentTokens = {
     md: 40,
     lg: 52,
   },
+  ageRange: { thumbSize: 30, trackHeight: 6 },
   actionToast: {
     iosIntensity: 65,
     androidBlurSigmaDp: 12.5,

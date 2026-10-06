@@ -743,3 +743,26 @@ whole-repository formatting were not run.
   screenshots in `report/screenshots/issue-159/`.
 - Validation: 23 relevant SelectionModal/age-picker tests and typecheck passed.
   The remaining release matrix from the preceding entry is still pending.
+
+## 2026-10-06 — Issue #159 supplied Cover and Age designs
+
+- Branch: `codex/issue-159-new-design`, current master plus the earlier cover-upload
+  work and the new continuous-range design.
+- Targets: Android 16 `WEIF_API_36` emulator and iPhone 15 Pro / iOS 17.4 simulator,
+  isolated SQLite/API on 8180 and Metro on 8095; synthetic QA user and fixture photos.
+- Recovery: Android was initially unresponsive; a cold boot with host GPU restored
+  interaction. No physical-device or production writes.
+- PASS: pinned Cover library action, full-screen backdrop behind the header/status
+  bar, native library/crop/custom preview on both platforms; continuous 18–99 ages,
+  All ages at full bounds, integer dragging, five-year gap on both platforms.
+- PASS: Android Back cancels and reopening restores the saved value; iOS Done
+  commits `40 - 45`. Android saved-plan Discover/Details/Edit show the exact range.
+  Editing to `40 - 76` with a custom photo uploads and persists both fields through
+  the real API; server read confirms range mode and custom cover URL. Android app
+  restart reloads both fields successfully.
+- Automated: 139 Jest suites / 1,527 tests, typecheck, full Go suite passed. Lint
+  passes with 724 existing warnings. Real-slider accessibility test covers one-year
+  adjustments and the minimum gap.
+- Unedited screenshots and scope: `report/issue-159-new-design-validation.md`.
+  Physical-device visuals, VoiceOver/TalkBack, permission/error matrix and staging
+  media durability remain release checks. Show captures to user before issue posting.

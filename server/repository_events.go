@@ -71,6 +71,7 @@ func (r *EventRepository) Create(ctx context.Context, params CreateEventParams) 
 		lng,
 		params.AgeGroupIDs,
 		params.CoverUploadID,
+		params.AgeSelectionMode,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -181,7 +182,8 @@ func (r *EventRepository) Update(ctx context.Context, id int64, userID int64, pa
 
 	result, err := tx.ExecContext(ctx, updateEvent,
 		coverPresent, coverID,
-		params.AgeGroupIDs, params.AgeGroupIDs, params.MinAge, params.MaxAge,
+		params.AgeSelectionMode, params.AgeSelectionMode, params.AgeGroupIDs, params.MinAge, params.MaxAge,
+		params.AgeSelectionMode, params.AgeGroupIDs, params.AgeGroupIDs, params.MinAge, params.MaxAge,
 		params.Title,
 		params.Location,
 		params.Time,
@@ -480,6 +482,7 @@ func (r *EventRepository) List(ctx context.Context) ([]Event, error) {
 			&evt.Description,
 			&evt.Gender,
 			&evt.AgeGroupIDs,
+			&evt.AgeSelectionMode,
 			&evt.MinAge,
 			&evt.MaxAge,
 			&evt.DateLabel,
@@ -587,6 +590,7 @@ func (r *EventRepository) ListUserPastEvents(ctx context.Context, userID int64) 
 			&evt.Description,
 			&evt.Gender,
 			&evt.AgeGroupIDs,
+			&evt.AgeSelectionMode,
 			&evt.MinAge,
 			&evt.MaxAge,
 			&evt.DateLabel,

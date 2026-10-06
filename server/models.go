@@ -8,28 +8,29 @@ import (
 const defaultCoverKey = "sports-badminton-1"
 
 type Event struct {
-	CoverUploadID *string     `json:"cover_upload_id,omitempty"`
-	ID            int64       `json:"id"`
-	UserID        int64       `json:"user_id"`
-	Title         string      `json:"title"`
-	Location      string      `json:"location"`
-	Time          string      `json:"time"`
-	EventDate     string      `json:"event_date"`
-	Description   string      `json:"description"`
-	Gender        string      `json:"gender"`
-	AgeGroupIDs   AgeGroupIDs `json:"age_group_ids,omitempty"`
-	MinAge        int         `json:"min_age"`
-	MaxAge        int         `json:"max_age"`
-	DateLabel     string      `json:"date_label"`
-	GroupType     string      `json:"group_type"`
-	CoverKey      string      `json:"cover_key"`
-	HostName      string      `json:"host_name"`
-	HostAvatar    *string     `json:"host_avatar,omitempty"`
-	ScheduledAt   *time.Time  `json:"scheduled_at,omitempty"`
-	PlaceID       *string     `json:"place_id,omitempty"`
-	Latitude      *float64    `json:"latitude,omitempty"`
-	Longitude     *float64    `json:"longitude,omitempty"`
-	CreatedAt     time.Time   `json:"created_at"`
+	CoverUploadID    *string     `json:"cover_upload_id,omitempty"`
+	ID               int64       `json:"id"`
+	UserID           int64       `json:"user_id"`
+	Title            string      `json:"title"`
+	Location         string      `json:"location"`
+	Time             string      `json:"time"`
+	EventDate        string      `json:"event_date"`
+	Description      string      `json:"description"`
+	Gender           string      `json:"gender"`
+	AgeSelectionMode string      `json:"age_selection_mode,omitempty"`
+	AgeGroupIDs      AgeGroupIDs `json:"age_group_ids,omitempty"`
+	MinAge           int         `json:"min_age"`
+	MaxAge           int         `json:"max_age"`
+	DateLabel        string      `json:"date_label"`
+	GroupType        string      `json:"group_type"`
+	CoverKey         string      `json:"cover_key"`
+	HostName         string      `json:"host_name"`
+	HostAvatar       *string     `json:"host_avatar,omitempty"`
+	ScheduledAt      *time.Time  `json:"scheduled_at,omitempty"`
+	PlaceID          *string     `json:"place_id,omitempty"`
+	Latitude         *float64    `json:"latitude,omitempty"`
+	Longitude        *float64    `json:"longitude,omitempty"`
+	CreatedAt        time.Time   `json:"created_at"`
 }
 
 type User struct {
@@ -232,42 +233,44 @@ const (
 )
 
 type CreateEventParams struct {
-	CoverUploadID *string     `json:"cover_upload_id"`
-	Title         string      `json:"title" binding:"required,min=1"`
-	Location      string      `json:"location" binding:"required,min=1"`
-	Time          string      `json:"time" binding:"required,min=1"`
-	EventDate     string      `json:"event_date" binding:"required,min=10"`
-	Description   string      `json:"description"`
-	Gender        string      `json:"gender" binding:"required,min=1"`
-	AgeGroupIDs   AgeGroupIDs `json:"age_group_ids"`
-	MinAge        int         `json:"min_age" binding:"required,gte=0"`
-	MaxAge        int         `json:"max_age" binding:"required,gte=0"`
-	DateLabel     string      `json:"date_label"` // accepted for backward compatibility, ignored by server
-	GroupType     string      `json:"group_type" binding:"required,oneof=Single Group"`
-	CoverKey      string      `json:"cover_key" binding:"omitempty,min=1"`
-	ScheduledAt   string      `json:"scheduled_at"` // ISO 8601 UTC timestamp
-	PlaceID       string      `json:"place_id"`
-	Latitude      float64     `json:"latitude"`
-	Longitude     float64     `json:"longitude"`
-	UserID        int64       `json:"-"`
+	CoverUploadID    *string     `json:"cover_upload_id"`
+	Title            string      `json:"title" binding:"required,min=1"`
+	Location         string      `json:"location" binding:"required,min=1"`
+	Time             string      `json:"time" binding:"required,min=1"`
+	EventDate        string      `json:"event_date" binding:"required,min=10"`
+	Description      string      `json:"description"`
+	Gender           string      `json:"gender" binding:"required,min=1"`
+	AgeSelectionMode string      `json:"age_selection_mode,omitempty"`
+	AgeGroupIDs      AgeGroupIDs `json:"age_group_ids"`
+	MinAge           int         `json:"min_age" binding:"required,gte=0"`
+	MaxAge           int         `json:"max_age" binding:"required,gte=0"`
+	DateLabel        string      `json:"date_label"` // accepted for backward compatibility, ignored by server
+	GroupType        string      `json:"group_type" binding:"required,oneof=Single Group"`
+	CoverKey         string      `json:"cover_key" binding:"omitempty,min=1"`
+	ScheduledAt      string      `json:"scheduled_at"` // ISO 8601 UTC timestamp
+	PlaceID          string      `json:"place_id"`
+	Latitude         float64     `json:"latitude"`
+	Longitude        float64     `json:"longitude"`
+	UserID           int64       `json:"-"`
 }
 
 type UpdateEventParams struct {
-	Title         string          `json:"title" binding:"required,min=1"`
-	Location      string          `json:"location" binding:"required,min=1"`
-	Time          string          `json:"time" binding:"required,min=1"`
-	EventDate     string          `json:"event_date" binding:"required,min=10"`
-	Description   string          `json:"description"`
-	Gender        string          `json:"gender" binding:"required,min=1"`
-	AgeGroupIDs   AgeGroupIDs     `json:"age_group_ids"`
-	MinAge        int             `json:"min_age" binding:"required,gte=0"`
-	MaxAge        int             `json:"max_age" binding:"required,gte=0"`
-	DateLabel     string          `json:"date_label"` // accepted for backward compatibility, ignored by server
-	GroupType     string          `json:"group_type" binding:"required,oneof=Single Group"`
-	CoverUploadID json.RawMessage `json:"cover_upload_id"`
-	CoverKey      *string         `json:"cover_key" binding:"omitempty,min=1"`
-	ScheduledAt   string          `json:"scheduled_at"` // ISO 8601 UTC timestamp
-	PlaceID       string          `json:"place_id"`
-	Latitude      float64         `json:"latitude"`
-	Longitude     float64         `json:"longitude"`
+	Title            string          `json:"title" binding:"required,min=1"`
+	Location         string          `json:"location" binding:"required,min=1"`
+	Time             string          `json:"time" binding:"required,min=1"`
+	EventDate        string          `json:"event_date" binding:"required,min=10"`
+	Description      string          `json:"description"`
+	Gender           string          `json:"gender" binding:"required,min=1"`
+	AgeSelectionMode string          `json:"age_selection_mode,omitempty"`
+	AgeGroupIDs      AgeGroupIDs     `json:"age_group_ids"`
+	MinAge           int             `json:"min_age" binding:"required,gte=0"`
+	MaxAge           int             `json:"max_age" binding:"required,gte=0"`
+	DateLabel        string          `json:"date_label"` // accepted for backward compatibility, ignored by server
+	GroupType        string          `json:"group_type" binding:"required,oneof=Single Group"`
+	CoverUploadID    json.RawMessage `json:"cover_upload_id"`
+	CoverKey         *string         `json:"cover_key" binding:"omitempty,min=1"`
+	ScheduledAt      string          `json:"scheduled_at"` // ISO 8601 UTC timestamp
+	PlaceID          string          `json:"place_id"`
+	Latitude         float64         `json:"latitude"`
+	Longitude        float64         `json:"longitude"`
 }

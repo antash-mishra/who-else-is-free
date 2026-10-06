@@ -24,6 +24,8 @@ describe('CreateEventSheetContent date/time entry', () => {
       tempGender: 'Any',
       onSelectTempGender: jest.fn(),
       onConfirmGender: jest.fn(),
+      savedAgeRange: [18, 99],
+      hasCustomCover: false,
       tempAgeRange: [18, 60],
       onSelectTempAgeRange: jest.fn(),
       onConfirmAge: jest.fn(),

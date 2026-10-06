@@ -13,10 +13,7 @@ module.exports = {
     ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}',
-    '<rootDir>/src/**/*.test.{ts,tsx}',
-  ],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}', '<rootDir>/src/**/*.test.{ts,tsx}'],
   moduleNameMapper: {
     '^@assets/(.*)\\.svg$': '<rootDir>/src/__tests__/mocks/svgMock.tsx',
     '^@navigation/(.*)$': '<rootDir>/src/navigation/$1',
@@ -33,7 +30,7 @@ module.exports = {
     '\\.svg$': '<rootDir>/src/__tests__/mocks/svgMock.tsx',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native-google-signin|expo-.*|@expo/.*|react-native-svg|react-native-worklets)/)',
+    'node_modules/(?!(react-native-fast-range-slider|react-native|@react-native|@react-navigation|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native-google-signin|expo-.*|@expo/.*|react-native-svg|react-native-worklets)/)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
@@ -41,11 +38,6 @@ module.exports = {
     '!src/**/index.{ts,tsx}',
     '!src/__tests__/**',
   ],
-  coveragePathIgnorePatterns: [
-    '/node_modules/',
-    '/src/__tests__/',
-  ],
-  testPathIgnorePatterns: [
-    '/node_modules/',
-  ],
+  coveragePathIgnorePatterns: ['/node_modules/', '/src/__tests__/'],
+  testPathIgnorePatterns: ['/node_modules/'],
 };

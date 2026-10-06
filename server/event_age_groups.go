@@ -82,7 +82,7 @@ func (ids *AgeGroupIDs) Scan(value any) error {
 func (e Event) MarshalJSON() ([]byte, error) {
 	type alias Event
 	ranges := []AgeRange{{e.MinAge, e.MaxAge}}
-	if e.AgeGroupIDs != nil {
+	if e.AgeSelectionMode != "range" && e.AgeGroupIDs != nil {
 		_, r, err := normalizeAgeGroups(e.AgeGroupIDs)
 		if err != nil {
 			return nil, err
@@ -119,6 +119,11 @@ func (r *EventRepository) ensureEventFeatureColumns(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if !names["age_selection_mode"] {
+		if _, err := r.db.ExecContext(ctx, "ALTER TABLE events ADD COLUMN age_selection_mode TEXT NOT NULL DEFAULT ''"); err != nil {
+			return err
+		}
+	}
 	if !names["age_group_ids"] {
 		_, err = r.db.ExecContext(ctx, "ALTER TABLE events ADD COLUMN age_group_ids TEXT NOT NULL DEFAULT ''")
 		if err != nil {
@@ -129,6 +134,17 @@ func (r *EventRepository) ensureEventFeatureColumns(ctx context.Context) error {
 		if _, err := r.db.ExecContext(ctx, "ALTER TABLE events ADD COLUMN cover_upload_id TEXT REFERENCES event_cover_uploads(id)"); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// The new slider contract is opt-in; legacy clients retain their existing bounds.
+func validateAgeSelection(mode string, ids AgeGroupIDs, min, max int) error {
+	if mode == "" {
+		return nil
+	}
+	if mode != "range" || ids != nil || min < 18 || max > 99 || max-min < 5 {
+		return fmt.Errorf("age range must be within 18-99 with a minimum gap of 5")
 	}
 	return nil
 }

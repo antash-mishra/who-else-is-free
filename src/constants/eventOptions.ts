@@ -1,6 +1,8 @@
 // Age range constants
 export const AGE_MIN = 18;
-export const AGE_MAX = 60;
+export const AGE_MAX = 60; // Legacy preset bounds; do not reinterpret saved groups.
+export const PLAN_AGE_MAX = 99;
+export const PLAN_AGE_MIN_GAP = 5;
 
 // Option arrays
 export const groupOptions = ['Single', 'Group'] as const;

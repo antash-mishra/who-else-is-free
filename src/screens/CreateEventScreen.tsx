@@ -30,6 +30,7 @@ import { trackEvent } from '@services/analytics';
 import { triggerHaptic } from '@services/haptics';
 import { logger } from '@services/logger';
 import { spacing } from '@theme/index';
+import { formatRangeAgeLabel } from '@utils/eventDisplay';
 import { getAgeGroupsLabel } from '@utils/ageGroups';
 import {
   formatPickerDateTimeValue,
@@ -144,7 +145,6 @@ const CreateEventScreen = () => {
     locationDisplayName,
     tempAgeRange,
     tempAgeGroupIds,
-    setAgeGroupIds,
     setTempAgeGroupIds,
     tempGender,
     tempGroupType,
@@ -305,12 +305,13 @@ const CreateEventScreen = () => {
   );
 
   // Confirm selection handlers
-  const confirmAgeSelection = useCallback(() => {
-    triggerHaptic('submit');
-    setAgeRange(tempAgeRange);
-    setAgeGroupIds(tempAgeGroupIds);
-    closeActiveSheet();
-  }, [closeActiveSheet, setAgeRange, tempAgeRange, setAgeGroupIds, tempAgeGroupIds]);
+  const confirmAgeSelection = useCallback(
+    (range: [number, number]) => {
+      setAgeRange(range);
+      closeActiveSheet();
+    },
+    [closeActiveSheet, setAgeRange],
+  );
 
   const confirmGenderSelection = useCallback(() => {
     triggerHaptic('submit');
@@ -453,10 +454,12 @@ const CreateEventScreen = () => {
 
   const ageLabel = useMemo(
     () =>
-      form.ageGroupIds
-        ? getAgeGroupsLabel(form.ageGroupIds, form.ageRange)
-        : getAgeLabel(form.ageRange),
-    [form.ageRange, form.ageGroupIds],
+      form.ageSelectionMode === 'range'
+        ? formatRangeAgeLabel(form.ageRange)
+        : form.ageGroupIds
+          ? getAgeGroupsLabel(form.ageGroupIds, form.ageRange)
+          : getAgeLabel(form.ageRange),
+    [form.ageRange, form.ageGroupIds, form.ageSelectionMode],
   );
   const dateTimeLabel = useMemo(
     () => formatPickerDateTimeValue(form.selectedDateTime),
@@ -576,10 +579,12 @@ const CreateEventScreen = () => {
           onSelectTempGender={setTempGender}
           onConfirmGender={confirmGenderSelection}
           tempAgeGroupIds={tempAgeGroupIds}
-          onSelectTempAgeGroupIds={setTempAgeGroupIds}
           tempAgeRange={tempAgeRange}
           onSelectTempAgeRange={setTempAgeRange}
           onConfirmAge={confirmAgeSelection}
+          ageSelectionMode={form.ageSelectionMode}
+          savedAgeRange={form.ageRange}
+          hasCustomCover={!!(form.coverAsset || form.coverUrl || form.coverUploadId)}
           selectedLocationLabel={selectedLocationLabel}
           countryCode={countryCode}
           onSelectLocation={handleLocationSelect}

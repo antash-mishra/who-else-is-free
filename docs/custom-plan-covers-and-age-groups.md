@@ -4,6 +4,20 @@ Issue: https://github.com/antash-mishra/who-else-is-free/issues/159
 
 ## API and client compatibility
 
+New Create/Edit selections use a continuous integer range, 18–99 inclusive,
+with a minimum five-year gap. Send `age_selection_mode: "range"` together with
+`min_age`/`max_age`, omitting `age_group_ids`. The server rejects contradictory
+IDs or invalid range-mode bounds, persists the mode, clears any previous IDs,
+and returns a single exact `age_ranges` entry. Full 18–99 displays All ages;
+other range-mode values display min - max, including 18–60.
+
+Omitting the new mode retains the legacy behavior below. Existing preset bounds
+are unchanged. Old-client unrelated edits retain range mode; changed bounds or
+explicit preset selection clear it. New-client unrelated edits preserve legacy
+IDs/bounds. Opening/dismissing the age sheet never writes data; separated or
+out-of-bounds historical audiences require deliberate replacement through Done.
+Profile age limits and join eligibility do not change.
+
 `POST /api/events` and `PUT /api/events/:id` accept optional `age_group_ids`.
 Valid IDs, in display order, are `all`, `20s`, `20-25`, `25-30`, `30s`,
 `30-35`, `35-40`, and `40+`. Their bounds match `eventOptions.ts`, including
@@ -70,7 +84,6 @@ start against the migrated database before using it.
 
 ## Validation still requiring release review
 
-The implementation uses existing components and tokens while Sumit's final
-design remains pending. Physical iOS/Android permission, cropping, and upload
+The implementation follows the new photo/age design comments on issue #159. Physical iOS/Android permission, cropping, and upload
 checks and staging media durability/topology checks are release requirements.
 Local automated tests cannot prove the deployed volume configuration.

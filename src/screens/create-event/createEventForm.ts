@@ -1,5 +1,5 @@
 import { CoverKey, DEFAULT_COVER_KEY } from '@constants/covers';
-import { AGE_MAX, AGE_MIN, GenderOption, GroupOption } from '@constants/eventOptions';
+import { AGE_MAX, AGE_MIN, PLAN_AGE_MAX, GenderOption, GroupOption } from '@constants/eventOptions';
 import { GuestEventDraft, UserEvent } from '@context/EventsContext';
 import { getAgeRanges } from '@utils/ageGroups';
 import {
@@ -17,6 +17,7 @@ export type CreateEventFormState = {
   groupType: GroupOption;
   gender: GenderOption;
   ageRange: [number, number];
+  ageSelectionMode?: 'range';
   ageGroupIds?: string[];
   selectedDateTime: Date;
   location: string;
@@ -38,6 +39,7 @@ export type NormalizedCreateEventForm = {
   time: string;
   scheduledAt: string;
   gender: GenderOption;
+  ageSelectionMode?: 'range';
   ageGroupIds?: string[];
   ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
@@ -99,8 +101,8 @@ export const createEmptyFormState = (
   description: '',
   groupType: 'Single',
   gender: 'Any',
-  ageRange: [AGE_MIN, AGE_MAX],
-  ageGroupIds: ['all'],
+  ageRange: [AGE_MIN, PLAN_AGE_MAX],
+  ageSelectionMode: 'range',
   selectedDateTime: getDefaultEventDateTime(),
   location: '',
   placeId: '',
@@ -114,6 +116,7 @@ export const createFormStateFromEvent = (event?: UserEvent | null): CreateEventF
   description: event?.description ?? '',
   groupType: event?.groupType === 'Group' ? 'Group' : 'Single',
   gender: (event?.gender as GenderOption) || 'Any',
+  ageSelectionMode: event?.ageSelectionMode,
   ageGroupIds: event?.ageGroupIds,
   ageRange: [event?.minAge ?? AGE_MIN, event?.maxAge ?? AGE_MAX],
   selectedDateTime: getEventDateTime(event),
@@ -144,6 +147,7 @@ export const normalizeCreateEventForm = (form: CreateEventFormState): Normalized
     dateLabel: getLegacyDateLabel(eventDate),
     description: form.description.trim().length ? form.description.trim() : undefined,
     gender: form.gender,
+    ageSelectionMode: form.ageSelectionMode,
     ageGroupIds: form.ageGroupIds,
     ageRanges: ranges,
     minAge: Math.min(rangeStart, rangeEnd),
@@ -182,6 +186,7 @@ export const buildUpdateEventPayload = (form: CreateEventFormState): UpdateEvent
     dateLabel: normalized.dateLabel,
     description: normalized.description,
     gender: normalized.gender,
+    ageSelectionMode: normalized.ageSelectionMode,
     ageGroupIds: normalized.ageGroupIds,
     ageRanges: normalized.ageRanges,
     minAge: normalized.minAge,
@@ -210,6 +215,7 @@ export const buildGuestEventDraft = (form: CreateEventFormState): GuestEventDraf
     dateLabel: normalized.dateLabel,
     description: normalized.description,
     gender: normalized.gender,
+    ageSelectionMode: normalized.ageSelectionMode,
     ageGroupIds: normalized.ageGroupIds,
     ageRanges: normalized.ageRanges,
     minAge: normalized.minAge,

@@ -1,12 +1,8 @@
-import { View } from 'react-native';
-
 import { CoverPickerContent } from '@components/CoverPickerModal';
 import { DescriptionEditorContent } from '@components/DescriptionEditorModal';
 import { EventDateTimePickerContent } from '@components/EventDateTimeModal';
 import { LocationPickerContent } from '@components/LocationPickerModal';
 import { SelectionModalContent } from '@components/SelectionModal';
-import AppButton from '@components/ui/AppButton';
-import AppText from '@components/ui/AppText';
 import { CoverKey } from '@constants/covers';
 import {
   GenderOption,
@@ -17,11 +13,10 @@ import {
   groupOptions,
 } from '@constants/eventOptions';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
-import { spacing } from '@theme/index';
 
 import SignInButtons from '../../components/SignInButtons';
 
-import AgeGroupsContent from './AgeGroupsContent';
+import AgeRangeContent from './AgeRangeContent';
 
 import type { CreateEventSheet } from './useCreateEventSheets';
 
@@ -66,10 +61,12 @@ type CreateEventSheetContentProps = {
   onSelectTempGender: (value: GenderOption) => void;
   onConfirmGender: () => void;
   tempAgeGroupIds?: string[];
-  onSelectTempAgeGroupIds: (ids: string[] | undefined) => void;
   tempAgeRange: [number, number];
   onSelectTempAgeRange: (value: [number, number]) => void;
-  onConfirmAge: () => void;
+  onConfirmAge: (range: [number, number]) => void;
+  ageSelectionMode?: 'range';
+  savedAgeRange: [number, number];
+  hasCustomCover: boolean;
   selectedLocationLabel: string;
   countryCode: string | null;
   onSelectLocation: (place: PlaceDetail) => void;
@@ -99,9 +96,10 @@ const CreateEventSheetContent = ({
   onSelectTempGender,
   onConfirmGender,
   tempAgeGroupIds,
-  onSelectTempAgeGroupIds,
-  tempAgeRange,
   onConfirmAge,
+  ageSelectionMode,
+  savedAgeRange,
+  hasCustomCover,
   selectedLocationLabel,
   countryCode,
   onSelectLocation,
@@ -122,18 +120,14 @@ const CreateEventSheetContent = ({
       );
     case 'cover':
       return (
-        <View style={{ gap: spacing.md }}>
-          {onPickCover && (
-            <AppButton
-              label="Choose your own photo"
-              onPress={onPickCover}
-              loading={isPickingCover}
-              testID="choose-custom-cover"
-            />
-          )}
-          {coverPickerError && <AppText>{coverPickerError}</AppText>}
-          <CoverPickerContent selectedCoverKey={coverKey} onSelect={onSelectCover} />
-        </View>
+        <CoverPickerContent
+          selectedCoverKey={hasCustomCover ? undefined : coverKey}
+          onSelect={onSelectCover}
+          onPickPhoto={onPickCover}
+          isPickingPhoto={isPickingCover}
+          pickerError={coverPickerError}
+          isReady={isSheetReady}
+        />
       );
     case 'groupType':
       return (
@@ -161,10 +155,11 @@ const CreateEventSheetContent = ({
       );
     case 'age':
       return (
-        <AgeGroupsContent
+        <AgeRangeContent
+          visible={activeSheet === 'age'}
+          range={savedAgeRange}
+          mode={ageSelectionMode}
           ids={tempAgeGroupIds}
-          legacyRange={tempAgeRange}
-          onChange={onSelectTempAgeGroupIds}
           onConfirm={onConfirmAge}
         />
       );

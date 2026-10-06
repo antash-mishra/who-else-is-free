@@ -245,6 +245,7 @@ const EventDetailsScreenContent = ({
     groupType: event.groupType,
     gender: event.gender,
     ageRanges: event.ageRanges,
+    ageSelectionMode: event.ageSelectionMode,
     minAge: event.minAge,
     maxAge: event.maxAge,
   });

@@ -14,6 +14,7 @@ export interface UserEvent extends EventItemProps {
   hostName: string;
   hostAvatar?: string;
   gender: string;
+  ageSelectionMode?: 'range';
   ageGroupIds?: string[];
   ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
@@ -36,6 +37,7 @@ export type ApiEvent = {
   time: string;
   description?: string;
   gender: string;
+  age_selection_mode?: 'range';
   age_group_ids?: string[];
   age_ranges?: import('@utils/ageGroups').AgeRange[];
   min_age: number;
@@ -72,6 +74,7 @@ export const mapApiEventToUserEvent = (event: ApiEvent, badgeLabel?: string): Us
     time: schedule.displayTime,
     audience: formatAudienceLabel({
       gender: event.gender,
+      ageSelectionMode: event.age_selection_mode,
       ageRanges: event.age_ranges,
       minAge: event.min_age,
       maxAge: event.max_age,
@@ -85,6 +88,7 @@ export const mapApiEventToUserEvent = (event: ApiEvent, badgeLabel?: string): Us
     hostName: event.host_name,
     hostAvatar: event.host_avatar ?? undefined,
     gender: event.gender,
+    ageSelectionMode: event.age_selection_mode,
     ageGroupIds: event.age_group_ids,
     ageRanges: event.age_ranges,
     minAge: event.min_age,

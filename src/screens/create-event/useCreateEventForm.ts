@@ -87,7 +87,15 @@ const reducer = (
     case 'setTempAgeGroupIds':
       return { ...state, tempAgeGroupIds: action.value };
     case 'setAgeRange':
-      return { ...state, form: { ...state.form, ageRange: action.value } };
+      return {
+        ...state,
+        form: {
+          ...state.form,
+          ageRange: action.value,
+          ageGroupIds: undefined,
+          ageSelectionMode: 'range',
+        },
+      };
     case 'setSelectedDateTime':
       return { ...state, form: { ...state.form, selectedDateTime: action.value } };
     case 'setCoverAsset':

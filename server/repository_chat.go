@@ -323,6 +323,7 @@ func (r *EventRepository) GetEventByID(ctx context.Context, eventID int64) (*Eve
 		&evt.Description,
 		&evt.Gender,
 		&evt.AgeGroupIDs,
+		&evt.AgeSelectionMode,
 		&evt.MinAge,
 		&evt.MaxAge,
 		&evt.DateLabel,

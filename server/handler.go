@@ -257,6 +257,10 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 
 	payload.UserID = claims.UserID
 
+	if err := validateAgeSelection(payload.AgeSelectionMode, payload.AgeGroupIDs, payload.MinAge, payload.MaxAge); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	if payload.AgeGroupIDs != nil {
 		ids, ranges, err := normalizeAgeGroups(payload.AgeGroupIDs)
 		if err != nil {
@@ -340,6 +344,10 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 		return
 	}
 
+	if err := validateAgeSelection(payload.AgeSelectionMode, payload.AgeGroupIDs, payload.MinAge, payload.MaxAge); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	if payload.AgeGroupIDs != nil {
 		ids, ranges, err := normalizeAgeGroups(payload.AgeGroupIDs)
 		if err != nil {

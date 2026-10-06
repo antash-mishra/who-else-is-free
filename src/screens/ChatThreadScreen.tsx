@@ -221,6 +221,7 @@ const ChatThreadScreen = () => {
     if (activeEvent?.imageUri) {
       return activeEvent.imageUri;
     }
+    if (activeConversation?.event?.coverUrl) return activeConversation.event.coverUrl;
     if (!activeConversation?.event?.coverKey) {
       return null;
     }

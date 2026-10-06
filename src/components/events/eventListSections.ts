@@ -7,6 +7,7 @@ export type EventSection<TItem extends EventItemProps = EventItemProps> = {
 };
 
 export type EventCardSource = {
+  ageSelectionMode?: 'range';
   id: string;
   title: string;
   location: string;
@@ -39,6 +40,7 @@ export const toEventCardItem = (event: EventCardSource, badgeLabel?: string): Ev
     groupType: event.groupType,
     gender: event.gender,
     ageRanges: event.ageRanges,
+    ageSelectionMode: event.ageSelectionMode,
     minAge: event.minAge,
     maxAge: event.maxAge,
   }),
