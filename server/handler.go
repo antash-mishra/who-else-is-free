@@ -257,6 +257,19 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 
 	payload.UserID = claims.UserID
 
+	if err := validateAgeSelection(payload.AgeSelectionMode, payload.AgeGroupIDs, payload.MinAge, payload.MaxAge); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if payload.AgeGroupIDs != nil {
+		ids, ranges, err := normalizeAgeGroups(payload.AgeGroupIDs)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid age_group_ids"})
+			return
+		}
+		payload.AgeGroupIDs = ids
+		payload.MinAge, payload.MaxAge = ranges[0].Min, ranges[len(ranges)-1].Max
+	}
 	if payload.MaxAge < payload.MinAge {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "max_age must be greater than or equal to min_age"})
 		return
@@ -313,6 +326,10 @@ func (h *EventHandler) createEvent(c *gin.Context) {
 
 	id, err := h.repo.Create(ctx, payload)
 	if err != nil {
+		if errors.Is(err, ErrInvalidEventCover) {
+			c.JSON(400, gin.H{"error": "invalid cover_upload_id"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create event"})
 		return
 	}
@@ -327,6 +344,19 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 		return
 	}
 
+	if err := validateAgeSelection(payload.AgeSelectionMode, payload.AgeGroupIDs, payload.MinAge, payload.MaxAge); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if payload.AgeGroupIDs != nil {
+		ids, ranges, err := normalizeAgeGroups(payload.AgeGroupIDs)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid age_group_ids"})
+			return
+		}
+		payload.AgeGroupIDs = ids
+		payload.MinAge, payload.MaxAge = ranges[0].Min, ranges[len(ranges)-1].Max
+	}
 	if payload.MaxAge < payload.MinAge {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "max_age must be greater than or equal to min_age"})
 		return
@@ -400,6 +430,10 @@ func (h *EventHandler) updateEvent(c *gin.Context) {
 
 	transition, err := h.repo.Update(ctx, id, claims.UserID, payload)
 	if err != nil {
+		if errors.Is(err, ErrInvalidEventCover) {
+			c.JSON(400, gin.H{"error": "invalid cover_upload_id"})
+			return
+		}
 		if errors.Is(err, ErrEventNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "event not found or not owned by user"})
 		} else {
@@ -538,6 +572,7 @@ func (h *EventHandler) deleteEvent(c *gin.Context) {
 				"body":    notificationPushBody(NotificationTypeEventDeleted, event.Title, ""),
 			}
 			setPayloadIfPresent(deletedData, "coverKey", event.CoverKey)
+			setPayloadIfPresent(deletedData, "coverUrl", coverURL(event.CoverUploadID))
 			h.hub.recordAndSendPushToUsers(recipientIDs, deletedData)
 		}
 	}

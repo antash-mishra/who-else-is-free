@@ -11,6 +11,7 @@ import {
 // TODO: replace in-memory state with persisted cache for offline support when API integration stabilises.
 
 import { ApiError, requestJson } from '@api/client';
+import { CoverAsset, UploadedCover, uploadEventCover } from '@api/eventCovers';
 import { ApiEvent, DateLabel, mapApiEventToUserEvent, UserEvent } from '@api/mappers/events';
 import { isAbortError } from '@api/request';
 import { CoverKey, DEFAULT_COVER_KEY } from '@constants/covers';
@@ -30,11 +31,17 @@ interface CreateEventInput {
   dateLabel?: DateLabel;
   description?: string;
   gender: string;
+  ageSelectionMode?: 'range';
+  ageGroupIds?: string[];
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
   maxAge: number;
   groupType: 'Single' | 'Group';
   badgeLabel?: string;
   coverKey: CoverKey;
+  coverUploadId?: string | null;
+  coverUrl?: string;
+  coverAsset?: CoverAsset;
   userId: number;
   hostName: string;
   scheduledAt?: string; // ISO 8601 UTC timestamp
@@ -51,11 +58,17 @@ interface UpdateEventInput {
   dateLabel?: DateLabel;
   description?: string;
   gender: string;
+  ageSelectionMode?: 'range';
+  ageGroupIds?: string[];
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
   maxAge: number;
   groupType: 'Single' | 'Group';
   badgeLabel?: string | null;
   coverKey?: CoverKey | null;
+  coverUploadId?: string | null;
+  coverUrl?: string;
+  coverAsset?: CoverAsset;
   scheduledAt?: string; // ISO 8601 UTC timestamp
   placeId?: string;
   latitude?: number;
@@ -70,11 +83,17 @@ export interface GuestEventDraft {
   dateLabel?: DateLabel;
   description?: string;
   gender: string;
+  ageSelectionMode?: 'range';
+  ageGroupIds?: string[];
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
   maxAge: number;
   groupType: 'Single' | 'Group';
   badgeLabel?: string;
   coverKey: CoverKey;
+  coverUploadId?: string | null;
+  coverUrl?: string;
+  coverAsset?: CoverAsset;
   scheduledAt?: string; // ISO 8601 UTC timestamp
   placeId?: string;
   latitude?: number;
@@ -94,6 +113,8 @@ interface EventsContextValue {
   updateUserEvent: (eventId: string, event: UpdateEventInput) => Promise<void>;
   deleteUserEvent: (eventId: string) => Promise<void>;
   queueGuestEvent: (draft: GuestEventDraft) => void;
+  guestSubmissionError: string | null;
+  isSubmittingGuest: boolean;
   markEventRequested: (eventId: string) => void;
   isEventRequested: (eventId: string) => boolean;
   unmarkEventRequested: (eventId: string) => void;
@@ -170,6 +191,9 @@ export const EventsProvider = ({
   const [hasLoadedEvents, setHasLoadedEvents] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingGuestEvent, setPendingGuestEvent] = useState<GuestEventDraft | null>(null);
+  const [guestSubmissionError, setGuestSubmissionError] = useState<string | null>(null);
+  const [isSubmittingGuest, setIsSubmittingGuest] = useState(false);
+  const guestAttempt = useRef<{ draft: GuestEventDraft; userId: number } | null>(null);
   const metaRef = useRef<Record<string, EventMeta>>({});
   const [requestedEventIds, setRequestedEventIds] = useState<Set<string>>(() => new Set());
   const [reportedEventIds, setReportedEventIds] = useState<Set<string>>(() => new Set());
@@ -321,6 +345,32 @@ export const EventsProvider = ({
     [reportedEventIds],
   );
 
+  const uploadCache = useRef(new Map<string, UploadedCover>());
+  useEffect(() => {
+    uploadCache.current.clear();
+  }, [user?.id, token]);
+  const prepareCover = useCallback(
+    async (event: {
+      coverAsset?: CoverAsset;
+      coverUploadId?: string | null;
+      coverUrl?: string;
+    }) => {
+      if (!event.coverAsset) return { id: event.coverUploadId, url: event.coverUrl };
+      if (!token) throw new Error('Sign in to upload a cover.');
+      const key = `${user?.id}:${event.coverAsset.uri}`;
+      const cached = uploadCache.current.get(key);
+      if (cached) return cached;
+      const result = await uploadEventCover(
+        event.coverAsset,
+        token,
+        authFetchRef.current ?? undefined,
+      );
+      uploadCache.current.set(key, result);
+      return result;
+    },
+    [token, user?.id],
+  );
+
   const addUserEvent = useCallback(
     async (event: CreateEventInput) => {
       if (!token) {
@@ -331,6 +381,7 @@ export const EventsProvider = ({
         throw new Error('Unable to submit event at this time.');
       }
 
+      const cover = await prepareCover(event);
       const derivedLabel = deriveDateLabelFromDate(event.eventDate);
       const payload = {
         title: event.title,
@@ -338,11 +389,15 @@ export const EventsProvider = ({
         time: event.time,
         description: event.description ?? '',
         gender: event.gender,
+        age_selection_mode: event.ageSelectionMode,
+        age_group_ids: event.ageGroupIds,
+        age_ranges: event.ageRanges,
         min_age: event.minAge,
         max_age: event.maxAge,
         event_date: event.eventDate,
         date_label: event.dateLabel ?? derivedLabel,
         group_type: event.groupType,
+        cover_upload_id: cover.id,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
         ...(event.placeId ? { place_id: event.placeId } : {}),
@@ -386,6 +441,8 @@ export const EventsProvider = ({
       }
 
       const { id } = created;
+      setPendingGuestEvent(null);
+      setGuestSubmissionError(null);
       const eventId = String(id);
 
       trackEvent('event_create_succeeded', analyticsParams).catch(() => undefined);
@@ -405,6 +462,9 @@ export const EventsProvider = ({
         event_date: event.eventDate,
         description: event.description,
         gender: event.gender,
+        age_selection_mode: event.ageSelectionMode,
+        age_group_ids: event.ageGroupIds,
+        age_ranges: event.ageRanges,
         min_age: event.minAge,
         max_age: event.maxAge,
         date_label: event.dateLabel ?? derivedLabel,
@@ -412,6 +472,8 @@ export const EventsProvider = ({
         user_id: event.userId,
         host_name: event.hostName,
         host_avatar: user?.avatar,
+        cover_upload_id: cover.id,
+        cover_url: cover.url,
         cover_key: event.coverKey ?? DEFAULT_COVER_KEY,
         scheduled_at: event.scheduledAt,
         place_id: event.placeId,
@@ -439,22 +501,27 @@ export const EventsProvider = ({
 
       return eventId;
     },
-    [refreshEvents, token, user?.avatar],
+    [refreshEvents, token, user?.avatar, prepareCover],
   );
 
   const updateUserEvent = useCallback(
     async (eventId: string, event: UpdateEventInput) => {
+      const cover = await prepareCover(event);
       const payload = {
         title: event.title,
         location: event.location,
         time: event.time,
         description: event.description ?? '',
         gender: event.gender,
+        age_selection_mode: event.ageSelectionMode,
+        age_group_ids: event.ageGroupIds,
+        age_ranges: event.ageRanges,
         min_age: event.minAge,
         max_age: event.maxAge,
         event_date: event.eventDate,
         date_label: event.dateLabel ?? deriveDateLabelFromDate(event.eventDate),
         group_type: event.groupType,
+        ...(cover.id !== undefined ? { cover_upload_id: cover.id } : {}),
         ...(event.coverKey !== undefined ? { cover_key: event.coverKey } : {}),
         ...(event.scheduledAt ? { scheduled_at: event.scheduledAt } : {}),
         ...(event.placeId ? { place_id: event.placeId } : {}),
@@ -495,7 +562,7 @@ export const EventsProvider = ({
 
       await refreshEvents();
     },
-    [refreshEvents, token],
+    [refreshEvents, token, prepareCover],
   );
 
   const deleteUserEvent = useCallback(
@@ -524,6 +591,8 @@ export const EventsProvider = ({
   );
 
   const queueGuestEvent = useCallback((draft: GuestEventDraft) => {
+    guestAttempt.current = null;
+    setGuestSubmissionError(null);
     setPendingGuestEvent(draft);
   }, []);
 
@@ -532,7 +601,14 @@ export const EventsProvider = ({
       return;
     }
 
+    if (
+      guestAttempt.current?.draft === pendingGuestEvent &&
+      guestAttempt.current.userId === user.id
+    )
+      return;
+    guestAttempt.current = { draft: pendingGuestEvent, userId: user.id };
     let cancelled = false;
+    setIsSubmittingGuest(true);
 
     const submitGuestEvent = async () => {
       try {
@@ -544,11 +620,17 @@ export const EventsProvider = ({
           dateLabel: pendingGuestEvent.dateLabel,
           description: pendingGuestEvent.description,
           gender: pendingGuestEvent.gender,
+          ageSelectionMode: pendingGuestEvent.ageSelectionMode,
+          ageGroupIds: pendingGuestEvent.ageGroupIds,
+          ageRanges: pendingGuestEvent.ageRanges,
           minAge: pendingGuestEvent.minAge,
           maxAge: pendingGuestEvent.maxAge,
           groupType: pendingGuestEvent.groupType,
           badgeLabel: pendingGuestEvent.badgeLabel,
           coverKey: pendingGuestEvent.coverKey ?? DEFAULT_COVER_KEY,
+          coverUploadId: pendingGuestEvent.coverUploadId,
+          coverUrl: pendingGuestEvent.coverUrl,
+          coverAsset: pendingGuestEvent.coverAsset,
           userId: user.id,
           hostName: user.name,
           scheduledAt: pendingGuestEvent.scheduledAt,
@@ -557,13 +639,15 @@ export const EventsProvider = ({
           longitude: pendingGuestEvent.longitude,
         });
 
+        if (!cancelled) setPendingGuestEvent(null);
         onGuestEventSubmittedRef.current?.();
       } catch (err) {
         logger.error('Failed to submit queued guest event', err);
+        setGuestSubmissionError(
+          'Unable to publish your plan. Your draft is saved here; tap Create to retry.',
+        );
       } finally {
-        if (!cancelled) {
-          setPendingGuestEvent(null);
-        }
+        setIsSubmittingGuest(false);
       }
     };
 
@@ -620,6 +704,8 @@ export const EventsProvider = ({
       updateUserEvent,
       deleteUserEvent,
       queueGuestEvent,
+      guestSubmissionError,
+      isSubmittingGuest,
       markEventRequested,
       isEventRequested,
       unmarkEventRequested,
@@ -639,6 +725,8 @@ export const EventsProvider = ({
       updateUserEvent,
       deleteUserEvent,
       queueGuestEvent,
+      guestSubmissionError,
+      isSubmittingGuest,
       markEventRequested,
       isEventRequested,
       unmarkEventRequested,

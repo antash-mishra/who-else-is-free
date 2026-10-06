@@ -112,7 +112,7 @@ func (r *EventRepository) listUserPastEventsPage(ctx context.Context, userID int
  OR (e.scheduled_at IS NULL AND e.event_date < date(?)))
 )
 SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description,
- e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key,
+ e.gender, e.age_group_ids, e.age_selection_mode, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.cover_upload_id,
  e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at,
  u.name, u.avatar, e.sort_schedule, e.sort_created
 FROM ordered e JOIN users u ON u.id = e.user_id`
@@ -146,8 +146,8 @@ FROM ordered e JOIN users u ON u.id = e.user_id`
 		var sortSchedule, sortCreated string
 		if err := rows.Scan(&event.ID, &event.UserID, &event.Title, &event.Location,
 			&event.Time, &event.EventDate, &event.Description, &event.Gender,
-			&event.MinAge, &event.MaxAge, &event.DateLabel, &event.GroupType,
-			&event.CoverKey, &scheduled, &placeID, &latitude, &longitude,
+			&event.AgeGroupIDs, &event.AgeSelectionMode, &event.MinAge, &event.MaxAge, &event.DateLabel, &event.GroupType,
+			&event.CoverKey, &event.CoverUploadID, &scheduled, &placeID, &latitude, &longitude,
 			&event.CreatedAt, &event.HostName, &event.HostAvatar, &sortSchedule, &sortCreated); err != nil {
 			return pastEventsPage{}, fmt.Errorf("scan past events page: %w", err)
 		}

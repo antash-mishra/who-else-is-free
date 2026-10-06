@@ -358,3 +358,27 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 - `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
 - Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
 - Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.
+
+## Custom plan covers and age selection
+
+- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider, 18–99,
+  integer steps and a minimum five-year gap. Temporary drafts stay in the sheet;
+  only Done commits. Legacy separated/out-of-bounds ranges require deliberate
+  replacement and survive unrelated edits.
+- New selections carry `age_selection_mode: "range"`; preserve legacy presets and
+  their original 18–60 bounds. Mode-aware display lives in `eventDisplay.ts`;
+  range-mode full bounds show All ages, otherwise the actual min - max everywhere.
+- `patches/react-native-fast-range-slider+0.4.0.patch` adds adjustable accessibility
+  actions, canceled-gesture cleanup and width synchronization to the pinned slider.
+  Recreate/check it on package upgrades. The slider's gap prop is pixels; convert
+  the five-year gap using measured width. Size tokens live in `componentTokens.ageRange`
+  and the opaque thumb shadow in `shadows.ageRangeThumb`.
+- `CoverPickerContent` owns the optional pinned Choose from library action and grid
+  clearance. Defer the heavy grid via the shared sheet's onOpened readiness signal.
+  Custom covers never highlight a catalog choice. Bottom-sheet native modals use
+  translucent status/navigation bars and an unpadded full-window backdrop.
+- Photo picking lives in `usePickEventCover`, multipart transport in
+  `src/api/eventCovers.ts`, and upload preparation/retry caching in EventsContext.
+  Prefer cover_url/coverUrl over catalog fallback on every display surface.
+  Keep uploads separate from the generated catalog; see
+  `docs/custom-plan-covers-and-age-groups.md` for storage and compatibility.

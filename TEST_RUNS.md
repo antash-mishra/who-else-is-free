@@ -689,3 +689,81 @@ whole-repository formatting were not run.
 - Setup limitation: onboarding used a temporary navigation-only dev-login fallback for the simulator's missing keychain entitlement; reverted before final checks.
 - Automated: 132 suites / 1,512 tests, typecheck and lint passed.
 - Evidence and device details: [Issue #177 validation](report/issue-177-long-text-validation.md).
+
+## 2026-09-30 — Issue #159 custom covers and age groups
+
+- Change: custom photo upload/preview and exact multiple age-group selection on
+  `codex/issue-159-create-plan`; final design pending.
+- Target: Android emulator `emulator-5554`, never the connected physical phone.
+  Started an isolated synthetic-data server on port 8180 and Metro on 8083 with
+  local API/WS overrides; existing app data was preserved.
+- Attempt 1: BLOCKED — installed app displayed Android's “isn't responding”
+  dialog before loading the new Metro bundle. UI hierarchy capture could not
+  complete. Screenshot retained under ignored `.data/issue159-qa/screen.png`.
+- Attempt 2: BLOCKED — force-stopped and relaunched the installed development
+  app without clearing data; hierarchy capture exited 137 and Metro recorded no
+  bundle request. No changed flow could be exercised.
+- Final: NOT VERIFIED on device. Stopped the temporary server and Metro. The
+  automated HTTP, component, mapper, and context tests do not establish native
+  permission/cropping/layout behavior. Re-run Android smoke checks on a working
+  development build, then verify iOS and the final design before release.
+
+## 2026-10-01 — Issue #159 visual report and Android capture
+
+- Branch: `codex/issue-159-visual-report`.
+- Target: Android 16 emulator `WEIF_API_36` / `emulator-5554`; no physical device.
+- Setup: isolated synthetic-data backend on 8180, Metro on 8083 with local
+  API/WS overrides, and catalog artwork copied into the emulator library as a
+  photo fixture. No production writes or personal photo publication.
+- Attempt 1: BLOCKED — existing app/emulator UI did not respond. Cold boot with
+  the default software renderer also displayed System UI ANR.
+- Recovery: cold boot with host GPU, 2048 MiB RAM and two cores, preserving saved
+  emulator/app data. The existing development build eventually loaded the new
+  bundle. A redundant native rebuild was canceled; diagnostic logging reverted.
+- Final: PASS for captured picker/draft interactions — cover sheet entry, native
+  library selection and crop, local preview/background update, exclusive All
+  ages default, two separated age presets, Done summary, and empty-selection
+  disabled state. Six unedited screenshots are in `report/screenshots/issue-159/`.
+- Scope: no native publish/edit/reload verdict; upload/save retries and exact
+  persistence remain covered by automated tests. Physical Android/iOS, the wider
+  permission/error/accessibility matrix, final design, and staging durability
+  remain release checks. See `report/issue-159-design-report.md`.
+- Validation: 125 Jest suites / 1,450 tests, typecheck, full Go suite passed;
+  lint passed with the existing 689-warning baseline.
+
+## 2026-10-01 — Issue #159 original age chips with multiple selection
+
+- Change: retain the original `SelectionModalContent` chip layout and Done
+  button; select multiple age chips through `AgeGroupsContent`.
+- Target: Android 16 `WEIF_API_36` emulator with the local 8180 backend and
+  fresh 8083 Metro bundle. No physical-device or production writes.
+- PASS: All ages starts selected; choosing 20-25 clears All ages; 40+ can be
+  selected alongside 20-25; removing both shows guidance and disables Done.
+  Fresh default/multiple/empty native screenshots replace the prior checkbox
+  screenshots in `report/screenshots/issue-159/`.
+- Validation: 23 relevant SelectionModal/age-picker tests and typecheck passed.
+  The remaining release matrix from the preceding entry is still pending.
+
+## 2026-10-06 — Issue #159 supplied Cover and Age designs
+
+- Branch: `codex/issue-159-new-design`, current master plus the earlier cover-upload
+  work and the new continuous-range design.
+- Targets: Android 16 `WEIF_API_36` emulator and iPhone 15 Pro / iOS 17.4 simulator,
+  isolated SQLite/API on 8180 and Metro on 8095; synthetic QA user and fixture photos.
+- Recovery: Android was initially unresponsive; a cold boot with host GPU restored
+  interaction. No physical-device or production writes.
+- PASS: pinned Cover library action, full-screen backdrop behind the header/status
+  bar, native library/crop/custom preview on both platforms; continuous 18–99 ages,
+  All ages at full bounds, integer dragging, five-year gap on both platforms.
+- PASS: Android Back cancels and reopening restores the saved value; iOS Done
+  commits `40 - 45`. Android saved-plan Discover/Details/Edit show the exact range.
+  Editing to `40 - 76` with a custom photo uploads and persists both fields through
+  the real API; server read confirms range mode and custom cover URL. Android app
+  restart reloads both fields successfully.
+- Automated: 139 Jest suites / 1,527 tests, typecheck, full Go suite passed. Lint
+  passes with 724 existing warnings. Real-slider accessibility test covers one-year
+  adjustments and the minimum gap.
+- Unedited screenshots and scope: `report/issue-159-new-design-validation.md`.
+  Physical-device visuals, VoiceOver/TalkBack, permission/error matrix and staging
+  media durability remain release checks. User-reviewed Cover/Age captures were posted
+  to issue #159 in comment 6021657473; implementation PR is #178.

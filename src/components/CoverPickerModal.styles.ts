@@ -1,15 +1,19 @@
 import { StyleSheet } from 'react-native';
 
-import { colors, radii, spacing, typography } from '@theme/index';
+import { colors, componentTokens, radii, spacing, typography } from '@theme/index';
 
 // Sizes follow the Figma spec for the Choose Cover overlay (node 101:929):
 // search 40h/r10, chips 36h/r10 with 15/20 labels, 3-column square tiles
 // with an 18pt visual gutter.
 const styles = StyleSheet.create({
+  libraryAction: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  libraryButton: { borderRadius: radii.pill },
+  pickerError: { color: colors.error, backgroundColor: colors.background, padding: spacing.sm },
+  gridWithAction: { paddingBottom: componentTokens.button.height + spacing.lg },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: colors.inputSurface,
     borderRadius: radii.md,
     borderCurve: 'continuous',
     height: 40,

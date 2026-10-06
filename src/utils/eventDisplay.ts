@@ -1,11 +1,13 @@
 import { EVENT_DETAILS_INFO_SEPARATOR, EVENT_INFO_SEPARATOR } from '@constants/display';
-import { AGE_MAX, AGE_MIN } from '@constants/eventOptions';
+import { AGE_MAX, AGE_MIN, PLAN_AGE_MAX } from '@constants/eventOptions';
 
 import { parseDateKey } from './dateTime';
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 type AudienceInput = {
+  ageSelectionMode?: 'range';
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   gender?: string | null;
   minAge?: number | null;
   maxAge?: number | null;
@@ -121,10 +123,21 @@ export const formatVerboseAgeLabel = (
   return `${normalized.minAge} to ${normalized.maxAge} years`;
 };
 
-export const formatAudienceLabel = ({ gender, minAge, maxAge }: AudienceInput): string => {
+export const formatAudienceLabel = ({
+  gender,
+  minAge,
+  maxAge,
+  ageRanges,
+  ageSelectionMode,
+}: AudienceInput): string => {
   const parts: string[] = [];
   const genderLabel = isAllGender(gender) ? 'All genders' : getGenderLabel(gender);
-  const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
+  const ageLabel =
+    ageSelectionMode === 'range'
+      ? formatRangeAgeLabel([minAge ?? AGE_MIN, maxAge ?? PLAN_AGE_MAX])
+      : ageRanges?.length
+        ? ageRanges.map((r) => formatVerboseAgeLabel(r.min, r.max)).join(', ')
+        : formatVerboseAgeLabel(minAge, maxAge);
 
   if (genderLabel) {
     parts.push(genderLabel);
@@ -142,10 +155,20 @@ export const formatEventCardMetaLine = ({
   gender,
   minAge,
   maxAge,
+  ageRanges,
+  ageSelectionMode,
 }: EventDisplayInput): string => {
   const parts: string[] = [formatEventTypeLabel(groupType)];
   const genderLabel = isAllGender(gender) ? null : getGenderLabel(gender);
-  const ageLabel = formatCompactAgeLabel(minAge, maxAge);
+  const ageLabel =
+    ageSelectionMode === 'range'
+      ? formatRangeAgeLabel([minAge ?? AGE_MIN, maxAge ?? PLAN_AGE_MAX])
+      : ageRanges?.length
+        ? ageRanges
+            .map((r) => formatCompactAgeLabel(r.min, r.max))
+            .filter(Boolean)
+            .join(', ')
+        : formatCompactAgeLabel(minAge, maxAge);
 
   if (genderLabel) {
     parts.push(genderLabel);
@@ -163,10 +186,17 @@ export const formatEventDetailAudienceLine = ({
   gender,
   minAge,
   maxAge,
+  ageRanges,
+  ageSelectionMode,
 }: EventDisplayInput): string => {
   const parts: string[] = [formatEventTypeLabel(groupType)];
   const genderLabel = isAllGender(gender) ? 'All genders' : getGenderLabel(gender);
-  const ageLabel = formatVerboseAgeLabel(minAge, maxAge);
+  const ageLabel =
+    ageSelectionMode === 'range'
+      ? formatRangeAgeLabel([minAge ?? AGE_MIN, maxAge ?? PLAN_AGE_MAX])
+      : ageRanges?.length
+        ? ageRanges.map((r) => formatVerboseAgeLabel(r.min, r.max)).join(', ')
+        : formatVerboseAgeLabel(minAge, maxAge);
 
   if (genderLabel) parts.push(genderLabel);
   if (ageLabel) parts.push(ageLabel);
@@ -197,3 +227,7 @@ export const formatEventListSectionHeaderLabel = (
 
   return formatListAbsoluteDateLabel(eventDate);
 };
+
+/** Numeric display for the new continuous selection; legacy formatters stay compatible. */
+export const formatRangeAgeLabel = ([min, max]: readonly [number, number]): string =>
+  min === AGE_MIN && max === PLAN_AGE_MAX ? 'All ages' : `${min} - ${max}`;

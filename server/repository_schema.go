@@ -155,13 +155,13 @@ CREATE TABLE IF NOT EXISTS conversation_read_state (
 `
 
 const insertEvent = `
-INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at, place_id, latitude, longitude)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO events (user_id, title, location, time, event_date, description, gender, min_age, max_age, date_label, group_type, cover_key, scheduled_at, place_id, latitude, longitude, age_group_ids, cover_upload_id, age_selection_mode)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `
 
 const updateEvent = `
 UPDATE events
-SET title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key), scheduled_at = ?, place_id = ?, latitude = ?, longitude = ?
+SET cover_upload_id = CASE WHEN ? THEN ? ELSE cover_upload_id END, age_selection_mode = CASE WHEN ? != '' THEN ? WHEN ? != '' OR min_age != ? OR max_age != ? THEN '' ELSE age_selection_mode END, age_group_ids = CASE WHEN ? = 'range' THEN '' WHEN ? != '' THEN ? WHEN min_age != ? OR max_age != ? THEN '' ELSE age_group_ids END, title = ?, location = ?, time = ?, event_date = ?, description = ?, gender = ?, min_age = ?, max_age = ?, date_label = ?, group_type = ?, cover_key = COALESCE(NULLIF(?, ''), cover_key), scheduled_at = ?, place_id = ?, latitude = ?, longitude = ?
 WHERE id = ? AND user_id = ?;
 `
 
@@ -254,14 +254,14 @@ LIMIT 1;
 `
 
 const selectEvents = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at, u.name AS host_name, u.avatar AS host_avatar
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.age_group_ids, e.age_selection_mode, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.cover_upload_id, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at, u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 ORDER BY e.event_date ASC, e.time ASC, e.created_at DESC;
 `
 
 const selectEventByID = `
-SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at, u.name AS host_name, u.avatar AS host_avatar
+SELECT e.id, e.user_id, e.title, e.location, e.time, e.event_date, e.description, e.gender, e.age_group_ids, e.age_selection_mode, e.min_age, e.max_age, e.date_label, e.group_type, e.cover_key, e.cover_upload_id, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at, u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
 WHERE e.id = ?
@@ -285,8 +285,8 @@ FROM conversations;
 
 const selectUserPastEvents = `
 SELECT DISTINCT e.id, e.user_id, e.title, e.location, e.time, e.event_date,
-       e.description, e.gender, e.min_age, e.max_age, e.date_label,
-       e.group_type, e.cover_key, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at,
+       e.description, e.gender, e.age_group_ids, e.age_selection_mode, e.min_age, e.max_age, e.date_label,
+       e.group_type, e.cover_key, e.cover_upload_id, e.scheduled_at, e.place_id, e.latitude, e.longitude, e.created_at,
        u.name AS host_name, u.avatar AS host_avatar
 FROM events e
 JOIN users u ON u.id = e.user_id
@@ -801,6 +801,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)
+	}
+	if err := r.ensureEventFeatureColumns(ctx); err != nil {
+		return err
 	}
 	if err := r.ensureEventCoverKeyColumn(ctx); err != nil {
 		return err

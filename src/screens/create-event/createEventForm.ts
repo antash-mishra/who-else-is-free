@@ -1,6 +1,7 @@
 import { CoverKey, DEFAULT_COVER_KEY } from '@constants/covers';
-import { AGE_MAX, AGE_MIN, GenderOption, GroupOption } from '@constants/eventOptions';
+import { AGE_MAX, AGE_MIN, PLAN_AGE_MAX, GenderOption, GroupOption } from '@constants/eventOptions';
 import { GuestEventDraft, UserEvent } from '@context/EventsContext';
+import { getAgeRanges } from '@utils/ageGroups';
 import {
   combineDateAndTime,
   formatTime,
@@ -16,12 +17,17 @@ export type CreateEventFormState = {
   groupType: GroupOption;
   gender: GenderOption;
   ageRange: [number, number];
+  ageSelectionMode?: 'range';
+  ageGroupIds?: string[];
   selectedDateTime: Date;
   location: string;
   placeId?: string;
   latitude?: number;
   longitude?: number;
   coverKey: CoverKey;
+  coverUploadId?: string | null;
+  coverUrl?: string;
+  coverAsset?: import('@api/eventCovers').CoverAsset;
 };
 
 export type NormalizedCreateEventForm = {
@@ -33,11 +39,17 @@ export type NormalizedCreateEventForm = {
   time: string;
   scheduledAt: string;
   gender: GenderOption;
+  ageSelectionMode?: 'range';
+  ageGroupIds?: string[];
+  ageRanges?: import('@utils/ageGroups').AgeRange[];
   minAge: number;
   maxAge: number;
   groupType: GroupOption;
   badgeLabel: string | undefined;
   coverKey: CoverKey;
+  coverUploadId?: string | null;
+  coverUrl?: string;
+  coverAsset?: import('@api/eventCovers').CoverAsset;
   placeId?: string;
   latitude?: number;
   longitude?: number;
@@ -52,6 +64,9 @@ export type CreateEventPayload = GuestEventDraft & {
 export type UpdateEventPayload = Omit<GuestEventDraft, 'badgeLabel'> & {
   badgeLabel?: string | null;
   coverKey: CoverKey;
+  coverUploadId?: string | null;
+  coverUrl?: string;
+  coverAsset?: import('@api/eventCovers').CoverAsset;
 };
 
 type CreateEventOwner = {
@@ -86,7 +101,8 @@ export const createEmptyFormState = (
   description: '',
   groupType: 'Single',
   gender: 'Any',
-  ageRange: [AGE_MIN, AGE_MAX],
+  ageRange: [AGE_MIN, PLAN_AGE_MAX],
+  ageSelectionMode: 'range',
   selectedDateTime: getDefaultEventDateTime(),
   location: '',
   placeId: '',
@@ -100,6 +116,8 @@ export const createFormStateFromEvent = (event?: UserEvent | null): CreateEventF
   description: event?.description ?? '',
   groupType: event?.groupType === 'Group' ? 'Group' : 'Single',
   gender: (event?.gender as GenderOption) || 'Any',
+  ageSelectionMode: event?.ageSelectionMode,
+  ageGroupIds: event?.ageGroupIds,
   ageRange: [event?.minAge ?? AGE_MIN, event?.maxAge ?? AGE_MAX],
   selectedDateTime: getEventDateTime(event),
   location: event?.location ?? '',
@@ -107,13 +125,17 @@ export const createFormStateFromEvent = (event?: UserEvent | null): CreateEventF
   latitude: event?.latitude,
   longitude: event?.longitude,
   coverKey: event?.coverKey ?? DEFAULT_COVER_KEY,
+  coverUploadId: event?.coverUploadId ?? null,
+  coverUrl: event?.coverUrl,
 });
 
 export const normalizeCreateEventForm = (form: CreateEventFormState): NormalizedCreateEventForm => {
   const normalizedDateTime = new Date(form.selectedDateTime);
   normalizedDateTime.setSeconds(0, 0);
 
-  const [rangeStart, rangeEnd] = form.ageRange;
+  const ranges = getAgeRanges(form.ageGroupIds, form.ageRange);
+  const rangeStart = ranges[0]?.min ?? form.ageRange[0];
+  const rangeEnd = ranges[ranges.length - 1]?.max ?? form.ageRange[1];
   const eventDate = toDateKey(normalizedDateTime);
   const groupBadge = form.groupType === 'Group' ? 'Group' : undefined;
 
@@ -125,11 +147,17 @@ export const normalizeCreateEventForm = (form: CreateEventFormState): Normalized
     dateLabel: getLegacyDateLabel(eventDate),
     description: form.description.trim().length ? form.description.trim() : undefined,
     gender: form.gender,
+    ageSelectionMode: form.ageSelectionMode,
+    ageGroupIds: form.ageGroupIds,
+    ageRanges: ranges,
     minAge: Math.min(rangeStart, rangeEnd),
     maxAge: Math.max(rangeStart, rangeEnd),
     groupType: form.groupType,
     badgeLabel: groupBadge,
     coverKey: form.coverKey || DEFAULT_COVER_KEY,
+    coverUploadId: form.coverUploadId ?? null,
+    coverUrl: form.coverUrl,
+    coverAsset: form.coverAsset,
     scheduledAt: normalizedDateTime.toISOString(),
     placeId: form.placeId,
     latitude: form.latitude,
@@ -158,11 +186,17 @@ export const buildUpdateEventPayload = (form: CreateEventFormState): UpdateEvent
     dateLabel: normalized.dateLabel,
     description: normalized.description,
     gender: normalized.gender,
+    ageSelectionMode: normalized.ageSelectionMode,
+    ageGroupIds: normalized.ageGroupIds,
+    ageRanges: normalized.ageRanges,
     minAge: normalized.minAge,
     maxAge: normalized.maxAge,
     groupType: normalized.groupType,
     badgeLabel: normalized.groupType === 'Group' ? 'Group' : null,
     coverKey: normalized.coverKey,
+    coverUploadId: normalized.coverUploadId,
+    coverUrl: normalized.coverUrl,
+    coverAsset: normalized.coverAsset,
     scheduledAt: normalized.scheduledAt,
     placeId: normalized.placeId,
     latitude: normalized.latitude,
@@ -181,11 +215,17 @@ export const buildGuestEventDraft = (form: CreateEventFormState): GuestEventDraf
     dateLabel: normalized.dateLabel,
     description: normalized.description,
     gender: normalized.gender,
+    ageSelectionMode: normalized.ageSelectionMode,
+    ageGroupIds: normalized.ageGroupIds,
+    ageRanges: normalized.ageRanges,
     minAge: normalized.minAge,
     maxAge: normalized.maxAge,
     groupType: normalized.groupType,
     badgeLabel: normalized.badgeLabel,
     coverKey: normalized.coverKey,
+    coverUploadId: normalized.coverUploadId,
+    coverUrl: normalized.coverUrl,
+    coverAsset: normalized.coverAsset,
     scheduledAt: normalized.scheduledAt,
     placeId: normalized.placeId,
     latitude: normalized.latitude,

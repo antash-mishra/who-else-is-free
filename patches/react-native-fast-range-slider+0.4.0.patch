@@ -1,0 +1,228 @@
+diff --git a/node_modules/react-native-fast-range-slider/lib/module/RangeSlider.js b/node_modules/react-native-fast-range-slider/lib/module/RangeSlider.js
+index 077f9ee..c15dd4d 100644
+--- a/node_modules/react-native-fast-range-slider/lib/module/RangeSlider.js
++++ b/node_modules/react-native-fast-range-slider/lib/module/RangeSlider.js
+@@ -1,5 +1,3 @@
+-"use strict";
+-
+ import { useState, useCallback, forwardRef, useEffect, useMemo } from 'react';
+ import { View, StyleSheet } from 'react-native';
+ import { GestureHandlerRootView } from 'react-native-gesture-handler';
+@@ -129,6 +127,7 @@ const RangeSlider = ({
+   // Visual props
+   showThumbLines = DEFAULT_VALUES.SHOW_THUMB_LINES
+ }, _ref) => {
++  const [accessibleValues, setAccessibleValues] = useState([initialMinValue ?? min, initialMaxValue ?? max]);
+   // Track pressed state
+   const [pressed, setPressed] = useState({
+     left: false,
+@@ -213,6 +212,7 @@ const RangeSlider = ({
+ 
+   // Handle value changes
+   const updateOutputValues = useCallback(values => {
++    setAccessibleValues(values);
+     onValuesChange(values);
+   }, [onValuesChange]);
+   const leftGesture = Gesture.Pan().hitSlop(TOUCH_HITSLOP).onStart(() => {
+@@ -249,6 +249,16 @@ const RangeSlider = ({
+       left: false,
+       right: false
+     });
++  }).onFinalize(() => {
++    'worklet';
++
++    const values = updateValues(leftPos.value, rightPos.value);
++    leftPos.value = leftOffset.value = calculatePosition(values[0]);
++    rightPos.value = rightOffset.value = calculatePosition(values[1]);
++    runOnJS(setPressed)({
++      left: false,
++      right: false
++    });
+   });
+   const rightGesture = Gesture.Pan().hitSlop(TOUCH_HITSLOP).onStart(() => {
+     'worklet';
+@@ -284,19 +294,41 @@ const RangeSlider = ({
+       left: false,
+       right: false
+     });
++  }).onFinalize(() => {
++    'worklet';
++
++    const values = updateValues(leftPos.value, rightPos.value);
++    leftPos.value = leftOffset.value = calculatePosition(values[0]);
++    rightPos.value = rightOffset.value = calculatePosition(values[1]);
++    runOnJS(setPressed)({
++      left: false,
++      right: false
++    });
+   });
++  const adjustThumb = (index, action) => {
++    if (!enabled || action !== 'increment' && action !== 'decrement') return;
++    const values = updateValues(leftPos.value, rightPos.value);
++    const gap = Math.ceil(minimumDistance / effectiveSliderWidth * (max - min) - 1e-6);
++    const delta = action === 'increment' ? step : -step;
++    values[index] = index === 0 ? Math.max(min, Math.min(values[1] - gap, values[0] + delta)) : Math.min(max, Math.max(values[0] + gap, values[1] + delta));
++    leftPos.value = leftOffset.value = calculatePosition(values[0]);
++    rightPos.value = rightOffset.value = calculatePosition(values[1]);
++    updateOutputValues(values);
++    onValuesChangeFinish(values);
++  };
+ 
+   // Update positions only when initial values change externally
+   useEffect(() => {
+     // Only update if not currently being dragged
+     if (!pressed.left && !pressed.right) {
++      setAccessibleValues([initialMinValue ?? min, initialMaxValue ?? max]);
+       leftPos.value = initialPositions.left;
+       rightPos.value = initialPositions.right;
+       leftOffset.value = initialPositions.left;
+       rightOffset.value = initialPositions.right;
+     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [initialMinValue, initialMaxValue]);
++  }, [initialMinValue, initialMaxValue, effectiveSliderWidth]);
+   const dynamicStyles = createDynamicStyles({
+     width: effectiveSliderWidth,
+     thumbSize,
+@@ -327,6 +359,17 @@ const RangeSlider = ({
+           children: /*#__PURE__*/_jsx(Animated.View, {
+             accessible: true,
+             accessibilityLabel: leftThumbAccessibilityLabel,
++            accessibilityValue: {
++              min,
++              max,
++              now: accessibleValues[0]
++            },
++            accessibilityActions: [{
++              name: 'increment'
++            }, {
++              name: 'decrement'
++            }],
++            onAccessibilityAction: event => adjustThumb(0, event.nativeEvent.actionName),
+             accessibilityRole: "adjustable",
+             style: [{
+               width: '100%',
+@@ -353,6 +396,17 @@ const RangeSlider = ({
+           children: /*#__PURE__*/_jsx(Animated.View, {
+             accessible: true,
+             accessibilityLabel: rightThumbAccessibilityLabel,
++            accessibilityValue: {
++              min,
++              max,
++              now: accessibleValues[1]
++            },
++            accessibilityActions: [{
++              name: 'increment'
++            }, {
++              name: 'decrement'
++            }],
++            onAccessibilityAction: event => adjustThumb(1, event.nativeEvent.actionName),
+             accessibilityRole: "adjustable",
+             style: [{
+               width: '100%',
+@@ -376,5 +430,4 @@ const RangeSlider = ({
+     })
+   });
+ };
+-export default /*#__PURE__*/forwardRef(RangeSlider);
+-//# sourceMappingURL=RangeSlider.js.map
+\ No newline at end of file
++export default forwardRef(RangeSlider);
+\ No newline at end of file
+diff --git a/node_modules/react-native-fast-range-slider/src/RangeSlider.tsx b/node_modules/react-native-fast-range-slider/src/RangeSlider.tsx
+index cca193f..54d715c 100644
+--- a/node_modules/react-native-fast-range-slider/src/RangeSlider.tsx
++++ b/node_modules/react-native-fast-range-slider/src/RangeSlider.tsx
+@@ -164,6 +164,7 @@ const RangeSlider: ForwardRefRenderFunction<View, RangeSliderProps> = (
+   },
+   _ref
+ ) => {
++  const [accessibleValues, setAccessibleValues] = useState<[number, number]>([initialMinValue ?? min, initialMaxValue ?? max]);
+   // Track pressed state
+   const [pressed, setPressed] = useState<PressedState>({
+     left: false,
+@@ -269,6 +270,7 @@ const RangeSlider: ForwardRefRenderFunction<View, RangeSliderProps> = (
+   // Handle value changes
+   const updateOutputValues = useCallback(
+     (values: [number, number]): void => {
++      setAccessibleValues(values);
+       onValuesChange(values);
+     },
+     [onValuesChange]
+@@ -315,6 +317,13 @@ const RangeSlider: ForwardRefRenderFunction<View, RangeSliderProps> = (
+ 
+       runOnJS(onValuesChangeFinish)(values);
+       runOnJS(setPressed)({ left: false, right: false });
++    })
++    .onFinalize(() => {
++      'worklet';
++      const values = updateValues(leftPos.value, rightPos.value);
++      leftPos.value = leftOffset.value = calculatePosition(values[0]);
++      rightPos.value = rightOffset.value = calculatePosition(values[1]);
++      runOnJS(setPressed)({ left: false, right: false });
+     });
+ 
+   const rightGesture = Gesture.Pan()
+@@ -358,19 +367,41 @@ const RangeSlider: ForwardRefRenderFunction<View, RangeSliderProps> = (
+ 
+       runOnJS(onValuesChangeFinish)(values);
+       runOnJS(setPressed)({ left: false, right: false });
++    })
++    .onFinalize(() => {
++      'worklet';
++      const values = updateValues(leftPos.value, rightPos.value);
++      leftPos.value = leftOffset.value = calculatePosition(values[0]);
++      rightPos.value = rightOffset.value = calculatePosition(values[1]);
++      runOnJS(setPressed)({ left: false, right: false });
+     });
+ 
++  const adjustThumb = (index: 0 | 1, action: string) => {
++    if (!enabled || (action !== 'increment' && action !== 'decrement')) return;
++    const values = updateValues(leftPos.value, rightPos.value);
++    const gap = Math.ceil(minimumDistance / effectiveSliderWidth * (max - min) - 1e-6);
++    const delta = action === 'increment' ? step : -step;
++    values[index] = index === 0
++      ? Math.max(min, Math.min(values[1] - gap, values[0] + delta))
++      : Math.min(max, Math.max(values[0] + gap, values[1] + delta));
++    leftPos.value = leftOffset.value = calculatePosition(values[0]);
++    rightPos.value = rightOffset.value = calculatePosition(values[1]);
++    updateOutputValues(values);
++    onValuesChangeFinish(values);
++  };
++
+   // Update positions only when initial values change externally
+   useEffect(() => {
+     // Only update if not currently being dragged
+     if (!pressed.left && !pressed.right) {
++      setAccessibleValues([initialMinValue ?? min, initialMaxValue ?? max]);
+       leftPos.value = initialPositions.left;
+       rightPos.value = initialPositions.right;
+       leftOffset.value = initialPositions.left;
+       rightOffset.value = initialPositions.right;
+     }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [initialMinValue, initialMaxValue]);
++  }, [initialMinValue, initialMaxValue, effectiveSliderWidth]);
+ 
+   const dynamicStyles = createDynamicStyles({
+     width: effectiveSliderWidth,
+@@ -419,6 +450,9 @@ const RangeSlider: ForwardRefRenderFunction<View, RangeSliderProps> = (
+             <Animated.View
+               accessible={true}
+               accessibilityLabel={leftThumbAccessibilityLabel}
++              accessibilityValue={{ min, max, now: accessibleValues[0] }}
++              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
++              onAccessibilityAction={(event) => adjustThumb(0, event.nativeEvent.actionName)}
+               accessibilityRole="adjustable"
+               style={[{ width: '100%', height: '100%' }]}
+             >
+@@ -448,6 +482,9 @@ const RangeSlider: ForwardRefRenderFunction<View, RangeSliderProps> = (
+             <Animated.View
+               accessible={true}
+               accessibilityLabel={rightThumbAccessibilityLabel}
++              accessibilityValue={{ min, max, now: accessibleValues[1] }}
++              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
++              onAccessibilityAction={(event) => adjustThumb(1, event.nativeEvent.actionName)}
+               accessibilityRole="adjustable"
+               style={[{ width: '100%', height: '100%' }]}
+             >

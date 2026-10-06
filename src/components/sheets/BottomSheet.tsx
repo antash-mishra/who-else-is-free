@@ -383,6 +383,8 @@ const BottomSheet = ({
       transparent
       animationType="none"
       statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
       onShow={handleModalShow}
     >
       {sheet}

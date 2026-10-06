@@ -5,8 +5,6 @@ import { LocationPickerContent } from '@components/LocationPickerModal';
 import { SelectionModalContent } from '@components/SelectionModal';
 import { CoverKey } from '@constants/covers';
 import {
-  AgeOption,
-  ageOptions,
   GenderOption,
   genderDisplayLabels,
   genderOptions,
@@ -17,6 +15,8 @@ import {
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
 
 import SignInButtons from '../../components/SignInButtons';
+
+import AgeRangeContent from './AgeRangeContent';
 
 import type { CreateEventSheet } from './useCreateEventSheets';
 
@@ -50,6 +50,9 @@ type CreateEventSheetContentProps = {
   pickerMaxDate: Date;
   onConfirmDateTime: (value: Date) => void;
   coverKey: CoverKey;
+  onPickCover?: () => void;
+  coverPickerError?: string | null;
+  isPickingCover?: boolean;
   onSelectCover: (key: CoverKey) => void;
   tempGroupType: GroupOption;
   onSelectTempGroupType: (value: GroupOption) => void;
@@ -57,9 +60,13 @@ type CreateEventSheetContentProps = {
   tempGender: GenderOption;
   onSelectTempGender: (value: GenderOption) => void;
   onConfirmGender: () => void;
+  tempAgeGroupIds?: string[];
   tempAgeRange: [number, number];
   onSelectTempAgeRange: (value: [number, number]) => void;
-  onConfirmAge: () => void;
+  onConfirmAge: (range: [number, number]) => void;
+  ageSelectionMode?: 'range';
+  savedAgeRange: [number, number];
+  hasCustomCover: boolean;
   selectedLocationLabel: string;
   countryCode: string | null;
   onSelectLocation: (place: PlaceDetail) => void;
@@ -78,6 +85,9 @@ const CreateEventSheetContent = ({
   pickerMaxDate,
   onConfirmDateTime,
   coverKey,
+  onPickCover,
+  coverPickerError,
+  isPickingCover,
   onSelectCover,
   tempGroupType,
   onSelectTempGroupType,
@@ -85,9 +95,11 @@ const CreateEventSheetContent = ({
   tempGender,
   onSelectTempGender,
   onConfirmGender,
-  tempAgeRange,
-  onSelectTempAgeRange,
+  tempAgeGroupIds,
   onConfirmAge,
+  ageSelectionMode,
+  savedAgeRange,
+  hasCustomCover,
   selectedLocationLabel,
   countryCode,
   onSelectLocation,
@@ -107,7 +119,16 @@ const CreateEventSheetContent = ({
         />
       );
     case 'cover':
-      return <CoverPickerContent selectedCoverKey={coverKey} onSelect={onSelectCover} />;
+      return (
+        <CoverPickerContent
+          selectedCoverKey={hasCustomCover ? undefined : coverKey}
+          onSelect={onSelectCover}
+          onPickPhoto={onPickCover}
+          isPickingPhoto={isPickingCover}
+          pickerError={coverPickerError}
+          isReady={isSheetReady}
+        />
+      );
     case 'groupType':
       return (
         <SelectionModalContent
@@ -134,14 +155,12 @@ const CreateEventSheetContent = ({
       );
     case 'age':
       return (
-        <SelectionModalContent<AgeOption>
-          options={ageOptions}
-          selectedValue={{ label: '', min: tempAgeRange[0], max: tempAgeRange[1] }}
-          onSelect={(opt) => onSelectTempAgeRange([opt.min, opt.max])}
+        <AgeRangeContent
+          visible={activeSheet === 'age'}
+          range={savedAgeRange}
+          mode={ageSelectionMode}
+          ids={tempAgeGroupIds}
           onConfirm={onConfirmAge}
-          getLabel={(opt) => opt.label}
-          getKey={(opt) => opt.label}
-          isSelected={(opt, sel) => opt.min === sel.min && opt.max === sel.max}
         />
       );
     case 'location':

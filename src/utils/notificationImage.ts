@@ -1,3 +1,4 @@
+import { resolveUploadedCoverUrl } from '@api/eventCovers';
 import { AppNotification } from '@api/mappers/notifications';
 import { resolveCoverUri } from '@constants/covers';
 import { parseNotificationPayload } from '@utils/notificationDisplay';
@@ -27,7 +28,9 @@ export const resolveNotificationCoverUri = (
   notification: Pick<AppNotification, 'eventId' | 'payload'>,
   events: readonly NotificationImageSource[],
 ): string | undefined => {
-  const { coverKey } = parseNotificationPayload(notification.payload);
+  const { coverKey, coverUrl } = parseNotificationPayload(notification.payload);
+  const custom = resolveUploadedCoverUrl(coverUrl);
+  if (custom) return custom;
   if (coverKey) {
     return resolveCoverUri(coverKey);
   }

@@ -1,26 +1,28 @@
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import ScalePressable from '@components/ScalePressable';
-import BottomSheetModal from '@components/BottomSheetModal';
-import SignInButtons from '@components/SignInButtons';
-import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import ScreenContainer from '@components/ScreenContainer';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useFocusEffect, useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import BottomSheetModal from '@components/BottomSheetModal';
 import EmptyState from '@components/EmptyState';
 import FullPageEmptyState from '@components/FullPageEmptyState';
-import UserAvatar from '@components/UserAvatar';
+import ScalePressable from '@components/ScalePressable';
+import ScreenContainer from '@components/ScreenContainer';
+import SignInButtons from '@components/SignInButtons';
 import { UnreadDot } from '@components/ui';
-import { colors, spacing, typography } from '@theme/index';
+import UserAvatar from '@components/UserAvatar';
+import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import type { ChatConversation } from '@context/ChatContext';
-import { useAuth } from '@context/AuthContext';
 import { useEvents } from '@context/EventsContext';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, spacing, typography } from '@theme/index';
 import { formatCompactRelativeTime, getNextCompactRelativeTimeUpdateMs } from '@utils/relativeTime';
 
 type MessagesNavigation = CompositeNavigationProp<
@@ -263,6 +265,7 @@ const MessagesScreen = () => {
             eventDate: event.eventDate,
             groupType: event.groupType,
             coverKey: event.coverKey ?? undefined,
+            coverUrl: event.coverUrl,
             scheduledAt: event.scheduledAt,
           },
         } satisfies ChatConversation;
