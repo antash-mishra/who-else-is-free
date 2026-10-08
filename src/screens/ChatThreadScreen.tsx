@@ -861,7 +861,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingLeft: 14,
     paddingRight: 14,
-    borderRadius: 18,
+    // A continuous corner spans ~1.53x its radius along each edge. A one-line
+    // bubble is 42pt tall (22 line + 20 padding), so radii above ~13.7 make iOS
+    // squeeze the curve to fit, and short and long bubbles then round
+    // differently. 13 keeps every bubble's corners identical.
+    borderRadius: 13,
     borderCurve: 'continuous',
   },
   messageBubbleOwn: {
@@ -927,7 +931,14 @@ const styles = StyleSheet.create({
   },
   composerContainer: {
     backgroundColor: colors.transparent,
-    paddingHorizontal: 0,
+    // Full-bleed top divider mirroring ChatEventHeader's bottom one, so the grey
+    // input reads as its own bar rather than another incoming bubble. Negative
+    // margin reaches the screen edges past ScreenContainer's padding.
+    marginHorizontal: -spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
   },
   composerInputWrapper: {
     flexDirection: 'row',
