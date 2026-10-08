@@ -361,13 +361,19 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 
 ## Custom plan covers and age selection
 
-- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider, 18–99,
-  integer steps and a minimum five-year gap. Temporary drafts stay in the sheet;
+- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider over
+  18–`PLAN_AGE_SLIDER_MAX` (50), integer steps and a minimum five-year gap. Most plans
+  target ~20–40, so the slider stops at 50 and its end stop means "50+", saved as
+  `PLAN_AGE_MAX` (99); `toAgeSliderRange`/`fromAgeSliderRange` in `planAgeRange.ts` map
+  between them, and a saved max above 50 is kept unless a handle moves. Each thumb's
+  value is drawn above it (a finger covers the thumb), positioned from the slider's
+  thumb math, so the sheet shows no separate range summary. Temporary drafts stay in the sheet;
   only Done commits. Legacy separated/out-of-bounds ranges require deliberate
   replacement and survive unrelated edits.
 - New selections carry `age_selection_mode: "range"`; preserve legacy presets and
   their original 18–60 bounds. Mode-aware display lives in `eventDisplay.ts`;
-  range-mode full bounds show All ages, otherwise the actual min - max everywhere.
+  range-mode full bounds show All ages, an open top (`PLAN_AGE_MAX`) shows `min+`,
+  otherwise the actual min - max everywhere.
 - `patches/react-native-fast-range-slider+0.4.0.patch` adds adjustable accessibility
   actions, canceled-gesture cleanup and width synchronization to the pinned slider.
   Recreate/check it on package upgrades. The slider's gap prop is pixels; convert
