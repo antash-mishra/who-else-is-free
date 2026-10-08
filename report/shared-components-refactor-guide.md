@@ -404,12 +404,16 @@ What it is:
 - Shared CTA button.
 - Supports `primary`, `secondary`, `destructive`, and `ghost` variants.
 - Owns loading, disabled state, accessibility state, optional icon, full width, and default haptics.
+- Disabled buttons swap to the grey disabled surface by default. `disabledAppearance="dimmed"`
+  keeps the variant surface at 60% opacity instead (the same look buttons with an icon use);
+  onboarding opts into it so its disabled Continue reads as a faded black button.
 
 Where it is used:
 
 - `src/components/EmptyState.tsx`
 - `src/components/SignInButtons.tsx`
 - `src/components/help/HelpForm.tsx`
+- `src/screens/OnboardingScreen.tsx`
 
 Use it when:
 
