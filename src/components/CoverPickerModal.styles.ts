@@ -6,7 +6,7 @@ import { colors, componentTokens, radii, spacing, typography } from '@theme/inde
 // search 40h/r10, chips 36h/r10 with 15/20 labels, 3-column square tiles
 // with an 18pt visual gutter.
 const styles = StyleSheet.create({
-  libraryAction: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  libraryAction: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: spacing.lg },
   libraryButton: { borderRadius: radii.pill },
   pickerError: { color: colors.error, backgroundColor: colors.background, padding: spacing.sm },
   gridWithAction: { paddingBottom: componentTokens.button.height + spacing.lg },
