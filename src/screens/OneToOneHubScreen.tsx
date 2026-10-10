@@ -24,7 +24,7 @@ import { buildEventMemberSubtitle } from '@utils/chatHeaderSubtitle';
 // Shared illustration for the request/accepted empty states.
 const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
 const EMPTY_ILLUSTRATION_WIDTH = 227;
-const EMPTY_ILLUSTRATION_HEIGHT = 245;
+const EMPTY_ILLUSTRATION_HEIGHT = 130;
 
 type OneToOneHubRoute = RouteProp<RootStackParamList, 'OneToOneHub'>;
 type OneToOneHubNavigation = NativeStackNavigationProp<RootStackParamList, 'OneToOneHub'>;

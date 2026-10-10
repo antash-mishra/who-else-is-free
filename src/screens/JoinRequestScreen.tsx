@@ -17,7 +17,7 @@ import { colors, spacing, typography } from '@theme/index';
 // Shared illustration for the request empty state.
 const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
 const EMPTY_ILLUSTRATION_WIDTH = 227;
-const EMPTY_ILLUSTRATION_HEIGHT = 245;
+const EMPTY_ILLUSTRATION_HEIGHT = 130;
 
 type JoinRequestRoute = RouteProp<RootStackParamList, 'JoinRequest'>;
 type JoinRequestNavigation = NativeStackNavigationProp<RootStackParamList, 'JoinRequest'>;
