@@ -1,14 +1,6 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
-import {
-  NativeSyntheticEvent,
-  StyleSheet,
-  Text,
-  TextInput,
-  TextInputProps,
-  TextLayoutEventData,
-  View,
-} from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 
 import { colors } from '@theme/index';
 
@@ -17,32 +9,26 @@ const OverflowTextInput = forwardRef<TextInput, TextInputProps>(function Overflo
   { style, value, onFocus, onBlur, autoFocus, ...props },
   ref,
 ) {
+  const inputRef = useRef<TextInput>(null);
+  useImperativeHandle(ref, () => inputRef.current as TextInput);
   const [focused, setFocused] = useState(Boolean(autoFocus));
-  const [preview, setPreview] = useState<{ value: string; text: string } | null>(null);
-  const measurePreview = ({
-    nativeEvent: { lines },
-  }: NativeSyntheticEvent<TextLayoutEventData>) => {
-    if (!value || !lines.length) return;
-    const firstLine = lines[0].text.trimEnd();
-    const wordBoundary = firstLine.lastIndexOf(' ');
-    // Reserve the last word's space for the ellipsis. Unbroken text uses native truncation.
-    const text =
-      lines.length > 1 && wordBoundary > 0 ? firstLine.slice(0, wordBoundary) + '…' : value;
-    setPreview((previous) =>
-      previous?.value === value && previous.text === text ? previous : { value, text },
-    );
-  };
   const showPreview = !focused && Boolean(value);
+
+  useEffect(() => {
+    // Android's hidden editor keeps its last horizontal scroll (usually the end of a long
+    // value). Rewind it so a tap lands on the text the preview shows instead of jumping.
+    if (Platform.OS === 'android' && showPreview) inputRef.current?.setSelection(0, 0);
+  }, [showPreview, value]);
 
   return (
     <View style={styles.container}>
       <TextInput
         {...props}
-        ref={ref}
+        ref={inputRef}
         value={value}
         autoFocus={autoFocus}
         multiline={false}
-        style={[style, showPreview && styles.hidden]}
+        style={[styles.input, style, showPreview && styles.hidden]}
         onFocus={(event) => {
           setFocused(true);
           onFocus?.(event);
@@ -60,9 +46,6 @@ const OverflowTextInput = forwardRef<TextInput, TextInputProps>(function Overflo
           importantForAccessibility="no-hide-descendants"
         >
           <Text style={style} numberOfLines={1} ellipsizeMode="tail" accessible={false}>
-            {preview && preview.value === value ? preview.text : value}
-          </Text>
-          <Text style={[style, styles.measure]} onTextLayout={measurePreview} accessible={false}>
             {value}
           </Text>
         </View>
@@ -73,9 +56,11 @@ const OverflowTextInput = forwardRef<TextInput, TextInputProps>(function Overflo
 
 const styles = StyleSheet.create({
   container: { alignSelf: 'stretch', minWidth: 0 },
+  // Android's EditText theme adds horizontal padding the preview Text lacks, so focusing
+  // nudged the text sideways. Lowest-specificity reset: callers' paddings still win.
+  input: Platform.select({ android: { padding: 0 }, default: {} }),
   // Keep alpha above UIKit's 0.01 hit-testing cutoff while suppressing cached editor paint.
   hidden: { color: colors.transparent, opacity: 0.02 },
-  measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
   preview: { ...StyleSheet.absoluteFillObject, justifyContent: 'center' },
 });
 

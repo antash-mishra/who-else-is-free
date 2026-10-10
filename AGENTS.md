@@ -406,7 +406,7 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 
 ### Long text presentation
 
-- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
+- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, a native tail-ellipsized preview at rest (the ellipsis sits at the field's end, not at a word boundary; issue 187). On Android the hidden editor is rewound to the start and its theme padding reset while unfocused, so focusing never shifts the text. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
 - Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
 - Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.
 
