@@ -5,8 +5,11 @@ import {
 } from '../eventDisplay';
 import {
   ageSelectionNeedsReplacement,
+  formatAgeSliderValue,
+  fromAgeSliderRange,
   getAgePickerDraft,
   isValidPlanAgeRange,
+  toAgeSliderRange,
 } from '../planAgeRange';
 
 it('formats numeric values and full bounds consistently across surfaces', () => {
@@ -28,6 +31,18 @@ it('formats numeric values and full bounds consistently across surfaces', () => 
     expect(formatEventDetailAudienceLine(input)).toContain(label);
   }
   expect(formatRangeAgeLabel([18, 60])).toBe('18 - 60');
+  expect(formatRangeAgeLabel([24, 99])).toBe('24+');
+  expect(formatRangeAgeLabel([18, 99])).toBe('All ages');
+});
+it('maps stored ranges onto the 18-50+ slider and back', () => {
+  expect(toAgeSliderRange([18, 99])).toEqual([18, 50]);
+  expect(toAgeSliderRange([24, 35])).toEqual([24, 35]);
+  expect(toAgeSliderRange([35, 80])).toEqual([35, 50]);
+  expect(toAgeSliderRange([60, 99])).toEqual([45, 50]);
+  expect(fromAgeSliderRange([24, 50])).toEqual([24, 99]);
+  expect(fromAgeSliderRange([24, 49])).toEqual([24, 49]);
+  expect(formatAgeSliderValue(49)).toBe('49');
+  expect(formatAgeSliderValue(50)).toBe('50+');
 });
 it('enforces integer bounds and a five-year gap', () => {
   expect(isValidPlanAgeRange([40, 45])).toBe(true);

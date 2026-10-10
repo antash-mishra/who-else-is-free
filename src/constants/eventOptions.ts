@@ -2,6 +2,8 @@
 export const AGE_MIN = 18;
 export const AGE_MAX = 60; // Legacy preset bounds; do not reinterpret saved groups.
 export const PLAN_AGE_MAX = 99;
+// The age slider stops here; its end stop means "and older" and saves PLAN_AGE_MAX.
+export const PLAN_AGE_SLIDER_MAX = 50;
 export const PLAN_AGE_MIN_GAP = 5;
 
 // Option arrays
