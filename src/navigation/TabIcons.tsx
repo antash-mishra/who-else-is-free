@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import Svg, { Circle, G, Path } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Mask, Path, Rect } from 'react-native-svg';
 
 import { useChat } from '@context/ChatContext';
 import { colors } from '@theme/colors';
@@ -13,25 +13,33 @@ type TabIconProps = {
 export const TAB_ICON_WIDTH = 29;
 export const TAB_ICON_HEIGHT = 29;
 
+const EVENTS_HOUSE_PATH =
+  'M12.3344 1.15039C11.4537 1.15039 10.9176 1.45673 10.3432 1.83966C8.84974 2.87357 4.29288 6.39652 2.41653 8.15799C1.57409 8.96214 1.15287 10.0343 1.15287 11.1065C1.11457 13.2509 1.45921 15.9315 2.18677 18.4588C2.72288 20.2203 3.48873 21.0627 5.36509 21.2925C6.04249 21.3771 9.10745 21.4851 12.3344 21.5004C15.5613 21.4851 18.6263 21.3771 19.3037 21.2925C21.1801 21.0627 21.9459 20.2203 22.482 18.4588C23.2096 15.9315 23.5542 13.2509 23.5159 11.1065C23.5159 10.0343 23.0947 8.96214 22.2523 8.15799C20.3759 6.39652 15.8191 2.87357 14.3256 1.83966C13.7512 1.45673 13.2151 1.15039 12.3344 1.15039Z';
+const EVENTS_DOOR_PATH =
+  'M12.3344 16.5434C14.1532 16.5434 15.6276 15.069 15.6276 13.2502C15.6276 11.4314 14.1532 9.95703 12.3344 9.95703C10.5156 9.95703 9.0412 11.4314 9.0412 13.2502C9.0412 15.069 10.5156 16.5434 12.3344 16.5434Z';
+
 export const EventsTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
 
   return (
     <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-0.67 -1.67 26 26" fill="none">
+      {focused ? (
+        // The door is cut out of the fill (evenodd) rather than painted white,
+        // so the frosted tab bar shows through it.
+        <Path
+          d={`${EVENTS_HOUSE_PATH} ${EVENTS_DOOR_PATH}`}
+          fill={strokeColor}
+          fillRule="evenodd"
+        />
+      ) : null}
       <Path
-        d="M12.3344 1.15039C11.4537 1.15039 10.9176 1.45673 10.3432 1.83966C8.84974 2.87357 4.29288 6.39652 2.41653 8.15799C1.57409 8.96214 1.15287 10.0343 1.15287 11.1065C1.11457 13.2509 1.45921 15.9315 2.18677 18.4588C2.72288 20.2203 3.48873 21.0627 5.36509 21.2925C6.04249 21.3771 9.10745 21.4851 12.3344 21.5004C15.5613 21.4851 18.6263 21.3771 19.3037 21.2925C21.1801 21.0627 21.9459 20.2203 22.482 18.4588C23.2096 15.9315 23.5542 13.2509 23.5159 11.1065C23.5159 10.0343 23.0947 8.96214 22.2523 8.15799C20.3759 6.39652 15.8191 2.87357 14.3256 1.83966C13.7512 1.45673 13.2151 1.15039 12.3344 1.15039Z"
-        fill={focused ? strokeColor : 'none'}
+        d={EVENTS_HOUSE_PATH}
         stroke={strokeColor}
         strokeWidth={2.15}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <Path
-        d="M12.3344 16.5434C14.1532 16.5434 15.6276 15.069 15.6276 13.2502C15.6276 11.4314 14.1532 9.95703 12.3344 9.95703C10.5156 9.95703 9.0412 11.4314 9.0412 13.2502C9.0412 15.069 10.5156 16.5434 12.3344 16.5434Z"
-        fill={focused ? colors.background : 'none'}
-        stroke={focused ? 'none' : strokeColor}
-        strokeWidth={2.15}
-      />
+      {focused ? null : <Path d={EVENTS_DOOR_PATH} stroke={strokeColor} strokeWidth={2.15} />}
     </Svg>
   );
 };
@@ -128,6 +136,8 @@ export const MessagesTabIcon = ({ focused, color }: TabIconProps) => {
   );
 };
 
+const PROFILE_FACE_MASK_ID = 'profile-tab-face-cutout';
+
 export const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
   const strokeColor = color;
 
@@ -148,8 +158,33 @@ export const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
     );
   }
 
+  // The face is masked out of the filled circle rather than painted white, so
+  // the frosted tab bar shows through the eyes and smile. Mask colours are
+  // luminance (white keeps, black cuts), not theme colours.
   return (
     <Svg width={TAB_ICON_WIDTH} height={TAB_ICON_HEIGHT} viewBox="-1.5 -1.5 26 26" fill="none">
+      <Defs>
+        <Mask
+          id={PROFILE_FACE_MASK_ID}
+          maskUnits="userSpaceOnUse"
+          x={-1.5}
+          y={-1.5}
+          width={26}
+          height={26}
+        >
+          <Rect x={-1.5} y={-1.5} width={26} height={26} fill="white" />
+          <Path
+            d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
+            fill="none"
+            stroke="black"
+            strokeWidth={2.15}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx={14.13} cy={8.09} r={1.84} fill="black" />
+          <Circle cx={8.87} cy={8.09} r={1.84} fill="black" />
+        </Mask>
+      </Defs>
       <Circle
         cx={11.5}
         cy={11.5}
@@ -157,16 +192,8 @@ export const ProfileTabIcon = ({ focused, color }: TabIconProps) => {
         fill={strokeColor}
         stroke={strokeColor}
         strokeWidth={2.15}
+        mask={`url(#${PROFILE_FACE_MASK_ID})`}
       />
-      <Path
-        d="M15.18 14.39C15.18 14.39 14.13 16.49 11.5 16.49C8.87 16.49 7.82 14.39 7.82 14.39"
-        stroke={colors.background}
-        strokeWidth={2.15}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={14.13} cy={8.09} r={1.84} fill={colors.background} />
-      <Circle cx={8.87} cy={8.09} r={1.84} fill={colors.background} />
     </Svg>
   );
 };
