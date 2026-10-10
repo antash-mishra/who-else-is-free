@@ -22,6 +22,11 @@ export interface AppButtonProps {
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  /**
+   * How the disabled state reads. `surface` (default) swaps to the grey
+   * disabled surface; `dimmed` keeps the variant's surface at reduced opacity.
+   */
+  disabledAppearance?: 'surface' | 'dimmed';
 }
 
 const getDefaultHaptic = (variant: AppButtonVariant): HapticFeedback =>
@@ -40,6 +45,7 @@ const AppButton = ({
   accessibilityLabel,
   style,
   textStyle,
+  disabledAppearance = 'surface',
 }: AppButtonProps) => {
   const isDisabled = disabled || loading;
   const resolvedHaptic = haptic ?? getDefaultHaptic(variant);
@@ -47,7 +53,9 @@ const AppButton = ({
   // is solid white for the black button -- and cannot be recoloured from here.
   // Swapping the surface under it would make it invisible, so a button with a
   // custom icon dims uniformly instead, which keeps every layer legible.
-  const dimsInsteadOfSwapping = !!icon;
+  // Callers can also opt into the dimmed look (onboarding keeps a faded black
+  // Continue rather than the grey surface).
+  const dimsInsteadOfSwapping = !!icon || disabledAppearance === 'dimmed';
   const showsDisabledSurface = isDisabled && !dimsInsteadOfSwapping && variant !== 'ghost';
   // A white spinner would vanish on the disabled surface.
   const indicatorColor = showsDisabledSurface
