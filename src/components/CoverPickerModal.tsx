@@ -7,10 +7,12 @@ import {
   ScrollView,
   Text,
   TextInput,
+  StyleSheet,
   View,
 } from 'react-native';
 
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -60,6 +62,10 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
     [covers, categories, query, categoryKey],
   );
 
+  // The sheet pads its content by this much; the grid cancels it so covers run
+  // to the screen's bottom edge, and the library action floats back above it.
+  const sheetBottomInset = spacing.sm + bottom;
+
   const handleQueryChange = (text: string) => {
     setQuery(text);
     if (text.trim().length > 0) {
@@ -78,7 +84,7 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
       style={{
         height: height * 0.73,
         flexShrink: 1,
-        marginBottom: onPickPhoto ? 0 : -(spacing.sm + bottom),
+        marginBottom: -sheetBottomInset,
       }}
     >
       <View style={styles.searchContainer}>
@@ -126,7 +132,12 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
             numColumns={3}
             keyExtractor={(item) => item.key}
             columnWrapperStyle={styles.column}
-            contentContainerStyle={[styles.grid, onPickPhoto && styles.gridWithAction]}
+            contentContainerStyle={[
+              styles.grid,
+              onPickPhoto && {
+                paddingBottom: styles.gridWithAction.paddingBottom + sheetBottomInset,
+              },
+            ]}
             keyboardShouldPersistTaps="handled"
             initialNumToRender={18}
             maxToRenderPerBatch={9}
@@ -166,10 +177,17 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
         </Animated.View>
       )}
       {onPickPhoto && (
-        <View style={styles.libraryAction}>
+        <View style={[styles.libraryAction, { paddingBottom: sheetBottomInset }]}>
+          {/* Same white fade as the Event Details pinned CTA. */}
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)']}
+            locations={[0, 0.4]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
           {pickerError && <AppText style={styles.pickerError}>{pickerError}</AppText>}
           <AppButton
-            label="Choose from library"
+            label="Add your own cover"
             fullWidth
             onPress={onPickPhoto}
             loading={isPickingPhoto}

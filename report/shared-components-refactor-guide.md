@@ -1906,7 +1906,7 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
   Recreate/check it on package upgrades. The slider's gap prop is pixels; convert
   the five-year gap using measured width. Size tokens live in `componentTokens.ageRange`
   and the opaque thumb shadow in `shadows.ageRangeThumb`.
-- `CoverPickerContent` owns the optional pinned Choose from library action and grid
+- `CoverPickerContent` owns the optional pinned Add your own cover action and grid
   clearance. Defer the heavy grid via the shared sheet's onOpened readiness signal.
   Custom covers never highlight a catalog choice. Bottom-sheet native modals use
   translucent status/navigation bars and an unpadded full-window backdrop.
