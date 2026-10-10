@@ -775,3 +775,12 @@ whole-repository formatting were not run.
   Physical-device visuals, VoiceOver/TalkBack, permission/error matrix and staging
   media durability remain release checks. User-reviewed Cover/Age captures were posted
   to issue #159 in comment 6021657473; implementation PR is #178.
+
+## 2026-10-11 — Issue #187: Create plan name overflow
+
+- Change: `OverflowTextInput` shows its resting preview with native one-line tail truncation (the issue-177 whole-word measurement left the ellipsis mid-field). On Android it rewinds the hidden editor's selection to 0 while unfocused and resets the EditText theme padding, so focusing no longer jumps to the end or nudges the text sideways.
+- Flow: Create plan → type `Group ios snsnsj sjdjdj Hsnsnsnshsjsjsjsn plan name` → blur → tap the field. Also Onboarding name (centered) on Android.
+- Android `WEIF_API_36`: PASS — before, the rest preview read `Group ios snsnsj...` with most of the row empty, and a tap opened the editor scrolled to `…sjdjdj Hsnsnsnshsjsjsjsn plan name` (selecting a different word). After, the preview fills the row (`Group ios snsnsj sjdjdj Hsnsnsnshsjs...`) and focusing keeps `Group` at the same x (63px) with the caret under the tap.
+- iOS `WEIF_ISSUE_167_IOS` simulator: PASS — preview reads `Group ios snsnsj sjdjdj Hsnsnsnshsj...` ending at the field edge.
+- Tests: `OverflowTextInput`, Onboarding, EditProfile and CreateEvent suites (14 suites, 133 tests) pass; `npm run typecheck` clean.
+- Screenshots: `report/screenshots/issue-187/`.
