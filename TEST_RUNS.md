@@ -678,6 +678,14 @@ whole-repository formatting were not run.
 - PASS: installed over the earlier signed 1.0.1 APK on `WEIF_ISSUE_167_RELEASE`, then guest Discover → Profile → Google sign-in sheet without Metro or dev-login controls. No production account/profile writes.
 - PENDING: onboarding on the affected physical phone with this signed APK, older Android, iOS visuals. Report/screenshots/download: `report/issue-167-onboarding-only.md` and `.html`.
 
+## 2026-10-11 — Issue #189: Select location sentence case
+
+- Change: Create/Edit Event location placeholder `Select Location` → `Select location` (plus the unused `LocationPickerModal` sheet title) to match app-wide sentence case.
+- Flow: Discover → Create tab → Create plan form, Location row (WEIF_API_36 emulator, Metro hot reload).
+- Final: PASS — the placeholder chip reads `Select location`; no other layout change.
+- Automated: `CreateEventScreen.rendering` (20 tests) and typecheck passed.
+- Evidence: `report/screenshots/issue-189/` (before/after full screen and Location-row crops).
+
 ## 2026-10-06 — Issue #177: long text
 
 - Change: bounded native request/chat scrolling, multiline composer corners, ellipsized display names, and shared full-value name/title editing with overflow previews.

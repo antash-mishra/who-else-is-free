@@ -139,7 +139,7 @@ const CreateEventFormFields = ({
               style={[styles.fieldValueText, !selectedLocationLabel && styles.locationPlaceholder]}
               numberOfLines={1}
             >
-              {selectedLocationLabel || 'Select Location'}
+              {selectedLocationLabel || 'Select location'}
             </Text>
           </View>
         </Pressable>

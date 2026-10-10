@@ -153,7 +153,7 @@ jest.mock('@react-navigation/native', () => {
 
 describe('CreateEventScreen Rendering', () => {
   const selectMockLocation = async () => {
-    fireEvent.press(screen.getByText('Select Location'));
+    fireEvent.press(screen.getByText('Select location'));
     fireEvent.press(screen.getByTestId('select-mock-place'));
 
     await waitFor(() => {
@@ -205,7 +205,7 @@ describe('CreateEventScreen Rendering', () => {
 
     expect(screen.getByPlaceholderText('Event name')).toBeTruthy();
     expect(screen.getByLabelText('Add details')).toBeTruthy();
-    expect(screen.getByText('Select Location')).toBeTruthy();
+    expect(screen.getByText('Select location')).toBeTruthy();
     expect(screen.getByText('Date & time')).toBeTruthy();
     expect(screen.getByText('24 Jan, Sat • 14:00')).toBeTruthy();
     expect(screen.getByText('All genders')).toBeTruthy();
