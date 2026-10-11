@@ -792,3 +792,12 @@ whole-repository formatting were not run.
 - Android `WEIF_API_36`: PASS. Before (master formatter, same data), Discover read `1:1 · All ages` and `Group · Female · All ages`. After, it reads `1:1` and `Group · Female`, while restricted plans still read `1:1 · 35 - 80` and `1:1 · 24+`. Event Details for the untouched plan still reads `1:1 · All genders · All ages`.
 - Tests: full Jest suite (139 suites / 1,536 tests) and `npm run typecheck` pass.
 - Screenshots: `report/screenshots/issue-188/`.
+
+## 2026-10-12 — Issue #186: Hide Dev Login buttons by default
+
+- Change: `DevLoginButton` renders only when `DEV_LOGIN_ENABLED` (`src/constants/featureFlags.ts`) is true: a `__DEV__` build whose Metro was started with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true`. Release builds never show the presets.
+- Flow: signed out → Chat → Get started (shared `SignInButtons` sheet).
+- Android `WEIF_API_36`: before only. On master the sheet showed Google, Apple and the four Dev Login presets. No after capture: while the host was under heavy load from parallel Jest runs, the Android watchdog killed `system_server` three times (main thread blocked for 60 s); after a cold boot the dev client kept raising input-dispatch ANRs, the first one on the native Dev Launcher screen before any app JS ran.
+- iOS `WEIF_ISSUE_167_IOS` simulator (same Metro, only `DevLoginButton.tsx` swapped): PASS. The old component showed the four presets, matching the issue screenshot. The new code without the flag shows only Continue with Google / Apple (the hierarchy has only `google-sign-in-button` and `apple-sign-in-button`). The new code on a second Metro started with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` shows the presets again.
+- Tests: new `featureFlags` (4) and `SignInButtons` (2) tests; full Jest suite (141 suites / 1,543 tests), `npm run typecheck` and ESLint on the touched files (0 warnings) pass.
+- Screenshots: `report/screenshots/issue-186/`.
