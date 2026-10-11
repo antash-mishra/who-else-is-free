@@ -386,6 +386,37 @@ CREATE INDEX IF NOT EXISTS event_report_messages_report_idx
 ON event_report_messages (report_id);
 `
 
+// user_identity_hashes holds HMACs of a live account's identifiers so a
+// report can copy them; it is deleted with the account. Raw Google subjects
+// are never stored.
+const createTableUserIdentityHashes = `
+CREATE TABLE IF NOT EXISTS user_identity_hashes (
+    user_id INTEGER NOT NULL,
+    provider TEXT NOT NULL CHECK(provider IN ('apple', 'google', 'email')),
+    identity_hmac TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, provider),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`
+
+// event_report_identities keeps the report subject's identity hashes for the
+// report's lifetime, so a returning account can be recognised.
+const createTableEventReportIdentities = `
+CREATE TABLE IF NOT EXISTS event_report_identities (
+    report_id INTEGER NOT NULL,
+    provider TEXT NOT NULL,
+    identity_hmac TEXT NOT NULL,
+    PRIMARY KEY (report_id, provider),
+    FOREIGN KEY (report_id) REFERENCES event_reports(id) ON DELETE CASCADE
+);
+`
+
+const createEventReportsSubjectIndex = `
+CREATE INDEX IF NOT EXISTS event_reports_subject_idx
+ON event_reports (subject_user_id);
+`
+
 // copyLegacyEventReports moves pre-#184 rows into the rebuilt table. Legacy
 // rows can point at plans or accounts that are already gone (rows from before
 // foreign keys were enforced); those references become NULL instead of
@@ -925,6 +956,15 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createEventReportMessagesReportIndex); err != nil {
 		return fmt.Errorf("create event_report_messages report index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createEventReportsSubjectIndex); err != nil {
+		return fmt.Errorf("create event_reports subject index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableEventReportIdentities); err != nil {
+		return fmt.Errorf("create event_report_identities table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableUserIdentityHashes); err != nil {
+		return fmt.Errorf("create user_identity_hashes table: %w", err)
 	}
 	if err := r.cleanupOrphanedEventReferences(ctx); err != nil {
 		return err

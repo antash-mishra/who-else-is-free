@@ -59,8 +59,8 @@ func snapshotReportMessages(ctx context.Context, tx *sql.Tx, reportID *int64) er
 
 // insertReportWithSnapshot files a report and, in the same transaction, keeps
 // what must outlive the plan and the accounts (#184): the plan title, the
-// subject (the reported member, or the host for a plan report) and the
-// subject's recent messages in the plan.
+// subject (the reported member, or the host for a plan report), the subject's
+// recent messages in the plan and the subject's identity hashes.
 func (r *EventRepository) insertReportWithSnapshot(
 	ctx context.Context,
 	eventID, reporterID int64,
@@ -108,8 +108,100 @@ func (r *EventRepository) insertReportWithSnapshot(
 	if err := snapshotReportMessages(ctx, tx, &reportID); err != nil {
 		return 0, err
 	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO event_report_identities (report_id, provider, identity_hmac)
+		SELECT ?, provider, identity_hmac FROM user_identity_hashes WHERE user_id = ?;
+	`, reportID, subjectID); err != nil {
+		return 0, fmt.Errorf("snapshot report identities: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
 		return 0, fmt.Errorf("commit report: %w", err)
 	}
 	return reportID, nil
+}
+
+// RecordUserIdentityHash stores a live account's hash for one provider and
+// attaches it to reports already filed about the account, so a report filed
+// before the hash was known (for example before the subject's next Google
+// sign-in) still carries it after the account is deleted.
+func (r *EventRepository) RecordUserIdentityHash(ctx context.Context, userID int64, provider, identityHMAC string) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin identity hash tx: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO user_identity_hashes (user_id, provider, identity_hmac)
+		VALUES (?, ?, ?)
+		ON CONFLICT (user_id, provider) DO UPDATE SET identity_hmac = excluded.identity_hmac
+		WHERE identity_hmac <> excluded.identity_hmac;
+	`, userID, provider, identityHMAC); err != nil {
+		return fmt.Errorf("record identity hash: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT OR IGNORE INTO event_report_identities (report_id, provider, identity_hmac)
+		SELECT id, ?, ? FROM event_reports WHERE subject_user_id = ?;
+	`, provider, identityHMAC, userID); err != nil {
+		return fmt.Errorf("attach identity hash to reports: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit identity hash: %w", err)
+	}
+	return nil
+}
+
+// BackfillIdentityHashes hashes identifiers live accounts already have on
+// file: every account's email, and Apple subjects linked before #184. Google
+// subjects were never stored, so a Google hash arrives with the next sign-in.
+// Only missing hashes are written, so it is safe to run on every start.
+func (r *EventRepository) BackfillIdentityHashes(ctx context.Context, hasher *IdentityHasher) (int, error) {
+	if hasher == nil {
+		return 0, nil
+	}
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT u.id, 'email', u.email
+		FROM users u
+		WHERE NOT EXISTS (
+			SELECT 1 FROM user_identity_hashes h
+			WHERE h.user_id = u.id AND h.provider = 'email'
+		)
+		UNION ALL
+		SELECT a.user_id, 'apple', a.apple_sub
+		FROM apple_accounts a
+		WHERE NOT EXISTS (
+			SELECT 1 FROM user_identity_hashes h
+			WHERE h.user_id = a.user_id AND h.provider = 'apple'
+		);
+	`)
+	if err != nil {
+		return 0, fmt.Errorf("list identities to hash: %w", err)
+	}
+	type pendingHash struct {
+		userID   int64
+		provider string
+		hash     string
+	}
+	var pending []pendingHash
+	for rows.Next() {
+		var userID int64
+		var provider, value string
+		if err := rows.Scan(&userID, &provider, &value); err != nil {
+			rows.Close()
+			return 0, fmt.Errorf("scan identity to hash: %w", err)
+		}
+		if hash, ok := hasher.Hash(provider, value); ok {
+			pending = append(pending, pendingHash{userID: userID, provider: provider, hash: hash})
+		}
+	}
+	iterErr := rows.Err()
+	rows.Close() // release the single SQLite connection before writing
+	if iterErr != nil {
+		return 0, fmt.Errorf("iterate identities to hash: %w", iterErr)
+	}
+	for _, p := range pending {
+		if err := r.RecordUserIdentityHash(ctx, p.userID, p.provider, p.hash); err != nil {
+			return 0, err
+		}
+	}
+	return len(pending), nil
 }

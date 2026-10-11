@@ -64,6 +64,13 @@ func main() {
 
 	eventHandler := NewEventHandler(repo, chatHub)
 	authHandler := NewAuthHandler(repo, signer)
+	backfillCtx, cancelBackfill := context.WithTimeout(context.Background(), 30*time.Second)
+	if hashed, err := repo.BackfillIdentityHashes(backfillCtx, authHandler.identityHasher); err != nil {
+		log.Printf("failed to backfill identity hashes: %v", err)
+	} else if hashed > 0 {
+		log.Printf("backfilled %d identity hash(es)", hashed)
+	}
+	cancelBackfill()
 	profileHandler := NewProfileHandler(repo, chatHub)
 	pushHandler := NewPushHandler(repo, pushSender)
 	go chatHub.Run()

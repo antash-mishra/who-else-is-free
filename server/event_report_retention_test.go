@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -490,5 +492,173 @@ func TestReportAndSnapshotCommitTogether(t *testing.T) {
 	}
 	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ?`, report.ID); n != 1 {
 		t.Fatalf("retry snapshot rows = %d, want 1", n)
+	}
+}
+
+func TestIdentityHasherIsKeyedStableAndProviderScoped(t *testing.T) {
+	a := &IdentityHasher{key: []byte("key-a")}
+	b := &IdentityHasher{key: []byte("key-b")}
+	h1, ok := a.Hash(identityProviderGoogle, "sub-123")
+	h2, _ := a.Hash(identityProviderGoogle, " sub-123 ")
+	h3, _ := b.Hash(identityProviderGoogle, "sub-123")
+	h4, _ := a.Hash(identityProviderApple, "sub-123")
+	if !ok || h1 != h2 || h1 == h3 || h1 == h4 || len(h1) != 64 || strings.Contains(h1, "sub-123") {
+		t.Fatalf("hash not keyed/stable/provider-scoped: %q %q %q %q", h1, h2, h3, h4)
+	}
+	e1, _ := a.Hash(identityProviderEmail, "Ava@Example.com")
+	e2, _ := a.Hash(identityProviderEmail, "ava@example.com")
+	if e1 != e2 {
+		t.Fatal("email hashes must ignore case")
+	}
+	if _, ok := (*IdentityHasher)(nil).Hash(identityProviderGoogle, "sub"); ok {
+		t.Fatal("a nil hasher must not produce a hash")
+	}
+	if _, ok := (&IdentityHasher{}).Hash(identityProviderGoogle, "sub"); ok {
+		t.Fatal("an empty key must not produce a hash")
+	}
+	if _, ok := a.Hash(identityProviderGoogle, "  "); ok {
+		t.Fatal("a blank value must not produce a hash")
+	}
+}
+
+func TestReportCopiesSubjectIdentityHashesAndKeepsThemAfterDeletion(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	seedNotificationActionConversation(t, repo, eventID, host, offender)
+	hasher := &IdentityHasher{key: []byte("k")}
+	googleHash, _ := hasher.Hash(identityProviderGoogle, "offender-sub")
+	emailHash, _ := hasher.Hash(identityProviderEmail, "offender@notification-actions.test")
+	for provider, hash := range map[string]string{identityProviderGoogle: googleHash, identityProviderEmail: emailHash} {
+		if err := repo.RecordUserIdentityHash(ctx, offender, provider, hash); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "threats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.DeleteUserAccount(ctx, offender); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM user_identity_hashes WHERE user_id = ?`, offender); n != 0 {
+		t.Fatal("the live identity hashes must be deleted with the account")
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND ((provider = 'google' AND identity_hmac = ?) OR (provider = 'email' AND identity_hmac = ?))`, report.ID, googleHash, emailHash); n != 2 {
+		t.Fatalf("report kept %d of the subject's 2 identity hashes", n)
+	}
+}
+
+func TestRecordingHashLaterAttachesToEarlierReports(t *testing.T) {
+	f := seedMemberReportFixture(t) // filed while the offender had no hashes
+	ctx := context.Background()
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ?`, f.reportID); n != 0 {
+		t.Fatalf("unexpected identity rows before any hash: %d", n)
+	}
+	hash, _ := (&IdentityHasher{key: []byte("k")}).Hash(identityProviderGoogle, "late-sub")
+	for i := 0; i < 2; i++ { // recording twice must stay idempotent
+		if err := f.repo.RecordUserIdentityHash(ctx, f.offender, identityProviderGoogle, hash); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND provider = 'google' AND identity_hmac = ?`, f.reportID, hash); n != 1 {
+		t.Fatalf("hash attached to the earlier report %d times, want 1", n)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE identity_hmac = ? AND report_id <> ?`, hash, f.reportID); n != 0 {
+		t.Fatal("hash attached to a report about someone else")
+	}
+}
+
+func TestBackfillIdentityHashesCoversEmailAndAppleAndIsIdempotent(t *testing.T) {
+	repo := newRetentionTestRepo(t) // seeds "tester"
+	ctx := context.Background()
+	user := seedNotificationActionUser(t, repo, "apple-user")
+	if err := repo.LinkAppleAccount(ctx, "apple-sub-9", user, "apple-user@notification-actions.test"); err != nil {
+		t.Fatal(err)
+	}
+	hasher := &IdentityHasher{key: []byte("k")}
+	first, err := repo.BackfillIdentityHashes(ctx, hasher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repo.BackfillIdentityHashes(ctx, hasher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != 3 || second != 0 {
+		t.Fatalf("backfill counts = %d then %d, want 3 (two emails, one apple) then 0", first, second)
+	}
+	appleHash, _ := hasher.Hash(identityProviderApple, "apple-sub-9")
+	emailHash, _ := hasher.Hash(identityProviderEmail, "apple-user@notification-actions.test")
+	if n := countRows(t, repo, `SELECT count(*) FROM user_identity_hashes WHERE user_id = ? AND ((provider = 'apple' AND identity_hmac = ?) OR (provider = 'email' AND identity_hmac = ?))`, user, appleHash, emailHash); n != 2 {
+		t.Fatalf("backfilled %d of the account's 2 hashes", n)
+	}
+	if n, err := repo.BackfillIdentityHashes(ctx, nil); err != nil || n != 0 {
+		t.Fatalf("nil hasher backfill = %d, %v; want 0, nil", n, err)
+	}
+}
+
+// NewAuthHandler reads REPORT_IDENTITY_HMAC_KEY, so it is set before the env is built.
+func TestGoogleLoginRecordsIdentityHashes(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+	t.Setenv("REPORT_IDENTITY_HMAC_KEY", "test-key")
+	env := setupAuthTestEnv(t, fakeGoogleVerifier{claims: map[string]any{
+		"sub": "google-sub-1", "email": "hashme@example.test", "email_verified": true, "name": "Hash Me",
+	}}, nil)
+	rec := env.postJSON(t, "/api/google-login", map[string]any{"id_token": "google-token"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login status %d: %s", rec.Code, rec.Body.String())
+	}
+	hasher := &IdentityHasher{key: []byte("test-key")}
+	googleHash, _ := hasher.Hash(identityProviderGoogle, "google-sub-1")
+	emailHash, _ := hasher.Hash(identityProviderEmail, "hashme@example.test")
+	if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE (provider = 'google' AND identity_hmac = ?) OR (provider = 'email' AND identity_hmac = ?)`, googleHash, emailHash); n != 2 {
+		t.Fatalf("google login recorded %d of 2 identity hashes", n)
+	}
+	if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE identity_hmac LIKE '%google-sub-1%' OR identity_hmac LIKE '%hashme%'`); n != 0 {
+		t.Fatal("a raw identifier was stored")
+	}
+}
+
+// The second sign-in takes appleLogin's existing-account early return.
+func TestAppleLoginRecordsIdentityHashOnBothPaths(t *testing.T) {
+	t.Setenv("APPLE_OAUTH_AUDIENCES", "com.whoelseisfree.app")
+	t.Setenv("REPORT_IDENTITY_HMAC_KEY", "test-key")
+	env := setupAuthTestEnv(t, nil, fakeAppleVerifier{responses: map[string]fakeAppleResponse{
+		"first-token":  {identity: &appleIdentity{Subject: "apple-sub-1", Email: "apple-hash@example.test", Name: "Apple Hash"}},
+		"second-token": {identity: &appleIdentity{Subject: "apple-sub-1"}},
+	}})
+	want, _ := (&IdentityHasher{key: []byte("test-key")}).Hash(identityProviderApple, "apple-sub-1")
+	for _, token := range []string{"first-token", "second-token"} {
+		if _, err := env.repo.db.Exec(`DELETE FROM user_identity_hashes`); err != nil {
+			t.Fatal(err)
+		}
+		rec := env.postJSON(t, "/api/apple-login", map[string]any{"id_token": token})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status %d: %s", token, rec.Code, rec.Body.String())
+		}
+		if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE provider = 'apple' AND identity_hmac = ?`, want); n != 1 {
+			t.Fatalf("%s did not record the apple identity hash", token)
+		}
+		if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE provider = 'email'`); n != 1 {
+			t.Fatalf("%s did not record the email identity hash", token)
+		}
+	}
+}
+
+func TestLoginWithoutIdentityKeyRecordsNothing(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+	t.Setenv("REPORT_IDENTITY_HMAC_KEY", "")
+	env := setupAuthTestEnv(t, fakeGoogleVerifier{claims: map[string]any{
+		"sub": "google-sub-2", "email": "nokey@example.test", "email_verified": true, "name": "No Key",
+	}}, nil)
+	rec := env.postJSON(t, "/api/google-login", map[string]any{"id_token": "google-token"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login without a key must still succeed, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes`); n != 0 {
+		t.Fatalf("recorded %d hashes without a key", n)
 	}
 }
