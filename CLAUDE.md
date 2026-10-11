@@ -106,6 +106,14 @@ Who Else Is Free is an event discovery and social coordination app.
   `ADMIN_BOOTSTRAP_EMAILS` only provisions verified initial accounts. Support Inbox API mapping is
   in `src/api/adminHelp.ts`, feature state is in `useAdminAccess`/`useAdminHelpSubmissions`, and
   support content must stay out of analytics and routine logs.
+- Safety reports outlive accounts and plans (#184): `event_reports.event_id`/`user_id`/`reviewed_by`
+  are `ON DELETE SET NULL`; `reported_user_id` and `subject_user_id` have no FK and keep deleted ids.
+  Create reports only through `insertReportWithSnapshot`, which copies the plan title, the subject
+  (reported member, or host for plan reports), the subject's last 50 messages the reporter could see
+  (`event_report_messages`) and identity HMACs (`user_identity_hashes` → `event_report_identities`,
+  keyed by `REPORT_IDENTITY_HMAC_KEY`). `PurgeExpiredEventReports` deletes reports after 18 months
+  unless `retention_hold = 1`. Startup cleanups must never delete reports because a reference is
+  NULL. See `docs/safety-report-retention.md`.
 - Notifications: historical content stays immutable except for explicit idempotent copy-correction
   migrations, while `action_state` separately tracks live
   action validity (`active`, `resolved`, or `unavailable`). `read` remains independent and unread
