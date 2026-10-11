@@ -27,8 +27,10 @@ it('formats numeric values and full bounds consistently across surfaces', () => 
       groupType: 'Group',
       gender: 'Any',
     };
-    expect(formatEventCardMetaLine(input)).toContain(label);
     expect(formatEventDetailAudienceLine(input)).toContain(label);
+    // Cards omit an unrestricted range; Event Details still says All ages.
+    if (label === 'All ages') expect(formatEventCardMetaLine(input)).toBe('Group');
+    else expect(formatEventCardMetaLine(input)).toContain(label);
   }
   expect(formatRangeAgeLabel([18, 60])).toBe('18 - 60');
   expect(formatRangeAgeLabel([24, 99])).toBe('24+');

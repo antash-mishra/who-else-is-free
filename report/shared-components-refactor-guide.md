@@ -1909,7 +1909,8 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
   replacement and survive unrelated edits.
 - New selections carry `age_selection_mode: "range"`; preserve legacy presets and
   their original 18–60 bounds. Mode-aware display lives in `eventDisplay.ts`;
-  range-mode full bounds show All ages, an open top (`PLAN_AGE_MAX`) shows `min+`,
+  range-mode full bounds show All ages in Event Details and are omitted from event
+  cards (like legacy all-age plans), an open top (`PLAN_AGE_MAX`) shows `min+`,
   otherwise the actual min - max everywhere.
 - `patches/react-native-fast-range-slider+0.4.0.patch` adds adjustable accessibility
   actions, canceled-gesture cleanup and width synchronization to the pinned slider.
