@@ -12,12 +12,14 @@ import (
 // reportMessageSnapshotLimit bounds how much chat evidence one report keeps.
 const reportMessageSnapshotLimit = 50
 
-// snapshotReportMessagesQuery copies each report subject's most recent user
-// messages in the reported plan into event_report_messages. Only
-// conversations the reporter belongs to are read, so a Single plan's other
-// private chats never enter the record. The first two arguments select one
-// report id, or every report when both are NULL; the third is the limit.
-const snapshotReportMessagesQuery = `
+// The snapshot queries copy a report subject's most recent user messages in
+// the reported plan into event_report_messages, at most
+// reportMessageSnapshotLimit per report. Only conversations the reporter
+// belongs to are read, so a Single plan's other private chats never enter the
+// record. Both queries share this wrapper and select the same rows; they
+// differ only in how they reach the messages.
+const (
+	snapshotReportMessagesHead = `
 INSERT INTO event_report_messages (report_id, message_id, conversation_id, body, attachment_url, sent_at)
 SELECT report_id, message_id, conversation_id, body, attachment_url, sent_at
 FROM (
@@ -28,31 +30,57 @@ FROM (
 		m.body,
 		m.attachment_url,
 		m.created_at AS sent_at,
-		ROW_NUMBER() OVER (PARTITION BY r.id ORDER BY m.created_at DESC, m.id DESC) AS row_num
+		ROW_NUMBER() OVER (PARTITION BY r.id ORDER BY m.created_at DESC, m.id DESC) AS row_num`
+	snapshotReportMessagesTail = `
+)
+WHERE row_num <= ?;
+`
+)
+
+// snapshotOneReportMessagesQuery snapshots one report (arguments: report id,
+// limit) while it is filed, on the server's only database connection. It
+// starts from the report and follows indexes: the reporter's memberships
+// (conversation_members_user_history_idx), each conversation by id, then
+// that conversation's messages (messages_conversation_created_idx). The
+// membership join cannot duplicate rows: (conversation_id, user_id) is
+// conversation_members' primary key. Never hide the report id behind a
+// predicate such as `? IS NULL OR r.id = ?`: SQLite then scans every message,
+// so filing would slow down as the messages table grows.
+const snapshotOneReportMessagesQuery = snapshotReportMessagesHead + `
+	FROM event_reports r
+	JOIN conversation_members cm ON cm.user_id = r.user_id
+	JOIN conversations c ON c.id = cm.conversation_id AND c.event_id = r.event_id
+	JOIN messages m ON m.conversation_id = c.id
+	WHERE r.id = ?
+	  AND m.sender_id = r.subject_user_id
+	  AND m.kind = 'user'` + snapshotReportMessagesTail
+
+// snapshotAllReportMessagesQuery snapshots every report (argument: limit),
+// once, during the legacy migration. With no report id to start from, SQLite
+// starts from messages whichever join is used (the rebuilt event_reports has
+// no index yet); this form gets a plain table scan, which measured several
+// times faster than the membership join's scan of the messages index.
+const snapshotAllReportMessagesQuery = snapshotReportMessagesHead + `
 	FROM event_reports r
 	JOIN conversations c ON c.event_id = r.event_id
 	JOIN messages m ON m.conversation_id = c.id
-	WHERE (? IS NULL OR r.id = ?)
-	  AND m.sender_id = r.subject_user_id
+	WHERE m.sender_id = r.subject_user_id
 	  AND m.kind = 'user'
 	  AND EXISTS (
 		SELECT 1
 		FROM conversation_members cm
 		WHERE cm.conversation_id = m.conversation_id
 		  AND cm.user_id = r.user_id
-	  )
-)
-WHERE row_num <= ?;
-`
+	  )` + snapshotReportMessagesTail
 
 // snapshotReportMessages copies chat evidence for one report, or for every
 // report when reportID is nil (the one-time legacy migration).
 func snapshotReportMessages(ctx context.Context, tx *sql.Tx, reportID *int64) error {
-	var id any
+	query, args := snapshotAllReportMessagesQuery, []any{reportMessageSnapshotLimit}
 	if reportID != nil {
-		id = *reportID
+		query, args = snapshotOneReportMessagesQuery, []any{*reportID, reportMessageSnapshotLimit}
 	}
-	if _, err := tx.ExecContext(ctx, snapshotReportMessagesQuery, id, id, reportMessageSnapshotLimit); err != nil {
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
 		return fmt.Errorf("snapshot report messages: %w", err)
 	}
 	return nil
@@ -62,6 +90,12 @@ func snapshotReportMessages(ctx context.Context, tx *sql.Tx, reportID *int64) er
 // what must outlive the plan and the accounts (#184): the plan title, the
 // subject (the reported member, or the host for a plan report), the subject's
 // recent messages in the plan and the subject's identity hashes.
+//
+// The message snapshot reads live conversation memberships and messages, so
+// callers must file the report before removing the reporter or the subject
+// from the plan: removing the reporter drops the memberships it reads, and
+// removing a Single plan's guest deletes that private chat. Both report
+// handlers file first.
 func (r *EventRepository) insertReportWithSnapshot(
 	ctx context.Context,
 	eventID, reporterID int64,
