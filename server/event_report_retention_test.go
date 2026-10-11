@@ -196,6 +196,36 @@ func TestEventReportStartupCleanupKeepsNulledReports(t *testing.T) {
 	}
 }
 
+// A live guest's plan reports on two plans that were later deleted share
+// (event_id NULL, user_id, reported_user_id NULL); GROUP BY would fold them
+// into one duplicate group without the dedupe's event_id guard.
+func TestStartupDedupeKeepsLiveReportersReportsOnDeletedPlans(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	guest := seedNotificationActionUser(t, repo, "guest")
+	for i := 0; i < 2; i++ {
+		eventID := seedNotificationActionEvent(t, repo, host, "Group")
+		if _, err := repo.CreateEventReport(ctx, eventID, guest, "unsafe plan"); err != nil {
+			t.Fatalf("plan report %d: %v", i, err)
+		}
+		if err := repo.Delete(ctx, eventID, host); err != nil {
+			t.Fatalf("delete plan %d: %v", i, err)
+		}
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports WHERE event_id IS NULL AND user_id = ? AND reported_user_id IS NULL`, guest); n != 2 {
+		t.Fatalf("setup: %d plan reports on deleted plans, want 2", n)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := repo.Init(initCtx); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports WHERE user_id = ?`, guest); n != 2 {
+		t.Fatalf("restart deleted the live guest's retained plan reports: %d left, want 2", n)
+	}
+}
+
 type reportFixture struct {
 	repo                     *EventRepository
 	host, offender, eventID  int64
@@ -337,6 +367,24 @@ func TestUnblockSurvivesRestartAfterPlanDeletion(t *testing.T) {
 	}
 	if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, f.reportID); n != 1 {
 		t.Fatal("the retained report must survive")
+	}
+}
+
+// A member report on a live plan between two live accounts still restores the
+// mutual block at startup.
+func TestStartupBackfillRestoresBlocksFromLiveMemberReports(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	ctx := context.Background()
+	if _, err := f.repo.db.ExecContext(ctx, `DELETE FROM user_blocks`); err != nil {
+		t.Fatal(err)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := f.repo.Init(initCtx); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM user_blocks WHERE (blocker_user_id = ? AND blocked_user_id = ?) OR (blocker_user_id = ? AND blocked_user_id = ?)`, f.host, f.offender, f.offender, f.host); n != 2 {
+		t.Fatalf("restart restored %d of the 2 block rows the live member report implies", n)
 	}
 }
 
