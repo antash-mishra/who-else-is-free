@@ -1,6 +1,7 @@
 # App display name
 
-The installed app and both store listings should use **Weif** (issue #176).
+The installed app and both store listings should use **weif**, all lowercase (issue #176).
+The lowercase spelling is intentional; do not capitalize it.
 
 ## Native builds
 
@@ -28,10 +29,10 @@ Changing Expo configuration does not edit published store metadata. These releas
 remain to be performed in the existing app records:
 
 1. **Google Play Console:** select the existing app, open **Main store listing**, and set
-   **App name** to `Weif`. Update each existing localized name and any custom store listing
+   **App name** to `weif`. Update each existing localized name and any custom store listing
    that overrides the name, then save and submit the listing changes for publication.
 2. **App Store Connect:** select the existing app, open **App Information**, and set
-   **Name** to `Weif` for each existing localization. If the current version does not allow
+   **Name** to `weif` for each existing localization. If the current version does not allow
    editing the name, create a new version and submit the name change with that release.
 
 See [Google's store-listing guide](https://support.google.com/googleplay/android-developer/answer/9859152)
@@ -39,8 +40,8 @@ and [Apple's app-information reference](https://developer.apple.com/help/app-sto
 
 ## Release verification
 
-- Install an updated Android build and confirm the launcher label is `Weif`.
-- Install an updated iOS build and confirm the home-screen label is `Weif`.
-- Confirm the published Play Store and App Store titles are `Weif` after the metadata changes
+- Install an updated Android build and confirm the launcher label is `weif`.
+- Install an updated iOS build and confirm the home-screen label is `weif`.
+- Confirm the published Play Store and App Store titles are `weif` after the metadata changes
   have been approved and published.
 - Confirm updating an existing installation preserves sign-in and push registration.
