@@ -73,6 +73,7 @@ func main() {
 	cancelBackfill()
 	profileHandler := NewProfileHandler(repo, chatHub)
 	pushHandler := NewPushHandler(repo, pushSender)
+	startReportRetentionJob(context.Background(), repo, 24*time.Hour)
 	go chatHub.Run()
 	srv := setupRouter(eventHandler, authHandler, profileHandler, chatHub, pushHandler, signer)
 

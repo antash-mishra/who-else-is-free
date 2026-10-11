@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // reportMessageSnapshotLimit bounds how much chat evidence one report keeps.
@@ -204,4 +205,28 @@ func (r *EventRepository) BackfillIdentityHashes(ctx context.Context, hasher *Id
 		}
 	}
 	return len(pending), nil
+}
+
+// eventReportRetentionMonths is the fixed safety-report retention (#184).
+const eventReportRetentionMonths = 18
+
+// PurgeExpiredEventReports deletes reports older than the retention period;
+// their message and identity snapshots cascade with them. retention_hold
+// marks a report under active review and exempts it.
+func (r *EventRepository) PurgeExpiredEventReports(ctx context.Context, now time.Time) (int64, error) {
+	// created_at holds SQLite CURRENT_TIMESTAMP text (UTC, "YYYY-MM-DD HH:MM:SS"),
+	// so a cutoff in the same format compares correctly as text.
+	cutoff := now.UTC().AddDate(0, -eventReportRetentionMonths, 0).Format("2006-01-02 15:04:05")
+	res, err := r.db.ExecContext(ctx, `
+		DELETE FROM event_reports
+		WHERE retention_hold = 0 AND created_at < ?;
+	`, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("purge expired event reports: %w", err)
+	}
+	deleted, err := res.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("count purged event reports: %w", err)
+	}
+	return deleted, nil
 }

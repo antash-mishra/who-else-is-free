@@ -679,3 +679,52 @@ func TestLoginWithoutIdentityKeyRecordsNothing(t *testing.T) {
 		t.Fatalf("recorded %d hashes without a key", n)
 	}
 }
+
+func TestPurgeExpiredEventReports(t *testing.T) {
+	f := seedMemberReportFixture(t) // a fresh report, created now
+	ctx := context.Background()
+	now := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC) // cutoff: 2025-04-11 12:00:00
+	insert := func(createdAt string, hold int) int64 {
+		res, err := f.repo.db.Exec(`
+			INSERT INTO event_reports (event_id, user_id, reported_user_id, subject_user_id, reason, created_at, retention_hold)
+			VALUES (NULL, NULL, 999, 999, 'old', ?, ?)`, createdAt, hold)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.repo.db.Exec(`INSERT INTO event_report_messages (report_id, message_id, conversation_id, body, sent_at) VALUES (?, 1, 1, 'evidence', ?)`, id, createdAt); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.repo.db.Exec(`INSERT INTO event_report_identities (report_id, provider, identity_hmac) VALUES (?, 'email', 'abc')`, id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	expired := insert("2025-04-11 11:59:59", 0)  // just over 18 months old
+	held := insert("2024-01-01 00:00:00", 1)     // expired but under active review
+	boundary := insert("2025-04-11 12:00:01", 0) // just under 18 months old
+
+	deleted, err := f.repo.PurgeExpiredEventReports(ctx, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 1 {
+		t.Fatalf("purged %d reports, want 1", deleted)
+	}
+	for id, want := range map[int64]int{expired: 0, held: 1, boundary: 1, f.reportID: 1} {
+		if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, id); n != want {
+			t.Fatalf("report %d rows = %d, want %d", id, n, want)
+		}
+	}
+	for _, table := range []string{"event_report_messages", "event_report_identities"} {
+		if n := countRows(t, f.repo, `SELECT count(*) FROM `+table+` WHERE report_id = ?`, expired); n != 0 {
+			t.Fatalf("%s rows for the expired report = %d, want 0", table, n)
+		}
+		if n := countRows(t, f.repo, `SELECT count(*) FROM `+table+` WHERE report_id = ?`, held); n != 1 {
+			t.Fatalf("%s rows for the held report = %d, want 1", table, n)
+		}
+	}
+}
