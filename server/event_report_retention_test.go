@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -333,5 +335,128 @@ func TestUnblockSurvivesRestartAfterPlanDeletion(t *testing.T) {
 	}
 	if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, f.reportID); n != 1 {
 		t.Fatal("the retained report must survive")
+	}
+}
+
+func TestMemberReportSnapshotsTitleSubjectAndMessages(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatal(err)
+	}
+	var title, subjectName string
+	var subjectID int64
+	if err := f.repo.db.QueryRow(`SELECT event_title, subject_user_id, subject_name FROM event_reports WHERE id = ?`, f.reportID).
+		Scan(&title, &subjectID, &subjectName); err != nil {
+		t.Fatal(err)
+	}
+	if title != "Hike" || subjectID != f.offender || subjectName != "offender" {
+		t.Fatalf("snapshot = %q/%d/%q, want Hike/%d/offender", title, subjectID, subjectName, f.offender)
+	}
+	rows, err := f.repo.db.Query(`SELECT body FROM event_report_messages WHERE report_id = ? ORDER BY sent_at, message_id`, f.reportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var bodies []string
+	for rows.Next() {
+		var body string
+		if err := rows.Scan(&body); err != nil {
+			t.Fatal(err)
+		}
+		bodies = append(bodies, body)
+	}
+	if len(bodies) != 2 || bodies[0] != "abusive message 1" || bodies[1] != "abusive message 2" {
+		t.Fatalf("snapshot bodies = %v, want both abusive messages", bodies)
+	}
+}
+
+func TestReportSnapshotKeepsMostRecent50UserMessages(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, host, offender)
+	for i := 0; i < 60; i++ {
+		if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversationID, SenderID: offender, Body: fmt.Sprintf("m%02d", i), DeliveryStatus: "sent", Kind: MessageKindUser,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+		ConversationID: conversationID, SenderID: offender, Body: "offender joined the plan", DeliveryStatus: "sent", Kind: MessageKindSystem,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "spam")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ?`, report.ID); n != 50 {
+		t.Fatalf("snapshot rows = %d, want 50", n)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body IN ('m00', 'm09', 'offender joined the plan')`, report.ID); n != 0 {
+		t.Fatalf("snapshot kept the oldest or system rows (%d)", n)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body IN ('m10', 'm59')`, report.ID); n != 2 {
+		t.Fatalf("snapshot is missing the newest rows (%d of 2)", n)
+	}
+}
+
+func TestPlanReportSnapshotsOnlyReporterVisibleHostMessages(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	guestA := seedNotificationActionUser(t, repo, "guestA")
+	guestB := seedNotificationActionUser(t, repo, "guestB")
+	eventID := seedNotificationActionEvent(t, repo, host, "Single")
+	conversationA := seedNotificationActionConversation(t, repo, eventID, host, guestA)
+	conversationB := seedNotificationActionConversation(t, repo, eventID, host, guestB)
+	for conversationID, body := range map[int64]string{conversationA: "to A", conversationB: "to B"} {
+		if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversationID, SenderID: host, Body: body, DeliveryStatus: "sent", Kind: MessageKindUser,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, err := repo.CreateEventReport(ctx, eventID, guestA, "creepy host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var subjectID int64
+	var subjectName string
+	if err := repo.db.QueryRow(`SELECT subject_user_id, subject_name FROM event_reports WHERE id = ?`, report.ID).Scan(&subjectID, &subjectName); err != nil {
+		t.Fatal(err)
+	}
+	if subjectID != host || subjectName != "host" {
+		t.Fatalf("plan report subject = %d/%q, want the host %d/host", subjectID, subjectName, host)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body = 'to B'`, report.ID); n != 0 {
+		t.Fatal("plan report copied the host's messages from another guest's private chat")
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body = 'to A'`, report.ID); n != 1 {
+		t.Fatal("plan report missed the host's messages to the reporter")
+	}
+}
+
+func TestDuplicatePlanReportStillConflicts(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	ctx := context.Background()
+	if _, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "first"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "again"); !errors.Is(err, ErrReportAlreadyExists) {
+		t.Fatalf("second plan report err = %v, want ErrReportAlreadyExists", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_messages m LEFT JOIN event_reports r ON r.id = m.report_id WHERE r.id IS NULL`); n != 0 {
+		t.Fatalf("the failed duplicate left %d orphan snapshot rows", n)
+	}
+}
+
+func TestReportOnMissingPlanReturnsNotFound(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	if _, err := repo.CreateEventReport(context.Background(), 424242, 1, "gone"); !errors.Is(err, ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
 	}
 }

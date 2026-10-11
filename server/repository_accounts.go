@@ -557,16 +557,9 @@ func sortedInt64Keys(values map[int64]struct{}) []int64 {
 }
 
 func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID int64, reason string) (*EventReport, error) {
-	res, err := r.db.ExecContext(ctx, insertEventReport, eventID, userID, reason)
+	id, err := r.insertReportWithSnapshot(ctx, eventID, userID, nil, reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return nil, ErrReportAlreadyExists
-		}
-		return nil, fmt.Errorf("insert event report: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("fetch event report id: %w", err)
+		return nil, err
 	}
 	return &EventReport{
 		ID:        id,
@@ -581,16 +574,9 @@ func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID
 // CreateMemberReport creates a report for a specific member of an event.
 // The reporter_id is the user submitting the report, reported_user_id is the target.
 func (r *EventRepository) CreateMemberReport(ctx context.Context, eventID, reporterID, reportedUserID int64, reason string) (*EventReport, error) {
-	res, err := r.db.ExecContext(ctx, insertMemberReport, eventID, reporterID, reportedUserID, reason)
+	id, err := r.insertReportWithSnapshot(ctx, eventID, reporterID, &reportedUserID, reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return nil, ErrReportAlreadyExists
-		}
-		return nil, fmt.Errorf("insert member report: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("fetch member report id: %w", err)
+		return nil, err
 	}
 	return &EventReport{
 		ID:             id,

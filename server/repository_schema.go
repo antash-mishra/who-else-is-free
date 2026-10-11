@@ -563,16 +563,6 @@ DELETE FROM conversation_join_requests
 WHERE event_id = ? AND user_id = ? AND status = 'pending';
 `
 
-const insertEventReport = `
-INSERT INTO event_reports (event_id, user_id, reason, status)
-VALUES (?, ?, ?, 'pending');
-`
-
-const insertMemberReport = `
-INSERT INTO event_reports (event_id, user_id, reported_user_id, reason, status)
-VALUES (?, ?, ?, ?, 'pending');
-`
-
 const insertHelpSubmission = `
 INSERT INTO help_submissions (user_id, submission_type, message, urgent_safety_issue, wants_reply, reply_email)
 VALUES (?, ?, ?, ?, ?, ?);

@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 )
 
 // reportMessageSnapshotLimit bounds how much chat evidence one report keeps.
@@ -53,4 +55,61 @@ func snapshotReportMessages(ctx context.Context, tx *sql.Tx, reportID *int64) er
 		return fmt.Errorf("snapshot report messages: %w", err)
 	}
 	return nil
+}
+
+// insertReportWithSnapshot files a report and, in the same transaction, keeps
+// what must outlive the plan and the accounts (#184): the plan title, the
+// subject (the reported member, or the host for a plan report) and the
+// subject's recent messages in the plan.
+func (r *EventRepository) insertReportWithSnapshot(
+	ctx context.Context,
+	eventID, reporterID int64,
+	reportedUserID *int64,
+	reason string,
+) (int64, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin report tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	var title string
+	var hostID int64
+	if err := tx.QueryRowContext(ctx, `SELECT title, user_id FROM events WHERE id = ?;`, eventID).Scan(&title, &hostID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrEventNotFound
+		}
+		return 0, fmt.Errorf("load reported plan: %w", err)
+	}
+	subjectID := hostID
+	var reportedValue any
+	if reportedUserID != nil {
+		subjectID = *reportedUserID
+		reportedValue = *reportedUserID
+	}
+
+	res, err := tx.ExecContext(ctx, `
+		INSERT INTO event_reports (
+			event_id, user_id, reported_user_id, reason, status,
+			event_title, subject_user_id, subject_name
+		)
+		VALUES (?, ?, ?, ?, 'pending', ?, ?, (SELECT name FROM users WHERE id = ?));
+	`, eventID, reporterID, reportedValue, reason, title, subjectID, subjectID)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return 0, ErrReportAlreadyExists
+		}
+		return 0, fmt.Errorf("insert report: %w", err)
+	}
+	reportID, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("fetch report id: %w", err)
+	}
+	if err := snapshotReportMessages(ctx, tx, &reportID); err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit report: %w", err)
+	}
+	return reportID, nil
 }
