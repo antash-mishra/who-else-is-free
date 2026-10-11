@@ -2006,15 +2006,26 @@ func (r *EventRepository) cleanupDuplicateEventReports(ctx context.Context) erro
 }
 
 func (r *EventRepository) backfillUserBlocksFromMemberReports(ctx context.Context) error {
+	// Reports outlive their plan and accounts (#184), so two guards keep a
+	// retained report from acting on startup: both accounts must still exist (a
+	// deleted one would violate the user_blocks foreign keys and fail startup),
+	// and the plan must still exist (a report kept after its plan was deleted
+	// must not re-create a block the host has since removed by unblocking).
 	const backfillQuery = `
 		INSERT OR IGNORE INTO user_blocks (blocker_user_id, blocked_user_id)
-		SELECT user_id, reported_user_id
-		FROM event_reports
-		WHERE reported_user_id IS NOT NULL
+		SELECT r.user_id, r.reported_user_id
+		FROM event_reports r
+		WHERE r.reported_user_id IS NOT NULL
+		AND r.event_id IS NOT NULL
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.reported_user_id)
 		UNION
-		SELECT reported_user_id, user_id
-		FROM event_reports
-		WHERE reported_user_id IS NOT NULL;
+		SELECT r.reported_user_id, r.user_id
+		FROM event_reports r
+		WHERE r.reported_user_id IS NOT NULL
+		AND r.event_id IS NOT NULL
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.reported_user_id);
 	`
 	if _, err := r.db.ExecContext(ctx, backfillQuery); err != nil {
 		return fmt.Errorf("backfill user blocks from member reports: %w", err)

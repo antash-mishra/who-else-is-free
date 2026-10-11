@@ -191,3 +191,147 @@ func TestEventReportStartupCleanupKeepsNulledReports(t *testing.T) {
 		t.Fatalf("startup cleanup removed retained reports: %d left, want 2", n)
 	}
 }
+
+type reportFixture struct {
+	repo                     *EventRepository
+	host, offender, eventID  int64
+	conversationID, reportID int64
+}
+
+// seedMemberReportFixture: "host" runs a Group plan, "offender" joins and sends
+// two messages, and host files a member report against offender.
+func seedMemberReportFixture(t *testing.T) reportFixture {
+	t.Helper()
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, host, offender)
+	for _, body := range []string{"abusive message 1", "abusive message 2"} {
+		if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversationID, SenderID: offender, Body: body, DeliveryStatus: "sent", Kind: MessageKindUser,
+		}); err != nil {
+			t.Fatalf("message: %v", err)
+		}
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "harassed me in chat")
+	if err != nil {
+		t.Fatalf("member report: %v", err)
+	}
+	return reportFixture{repo: repo, host: host, offender: offender, eventID: eventID, conversationID: conversationID, reportID: report.ID}
+}
+
+func TestDeletingReportedUserKeepsReport(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatalf("delete offender: %v", err)
+	}
+	var reportedUserID sql.NullInt64
+	if err := f.repo.db.QueryRow(`SELECT reported_user_id FROM event_reports WHERE id = ?`, f.reportID).Scan(&reportedUserID); err != nil {
+		t.Fatalf("report gone after the reported user deleted their account: %v", err)
+	}
+	if reportedUserID.Int64 != f.offender {
+		t.Fatalf("reported_user_id = %v, want %d", reportedUserID, f.offender)
+	}
+}
+
+func TestDeletingPlanKeepsReport(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if err := f.repo.Delete(context.Background(), f.eventID, f.host); err != nil {
+		t.Fatalf("delete plan: %v", err)
+	}
+	var eventID sql.NullInt64
+	if err := f.repo.db.QueryRow(`SELECT event_id FROM event_reports WHERE id = ?`, f.reportID).Scan(&eventID); err != nil {
+		t.Fatalf("report gone after the plan was deleted: %v", err)
+	}
+	if eventID.Valid {
+		t.Fatalf("event_id = %v, want NULL", eventID)
+	}
+}
+
+func TestDeletingReporterKeepsReportWithNullReporter(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.host); err != nil {
+		t.Fatalf("delete reporter: %v", err)
+	}
+	var userID, reportedUserID sql.NullInt64
+	if err := f.repo.db.QueryRow(`SELECT user_id, reported_user_id FROM event_reports WHERE id = ?`, f.reportID).Scan(&userID, &reportedUserID); err != nil {
+		t.Fatalf("report gone after the reporter deleted their account: %v", err)
+	}
+	if userID.Valid || reportedUserID.Int64 != f.offender {
+		t.Fatalf("user_id = %v reported_user_id = %v, want NULL/%d", userID, reportedUserID, f.offender)
+	}
+}
+
+func TestDeletingReviewerKeepsReportWithNullReviewer(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	admin := seedNotificationActionUser(t, f.repo, "admin")
+	if _, err := f.repo.db.Exec(`UPDATE event_reports SET status = 'reviewed', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?`, admin, f.reportID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repo.DeleteUserAccount(context.Background(), admin); err != nil {
+		t.Fatalf("delete admin: %v", err)
+	}
+	var reviewedBy sql.NullInt64
+	var status string
+	if err := f.repo.db.QueryRow(`SELECT reviewed_by, status FROM event_reports WHERE id = ?`, f.reportID).Scan(&reviewedBy, &status); err != nil {
+		t.Fatalf("report gone after the reviewer deleted their account: %v", err)
+	}
+	if reviewedBy.Valid || status != "reviewed" {
+		t.Fatalf("reviewed_by = %v status = %q, want NULL/reviewed", reviewedBy, status)
+	}
+}
+
+func TestDeletingAccountStillDeletesBlocks(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if err := f.repo.CreateMutualBlock(context.Background(), f.host, f.offender); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM user_blocks WHERE blocker_user_id = ? OR blocked_user_id = ?`, f.offender, f.offender); n != 0 {
+		t.Fatalf("blocks involving the deleted account = %d, want 0", n)
+	}
+}
+
+func TestDeletedReportedUserDoesNotBreakInit(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := f.repo.Init(ctx); err != nil {
+		t.Fatalf("restart after deletion failed: %v", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, f.reportID); n != 1 {
+		t.Fatalf("report rows after restart = %d, want 1", n)
+	}
+}
+
+func TestUnblockSurvivesRestartAfterPlanDeletion(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	ctx := context.Background()
+	if err := f.repo.CreateMutualBlock(ctx, f.host, f.offender); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.repo.Delete(ctx, f.eventID, f.host); err != nil {
+		t.Fatalf("delete plan: %v", err)
+	}
+	if _, err := f.repo.DeleteMutualBlock(ctx, f.host, f.offender); err != nil {
+		t.Fatalf("unblock: %v", err)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := f.repo.Init(initCtx); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM user_blocks WHERE (blocker_user_id = ? AND blocked_user_id = ?) OR (blocker_user_id = ? AND blocked_user_id = ?)`, f.host, f.offender, f.offender, f.host); n != 0 {
+		t.Fatalf("restart re-created %d block rows the host removed", n)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, f.reportID); n != 1 {
+		t.Fatal("the retained report must survive")
+	}
+}
