@@ -361,6 +361,14 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 - Run `cd server && go test ./...` after backend changes.
 - Keep endpoint behavior and payload shape documented in frontend mappers when they are introduced.
 - Notification push and inbox text is owned server-side by `notificationCopyFor` in `server/notification_payloads.go`. New copy changes must update that contract and its push/inbox tests together. Single rows render stored bodies verbatim; collapsed join groups use structured `payload.senderName` first and retain body parsing only for legacy rows.
+- Safety reports outlive accounts and plans (#184): `event_reports.event_id`/`user_id`/`reviewed_by`
+  are `ON DELETE SET NULL`; `reported_user_id` and `subject_user_id` have no FK and keep deleted ids.
+  Create reports only through `insertReportWithSnapshot`, which copies the plan title, the subject
+  (reported member, or host for plan reports), the subject's last 50 messages the reporter could see
+  (`event_report_messages`) and identity HMACs (`user_identity_hashes` → `event_report_identities`,
+  keyed by `REPORT_IDENTITY_HMAC_KEY`). `PurgeExpiredEventReports` deletes reports after 18 months
+  unless `retention_hold = 1`. Startup cleanups must never delete reports because a reference is
+  NULL. See `docs/safety-report-retention.md`.
 
 ## Plan details and input-sheet contracts
 
