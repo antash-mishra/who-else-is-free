@@ -162,7 +162,7 @@ export const formatEventCardMetaLine = ({
   const genderLabel = isAllGender(gender) ? null : getGenderLabel(gender);
   const ageLabel =
     ageSelectionMode === 'range'
-      ? formatRangeAgeLabel([minAge ?? AGE_MIN, maxAge ?? PLAN_AGE_MAX])
+      ? formatCompactRangeAgeLabel(minAge, maxAge)
       : ageRanges?.length
         ? ageRanges
             .map((r) => formatCompactAgeLabel(r.min, r.max))
@@ -233,4 +233,14 @@ export const formatRangeAgeLabel = ([min, max]: readonly [number, number]): stri
   if (max !== PLAN_AGE_MAX) return `${min} - ${max}`;
   // An open top ("and older") reads as a floor, matching the slider's 50+ stop.
   return min === AGE_MIN ? 'All ages' : `${min}+`;
+};
+
+/** Card variant: an unrestricted range is omitted, like legacy all-age plans. */
+const formatCompactRangeAgeLabel = (
+  minAge?: number | null,
+  maxAge?: number | null,
+): string | null => {
+  const min = minAge ?? AGE_MIN;
+  const max = maxAge ?? PLAN_AGE_MAX;
+  return min === AGE_MIN && max === PLAN_AGE_MAX ? null : formatRangeAgeLabel([min, max]);
 };

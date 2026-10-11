@@ -106,6 +106,27 @@ describe('eventDisplay', () => {
         }),
       ).toBe('1:1 · Male · 30-40');
     });
+
+    it('omits All ages for an untouched range-mode plan', () => {
+      const input = {
+        ageSelectionMode: 'range' as const,
+        groupType: 'Single',
+        gender: 'Any',
+        minAge: 18,
+        maxAge: 99,
+      };
+      expect(formatEventCardMetaLine(input)).toBe('1:1');
+      expect(formatEventCardMetaLine({ ...input, groupType: 'Group', gender: 'Female' })).toBe(
+        'Group · Female',
+      );
+      expect(formatEventDetailAudienceLine(input)).toContain('All ages');
+    });
+
+    it('keeps restricted range-mode ages on the card', () => {
+      const input = { ageSelectionMode: 'range' as const, groupType: 'Single', gender: 'Any' };
+      expect(formatEventCardMetaLine({ ...input, minAge: 35, maxAge: 80 })).toBe('1:1 · 35 - 80');
+      expect(formatEventCardMetaLine({ ...input, minAge: 24, maxAge: 99 })).toBe('1:1 · 24+');
+    });
   });
 
   describe('formatEventDetailAudienceLine', () => {

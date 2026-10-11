@@ -784,3 +784,11 @@ whole-repository formatting were not run.
 - iOS `WEIF_ISSUE_167_IOS` simulator: PASS — preview reads `Group ios snsnsj sjdjdj Hsnsnsnshsj...` ending at the field edge.
 - Tests: `OverflowTextInput`, Onboarding, EditProfile and CreateEvent suites (14 suites, 133 tests) pass; `npm run typecheck` clean.
 - Screenshots: `report/screenshots/issue-187/`.
+
+## 2026-10-11 — Issue #188: Remove All ages from event cards
+
+- Change: `formatEventCardMetaLine` omits the age part for range-mode plans saved at the untouched 18–99 bounds, matching legacy all-age plans. Event Details keeps `All ages`.
+- Setup: current server built from this branch on `:8083` with a copy of `server/event.sqlite`, second Metro on `:8082`; host seeded four range-mode plans (18–99 1:1, 18–99 Group Female, 35–80 1:1, 24–99 1:1).
+- Android `WEIF_API_36`: PASS. Before (master formatter, same data), Discover read `1:1 · All ages` and `Group · Female · All ages`. After, it reads `1:1` and `Group · Female`, while restricted plans still read `1:1 · 35 - 80` and `1:1 · 24+`. Event Details for the untouched plan still reads `1:1 · All genders · All ages`.
+- Tests: full Jest suite (139 suites / 1,536 tests) and `npm run typecheck` pass.
+- Screenshots: `report/screenshots/issue-188/`.
