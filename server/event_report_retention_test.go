@@ -552,22 +552,39 @@ func TestReportCopiesSubjectIdentityHashesAndKeepsThemAfterDeletion(t *testing.T
 }
 
 func TestRecordingHashLaterAttachesToEarlierReports(t *testing.T) {
-	f := seedMemberReportFixture(t) // filed while the offender had no hashes
+	f := seedMemberReportFixture(t) // member report about the offender, filed before any hash existed
 	ctx := context.Background()
-	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ?`, f.reportID); n != 0 {
+	// A second report about a different subject: the offender reports the
+	// plan, whose subject is the host.
+	planReport, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "host was abusive")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities`); n != 0 {
 		t.Fatalf("unexpected identity rows before any hash: %d", n)
 	}
-	hash, _ := (&IdentityHasher{key: []byte("k")}).Hash(identityProviderGoogle, "late-sub")
+	hasher := &IdentityHasher{key: []byte("k")}
+	offenderHash, _ := hasher.Hash(identityProviderGoogle, "late-sub")
 	for i := 0; i < 2; i++ { // recording twice must stay idempotent
-		if err := f.repo.RecordUserIdentityHash(ctx, f.offender, identityProviderGoogle, hash); err != nil {
+		if err := f.repo.RecordUserIdentityHash(ctx, f.offender, identityProviderGoogle, offenderHash); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND provider = 'google' AND identity_hmac = ?`, f.reportID, hash); n != 1 {
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND provider = 'google' AND identity_hmac = ?`, f.reportID, offenderHash); n != 1 {
 		t.Fatalf("hash attached to the earlier report %d times, want 1", n)
 	}
-	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE identity_hmac = ? AND report_id <> ?`, hash, f.reportID); n != 0 {
-		t.Fatal("hash attached to a report about someone else")
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ?`, planReport.ID); n != 0 {
+		t.Fatal("the offender's hash was attached to a report about the host")
+	}
+	hostHash, _ := hasher.Hash(identityProviderGoogle, "host-sub")
+	if err := f.repo.RecordUserIdentityHash(ctx, f.host, identityProviderGoogle, hostHash); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND identity_hmac = ?`, planReport.ID, hostHash); n != 1 {
+		t.Fatal("the host's hash did not attach to the plan report about the host")
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND identity_hmac = ?`, f.reportID, hostHash); n != 0 {
+		t.Fatal("the host's hash was attached to the report about the offender")
 	}
 }
 
