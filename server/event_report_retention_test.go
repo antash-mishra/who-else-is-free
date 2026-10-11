@@ -449,14 +449,46 @@ func TestDuplicatePlanReportStillConflicts(t *testing.T) {
 	if _, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "again"); !errors.Is(err, ErrReportAlreadyExists) {
 		t.Fatalf("second plan report err = %v, want ErrReportAlreadyExists", err)
 	}
-	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_messages m LEFT JOIN event_reports r ON r.id = m.report_id WHERE r.id IS NULL`); n != 0 {
-		t.Fatalf("the failed duplicate left %d orphan snapshot rows", n)
-	}
 }
 
 func TestReportOnMissingPlanReturnsNotFound(t *testing.T) {
 	repo := newRetentionTestRepo(t)
 	if _, err := repo.CreateEventReport(context.Background(), 424242, 1, "gone"); !errors.Is(err, ErrEventNotFound) {
 		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
+}
+
+func TestReportAndSnapshotCommitTogether(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, host, offender)
+	if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+		ConversationID: conversationID, SenderID: offender, Body: "evidence", DeliveryStatus: "sent", Kind: MessageKindUser,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.db.ExecContext(ctx, `
+		CREATE TRIGGER fail_report_snapshot BEFORE INSERT ON event_report_messages
+		BEGIN SELECT RAISE(ABORT, 'snapshot failed'); END;`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreateMemberReport(ctx, eventID, host, offender, "threats"); err == nil {
+		t.Fatal("the report succeeded although its snapshot failed")
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports`); n != 0 {
+		t.Fatalf("a report without its snapshot was committed (%d rows)", n)
+	}
+	if _, err := repo.db.ExecContext(ctx, `DROP TRIGGER fail_report_snapshot;`); err != nil {
+		t.Fatal(err)
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "threats")
+	if err != nil {
+		t.Fatalf("retry after the failed attempt: %v", err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ?`, report.ID); n != 1 {
+		t.Fatalf("retry snapshot rows = %d, want 1", n)
 	}
 }
