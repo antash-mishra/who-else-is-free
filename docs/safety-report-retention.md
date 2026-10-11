@@ -187,8 +187,8 @@ steps around the deploy. Steps 2, 3 and 5 only read, so they run on a pulled cop
    ```
 
    It must list `event_id`, `user_id` and `reviewed_by` as `SET NULL` and nothing for
-   `reported_user_id` or `subject_user_id`. Then delete every pulled copy and update the privacy
-   policy (below).
+   `reported_user_id` or `subject_user_id`. Then delete every pulled copy and update the hosted
+   privacy policy (below).
 
 ## What deletion does
 
@@ -273,17 +273,24 @@ subject of that report. Treat it as a lead for a person to review, not as proof.
 
 ## Privacy policy
 
-The privacy policy is not changed on this branch: the issue asks for it to change when this ships,
-not before. When the server change is deployed, update `src/content/privacyPolicyMarkdown.ts` at
-the same time. The in-app copy ships in the app bundle, so this needs an app or OTA release. The
-same text also appears in the tracked Notion export at the repository root
-(`Privacy Policy 3702ef2fbf48809782a1c5b89f71b3f3.md`) and in any hosted copy; update those too.
+The issue asks for the policy to change when this ships, not before. Merging to `master` deploys
+the server (`.github/workflows/deploy-fly.yml`), so the in-app copy
+(`src/content/privacyPolicyMarkdown.ts`) and the tracked Notion export at the repository root
+(`Privacy Policy 3702ef2fbf48809782a1c5b89f71b3f3.md`) change in the same merge. Section 6 no longer
+says "No purpose in this notice will require us keeping your personal information for longer than
+the period of time in which users have an account with us." It now says:
 
-- The retention paragraph currently says "No purpose in this notice will require us keeping your
-  personal information for longer than the period of time in which users have an account with
-  us." This change contradicts that sentence, so it must be removed or reworded.
-- Add: "Reports made about you, including relevant chat messages, are kept for up to 18 months to
-  protect other users, even after you delete your account."
+> If another user reports you, we keep the report, the name you used, your recent messages in that
+> plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your
+> email address, for up to 18 months, even after you delete your account. We do this to protect
+> other users and to recognise a reported person who signs up again. We keep a report for longer
+> only while it is still under review. Reports you make are kept for the same period, without a
+> link to your account once you delete it.
+
+- The in-app copy ships in the app bundle, so users see it after the next app or OTA release.
+- Update the hosted copy (the Notion page the export comes from) with the same text and date on
+  the day the server deploys.
+- Change all three together if the retention period or what a report keeps changes.
 
 ## Operational rules
 
