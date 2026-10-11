@@ -37,7 +37,7 @@ npm test
 
 ### Sign-in modes
 - **Normal login (Google/Apple)** — the production flow. No special flags; just run the backend and Metro normally.
-- **Dev-login (bypass)** — for local emulator testing only. Backend: `cd server && DEV_LOGIN_ENABLED=1 go run .`. Frontend: the `__DEV__`-gated "Dev Login" button appears on the sign-in screen in dev builds.
+- **Dev-login (bypass)** — for local emulator testing only. Backend: `cd server && DEV_LOGIN_ENABLED=1 go run .`. Frontend: start Metro with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` to show the "Dev Login" buttons on the sign-in screen; they are hidden by default and never appear in release builds.
 
 See [`docs/dev-login.md`](docs/dev-login.md) for the full setup, the three preset test users, switching between modes, and the end-to-end emulator recipe.
 

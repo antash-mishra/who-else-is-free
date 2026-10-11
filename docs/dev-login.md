@@ -6,9 +6,9 @@ Two sign-in modes exist. **Normal login** is what production uses (Google/Apple 
 |---|---|---|
 | Use when | Production, staging, real users | Local emulator/device testing only |
 | Backend flag | none | `DEV_LOGIN_ENABLED=1` env |
-| Frontend flag | always available | `__DEV__` builds only |
+| Frontend flag | always available | `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` in a `__DEV__` build (hidden by default) |
 | Auth flow | Google/Apple OAuth → `/api/google-login` or `/api/apple-login` | `POST /api/dev-login` with a fixed email |
-| Safe in production | ✅ | ❌ Never. The route is unregistered (404) unless the flag is on; the button renders `null` in release builds. Two independent switches, both off in prod. |
+| Safe in production | ✅ | ❌ Never. The route is unregistered (404) unless the flag is on; the buttons render `null` unless a dev build opts in, and always in release builds. Independent switches, all off in prod. |
 
 ---
 
@@ -27,7 +27,7 @@ No special flag. Build/run as usual:
 npm start               # Metro
 npm run android         # or ios / web
 ```
-The sign-in screen shows "Continue with Google" / "Continue with Apple" buttons. No dev-login button appears in release builds.
+The sign-in screen shows "Continue with Google" / "Continue with Apple" buttons. No dev-login buttons appear unless a dev build opts in with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true`, and never in release builds.
 
 ---
 
@@ -43,13 +43,14 @@ cd server && DEV_LOGIN_ENABLED=1 go run .
 - The route calls the same `getOrCreateUserByEmail` + `respondWithIssuedSession` helpers as `googleLogin`, so the returned token is a real session JWT accepted by every authenticated endpoint and the WebSocket.
 
 ### Frontend
-The `DevLoginButton` is `__DEV__`-gated and mounted inside `SignInButtons`, so it appears on every unauthenticated surface (Profile, Messages, My Events, Create Event) **only in dev builds**. In release builds it short-circuits to `() => null`.
+The `DevLoginButton` is mounted inside `SignInButtons`, so when enabled it appears on every unauthenticated surface (Profile, Messages, My Events, Create Event). It is **opt-in** (issue #186): it renders only in `__DEV__` builds whose Metro was started with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` (`DEV_LOGIN_ENABLED` in `src/constants/featureFlags.ts`). Without the flag a dev build shows only the Google/Apple buttons, and release builds never show the dev-login buttons. Metro reads the flag at startup, so restart Metro to change it.
 
-For emulator builds, Metro must point at the host loopback via the `10.0.2.2` alias:
+For emulator builds, Metro must point at the host loopback via the `10.0.2.2` alias and turn the buttons on:
 ```bash
 EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080 \
 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080 \
 EXPO_PUBLIC_CHAT_ENABLED=true \
+EXPO_PUBLIC_DEV_LOGIN_ENABLED=true \
 npm start
 ```
 (`10.0.2.2` is the emulator's route to the host loopback — it does NOT work on physical devices.)
@@ -67,7 +68,7 @@ All three persist across sessions (the route upserts by email), so test data acc
 
 ### End-to-end on the emulator
 1. Start backend: `cd server && DEV_LOGIN_ENABLED=1 go run .`
-2. Start Metro with the `EXPO_PUBLIC_*` env vars above.
+2. Start Metro with the `EXPO_PUBLIC_*` env vars above, including `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` (without it the Dev Login buttons stay hidden).
 3. Ensure only the emulator is connected: `adb devices -l` should show one `emulator-<port>` line. If a physical phone is also plugged in, unplug it (or restart pi with `ANDROID_SERIAL=emulator-5554`).
 4. Launch the app: `adb shell am start -n com.whoelseisfree.app/.MainActivity`. If it lands on the Expo Dev Launcher screen, tap the `http://10.0.2.2:8081` row to connect to Metro.
 5. Reach the sign-in screen: Profile tab → **Logout** (if already signed in) → **Continue**.
@@ -91,13 +92,13 @@ curl -s -X POST http://localhost:8080/api/dev-login \
    cd server && go run .
    ```
    `/api/dev-login` is now unregistered (404 if hit).
-2. (Optional) Reload the app bundle: `adb shell input keyevent KEYCODE_R`. The dev-login buttons remain visible because you're still in a `__DEV__` build, but tapping one will fail with "Dev login is not enabled on the server." — which is the correct behaviour. The Google/Apple buttons work as usual.
-3. For a true production build (no dev-login button at all), build without `__DEV__` (e.g. via EAS production build) — `DevLoginButton` renders `null`.
+2. Restart Metro without `EXPO_PUBLIC_DEV_LOGIN_ENABLED` (plain `npm start`) to hide the dev-login buttons. If Metro still runs with the flag, the buttons stay visible but tapping one fails with "Dev login is not enabled on the server." — which is the correct behaviour. The Google/Apple buttons work as usual.
+3. Release builds (e.g. EAS production) never show the dev-login buttons, whatever the flag says — `DevLoginButton` renders `null`.
 
 ---
 
 ## Reference
 
 - Skill: `.pi/skills/test-on-device/SKILL.md` — full emulator test workflow.
-- Code: `src/components/DevLoginButton.tsx`, `src/context/AuthContext.tsx` (`signInWithDevUser`), `server/auth_handler.go` (`devLogin`).
-- Test: `server/auth_handler_test.go` — `TestDevLoginDisabledByDefault`, `TestDevLoginIssuesSession`, `TestDevLoginIsIdempotentAcrossCalls`.
+- Code: `src/components/DevLoginButton.tsx`, `src/constants/featureFlags.ts` (`DEV_LOGIN_ENABLED`), `src/context/AuthContext.tsx` (`signInWithDevUser`), `server/auth_handler.go` (`devLogin`).
+- Test: `server/auth_handler_test.go` — `TestDevLoginDisabledByDefault`, `TestDevLoginIssuesSession`, `TestDevLoginIsIdempotentAcrossCalls`; `src/constants/__tests__/featureFlags.test.ts` and `src/components/__tests__/SignInButtons.test.tsx` for the client opt-in.
