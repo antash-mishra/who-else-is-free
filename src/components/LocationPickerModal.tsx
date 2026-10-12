@@ -211,7 +211,7 @@ const LocationPickerModal = (props: LocationPickerModalProps) => {
         <BottomSheetModal
             visible={visible}
             onClose={handleClose}
-            title="Select Location"
+            title="Select location"
             avoidKeyboard={false}
             snapHeight={sheetHeight}
             onOpened={() => setIsSheetReady(true)}

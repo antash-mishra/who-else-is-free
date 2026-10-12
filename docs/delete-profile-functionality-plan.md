@@ -26,7 +26,8 @@ When a user deletes their account:
 - Delete `push_tokens`.
 - Delete `apple_accounts`.
 - Delete `user_blocks` involving the user.
-- Delete `event_reports` involving the user.
+- Keep `event_reports` involving the user: the reporter and reviewer references become NULL when the
+  `users` row is deleted, and the reported user's id is kept. See `docs/safety-report-retention.md`.
 - Delete the `users` row last.
 - Clear local auth state on the client.
 
@@ -67,7 +68,8 @@ For every event where `events.user_id` is the deleting user:
 - Delete conversation members attached to those conversations.
 - Delete read state attached to those conversations.
 - Delete join requests attached to the event.
-- Delete event reports attached to the event.
+- Keep event reports attached to the event: `event_reports.event_id` becomes NULL and the report
+  keeps the plan title. See `docs/safety-report-retention.md`.
 - Notify affected members like normal event deletion.
 - Send optional push notification using the existing `event.deleted` pattern.
 
@@ -75,12 +77,15 @@ This is required because events must have a valid host. Keeping a hosted event a
 
 ### User Has Reports Or Blocks
 
-- Delete reports submitted by the user.
-- Delete reports where the user is the reported member.
-- Clear or delete reviewed references involving the user, depending on schema constraints.
+- Keep reports submitted by the user; `event_reports.user_id` becomes NULL.
+- Keep reports where the user is the reported member (or the host of a reported plan); the report
+  keeps the user's id, the copied name, the message snapshot and the identity hashes.
+- Keep reports the user reviewed as an admin; `event_reports.reviewed_by` becomes NULL.
 - Delete blocks where the user is blocker or blocked user.
 
-Recommended implementation: delete reports involving the user unless there is a product/legal need to retain moderation records. Current app data model does not support anonymized deleted-user report retention cleanly.
+Reports are no longer deleted with the account (issue #184). They are kept for 18 months from the
+report date unless a retention hold is set, then removed from the live database. See
+`docs/safety-report-retention.md`.
 
 ### User Has Push Tokens
 
@@ -159,7 +164,9 @@ Inside one transaction:
 7. Delete the user's messages in remaining conversations.
 8. Delete the user's `conversation_read_state`.
 9. Delete join requests where `user_id = deletingUserID`.
-10. Delete or clean reports where the user is reporter, reported user, or reviewer.
+10. Leave reports where the user is reporter, reported user, or reviewer in place: the reporter and
+    reviewer references null themselves through `ON DELETE SET NULL` when the `users` row is
+    deleted, and the reported user's id is kept (see `docs/safety-report-retention.md`).
 11. Delete user blocks where the user is blocker or blocked user.
 12. Delete push tokens.
 13. Delete Apple account links.
@@ -240,7 +247,8 @@ Add integration tests for:
 - Hosted event owner deletion deletes hosted events and associated conversations/requests/messages.
 - Push tokens are deleted.
 - Apple account links are deleted.
-- Blocks and reports involving the user are deleted or cleaned.
+- Blocks involving the user are deleted; reports involving the user are kept with their references
+  nulled (see `docs/safety-report-retention.md`).
 
 ### Frontend Tests
 
@@ -280,7 +288,8 @@ npm test -- EventsContext.rendering.test.tsx
 ## Risks And Decisions
 
 - Message deletion versus anonymization: plan uses deletion for privacy and simpler data integrity.
-- Moderation report retention: plan deletes reports involving the user unless retention is required later.
+- Moderation report retention: reports involving the user are kept for 18 months and then removed
+  from the live database (issue #184); see `docs/safety-report-retention.md`.
 - Other-device logout: requires user-existence checks because JWTs are stateless.
 - Notifications should be emitted after transaction commit only, otherwise clients could refresh before data is actually deleted.
 
@@ -291,7 +300,7 @@ npm test -- EventsContext.rendering.test.tsx
 - Implemented backend route: `DELETE /api/profile`.
 - Implemented `ProfileHandler.DeleteProfile`.
 - Implemented transactional repository cleanup via `DeleteUserAccount`.
-- Implemented cleanup for hosted events, pending requests, approved Single-event chats, approved Group-event memberships, user messages, read state, join requests, reports, blocks, push tokens, Apple links, direct conversations, and the final `users` row.
+- Implemented cleanup for hosted events, pending requests, approved Single-event chats, approved Group-event memberships, user messages, read state, join requests, blocks, push tokens, Apple links, direct conversations, and the final `users` row. Reports are kept rather than cleaned up (issue #184; see `docs/safety-report-retention.md`).
 - Implemented post-commit membership notifications and hosted-event deletion pushes using the existing chat hub behavior.
 - Implemented deleted-user rejection for protected REST routes by validating the user row after JWT verification.
 - Implemented deleted-user rejection for new WebSocket connections before socket upgrade.
@@ -300,5 +309,6 @@ npm test -- EventsContext.rendering.test.tsx
 - Implemented loading, cancel, duplicate-submit guard, and inline error handling in the Profile screen.
 - Added backend integration coverage for no-related-data deletion, stale-token REST rejection, pending request cleanup, approved Group-member cleanup, approved Single-member cleanup, hosted event owner deletion, push token cleanup, and Apple link cleanup.
 - Added frontend coverage for Profile delete modal open/cancel/confirm/failure and AuthContext successful/failed account deletion behavior.
-- Not yet covered by automated tests: deleted-user WebSocket rejection, report/block cleanup assertions, and duplicate-submit prevention assertion. The implementation code covers these paths, but dedicated tests should still be added if this area changes again.
+- Report retention and block cleanup on account deletion are covered by `server/event_report_retention_test.go`.
+- Not yet covered by automated tests: deleted-user WebSocket rejection and duplicate-submit prevention assertion. The implementation code covers these paths, but dedicated tests should still be added if this area changes again.
 - Local `app.config.js` changes should remain uncommitted.

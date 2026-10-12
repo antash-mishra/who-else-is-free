@@ -218,7 +218,8 @@ func (r *EventRepository) DeleteUserAccount(ctx context.Context, userID int64) (
 	}
 
 	// Hosted events must go first: events.user_id references users.id and
-	// event-backed conversations/join-requests/reports cascade from events.
+	// event-backed conversations and join requests cascade from events, while
+	// reports keep their row with event_id set to NULL.
 	if _, err := tx.ExecContext(ctx, `DELETE FROM events WHERE user_id = ?;`, userID); err != nil {
 		return nil, fmt.Errorf("delete hosted events: %w", err)
 	}
@@ -282,14 +283,12 @@ func (r *EventRepository) DeleteUserAccount(ctx context.Context, userID int64) (
 		return nil, fmt.Errorf("repair legacy conversation ownership: %w", err)
 	}
 
-	// Requests and moderation rows reference users in several roles. Removing
-	// any row involving the account keeps the delete privacy-preserving and
-	// avoids dangling decided_by/reviewed_by references.
+	// Join requests involving the account are removed. Safety reports are not
+	// (#184): event_reports.user_id and reviewed_by null themselves through
+	// their ON DELETE SET NULL foreign keys when the users row goes, and
+	// reported_user_id keeps the id. The retention job purges reports instead.
 	if _, err := tx.ExecContext(ctx, `DELETE FROM conversation_join_requests WHERE user_id = ? OR decided_by = ?;`, userID, userID); err != nil {
 		return nil, fmt.Errorf("delete user join requests: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM event_reports WHERE user_id = ? OR reported_user_id = ? OR reviewed_by = ?;`, userID, userID, userID); err != nil {
-		return nil, fmt.Errorf("delete user reports: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM user_blocks WHERE blocker_user_id = ? OR blocked_user_id = ?;`, userID, userID); err != nil {
 		return nil, fmt.Errorf("delete user blocks: %w", err)
@@ -558,16 +557,9 @@ func sortedInt64Keys(values map[int64]struct{}) []int64 {
 }
 
 func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID int64, reason string) (*EventReport, error) {
-	res, err := r.db.ExecContext(ctx, insertEventReport, eventID, userID, reason)
+	id, err := r.insertReportWithSnapshot(ctx, eventID, userID, nil, reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return nil, ErrReportAlreadyExists
-		}
-		return nil, fmt.Errorf("insert event report: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("fetch event report id: %w", err)
+		return nil, err
 	}
 	return &EventReport{
 		ID:        id,
@@ -582,16 +574,9 @@ func (r *EventRepository) CreateEventReport(ctx context.Context, eventID, userID
 // CreateMemberReport creates a report for a specific member of an event.
 // The reporter_id is the user submitting the report, reported_user_id is the target.
 func (r *EventRepository) CreateMemberReport(ctx context.Context, eventID, reporterID, reportedUserID int64, reason string) (*EventReport, error) {
-	res, err := r.db.ExecContext(ctx, insertMemberReport, eventID, reporterID, reportedUserID, reason)
+	id, err := r.insertReportWithSnapshot(ctx, eventID, reporterID, &reportedUserID, reason)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return nil, ErrReportAlreadyExists
-		}
-		return nil, fmt.Errorf("insert member report: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return nil, fmt.Errorf("fetch member report id: %w", err)
+		return nil, err
 	}
 	return &EventReport{
 		ID:             id,

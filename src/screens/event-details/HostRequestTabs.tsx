@@ -29,8 +29,8 @@ import styles from './EventDetailsScreen.styles';
 
 // Shared illustration for both the Requests and Accepted/Members empty states.
 const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
-const EMPTY_ILLUSTRATION_WIDTH = 149;
-const EMPTY_ILLUSTRATION_HEIGHT = 160;
+const EMPTY_ILLUSTRATION_WIDTH = 175;
+const EMPTY_ILLUSTRATION_HEIGHT = 100;
 const PAGE_CHANGE_DISTANCE = 50;
 const PAGE_CHANGE_VELOCITY = 500;
 const PAGE_TIMING = { duration: 280 } as const;

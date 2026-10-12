@@ -11,7 +11,7 @@ import { EventDetailMember } from './useEventDetailsData';
 // Shared illustration for the members empty state.
 const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
 const EMPTY_ILLUSTRATION_WIDTH = 149;
-const EMPTY_ILLUSTRATION_HEIGHT = 160;
+const EMPTY_ILLUSTRATION_HEIGHT = 85;
 
 type MemberLike = {
   id: number;

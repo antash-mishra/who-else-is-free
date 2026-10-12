@@ -271,10 +271,11 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
       ) : null}
 
       {/*
-        DEV ONLY. The DevLoginButton itself short-circuits to a no-op render
-        in release builds (__DEV__ === false), so this is always safe to mount.
-        Kept inside SignInButtons so it appears on every unauthenticated
-        surface (Profile, Messages, My Events, Create Event) for easy access.
+        DEV ONLY, opt-in. DevLoginButton renders nothing unless a dev build was
+        started with EXPO_PUBLIC_DEV_LOGIN_ENABLED=true (never in release builds),
+        so this is always safe to mount. Kept inside SignInButtons so, when
+        enabled, it appears on every unauthenticated surface (Profile, Messages,
+        My Events, Create Event) for easy access.
       */}
       <DevLoginButton />
     </View>

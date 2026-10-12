@@ -337,22 +337,113 @@ CREATE TABLE IF NOT EXISTS conversation_join_requests (
 );
 `
 
+// event_reports is the safety record and outlives the plan, the reporter and
+// the reviewing admin (#184): those references are ON DELETE SET NULL.
+// reported_user_id and subject_user_id deliberately have no FK. They keep a
+// deleted account's id (users.id is AUTOINCREMENT, so it is never reused),
+// which keeps reports about one person grouped and keeps the plan-vs-member
+// partial unique indexes meaningful. subject_user_id is the reported member,
+// or the host for a plan report; event_title and subject_name are copies taken
+// when the report is filed.
 const createTableEventReports = `
 CREATE TABLE IF NOT EXISTS event_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    event_id INTEGER,
+    user_id INTEGER,
     reported_user_id INTEGER,
     reason TEXT NOT NULL,
     status TEXT NOT NULL CHECK(status IN ('pending','reviewed','dismissed')) DEFAULT 'pending',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     reviewed_at DATETIME,
     reviewed_by INTEGER,
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (reported_user_id) REFERENCES users(id),
-    FOREIGN KEY (reviewed_by) REFERENCES users(id)
+    event_title TEXT,
+    subject_user_id INTEGER,
+    subject_name TEXT,
+    retention_hold INTEGER NOT NULL DEFAULT 0 CHECK(retention_hold IN (0, 1)),
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
 );
+`
+
+// event_report_messages holds the chat evidence copied when a report is
+// filed; it is deleted with its report.
+const createTableEventReportMessages = `
+CREATE TABLE IF NOT EXISTS event_report_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_id INTEGER NOT NULL,
+    message_id INTEGER NOT NULL,
+    conversation_id INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    attachment_url TEXT,
+    sent_at DATETIME NOT NULL,
+    FOREIGN KEY (report_id) REFERENCES event_reports(id) ON DELETE CASCADE
+);
+`
+
+const createEventReportMessagesReportIndex = `
+CREATE INDEX IF NOT EXISTS event_report_messages_report_idx
+ON event_report_messages (report_id);
+`
+
+// user_identity_hashes holds HMACs of a live account's identifiers so a
+// report can copy them; it is deleted with the account. Raw Google subjects
+// are never stored.
+const createTableUserIdentityHashes = `
+CREATE TABLE IF NOT EXISTS user_identity_hashes (
+    user_id INTEGER NOT NULL,
+    provider TEXT NOT NULL CHECK(provider IN ('apple', 'google', 'email')),
+    identity_hmac TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, provider),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+`
+
+// event_report_identities keeps the report subject's identity hashes for the
+// report's lifetime, so a returning account can be recognised.
+const createTableEventReportIdentities = `
+CREATE TABLE IF NOT EXISTS event_report_identities (
+    report_id INTEGER NOT NULL,
+    provider TEXT NOT NULL,
+    identity_hmac TEXT NOT NULL,
+    PRIMARY KEY (report_id, provider),
+    FOREIGN KEY (report_id) REFERENCES event_reports(id) ON DELETE CASCADE
+);
+`
+
+const createEventReportsSubjectIndex = `
+CREATE INDEX IF NOT EXISTS event_reports_subject_idx
+ON event_reports (subject_user_id);
+`
+
+// copyLegacyEventReports moves pre-#184 rows into the rebuilt table. Legacy
+// rows can point at plans or accounts that are already gone (rows from before
+// foreign keys were enforced); those references become NULL instead of
+// failing the copy. Plan title and subject are filled from what still exists.
+const copyLegacyEventReports = `
+INSERT INTO event_reports_new (
+    id, event_id, user_id, reported_user_id, reason, status, created_at,
+    reviewed_at, reviewed_by, event_title, subject_user_id, subject_name
+)
+SELECT
+    r.id,
+    e.id,
+    reporter.id,
+    r.reported_user_id,
+    r.reason,
+    r.status,
+    r.created_at,
+    r.reviewed_at,
+    reviewer.id,
+    e.title,
+    COALESCE(r.reported_user_id, e.user_id),
+    subject.name
+FROM event_reports r
+LEFT JOIN events e ON e.id = r.event_id
+LEFT JOIN users reporter ON reporter.id = r.user_id
+LEFT JOIN users reviewer ON reviewer.id = r.reviewed_by
+LEFT JOIN users subject ON subject.id = COALESCE(r.reported_user_id, e.user_id);
 `
 
 const createTableHelpSubmissions = `
@@ -501,16 +592,6 @@ ORDER BY r.created_at DESC;
 const cancelJoinRequestByUser = `
 DELETE FROM conversation_join_requests
 WHERE event_id = ? AND user_id = ? AND status = 'pending';
-`
-
-const insertEventReport = `
-INSERT INTO event_reports (event_id, user_id, reason, status)
-VALUES (?, ?, ?, 'pending');
-`
-
-const insertMemberReport = `
-INSERT INTO event_reports (event_id, user_id, reported_user_id, reason, status)
-VALUES (?, ?, ?, ?, 'pending');
 `
 
 const insertHelpSubmission = `
@@ -866,6 +947,24 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if err := r.ensureReportedUserIDColumn(ctx); err != nil {
 		return err
+	}
+	if err := r.ensureRetainedEventReportsSchema(ctx); err != nil {
+		return err
+	}
+	if _, err := r.db.ExecContext(ctx, createTableEventReportMessages); err != nil {
+		return fmt.Errorf("create event_report_messages table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createEventReportMessagesReportIndex); err != nil {
+		return fmt.Errorf("create event_report_messages report index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createEventReportsSubjectIndex); err != nil {
+		return fmt.Errorf("create event_reports subject index: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableEventReportIdentities); err != nil {
+		return fmt.Errorf("create event_report_identities table: %w", err)
+	}
+	if _, err := r.db.ExecContext(ctx, createTableUserIdentityHashes); err != nil {
+		return fmt.Errorf("create user_identity_hashes table: %w", err)
 	}
 	if err := r.cleanupOrphanedEventReferences(ctx); err != nil {
 		return err
@@ -1496,6 +1595,91 @@ func (r *EventRepository) ensureReportedUserIDColumn(ctx context.Context) error 
 	return nil
 }
 
+// ensureRetainedEventReportsSchema rebuilds a pre-#184 event_reports table.
+// SQLite cannot alter a foreign key in place, so rows are copied into the new
+// shape with foreign keys off, and legacy reports get the snapshot they never
+// had while their messages still exist. Only the new DDL has retention_hold,
+// so the rebuild runs once.
+func (r *EventRepository) ensureRetainedEventReportsSchema(ctx context.Context) (err error) {
+	hasRetentionHold, err := r.tableHasColumn(ctx, "event_reports", "retention_hold")
+	if err != nil {
+		return err
+	}
+	if hasRetentionHold {
+		return nil
+	}
+
+	// PRAGMA foreign_keys is per connection and ignored inside a transaction,
+	// so pin one connection and toggle it around the transaction.
+	conn, err := r.db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("pin connection for event_reports rebuild: %w", err)
+	}
+	defer conn.Close()
+	if _, err := conn.ExecContext(ctx, `PRAGMA foreign_keys = OFF;`); err != nil {
+		return fmt.Errorf("disable foreign keys for event_reports rebuild: %w", err)
+	}
+	// The pool holds a single connection, so leaving enforcement off would
+	// disable foreign keys for the whole server: failing to restore it fails Init.
+	defer func() {
+		if _, fkErr := conn.ExecContext(context.Background(), `PRAGMA foreign_keys = ON;`); fkErr != nil && err == nil {
+			err = fmt.Errorf("re-enable foreign keys after event_reports rebuild: %w", fkErr)
+		}
+	}()
+
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin event_reports rebuild: %w", err)
+	}
+	defer tx.Rollback()
+
+	createNew := strings.Replace(createTableEventReports,
+		"CREATE TABLE IF NOT EXISTS event_reports (", "CREATE TABLE event_reports_new (", 1)
+	for _, step := range []string{
+		createNew,
+		copyLegacyEventReports,
+		`DROP TABLE event_reports;`,
+		`ALTER TABLE event_reports_new RENAME TO event_reports;`,
+		createTableEventReportMessages,
+		createEventReportMessagesReportIndex,
+	} {
+		if _, err := tx.ExecContext(ctx, step); err != nil {
+			return fmt.Errorf("rebuild event_reports: %w", err)
+		}
+	}
+	if err := snapshotReportMessages(ctx, tx, nil); err != nil {
+		return err
+	}
+	for _, table := range []string{"event_reports", "event_report_messages"} {
+		var violations int
+		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM pragma_foreign_key_check(?);`, table).Scan(&violations); err != nil {
+			return fmt.Errorf("check %s foreign keys: %w", table, err)
+		}
+		if violations > 0 {
+			return fmt.Errorf("rebuilt %s has %d foreign key violations", table, violations)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit event_reports rebuild: %w", err)
+	}
+	return nil
+}
+
+// tableHasColumn closes its cursor before returning, so callers can alter the
+// table afterwards on the single SQLite connection.
+func (r *EventRepository) tableHasColumn(ctx context.Context, table, column string) (bool, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT 1 FROM pragma_table_info(?) WHERE name = ?;`, table, column)
+	if err != nil {
+		return false, fmt.Errorf("inspect %s table: %w", table, err)
+	}
+	defer rows.Close()
+	found := rows.Next()
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("inspect %s table: %w", table, err)
+	}
+	return found, nil
+}
+
 func (r *EventRepository) ensureUserProfileColumns(ctx context.Context) error {
 	rows, err := r.db.QueryContext(ctx, `PRAGMA table_info(users);`)
 	if err != nil {
@@ -1780,6 +1964,7 @@ func (r *EventRepository) cleanupOrphanedSingleEventConversations(ctx context.Co
 
 // cleanupOrphanedEventReferences removes legacy rows that still point to
 // deleted events from periods where foreign key enforcement was not active.
+// Safety reports are the exception: they are kept and lose only the reference.
 func (r *EventRepository) cleanupOrphanedEventReferences(ctx context.Context) error {
 	const deleteOrphanedConversations = `
 		DELETE FROM conversations
@@ -1806,31 +1991,41 @@ func (r *EventRepository) cleanupOrphanedEventReferences(ctx context.Context) er
 		return fmt.Errorf("cleanup orphaned join requests: %w", err)
 	}
 
-	const deleteOrphanedEventReports = `
-		DELETE FROM event_reports
-		WHERE NOT EXISTS (
+	// Reports outlive their plan (#184): null a dangling plan reference
+	// instead of deleting the safety record.
+	const nullOrphanedEventReportPlans = `
+		UPDATE event_reports
+		SET event_id = NULL
+		WHERE event_id IS NOT NULL
+		AND NOT EXISTS (
 			SELECT 1
 			FROM events e
 			WHERE e.id = event_reports.event_id
 		);
 	`
-	if _, err := r.db.ExecContext(ctx, deleteOrphanedEventReports); err != nil {
-		return fmt.Errorf("cleanup orphaned event reports: %w", err)
+	if _, err := r.db.ExecContext(ctx, nullOrphanedEventReportPlans); err != nil {
+		return fmt.Errorf("null orphaned event report plans: %w", err)
 	}
 
 	return nil
 }
 
 // cleanupDuplicateEventReports keeps the first event-level report per user/event
-// so we can safely enforce uniqueness for future inserts.
+// so we can safely enforce uniqueness for future inserts. Reports whose plan or
+// reporter has been deleted (NULL event_id or user_id) are retained records,
+// not duplicates: SQLite's GROUP BY folds NULLs together, so they are excluded.
 func (r *EventRepository) cleanupDuplicateEventReports(ctx context.Context) error {
 	const dedupeQuery = `
 		DELETE FROM event_reports
 		WHERE reported_user_id IS NULL
+		AND event_id IS NOT NULL
+		AND user_id IS NOT NULL
 		AND id NOT IN (
 			SELECT MIN(id)
 			FROM event_reports
 			WHERE reported_user_id IS NULL
+			AND event_id IS NOT NULL
+			AND user_id IS NOT NULL
 			GROUP BY event_id, user_id
 		);
 	`
@@ -1841,15 +2036,26 @@ func (r *EventRepository) cleanupDuplicateEventReports(ctx context.Context) erro
 }
 
 func (r *EventRepository) backfillUserBlocksFromMemberReports(ctx context.Context) error {
+	// Reports outlive their plan and accounts (#184), so two guards keep a
+	// retained report from acting on startup: both accounts must still exist (a
+	// deleted one would violate the user_blocks foreign keys and fail startup),
+	// and the plan must still exist (a report kept after its plan was deleted
+	// must not re-create a block the host has since removed by unblocking).
 	const backfillQuery = `
 		INSERT OR IGNORE INTO user_blocks (blocker_user_id, blocked_user_id)
-		SELECT user_id, reported_user_id
-		FROM event_reports
-		WHERE reported_user_id IS NOT NULL
+		SELECT r.user_id, r.reported_user_id
+		FROM event_reports r
+		WHERE r.reported_user_id IS NOT NULL
+		AND r.event_id IS NOT NULL
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.reported_user_id)
 		UNION
-		SELECT reported_user_id, user_id
-		FROM event_reports
-		WHERE reported_user_id IS NOT NULL;
+		SELECT r.reported_user_id, r.user_id
+		FROM event_reports r
+		WHERE r.reported_user_id IS NOT NULL
+		AND r.event_id IS NOT NULL
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+		AND EXISTS (SELECT 1 FROM users u WHERE u.id = r.reported_user_id);
 	`
 	if _, err := r.db.ExecContext(ctx, backfillQuery); err != nil {
 		return fmt.Errorf("backfill user blocks from member reports: %w", err)

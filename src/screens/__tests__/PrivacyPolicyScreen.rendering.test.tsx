@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { StyleSheet } from 'react-native';
 
 import { fireEvent, render } from '@testing-library/react-native';
@@ -18,7 +21,7 @@ describe('PrivacyPolicyScreen', () => {
 
     expect(getByText('Privacy policy')).toBeTruthy();
     expect(getByText('WEIF PRIVACY POLICY')).toBeTruthy();
-    expect(getByText('Last updated October 8, 2026')).toBeTruthy();
+    expect(getByText('Last updated October 12, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();
     expect(getByLabelText('Jump to WHAT INFORMATION DO WE COLLECT?')).toBeTruthy();
     expect(getByText('Google API Services User Data Policy')).toBeTruthy();
@@ -54,5 +57,28 @@ describe('PrivacyPolicyScreen', () => {
     expect(privacyPolicyMarkdown).not.toContain('data subject access request');
     expect(privacyPolicyMarkdown).not.toContain('Learn more about withdrawing your consent');
     expect(privacyPolicyMarkdown).toContain('Profile → Delete account');
+  });
+
+  it('states that safety reports outlive a deleted account', () => {
+    expect(privacyPolicyMarkdown).toContain(
+      'for up to 18 months, even after you delete your account',
+    );
+    expect(privacyPolicyMarkdown).not.toContain(
+      'No purpose in this notice will require us keeping',
+    );
+    // The deletion paragraph must not claim reports go with the account.
+    expect(privacyPolicyMarkdown).not.toContain('join requests, reports, blocks');
+    expect(privacyPolicyMarkdown).toContain(
+      'Reports, including any chat messages copied into them, are kept as described above.',
+    );
+  });
+
+  it('keeps the repository copy of the policy identical to the in-app text', () => {
+    const repositoryCopy = readFileSync(
+      join(__dirname, '../../../Privacy Policy 3702ef2fbf48809782a1c5b89f71b3f3.md'),
+      'utf8',
+    );
+
+    expect(repositoryCopy.trimEnd()).toBe(privacyPolicyMarkdown.trimEnd());
   });
 });

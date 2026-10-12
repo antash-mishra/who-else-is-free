@@ -404,12 +404,16 @@ What it is:
 - Shared CTA button.
 - Supports `primary`, `secondary`, `destructive`, and `ghost` variants.
 - Owns loading, disabled state, accessibility state, optional icon, full width, and default haptics.
+- Disabled buttons swap to the grey disabled surface by default. `disabledAppearance="dimmed"`
+  keeps the variant surface at 60% opacity instead (the same look buttons with an icon use);
+  onboarding opts into it so its disabled Continue reads as a faded black button.
 
 Where it is used:
 
 - `src/components/EmptyState.tsx`
 - `src/components/SignInButtons.tsx`
 - `src/components/help/HelpForm.tsx`
+- `src/screens/OnboardingScreen.tsx`
 
 Use it when:
 
@@ -514,7 +518,9 @@ Where it is used:
   Android radius, tint and saturation live in `avatarBadgeMaterial`, independently calibrated
   against the unchanged iOS badge. Foreground glyphs and shadows never enter that source.
 - Event Details hero buttons (back, menu, overlay close).
-- Tab bar background (`src/navigation/TabBarBackground.tsx`): real blur at intensity 54 beneath the 60% white overlay.
+- Tab bar background (`src/navigation/TabBarBackground.tsx`): real blur; iOS intensity 54 beneath the 60% white
+  overlay, Android `tabBarAndroidMaterial` through `androidMaterial` with no overlay view, its tint carrying the
+  overlay's white (#190).
 - `CoverPickerModal` check badge and `EventCard` badge strip. Action toasts use `ActionToastSurface` below.
 
 Use it when:
@@ -530,6 +536,12 @@ Rules:
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
   offscreen-capture pattern that hit a RenderScript crash in release testing.
+- `androidMaterial` (Android only, needs `blur`) gives a surface its own tint intensity and dp blur sigma when the
+  shared Android blur cannot match its iOS material at the same `intensity`; `androidBlurReductionFactor` converts
+  the sigma for the screen density. Only the tab bar uses it. Dimezis captures views drawn above a blurred surface
+  (siblings, overlays, icons), so carry an overlay's colour in the material tint instead of a sibling view, and
+  expect foreground glyphs to leave a faint glow. Calibrate a new material against iOS on device with matched
+  captures.
 - Pass the surface's existing `intensity` (0-100) so it keeps its calibrated weight, and keep the
   surface's own background colour: the material composites over it.
 - Legacy live capture can include sibling foreground on Android. Audit cover chip and Cover Picker
@@ -989,9 +1001,13 @@ What it is:
 - Owns modal/inline presentation, backdrop, open/close animation, safe area, keyboard avoidance,
   max height, optional snap height, and shared sheet styling.
 - Keyboard avoidance uses `bottomObstruction.ts` to subtract the system safe-area region already
-  reserved by the sheet from its translation. Android uses physical-screen keyboard-top coordinates
-  so `adjustPan` does not collapse the translation to zero; iOS retains height-based animation
-  timing. Both preserve the shared base content spacing. Do not compensate in prompt content.
+  reserved by the sheet from its translation. Android 11+ follows every IME frame from
+  react-native-keyboard-controller's `useGenericKeyboardHandler` (its Modal watcher reaches the sheet's own
+  window, where the height includes the navigation bar), moving only a settled sheet, never raising it toward a
+  closing keyboard, and catching up when an open hosted sheet switches to avoidance. Android 10 and older keep
+  React Native's `keyboardDidShow`/`keyboardDidHide` with physical-screen keyboard-top coordinates; iOS keeps
+  `keyboardWillShow`/`keyboardWillHide` timing. All preserve the shared base content spacing. Do not compensate
+  in prompt content.
 - Exposes `onOpened` after its entry animation settles. Use it for keyboard focus and expensive
   child mounting rather than guessing a timeout in individual sheet content.
 
@@ -1888,25 +1904,32 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 
 ### Long text presentation
 
-- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
+- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, a native tail-ellipsized preview at rest (the ellipsis sits at the field's end, not at a word boundary; issue 187). On Android the hidden editor is rewound to the start and its theme padding reset while unfocused, so focusing never shifts the text. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
 - Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
 - Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.
 
 ## Custom plan covers and age selection
 
-- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider, 18–99,
-  integer steps and a minimum five-year gap. Temporary drafts stay in the sheet;
+- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider over
+  18–`PLAN_AGE_SLIDER_MAX` (50), integer steps and a minimum five-year gap. Most plans
+  target ~20–40, so the slider stops at 50 and its end stop means "50+", saved as
+  `PLAN_AGE_MAX` (99); `toAgeSliderRange`/`fromAgeSliderRange` in `planAgeRange.ts` map
+  between them, and a saved max above 50 is kept unless a handle moves. Each thumb's
+  value is drawn above it (a finger covers the thumb), positioned from the slider's
+  thumb math, so the sheet shows no separate range summary. Temporary drafts stay in the sheet;
   only Done commits. Legacy separated/out-of-bounds ranges require deliberate
   replacement and survive unrelated edits.
 - New selections carry `age_selection_mode: "range"`; preserve legacy presets and
   their original 18–60 bounds. Mode-aware display lives in `eventDisplay.ts`;
-  range-mode full bounds show All ages, otherwise the actual min - max everywhere.
+  range-mode full bounds show All ages in Event Details and are omitted from event
+  cards (like legacy all-age plans), an open top (`PLAN_AGE_MAX`) shows `min+`,
+  otherwise the actual min - max everywhere.
 - `patches/react-native-fast-range-slider+0.4.0.patch` adds adjustable accessibility
   actions, canceled-gesture cleanup and width synchronization to the pinned slider.
   Recreate/check it on package upgrades. The slider's gap prop is pixels; convert
   the five-year gap using measured width. Size tokens live in `componentTokens.ageRange`
   and the opaque thumb shadow in `shadows.ageRangeThumb`.
-- `CoverPickerContent` owns the optional pinned Choose from library action and grid
+- `CoverPickerContent` owns the optional pinned Add your own cover action and grid
   clearance. Defer the heavy grid via the shared sheet's onOpened readiness signal.
   Custom covers never highlight a catalog choice. Bottom-sheet native modals use
   translucent status/navigation bars and an unpadded full-window backdrop.

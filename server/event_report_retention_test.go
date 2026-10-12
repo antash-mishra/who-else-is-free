@@ -1,0 +1,778 @@
+package main
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+// newRetentionTestRepo returns an initialised in-memory repository with one
+// seeded user ("tester", id 1).
+func newRetentionTestRepo(t *testing.T) *EventRepository {
+	t.Helper()
+	return newNotificationsTestRepo(t)
+}
+
+func countRows(t *testing.T, repo *EventRepository, query string, args ...any) int {
+	t.Helper()
+	var n int
+	if err := repo.db.QueryRowContext(context.Background(), query, args...).Scan(&n); err != nil {
+		t.Fatalf("count %q: %v", query, err)
+	}
+	return n
+}
+
+// eventReportsFKActions maps each FK column of event_reports to its ON DELETE action.
+func eventReportsFKActions(t *testing.T, repo *EventRepository) map[string]string {
+	t.Helper()
+	rows, err := repo.db.QueryContext(context.Background(), `SELECT "from", on_delete FROM pragma_foreign_key_list('event_reports');`)
+	if err != nil {
+		t.Fatalf("fk list: %v", err)
+	}
+	defer rows.Close()
+	actions := map[string]string{}
+	for rows.Next() {
+		var from, onDelete string
+		if err := rows.Scan(&from, &onDelete); err != nil {
+			t.Fatalf("scan fk: %v", err)
+		}
+		actions[from] = onDelete
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate fk: %v", err)
+	}
+	return actions
+}
+
+func TestEventReportsSchemaDoesNotCascade(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	got := eventReportsFKActions(t, repo)
+	want := map[string]string{"event_id": "SET NULL", "user_id": "SET NULL", "reviewed_by": "SET NULL"}
+	for column, action := range want {
+		if got[column] != action {
+			t.Fatalf("FK %s ON DELETE = %q, want %q (all: %v)", column, got[column], action, got)
+		}
+	}
+	for _, column := range []string{"reported_user_id", "subject_user_id"} {
+		if _, ok := got[column]; ok {
+			t.Fatalf("%s must have no FK so it outlives the account, got %v", column, got)
+		}
+	}
+}
+
+// legacyEventReportsDDL is the pre-#184 event_reports table.
+const legacyEventReportsDDL = `
+CREATE TABLE event_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    reported_user_id INTEGER,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('pending','reviewed','dismissed')) DEFAULT 'pending',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at DATETIME,
+    reviewed_by INTEGER,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (reported_user_id) REFERENCES users(id),
+    FOREIGN KEY (reviewed_by) REFERENCES users(id)
+);
+`
+
+// openLegacyReportsDB builds a pre-#184 database: a Group plan whose host
+// reported a member, a message from that member, and a second report whose
+// plan, reporter and reviewer no longer exist (pre-FK-era orphans).
+func openLegacyReportsDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := openDB(filepath.Join(t.TempDir(), "legacy.sqlite"))
+	if err != nil {
+		t.Fatalf("open legacy db: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	ctx := context.Background()
+	for _, stmt := range []string{
+		`PRAGMA foreign_keys = OFF;`,
+		createTableUsers,
+		createTableEvents,
+		createTableConversations,
+		createTableConversationMembers,
+		createTableMessages,
+		legacyEventReportsDDL,
+		`INSERT INTO users (id, name, email, password) VALUES
+			(1, 'Host', 'host@legacy.test', 'pw'),
+			(2, 'Offender', 'offender@legacy.test', 'pw');`,
+		`INSERT INTO events (id, user_id, title, location, time, event_date, gender, min_age, max_age, date_label, group_type)
+			VALUES (10, 1, 'Board games', 'Cafe', '10:00', '2099-01-01', 'Everyone', 18, 99, 'Today', 'Group');`,
+		`INSERT INTO conversations (id, title, created_by, event_id) VALUES (20, 'Board games', 1, 10);`,
+		`INSERT INTO conversation_members (conversation_id, user_id) VALUES (20, 1);`,
+		`INSERT INTO messages (conversation_id, sender_id, body, kind) VALUES
+			(20, 2, 'legacy abuse', 'user'),
+			(20, 2, 'Offender joined the plan', 'system');`,
+		`INSERT INTO event_reports (id, event_id, user_id, reported_user_id, reason, reviewed_by) VALUES
+			(1, 10, 1, 2, 'live row', NULL),
+			(2, 999, 555, 2, 'orphan refs', 777);`,
+		`PRAGMA foreign_keys = ON;`,
+	} {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
+			t.Fatalf("legacy setup failed on %q: %v", stmt, err)
+		}
+	}
+	return db
+}
+
+func TestEventReportsRebuildMigratesLegacyRows(t *testing.T) {
+	db := openLegacyReportsDB(t)
+	repo := NewEventRepository(db)
+	ctx := context.Background()
+	for run := 1; run <= 2; run++ { // the second run proves the rebuild is idempotent
+		initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		err := repo.Init(initCtx)
+		cancel()
+		if err != nil {
+			t.Fatalf("Init run %d: %v", run, err)
+		}
+	}
+
+	var eventID, userID, reviewedBy, subjectID sql.NullInt64
+	var title, subjectName sql.NullString
+	if err := db.QueryRowContext(ctx, `
+		SELECT event_id, user_id, reviewed_by, subject_user_id, event_title, subject_name
+		FROM event_reports WHERE id = 2`).Scan(&eventID, &userID, &reviewedBy, &subjectID, &title, &subjectName); err != nil {
+		t.Fatalf("orphan row was dropped: %v", err)
+	}
+	if eventID.Valid || userID.Valid || reviewedBy.Valid {
+		t.Fatalf("orphan references not nulled: event_id=%v user_id=%v reviewed_by=%v", eventID, userID, reviewedBy)
+	}
+	if subjectID.Int64 != 2 || subjectName.String != "Offender" || title.Valid {
+		t.Fatalf("orphan subject/title = %v/%v/%v, want 2/Offender/NULL", subjectID, subjectName, title)
+	}
+
+	if err := db.QueryRowContext(ctx, `
+		SELECT event_id, user_id, subject_user_id, event_title, subject_name
+		FROM event_reports WHERE id = 1`).Scan(&eventID, &userID, &subjectID, &title, &subjectName); err != nil {
+		t.Fatal(err)
+	}
+	if eventID.Int64 != 10 || userID.Int64 != 1 || subjectID.Int64 != 2 || title.String != "Board games" || subjectName.String != "Offender" {
+		t.Fatalf("live row = event %v user %v subject %v %q %q", eventID, userID, subjectID, title.String, subjectName.String)
+	}
+
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = 1 AND body = 'legacy abuse'`); n != 1 {
+		t.Fatalf("legacy snapshot rows for the user message = %d, want exactly 1 after two Init runs", n)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages`); n != 1 {
+		t.Fatalf("legacy snapshot copied %d rows, want 1 (system rows and the plan-less report excluded)", n)
+	}
+	if got := eventReportsFKActions(t, repo)["event_id"]; got != "SET NULL" {
+		t.Fatalf("legacy table not rebuilt: event_id ON DELETE = %q", got)
+	}
+	if n := countRows(t, repo, `PRAGMA foreign_keys;`); n != 1 {
+		t.Fatal("foreign key enforcement left OFF after the rebuild")
+	}
+}
+
+func TestEventReportStartupCleanupKeepsNulledReports(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	// Two plan reports whose plans and reporter are gone: every grouping column
+	// is NULL, which the old dedupe treated as one duplicate group.
+	if _, err := repo.db.ExecContext(ctx, `
+		INSERT INTO event_reports (event_id, user_id, reported_user_id, reason) VALUES
+		(NULL, NULL, NULL, 'first'), (NULL, NULL, NULL, 'second');`); err != nil {
+		t.Fatal(err)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := repo.Init(initCtx); err != nil {
+		t.Fatalf("re-Init: %v", err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports`); n != 2 {
+		t.Fatalf("startup cleanup removed retained reports: %d left, want 2", n)
+	}
+}
+
+// A live guest's plan reports on two plans that were later deleted share
+// (event_id NULL, user_id, reported_user_id NULL); GROUP BY would fold them
+// into one duplicate group without the dedupe's event_id guard.
+func TestStartupDedupeKeepsLiveReportersReportsOnDeletedPlans(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	guest := seedNotificationActionUser(t, repo, "guest")
+	for i := 0; i < 2; i++ {
+		eventID := seedNotificationActionEvent(t, repo, host, "Group")
+		if _, err := repo.CreateEventReport(ctx, eventID, guest, "unsafe plan"); err != nil {
+			t.Fatalf("plan report %d: %v", i, err)
+		}
+		if err := repo.Delete(ctx, eventID, host); err != nil {
+			t.Fatalf("delete plan %d: %v", i, err)
+		}
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports WHERE event_id IS NULL AND user_id = ? AND reported_user_id IS NULL`, guest); n != 2 {
+		t.Fatalf("setup: %d plan reports on deleted plans, want 2", n)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := repo.Init(initCtx); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports WHERE user_id = ?`, guest); n != 2 {
+		t.Fatalf("restart deleted the live guest's retained plan reports: %d left, want 2", n)
+	}
+}
+
+type reportFixture struct {
+	repo                     *EventRepository
+	host, offender, eventID  int64
+	conversationID, reportID int64
+}
+
+// seedMemberReportFixture: "host" runs a Group plan, "offender" joins and sends
+// two messages, and host files a member report against offender.
+func seedMemberReportFixture(t *testing.T) reportFixture {
+	t.Helper()
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, host, offender)
+	for _, body := range []string{"abusive message 1", "abusive message 2"} {
+		if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversationID, SenderID: offender, Body: body, DeliveryStatus: "sent", Kind: MessageKindUser,
+		}); err != nil {
+			t.Fatalf("message: %v", err)
+		}
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "harassed me in chat")
+	if err != nil {
+		t.Fatalf("member report: %v", err)
+	}
+	return reportFixture{repo: repo, host: host, offender: offender, eventID: eventID, conversationID: conversationID, reportID: report.ID}
+}
+
+func TestDeletingReportedUserKeepsReport(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatalf("delete offender: %v", err)
+	}
+	var reportedUserID sql.NullInt64
+	if err := f.repo.db.QueryRow(`SELECT reported_user_id FROM event_reports WHERE id = ?`, f.reportID).Scan(&reportedUserID); err != nil {
+		t.Fatalf("report gone after the reported user deleted their account: %v", err)
+	}
+	if reportedUserID.Int64 != f.offender {
+		t.Fatalf("reported_user_id = %v, want %d", reportedUserID, f.offender)
+	}
+}
+
+func TestDeletingPlanKeepsReport(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if err := f.repo.Delete(context.Background(), f.eventID, f.host); err != nil {
+		t.Fatalf("delete plan: %v", err)
+	}
+	var eventID sql.NullInt64
+	if err := f.repo.db.QueryRow(`SELECT event_id FROM event_reports WHERE id = ?`, f.reportID).Scan(&eventID); err != nil {
+		t.Fatalf("report gone after the plan was deleted: %v", err)
+	}
+	if eventID.Valid {
+		t.Fatalf("event_id = %v, want NULL", eventID)
+	}
+}
+
+func TestDeletingReporterKeepsReportWithNullReporter(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.host); err != nil {
+		t.Fatalf("delete reporter: %v", err)
+	}
+	var userID, reportedUserID sql.NullInt64
+	if err := f.repo.db.QueryRow(`SELECT user_id, reported_user_id FROM event_reports WHERE id = ?`, f.reportID).Scan(&userID, &reportedUserID); err != nil {
+		t.Fatalf("report gone after the reporter deleted their account: %v", err)
+	}
+	if userID.Valid || reportedUserID.Int64 != f.offender {
+		t.Fatalf("user_id = %v reported_user_id = %v, want NULL/%d", userID, reportedUserID, f.offender)
+	}
+}
+
+func TestDeletingReviewerKeepsReportWithNullReviewer(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	admin := seedNotificationActionUser(t, f.repo, "admin")
+	if _, err := f.repo.db.Exec(`UPDATE event_reports SET status = 'reviewed', reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?`, admin, f.reportID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repo.DeleteUserAccount(context.Background(), admin); err != nil {
+		t.Fatalf("delete admin: %v", err)
+	}
+	var reviewedBy sql.NullInt64
+	var status string
+	if err := f.repo.db.QueryRow(`SELECT reviewed_by, status FROM event_reports WHERE id = ?`, f.reportID).Scan(&reviewedBy, &status); err != nil {
+		t.Fatalf("report gone after the reviewer deleted their account: %v", err)
+	}
+	if reviewedBy.Valid || status != "reviewed" {
+		t.Fatalf("reviewed_by = %v status = %q, want NULL/reviewed", reviewedBy, status)
+	}
+}
+
+func TestDeletingAccountStillDeletesBlocks(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if err := f.repo.CreateMutualBlock(context.Background(), f.host, f.offender); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM user_blocks WHERE blocker_user_id = ? OR blocked_user_id = ?`, f.offender, f.offender); n != 0 {
+		t.Fatalf("blocks involving the deleted account = %d, want 0", n)
+	}
+}
+
+func TestDeletedReportedUserDoesNotBreakInit(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := f.repo.Init(ctx); err != nil {
+		t.Fatalf("restart after deletion failed: %v", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, f.reportID); n != 1 {
+		t.Fatalf("report rows after restart = %d, want 1", n)
+	}
+}
+
+func TestUnblockSurvivesRestartAfterPlanDeletion(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	ctx := context.Background()
+	if err := f.repo.CreateMutualBlock(ctx, f.host, f.offender); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.repo.Delete(ctx, f.eventID, f.host); err != nil {
+		t.Fatalf("delete plan: %v", err)
+	}
+	if _, err := f.repo.DeleteMutualBlock(ctx, f.host, f.offender); err != nil {
+		t.Fatalf("unblock: %v", err)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := f.repo.Init(initCtx); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM user_blocks WHERE (blocker_user_id = ? AND blocked_user_id = ?) OR (blocker_user_id = ? AND blocked_user_id = ?)`, f.host, f.offender, f.offender, f.host); n != 0 {
+		t.Fatalf("restart re-created %d block rows the host removed", n)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, f.reportID); n != 1 {
+		t.Fatal("the retained report must survive")
+	}
+}
+
+// A member report on a live plan between two live accounts still restores the
+// mutual block at startup.
+func TestStartupBackfillRestoresBlocksFromLiveMemberReports(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	ctx := context.Background()
+	if _, err := f.repo.db.ExecContext(ctx, `DELETE FROM user_blocks`); err != nil {
+		t.Fatal(err)
+	}
+	initCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if err := f.repo.Init(initCtx); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM user_blocks WHERE (blocker_user_id = ? AND blocked_user_id = ?) OR (blocker_user_id = ? AND blocked_user_id = ?)`, f.host, f.offender, f.offender, f.host); n != 2 {
+		t.Fatalf("restart restored %d of the 2 block rows the live member report implies", n)
+	}
+}
+
+func TestMemberReportSnapshotsTitleSubjectAndMessages(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	if _, err := f.repo.DeleteUserAccount(context.Background(), f.offender); err != nil {
+		t.Fatal(err)
+	}
+	var title, subjectName string
+	var subjectID int64
+	if err := f.repo.db.QueryRow(`SELECT event_title, subject_user_id, subject_name FROM event_reports WHERE id = ?`, f.reportID).
+		Scan(&title, &subjectID, &subjectName); err != nil {
+		t.Fatal(err)
+	}
+	if title != "Hike" || subjectID != f.offender || subjectName != "offender" {
+		t.Fatalf("snapshot = %q/%d/%q, want Hike/%d/offender", title, subjectID, subjectName, f.offender)
+	}
+	rows, err := f.repo.db.Query(`SELECT body FROM event_report_messages WHERE report_id = ? ORDER BY sent_at, message_id`, f.reportID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var bodies []string
+	for rows.Next() {
+		var body string
+		if err := rows.Scan(&body); err != nil {
+			t.Fatal(err)
+		}
+		bodies = append(bodies, body)
+	}
+	if len(bodies) != 2 || bodies[0] != "abusive message 1" || bodies[1] != "abusive message 2" {
+		t.Fatalf("snapshot bodies = %v, want both abusive messages", bodies)
+	}
+}
+
+func TestReportSnapshotKeepsMostRecent50UserMessages(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, host, offender)
+	for i := 0; i < 60; i++ {
+		if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversationID, SenderID: offender, Body: fmt.Sprintf("m%02d", i), DeliveryStatus: "sent", Kind: MessageKindUser,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+		ConversationID: conversationID, SenderID: offender, Body: "offender joined the plan", DeliveryStatus: "sent", Kind: MessageKindSystem,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "spam")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ?`, report.ID); n != 50 {
+		t.Fatalf("snapshot rows = %d, want 50", n)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body IN ('m00', 'm09', 'offender joined the plan')`, report.ID); n != 0 {
+		t.Fatalf("snapshot kept the oldest or system rows (%d)", n)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body IN ('m10', 'm59')`, report.ID); n != 2 {
+		t.Fatalf("snapshot is missing the newest rows (%d of 2)", n)
+	}
+}
+
+func TestPlanReportSnapshotsOnlyReporterVisibleHostMessages(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	guestA := seedNotificationActionUser(t, repo, "guestA")
+	guestB := seedNotificationActionUser(t, repo, "guestB")
+	eventID := seedNotificationActionEvent(t, repo, host, "Single")
+	conversationA := seedNotificationActionConversation(t, repo, eventID, host, guestA)
+	conversationB := seedNotificationActionConversation(t, repo, eventID, host, guestB)
+	for conversationID, body := range map[int64]string{conversationA: "to A", conversationB: "to B"} {
+		if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+			ConversationID: conversationID, SenderID: host, Body: body, DeliveryStatus: "sent", Kind: MessageKindUser,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, err := repo.CreateEventReport(ctx, eventID, guestA, "creepy host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var subjectID int64
+	var subjectName string
+	if err := repo.db.QueryRow(`SELECT subject_user_id, subject_name FROM event_reports WHERE id = ?`, report.ID).Scan(&subjectID, &subjectName); err != nil {
+		t.Fatal(err)
+	}
+	if subjectID != host || subjectName != "host" {
+		t.Fatalf("plan report subject = %d/%q, want the host %d/host", subjectID, subjectName, host)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body = 'to B'`, report.ID); n != 0 {
+		t.Fatal("plan report copied the host's messages from another guest's private chat")
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ? AND body = 'to A'`, report.ID); n != 1 {
+		t.Fatal("plan report missed the host's messages to the reporter")
+	}
+}
+
+func TestDuplicatePlanReportStillConflicts(t *testing.T) {
+	f := seedMemberReportFixture(t)
+	ctx := context.Background()
+	if _, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "first"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "again"); !errors.Is(err, ErrReportAlreadyExists) {
+		t.Fatalf("second plan report err = %v, want ErrReportAlreadyExists", err)
+	}
+}
+
+func TestReportOnMissingPlanReturnsNotFound(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	if _, err := repo.CreateEventReport(context.Background(), 424242, 1, "gone"); !errors.Is(err, ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
+}
+
+func TestReportAndSnapshotCommitTogether(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	conversationID := seedNotificationActionConversation(t, repo, eventID, host, offender)
+	if _, err := repo.CreateMessage(ctx, CreateMessageParams{
+		ConversationID: conversationID, SenderID: offender, Body: "evidence", DeliveryStatus: "sent", Kind: MessageKindUser,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.db.ExecContext(ctx, `
+		CREATE TRIGGER fail_report_snapshot BEFORE INSERT ON event_report_messages
+		BEGIN SELECT RAISE(ABORT, 'snapshot failed'); END;`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreateMemberReport(ctx, eventID, host, offender, "threats"); err == nil {
+		t.Fatal("the report succeeded although its snapshot failed")
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_reports`); n != 0 {
+		t.Fatalf("a report without its snapshot was committed (%d rows)", n)
+	}
+	if _, err := repo.db.ExecContext(ctx, `DROP TRIGGER fail_report_snapshot;`); err != nil {
+		t.Fatal(err)
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "threats")
+	if err != nil {
+		t.Fatalf("retry after the failed attempt: %v", err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_messages WHERE report_id = ?`, report.ID); n != 1 {
+		t.Fatalf("retry snapshot rows = %d, want 1", n)
+	}
+}
+
+func TestIdentityHasherIsKeyedStableAndProviderScoped(t *testing.T) {
+	a := &IdentityHasher{key: []byte("key-a")}
+	b := &IdentityHasher{key: []byte("key-b")}
+	h1, ok := a.Hash(identityProviderGoogle, "sub-123")
+	h2, _ := a.Hash(identityProviderGoogle, " sub-123 ")
+	h3, _ := b.Hash(identityProviderGoogle, "sub-123")
+	h4, _ := a.Hash(identityProviderApple, "sub-123")
+	if !ok || h1 != h2 || h1 == h3 || h1 == h4 || len(h1) != 64 || strings.Contains(h1, "sub-123") {
+		t.Fatalf("hash not keyed/stable/provider-scoped: %q %q %q %q", h1, h2, h3, h4)
+	}
+	e1, _ := a.Hash(identityProviderEmail, "Ava@Example.com")
+	e2, _ := a.Hash(identityProviderEmail, "ava@example.com")
+	if e1 != e2 {
+		t.Fatal("email hashes must ignore case")
+	}
+	if _, ok := (*IdentityHasher)(nil).Hash(identityProviderGoogle, "sub"); ok {
+		t.Fatal("a nil hasher must not produce a hash")
+	}
+	if _, ok := (&IdentityHasher{}).Hash(identityProviderGoogle, "sub"); ok {
+		t.Fatal("an empty key must not produce a hash")
+	}
+	if _, ok := a.Hash(identityProviderGoogle, "  "); ok {
+		t.Fatal("a blank value must not produce a hash")
+	}
+}
+
+func TestReportCopiesSubjectIdentityHashesAndKeepsThemAfterDeletion(t *testing.T) {
+	repo := newRetentionTestRepo(t)
+	ctx := context.Background()
+	host := seedNotificationActionUser(t, repo, "host")
+	offender := seedNotificationActionUser(t, repo, "offender")
+	eventID := seedNotificationActionEvent(t, repo, host, "Group")
+	seedNotificationActionConversation(t, repo, eventID, host, offender)
+	hasher := &IdentityHasher{key: []byte("k")}
+	googleHash, _ := hasher.Hash(identityProviderGoogle, "offender-sub")
+	emailHash, _ := hasher.Hash(identityProviderEmail, "offender@notification-actions.test")
+	for provider, hash := range map[string]string{identityProviderGoogle: googleHash, identityProviderEmail: emailHash} {
+		if err := repo.RecordUserIdentityHash(ctx, offender, provider, hash); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, err := repo.CreateMemberReport(ctx, eventID, host, offender, "threats")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.DeleteUserAccount(ctx, offender); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM user_identity_hashes WHERE user_id = ?`, offender); n != 0 {
+		t.Fatal("the live identity hashes must be deleted with the account")
+	}
+	if n := countRows(t, repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND ((provider = 'google' AND identity_hmac = ?) OR (provider = 'email' AND identity_hmac = ?))`, report.ID, googleHash, emailHash); n != 2 {
+		t.Fatalf("report kept %d of the subject's 2 identity hashes", n)
+	}
+}
+
+func TestRecordingHashLaterAttachesToEarlierReports(t *testing.T) {
+	f := seedMemberReportFixture(t) // member report about the offender, filed before any hash existed
+	ctx := context.Background()
+	// A second report about a different subject: the offender reports the
+	// plan, whose subject is the host.
+	planReport, err := f.repo.CreateEventReport(ctx, f.eventID, f.offender, "host was abusive")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities`); n != 0 {
+		t.Fatalf("unexpected identity rows before any hash: %d", n)
+	}
+	hasher := &IdentityHasher{key: []byte("k")}
+	offenderHash, _ := hasher.Hash(identityProviderGoogle, "late-sub")
+	for i := 0; i < 2; i++ { // recording twice must stay idempotent
+		if err := f.repo.RecordUserIdentityHash(ctx, f.offender, identityProviderGoogle, offenderHash); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND provider = 'google' AND identity_hmac = ?`, f.reportID, offenderHash); n != 1 {
+		t.Fatalf("hash attached to the earlier report %d times, want 1", n)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ?`, planReport.ID); n != 0 {
+		t.Fatal("the offender's hash was attached to a report about the host")
+	}
+	hostHash, _ := hasher.Hash(identityProviderGoogle, "host-sub")
+	if err := f.repo.RecordUserIdentityHash(ctx, f.host, identityProviderGoogle, hostHash); err != nil {
+		t.Fatal(err)
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND identity_hmac = ?`, planReport.ID, hostHash); n != 1 {
+		t.Fatal("the host's hash did not attach to the plan report about the host")
+	}
+	if n := countRows(t, f.repo, `SELECT count(*) FROM event_report_identities WHERE report_id = ? AND identity_hmac = ?`, f.reportID, hostHash); n != 0 {
+		t.Fatal("the host's hash was attached to the report about the offender")
+	}
+}
+
+func TestBackfillIdentityHashesCoversEmailAndAppleAndIsIdempotent(t *testing.T) {
+	repo := newRetentionTestRepo(t) // seeds "tester"
+	ctx := context.Background()
+	user := seedNotificationActionUser(t, repo, "apple-user")
+	if err := repo.LinkAppleAccount(ctx, "apple-sub-9", user, "apple-user@notification-actions.test"); err != nil {
+		t.Fatal(err)
+	}
+	hasher := &IdentityHasher{key: []byte("k")}
+	first, err := repo.BackfillIdentityHashes(ctx, hasher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := repo.BackfillIdentityHashes(ctx, hasher)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first != 3 || second != 0 {
+		t.Fatalf("backfill counts = %d then %d, want 3 (two emails, one apple) then 0", first, second)
+	}
+	appleHash, _ := hasher.Hash(identityProviderApple, "apple-sub-9")
+	emailHash, _ := hasher.Hash(identityProviderEmail, "apple-user@notification-actions.test")
+	if n := countRows(t, repo, `SELECT count(*) FROM user_identity_hashes WHERE user_id = ? AND ((provider = 'apple' AND identity_hmac = ?) OR (provider = 'email' AND identity_hmac = ?))`, user, appleHash, emailHash); n != 2 {
+		t.Fatalf("backfilled %d of the account's 2 hashes", n)
+	}
+	if n, err := repo.BackfillIdentityHashes(ctx, nil); err != nil || n != 0 {
+		t.Fatalf("nil hasher backfill = %d, %v; want 0, nil", n, err)
+	}
+}
+
+// NewAuthHandler reads REPORT_IDENTITY_HMAC_KEY, so it is set before the env is built.
+func TestGoogleLoginRecordsIdentityHashes(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+	t.Setenv("REPORT_IDENTITY_HMAC_KEY", "test-key")
+	env := setupAuthTestEnv(t, fakeGoogleVerifier{claims: map[string]any{
+		"sub": "google-sub-1", "email": "hashme@example.test", "email_verified": true, "name": "Hash Me",
+	}}, nil)
+	rec := env.postJSON(t, "/api/google-login", map[string]any{"id_token": "google-token"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login status %d: %s", rec.Code, rec.Body.String())
+	}
+	hasher := &IdentityHasher{key: []byte("test-key")}
+	googleHash, _ := hasher.Hash(identityProviderGoogle, "google-sub-1")
+	emailHash, _ := hasher.Hash(identityProviderEmail, "hashme@example.test")
+	if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE (provider = 'google' AND identity_hmac = ?) OR (provider = 'email' AND identity_hmac = ?)`, googleHash, emailHash); n != 2 {
+		t.Fatalf("google login recorded %d of 2 identity hashes", n)
+	}
+	if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE identity_hmac LIKE '%google-sub-1%' OR identity_hmac LIKE '%hashme%'`); n != 0 {
+		t.Fatal("a raw identifier was stored")
+	}
+}
+
+// The second sign-in takes appleLogin's existing-account early return.
+func TestAppleLoginRecordsIdentityHashOnBothPaths(t *testing.T) {
+	t.Setenv("APPLE_OAUTH_AUDIENCES", "com.whoelseisfree.app")
+	t.Setenv("REPORT_IDENTITY_HMAC_KEY", "test-key")
+	env := setupAuthTestEnv(t, nil, fakeAppleVerifier{responses: map[string]fakeAppleResponse{
+		"first-token":  {identity: &appleIdentity{Subject: "apple-sub-1", Email: "apple-hash@example.test", Name: "Apple Hash"}},
+		"second-token": {identity: &appleIdentity{Subject: "apple-sub-1"}},
+	}})
+	want, _ := (&IdentityHasher{key: []byte("test-key")}).Hash(identityProviderApple, "apple-sub-1")
+	for _, token := range []string{"first-token", "second-token"} {
+		if _, err := env.repo.db.Exec(`DELETE FROM user_identity_hashes`); err != nil {
+			t.Fatal(err)
+		}
+		rec := env.postJSON(t, "/api/apple-login", map[string]any{"id_token": token})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status %d: %s", token, rec.Code, rec.Body.String())
+		}
+		if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE provider = 'apple' AND identity_hmac = ?`, want); n != 1 {
+			t.Fatalf("%s did not record the apple identity hash", token)
+		}
+		if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes WHERE provider = 'email'`); n != 1 {
+			t.Fatalf("%s did not record the email identity hash", token)
+		}
+	}
+}
+
+func TestLoginWithoutIdentityKeyRecordsNothing(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+	t.Setenv("REPORT_IDENTITY_HMAC_KEY", "")
+	env := setupAuthTestEnv(t, fakeGoogleVerifier{claims: map[string]any{
+		"sub": "google-sub-2", "email": "nokey@example.test", "email_verified": true, "name": "No Key",
+	}}, nil)
+	rec := env.postJSON(t, "/api/google-login", map[string]any{"id_token": "google-token"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("login without a key must still succeed, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if n := countRows(t, env.repo, `SELECT count(*) FROM user_identity_hashes`); n != 0 {
+		t.Fatalf("recorded %d hashes without a key", n)
+	}
+}
+
+func TestPurgeExpiredEventReports(t *testing.T) {
+	f := seedMemberReportFixture(t) // a fresh report, created now
+	ctx := context.Background()
+	now := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC) // cutoff: 2025-04-11 12:00:00
+	insert := func(createdAt string, hold int) int64 {
+		res, err := f.repo.db.Exec(`
+			INSERT INTO event_reports (event_id, user_id, reported_user_id, subject_user_id, reason, created_at, retention_hold)
+			VALUES (NULL, NULL, 999, 999, 'old', ?, ?)`, createdAt, hold)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id, err := res.LastInsertId()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.repo.db.Exec(`INSERT INTO event_report_messages (report_id, message_id, conversation_id, body, sent_at) VALUES (?, 1, 1, 'evidence', ?)`, id, createdAt); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.repo.db.Exec(`INSERT INTO event_report_identities (report_id, provider, identity_hmac) VALUES (?, 'email', 'abc')`, id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	expired := insert("2025-04-11 11:59:59", 0)  // just over 18 months old
+	held := insert("2024-01-01 00:00:00", 1)     // expired but under active review
+	boundary := insert("2025-04-11 12:00:01", 0) // just under 18 months old
+
+	deleted, err := f.repo.PurgeExpiredEventReports(ctx, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted != 1 {
+		t.Fatalf("purged %d reports, want 1", deleted)
+	}
+	for id, want := range map[int64]int{expired: 0, held: 1, boundary: 1, f.reportID: 1} {
+		if n := countRows(t, f.repo, `SELECT count(*) FROM event_reports WHERE id = ?`, id); n != want {
+			t.Fatalf("report %d rows = %d, want %d", id, n, want)
+		}
+	}
+	for _, table := range []string{"event_report_messages", "event_report_identities"} {
+		if n := countRows(t, f.repo, `SELECT count(*) FROM `+table+` WHERE report_id = ?`, expired); n != 0 {
+			t.Fatalf("%s rows for the expired report = %d, want 0", table, n)
+		}
+		if n := countRows(t, f.repo, `SELECT count(*) FROM `+table+` WHERE report_id = ?`, held); n != 1 {
+			t.Fatalf("%s rows for the held report = %d, want 1", table, n)
+		}
+	}
+}

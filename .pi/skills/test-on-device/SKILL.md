@@ -71,9 +71,10 @@ The app reads `EXPO_PUBLIC_API_BASE_URL` / `EXPO_PUBLIC_WS_BASE_URL` at build ti
 bash: export EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080
 bash: export EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080
 bash: export EXPO_PUBLIC_CHAT_ENABLED=true
+bash: export EXPO_PUBLIC_DEV_LOGIN_ENABLED=true
 ```
 
-Set these in the same shell that runs `npm run android` so they're baked into the JS bundle. Do NOT commit these into `.env` or project config — they're per-session for the emulator only.
+Set these in the same shell that runs `npm run android` so they're baked into the JS bundle. Do NOT commit these into `.env` or project config — they're per-session for the emulator only. `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` shows the Dev Login buttons, which are hidden by default (issue #186); Metro reads it at startup, so restart Metro with it set if the buttons are missing.
 
 ## Dev-login setup (one-time, backend)
 
@@ -114,7 +115,7 @@ It calls the same `getOrCreateUserByEmail` + `respondWithIssuedSession` helpers 
 
 ### 3. Frontend dev-login button (already wired)
 
-`src/components/DevLoginButton.tsx` is a `__DEV__`-gated button rendered inside `src/components/SignInButtons.tsx`, so it appears on every unauthenticated surface (Profile, Messages, My Events, Create Event). It calls `useAuth().signInWithDevUser(DEV_LOGIN_EMAIL, DEV_LOGIN_NAME)` which POSTs to `/api/dev-login` from the device, then writes the session through the same SecureStore keys (`TOKEN_KEY` / `USER_KEY` / `AUTH_PROVIDER_KEY`) as `signInWithProvider`. In release builds the component short-circuits to a no-op render, so it can never appear to end users regardless of the backend flag.
+`src/components/DevLoginButton.tsx` is an opt-in, dev-build-only button rendered inside `src/components/SignInButtons.tsx`, so when enabled it appears on every unauthenticated surface (Profile, Messages, My Events, Create Event). It renders only in `__DEV__` builds whose Metro was started with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` (see **Env for emulator builds**). It calls `useAuth().signInWithDevUser(DEV_LOGIN_EMAIL, DEV_LOGIN_NAME)` which POSTs to `/api/dev-login` from the device, then writes the session through the same SecureStore keys (`TOKEN_KEY` / `USER_KEY` / `AUTH_PROVIDER_KEY`) as `signInWithProvider`. In release builds the component short-circuits to a no-op render, so it can never appear to end users regardless of the backend flag.
 
 The testID is `dev-login-button` — use it in `mobile_dump_ui` to locate the button reliably.
 
@@ -161,7 +162,7 @@ If `mobile_dump_ui` shows the Discover screen with event cards, you're already a
 
 If you see the unauthenticated surface (sign-in buttons):
 
-a. Locate the **Dev Login (tester)** button via `mobile_dump_ui` — it's below the Google/Apple buttons, with testID `dev-login-button`. Tap its center via `mobile_tap`.
+a. Locate the **Dev Login (tester)** button via `mobile_dump_ui` — it's below the Google/Apple buttons, with testID `dev-login-button`. Tap its center via `mobile_tap`. If only the Google/Apple buttons appear, Metro was started without `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true`; restart Metro with it and reload.
 
 b. The button calls `/api/dev-login` from the device itself (no host-side curl needed — the device reaches the backend over `10.0.2.2`). Wait a second, then `mobile_dump_ui`. If you landed on the Discover screen, sign-in succeeded.
 
@@ -208,7 +209,7 @@ Commit `TEST_RUNS.md` updates on the integration branch alongside the code chang
 - Always `mobile_dump_ui` before tapping coordinates — don't guess.
 - Take a fresh `mobile_screenshot` after every state change you're verifying. Trust the screenshot/dump over the code.
 - Never enable `DEV_LOGIN_ENABLED` in production or commit it to `.env` / `Dockerfile` / EAS build config. It is a local-only convenience.
-- Dev-login on the client is `__DEV__`-gated (`DevLoginButton` renders `null` in release builds); never ship it. Both switches (server env + client `__DEV__`) must be off in production.
+- Dev-login on the client is opt-in and dev-only (`DevLoginButton` renders `null` unless a `__DEV__` build sets `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true`, and always in release builds); never ship it. The server env flag and the client gates must all be off in production.
 - If a test fails on the device but passes in unit tests, trust the device — emulator findings are authoritative for UI/interaction behavior.
 
 ## When to stop

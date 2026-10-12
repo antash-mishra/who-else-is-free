@@ -68,7 +68,7 @@ The repo is linked to the original authorâ€™s Expo/EAS project, so we first reâ€
 3. Open `app.config.js` in the project root.
 4. **Keep the existing name and slug**, for example:
    ```js
-   name: "Weif",
+   name: "weif",
    slug: "who-else-is-free",
    ```
    `name` is the installed display name. Keep the slug and bundle identifier stable when renaming

@@ -323,6 +323,7 @@ const OnboardingScreen = () => {
                 label="Continue"
                 variant="primary"
                 fullWidth
+                disabledAppearance="dimmed"
                 onPress={handleContinueStep1}
                 disabled={!canContinueStep1}
               />
@@ -394,6 +395,7 @@ const OnboardingScreen = () => {
               label="Continue"
               variant="primary"
               fullWidth
+              disabledAppearance="dimmed"
               onPress={handleContinueStep2}
               disabled={!canContinueStep2}
             />
@@ -479,6 +481,7 @@ const OnboardingScreen = () => {
               label="Let's go"
               variant="primary"
               fullWidth
+              disabledAppearance="dimmed"
               haptic="submit"
               onPress={handleDone}
               disabled={!canDone}

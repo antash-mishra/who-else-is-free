@@ -32,6 +32,7 @@ type AuthHandler struct {
 	signer          *tokenSigner
 	googleVerifier  googleTokenVerifier
 	appleVerifier   appleTokenVerifier
+	identityHasher  *IdentityHasher
 	devLoginEnabled bool
 }
 
@@ -45,6 +46,7 @@ func NewAuthHandler(repo *EventRepository, signer *tokenSigner) *AuthHandler {
 		signer:          signer,
 		googleVerifier:  liveGoogleTokenVerifier{},
 		appleVerifier:   newLiveAppleTokenVerifier(),
+		identityHasher:  newIdentityHasherFromEnv(),
 		devLoginEnabled: devLoginEnabled,
 	}
 }
@@ -109,6 +111,8 @@ func (h *AuthHandler) googleLogin(c *gin.Context) {
 		return
 	}
 
+	subject, _ := claims["sub"].(string)
+	h.recordIdentityHashes(c.Request.Context(), user, identityProviderGoogle, subject)
 	h.respondWithIssuedSession(c, user, "google-login", isNewUser)
 }
 
@@ -196,6 +200,7 @@ func (h *AuthHandler) appleLogin(c *gin.Context) {
 	user, err := h.repo.GetUserByAppleSubject(ctxRepo, subject)
 	switch {
 	case err == nil:
+		h.recordIdentityHashes(c.Request.Context(), user, identityProviderApple, subject)
 		h.respondWithIssuedSession(c, user, "apple-login", false)
 		return
 	case !errors.Is(err, ErrUserNotFound):
@@ -232,7 +237,27 @@ func (h *AuthHandler) appleLogin(c *gin.Context) {
 		return
 	}
 
+	h.recordIdentityHashes(c.Request.Context(), user, identityProviderApple, subject)
 	h.respondWithIssuedSession(c, user, "apple-login", isNewUser)
+}
+
+// recordIdentityHashes is best-effort: sign-in never fails because a safety
+// hash could not be written. Subjects, emails and hashes are never logged.
+func (h *AuthHandler) recordIdentityHashes(parentCtx context.Context, user *User, provider, subject string) {
+	ctx, cancel := context.WithTimeout(parentCtx, requestTimeout)
+	defer cancel()
+	for _, identity := range []struct{ provider, value string }{
+		{provider, subject},
+		{identityProviderEmail, user.Email},
+	} {
+		hash, ok := h.identityHasher.Hash(identity.provider, identity.value)
+		if !ok {
+			continue
+		}
+		if err := h.repo.RecordUserIdentityHash(ctx, user.ID, identity.provider, hash); err != nil {
+			log.Printf("%s-login: failed to record %s identity hash for user %d: %v", provider, identity.provider, user.ID, err)
+		}
+	}
 }
 
 func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, displayName string) (*User, bool, error) {

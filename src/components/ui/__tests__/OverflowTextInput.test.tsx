@@ -38,17 +38,38 @@ describe('OverflowTextInput', () => {
     expect(onBlur).toHaveBeenCalledTimes(1);
   });
 
-  it('marks overflow at a whole-word boundary without changing the editable value', () => {
+  it('ellipsizes the full value at the end of the field without changing the editable value', () => {
     const value = 'A long synthetic name continues beyond the field';
     const view = render(<OverflowTextInput value={value} />);
-    const measured = view.getAllByText(value, { includeHiddenElements: true })[1];
-    fireEvent(measured, 'textLayout', {
-      nativeEvent: {
-        lines: [{ text: 'A long synthetic name ' }, { text: 'continues beyond the field' }],
-      },
-    });
-    expect(view.getByText('A long synthetic…', { includeHiddenElements: true })).toBeTruthy();
+    const preview = view.getAllByText(value, { includeHiddenElements: true });
+    expect(preview).toHaveLength(1);
+    expect(preview[0].props).toMatchObject({ numberOfLines: 1, ellipsizeMode: 'tail' });
     expect(view.UNSAFE_getByType(TextInput).props.value).toBe(value);
+  });
+
+  it('rewinds the hidden Android editor so focusing does not jump to the end', () => {
+    const { Platform } = jest.requireActual<typeof import('react-native')>('react-native');
+    const originalOS = Platform.OS;
+    Platform.OS = 'android';
+    // React Native's Jest TextInput mock omits setSelection, so provide one for this test.
+    const prototype = TextInput.prototype as Partial<TextInput>;
+    const setSelection = jest.fn();
+    prototype.setSelection = setSelection;
+    try {
+      const view = render(<OverflowTextInput value="Long name" placeholder="Name" />);
+      expect(setSelection).toHaveBeenLastCalledWith(0, 0);
+      const input = view.getByPlaceholderText('Name');
+      fireEvent(input, 'focus', { nativeEvent: {} });
+      setSelection.mockClear();
+      fireEvent.changeText(input, 'Long name edited');
+      view.rerender(<OverflowTextInput value="Long name edited" placeholder="Name" />);
+      expect(setSelection).not.toHaveBeenCalled();
+      fireEvent(input, 'blur', { nativeEvent: {} });
+      expect(setSelection).toHaveBeenLastCalledWith(0, 0);
+    } finally {
+      delete prototype.setSelection;
+      Platform.OS = originalOS;
+    }
   });
 
   it('keeps empty and auto-focused fields visible without duplicate accessible text', () => {

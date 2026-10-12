@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-- Bottom-tab chrome lives in `src/navigation/TabBarBackground.tsx`: use `FrostedSurface` with real blur at intensity 54 beneath the 60% white overlay so scrolling content is softened on both platforms.
+- Bottom-tab chrome lives in `src/navigation/TabBarBackground.tsx`: `FrostedSurface` with real blur so scrolling content is softened on both platforms. iOS keeps intensity 54 beneath the 60% white overlay. Android draws no overlay view, because Dimezis captures every view drawn above the blur (overlay, top border, tab icons) and blurred the overlay into the material before drawing it again; it passes `tabBarAndroidMaterial` (`src/theme/materials.ts`: LIGHT tint intensity 90, alpha 0.70, which carries the overlay's white after the blur, and a 19.5dp sigma converted for the screen density by `androidBlurReductionFactor`). The captured icons leave a faint glow around the active one (5.6/255); a weaker tint shows more of the list and more glow (#190).
 
 Guide for Claude and other coding agents working in this repository.
 
@@ -11,9 +11,10 @@ Follow `AGENTS.md` first. This file mirrors the essentials for Claude-oriented w
 Who Else Is Free is an event discovery and social coordination app.
 
 - Frontend: React Native Expo app in `src/`
-- Installed app display name is `Weif`, owned by `expo.name` in `app.config.js`. Keep the Expo slug,
-  EAS project ID, package/bundle identifiers, and persisted storage keys stable during display-name
-  changes. Native rebuilds and separate store-title updates are required; see `docs/app-display-name.md`.
+- Installed app display name is `weif` (all lowercase, issue #176), owned by `expo.name` in
+  `app.config.js`. Keep the Expo slug, EAS project ID, package/bundle identifiers, and persisted
+  storage keys stable during display-name changes. Native rebuilds and separate store-title
+  updates are required; see `docs/app-display-name.md`.
 - Android's default navigation contrast stays enabled (`androidNavigationBar.enforceContrast: true`).
   Only focused onboarding disables it, through `useOnboardingNavigationBar` and the local
   `modules/system-navigation` Expo module. Blur/unmount restores other screens; native resume
@@ -106,6 +107,14 @@ Who Else Is Free is an event discovery and social coordination app.
   `ADMIN_BOOTSTRAP_EMAILS` only provisions verified initial accounts. Support Inbox API mapping is
   in `src/api/adminHelp.ts`, feature state is in `useAdminAccess`/`useAdminHelpSubmissions`, and
   support content must stay out of analytics and routine logs.
+- Safety reports outlive accounts and plans (#184): `event_reports.event_id`/`user_id`/`reviewed_by`
+  are `ON DELETE SET NULL`; `reported_user_id` and `subject_user_id` have no FK and keep deleted ids.
+  Create reports only through `insertReportWithSnapshot`, which copies the plan title, the subject
+  (reported member, or host for plan reports), the subject's last 50 messages the reporter could see
+  (`event_report_messages`) and identity HMACs (`user_identity_hashes` → `event_report_identities`,
+  keyed by `REPORT_IDENTITY_HMAC_KEY`). `PurgeExpiredEventReports` deletes reports after 18 months
+  unless `retention_hold = 1`. Startup cleanups must never delete reports because a reference is
+  NULL. See `docs/safety-report-retention.md`.
 - Notifications: historical content stays immutable except for explicit idempotent copy-correction
   migrations, while `action_state` separately tracks live
   action validity (`active`, `resolved`, or `unavailable`). `read` remains independent and unread
@@ -227,7 +236,7 @@ reintroduce a settle delay after the event, and keep the fallback timer for devi
 it. `BottomSheet.startOpenAnimation` resets `keyboardOffset` because entry can now begin while a
 previous field's keyboard is still on screen.
 
-Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `onOpened` for focus or heavy content that must wait for sheet entry; Android keyboard lifts use physical-screen keyboard-top coordinates to support `adjustPan`. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
+Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `onOpened` for focus or heavy content that must wait for sheet entry. On Android 11+ (API 30), `BottomSheet` follows every IME frame through react-native-keyboard-controller's `useGenericKeyboardHandler` (never `useKeyboardHandler`, which switches the activity's soft input mode); inside a sheet's Modal window (edge-to-edge, translucent navigation bar) the reported height includes the navigation bar, so the lift is `getKeyboardTranslation({ keyboardHeight, safeAreaBottom })`. Frames move only a settled sheet (not during entry or after its close starts), a closing or shrinking keyboard only lowers it, and a hosted sheet that starts avoiding the keyboard while open (More actions → report prompt) catches up. Android 10 and older keep React Native's `keyboardDidShow`/`keyboardDidHide` lift with physical-screen keyboard-top coordinates: keyboard-controller only emulates frames there, from insets the `adjustPan` window never resizes (#190). Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
 
 Places autocomplete is country-restricted server-side only when the client supplies the ISO country
 resolved from the already-granted viewer location; do not replace it with a client-only result
@@ -283,7 +292,7 @@ For visual or interaction changes, smoke test on the connected mobile app/emulat
 
 For batch issue work that must be verified on the emulator, use the project-local `fix-issues-on-device` skill (`.pi/skills/`) with the `mobile-mcp` bridge tools (`.pi/extensions/mobile-mcp/`: `mobile_init`, `mobile_open_app`, `mobile_dump_ui`, `mobile_tap`, `mobile_swipe`, `mobile_type`, `mobile_key_press`, `mobile_screenshot`). Pi connects to MCP servers via extensions (no built-in MCP). The skill implements a fix → typecheck/test → `npm run android` → navigate → `mobile_screenshot` → visually verify → retry loop, using `ISSUES.md` as the status board. Verify issues sequentially (one shared emulator). After a fresh clone run `cd .pi/extensions/mobile-mcp && npm install`.
 
-For single-change verification after implementing a feature/fix, use the `test-on-device` skill (`.pi/skills/test-on-device/`). It bypasses Google/Apple sign-in with the dev-login dummy user (backend `POST /api/dev-login` gated by `DEV_LOGIN_ENABLED=1`; client `DevLoginButton` gated by `__DEV__`, mounted in `SignInButtons` with testID `dev-login-button`) and drives the emulator with the `mobile_*` tools, recording pass/fail verdicts on `TEST_RUNS.md`. Full sign-in mode docs (normal vs dev-login, switching, three preset users) in `docs/dev-login.md`. Emulator-only — never targets a physical device. Per-session setup: launch `WEIF_API_36` AVD, run `cd server && DEV_LOGIN_ENABLED=1 go run .`, run Metro with `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080 EXPO_PUBLIC_CHAT_ENABLED=true npm start`, launch with `adb shell am start -n com.whoelseisfree.app/.MainActivity`, tap the `http://10.0.2.2:8081` row on the Dev Launcher screen, tap "Dev Login (tester)". If a physical device is also connected, unplug it OR start pi with `ANDROID_SERIAL=emulator-5554` (mobile-mcp runs bare `adb shell` with no `-s` and fails with `more than one device/emulator` otherwise). Never enable `DEV_LOGIN_ENABLED` in production.
+For single-change verification after implementing a feature/fix, use the `test-on-device` skill (`.pi/skills/test-on-device/`). It bypasses Google/Apple sign-in with the dev-login dummy user (backend `POST /api/dev-login` gated by `DEV_LOGIN_ENABLED=1`; client `DevLoginButton` mounted in `SignInButtons` with testID `dev-login-button`, hidden unless a `__DEV__` build's Metro sets `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` — issue #186) and drives the emulator with the `mobile_*` tools, recording pass/fail verdicts on `TEST_RUNS.md`. Full sign-in mode docs (normal vs dev-login, switching, three preset users) in `docs/dev-login.md`. Emulator-only — never targets a physical device. Per-session setup: launch `WEIF_API_36` AVD, run `cd server && DEV_LOGIN_ENABLED=1 go run .`, run Metro with `EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8080 EXPO_PUBLIC_CHAT_ENABLED=true EXPO_PUBLIC_DEV_LOGIN_ENABLED=true npm start`, launch with `adb shell am start -n com.whoelseisfree.app/.MainActivity`, tap the `http://10.0.2.2:8081` row on the Dev Launcher screen, tap "Dev Login (tester)". If a physical device is also connected, unplug it OR start pi with `ANDROID_SERIAL=emulator-5554` (mobile-mcp runs bare `adb shell` with no `-s` and fails with `more than one device/emulator` otherwise). Never enable `DEV_LOGIN_ENABLED` in production.
 
 ## Import And Type Rules
 
@@ -355,25 +364,32 @@ Prepared picker rows are memoized by logical selection and calendar-day bounds. 
 
 ### Long text presentation
 
-- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, an ellipsized preview at rest. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
+- `OverflowTextInput` (`src/components/ui/OverflowTextInput.tsx`) keeps a native single-line editor mounted: horizontal scrolling and full values while focused, a native tail-ellipsized preview at rest (the ellipsis sits at the field's end, not at a word boundary; issue 187). On Android the hidden editor is rewound to the start and its theme padding reset while unfocused, so focusing never shifts the text. Use it for Create/Edit plan titles and profile/onboarding names; never truncate saved values. The preview is hidden from accessibility so the native editor remains the sole accessible field.
 - Displayed user names use one line with tail ellipsis in profiles, host lines, request/member rows, and chat. Join notices truncate only the name and keep the action suffix visible; stored chat bodies stay unchanged.
 - Invite/report sheets use one bounded native multiline input, without an enclosing scroll view competing for text gestures. Keep the CTA outside that input. Shared multiline/composer height and line-height limits live in `componentTokens.input`. Chat preserves its pill shape for one line and uses `radii.xl` for multiline drafts.
 
 ## Custom plan covers and age selection
 
-- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider, 18–99,
-  integer steps and a minimum five-year gap. Temporary drafts stay in the sheet;
+- Create/Edit Age uses `AgeRangeContent` with the linked fast range slider over
+  18–`PLAN_AGE_SLIDER_MAX` (50), integer steps and a minimum five-year gap. Most plans
+  target ~20–40, so the slider stops at 50 and its end stop means "50+", saved as
+  `PLAN_AGE_MAX` (99); `toAgeSliderRange`/`fromAgeSliderRange` in `planAgeRange.ts` map
+  between them, and a saved max above 50 is kept unless a handle moves. Each thumb's
+  value is drawn above it (a finger covers the thumb), positioned from the slider's
+  thumb math, so the sheet shows no separate range summary. Temporary drafts stay in the sheet;
   only Done commits. Legacy separated/out-of-bounds ranges require deliberate
   replacement and survive unrelated edits.
 - New selections carry `age_selection_mode: "range"`; preserve legacy presets and
   their original 18–60 bounds. Mode-aware display lives in `eventDisplay.ts`;
-  range-mode full bounds show All ages, otherwise the actual min - max everywhere.
+  range-mode full bounds show All ages in Event Details and are omitted from event
+  cards (like legacy all-age plans), an open top (`PLAN_AGE_MAX`) shows `min+`,
+  otherwise the actual min - max everywhere.
 - `patches/react-native-fast-range-slider+0.4.0.patch` adds adjustable accessibility
   actions, canceled-gesture cleanup and width synchronization to the pinned slider.
   Recreate/check it on package upgrades. The slider's gap prop is pixels; convert
   the five-year gap using measured width. Size tokens live in `componentTokens.ageRange`
   and the opaque thumb shadow in `shadows.ageRangeThumb`.
-- `CoverPickerContent` owns the optional pinned Choose from library action and grid
+- `CoverPickerContent` owns the optional pinned Add your own cover action and grid
   clearance. Defer the heavy grid via the shared sheet's onOpened readiness signal.
   Custom covers never highlight a catalog choice. Bottom-sheet native modals use
   translucent status/navigation bars and an unpadded full-window backdrop.

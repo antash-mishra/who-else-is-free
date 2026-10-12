@@ -678,6 +678,14 @@ whole-repository formatting were not run.
 - PASS: installed over the earlier signed 1.0.1 APK on `WEIF_ISSUE_167_RELEASE`, then guest Discover → Profile → Google sign-in sheet without Metro or dev-login controls. No production account/profile writes.
 - PENDING: onboarding on the affected physical phone with this signed APK, older Android, iOS visuals. Report/screenshots/download: `report/issue-167-onboarding-only.md` and `.html`.
 
+## 2026-10-11 — Issue #189: Select location sentence case
+
+- Change: Create/Edit Event location placeholder `Select Location` → `Select location` (plus the unused `LocationPickerModal` sheet title) to match app-wide sentence case.
+- Flow: Discover → Create tab → Create plan form, Location row (WEIF_API_36 emulator, Metro hot reload).
+- Final: PASS — the placeholder chip reads `Select location`; no other layout change.
+- Automated: `CreateEventScreen.rendering` (20 tests) and typecheck passed.
+- Evidence: `report/screenshots/issue-189/` (before/after full screen and Location-row crops).
+
 ## 2026-10-06 — Issue #177: long text
 
 - Change: bounded native request/chat scrolling, multiline composer corners, ellipsized display names, and shared full-value name/title editing with overflow previews.
@@ -767,3 +775,40 @@ whole-repository formatting were not run.
   Physical-device visuals, VoiceOver/TalkBack, permission/error matrix and staging
   media durability remain release checks. User-reviewed Cover/Age captures were posted
   to issue #159 in comment 6021657473; implementation PR is #178.
+
+## 2026-10-11 — Issue #187: Create plan name overflow
+
+- Change: `OverflowTextInput` shows its resting preview with native one-line tail truncation (the issue-177 whole-word measurement left the ellipsis mid-field). On Android it rewinds the hidden editor's selection to 0 while unfocused and resets the EditText theme padding, so focusing no longer jumps to the end or nudges the text sideways.
+- Flow: Create plan → type `Group ios snsnsj sjdjdj Hsnsnsnshsjsjsjsn plan name` → blur → tap the field. Also Onboarding name (centered) on Android.
+- Android `WEIF_API_36`: PASS — before, the rest preview read `Group ios snsnsj...` with most of the row empty, and a tap opened the editor scrolled to `…sjdjdj Hsnsnsnshsjsjsjsn plan name` (selecting a different word). After, the preview fills the row (`Group ios snsnsj sjdjdj Hsnsnsnshsjs...`) and focusing keeps `Group` at the same x (63px) with the caret under the tap.
+- iOS `WEIF_ISSUE_167_IOS` simulator: PASS — preview reads `Group ios snsnsj sjdjdj Hsnsnsnshsj...` ending at the field edge.
+- Tests: `OverflowTextInput`, Onboarding, EditProfile and CreateEvent suites (14 suites, 133 tests) pass; `npm run typecheck` clean.
+- Screenshots: `report/screenshots/issue-187/`.
+
+## 2026-10-11 — Issue #188: Remove All ages from event cards
+
+- Change: `formatEventCardMetaLine` omits the age part for range-mode plans saved at the untouched 18–99 bounds, matching legacy all-age plans. Event Details keeps `All ages`.
+- Setup: current server built from this branch on `:8083` with a copy of `server/event.sqlite`, second Metro on `:8082`; host seeded four range-mode plans (18–99 1:1, 18–99 Group Female, 35–80 1:1, 24–99 1:1).
+- Android `WEIF_API_36`: PASS. Before (master formatter, same data), Discover read `1:1 · All ages` and `Group · Female · All ages`. After, it reads `1:1` and `Group · Female`, while restricted plans still read `1:1 · 35 - 80` and `1:1 · 24+`. Event Details for the untouched plan still reads `1:1 · All genders · All ages`.
+- Tests: full Jest suite (139 suites / 1,536 tests) and `npm run typecheck` pass.
+- Screenshots: `report/screenshots/issue-188/`.
+
+## 2026-10-12 — Issue #186: Hide Dev Login buttons by default
+
+- Change: `DevLoginButton` renders only when `DEV_LOGIN_ENABLED` (`src/constants/featureFlags.ts`) is true: a `__DEV__` build whose Metro was started with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true`. Release builds never show the presets.
+- Flow: signed out → Chat → Get started (shared `SignInButtons` sheet).
+- Android `WEIF_API_36`: before only. On master the sheet showed Google, Apple and the four Dev Login presets. No after capture: while the host was under heavy load from parallel Jest runs, the Android watchdog killed `system_server` three times (main thread blocked for 60 s); after a cold boot the dev client kept raising input-dispatch ANRs, the first one on the native Dev Launcher screen before any app JS ran.
+- iOS `WEIF_ISSUE_167_IOS` simulator (same Metro, only `DevLoginButton.tsx` swapped): PASS. The old component showed the four presets, matching the issue screenshot. The new code without the flag shows only Continue with Google / Apple (the hierarchy has only `google-sign-in-button` and `apple-sign-in-button`). The new code on a second Metro started with `EXPO_PUBLIC_DEV_LOGIN_ENABLED=true` shows the presets again.
+- Tests: new `featureFlags` (4) and `SignInButtons` (2) tests; full Jest suite (141 suites / 1,543 tests), `npm run typecheck` and ESLint on the touched files (0 warnings) pass.
+- Screenshots: `report/screenshots/issue-186/`.
+
+## 2026-10-12 — Issue #190: Android sheet keyboard lift and tab bar blur
+
+- Change: on Android 11+ `BottomSheet` follows every react-native-keyboard-controller frame (`useGenericKeyboardHandler`, Modal height minus the safe-area bottom) instead of React Native's zero-duration `keyboardDidShow`; frames move only a settled sheet, a closing keyboard only lowers it, and a hosted sheet that switches to avoidance while open (More actions → report prompt) catches up. Android 10 and older keep the `keyboardDidShow` lift (keyboard-controller only emulates frames there under `adjustPan`). The Android tab bar draws no overlay view and passes `tabBarAndroidMaterial` (intensity 90, 19.5dp sigma): Dimezis captured the 60% overlay into the blur and drew it again.
+- Flow: Create → Add details (open, keyboard Back, Done); Event Details → More actions → Report plan; Discover with the seeded "#190 tab bar test" list, card 6 (swimming) under the bar; Profile tab for the active-icon glow; Chat thread composer.
+- Android `WEIF_API_36`: PASS. Details/report sheets: before, the sheet jumped to its full lift ahead of the keyboard with the screen visible beneath (Create form / Event Details); after, no frame exposes the screen, the sheet descends with the keyboard on Back, and the resting position matches master (Details `gap_px=40/41`, report sheet top 646 / keyboard 1018). At real speed the emulator delivers late frames, so the keyboard briefly overlaps the sheet's bottom; a 4x slow-motion matched pair shows master exposing the form and the branch riding the keyboard. Tab bar matched pair over card 6: contrast passed 3.4% → 17.7%, edge contrast 7.3 → 39.9, tint spread 1.1 → 8.8, blur sigma ~66 → ~26 dp, page 251.0 → 250.1; glow beside the active icon 2.8 → 5.6/255. Soft input mode: activity `adjust=pan` on Discover, Create, Details open/closed, report open, Event name before/after a Details round trip; sheet dialogs report `adjust=nothing` on master and branch alike; chat thread `adjust=nothing` with the composer rising.
+- iOS `WEIF_ISSUE_167_IOS`: PASS; card-6 tab bar captures before/after are byte-identical (contrast passed 20.7%, edge contrast 45.7); Details sheet rest/keyboard/closed unchanged.
+- Physical device: not checked yet (needs the user's go-ahead for the Galaxy A56).
+- Environment: at host swap ~21.7/22.5 GB the emulator's input dispatcher wedged twice (ANR loops with the app's main thread idle); cold boots cleared it.
+- Tests: full Jest suite (142 suites / 1,568 tests), `npm run typecheck` and ESLint on the changed files pass; `git diff --check` clean. A whole-branch review found the Android 10 fallback and the closing-keyboard case; both are pinned by tests (no API 29 image was available to run on).
+- Screenshots: `report/screenshots/issue-190/`.

@@ -14,6 +14,9 @@ export interface KeyboardTranslationMetrics {
  * Prefer a keyboard-top coordinate when it is in the same viewport coordinate
  * space. Callers that only receive a height still get the same safe-area
  * normalization.
+ *
+ * A worklet: `BottomSheet` applies it to every react-native-keyboard-controller
+ * frame on the UI thread (#190).
  */
 export const getKeyboardTranslation = ({
   viewportHeight,
@@ -21,6 +24,8 @@ export const getKeyboardTranslation = ({
   keyboardHeight,
   safeAreaBottom,
 }: KeyboardTranslationMetrics): number => {
+  'worklet';
+
   const hasUsableKeyboardTop =
     Number.isFinite(viewportHeight) &&
     Number.isFinite(keyboardTop) &&

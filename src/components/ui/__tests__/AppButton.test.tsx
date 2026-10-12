@@ -1,5 +1,9 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
+
 import { fireEvent, render } from '@testing-library/react-native';
+
+import { colors } from '@theme/index';
 
 import { mockHaptics } from '../../../__tests__/mocks/mockModules';
 import AppButton from '../AppButton';
@@ -51,5 +55,37 @@ describe('AppButton', () => {
       disabled: true,
     });
     expect(queryByText('Saving')).toBeNull();
+  });
+
+  it('swaps to the grey disabled surface by default', () => {
+    const { getByTestId, getByText } = render(
+      <AppButton label="Continue" onPress={jest.fn()} disabled testID="continue-button" />,
+    );
+
+    const style = StyleSheet.flatten(getByTestId('continue-button-content').props.style);
+    expect(style.backgroundColor).toBe(colors.disabledButtonBackground);
+    expect(style.opacity).not.toBe(0.6);
+    expect(StyleSheet.flatten(getByText('Continue').props.style).color).toBe(
+      colors.disabledButtonText,
+    );
+  });
+
+  it('keeps the variant surface and dims it when disabledAppearance is dimmed', () => {
+    const { getByTestId, getByText } = render(
+      <AppButton
+        label="Continue"
+        onPress={jest.fn()}
+        disabled
+        disabledAppearance="dimmed"
+        testID="continue-button"
+      />,
+    );
+
+    const style = StyleSheet.flatten(getByTestId('continue-button-content').props.style);
+    expect(style.backgroundColor).toBe(colors.primaryButtonBackground);
+    expect(style.opacity).toBe(0.6);
+    expect(StyleSheet.flatten(getByText('Continue').props.style).color).not.toBe(
+      colors.disabledButtonText,
+    );
   });
 });

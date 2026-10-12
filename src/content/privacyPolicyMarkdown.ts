@@ -2,7 +2,7 @@ const privacyPolicyMarkdown = String.raw`# Privacy Policy
 
 ## **WEIF - PRIVACY POLICY**
 
-#### Last updated October 8, 2026
+#### Last updated October 12, 2026
 
 This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how and why we might access, collect, store, use, and/or share ('process') your personal information when you use our services ('**Services**'), including when you:
 
@@ -110,11 +110,11 @@ We may use analytics and similar technologies, including Firebase Analytics, to 
 
 ### 6. HOW LONG DO WE KEEP YOUR INFORMATION?
 
-We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Policy, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). Except as described below, no purpose in this policy will require us keeping your personal information for longer than the period of time in which users have an account with us.
+We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Policy, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). If another user reports you, we keep the report, the name you used, your recent messages in that plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your email address, for up to 18 months, even after you delete your account. We do this to protect other users and to recognise a reported person who signs up again. We keep a report for longer only while it is still under review. Reports you make are kept for the same period, without a link to your account once you delete it.
 
 When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymise such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
 
-When you delete your account in the app, we immediately delete your profile, plans, chat messages, join requests, reports, blocks and notifications. Messages you have sent to support are kept so we can finish handling them, but are no longer linked to your account. Copies may remain in server backups for a short period until those backups expire, and analytics data is kept for a limited time under our analytics provider's retention settings.
+When you delete your account in the app, we immediately delete your profile, plans, chat messages, join requests, blocks and notifications. Reports, including any chat messages copied into them, are kept as described above. Messages you have sent to support are kept so we can finish handling them, but are no longer linked to your account. Copies may remain in server backups for a short period until those backups expire, and analytics data is kept for a limited time under our analytics provider's retention settings.
 
 ### 7. HOW DO WE KEEP YOUR INFORMATION SAFE?
 

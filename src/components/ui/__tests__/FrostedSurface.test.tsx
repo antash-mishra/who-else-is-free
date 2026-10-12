@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Platform, StyleSheet, Text } from 'react-native';
+import { PixelRatio, Platform, StyleSheet, Text } from 'react-native';
 
 import { render } from '@testing-library/react-native';
 import { BlurView } from 'expo-blur';
@@ -13,6 +13,12 @@ const fillStyle = (element: { props: { style?: unknown } }) =>
   StyleSheet.flatten(element.props.style) as { backgroundColor?: string };
 
 describe('FrostedSurface', () => {
+  const originalOS = Platform.OS;
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
   it('renders the calibrated fill for its tint and intensity', () => {
     const { getByTestId } = render(
       <FrostedSurface tint="dark" intensity={45} testID="chip">
@@ -69,6 +75,36 @@ describe('FrostedSurface', () => {
     }
 
     expect(styles[0]).toBe(styles[1]);
+  });
+
+  it('applies an Android material without touching iOS (#190)', () => {
+    const material = { intensity: 13, blurSigmaDp: 19.5 };
+    const pixelRatio = jest.spyOn(PixelRatio, 'get').mockReturnValue(1.75);
+    const blurProps: Record<string, { intensity: number; blurReductionFactor: number }> = {};
+
+    for (const os of ['ios', 'android'] as const) {
+      Platform.OS = os;
+      const { UNSAFE_getByType, unmount } = render(
+        <FrostedSurface tint="light" intensity={54} blur androidMaterial={material} />,
+      );
+      const { intensity, blurReductionFactor } = UNSAFE_getByType(BlurView).props;
+      blurProps[os] = { intensity, blurReductionFactor };
+      unmount();
+    }
+
+    expect(blurProps.ios.intensity).toBe(54);
+    expect(blurProps.android.intensity).toBe(13);
+    // 19.5dp x 1.75 / 6 = 5.6875px sigma in the capture -> radius 8.985 -> 13 / 8.985.
+    expect(blurProps.android.blurReductionFactor).toBeCloseTo(1.4469, 3);
+    pixelRatio.mockRestore();
+  });
+
+  it('keeps the shared Android blur for surfaces without a material', () => {
+    Platform.OS = 'android';
+    const { UNSAFE_getByType } = render(<FrostedSurface tint="dark" intensity={45} blur />);
+
+    expect(UNSAFE_getByType(BlurView).props.intensity).toBe(45);
+    expect(UNSAFE_getByType(BlurView).props.blurReductionFactor).toBe(2);
   });
 });
 

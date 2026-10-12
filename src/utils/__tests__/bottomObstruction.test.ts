@@ -41,6 +41,20 @@ describe('bottom obstruction layout helpers', () => {
         }),
       ).toBe(0);
     });
+
+    it('lifts a Modal sheet by the keyboard-controller height less the inset it pads (#190)', () => {
+      // WEIF_API_36: keyboard-controller reported 332dp inside the sheet's Modal window,
+      // where React Native's screenY-based lift was 284dp with a 48dp safe-area bottom.
+      expect(getKeyboardTranslation({ keyboardHeight: 332, safeAreaBottom: 48 })).toBe(284);
+    });
+
+    it.each([
+      [0, 300],
+      [24, 276],
+      [48, 252],
+    ])('removes a %idp navigation inset exactly once from a 300dp keyboard', (inset, lift) => {
+      expect(getKeyboardTranslation({ keyboardHeight: 300, safeAreaBottom: inset })).toBe(lift);
+    });
   });
 
   describe('getTabBarContentClearance', () => {

@@ -1,19 +1,22 @@
 import React, { useCallback, useState } from 'react';
+
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { AppButton } from '@components/ui';
+import { DEV_LOGIN_ENABLED } from '@constants/featureFlags';
 import { useAuth } from '@context/AuthContext';
 import { RootStackParamList } from '@navigation/types';
 import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
 
 /**
- * DEV ONLY. Bypasses Google/Apple sign-in by calling /api/dev-login, which is
- * registered on the backend only when DEV_LOGIN_ENABLED=1. Renders nothing in
- * release builds: the default export short-circuits to a no-op render when
- * __DEV__ is false.
+ * DEV ONLY, opt-in. Bypasses Google/Apple sign-in by calling /api/dev-login,
+ * which is registered on the backend only when DEV_LOGIN_ENABLED=1. Renders
+ * nothing unless a dev build was started with EXPO_PUBLIC_DEV_LOGIN_ENABLED=true
+ * (`DEV_LOGIN_ENABLED` in featureFlags), so release builds never show it.
  *
  * The preset users keep stable identities across sessions so events /
  * conversations accumulate reproducibly. `tester` is the canonical
@@ -30,10 +33,31 @@ export type DevLoginUser = {
 };
 
 export const PRESET_DEV_USERS: DevLoginUser[] = [
-  { email: 'tester@who-else-is-free.test', name: 'Tester', label: 'Dev Login (tester)', testID: 'dev-login-button' },
-  { email: 'host@who-else-is-free.test', name: 'Host', label: 'Dev Login (host)', testID: 'dev-login-button-host' },
-  { email: 'member2@who-else-is-free.test', name: 'Member2', label: 'Dev Login (member2)', testID: 'dev-login-button-member2' },
-  { email: 'onboarding@who-else-is-free.test', name: 'Onboard Tester', label: 'Dev Login (onboarding)', testID: 'dev-login-button-onboarding', skipProfileCompletion: true },
+  {
+    email: 'tester@who-else-is-free.test',
+    name: 'Tester',
+    label: 'Dev Login (tester)',
+    testID: 'dev-login-button',
+  },
+  {
+    email: 'host@who-else-is-free.test',
+    name: 'Host',
+    label: 'Dev Login (host)',
+    testID: 'dev-login-button-host',
+  },
+  {
+    email: 'member2@who-else-is-free.test',
+    name: 'Member2',
+    label: 'Dev Login (member2)',
+    testID: 'dev-login-button-member2',
+  },
+  {
+    email: 'onboarding@who-else-is-free.test',
+    name: 'Onboard Tester',
+    label: 'Dev Login (onboarding)',
+    testID: 'dev-login-button-onboarding',
+    skipProfileCompletion: true,
+  },
 ];
 
 const DevLoginButtonImpl: React.FC = () => {
@@ -76,7 +100,9 @@ const DevLoginButtonImpl: React.FC = () => {
           <AppButton
             key={user.email}
             label={isPending ? 'Dev signing in…' : user.label}
-            icon={isPending ? <ActivityIndicator color={colors.buttonText} size="small" /> : undefined}
+            icon={
+              isPending ? <ActivityIndicator color={colors.buttonText} size="small" /> : undefined
+            }
             onPress={() => handleDevLogin(user)}
             disabled={isSigningIn}
             variant="secondary"
@@ -110,10 +136,11 @@ const styles = StyleSheet.create({
 });
 
 /**
- * __DEV__ gate: in release builds this entire export becomes a no-op render
- * so the dev-login buttons can never appear to end users, regardless of whether
- * the backend happens to have the route enabled.
+ * Opt-in gate (issue #186): the presets stay hidden in dev builds unless
+ * EXPO_PUBLIC_DEV_LOGIN_ENABLED=true, and the flag is always off in release
+ * builds, so the dev-login buttons can never appear to end users regardless of
+ * whether the backend happens to have the route enabled.
  */
-const DevLoginButton: React.FC = __DEV__ ? DevLoginButtonImpl : () => null;
+const DevLoginButton: React.FC = () => (DEV_LOGIN_ENABLED ? <DevLoginButtonImpl /> : null);
 
 export default DevLoginButton;
