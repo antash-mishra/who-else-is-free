@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-- Bottom-tab chrome lives in `src/navigation/TabBarBackground.tsx`: use `FrostedSurface` with real blur at intensity 54 beneath the 60% white overlay so scrolling content is softened on both platforms.
+- Bottom-tab chrome lives in `src/navigation/TabBarBackground.tsx`: `FrostedSurface` with real blur so scrolling content is softened on both platforms. iOS keeps intensity 54 beneath the 60% white overlay. Android draws no overlay view, because Dimezis captures every view drawn above the blur (overlay, top border, tab icons) and blurred the overlay into the material before drawing it again; it passes `tabBarAndroidMaterial` (`src/theme/materials.ts`: LIGHT tint intensity 90, alpha 0.70, which carries the overlay's white after the blur, and a 19.5dp sigma converted for the screen density by `androidBlurReductionFactor`). The captured icons leave a faint glow around the active one (5.6/255); a weaker tint shows more of the list and more glow (#190).
 
 Guide for Claude and other coding agents working in this repository.
 
@@ -236,7 +236,7 @@ reintroduce a settle delay after the event, and keep the fallback timer for devi
 it. `BottomSheet.startOpenAnimation` resets `keyboardOffset` because entry can now begin while a
 previous field's keyboard is still on screen.
 
-Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `onOpened` for focus or heavy content that must wait for sheet entry; Android keyboard lifts use physical-screen keyboard-top coordinates to support `adjustPan`. Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
+Modal bottom sheets should use `BottomSheetModal` so they are coordinated by the shared host and do not stack sibling native modals on iOS. Shared keyboard avoidance keeps the home-indicator inset behind the iOS keyboard while preserving the shared base content spacing; do not add per-modal safe-area or keyboard offsets. Use `onOpened` for focus or heavy content that must wait for sheet entry. On Android, `BottomSheet` follows every IME frame through react-native-keyboard-controller's `useGenericKeyboardHandler` (never `useKeyboardHandler`, which switches the activity's soft input mode); inside a sheet's Modal window the reported height includes the navigation bar, so the lift is `getKeyboardTranslation({ keyboardHeight, safeAreaBottom })`. Frames move only a settled sheet (not during entry or after its close starts), and a hosted sheet that starts avoiding the keyboard while open (More actions → report prompt) catches up with it (#190). Use `CreateEventBottomSheet` for Create/Edit Event sheet chrome so it stays on the same modal transition system.
 
 Places autocomplete is country-restricted server-side only when the client supplies the ISO country
 resolved from the already-granted viewer location; do not replace it with a client-only result

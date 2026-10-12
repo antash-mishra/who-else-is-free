@@ -518,7 +518,9 @@ Where it is used:
   Android radius, tint and saturation live in `avatarBadgeMaterial`, independently calibrated
   against the unchanged iOS badge. Foreground glyphs and shadows never enter that source.
 - Event Details hero buttons (back, menu, overlay close).
-- Tab bar background (`src/navigation/TabBarBackground.tsx`): real blur at intensity 54 beneath the 60% white overlay.
+- Tab bar background (`src/navigation/TabBarBackground.tsx`): real blur; iOS intensity 54 beneath the 60% white
+  overlay, Android `tabBarAndroidMaterial` through `androidMaterial` with no overlay view, its tint carrying the
+  overlay's white (#190).
 - `CoverPickerModal` check badge and `EventCard` badge strip. Action toasts use `ActionToastSurface` below.
 
 Use it when:
@@ -534,6 +536,12 @@ Rules:
   indistinguishable and much cheaper, since an Android blur captures the screen behind it every
   frame. `EventCard`'s badge strip stays tint-only regardless: it sits inside a `MaskedView`, the
   offscreen-capture pattern that hit a RenderScript crash in release testing.
+- `androidMaterial` (Android only, needs `blur`) gives a surface its own tint intensity and dp blur sigma when the
+  shared Android blur cannot match its iOS material at the same `intensity`; `androidBlurReductionFactor` converts
+  the sigma for the screen density. Only the tab bar uses it. Dimezis captures views drawn above a blurred surface
+  (siblings, overlays, icons), so carry an overlay's colour in the material tint instead of a sibling view, and
+  expect foreground glyphs to leave a faint glow. Calibrate a new material against iOS on device with matched
+  captures.
 - Pass the surface's existing `intensity` (0-100) so it keeps its calibrated weight, and keep the
   surface's own background colour: the material composites over it.
 - Legacy live capture can include sibling foreground on Android. Audit cover chip and Cover Picker
@@ -993,9 +1001,11 @@ What it is:
 - Owns modal/inline presentation, backdrop, open/close animation, safe area, keyboard avoidance,
   max height, optional snap height, and shared sheet styling.
 - Keyboard avoidance uses `bottomObstruction.ts` to subtract the system safe-area region already
-  reserved by the sheet from its translation. Android uses physical-screen keyboard-top coordinates
-  so `adjustPan` does not collapse the translation to zero; iOS retains height-based animation
-  timing. Both preserve the shared base content spacing. Do not compensate in prompt content.
+  reserved by the sheet from its translation. Android follows every IME frame from
+  react-native-keyboard-controller's `useGenericKeyboardHandler` (its Modal watcher reaches the sheet's own
+  window, where the height includes the navigation bar), moving only a settled sheet and catching up when an
+  open hosted sheet switches to avoidance; iOS keeps `keyboardWillShow`/`keyboardWillHide` timing. Both
+  preserve the shared base content spacing. Do not compensate in prompt content.
 - Exposes `onOpened` after its entry animation settles. Use it for keyboard focus and expensive
   child mounting rather than guessing a timeout in individual sheet content.
 
