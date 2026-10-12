@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import {
+  Dimensions,
   Keyboard,
   KeyboardEvent,
   Modal,
@@ -59,6 +60,12 @@ const BASE_PADDING_BOTTOM = 8;
 const MIN_TOP_GUTTER = 96;
 const MODAL_CLOSE_DURATION_MS = 300;
 const INLINE_CLOSE_DURATION_MS = 220;
+/**
+ * keyboard-controller reports real IME frames from Android 11. Below it they are emulated
+ * from window insets, which the app's adjustPan window never resizes, so older Android
+ * keeps React Native's keyboard events.
+ */
+const MIN_ANDROID_API_FOR_KEYBOARD_FRAMES = 30;
 
 const BottomSheet = ({
   visible,
@@ -104,10 +111,16 @@ const BottomSheet = ({
   // showed through underneath. Frames only move a settled sheet: not while it enters
   // (a previous field's keyboard can still be sliding out) and not once it starts
   // closing (the close animation owns the offset). `latestKeyboardHeight` lets a
-  // sheet catch up when it settles or starts avoiding the keyboard.
-  const followsKeyboardFrames = Platform.OS === 'android' && avoidKeyboard;
+  // sheet catch up when it settles or starts avoiding the keyboard. A closing or
+  // shrinking keyboard only ever lowers the sheet, so a sheet that settles while the
+  // previous field's keyboard is still closing stays at rest.
+  const followsKeyboardFrames =
+    avoidKeyboard &&
+    Platform.OS === 'android' &&
+    Number(Platform.Version) >= MIN_ANDROID_API_FOR_KEYBOARD_FRAMES;
   const isSettled = useSharedValue(false);
   const latestKeyboardHeight = useSharedValue(0);
+  const isKeyboardClosing = useSharedValue(false);
   const restingBottomInset = BASE_PADDING_BOTTOM + safeBottom;
   const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
   const sheetMaxHeight = Math.max(screenHeight - topGutter, screenHeight * 0.5);
@@ -141,29 +154,35 @@ const BottomSheet = ({
     onOpenedRef.current?.();
   }, []);
 
+  /** The lift for `keyboardHeight`, never above the current offset while the keyboard closes. */
+  const liftForKeyboard = useCallback(
+    (keyboardHeight: number) => {
+      'worklet';
+
+      // Inside the sheet's Modal window the height includes the navigation bar the
+      // sheet already pads for (332dp reported, 284dp lift, 48dp inset on WEIF_API_36).
+      const lift = getKeyboardTranslation({ keyboardHeight, safeAreaBottom: safeBottom });
+      return isKeyboardClosing.value ? Math.min(keyboardOffset.value, lift) : lift;
+    },
+    [isKeyboardClosing, keyboardOffset, safeBottom],
+  );
+
   const catchUpWithKeyboard = useCallback(() => {
     'worklet';
 
-    keyboardOffset.value = withTiming(
-      getKeyboardTranslation({
-        keyboardHeight: latestKeyboardHeight.value,
-        safeAreaBottom: safeBottom,
-      }),
-      { duration: 160, easing: Easing.out(Easing.cubic) },
-    );
-  }, [keyboardOffset, latestKeyboardHeight, safeBottom]);
+    keyboardOffset.value = withTiming(liftForKeyboard(latestKeyboardHeight.value), {
+      duration: 160,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [keyboardOffset, latestKeyboardHeight, liftForKeyboard]);
 
   const followKeyboardFrame = (height: number) => {
     'worklet';
 
+    isKeyboardClosing.value = height < latestKeyboardHeight.value;
     latestKeyboardHeight.value = height;
     if (followsKeyboardFrames && isSettled.value) {
-      // Inside the sheet's Modal window the height includes the navigation bar the
-      // sheet already pads for (332dp reported, 284dp lift, 48dp inset on WEIF_API_36).
-      keyboardOffset.value = getKeyboardTranslation({
-        keyboardHeight: height,
-        safeAreaBottom: safeBottom,
-      });
+      keyboardOffset.value = liftForKeyboard(height);
     }
   };
 
@@ -182,7 +201,7 @@ const BottomSheet = ({
         followKeyboardFrame(event.height);
       },
     },
-    [followsKeyboardFrames, safeBottom],
+    [followsKeyboardFrames, liftForKeyboard],
   );
 
   useEffect(() => {
@@ -202,8 +221,8 @@ const BottomSheet = ({
       return undefined;
     }
 
-    // Android follows the IME through useGenericKeyboardHandler above.
-    if (Platform.OS === 'android') {
+    // Android 11+ follows the IME through useGenericKeyboardHandler above.
+    if (followsKeyboardFrames) {
       return undefined;
     }
 
@@ -211,6 +230,12 @@ const BottomSheet = ({
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const updateKeyboardOffset = (event: KeyboardEvent) => {
       const translation = getKeyboardTranslation({
+        // Android reports `screenY` in physical-screen coordinates. With the
+        // app configured for adjustPan, `useWindowDimensions()` can instead be
+        // the already-panned window height, which makes the old subtraction
+        // resolve to zero and leaves text-entry sheets under the keyboard.
+        viewportHeight: Platform.OS === 'android' ? Dimensions.get('screen').height : undefined,
+        keyboardTop: Platform.OS === 'android' ? event.endCoordinates.screenY : undefined,
         keyboardHeight: event.endCoordinates.height ?? 0,
         safeAreaBottom: safeBottom,
       });
@@ -232,7 +257,7 @@ const BottomSheet = ({
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [avoidKeyboard, keyboardOffset, safeBottom]);
+  }, [avoidKeyboard, followsKeyboardFrames, keyboardOffset, safeBottom]);
 
   const startOpenAnimation = useCallback(() => {
     // Prepared sheets have already laid out. Start just below the viewport, not

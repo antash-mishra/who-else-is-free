@@ -21,6 +21,7 @@ describe('BottomSheet', () => {
 
   afterEach(() => {
     Platform.OS = originalOS;
+    jest.restoreAllMocks();
   });
 
   it('keeps iOS on keyboardWillShow and keyboardWillHide', () => {
@@ -50,8 +51,9 @@ describe('BottomSheet', () => {
     addListenerSpy.mockRestore();
   });
 
-  it('does not wait for React Native keyboard events on Android (#190)', () => {
+  it('does not wait for React Native keyboard events on Android 11 and newer (#190)', () => {
     Platform.OS = 'android';
+    jest.spyOn(Platform, 'Version', 'get').mockReturnValue(30);
     const addListenerSpy = jest.spyOn(Keyboard, 'addListener');
 
     render(
@@ -62,6 +64,23 @@ describe('BottomSheet', () => {
 
     expect(addListenerSpy).not.toHaveBeenCalled();
     addListenerSpy.mockRestore();
+  });
+
+  it('keeps React Native keyboard events on Android 10 and older (#190)', () => {
+    // keyboard-controller only emulates IME frames below API 30, from window insets that
+    // the app's adjustPan window never resizes.
+    Platform.OS = 'android';
+    jest.spyOn(Platform, 'Version', 'get').mockReturnValue(29);
+    const addListenerSpy = jest.spyOn(Keyboard, 'addListener');
+
+    render(
+      <BottomSheet {...defaultProps}>
+        <Text>Sheet content</Text>
+      </BottomSheet>,
+    );
+
+    expect(addListenerSpy).toHaveBeenCalledWith('keyboardDidShow', expect.any(Function));
+    expect(addListenerSpy).toHaveBeenCalledWith('keyboardDidHide', expect.any(Function));
   });
 
   it('does not subscribe to keyboard events when keyboard avoidance is disabled', () => {
@@ -286,6 +305,7 @@ describe('BottomSheet follows Android keyboard frames (#190)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Platform.OS = 'android';
+    jest.spyOn(Platform, 'Version', 'get').mockReturnValue(36);
     jest
       .spyOn(safeAreaMock, 'useSafeAreaInsets')
       .mockReturnValue({ top: 0, bottom: 48, left: 0, right: 0 });
@@ -364,6 +384,33 @@ describe('BottomSheet follows Android keyboard frames (#190)', () => {
     const view = openSheet(false);
 
     deliver(view, 'onEnd', 332, true, false);
+
+    expect(translateY(view)).toBe(0);
+  });
+
+  it('stays at rest when the previous keyboard is still closing as the sheet settles', () => {
+    // Create opens Details on keyboardWillHide, so Event name's keyboard closes during entry.
+    const view = render(sheet());
+    deliver(view, 'onMove', 300);
+    deliver(view, 'onMove', 200);
+
+    act(() => {
+      view.UNSAFE_getByType(Modal).props.onShow();
+    });
+    view.rerender(sheet());
+    expect(translateY(view)).toBe(0);
+
+    deliver(view, 'onMove', 100);
+    expect(translateY(view)).toBe(0);
+    deliver(view, 'onEnd', 0);
+    expect(translateY(view)).toBe(0);
+  });
+
+  it('leaves Android 10 and older to React Native keyboard events', () => {
+    jest.spyOn(Platform, 'Version', 'get').mockReturnValue(29);
+    const view = openSheet();
+
+    deliver(view, 'onEnd', 332);
 
     expect(translateY(view)).toBe(0);
   });
