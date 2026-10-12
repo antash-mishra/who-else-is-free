@@ -112,7 +112,7 @@ Who Else Is Free is an event discovery and social coordination app.
   Create reports only through `insertReportWithSnapshot`, which copies the plan title, the subject
   (reported member, or host for plan reports), the subject's last 50 messages the reporter could see
   (`event_report_messages`) and identity HMACs (`user_identity_hashes` → `event_report_identities`,
-  keyed by `REPORT_IDENTITY_HMAC_KEY`). `PurgeExpiredEventReports` deletes reports after 18 months
+  keyed by `REPORT_IDENTITY_HMAC_KEY`). `PurgeExpiredEventReports` deletes reports after 12 months
   unless `retention_hold = 1`. Startup cleanups must never delete reports because a reference is
   NULL. See `docs/safety-report-retention.md`.
 - Notifications: historical content stays immutable except for explicit idempotent copy-correction

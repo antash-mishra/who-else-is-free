@@ -15,7 +15,7 @@ describe('PrivacyPolicyScreen', () => {
 
     expect(getByText('Privacy policy')).toBeTruthy();
     expect(getByText('WEIF PRIVACY POLICY')).toBeTruthy();
-    expect(getByText('Last updated October 11, 2026')).toBeTruthy();
+    expect(getByText('Last updated October 13, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();
     expect(getByLabelText('Jump to WHAT INFORMATION DO WE COLLECT?')).toBeTruthy();
     expect(getByText('Google API Services User Data Policy')).toBeTruthy();
@@ -34,7 +34,7 @@ describe('PrivacyPolicyScreen', () => {
 
   it('states that safety reports outlive a deleted account', () => {
     expect(privacyPolicyMarkdown).toContain(
-      'for up to 18 months, even after you delete your account',
+      'for up to 12 months, even after you delete your account',
     );
     expect(privacyPolicyMarkdown).not.toContain(
       'No purpose in this notice will require us keeping',

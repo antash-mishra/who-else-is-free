@@ -6,7 +6,7 @@
 
 ## **WEIF - PRIVACY POLICY**
 
-#### Last updated October 11, 2026
+#### Last updated October 13, 2026
 
 This Privacy Notice for Who Else is Free (doing business as WEIF) ('**we**', '**us**'', or '**our**'), describes how and why we might access, collect, store, use, and/or share ('process') your personal information when you use our services ('**Services**'), including when you:
 
@@ -110,7 +110,7 @@ We may use analytics and similar technologies, including Firebase Analytics, to 
 
 ### 6. HOW LONG DO WE KEEP YOUR INFORMATION?
 
-We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Notice, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). If another user reports you, we keep the report, the name you used, your recent messages in that plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your email address, for up to 18 months, even after you delete your account. We do this to protect other users and to recognise a reported person who signs up again. We keep a report for longer only while it is still under review. Reports you make are kept for the same period, without a link to your account once you delete it.
+We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Notice, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). If another user reports you, we keep the report, the name you used, your recent messages in that plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your email address, for up to 12 months, even after you delete your account. We do this to protect other users and to recognise a reported person who signs up again. We keep a report for longer only while it is still under review. Reports you make are kept for the same period, without a link to your account once you delete it.
 
 When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymise such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
 

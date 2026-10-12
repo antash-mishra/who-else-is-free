@@ -242,7 +242,7 @@ func (r *EventRepository) BackfillIdentityHashes(ctx context.Context, hasher *Id
 }
 
 // eventReportRetentionMonths is the fixed safety-report retention (#184).
-const eventReportRetentionMonths = 18
+const eventReportRetentionMonths = 12
 
 // PurgeExpiredEventReports deletes reports older than the retention period;
 // their message and identity snapshots cascade with them. retention_hold
