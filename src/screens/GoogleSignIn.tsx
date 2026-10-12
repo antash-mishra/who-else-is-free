@@ -125,7 +125,7 @@ const GoogleSignInScreen = () => {
           failure_stage: "native_unavailable",
         }).catch(() => undefined);
         Alert.alert(
-          "Google Sign-In Unavailable",
+          "Google Sign-In unavailable",
           "This feature requires running this app from a custom Expo dev build or standalone build with @react-native-google-signin/google-signin installed.",
         );
         return;
@@ -187,7 +187,7 @@ const GoogleSignInScreen = () => {
           failure_stage: "unsupported_platform",
         }).catch(() => undefined);
         Alert.alert(
-          "Apple Sign-In (Dev Preview)",
+          "Apple Sign-In (dev preview)",
           "This button is shown in development for UI testing. Apple Sign-In works only on iOS native builds.",
         );
         return;
@@ -199,7 +199,7 @@ const GoogleSignInScreen = () => {
           failure_stage: "native_unavailable",
         }).catch(() => undefined);
         Alert.alert(
-          "Apple Sign-In Unavailable",
+          "Apple Sign-In unavailable",
           "Apple Sign-In is unavailable on this device or build.",
         );
         return;

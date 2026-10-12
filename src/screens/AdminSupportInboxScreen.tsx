@@ -130,7 +130,7 @@ const AdminSupportInboxScreen = () => {
             showEmpty ? (
               <EmptyState
                 title="No support messages"
-                description="New Contact Us and Feedback submissions will appear here."
+                description="New Contact us and feedback submissions will appear here."
                 icon={<HelpIcon width={40} height={40} color={colors.mutedText} />}
               />
             ) : null
