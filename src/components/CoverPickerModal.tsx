@@ -73,11 +73,18 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
     }
   };
 
-  const handleChipPress = (key: string) => {
+  // `null` is the "All" chip: no category filter. Tapping an active category
+  // falls back to All, so exactly one chip is always active.
+  const handleChipPress = (key: string | null) => {
     triggerHaptic('selection');
     setQuery('');
-    setCategoryKey((current) => (current === key ? null : key));
+    setCategoryKey((current) => (key === null || current === key ? null : key));
   };
+
+  const chipOptions: { key: string | null; label: string }[] = [
+    { key: null, label: 'All' },
+    ...categories,
+  ];
 
   return (
     <View
@@ -108,14 +115,16 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
           contentContainerStyle={styles.chipsContent}
           keyboardShouldPersistTaps="handled"
         >
-          {categories.map((category) => {
+          {chipOptions.map((category) => {
             const isActive = category.key === categoryKey;
             return (
               <Pressable
-                key={category.key}
+                key={category.key ?? 'all'}
                 onPress={() => handleChipPress(category.key)}
                 style={[styles.chip, isActive && styles.chipActive]}
-                testID={`cover-chip-${category.key}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+                testID={category.key === null ? 'cover-chip-all' : `cover-chip-${category.key}`}
               >
                 <Text style={[styles.chipLabel, isActive && styles.chipLabelActive]}>
                   {category.label}
