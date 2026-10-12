@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import FrostedSurface from '@components/ui/FrostedSurface';
 import { colors } from '@theme/colors';
@@ -13,7 +13,10 @@ export const TabBarBackground = () => (
       androidMaterial={tabBarAndroidMaterial}
       style={StyleSheet.absoluteFill}
     />
-    <View style={styles.overlay} />
+    {/* Android's blur captures every view drawn above it, so this overlay would be blurred
+        into the material and then drawn over it again; tabBarAndroidMaterial's tint carries
+        its white there instead (#190). */}
+    {Platform.OS === 'android' ? null : <View style={styles.overlay} />}
     <View style={styles.topBorder} />
   </View>
 );
