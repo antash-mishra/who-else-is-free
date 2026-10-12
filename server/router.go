@@ -30,7 +30,9 @@ func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHa
 	authHandler.RegisterRoutes(api)
 	eventHandler.RegisterRoutes(api)
 	NewHelpHandler(eventHandler.repo, signer).RegisterRoutes(api)
-	r.Static("/assets/covers", coverAssetsDir())
+	coverAssets := coverAssetHandler(coverAssetsDir(), coverCatalog)
+	r.GET("/assets/covers/:file", coverAssets)
+	r.HEAD("/assets/covers/:file", coverAssets)
 	coverHandler := newEventCoverHandler(eventHandler.repo)
 	api.GET("/event-covers/:id", coverHandler.serve)
 
