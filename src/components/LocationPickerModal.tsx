@@ -112,7 +112,7 @@ export const LocationPickerContent = ({
                 <TextInput
                     ref={inputRef}
                     style={styles.searchInput}
-                    placeholder={isSearchFocused ? "" : "Search Location"}
+                    placeholder={isSearchFocused ? "" : "Search location"}
                     placeholderTextColor="#C7C7CC"
                     value={query}
                     onChangeText={handleQueryChange}
