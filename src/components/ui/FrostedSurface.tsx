@@ -1,10 +1,24 @@
 import React from 'react';
 
-import { Platform, StyleProp, StyleSheet, View, ViewProps, ViewStyle } from 'react-native';
+import {
+  PixelRatio,
+  Platform,
+  StyleProp,
+  StyleSheet,
+  View,
+  ViewProps,
+  ViewStyle,
+} from 'react-native';
 
 import { BlurView } from 'expo-blur';
 
-import { FrostedMaterialTint, frostedFill, frostedMaterialDefaultIntensity } from '@theme/index';
+import {
+  AndroidBlurMaterial,
+  FrostedMaterialTint,
+  androidBlurReductionFactor,
+  frostedFill,
+  frostedMaterialDefaultIntensity,
+} from '@theme/index';
 
 /** See `blurReductionFactor` on the BlurView below. */
 const ANDROID_BLUR_REDUCTION = 2;
@@ -31,6 +45,13 @@ export interface FrostedSurfaceProps extends Omit<ViewProps, 'style'> {
   blur?: boolean;
   /** Explicit Android backdrop layer, including its tint; excludes foreground capture. */
   androidBackdrop?: React.ReactNode;
+  /**
+   * Android-only blur calibration, for a surface whose iOS material the shared
+   * Android blur cannot reproduce at the same `intensity`: expo-blur ties
+   * Android's tint alpha and blur radius to it. Requires `blur`; iOS ignores it.
+   * The tab bar passes `tabBarAndroidMaterial` (#190).
+   */
+  androidMaterial?: AndroidBlurMaterial;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 }
@@ -58,35 +79,45 @@ const FrostedSurface: React.FC<FrostedSurfaceProps> = ({
   intensity = frostedMaterialDefaultIntensity,
   blur = false,
   androidBackdrop,
+  androidMaterial,
   style,
   children,
   ...rest
-}) => (
-  <View {...rest} style={style}>
-    {blur && Platform.OS === 'android' && androidBackdrop ? (
-      androidBackdrop
-    ) : blur ? (
-      <BlurView
-        pointerEvents="none"
-        tint={tint}
-        intensity={intensity}
-        // Android renders a flat scrim without this; iOS blurs natively.
-        experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
-        // Android-only, and the reason it exists: Android divides `intensity` by
-        // this to get its blur radius, and at the stock 4 its blur lands much
-        // weaker than the iOS material. Calibrated against the Create Event
-        // cover chip so both platforms smooth the cover to a comparable degree.
-        blurReductionFactor={ANDROID_BLUR_REDUCTION}
-        style={StyleSheet.absoluteFill}
-      />
-    ) : (
-      <View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { backgroundColor: frostedFill(tint, intensity) }]}
-      />
-    )}
-    {children}
-  </View>
-);
+}) => {
+  const material = Platform.OS === 'android' ? androidMaterial : undefined;
+
+  return (
+    <View {...rest} style={style}>
+      {blur && Platform.OS === 'android' && androidBackdrop ? (
+        androidBackdrop
+      ) : blur ? (
+        <BlurView
+          pointerEvents="none"
+          tint={tint}
+          intensity={material ? material.intensity : intensity}
+          // Android renders a flat scrim without this; iOS blurs natively.
+          experimentalBlurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
+          // Android-only, and the reason it exists: Android divides `intensity` by
+          // this to get its blur radius, and at the stock 4 its blur lands much
+          // weaker than the iOS material. Calibrated against the Create Event
+          // cover chip so both platforms smooth the cover to a comparable degree.
+          // A surface's `androidMaterial` derives it from the screen density instead.
+          blurReductionFactor={
+            material
+              ? androidBlurReductionFactor(material, PixelRatio.get())
+              : ANDROID_BLUR_REDUCTION
+          }
+          style={StyleSheet.absoluteFill}
+        />
+      ) : (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: frostedFill(tint, intensity) }]}
+        />
+      )}
+      {children}
+    </View>
+  );
+};
 
 export default FrostedSurface;
