@@ -51,7 +51,7 @@ const EditProfileScreen = () => {
     triggerHaptic('light');
     if (!ImagePicker) {
       Alert.alert(
-        'Not Available',
+        'Not available',
         'Image picker requires a native rebuild. Avatar upload is disabled.',
       );
       return;

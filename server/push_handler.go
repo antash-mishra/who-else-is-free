@@ -82,7 +82,7 @@ func (h *PushHandler) testPush(c *gin.Context) {
 			Token: t.Token,
 			Data: map[string]string{
 				"type":  "test",
-				"title": "Test Notification",
+				"title": "Test notification",
 				"body":  "Push notifications are working!",
 			},
 		})

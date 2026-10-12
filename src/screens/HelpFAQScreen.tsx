@@ -107,7 +107,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
   {
     title: 'How do I report someone?',
     answer: [
-      { type: 'paragraph', text: 'Tap the plan and select Report.' },
+      { type: 'paragraph', text: 'Tap the plan and select Report plan.' },
       { type: 'paragraph', text: 'Or go to Contact us and choose Urgent safety issue.' },
     ],
   },

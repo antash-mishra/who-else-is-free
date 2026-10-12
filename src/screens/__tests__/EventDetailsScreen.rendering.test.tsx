@@ -723,7 +723,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
 
       expect(getByTestId('going-row')).toBeTruthy();
       // The fixture has two conversation participants plus the distinct event host (999).
-      expect(getByTestId('going-count-label')).toHaveTextContent('3 Members');
+      expect(getByTestId('going-count-label')).toHaveTextContent('3 members');
     });
 
     it('redirects to login when guest tries to join', async () => {
@@ -778,7 +778,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1 Member');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 member');
     });
 
     it('shows fallback host going state when conversation is missing', () => {
@@ -786,7 +786,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('1 Member');
+      expect(getByTestId('going-count-label')).toHaveTextContent('1 member');
       expect(getByTestId('going-avatar-0')).toBeTruthy();
     });
 
@@ -913,7 +913,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByTestId } = render(<EventDetailsScreen />);
 
       expect(getByTestId('going-row')).toBeTruthy();
-      expect(getByTestId('going-count-label')).toHaveTextContent('2 Members');
+      expect(getByTestId('going-count-label')).toHaveTextContent('2 members');
     });
 
     it('does not show "Request to join" button for members', () => {
@@ -2133,7 +2133,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
       mockEventsState.events = [mockOwnedEvent];
       mockChatState.conversations = [];
       const view = render(<EventDetailsScreen />);
-      expect(view.getByText('1 Member')).toBeTruthy();
+      expect(view.getByText('1 member')).toBeTruthy();
       fireEvent.press(view.getByTestId('event-details-tab-members'));
       expect(view.getByText(`${mockOwnedEvent.hostName} (you)`)).toBeTruthy();
       expect(view.getByText('Host')).toBeTruthy();
@@ -2143,7 +2143,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('counts and displays host plus accepted members consistently', () => {
       mockEventsState.events = [mockOwnedEvent];
       const view = render(<EventDetailsScreen />);
-      expect(view.getByText('2 Members')).toBeTruthy();
+      expect(view.getByText('2 members')).toBeTruthy();
       fireEvent.press(view.getByTestId('event-details-tab-members'));
       expect(view.getByText('Host')).toBeTruthy();
       expect(view.getByLabelText(`Open actions for ${mockOtherUser.name}`)).toBeTruthy();

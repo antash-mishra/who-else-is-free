@@ -53,7 +53,7 @@ export const PRESET_DEV_USERS: DevLoginUser[] = [
   },
   {
     email: 'onboarding@who-else-is-free.test',
-    name: 'Onboard Tester',
+    name: 'Onboard tester',
     label: 'Dev Login (onboarding)',
     testID: 'dev-login-button-onboarding',
     skipProfileCompletion: true,
