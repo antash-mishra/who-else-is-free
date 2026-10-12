@@ -122,7 +122,7 @@ We have implemented appropriate and reasonable technical and organisational secu
 
 ### 8. DO WE COLLECT INFORMATION FROM MINORS?
 
-We do not knowingly collect, solicit data from, or market to children under 18 years of age, nor do we knowingly sell such personal information. By using the Services, you represent that you are at least 18 or that you are the parent or guardian of such a minor and consent to such minor dependent's use of the Services. If we learn that personal information from users less than 18 years of age has been collected, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under age 18, please contact us at **contact@weifapp.com**.
+We do not knowingly collect, solicit data from, or market to children under 18 years of age, nor do we knowingly sell such personal information. weif is for adults 18 and over. We ask for your age when you create an account, and by using the Services you confirm that you are at least 18. If we learn that personal information from users less than 18 years of age has been collected, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under age 18, please contact us at **contact@weifapp.com**.
 
 ### 9. WHAT ARE YOUR PRIVACY RIGHTS?
 
