@@ -101,11 +101,12 @@ const BottomSheet = ({
   // Android (#190) follows the IME frame by frame: React Native's keyboardDidShow
   // arrives once, with duration 0, as soon as the IME is requested, so the sheet
   // used to snap to its final lift before the keyboard moved and the screen behind
-  // showed through underneath. Frames are ignored while the sheet enters (a previous
-  // field's keyboard can still be sliding out) and once it starts closing (the close
-  // animation owns the offset); `latestKeyboardHeight` lets a settled sheet catch up.
+  // showed through underneath. Frames only move a settled sheet: not while it enters
+  // (a previous field's keyboard can still be sliding out) and not once it starts
+  // closing (the close animation owns the offset). `latestKeyboardHeight` lets a
+  // sheet catch up when it settles or starts avoiding the keyboard.
   const followsKeyboardFrames = Platform.OS === 'android' && avoidKeyboard;
-  const isFollowingKeyboard = useSharedValue(false);
+  const isSettled = useSharedValue(false);
   const latestKeyboardHeight = useSharedValue(0);
   const restingBottomInset = BASE_PADDING_BOTTOM + safeBottom;
   const topGutter = Math.max(safeTop + 12, MIN_TOP_GUTTER);
@@ -140,11 +141,23 @@ const BottomSheet = ({
     onOpenedRef.current?.();
   }, []);
 
+  const catchUpWithKeyboard = useCallback(() => {
+    'worklet';
+
+    keyboardOffset.value = withTiming(
+      getKeyboardTranslation({
+        keyboardHeight: latestKeyboardHeight.value,
+        safeAreaBottom: safeBottom,
+      }),
+      { duration: 160, easing: Easing.out(Easing.cubic) },
+    );
+  }, [keyboardOffset, latestKeyboardHeight, safeBottom]);
+
   const followKeyboardFrame = (height: number) => {
     'worklet';
 
     latestKeyboardHeight.value = height;
-    if (followsKeyboardFrames && isFollowingKeyboard.value) {
+    if (followsKeyboardFrames && isSettled.value) {
       // Inside the sheet's Modal window the height includes the navigation bar the
       // sheet already pads for (332dp reported, 284dp lift, 48dp inset on WEIF_API_36).
       keyboardOffset.value = getKeyboardTranslation({
@@ -171,6 +184,14 @@ const BottomSheet = ({
     },
     [followsKeyboardFrames, safeBottom],
   );
+
+  useEffect(() => {
+    // BottomSheetHost swaps descriptors in place, so an open sheet can start avoiding
+    // the keyboard without a new entry (More actions -> report prompt).
+    if (followsKeyboardFrames && isSettled.value) {
+      catchUpWithKeyboard();
+    }
+  }, [catchUpWithKeyboard, followsKeyboardFrames, isSettled]);
 
   useEffect(() => {
     if (!avoidKeyboard) {
@@ -226,22 +247,16 @@ const BottomSheet = ({
     // displaced. Reset it here rather than relying on the keyboard being fully
     // down before the sheet mounts.
     keyboardOffset.value = 0;
-    isFollowingKeyboard.value = false;
+    isSettled.value = false;
     setIsAnimating(true);
     const handleSettled = (finished?: boolean) => {
       'worklet';
 
       if (finished) {
+        isSettled.value = true;
         if (followsKeyboardFrames) {
-          isFollowingKeyboard.value = true;
           // Catch up with a keyboard that opened, or finished closing, during entry.
-          keyboardOffset.value = withTiming(
-            getKeyboardTranslation({
-              keyboardHeight: latestKeyboardHeight.value,
-              safeAreaBottom: safeBottom,
-            }),
-            { duration: 160, easing: Easing.out(Easing.cubic) },
-          );
+          catchUpWithKeyboard();
         }
         runOnJS(setIsAnimating)(false);
         runOnJS(notifyOpened)();
@@ -266,13 +281,12 @@ const BottomSheet = ({
   }, [
     animation,
     backdropOpacity,
+    catchUpWithKeyboard,
     followsKeyboardFrames,
-    isFollowingKeyboard,
+    isSettled,
     keyboardOffset,
-    latestKeyboardHeight,
     notifyOpened,
     retainInline,
-    safeBottom,
     screenHeight,
     slideY,
   ]);
@@ -280,7 +294,7 @@ const BottomSheet = ({
   const startCloseAnimation = useCallback(() => {
     Keyboard.dismiss();
     setIsAnimating(true);
-    isFollowingKeyboard.value = false;
+    isSettled.value = false;
     keyboardOffset.value = withTiming(0, {
       duration: Math.min(180, closeDuration),
       easing: Easing.out(Easing.cubic),
@@ -293,7 +307,7 @@ const BottomSheet = ({
       duration: Math.min(200, closeDuration),
       easing: Easing.in(Easing.ease),
     });
-  }, [backdropOpacity, closeDuration, isFollowingKeyboard, keyboardOffset, screenHeight, slideY]);
+  }, [backdropOpacity, closeDuration, isSettled, keyboardOffset, screenHeight, slideY]);
 
   // Layout/keyboard changes update the geometry without replaying entry motion.
   const animationCallbacksRef = useRef({ startOpenAnimation, startCloseAnimation });

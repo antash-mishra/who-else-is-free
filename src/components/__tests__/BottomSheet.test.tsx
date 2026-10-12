@@ -367,4 +367,26 @@ describe('BottomSheet follows Android keyboard frames (#190)', () => {
 
     expect(translateY(view)).toBe(0);
   });
+
+  it('follows the keyboard once an open hosted sheet switches to avoidance', () => {
+    // BottomSheetHost swaps descriptors in place: More actions (no avoidance) becomes the
+    // report prompt without a new entry animation.
+    const view = openSheet(false);
+    view.rerender(sheet(true, true));
+
+    deliver(view, 'onEnd', 332);
+
+    expect(translateY(view)).toBe(-284);
+  });
+
+  it('catches up with a keyboard already open when an open sheet switches to avoidance', () => {
+    const view = openSheet(false);
+    deliver(view, 'onEnd', 332, true, false);
+
+    view.rerender(sheet(true, true));
+    // The Reanimated mock evaluates styles on render, after the switch's effects ran.
+    view.rerender(sheet(true, true));
+
+    expect(translateY(view)).toBe(-284);
+  });
 });
