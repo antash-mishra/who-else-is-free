@@ -16,8 +16,6 @@ import (
 
 const defaultRootFolderID = "1deHHqGMy1DlKpyGoFIHGfRbOQWQuSYO0"
 
-var pngMagic = []byte{0x89, 'P', 'N', 'G'}
-
 func main() {
 	root := flag.String("root", defaultRootFolderID, "Drive root folder id")
 	assetsDir := flag.String("assets", "assets/covers", "output directory for cover images")
