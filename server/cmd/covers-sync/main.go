@@ -38,7 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("enumerate drive folder: %v", err)
 	}
-	catalog := buildCatalog(tree)
+	catalog := buildCatalog(tree, coverCatalogFile{})
 	log.Printf("catalog: %d categories, %d covers", len(catalog.Categories), len(catalog.Covers))
 
 	if err := os.MkdirAll(*assetsDir, 0o755); err != nil {
