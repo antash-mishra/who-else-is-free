@@ -77,12 +77,18 @@ type fakeDrive struct {
 	folders   map[string][]driveEntry
 	files     map[string][]byte
 	downloads map[string]int
+	failures  map[string]int // requests per folder or file ID to answer with a 500
 }
 
 func (d *fakeDrive) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	id := r.URL.Query().Get("id")
+	if d.failures[id] > 0 {
+		d.failures[id]--
+		http.Error(w, "backend error", http.StatusInternalServerError)
+		return
+	}
 	switch r.URL.Path {
 	case "/embeddedfolderview":
 		entries, ok := d.folders[id]
@@ -117,6 +123,16 @@ func (d *fakeDrive) downloadCount(id string) int {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.downloads[id]
+}
+
+// failNext makes Drive answer the next n requests for id with a 500.
+func (d *fakeDrive) failNext(id string, n int) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.failures == nil {
+		d.failures = map[string]int{}
+	}
+	d.failures[id] = n
 }
 
 func startFakeDrive(t *testing.T, folders map[string][]driveEntry, files map[string][]byte) *fakeDrive {
@@ -377,5 +393,26 @@ func TestReportFailureWritesSummary(t *testing.T) {
 func TestEscapeAnnotation(t *testing.T) {
 	if got := escapeAnnotation("50% done\nnext\r"); got != "50%25 done%0Anext%0D" {
 		t.Fatalf("escapeAnnotation = %q", got)
+	}
+}
+
+func TestSyncCatalogRidesOutTransientDriveErrors(t *testing.T) {
+	badminton := testPNG(t, 10)
+	catalogPath, assetsDir := syncPaths(t)
+	mustWriteCatalog(t, catalogPath, coverCatalogFile{Categories: testCategories, Covers: []catalogCover{badmintonCover(badminton)}})
+	drive := startFakeDrive(t,
+		testDriveFolders([]driveEntry{{ID: "bad1", Title: "image 1094.png"}}, nil),
+		map[string][]byte{"bad1": badminton},
+	)
+	// Drive answers the odd request with a 500 (seen live on a folder listing).
+	drive.failNext("tag-badminton", 2)
+	drive.failNext("bad1", 2)
+
+	summary, err := syncCatalog(http.DefaultClient, syncOptions{rootID: "root", assetsDir: assetsDir, catalogPath: catalogPath})
+	if err != nil {
+		t.Fatalf("syncCatalog: %v", err)
+	}
+	if summary != "No cover changes\n" {
+		t.Fatalf("summary = %q", summary)
 	}
 }

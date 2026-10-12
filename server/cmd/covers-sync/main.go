@@ -281,7 +281,7 @@ func pruneOrphans(dir string, keep map[string]bool) ([]string, error) {
 }
 
 func fetchTree(client *http.Client, rootID string) ([]driveCategory, error) {
-	rootEntries, err := listFolder(client, rootID)
+	rootEntries, err := listFolderWithRetry(client, rootID)
 	if err != nil {
 		return nil, err
 	}
@@ -291,13 +291,13 @@ func fetchTree(client *http.Client, rootID string) ([]driveCategory, error) {
 			continue // stray files at the root are not part of the catalog
 		}
 		category := driveCategory{Title: categoryEntry.Title}
-		children, err := listFolder(client, categoryEntry.ID)
+		children, err := listFolderWithRetry(client, categoryEntry.ID)
 		if err != nil {
 			return nil, fmt.Errorf("list category %q: %w", categoryEntry.Title, err)
 		}
 		for _, child := range children {
 			if child.IsFolder {
-				files, err := listFolder(client, child.ID)
+				files, err := listFolderWithRetry(client, child.ID)
 				if err != nil {
 					return nil, fmt.Errorf("list tag folder %q: %w", child.Title, err)
 				}
@@ -334,21 +334,31 @@ func listFolder(client *http.Client, folderID string) ([]driveEntry, error) {
 	return parseFolderListing(string(body)), nil
 }
 
-// downloadFileWithRetry retries transient Drive failures (sporadic 503s show
-// up roughly once per full sync) with a short backoff.
-func downloadFileWithRetry(client *http.Client, fileID string) ([]byte, error) {
+// withRetry retries transient Drive failures with a short backoff: sporadic
+// 500s and 503s show up about once per full sync, on folder listings and
+// downloads alike.
+func withRetry[T any](call func() (T, error)) (T, error) {
 	var lastErr error
 	for attempt := 1; attempt <= 3; attempt++ {
-		data, err := downloadFile(client, fileID)
+		value, err := call()
 		if err == nil {
-			return data, nil
+			return value, nil
 		}
 		lastErr = err
 		if attempt < 3 {
 			time.Sleep(time.Duration(attempt) * retryDelay)
 		}
 	}
-	return nil, lastErr
+	var zero T
+	return zero, lastErr
+}
+
+func listFolderWithRetry(client *http.Client, folderID string) ([]driveEntry, error) {
+	return withRetry(func() ([]driveEntry, error) { return listFolder(client, folderID) })
+}
+
+func downloadFileWithRetry(client *http.Client, fileID string) ([]byte, error) {
+	return withRetry(func() ([]byte, error) { return downloadFile(client, fileID) })
 }
 
 func downloadFile(client *http.Client, fileID string) ([]byte, error) {
