@@ -1001,11 +1001,13 @@ What it is:
 - Owns modal/inline presentation, backdrop, open/close animation, safe area, keyboard avoidance,
   max height, optional snap height, and shared sheet styling.
 - Keyboard avoidance uses `bottomObstruction.ts` to subtract the system safe-area region already
-  reserved by the sheet from its translation. Android follows every IME frame from
+  reserved by the sheet from its translation. Android 11+ follows every IME frame from
   react-native-keyboard-controller's `useGenericKeyboardHandler` (its Modal watcher reaches the sheet's own
-  window, where the height includes the navigation bar), moving only a settled sheet and catching up when an
-  open hosted sheet switches to avoidance; iOS keeps `keyboardWillShow`/`keyboardWillHide` timing. Both
-  preserve the shared base content spacing. Do not compensate in prompt content.
+  window, where the height includes the navigation bar), moving only a settled sheet, never raising it toward a
+  closing keyboard, and catching up when an open hosted sheet switches to avoidance. Android 10 and older keep
+  React Native's `keyboardDidShow`/`keyboardDidHide` with physical-screen keyboard-top coordinates; iOS keeps
+  `keyboardWillShow`/`keyboardWillHide` timing. All preserve the shared base content spacing. Do not compensate
+  in prompt content.
 - Exposes `onOpened` after its entry animation settles. Use it for keyboard focus and expensive
   child mounting rather than guessing a timeout in individual sheet content.
 
