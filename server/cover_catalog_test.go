@@ -102,6 +102,34 @@ func TestRetiredCoversGetSimilarStandIns(t *testing.T) {
 	}
 }
 
+// Plans whose cover was removed must keep the same stand-in when covers are
+// added: it is the lowest-numbered cover, and new covers get higher numbers
+// even when their file names sort first.
+func TestStandInsDoNotMoveWhenCoversAreAdded(t *testing.T) {
+	index, err := parseCoverCatalog([]byte(`{
+  "categories": [{"key": "sports", "label": "Sports"}, {"key": "food-drinks", "label": "Food & Drinks"}],
+  "covers": [
+    {"key": "sports-badminton-1", "label": "Badminton", "file_name": "sports-badminton-1.png", "category": "sports", "tags": ["Badminton"]},
+    {"key": "food-drinks-brunch-12", "label": "Brunch", "file_name": "food-drinks-brunch-12.png", "category": "food-drinks", "tags": ["Brunch"]},
+    {"key": "food-drinks-brunch-3", "label": "Brunch", "file_name": "food-drinks-brunch-3.png", "category": "food-drinks", "tags": ["Brunch"]},
+    {"key": "food-drinks-brunch-1", "label": "Brunch", "file_name": "food-drinks-brunch-1.png", "category": "food-drinks", "tags": ["Brunch"], "retired": true},
+    {"key": "food-drinks-wine-1", "label": "Wine", "file_name": "food-drinks-wine-1.png", "category": "food-drinks", "tags": ["Wine"], "retired": true}
+  ]
+}`))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	// brunch-12 comes first in the picker and in text order; brunch-3 has the
+	// lowest number.
+	want := map[string]string{
+		"food-drinks-brunch-1": "food-drinks-brunch-3",
+		"food-drinks-wine-1":   "food-drinks-brunch-3",
+	}
+	if !reflect.DeepEqual(index.standIns, want) {
+		t.Fatalf("standIns = %v, want %v", index.standIns, want)
+	}
+}
+
 func TestParseCoverCatalogKeepsTags(t *testing.T) {
 	index := mustParseTestCoverCatalog(t)
 	if brunch := index.active[1]; !reflect.DeepEqual(brunch.Tags, []string{"Brunch", "Food"}) {

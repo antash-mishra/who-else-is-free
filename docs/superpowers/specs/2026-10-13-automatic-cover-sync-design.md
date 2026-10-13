@@ -118,8 +118,9 @@ sync records the change. A hash mismatch never fails a deploy.
   succeeds.
 - `ensureValidEventCoverKeys` resets only unknown keys; plans with retired keys are left
   alone.
-- Each retired key gets a stand-in at startup: the first active cover in the same group,
-  else in the same category, else the default cover.
+- Each retired key gets a stand-in at startup: the lowest-numbered active cover in the
+  same group, else in the same category, else the default cover. New covers always get
+  higher numbers, so adding covers never changes a stand-in.
 - A `/assets/covers/:file` handler replaces `r.Static`. It serves the file when present,
   serves the stand-in's image for a retired key with no file, and returns 404 otherwise.
   File names must match `^[a-z0-9-]+\.png$`.

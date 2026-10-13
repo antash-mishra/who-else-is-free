@@ -4,8 +4,10 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"math"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -91,18 +93,19 @@ func parseCoverCatalog(data []byte) (*coverIndex, error) {
 }
 
 // standInFor picks the active cover whose image is shown for a removed one:
-// the first from the same Drive folder, else from the same category, else the
-// default cover.
+// the lowest-numbered cover from the same Drive folder, else from the same
+// category, else the default cover. Keys keep their number for life and new
+// covers get higher ones, so adding covers never changes a stand-in.
 func (index *coverIndex) standInFor(removed CoverOption) string {
-	for _, option := range index.active {
-		if option.Category == removed.Category && sameCoverFolder(option.Tags, removed.Tags) {
-			return option.Key
-		}
+	if key, ok := index.lowestActive(func(option CoverOption) bool {
+		return option.Category == removed.Category && sameCoverFolder(option.Tags, removed.Tags)
+	}); ok {
+		return key
 	}
-	for _, option := range index.active {
-		if option.Category == removed.Category {
-			return option.Key
-		}
+	if key, ok := index.lowestActive(func(option CoverOption) bool {
+		return option.Category == removed.Category
+	}); ok {
+		return key
 	}
 	for _, option := range index.active {
 		if option.Key == defaultCoverKey {
@@ -110,6 +113,32 @@ func (index *coverIndex) standInFor(removed CoverOption) string {
 		}
 	}
 	return index.active[0].Key
+}
+
+// lowestActive returns the matching active cover with the lowest key number;
+// equal numbers go to the key that sorts first.
+func (index *coverIndex) lowestActive(match func(CoverOption) bool) (string, bool) {
+	best, bestNumber := "", 0
+	for _, option := range index.active {
+		if !match(option) {
+			continue
+		}
+		number := coverKeyNumber(option.Key)
+		if best == "" || number < bestNumber || (number == bestNumber && option.Key < best) {
+			best, bestNumber = option.Key, number
+		}
+	}
+	return best, best != ""
+}
+
+// coverKeyNumber reads the number that ends a key such as
+// "food-drinks-brunch-12"; keys without one sort last.
+func coverKeyNumber(key string) int {
+	number, err := strconv.Atoi(key[strings.LastIndex(key, "-")+1:])
+	if err != nil {
+		return math.MaxInt
+	}
+	return number
 }
 
 // sameCoverFolder compares covers' first tags, which name their Drive folder;
