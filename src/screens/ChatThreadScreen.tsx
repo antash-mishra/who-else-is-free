@@ -43,6 +43,7 @@ import { logger } from '@services/logger';
 import { buildEventMemberSubtitle, buildOneToOneSubtitle } from '@utils/chatHeaderSubtitle';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
 import { formatTimeAmPm } from '@utils/dateTime';
+import { parseJoinNotice } from '@utils/joinNotice';
 
 const ANDROID_KEYBOARD_GAP = spacing.xs;
 
@@ -520,7 +521,7 @@ const ChatThreadScreen = () => {
       lowerBody === 'updated event detail' || lowerBody === 'plan details updated';
 
     if (item.kind === 'system' || isJoinSystemMessage || isEventUpdateSystemMessage) {
-      const joinNotice = item.body.match(/^(.*)( joined the (?:plan|chat))$/s);
+      const joinNotice = parseJoinNotice(item.body);
       return (
         <View style={styles.systemMessageRow} accessible accessibilityLabel={item.body}>
           {joinNotice ? (
@@ -530,9 +531,9 @@ const ChatThreadScreen = () => {
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {joinNotice[1]}
+                {joinNotice.name}
               </Text>
-              <Text style={styles.systemMessageText}>{joinNotice[2]}</Text>
+              <Text style={styles.systemMessageText}>{joinNotice.action}</Text>
             </View>
           ) : (
             <Text style={styles.systemMessageText}>{item.body}</Text>

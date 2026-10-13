@@ -378,6 +378,35 @@ describe('OneToOneHubScreen Rendering', () => {
       expect(getByText('I would love to join this coffee meetup!')).toBeTruthy();
     });
 
+    it('names only the first name in a join notice preview', () => {
+      mockChatValue.conversations = [
+        {
+          id: 10,
+          createdBy: 1,
+          memberIds: [1, 2],
+          participants: [
+            { id: 1, name: 'Test User' },
+            { id: 2, name: 'Jane Doe' },
+          ],
+          displayName: 'Jane Doe',
+          unreadCount: 0,
+          eventId: 1,
+          lastMessage: {
+            id: '100',
+            conversationId: 10,
+            senderId: 2,
+            kind: 'system',
+            body: 'Jane Doe Dndndn Jsjsjs Nsjdjjd joined the plan',
+            createdAt: new Date().toISOString(),
+          },
+        },
+      ];
+
+      const { getByText } = render(<OneToOneHubScreen />);
+
+      expect(getByText('Jane joined the plan')).toBeTruthy();
+    });
+
     it('should render avatar with initial', () => {
       const { getAllByText } = render(<OneToOneHubScreen />);
 
