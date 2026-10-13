@@ -23,6 +23,7 @@ import { useEvents } from '@context/EventsContext';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing, typography } from '@theme/index';
+import { shortenJoinNotice } from '@utils/joinNotice';
 import { formatCompactRelativeTime, getNextCompactRelativeTimeUpdateMs } from '@utils/relativeTime';
 
 type MessagesNavigation = CompositeNavigationProp<
@@ -72,7 +73,7 @@ const ConversationRow = ({
     : undefined;
   const previewText = item.lastMessage
     ? isSystemMessage
-      ? lastMessageBody
+      ? shortenJoinNotice(lastMessageBody)
       : `${isOwnMessage ? 'You' : (lastMessageSender?.name?.split(' ')[0] ?? '')}: ${lastMessageBody}`
     : lastMessageBody;
   const timestampLabel = item.lastMessage?.createdAt

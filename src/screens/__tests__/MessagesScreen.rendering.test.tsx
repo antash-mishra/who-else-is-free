@@ -94,6 +94,7 @@ interface MockConversation {
     senderId: number;
     body: string;
     createdAt: string;
+    kind?: 'user' | 'system';
   };
 }
 
@@ -390,6 +391,24 @@ describe('MessagesScreen Rendering', () => {
 
       expect(getByText('Sylvie: Sounds good')).toBeTruthy();
       expect(queryByText('Jane: Sounds good')).toBeNull();
+    });
+
+    it('names only the first name in a join notice preview', () => {
+      mockChatValue.conversations = [
+        {
+          ...mockConversations[0],
+          lastMessage: {
+            ...mockConversations[0].lastMessage!,
+            senderId: 2,
+            kind: 'system',
+            body: 'Sumit Narang Dndndn Jsjsjs Nsjdjjd Jdjdjd joined the plan',
+          },
+        },
+      ];
+
+      const { getByText } = render(<MessagesScreen />);
+
+      expect(getByText('Sumit joined the plan')).toBeTruthy();
     });
 
     it('should render compact timestamps for recent messages', () => {
