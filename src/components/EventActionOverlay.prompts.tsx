@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { SheetActionList } from '@components/sheets';
 import { triggerHaptic } from '@services/haptics';
@@ -64,7 +64,8 @@ export const InvitePrompt = ({
   inviteError,
   inviteSubmitting,
   inviteDisabled,
-}: InvitePromptProps) => {
+  inputRef,
+}: InvitePromptProps & { inputRef?: React.Ref<TextInput> }) => {
   const isDisabled = inviteSubmitting || inviteDisabled;
 
   return (
@@ -72,6 +73,7 @@ export const InvitePrompt = ({
       <View style={styles.inputBody}>
         <View style={styles.inputViewport}>
           <TextInput
+            ref={inputRef}
             accessibilityLabel="Share a short intro with the host"
             placeholder="Share a short intro with the host"
             placeholderTextColor={colors.subText}
