@@ -20,6 +20,7 @@ import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing, typography } from '@theme/index';
 import { buildEventMemberSubtitle } from '@utils/chatHeaderSubtitle';
+import { shortenJoinNotice } from '@utils/joinNotice';
 
 // Shared illustration for the request/accepted empty states.
 const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
@@ -131,9 +132,10 @@ const OneToOneHubScreen = () => {
       // server-generated and already self-describing ("X joined the plan",
       // "Plan details updated"). Show the body as-is without a "Sender: "
       // prefix, which would otherwise produce awkward duplicates like
-      // "Sumit: Sumit Narang joined the plan".
+      // "Sumit: Sumit Narang joined the plan". Join notices keep only the
+      // first name so a long name leaves room for the action.
       if (lastMessage.kind === 'system') {
-        return lastMessage.body;
+        return shortenJoinNotice(lastMessage.body);
       }
 
       if (lastMessage.senderId === user?.id) {
