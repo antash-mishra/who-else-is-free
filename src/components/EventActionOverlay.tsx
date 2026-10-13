@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
+
+import { TextInput } from 'react-native';
 
 import BottomSheetModal from './BottomSheetModal';
 import {
@@ -55,10 +57,13 @@ type EventActionOverlayProps = {
   onBackdropPress?: () => void;
 } & OverlayVariantProps;
 
-const renderOverlayContent = (props: OverlayVariantProps) => {
+const renderOverlayContent = (
+  props: OverlayVariantProps,
+  inviteInputRef: React.RefObject<TextInput | null>,
+) => {
   switch (props.type) {
     case 'invite':
-      return <InvitePrompt {...props} />;
+      return <InvitePrompt {...props} inputRef={inviteInputRef} />;
     case 'confirm':
       return <ConfirmActionSheet {...props} />;
     case 'result':
@@ -77,14 +82,19 @@ const renderOverlayContent = (props: OverlayVariantProps) => {
 const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
   const { isVisible, onBackdropPress } = props;
   const shouldAvoidKeyboard = props.type === 'invite' || props.type === 'report';
+  const inviteInputRef = useRef<TextInput>(null);
+  // Request to join opens straight into the keyboard once the sheet settles, like the
+  // Create Event Details editor, so the sheet rides the keyboard up in one motion (#190).
+  const handleOpened = props.type === 'invite' ? () => inviteInputRef.current?.focus() : undefined;
 
   return (
     <BottomSheetModal
       visible={isVisible}
       onClose={onBackdropPress ?? (() => {})}
       avoidKeyboard={shouldAvoidKeyboard}
+      onOpened={handleOpened}
     >
-      {renderOverlayContent(props)}
+      {renderOverlayContent(props, inviteInputRef)}
     </BottomSheetModal>
   );
 };
