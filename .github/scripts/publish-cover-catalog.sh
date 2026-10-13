@@ -15,22 +15,38 @@ fi
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898283+github-actions[bot]@users.noreply.github.com'
+base=$(git rev-parse HEAD)
 git add -- "$catalog"
 {
   printf 'chore(covers): sync from Drive (%s)\n' "$(head -n 1 "$summary")"
   tail -n +2 "$summary"
 } | git commit --quiet --file=-
 
+deploy() {
+  gh workflow run deploy-fly.yml --ref master
+  echo "Started the Fly deploy."
+  exit 0
+}
+
 for attempt in 1 2 3; do
   if git push origin HEAD:master; then
-    gh workflow run deploy-fly.yml --ref master
-    echo "Pushed the cover catalog and started the Fly deploy."
-    exit 0
+    deploy
   fi
-  # master moved on during the run. A conflicting change to the catalog stops
-  # here (set -e) and the next run starts fresh.
+  git fetch --quiet origin master
+  if git diff --quiet HEAD FETCH_HEAD -- "$catalog"; then
+    # An earlier attempt already pushed this exact catalog, e.g. a re-run
+    # after its deploy didn't start.
+    echo "master already has this catalog."
+    deploy
+  fi
+  if ! git diff --quiet "$base" FETCH_HEAD -- "$catalog"; then
+    # Merging two catalog edits could pass git yet produce an untested catalog
+    # (two edits can add the same key), so never push a merge.
+    echo "::error::master changed $catalog during this run, so nothing was pushed. Run Sync covers again; it starts from the latest catalog."
+    exit 1
+  fi
   echo "master moved on; rebasing (attempt $attempt)."
-  git pull --rebase origin master
+  git rebase --quiet FETCH_HEAD
 done
 echo "::error::Could not push the cover catalog to master."
 exit 1
