@@ -2,7 +2,7 @@
 
 ## **WEIF - PRIVACY POLICY**
 
-#### Last updated October 12, 2026
+#### Last updated October 14, 2026
 
 This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how and why we might access, collect, store, use, and/or share ('process') your personal information when you use our services ('**Services**'), including when you:
 
@@ -110,7 +110,7 @@ We may use analytics and similar technologies, including Firebase Analytics, to 
 
 ### 6. HOW LONG DO WE KEEP YOUR INFORMATION?
 
-We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Policy, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). If another user reports you, we keep the report, the name you used, your recent messages in that plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your email address, for up to 18 months, even after you delete your account. We do this to protect other users and to recognise a reported person who signs up again. We keep a report for longer only while it is still under review. Reports you make are kept for the same period, without a link to your account once you delete it.
+We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Policy, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). If another user reports you, we keep the report, the name you used, your recent messages in that plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your email address, for up to 12 months, even after you delete your account. We do this to protect other users and to recognise a reported person who signs up again. We keep a report for longer only while it is still under review. Reports you make are kept for the same period, without a link to your account once you delete it.
 
 When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymise such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
 
@@ -136,11 +136,9 @@ If you are located in Switzerland, you may contact the Federal Data Protection a
 
 **Withdrawing your consent:** If we are relying on your consent to process your personal information, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below.
 
-However, please note that this will not affect the lawfulness of the processing before its withdrawal nor, will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent.
+However, please note that this will not affect the lawfulness of the processing before its withdrawal nor will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent.
 
-**Account Information.** If you would at any time like to review or change the information in your account or terminate your account, you can: Log in to your account profile and update your user account.
-
-Upon your request to terminate your account, we will delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms and/or comply with applicable legal requirements.
+**Account Information.** You can review and change your profile in the app at any time. To delete your account, go to Profile → Delete account. Section 6 explains what we keep after you delete it.
 
 ### 10. DO WE MAKE UPDATES TO THIS POLICY?
 

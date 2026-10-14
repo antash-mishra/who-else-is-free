@@ -36,7 +36,7 @@ export interface EventMemberSubtitleOptions {
  * JoinRequestScreen, and the group chat window:
  *
  *   Single → "1:1, 3 Accepted"
- *   Group  → "Group, 3 Members"
+ *   Group  → "Group, 3 members"
  *
  * (The comma is rendered as a dot separator by ChatEventHeader.)
  */

@@ -21,7 +21,7 @@ describe('PrivacyPolicyScreen', () => {
 
     expect(getByText('Privacy policy')).toBeTruthy();
     expect(getByText('WEIF PRIVACY POLICY')).toBeTruthy();
-    expect(getByText('Last updated October 12, 2026')).toBeTruthy();
+    expect(getByText('Last updated October 14, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();
     expect(getByLabelText('Jump to WHAT INFORMATION DO WE COLLECT?')).toBeTruthy();
     expect(getByText('Google API Services User Data Policy')).toBeTruthy();
@@ -57,11 +57,15 @@ describe('PrivacyPolicyScreen', () => {
     expect(privacyPolicyMarkdown).not.toContain('data subject access request');
     expect(privacyPolicyMarkdown).not.toContain('Learn more about withdrawing your consent');
     expect(privacyPolicyMarkdown).toContain('Profile → Delete account');
+    expect(privacyPolicyMarkdown).not.toContain('Log in to your account profile and update');
+    expect(privacyPolicyMarkdown).not.toContain(
+      'troubleshoot problems, assist with any investigations',
+    );
   });
 
   it('states that safety reports outlive a deleted account', () => {
     expect(privacyPolicyMarkdown).toContain(
-      'for up to 18 months, even after you delete your account',
+      'for up to 12 months, even after you delete your account',
     );
     expect(privacyPolicyMarkdown).not.toContain(
       'No purpose in this notice will require us keeping',

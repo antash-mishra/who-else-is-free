@@ -5,7 +5,7 @@
 Who Else Is Free gets strangers to meet in person, so safety reports are our main safety record.
 Before issue #184 a reported person could erase that record by deleting their account or the plan,
 because either one deleted the report. Reports now outlive the accounts and the plan they refer to,
-for a fixed 18 months, so a report keeps its evidence and a repeat offender can be recognised.
+for a fixed 12 months, so a report keeps its evidence and a repeat offender can be recognised.
 
 Code: `server/repository_report_retention.go`, `server/identity_hash.go`,
 `server/report_retention_job.go`, the schema and migration in `server/repository_schema.go`, and the
@@ -44,13 +44,13 @@ hashes are recorded, so a legacy report about an account that was already delete
 
 ## Retention
 
-Reports are kept for **18 months** from `event_reports.created_at` (UTC). The period is the
+Reports are kept for **12 months** from `event_reports.created_at` (UTC). The period is the
 constant `eventReportRetentionMonths` and is not configurable. Reports that exist when this change
 is deployed are covered too, counted from their original date, so the first purge after the deploy
-removes any existing report that is already older than 18 months.
+removes any existing report that is already older than 12 months.
 
 `startReportRetentionJob` runs `PurgeExpiredEventReports` at startup and then every 24 hours. It
-deletes each report older than 18 months whose `retention_hold` is 0, and the report's
+deletes each report older than 12 months whose `retention_hold` is 0, and the report's
 `event_report_messages` and `event_report_identities` rows are deleted with it
 (`ON DELETE CASCADE`). The job logs counts only.
 
@@ -67,9 +67,9 @@ UPDATE event_reports SET retention_hold = 1 WHERE id = ?;
 ```
 
 Replace `?` with the report id. Release the hold with `retention_hold = 0` when the review ends; the
-next purge removes a released report that is already older than 18 months. The column exists only
+next purge removes a released report that is already older than 12 months. The column exists only
 once this change is deployed, so holds can be set at any time after that and must be set before a
-report reaches 18 months. The oldest possible report reaches 18 months on 2027-06-28 (see step 5
+report reaches 12 months. The oldest possible report reaches 12 months on 2026-12-28 (see step 5
 of [Deploying](#deploying)).
 
 A hold protects a report only from the purge. The host's unblock action still withdraws the host's
@@ -78,7 +78,7 @@ own member report, held or not (see [What deletion does](#what-deletion-does)).
 There is no hold tool yet, and production has no shell to run this SQL in, so setting or releasing
 a hold currently needs stop-the-machine work (see
 [Running SQL against production](#running-sql-against-production)). A hold tool is a follow-up due
-before 2027-06-28; see [Follow-ups](#follow-ups).
+before 2026-12-28; see [Follow-ups](#follow-ups).
 
 ## Running SQL against production
 
@@ -163,11 +163,11 @@ steps around the deploy. Steps 2, 3 and 5 only read, so they run on a pulled cop
    to its `email` hash, so a weak key can be brute-forced offline. Without the key everything works
    but no hashes are recorded.
 5. **Run the age check.** `event_reports` was introduced on 2025-12-28, so the oldest possible
-   report reaches 18 months on 2027-06-28 and the first purge cannot delete anything at this
+   report reaches 12 months on 2026-12-28 and the first purge cannot delete anything at this
    deploy. Confirm it on the pulled copy before deploying:
 
    ```sql
-   SELECT count(*) FROM event_reports WHERE created_at < datetime('now', '-18 months');
+   SELECT count(*) FROM event_reports WHERE created_at < datetime('now', '-12 months');
    ```
 
    It must return 0. Anything else is unexpected data that the first purge would delete within
@@ -282,7 +282,7 @@ the period of time in which users have an account with us." It now says:
 
 > If another user reports you, we keep the report, the name you used, your recent messages in that
 > plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your
-> email address, for up to 18 months, even after you delete your account. We do this to protect
+> email address, for up to 12 months, even after you delete your account. We do this to protect
 > other users and to recognise a reported person who signs up again. We keep a report for longer
 > only while it is still under review. Reports you make are kept for the same period, without a
 > link to your account once you delete it.
@@ -311,7 +311,7 @@ Reports hold the same kind of sensitive content as support submissions, so the h
 
 - An admin UI flag for new accounts that match a report (the issue marks it optional; use the
   lookup above until then).
-- **A hold tool, due before 2027-06-28**, when the oldest possible report reaches 18 months. Holds
+- **A hold tool, due before 2026-12-28**, when the oldest possible report reaches 12 months. Holds
   are SQL-only for now, the same way reports are reviewed today (nothing in the app sets
   `reviewed_by`), and production has no shell, so each hold needs stop-the-machine work. Options:
   an admin endpoint, or a server subcommand run with `fly ssh console -C` (confirm that this works

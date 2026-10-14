@@ -5,6 +5,11 @@ import { colors, componentTokens, radii, spacing, typography } from '@theme/inde
 // Sizes follow the Figma spec for the Choose Cover overlay (node 101:929):
 // search 40h/r10, chips 36h/r10 with 15/20 labels, 3-column square tiles
 // with an 18pt visual gutter.
+const CHIP_HEIGHT = 36;
+// Must stay within the gaps around the row: the search field's 16pt bottom
+// margin above, and the 20pt gap to the grid below.
+const CHIP_ROW_TOUCH_MARGIN = 12;
+
 const styles = StyleSheet.create({
   libraryAction: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: spacing.lg },
   libraryButton: { borderRadius: radii.pill },
@@ -35,16 +40,24 @@ const styles = StyleSheet.create({
     // ScrollView's base style has flexShrink: 1, so the maxHeight-constrained
     // overlay shrinks the row below the chip height and clips the pills.
     flexShrink: 0,
-    height: 36,
-    marginBottom: 20,
+    // The scroll view is the chip height plus a touch margin above and below,
+    // so a swipe that starts in the gap around the chips still scrolls the row.
+    // Negative margins give the space back, so nothing on screen moves.
+    height: CHIP_HEIGHT + CHIP_ROW_TOUCH_MARGIN * 2,
+    marginTop: -CHIP_ROW_TOUCH_MARGIN,
+    marginBottom: 20 - CHIP_ROW_TOUCH_MARGIN,
+    // Full-bleed: scroll chips to the screen edges past the sheet's horizontal
+    // padding instead of clipping them 16pt early; the content padding below
+    // keeps the first chip aligned with the search field at rest.
+    marginHorizontal: -spacing.md,
   },
   chipsContent: {
     gap: 6,
     alignItems: 'center',
-    paddingRight: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   chip: {
-    height: 36,
+    height: CHIP_HEIGHT,
     borderRadius: radii.md,
     borderCurve: 'continuous',
     borderWidth: 1,

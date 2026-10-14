@@ -83,7 +83,7 @@ This is required because events must have a valid host. Keeping a hosted event a
 - Keep reports the user reviewed as an admin; `event_reports.reviewed_by` becomes NULL.
 - Delete blocks where the user is blocker or blocked user.
 
-Reports are no longer deleted with the account (issue #184). They are kept for 18 months from the
+Reports are no longer deleted with the account (issue #184). They are kept for 12 months from the
 report date unless a retention hold is set, then removed from the live database. See
 `docs/safety-report-retention.md`.
 
@@ -288,7 +288,7 @@ npm test -- EventsContext.rendering.test.tsx
 ## Risks And Decisions
 
 - Message deletion versus anonymization: plan uses deletion for privacy and simpler data integrity.
-- Moderation report retention: reports involving the user are kept for 18 months and then removed
+- Moderation report retention: reports involving the user are kept for 12 months and then removed
   from the live database (issue #184); see `docs/safety-report-retention.md`.
 - Other-device logout: requires user-existence checks because JWTs are stateless.
 - Notifications should be emitted after transaction commit only, otherwise clients could refresh before data is actually deleted.

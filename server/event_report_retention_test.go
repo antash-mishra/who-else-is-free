@@ -731,7 +731,7 @@ func TestLoginWithoutIdentityKeyRecordsNothing(t *testing.T) {
 func TestPurgeExpiredEventReports(t *testing.T) {
 	f := seedMemberReportFixture(t) // a fresh report, created now
 	ctx := context.Background()
-	now := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC) // cutoff: 2025-04-11 12:00:00
+	now := time.Date(2026, 10, 11, 12, 0, 0, 0, time.UTC) // cutoff: 2025-10-11 12:00:00
 	insert := func(createdAt string, hold int) int64 {
 		res, err := f.repo.db.Exec(`
 			INSERT INTO event_reports (event_id, user_id, reported_user_id, subject_user_id, reason, created_at, retention_hold)
@@ -751,9 +751,9 @@ func TestPurgeExpiredEventReports(t *testing.T) {
 		}
 		return id
 	}
-	expired := insert("2025-04-11 11:59:59", 0)  // just over 18 months old
+	expired := insert("2025-10-11 11:59:59", 0)  // just over 12 months old
 	held := insert("2024-01-01 00:00:00", 1)     // expired but under active review
-	boundary := insert("2025-04-11 12:00:01", 0) // just under 18 months old
+	boundary := insert("2025-10-11 12:00:01", 0) // just under 12 months old
 
 	deleted, err := f.repo.PurgeExpiredEventReports(ctx, now)
 	if err != nil {
