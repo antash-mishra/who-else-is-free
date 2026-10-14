@@ -17,8 +17,8 @@ picture on an existing plan unless that picture was deliberately replaced.
 
 - A scheduled GitHub Actions job runs twice a day (09:00 and 21:00 IST), plus a
   manual **Run workflow** button for urgent changes.
-- The job commits `server/covers_catalog.json` straight to `master` (no PR) and starts
-  the existing Fly deploy itself.
+- The job commits `server/covers_catalog.json` straight to `main` (no PR) and starts
+  the existing Fly deploy itself. (The default branch was `master` until 2026-10-14.)
 - A removed cover disappears from Choose Cover. Plans that used it show a similar cover
   (same folder, else same category) and hosts can still edit them.
 - The Drive layout stays as it is: `<Category>/<Tag folder>/file.png`, or files placed
@@ -131,16 +131,18 @@ sync records the change. A hash mismatch never fails a deploy.
 
 - Triggers: `schedule: '30 3,15 * * *'` (09:00 and 21:00 IST) and `workflow_dispatch`
   with a boolean `allow_removals` input ("Allow removing many covers").
-- Runs only on `master`. Concurrency group `covers-sync` without cancelling, so a manual
+- Runs only on `main`. Concurrency group `covers-sync` without cancelling, so a manual
   run waits for a running one.
 - Permissions: `contents: write` (push the catalog) and `actions: write` (dispatch the
   deploy). Pushes made with `GITHUB_TOKEN` do not trigger `deploy-fly.yml`, so the job
-  runs `gh workflow run deploy-fly.yml --ref master` itself.
+  runs `gh workflow run deploy-fly.yml --ref main` itself.
 - Steps: checkout, set up Go from `server/go.mod`, run the sync with `-summary`, show the
   summary (always), run `go test ./...` in `server`, then commit and deploy only if
-  `covers_catalog.json` changed. Commits are authored by `github-actions[bot]`. A rejected
-  push rebases onto `master` and retries up to three times; a conflicting rebase fails the
-  run, and the next run starts fresh.
+  `covers_catalog.json` changed. Commits are authored by `github-actions[bot]`. After a rejected
+  push it fetches `main`: if `main` already has this exact catalog (a re-run after the
+  deploy failed to start) it only deploys; if `main` changed the catalog during the run it
+  fails without pushing, because a merged catalog was never tested, and the next run starts
+  fresh; otherwise it rebases and retries, up to three times.
 - Failure: the run fails and GitHub emails the account that last changed the schedule
   (scheduled runs) or whoever pressed the button (manual runs).
 
