@@ -256,6 +256,11 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
 - Keep context providers focused on state orchestration, not large transport implementations.
 - Split large contexts by data/actions when high-churn state causes broad rerenders.
 - Avoid navigation side effects inside contexts unless there is no practical alternative.
+- Analytics carries no advertising identifiers: weif shows no ads. `firebase.json` turns off the
+  Android advertising ID and SSAID, iOS SKAdNetwork registration, and ad storage/user-data/personalisation
+  consent defaults; `app.config.js` blocks the merged `com.google.android.gms.permission.AD_ID` permission;
+  `plugins/withAnalyticsWithoutAdId.js` links the iOS analytics pod without IDFA support. All three only take
+  effect in a new native build. Keep them off: the privacy policy and store privacy labels assume no ad IDs.
 
 ## Refactoring Rules
 

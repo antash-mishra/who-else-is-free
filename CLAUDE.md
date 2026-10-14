@@ -102,6 +102,11 @@ Who Else Is Free is an event discovery and social coordination app.
 - Past Plans uses `src/api/pastEvents.ts` and `usePastEvents` for 25-item cursor pages, request locking/cancellation, session resets, retries, de-duplication, and unchanged-item reconciliation. Focus returns reuse cached pages for 60 seconds, then reconcile the loaded depth; pull-to-refresh resets to page one. `EventSectionList` exposes `onEndReached`/`footer` and opt-in `entryAnimation="initial"` for bounded motion across date sections/pages. `/api/events/past?limit=25&cursor=...` returns `{data,next_cursor}` ordered by normalized UTC schedule/creation/ID with a viewer-bound cursor and fixed past cutoff; no-query requests preserve the legacy response.
 - Read-only Event Details uses `ReadOnlyEventDetails`, one animated FlatList with a dynamic hero/info/member heading and shared member rows. Never nest its vertical member list inside a ScrollView; active-plan host pagers and overlay details keep their existing paths.
 - `requestJson.signal` combines caller cancellation with its timeout through `createRequestTimeout`, which detaches the caller listener on cleanup.
+- Analytics carries no advertising identifiers: weif shows no ads. `firebase.json` turns off the
+  Android advertising ID and SSAID, iOS SKAdNetwork registration, and ad storage/user-data/personalisation
+  consent defaults; `app.config.js` blocks the merged `com.google.android.gms.permission.AD_ID` permission;
+  `plugins/withAnalyticsWithoutAdId.js` links the iOS analytics pod without IDFA support. All three only take
+  effect in a new native build. Keep them off: the privacy policy and store privacy labels assume no ad IDs.
 - Startup permissions: Discover waits for `BloomContext.transitionComplete`, then serializes `PushContext.requestPushPermission` and `useViewerLocation().requestPermission`. Do not prompt from `App.tsx`, provider mount effects, or the splash route; silent checks and token/location loading for existing grants may still run there.
 - Admin support: persistent authorization lives in `admin_users` by immutable user ID;
   `ADMIN_BOOTSTRAP_EMAILS` only provisions verified initial accounts. Support Inbox API mapping is
