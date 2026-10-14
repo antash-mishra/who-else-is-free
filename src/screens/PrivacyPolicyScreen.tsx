@@ -21,14 +21,7 @@ interface InlineSegment {
   text: string;
   bold?: boolean;
   italic?: boolean;
-  underline?: boolean;
 }
-
-const LINK_TEXTS = [
-  'Google API Services User Data Policy',
-  'xyz@weif.com',
-  'data subject access request',
-];
 
 const SECTION_SCROLL_OFFSET = 16;
 
@@ -39,59 +32,33 @@ const stripMarkdown = (value: string) =>
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .trim();
 
-const splitLinkedText = (text: string, base: Omit<InlineSegment, 'text'> = {}): InlineSegment[] => {
-  if (!text) {
-    return [];
-  }
-
-  let earliestIndex = -1;
-  let earliestLink = '';
-
-  LINK_TEXTS.forEach((linkText) => {
-    const index = text.indexOf(linkText);
-    if (index !== -1 && (earliestIndex === -1 || index < earliestIndex)) {
-      earliestIndex = index;
-      earliestLink = linkText;
-    }
-  });
-
-  if (earliestIndex === -1) {
-    return [{ text, ...base }];
-  }
-
-  return [
-    ...splitLinkedText(text.slice(0, earliestIndex), base),
-    { text: earliestLink, ...base, underline: true },
-    ...splitLinkedText(text.slice(earliestIndex + earliestLink.length), base),
-  ];
-};
-
+// Nothing in the policy is tappable, so contact details and named documents are
+// plain bold text people copy by hand; underlining them would look like a link.
 const parseInlineText = (text: string): InlineSegment[] => {
   const segments: InlineSegment[] = [];
   const pattern = /\[([^\]]+)\]\([^)]+\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
   let currentIndex = 0;
   let match: RegExpExecArray | null;
 
+  const pushText = (value: string) => {
+    if (value) segments.push({ text: value });
+  };
+
   while ((match = pattern.exec(text))) {
-    segments.push(...splitLinkedText(text.slice(currentIndex, match.index)));
+    pushText(text.slice(currentIndex, match.index));
 
     if (match[1]) {
-      segments.push({ text: match[1], underline: true });
+      pushText(match[1]);
     } else if (match[2]) {
-      segments.push(
-        ...splitLinkedText(match[2], {
-          bold: true,
-          underline: LINK_TEXTS.includes(match[2]),
-        }),
-      );
+      segments.push({ text: match[2], bold: true });
     } else if (match[3]) {
-      segments.push(...splitLinkedText(match[3], { italic: true }));
+      segments.push({ text: match[3], italic: true });
     }
 
     currentIndex = pattern.lastIndex;
   }
 
-  segments.push(...splitLinkedText(text.slice(currentIndex)));
+  pushText(text.slice(currentIndex));
   return segments;
 };
 
@@ -168,12 +135,7 @@ const InlineText = ({ text, style }: { text: string; style?: object }) => (
     {parseInlineText(text).map((segment, index) => (
       <Text
         key={`${segment.text}-${index}`}
-        style={[
-          style,
-          segment.bold && styles.strong,
-          segment.italic && styles.emphasis,
-          segment.underline && styles.link,
-        ]}
+        style={[style, segment.bold && styles.strong, segment.italic && styles.emphasis]}
       >
         {segment.text}
       </Text>
@@ -385,10 +347,6 @@ const styles = StyleSheet.create({
   },
   emphasis: {
     fontStyle: 'italic',
-  },
-  link: {
-    color: colors.secondary,
-    textDecorationLine: 'underline',
   },
   sectionHeadingBlock: {
     marginTop: 28,
