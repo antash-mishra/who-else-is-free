@@ -56,7 +56,7 @@ We also use analytics tools, such as Firebase Analytics, as described in section
 
 **Log and Usage Data.** We and our service providers may collect service-related, diagnostic, usage, and performance information when you access or use the Services. This may include your IP address, date and time of access, app activity, feature usage, analytics events, error or crash information, and other technical information needed to operate, secure, troubleshoot, analyse, and improve the Services.
 
-**Device and App Data.** We and our service providers, including Firebase, may collect information about the device and app you use to access the Services. This may include your device platform, operating system, app version, build or release channel, general device information, app-instance identifiers, push notification tokens, generated app/device identifiers, and diagnostic information. We do not intentionally collect your device's permanent hardware identifier, phone number, or mobile carrier account details, except where such information is processed by our service providers as necessary to provide analytics, messaging, security, or app functionality.
+**Device and App Data.** We and our service providers, including Firebase, may collect information about the device and app you use to access the Services. This may include your device platform, operating system, app version, build or release channel, general device information, app-instance identifiers, push notification tokens, generated app/device identifiers, and diagnostic information. We do not intentionally collect your device's permanent hardware identifier, phone number, or mobile carrier account details, except where such information is processed by our service providers as necessary to provide analytics, messaging, security, or app functionality. We do not collect advertising identifiers (such as Android's Advertising ID or Apple's IDFA), do not show ads, and do not track you across other companies' apps or websites.
 
 **Google API.** Our use of information received from Google APIs will adhere to **Google API Services User Data Policy**, including the Limited Use requirements.
 
@@ -92,13 +92,15 @@ The General Data Protection Regulation (GDPR) requires us to explain the valid l
 
 **Vital Interests.** We may process your information where we believe it is necessary to protect your vital interests or the vital interests of a third party, such as situations involving potential threats to the safety of any person.
 
+**How these apply to weif.** We rely on performance of a contract to run your account, plans, join requests and chats; on your consent for location access and push notifications; and on our legitimate interests to keep weif safe (reports, blocks and keeping reports) and to understand how the app is used so we can improve it.
+
 ### 4. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?
 
 We may need to share your personal information in some situations.
 
 **Business Transfers.** We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company.
 
-**When we use Google Maps Platform APIs.** We may share your information with certain Google Maps Platform APIs (e.g. Google Maps API, Places API). We use Google Places for location search and place details.
+**When we use Google Maps Platform APIs.** When you search for a place, we send your search text and your country to Google Places, which we use for place search and place details.
 
 **Other Users.** Plans you create, including their title, place, time, description and who they are for, are visible to anyone using weif, along with your name and profile photo as the host. When you ask to join a plan, the host sees your name, profile photo and any message you include. Chat messages are visible only to the members of that chat. Your age and gender are not shown to other users.
 
@@ -132,7 +134,7 @@ We will consider and act upon any request in accordance with applicable data pro
 
 If you believe we are unlawfully processing your personal information, you have the right to complain to the Data Protection Commission in Ireland (www.dataprotection.ie), or to the data protection authority where you live.
 
-**Withdrawing your consent:** If we are relying on your consent to process your personal information, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below.
+**Withdrawing your consent:** If we are relying on your consent to process your personal information, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below. You can turn off location access and push notifications at any time in your device's settings.
 
 However, please note that this will not affect the lawfulness of the processing before its withdrawal nor will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent.
 
