@@ -68,6 +68,22 @@ jest.mock('@shopify/react-native-skia', () => {
   };
 });
 
+// Confetti draws with Skia on the UI thread; screen tests only need it to mount.
+jest.mock('react-native-fast-confetti', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  const Passthrough = ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(View, null, children);
+  const withParts = () =>
+    Object.assign(
+      ({ children }: { children?: React.ReactNode }) => React.createElement(View, null, children),
+      { Origin: Passthrough, Flake: () => null },
+    );
+
+  return { PIConfetti: withParts(), CannonConfetti: withParts() };
+});
+
 // Mock react-native-gesture-handler
 jest.mock('react-native-gesture-handler', () => {
   const React = require('react');

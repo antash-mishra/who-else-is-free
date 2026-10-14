@@ -210,6 +210,15 @@ describe('HomeScreen Rendering', () => {
     expect(queryByTestId('notification-notice-overlay')).toBeNull();
   });
 
+  it('celebrates finishing onboarding with the welcome toast and confetti together', async () => {
+    mockRoute.params = { showWelcomeBadge: true };
+    const view = render(<HomeScreen />);
+
+    expect(view.queryByTestId('confetti-overlay')).toBeNull();
+    await waitFor(() => expect(view.getByText('Welcome to weif')).toBeTruthy());
+    expect(view.getByTestId('confetti-overlay')).toBeTruthy();
+  });
+
   describe('Loading State', () => {
     it('renders loading indicator when loading with no events', () => {
       mockEventsValue.isLoading = true;
