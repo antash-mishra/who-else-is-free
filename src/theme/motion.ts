@@ -26,3 +26,22 @@ export const motionGeometry = {
   /** Scale an entering item starts at. */
   entryScaleFrom: 0.97,
 } as const;
+
+/**
+ * One open sheet handing over to another (menu -> confirmation). The old content
+ * fades out while the new fades in, and the sheet's content height glides
+ * between them instead of jumping.
+ */
+export const sheetMorph = {
+  /** Height glide from the old content to the new. */
+  heightMs: 180,
+  fadeOutMs: 90,
+  /** The new content starts fading in as the old is mostly gone. */
+  fadeInDelayMs: 60,
+  fadeInMs: 130,
+  /**
+   * Safety net: the morph normally ends when the height glide finishes. This only
+   * ends it if that never happens, so it sits well past a glide that starts late.
+   */
+  totalMs: 600,
+} as const;
