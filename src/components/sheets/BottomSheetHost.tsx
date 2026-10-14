@@ -148,6 +148,9 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
             contentTestID={renderedDescriptor.contentTestID}
             contentStyle={renderedDescriptor.contentStyle}
             onOpened={renderedDescriptor.onOpened}
+            // The shared 'active' sheet stays open while one owner hands over to
+            // another (menu -> confirmation); the owner id lets it morph between them.
+            contentKey={renderedDescriptor.keepMounted ? undefined : ownerId}
             onClosed={() => {
               handleClosed(ownerId);
               renderedDescriptor.onClosed?.();

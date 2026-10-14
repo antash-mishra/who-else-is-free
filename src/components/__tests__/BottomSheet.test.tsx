@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Dimensions, Keyboard, Modal, Platform, StyleSheet, Text } from 'react-native';
 
-import { act, render } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { KeyboardController, useGenericKeyboardHandler } from 'react-native-keyboard-controller';
 import * as Reanimated from 'react-native-reanimated';
 
@@ -435,5 +435,119 @@ describe('BottomSheet follows Android keyboard frames (#190)', () => {
     view.rerender(sheet(true, true));
 
     expect(translateY(view)).toBe(-284);
+  });
+});
+
+describe('BottomSheet content morph', () => {
+  const layout = (height: number) => ({ nativeEvent: { layout: { height } } });
+  const sheetProps = { visible: true, onClose: jest.fn(), presentation: 'inline' as const };
+
+  const openAndMeasure = async (onOpened: jest.Mock) => {
+    const view = render(
+      <BottomSheet {...sheetProps} contentKey="menu" onOpened={onOpened}>
+        <Text>Menu</Text>
+      </BottomSheet>,
+    );
+    await waitFor(() => expect(onOpened).toHaveBeenCalled());
+    fireEvent(view.getByTestId('bottom-sheet-modal-body'), 'layout', layout(120));
+    return view;
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('crossfades to the new content and glides the height when an open sheet hands over', async () => {
+    const view = await openAndMeasure(jest.fn());
+
+    view.rerender(
+      <BottomSheet {...sheetProps} contentKey="confirm">
+        <Text>Confirm</Text>
+      </BottomSheet>,
+    );
+
+    // The old content stays on screen (hidden from screen readers) while it fades,
+    // and the body is pinned to the old height.
+    expect(view.getByText('Menu', { includeHiddenElements: true })).toBeTruthy();
+    expect(view.getByText('Confirm')).toBeTruthy();
+    const body = () => StyleSheet.flatten(view.getByTestId('bottom-sheet-modal-body').props.style);
+    expect(body().height).toBe(120);
+
+    // Once the new content has laid out, the height glides to it. The mocked timing
+    // completes at once, which ends the morph: the old content goes and the height
+    // is handed back to layout.
+    fireEvent(view.getByTestId('bottom-sheet-modal-body-content'), 'layout', layout(200));
+    await waitFor(() =>
+      expect(view.queryByText('Menu', { includeHiddenElements: true })).toBeNull(),
+    );
+    expect(body().height).toBeUndefined();
+    expect(view.getByText('Confirm')).toBeTruthy();
+  });
+
+  it("glides to the new content's measured height, even when it matches the old one", async () => {
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    const view = await openAndMeasure(jest.fn());
+    timing.mockClear();
+
+    view.rerender(
+      <BottomSheet {...sheetProps} contentKey="confirm">
+        <Text>Confirm</Text>
+      </BottomSheet>,
+    );
+    fireEvent(view.getByTestId('bottom-sheet-modal-body-content'), 'layout', layout(120));
+
+    await waitFor(() =>
+      expect(view.queryByText('Menu', { includeHiddenElements: true })).toBeNull(),
+    );
+    expect(timing).toHaveBeenCalledWith(120, expect.anything(), expect.any(Function));
+  });
+
+  it('pins the next handover to the height the last morph ended at', async () => {
+    const view = await openAndMeasure(jest.fn());
+    const body = () => StyleSheet.flatten(view.getByTestId('bottom-sheet-modal-body').props.style);
+
+    view.rerender(
+      <BottomSheet {...sheetProps} contentKey="confirm">
+        <Text>Confirm</Text>
+      </BottomSheet>,
+    );
+    fireEvent(view.getByTestId('bottom-sheet-modal-body-content'), 'layout', layout(200));
+    await waitFor(() => expect(body().height).toBeUndefined());
+
+    // No new body layout is reported: the released body already sits at 200.
+    view.rerender(
+      <BottomSheet {...sheetProps} contentKey="reason">
+        <Text>Reason</Text>
+      </BottomSheet>,
+    );
+    expect(body().height).toBe(200);
+    expect(view.getByText('Confirm', { includeHiddenElements: true })).toBeTruthy();
+  });
+
+  it('swaps instantly when reduced motion is on', async () => {
+    jest.spyOn(Reanimated, 'useReducedMotion').mockReturnValue(true);
+    const view = await openAndMeasure(jest.fn());
+
+    view.rerender(
+      <BottomSheet {...sheetProps} contentKey="confirm">
+        <Text>Confirm</Text>
+      </BottomSheet>,
+    );
+
+    expect(view.queryByText('Menu', { includeHiddenElements: true })).toBeNull();
+    expect(view.getByText('Confirm')).toBeTruthy();
+  });
+
+  it('does not morph content that changes without a new contentKey', async () => {
+    const view = await openAndMeasure(jest.fn());
+
+    view.rerender(
+      <BottomSheet {...sheetProps} contentKey="menu">
+        <Text>Menu updated</Text>
+      </BottomSheet>,
+    );
+
+    expect(view.queryByText('Menu', { includeHiddenElements: true })).toBeNull();
+    expect(view.getByText('Menu updated')).toBeTruthy();
   });
 });

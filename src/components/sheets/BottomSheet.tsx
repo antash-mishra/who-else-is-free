@@ -20,13 +20,15 @@ import Animated, {
   Easing,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
+  withDelay,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, componentTokens, layout, radii, shadows, spacing } from '@theme/index';
+import { colors, componentTokens, layout, radii, sheetMorph, shadows, spacing } from '@theme/index';
 import { Springs } from '@theme/springs';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
 
@@ -54,6 +56,63 @@ export type BottomSheetProps = {
   /** Fired after the entry animation has settled. */
   onOpened?: () => void;
   onClosed?: () => void;
+  /**
+   * Identifies the content shown. When it changes while the sheet is open and
+   * settled (BottomSheetHost handing one sheet over to another), the old content
+   * fades out, the new fades in, and the height glides between them.
+   */
+  contentKey?: string;
+};
+
+type SheetBody = {
+  title?: string;
+  children: React.ReactNode;
+  contentStyle?: StyleProp<ViewStyle>;
+};
+
+type SheetMorph = {
+  id: number;
+  outgoing: SheetBody;
+  /** The content key arriving by this morph; its layer mounts invisible. */
+  incomingKey: string | undefined;
+  /** Old body height, pinned with a plain style from the swap's first render. */
+  fromHeight: number;
+  /** New content's measured height; set once the glide starts. */
+  toHeight?: number;
+};
+
+// Opacity layers driven by shared values on views React keeps mounted. Reanimated
+// `exiting` animations hold views past React's removal, which is the pattern
+// behind the Fabric "Attempt to recycle a mounted view" crash fixed in #208.
+type MorphLayerProps = React.ComponentProps<typeof Animated.View> & { fadeIn: boolean };
+
+/** The current content. Mounts invisible when it arrives by morph, then fades in. */
+const MorphIncomingLayer = ({ fadeIn, style, ...rest }: MorphLayerProps) => {
+  const opacity = useSharedValue(fadeIn ? 0 : 1);
+  useEffect(() => {
+    if (!fadeIn) return;
+    opacity.value = withDelay(
+      sheetMorph.fadeInDelayMs,
+      withTiming(1, { duration: sheetMorph.fadeInMs, easing: Easing.out(Easing.cubic) }),
+    );
+    // Mount-only: a later prop change must not replay the fade.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[style, fadeStyle]} {...rest} />;
+};
+
+/** The previous content, kept on top while it fades out, then removed by React. */
+const MorphOutgoingLayer = ({ style, ...rest }: React.ComponentProps<typeof Animated.View>) => {
+  const opacity = useSharedValue(1);
+  useEffect(() => {
+    opacity.value = withTiming(0, {
+      duration: sheetMorph.fadeOutMs,
+      easing: Easing.in(Easing.cubic),
+    });
+  }, [opacity]);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[style, fadeStyle]} {...rest} />;
 };
 
 const BASE_PADDING_BOTTOM = 8;
@@ -84,6 +143,7 @@ const BottomSheet = ({
   contentStyle,
   onOpened,
   onClosed,
+  contentKey,
 }: BottomSheetProps) => {
   const { bottom: safeBottom, top: safeTop } = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -92,6 +152,19 @@ const BottomSheet = ({
   // heavy content (e.g. the cover grid) stays cheap; off otherwise so inner
   // scrolling is not re-rasterized every frame.
   const [isAnimating, setIsAnimating] = useState(false);
+  const reduceMotion = useReducedMotion();
+  // State, not a ref: render decides whether a content swap morphs, so the new
+  // content can mount already invisible.
+  const [isSettledJS, setIsSettledJS] = useState(false);
+  const [bodyHeight, setBodyHeight] = useState(0);
+  const [shownContentKey, setShownContentKey] = useState(contentKey);
+  const [morphSeq, setMorphSeq] = useState(0);
+  const [morph, setMorph] = useState<SheetMorph | null>(null);
+  const shownBodyRef = useRef<SheetBody | null>(null);
+  const morphHeight = useSharedValue(0);
+  // Latest size of the current content and the running morph, for the glide.
+  const incomingMeasureRef = useRef<{ key: string | undefined; height: number } | null>(null);
+  const activeMorphIdRef = useRef<number | null>(null);
   const isMountedRef = useRef(visible);
   const hasBeenVisible = useRef(visible);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,6 +224,7 @@ const BottomSheet = ({
   }, [onOpened]);
 
   const notifyOpened = useCallback(() => {
+    setIsSettledJS(true);
     onOpenedRef.current?.();
   }, []);
 
@@ -273,6 +347,7 @@ const BottomSheet = ({
     // down before the sheet mounts.
     keyboardOffset.value = 0;
     isSettled.value = false;
+    setIsSettledJS(false);
     setIsAnimating(true);
     const handleSettled = (finished?: boolean) => {
       'worklet';
@@ -320,6 +395,7 @@ const BottomSheet = ({
     Keyboard.dismiss();
     setIsAnimating(true);
     isSettled.value = false;
+    setIsSettledJS(false);
     keyboardOffset.value = withTiming(0, {
       duration: Math.min(180, closeDuration),
       easing: Easing.out(Easing.cubic),
@@ -399,9 +475,103 @@ const BottomSheet = ({
     animationCallbacksRef.current.startOpenAnimation();
   }, []);
 
+  const body: SheetBody = { title, children, contentStyle };
+  if (contentKey !== shownContentKey) {
+    // Decided in the swap's own render, so its first committed frame already pins
+    // the old height (a plain style React applies at once) and shows the old content
+    // on top. Pinning one update later let a frame at the new height reach screen.
+    setShownContentKey(contentKey);
+    // Snapshot of what this sheet last showed, taken at the moment of the swap.
+    // eslint-disable-next-line react-hooks/refs
+    const previous = shownBodyRef.current;
+    const willMorph =
+      visible && isSettledJS && bodyHeight > 0 && !reduceMotion && !snapHeight && previous;
+    const id = morphSeq + 1;
+    setMorphSeq(id);
+    setMorph(
+      willMorph && previous
+        ? { id, outgoing: previous, incomingKey: contentKey, fromHeight: bodyHeight }
+        : null,
+    );
+  }
+
+  // Remember what this commit showed, for the next swap's outgoing layer.
+  useLayoutEffect(() => {
+    shownBodyRef.current = body;
+  });
+
+  const endMorph = useCallback((id: number, finalHeight?: number) => {
+    setMorph((current) => (current?.id === id ? null : current));
+    // The released body keeps this height, so layout may not report it again.
+    if (finalHeight !== undefined && finalHeight > 0) setBodyHeight(finalHeight);
+  }, []);
+
+  const startGlide = useCallback(
+    (id: number, toHeight: number) => {
+      setMorph((current) => {
+        if (current?.id !== id || current.toHeight !== undefined) return current;
+        // The animated height attaches with the next render; start it at the pin.
+        morphHeight.value = current.fromHeight;
+        return { ...current, toHeight };
+      });
+    },
+    [morphHeight],
+  );
+
+  const morphId = morph?.id;
+  const morphTarget = morph?.toHeight;
+  useEffect(() => {
+    activeMorphIdRef.current = morphId ?? null;
+    if (morphId === undefined) return undefined;
+    // The new content may have been measured before this morph started; if so its
+    // layout will not report again, so start the glide from that measurement.
+    const measured = incomingMeasureRef.current;
+    if (measured && measured.key === contentKey) startGlide(morphId, measured.height);
+    // Safety net only; the height glide normally ends the morph.
+    const timer = setTimeout(() => endMorph(morphId, measured?.height), sheetMorph.totalMs);
+    return () => clearTimeout(timer);
+    // contentKey is read for the measurement match only; a new key means a new morph.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endMorph, morphId, startGlide]);
+
+  useEffect(() => {
+    if (morphId === undefined || morphTarget === undefined) return;
+    const id = morphId;
+    morphHeight.value = withTiming(
+      morphTarget,
+      { duration: sheetMorph.heightMs, easing: Easing.inOut(Easing.cubic) },
+      (finished) => {
+        'worklet';
+
+        if (finished) runOnJS(endMorph)(id, morphTarget);
+      },
+    );
+  }, [endMorph, morphHeight, morphId, morphTarget]);
+
+  const morphHeightStyle = useAnimatedStyle(() => ({ height: morphHeight.value }));
+
   if (!isMounted && !retainInline) {
     return null;
   }
+
+  const renderBody = (sheetBody: SheetBody, isOutgoing = false) => (
+    <>
+      {sheetBody.title !== undefined ? (
+        <View style={styles.header}>
+          <SheetHeader
+            title={sheetBody.title}
+            onClose={onClose}
+            closeTestID={isOutgoing ? undefined : closeTestID}
+          />
+        </View>
+      ) : null}
+      <View
+        style={[styles.content, snapHeight ? styles.contentFill : null, sheetBody.contentStyle]}
+      >
+        {sheetBody.children}
+      </View>
+    </>
+  );
 
   const sheet = (
     <View style={StyleSheet.absoluteFill}>
@@ -447,14 +617,54 @@ const BottomSheet = ({
           ]}
           testID={contentTestID}
         >
-          {title !== undefined ? (
-            <View style={styles.header}>
-              <SheetHeader title={title} onClose={onClose} closeTestID={closeTestID} />
-            </View>
-          ) : null}
-          <View style={[styles.content, snapHeight ? styles.contentFill : null, contentStyle]}>
-            {children}
-          </View>
+          <Animated.View
+            style={[
+              snapHeight ? styles.contentFill : styles.body,
+              // While morphing: the plain pinned height holds from the first frame; the
+              // animated height attaches over it once the glide starts. Both go when
+              // the morph ends, handing height back to layout.
+              morph ? [styles.bodyMorphing, { height: morph.fromHeight }] : null,
+              morph?.toHeight !== undefined ? morphHeightStyle : null,
+            ]}
+            testID={`${testID}-body`}
+            onLayout={
+              morph
+                ? undefined
+                : (event) => {
+                    const { height } = event.nativeEvent.layout;
+                    if (height > 0 && height !== bodyHeight) setBodyHeight(height);
+                  }
+            }
+          >
+            <MorphIncomingLayer
+              key={contentKey ?? 'content'}
+              fadeIn={morph !== null && morph.incomingKey === contentKey}
+              testID={`${testID}-body-content`}
+              style={[
+                snapHeight ? styles.contentFill : styles.bodyLayer,
+                morph ? styles.bodyLayerNatural : null,
+              ]}
+              onLayout={(event) => {
+                const { height } = event.nativeEvent.layout;
+                incomingMeasureRef.current = { key: contentKey, height };
+                const activeId = activeMorphIdRef.current;
+                if (activeId !== null) startGlide(activeId, height);
+              }}
+            >
+              {renderBody(body)}
+            </MorphIncomingLayer>
+            {morph ? (
+              <MorphOutgoingLayer
+                key={`outgoing-${morph.id}`}
+                pointerEvents="none"
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={styles.outgoingLayer}
+              >
+                {renderBody(morph.outgoing, true)}
+              </MorphOutgoingLayer>
+            ) : null}
+          </Animated.View>
         </Animated.View>
       </Animated.View>
     </View>
@@ -513,6 +723,25 @@ const styles = StyleSheet.create({
   },
   content: {
     flexShrink: 1,
+  },
+  body: {
+    flexShrink: 1,
+  },
+  bodyMorphing: {
+    overflow: 'hidden',
+  },
+  bodyLayer: {
+    flexShrink: 1,
+  },
+  /** While morphing the layer lays out at its natural height so it can be measured. */
+  bodyLayerNatural: {
+    flexShrink: 0,
+  },
+  outgoingLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
   contentFill: {
     flex: 1,
