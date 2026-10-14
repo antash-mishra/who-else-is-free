@@ -9,7 +9,7 @@ This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how an
 - Download and use our mobile application (weif)
 - Engage with us in other related ways, such as contacting support
 
-**Questions or concerns?** Reading this Privacy Policy will help you understand your privacy rights and choices. We are responsible for making decisions about how your personal information is processed. If you do not agree with our policies and practices, please do not use our Services. If you have any questions or concerns, email us at **contact@weifapp.com**.
+**Questions or concerns?** Reading this Privacy Policy will help you understand your privacy rights and choices. weif is operated by Sumit Narang, based in Dublin, Ireland, who is responsible for deciding how your personal information is processed (the data controller). If you do not agree with our policies and practices, please do not use our Services. If you have any questions or concerns, email us at **contact@weifapp.com**.
 
 ### TABLE OF CONTENTS
 
@@ -80,7 +80,7 @@ We process your personal information for a variety of reasons, depending on how 
 
 ### 3. WHAT LEGAL BASES DO WE RELY ON TO PROCESS YOUR PERSONAL INFORMATION?
 
-The General Data Protection Regulation (GDPR) and UK GDPR require us to explain the valid legal bases we rely on in order to process your personal information.
+The General Data Protection Regulation (GDPR) requires us to explain the valid legal bases we rely on in order to process your personal information.
 
 **Consent.** We may process your information if you have given us permission (i.e. consent) to use your personal information for a specific purpose. You can withdraw your consent at any time.
 
@@ -102,7 +102,7 @@ We may need to share your personal information in some situations.
 
 **Other Users.** Plans you create, including their title, place, time, description and who they are for, are visible to anyone using weif, along with your name and profile photo as the host. When you ask to join a plan, the host sees your name, profile photo and any message you include. Chat messages are visible only to the members of that chat. Your age and gender are not shown to other users.
 
-**International transfers.** Some of our servers and service providers are located outside the EU and UK, including in the United States. When we transfer your information there, we use appropriate safeguards required by data protection law. To ask about these safeguards, email **contact@weifapp.com**.
+**International transfers.** Some of our servers and service providers are located outside the EU, including in the United States. When we transfer your information there, we use appropriate safeguards required by data protection law. To ask about these safeguards, email **contact@weifapp.com**.
 
 ### 5. DO WE USE ANALYTICS AND OTHER TRACKING TECHNOLOGIES?
 
@@ -126,13 +126,11 @@ We do not knowingly collect, solicit data from, or market to children under 18 y
 
 ### 9. WHAT ARE YOUR PRIVACY RIGHTS?
 
-In some regions (like the EEA, UK, and Switzerland), you have certain rights under applicable data protection laws. These may include the right (i) to request access and obtain a copy of your personal information, (ii) to request rectification or erasure; (iii) to restrict the processing of your personal information; (iv) if applicable, to data portability; and (v) not to be subject to automated decision-making. In certain circumstances, you may also have the right to object to the processing of your personal information. You can make such a request by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below.
+You have rights under data protection law, including the right (i) to request access and obtain a copy of your personal information, (ii) to request rectification or erasure; (iii) to restrict the processing of your personal information; (iv) if applicable, to data portability; and (v) not to be subject to automated decision-making. In certain circumstances, you may also have the right to object to the processing of your personal information. You can make such a request by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below.
 
 We will consider and act upon any request in accordance with applicable data protection laws.
 
-If you are located in the EEA or UK and you believe we are unlawfully processing your personal information, you also have the right to complain to your Member State data protection authority or UK data protection authority.
-
-If you are located in Switzerland, you may contact the Federal Data Protection and Information Commissioner.
+If you believe we are unlawfully processing your personal information, you have the right to complain to the Data Protection Commission in Ireland (www.dataprotection.ie), or to the data protection authority where you live.
 
 **Withdrawing your consent:** If we are relying on your consent to process your personal information, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below.
 
@@ -146,7 +144,7 @@ We may update this Privacy Policy from time to time. The updated version will be
 
 ### 11. HOW CAN YOU CONTACT US ABOUT THIS POLICY?
 
-If you have questions or comments about this policy, you may contact us by email at **contact@weifapp.com**.
+weif is operated by Sumit Narang, based in Dublin, Ireland. If you have questions or comments about this policy, you may contact us by email at **contact@weifapp.com**.
 
 ### 12. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?
 
