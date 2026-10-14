@@ -22,6 +22,8 @@ type EventDetailsOverlayRoutesProps = {
   showDeleteConfirm: boolean;
   onDelete: () => void;
   onDeleteCancel: () => void;
+  /** Delete, leave and report confirmations navigate away only after their sheet has closed. */
+  onExitSheetClosed: () => void;
   deleteError: string | null;
   isDeleting: boolean;
   showReportPrompt: boolean;
@@ -85,6 +87,7 @@ const EventDetailsOverlayRoutes = ({
   showDeleteConfirm,
   onDelete,
   onDeleteCancel,
+  onExitSheetClosed,
   deleteError,
   isDeleting,
   showReportPrompt,
@@ -152,6 +155,7 @@ const EventDetailsOverlayRoutes = ({
       <EventActionOverlay
         isVisible={showDeleteConfirm}
         onBackdropPress={isDeleting ? undefined : onDeleteCancel}
+        onClosed={onExitSheetClosed}
         type="confirm"
         title="Delete this plan?"
         description="This will remove the plan for everyone and can't be undone."
@@ -161,11 +165,13 @@ const EventDetailsOverlayRoutes = ({
         onConfirm={onDelete}
         onCancel={onDeleteCancel}
         isConfirmLoading={isDeleting}
+        confirmLoadingLabel="Deleting plan..."
         errorMessage={deleteError}
       />
       <EventActionOverlay
         isVisible={showReportPrompt}
         onBackdropPress={isSubmittingReport ? undefined : onCloseReportPrompt}
+        onClosed={onExitSheetClosed}
         type="report"
         placeholder={
           reportTargetName != null
@@ -195,6 +201,7 @@ const EventDetailsOverlayRoutes = ({
       <EventActionOverlay
         isVisible={showLeaveConfirm}
         onBackdropPress={isLeaving ? undefined : onLeaveCancel}
+        onClosed={onExitSheetClosed}
         type="confirm"
         title="Leave this plan?"
         description="You'll need to request to join again if you change your mind."
@@ -204,6 +211,7 @@ const EventDetailsOverlayRoutes = ({
         onConfirm={onLeaveEvent}
         onCancel={onLeaveCancel}
         isConfirmLoading={isLeaving}
+        confirmLoadingLabel="Leaving plan..."
         errorMessage={leaveError}
       />
       <EventActionOverlay
@@ -250,6 +258,7 @@ const EventDetailsOverlayRoutes = ({
         onConfirm={onRemoveMember}
         onCancel={onRemoveCancel}
         isConfirmLoading={isRemovingMember}
+        confirmLoadingLabel="Removing..."
         errorMessage={removeError}
       />
       <EventActionBadge

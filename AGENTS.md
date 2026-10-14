@@ -373,6 +373,13 @@ One emulator is a shared device, so verify changes sequentially, never call `mob
 
 ## Plan details and input-sheet contracts
 
+- Leaving Event Details from a confirmation (Leave plan, Delete plan, plan report) closes the sheet,
+  waits for its `onClosed` (forwarded by `EventActionOverlay` → `BottomSheetModal` → the shared host),
+  and navigates one frame later via `exitAfterSheetCloses` in `useEventDetailsActions`; membership and
+  conversation refreshes run after navigating. Resetting navigation while the sheet was still closing,
+  with the page re-rendering under it, crashed Fabric on iOS ("Attempt to recycle a mounted view").
+  Confirmation sheets take a `confirmLoadingLabel` ("Leaving plan...", "Deleting plan..."); there is no
+  shared "Deleting..." default.
 - Chat headers open the full-page `EventDetails` route with `hideBottomCTA: true`; this hides only the pinned CTA and its reserved space. Keep `readOnly` for historical/legacy read-only views. Chat plan details reuse normal host Requests/Members or Requests/Accepted tabs and plan actions, with Go back on the left and More actions on the right. A 1:1 host's person moderation menu remains a separate header IconButton.
 
 - Group member presentation includes the host exactly once, first with a Host label and no moderation menu. Group headline counts and Members lists use the same roster. The 1:1 Accepted list remains requester-only.

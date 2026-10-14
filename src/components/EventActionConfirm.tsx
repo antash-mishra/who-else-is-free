@@ -17,6 +17,8 @@ export type EventActionConfirmProps = {
   confirmTone?: 'default' | 'destructive';
   holdToConfirm?: boolean;
   isConfirmLoading?: boolean;
+  /** Confirm button text while the action runs, e.g. "Leaving plan...". Falls back to `confirmLabel`. */
+  confirmLoadingLabel?: string;
   errorMessage?: string | null;
 };
 
@@ -31,6 +33,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
   confirmTone = 'default',
   holdToConfirm = false,
   isConfirmLoading,
+  confirmLoadingLabel,
   errorMessage,
 }) => (
   <View style={styles.prompt}>
@@ -47,6 +50,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
           label={confirmLabel}
           onConfirm={onConfirm}
           disabled={isConfirmLoading}
+          loadingLabel={confirmLoadingLabel}
         />
       ) : (
         <Pressable
@@ -72,7 +76,7 @@ const EventActionConfirm: React.FC<EventActionConfirmProps> = ({
           <Text
             style={[styles.primaryLabel, confirmTone === 'destructive' && styles.destructiveLabel]}
           >
-            {isConfirmLoading ? 'Deleting...' : confirmLabel}
+            {isConfirmLoading ? (confirmLoadingLabel ?? confirmLabel) : confirmLabel}
           </Text>
         </Pressable>
       )}

@@ -388,6 +388,7 @@ const ProfileScreen = () => {
         onConfirm={handleDeleteAccount}
         onCancel={handleDeleteCancel}
         isConfirmLoading={isDeletingAccount}
+        confirmLoadingLabel="Deleting account..."
         errorMessage={deleteError}
       />
       <EventActionBadge

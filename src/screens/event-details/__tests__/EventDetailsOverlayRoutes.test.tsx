@@ -17,6 +17,7 @@ const props: React.ComponentProps<typeof EventDetailsOverlayRoutes> = {
   showDeleteConfirm: false,
   onDelete: jest.fn(),
   onDeleteCancel: jest.fn(),
+  onExitSheetClosed: jest.fn(),
   deleteError: null,
   isDeleting: false,
   showReportPrompt: false,
