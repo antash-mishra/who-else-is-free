@@ -28,7 +28,7 @@ This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how an
 
 ### 1. WHAT INFORMATION DO WE COLLECT?
 
-**Personal information you disclose to us.** We collect personal information that you voluntarily provide to us when you register on the Services, express an interest in obtaining information about us or our products and Services, when you participate in activities on the Services, or otherwise when you contact us.
+**Personal information you disclose to us.** We collect personal information that you voluntarily provide to us when you register on the Services, use the Services, or contact us.
 
 **Personal Information Provided by You.** The personal information that we collect depends on the context of your interactions with us and the Services, the choices you make, and the products and features you use. The personal information we collect may include the following:
 
@@ -40,7 +40,7 @@ This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how an
 - Messages you send to support, and the reply email you give us
 - Photos you upload as plan covers
 
-**Sensitive Information.** We do not process sensitive information.
+**Sensitive information.** We do not ask for sensitive information, such as health, religion or sexual orientation. Please think carefully before sharing it in plans or chats, which other users can see.
 
 **Location.** If you allow location access, the app uses your location while it is open to show how far away plans are and to sort them by distance. We do not send your precise location to our servers. Your phone's built-in location service (provided by Apple or Google) works out which country you are in, and we send only that country to our servers, to improve place search when you create a plan. You can turn off location access at any time in your device's settings; some location-based features will then not work.
 
@@ -48,15 +48,9 @@ This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how an
 
 All personal information that you provide to us must be true, complete, and accurate, and you must notify us of any changes to such personal information.
 
-**Information automatically collected.** We automatically collect certain information when you visit, use, or navigate the Services. This may include device and usage information, such as your IP address, device platform, operating system, app version, app-instance identifiers, diagnostic information, analytics events, and information about how and when you use features of the Services.
+**Information automatically collected.** When you use the Services, we and our service providers, including Firebase, automatically collect device and usage information. This may include your IP address, the date and time you use the Services, your device platform, operating system and general device information, the app version and build or release channel, app-instance identifiers, push notification tokens, generated app/device identifiers, analytics events, information about how and when you use features of the Services, and error, crash, diagnostic and performance information. We use this information to operate, secure, troubleshoot, analyse and improve the Services, and for our internal analytics and reporting. We also use analytics tools, such as Firebase Analytics, as described in section 5.
 
-This information is primarily needed to maintain the security and operation of our Services, for troubleshooting, and for our internal analytics and reporting purposes.
-
-We also use analytics tools, such as Firebase Analytics, as described in section 5.
-
-**Log and Usage Data.** We and our service providers may collect service-related, diagnostic, usage, and performance information when you access or use the Services. This may include your IP address, date and time of access, app activity, feature usage, analytics events, error or crash information, and other technical information needed to operate, secure, troubleshoot, analyse, and improve the Services.
-
-**Device and App Data.** We and our service providers, including Firebase, may collect information about the device and app you use to access the Services. This may include your device platform, operating system, app version, build or release channel, general device information, app-instance identifiers, push notification tokens, generated app/device identifiers, and diagnostic information. We do not intentionally collect your device's permanent hardware identifier, phone number, or mobile carrier account details, except where such information is processed by our service providers as necessary to provide analytics, messaging, security, or app functionality. We do not collect advertising identifiers (such as Android's Advertising ID or Apple's IDFA), do not show ads, and do not track you across other companies' apps or websites.
+We do not intentionally collect your device's permanent hardware identifier, phone number, or mobile carrier account details, except where such information is processed by our service providers as necessary to provide analytics, messaging, security, or app functionality. We do not collect advertising identifiers (such as Android's Advertising ID or Apple's IDFA), do not show ads, and do not track you across other companies' apps or websites.
 
 **Google API.** Our use of information received from Google APIs will adhere to **Google API Services User Data Policy**, including the Limited Use requirements.
 
@@ -96,13 +90,15 @@ The General Data Protection Regulation (GDPR) requires us to explain the valid l
 
 ### 4. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?
 
-We may need to share your personal information in some situations.
+We do not sell your personal information. We share it only in the situations below.
 
 **Business Transfers.** We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company.
 
 **When we use Google Maps Platform APIs.** When you search for a place, we send your search text and your country to Google Places, which we use for place search and place details.
 
 **Other Users.** Plans you create, including their title, place, time, description and who they are for, are visible to anyone using weif, along with your name and profile photo as the host. When you ask to join a plan, the host sees your name, profile photo and any message you include. Chat messages are visible only to the members of that chat. Your age and gender are not shown to other users.
+
+**Service providers.** We use service providers to run weif: Fly.io hosts our servers and database, Apple and Google provide sign-in, and Google Firebase provides analytics and push notifications. They process your information only on our behalf and under our instructions.
 
 **International transfers.** Some of our servers and service providers are located outside the EU, including in the United States. When we transfer your information there, we use appropriate safeguards required by data protection law. To ask about these safeguards, email **contact@weifapp.com**.
 
@@ -124,13 +120,13 @@ We have implemented appropriate and reasonable technical and organisational secu
 
 ### 8. DO WE COLLECT INFORMATION FROM MINORS?
 
-We do not knowingly collect, solicit data from, or market to children under 18 years of age, nor do we knowingly sell such personal information. weif is for adults 18 and over. We ask for your age when you create an account, and by using the Services you confirm that you are at least 18. If we learn that personal information from users less than 18 years of age has been collected, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under age 18, please contact us at **contact@weifapp.com**.
+We do not knowingly collect, solicit data from, or market to children under 18 years of age. weif is for adults 18 and over. We ask for your age when you create an account, and by using the Services you confirm that you are at least 18. If we learn that personal information from users less than 18 years of age has been collected, we will deactivate the account and take reasonable measures to promptly delete such data from our records. If you become aware of any data we may have collected from children under age 18, please contact us at **contact@weifapp.com**.
 
 ### 9. WHAT ARE YOUR PRIVACY RIGHTS?
 
 You have rights under data protection law, including the right (i) to request access and obtain a copy of your personal information, (ii) to request rectification or erasure; (iii) to restrict the processing of your personal information; (iv) if applicable, to data portability; and (v) not to be subject to automated decision-making. In certain circumstances, you may also have the right to object to the processing of your personal information. You can make such a request by contacting us by using the contact details provided in the section 'HOW CAN YOU CONTACT US ABOUT THIS POLICY?' below.
 
-We will consider and act upon any request in accordance with applicable data protection laws.
+We will consider and act upon any request in accordance with applicable data protection laws. We will respond within one month, or tell you within that time if we need longer, as data protection law allows.
 
 If you believe we are unlawfully processing your personal information, you have the right to complain to the Data Protection Commission in Ireland (www.dataprotection.ie), or to the data protection authority where you live.
 
