@@ -140,6 +140,7 @@ const EventDetailsScreenContent = ({
     handleSendInvite,
     handleDelete,
     handleDeleteCancel,
+    handleExitSheetClosed,
     handleSubmitReport,
     handleLeaveEvent,
     handleLeaveCancel,
@@ -468,6 +469,7 @@ const EventDetailsScreenContent = ({
         showDeleteConfirm={showDeleteConfirm}
         onDelete={handleDelete}
         onDeleteCancel={handleDeleteCancel}
+        onExitSheetClosed={handleExitSheetClosed}
         deleteError={deleteError}
         isDeleting={isDeleting}
         showReportPrompt={showReportPrompt}

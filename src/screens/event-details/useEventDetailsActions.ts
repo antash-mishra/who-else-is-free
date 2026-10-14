@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { StackActions } from '@react-navigation/native';
 
@@ -18,6 +18,9 @@ import {
   PLAN_REPORT_GENERIC_ERROR,
 } from './eventDetailsErrors';
 import { EventDetailsNavigation } from './useEventDetailsData';
+
+// Longer than the slowest sheet close (300ms modal) plus a frame.
+const EXIT_FALLBACK_MS = 600;
 
 type UseEventDetailsActionsArgs = {
   navigation: EventDetailsNavigation;
@@ -87,6 +90,38 @@ export const useEventDetailsActions = ({
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
   const [showEventUpdatedBadge, setShowEventUpdatedBadge] = useState(false);
+
+  // Leaving this screen while a sheet is still closing, or while the page under
+  // it re-renders, crashed Fabric on iOS ("Attempt to recycle a mounted view").
+  // Exits therefore close the sheet, wait for it to finish closing, and only
+  // then navigate, one frame later so the sheet's removal commits first.
+  const pendingExitRef = useRef<(() => void) | null>(null);
+  const exitFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const runPendingExit = useCallback(() => {
+    const exit = pendingExitRef.current;
+    if (!exit) return;
+    pendingExitRef.current = null;
+    if (exitFallbackRef.current) {
+      clearTimeout(exitFallbackRef.current);
+      exitFallbackRef.current = null;
+    }
+    requestAnimationFrame(exit);
+  }, []);
+
+  const exitAfterSheetCloses = (closeSheet: () => void, exit: () => void) => {
+    pendingExitRef.current = exit;
+    closeSheet();
+    // Never strand the user if the sheet's close callback does not arrive.
+    exitFallbackRef.current = setTimeout(runPendingExit, EXIT_FALLBACK_MS);
+  };
+
+  useEffect(
+    () => () => {
+      if (exitFallbackRef.current) clearTimeout(exitFallbackRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (user && signInVisible) {
@@ -295,27 +330,33 @@ export const useEventDetailsActions = ({
     setDeleteError(null);
     setIsDeleting(true);
     setDisableHostRequestPolling(true);
+    let deleteSucceeded = false;
     try {
       await deleteUserEvent(event.id);
-      setShowDeleteConfirm(false);
+      deleteSucceeded = true;
       const targetTab = origin === 'MyEvents' ? 'MyEvents' : 'Events';
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'Main',
-            params: {
-              screen: targetTab,
-              params: { showEventDeletedBadge: true },
-            },
-          },
-        ],
-      });
+      exitAfterSheetCloses(
+        () => setShowDeleteConfirm(false),
+        () =>
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                params: {
+                  screen: targetTab,
+                  params: { showEventDeletedBadge: true },
+                },
+              },
+            ],
+          }),
+      );
     } catch (err) {
       logger.error('Failed to delete event', err);
       setDeleteError("Couldn't delete this plan. Please try again.");
     } finally {
-      setIsDeleting(false);
+      // On success the spinner stays until the screen is gone.
+      if (!deleteSucceeded) setIsDeleting(false);
     }
   };
 
@@ -372,6 +413,7 @@ export const useEventDetailsActions = ({
     triggerHaptic('submit');
     setReportError(null);
     setIsSubmittingReport(true);
+    let reportSucceeded = false;
     try {
       const response = await authFetch(`${API_BASE_URL}/api/events/${event.id}/report`, {
         method: 'POST',
@@ -389,34 +431,39 @@ export const useEventDetailsActions = ({
         setReportError(getPlanReportError(response.status));
         return;
       }
-      setReportMessage('');
-      setShowReportPrompt(false);
-      markEventReported(event.id);
       trackEvent('event_reported', eventAnalyticsParams).catch(() => undefined);
-      // Clear local state for pending request since backend also cancels it
-      setHasPendingRequest(false);
-      unmarkEventRequested(event.id);
-      setUserIntroMessage(null);
-      await refreshConversations().catch((err) => {
-        logger.error('Failed to refresh conversations after report', err);
-      });
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'Main',
-            params: {
-              screen: 'Events',
-              params: { showEventReportedBadge: true },
-            },
-          },
-        ],
-      });
+      const reportedEventId = event.id;
+      reportSucceeded = true;
+      // The backend also cancels any pending request; shared state is updated
+      // after navigating so this page does not re-render under the closing sheet.
+      exitAfterSheetCloses(
+        () => setShowReportPrompt(false),
+        () => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                params: {
+                  screen: 'Events',
+                  params: { showEventReportedBadge: true },
+                },
+              },
+            ],
+          });
+          markEventReported(reportedEventId);
+          unmarkEventRequested(reportedEventId);
+          refreshConversations().catch((err) => {
+            logger.error('Failed to refresh conversations after report', err);
+          });
+        },
+      );
     } catch (err) {
       logger.error('Failed to submit report', err);
       setReportError(PLAN_REPORT_GENERIC_ERROR);
     } finally {
-      setIsSubmittingReport(false);
+      // On success the spinner stays until the screen is gone.
+      if (!reportSucceeded) setIsSubmittingReport(false);
     }
   };
 
@@ -442,6 +489,7 @@ export const useEventDetailsActions = ({
     triggerHaptic('destructive');
     setLeaveError(null);
     setIsLeaving(true);
+    let leaveSucceeded = false;
     try {
       const response = await authFetch(
         `${API_BASE_URL}/api/events/${event.id}/chat/members/${user.id}`,
@@ -455,30 +503,37 @@ export const useEventDetailsActions = ({
       if (!response.ok) {
         throw new Error('leave failed');
       }
-      setHasPendingRequest(false);
-      unmarkEventRequested(event.id);
-      setUserIntroMessage(null);
-      await refreshConversations().catch((err) => {
-        logger.error('Failed to refresh conversations after leaving event', err);
-      });
-      setShowLeaveConfirm(false);
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'Main',
-            params: {
-              screen: 'Events',
-              params: { showEventLeftBadge: true },
-            },
-          },
-        ],
-      });
+      const leftEventId = event.id;
+      leaveSucceeded = true;
+      // Membership changes are applied after navigating: refreshing first flipped
+      // this page from member to non-member under the open sheet.
+      exitAfterSheetCloses(
+        () => setShowLeaveConfirm(false),
+        () => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                params: {
+                  screen: 'Events',
+                  params: { showEventLeftBadge: true },
+                },
+              },
+            ],
+          });
+          unmarkEventRequested(leftEventId);
+          refreshConversations().catch((err) => {
+            logger.error('Failed to refresh conversations after leaving event', err);
+          });
+        },
+      );
     } catch (err) {
       logger.error('Failed to leave event', err);
       setLeaveError("Couldn't leave this plan. Please try again.");
     } finally {
-      setIsLeaving(false);
+      // On success the spinner stays until the screen is gone.
+      if (!leaveSucceeded) setIsLeaving(false);
     }
   };
 
@@ -552,6 +607,7 @@ export const useEventDetailsActions = ({
   }, [isOwner, isConversationMember, hasPendingRequest, isCancellingRequest]);
 
   return {
+    handleExitSheetClosed: runPendingExit,
     showInvitePrompt,
     setShowInvitePrompt,
     shouldShowInvitePrompt,

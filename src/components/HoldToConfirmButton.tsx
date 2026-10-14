@@ -16,9 +16,11 @@ type Props = {
   label: string;
   onConfirm: () => void;
   disabled?: boolean;
+  /** Shown while the confirmed action runs; falls back to `label`. */
+  loadingLabel?: string;
 };
 
-const HoldToConfirmButton = ({ label, onConfirm, disabled }: Props) => {
+const HoldToConfirmButton = ({ label, onConfirm, disabled, loadingLabel }: Props) => {
   const progress = useSharedValue(0);
   const containerWidth = useSharedValue(0);
 
@@ -62,7 +64,7 @@ const HoldToConfirmButton = ({ label, onConfirm, disabled }: Props) => {
       style={[styles.button, disabled && styles.disabled]}
     >
       <Animated.View style={[styles.fill, fillStyle]} />
-      <Text style={styles.label}>{disabled ? 'Deleting...' : label}</Text>
+      <Text style={styles.label}>{disabled ? (loadingLabel ?? label) : label}</Text>
     </Pressable>
   );
 };

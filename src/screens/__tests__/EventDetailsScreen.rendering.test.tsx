@@ -997,19 +997,25 @@ describe('EventDetailsScreen Rendering Tests', () => {
         );
       });
 
-      expect(mockEventsState.unmarkEventRequested).toHaveBeenCalledWith(mockNonOwnedEvent.id);
-      expect(mockReset).toHaveBeenCalledWith({
-        index: 0,
-        routes: [
-          {
-            name: 'Main',
-            params: {
-              screen: 'Events',
-              params: { showEventLeftBadge: true },
+      // Navigating while the confirmation sheet is still closing crashed Fabric on
+      // iOS, so the screen leaves only after the sheet has finished closing.
+      expect(mockReset).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(mockReset).toHaveBeenCalledWith({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              params: {
+                screen: 'Events',
+                params: { showEventLeftBadge: true },
+              },
             },
-          },
-        ],
+          ],
+        });
       });
+      expect(mockEventsState.unmarkEventRequested).toHaveBeenCalledWith(mockNonOwnedEvent.id);
     });
   });
 

@@ -1,3 +1,7 @@
+import { render, screen } from '@testing-library/react-native';
+
+import EventActionConfirm from '../EventActionConfirm';
+
 /**
  * Tests for EventActionConfirm component
  * Covers confirm/cancel callbacks, destructive variant
@@ -83,21 +87,32 @@ describe('EventActionConfirm', () => {
   });
 
   describe('Loading State', () => {
-    it('should show loading text when isConfirmLoading is true', () => {
-      const props = { ...defaultProps, isConfirmLoading: true };
-      const buttonText = props.isConfirmLoading ? 'Deleting...' : props.confirmLabel;
+    // Rendered for real: the label used to be a hard-coded "Deleting..." that
+    // every confirmation showed, including Leave plan.
+    it("shows the confirmation's own loading label while loading", () => {
+      render(
+        <EventActionConfirm
+          {...defaultProps}
+          isConfirmLoading
+          confirmLoadingLabel="Leaving plan..."
+        />,
+      );
 
-      expect(buttonText).toBe('Deleting...');
+      expect(screen.getByText('Leaving plan...')).toBeTruthy();
+      expect(screen.queryByText('Deleting...')).toBeNull();
     });
 
-    it('should disable confirm button when loading', () => {
-      const props = { ...defaultProps, isConfirmLoading: true };
-      expect(props.isConfirmLoading).toBe(true);
+    it('falls back to the confirm label while loading when no loading label is set', () => {
+      render(<EventActionConfirm {...defaultProps} isConfirmLoading />);
+
+      expect(screen.getByText('Confirm')).toBeTruthy();
     });
 
     it('should show confirm label when not loading', () => {
-      const buttonText = defaultProps.isConfirmLoading ? 'Deleting...' : defaultProps.confirmLabel;
-      expect(buttonText).toBe('Confirm');
+      render(<EventActionConfirm {...defaultProps} confirmLoadingLabel="Leaving plan..." />);
+
+      expect(screen.getByText('Confirm')).toBeTruthy();
+      expect(screen.queryByText('Leaving plan...')).toBeNull();
     });
   });
 

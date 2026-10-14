@@ -26,6 +26,8 @@ export type BottomSheetDescriptor = {
   contentTestID?: string;
   contentStyle?: StyleProp<ViewStyle>;
   onOpened?: () => void;
+  /** Fired once the sheet has finished closing and left the screen. */
+  onClosed?: () => void;
   onClose: () => void;
 };
 
@@ -146,7 +148,10 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
             contentTestID={renderedDescriptor.contentTestID}
             contentStyle={renderedDescriptor.contentStyle}
             onOpened={renderedDescriptor.onOpened}
-            onClosed={() => handleClosed(ownerId)}
+            onClosed={() => {
+              handleClosed(ownerId);
+              renderedDescriptor.onClosed?.();
+            }}
           >
             {renderedDescriptor.children}
           </BottomSheet>

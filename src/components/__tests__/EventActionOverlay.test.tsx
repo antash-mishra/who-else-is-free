@@ -215,10 +215,24 @@ describe('EventActionOverlay', () => {
       expect(onCancel).toHaveBeenCalledTimes(1);
     });
 
-    it('should show "Deleting..." when loading', () => {
+    it("shows the confirmation's own loading label while loading", () => {
+      render(
+        <EventActionOverlay
+          {...confirmProps}
+          isConfirmLoading={true}
+          confirmLoadingLabel="Leaving plan..."
+        />,
+      );
+
+      expect(screen.getByText('Leaving plan...')).toBeTruthy();
+      expect(screen.queryByText('Deleting...')).toBeNull();
+    });
+
+    it('falls back to the confirm label while loading when no loading label is set', () => {
       render(<EventActionOverlay {...confirmProps} isConfirmLoading={true} />);
 
-      expect(screen.getByText('Deleting...')).toBeTruthy();
+      expect(screen.getByText(confirmProps.confirmLabel)).toBeTruthy();
+      expect(screen.queryByText('Deleting...')).toBeNull();
     });
 
     it('should show error message when provided', () => {

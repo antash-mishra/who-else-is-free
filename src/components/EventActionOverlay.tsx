@@ -55,6 +55,8 @@ type OverlayVariantProps =
 type EventActionOverlayProps = {
   isVisible: boolean;
   onBackdropPress?: () => void;
+  /** Fired once the sheet has finished closing and left the screen. */
+  onClosed?: () => void;
 } & OverlayVariantProps;
 
 const renderOverlayContent = (
@@ -80,7 +82,7 @@ const renderOverlayContent = (
 };
 
 const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
-  const { isVisible, onBackdropPress } = props;
+  const { isVisible, onBackdropPress, onClosed } = props;
   const shouldAvoidKeyboard = props.type === 'invite' || props.type === 'report';
   const inviteInputRef = useRef<TextInput>(null);
   // Request to join opens straight into the keyboard once the sheet settles, like the
@@ -93,6 +95,7 @@ const EventActionOverlay: React.FC<EventActionOverlayProps> = (props) => {
       onClose={onBackdropPress ?? (() => {})}
       avoidKeyboard={shouldAvoidKeyboard}
       onOpened={handleOpened}
+      onClosed={onClosed}
     >
       {renderOverlayContent(props, inviteInputRef)}
     </BottomSheetModal>
