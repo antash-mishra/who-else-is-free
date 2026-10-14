@@ -16,6 +16,10 @@ export const motionTiming = {
   staggerMaxSteps: 6,
   /** Opacity-only fade used as the reduced-motion fallback. */
   entryFadeMs: 160,
+  /** Confetti waits this long after mounting, so it does not share its first frames with the toast. */
+  confettiStartDelayMs: 120,
+  /** How long each confetti cannon keeps firing, so the celebration is not one instant puff. */
+  confettiSprayMs: 500,
 } as const;
 
 export const motionGeometry = {

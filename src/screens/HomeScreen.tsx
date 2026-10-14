@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPager from '@components/AnimatedPager';
+import ConfettiOverlay from '@components/ConfettiOverlay';
 import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import EventActionOverlay from '@components/EventActionOverlay';
@@ -98,6 +99,8 @@ const HomeScreen = () => {
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
   const [showEventLeftBadge, setShowEventLeftBadge] = useState(false);
   const [showWelcomeBadge, setShowWelcomeBadge] = useState(false);
+  // Separate from the toast: the confetti runs to its own end, not the toast's.
+  const [showWelcomeConfetti, setShowWelcomeConfetti] = useState(false);
   const [notificationNotice, setNotificationNotice] = useState<NotificationNotice | null>(null);
 
   useEffect(() => {
@@ -109,7 +112,11 @@ const HomeScreen = () => {
 
   useEffect(() => {
     if (!route.params?.showWelcomeBadge) return;
-    const t = setTimeout(() => setShowWelcomeBadge(true), 350);
+    // Onboarding just finished: welcome toast and confetti together.
+    const t = setTimeout(() => {
+      setShowWelcomeBadge(true);
+      setShowWelcomeConfetti(true);
+    }, 350);
     return () => clearTimeout(t);
   }, [route.params?.showWelcomeBadge]);
 
@@ -352,7 +359,7 @@ const HomeScreen = () => {
       </View>
       <EventActionBadge
         visible={showWelcomeBadge}
-        label="Welcome to WEIF"
+        label="Welcome to weif"
         onHidden={() => {
           setShowWelcomeBadge(false);
           navigation.setParams({ showWelcomeBadge: false });
@@ -393,6 +400,10 @@ const HomeScreen = () => {
         dismissLabel="Explore"
         onDismiss={() => setNotificationNotice(null)}
         onBackdropPress={() => setNotificationNotice(null)}
+      />
+      <ConfettiOverlay
+        active={showWelcomeConfetti}
+        onFinished={() => setShowWelcomeConfetti(false)}
       />
     </ScreenContainer>
   );

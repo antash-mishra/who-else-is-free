@@ -66,12 +66,15 @@ const MyEventsScreen = () => {
   const [isRequestedRefreshing, setIsRequestedRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(events.length > 0);
   const [showEventCreatedBadge, setShowEventCreatedBadge] = useState(false);
+  // Separate from the toast: the confetti runs to its own end, not the toast's.
+  const [showCreatedConfetti, setShowCreatedConfetti] = useState(false);
   const [showEventDeletedBadge, setShowEventDeletedBadge] = useState(false);
 
   useEffect(() => {
     if (!isFocused || !route.params?.showEventCreatedBadge) return;
     const task = InteractionManager.runAfterInteractions(() => {
       setShowEventCreatedBadge(true);
+      setShowCreatedConfetti(true);
       navigation.setParams({ showEventCreatedBadge: false });
     });
     return () => task.cancel();
@@ -296,7 +299,10 @@ const MyEventsScreen = () => {
           />
         </View>
       </ScreenContainer>
-      <ConfettiOverlay active={showEventCreatedBadge} variant="burst" speedScale={1.8} />
+      <ConfettiOverlay
+        active={showCreatedConfetti}
+        onFinished={() => setShowCreatedConfetti(false)}
+      />
     </View>
   );
 };
