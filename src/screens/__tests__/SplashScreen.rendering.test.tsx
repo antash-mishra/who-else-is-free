@@ -126,7 +126,7 @@ describe('SplashScreen Rendering', () => {
 
       expect(getByTestId('splash-container')).toBeTruthy();
       expect(getByTestId('splash-logo')).toBeTruthy();
-      expect(getByText('Who Else Is Free')).toBeTruthy();
+      expect(getByText('Who else is free?')).toBeTruthy();
       // One of the rotating venue captions is shown (chosen at random per launch).
       const texts = UNSAFE_getAllByType(Text);
       const locationText = texts.find((node) => node.props.testID === 'splash-location');
@@ -141,7 +141,7 @@ describe('SplashScreen Rendering', () => {
       const { getByTestId, UNSAFE_getAllByType } = render(<SplashScreen />);
 
       const container = getByTestId('splash-container');
-      expect(container.props.accessibilityLabel).toBe('Who Else Is Free');
+      expect(container.props.accessibilityLabel).toBe('Who else is free?');
       expect(container.props.accessibilityRole).toBe('image');
       expect(container.props.accessible).toBe(true);
 
@@ -150,7 +150,7 @@ describe('SplashScreen Rendering', () => {
       expect(locationText).toBeTruthy();
       expect(locationText?.props.importantForAccessibility).toBe('no-hide-descendants');
       // The tagline remains accessible (not marked decorative).
-      const tagline = texts.find((node) => node.props.children === 'Who Else Is Free');
+      const tagline = texts.find((node) => node.props.children === 'Who else is free?');
       expect(tagline?.props.accessible).not.toBe(false);
     });
 

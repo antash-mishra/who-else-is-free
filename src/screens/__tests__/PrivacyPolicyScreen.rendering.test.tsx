@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-import { StyleSheet } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
 
 import { fireEvent, render } from '@testing-library/react-native';
 
 import PrivacyPolicyScreen from '@screens/PrivacyPolicyScreen';
-import { typography } from '@theme/index';
+import { colors, typography } from '@theme/index';
 
 import { mockNavigation } from '../../__tests__/mocks/mockModules';
 import privacyPolicyMarkdown from '../../content/privacyPolicyMarkdown';
@@ -20,7 +20,10 @@ describe('PrivacyPolicyScreen', () => {
     const { getAllByText, getByLabelText, getByText } = render(<PrivacyPolicyScreen />);
 
     expect(getByText('Privacy policy')).toBeTruthy();
-    expect(getByText('WEIF PRIVACY POLICY')).toBeTruthy();
+    // Displayed in capitals ("WEIF PRIVACY POLICY") by the title style.
+    expect(StyleSheet.flatten(getByText('weif privacy policy').props.style).textTransform).toBe(
+      'uppercase',
+    );
     expect(getByText('Last updated October 14, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();
     expect(getByLabelText('Jump to WHAT INFORMATION DO WE COLLECT?')).toBeTruthy();
@@ -44,12 +47,31 @@ describe('PrivacyPolicyScreen', () => {
     expect(privacyPolicyMarkdown).not.toContain('Privacy Notice');
   });
 
-  it('shows contact details as plain bold text, not as links that cannot be tapped', () => {
+  it('shows the contact email in regular weight and blue, not underlined', () => {
+    const { getAllByText } = render(<PrivacyPolicyScreen />);
+    const style = StyleSheet.flatten(getAllByText('contact@weifapp.com')[0].props.style);
+
+    expect(style.color).toBe(colors.secondary);
+    expect(style.fontFamily).not.toBe(typography.fontFamilySemiBold);
+    expect(style.textDecorationLine).toBeUndefined();
+  });
+
+  it('opens the mail app when the contact email is tapped', () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
     const { getAllByText } = render(<PrivacyPolicyScreen />);
     const email = getAllByText('contact@weifapp.com')[0];
-    const style = StyleSheet.flatten(email.props.style);
 
-    expect(style.textDecorationLine).toBeUndefined();
+    expect(email.props.accessibilityRole).toBe('link');
+    fireEvent.press(email);
+
+    expect(openURL).toHaveBeenCalledWith('mailto:contact@weifapp.com');
+    openURL.mockRestore();
+  });
+
+  it('keeps named documents bold', () => {
+    const { getByText } = render(<PrivacyPolicyScreen />);
+    const style = StyleSheet.flatten(getByText('Google API Services User Data Policy').props.style);
+
     expect(style.fontFamily).toBe(typography.fontFamilySemiBold);
   });
 

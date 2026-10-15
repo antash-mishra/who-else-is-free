@@ -105,7 +105,7 @@ const AdminSupportSubmissionScreen = () => {
 
   const reply = useCallback(async () => {
     if (!submission?.replyEmail) return;
-    const subject = encodeURIComponent(`Who Else Is Free support reply #${submission.id}`);
+    const subject = encodeURIComponent(`weif support reply #${submission.id}`);
     const url = `mailto:${submission.replyEmail}?subject=${subject}`;
     try {
       await Linking.openURL(url);

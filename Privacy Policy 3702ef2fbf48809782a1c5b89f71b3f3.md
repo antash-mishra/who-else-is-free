@@ -1,6 +1,6 @@
 # Privacy Policy
 
-## **WEIF - PRIVACY POLICY**
+## **weif privacy policy**
 
 #### Last updated October 14, 2026
 

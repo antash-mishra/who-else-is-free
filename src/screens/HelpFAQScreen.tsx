@@ -15,11 +15,11 @@ type FaqAnswerBlock = { type: 'paragraph'; text: string } | { type: 'bullets'; i
 
 const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
   {
-    title: 'What is WEIF?',
+    title: 'What is weif?',
     answer: [
       {
         type: 'paragraph',
-        text: 'WEIF (Who Else Is Free) helps you find people to make spontaneous plans with, like coffee, gigs, walks, drinks, cinema, or anything last-minute.',
+        text: 'weif, short for "who else is free", helps you find people to make spontaneous plans with, like coffee, gigs, walks, drinks, cinema, or anything last-minute.',
       },
     ],
   },
@@ -47,7 +47,7 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
     answer: [
       {
         type: 'paragraph',
-        text: 'WEIF is designed for spontaneous plans, like today or tomorrow, but you can also post plans slightly further in the future if you want to get early interest.',
+        text: 'weif is designed for spontaneous plans, like today or tomorrow, but you can also post plans slightly further in the future if you want to get early interest.',
       },
     ],
   },
@@ -86,12 +86,12 @@ const FAQ_ITEMS: { title: string; answer: FaqAnswerBlock[] }[] = [
     answer: [
       {
         type: 'paragraph',
-        text: 'WEIF depends on what people around you are posting. By default, we only show plans within a 50 km radius.',
+        text: 'weif depends on what people around you are posting. By default, we only show plans within a 50 km radius.',
       },
     ],
   },
   {
-    title: 'Is WEIF safe?',
+    title: 'Is weif safe?',
     answer: [
       { type: 'paragraph', text: 'We take safety seriously. You can:' },
       {

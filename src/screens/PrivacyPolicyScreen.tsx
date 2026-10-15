@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -7,6 +7,7 @@ import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import { RootStackParamList } from '@navigation/types';
 import { triggerHaptic } from '@services/haptics';
+import { logger } from '@services/logger';
 import { colors, spacing, typography } from '@theme/index';
 
 import privacyPolicyMarkdown from '../content/privacyPolicyMarkdown';
@@ -21,7 +22,11 @@ interface InlineSegment {
   text: string;
   bold?: boolean;
   italic?: boolean;
+  /** Contact email: regular weight in the accent blue; tapping it opens the mail app. */
+  email?: boolean;
 }
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const SECTION_SCROLL_OFFSET = 16;
 
@@ -32,8 +37,8 @@ const stripMarkdown = (value: string) =>
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .trim();
 
-// Nothing in the policy is tappable, so contact details and named documents are
-// plain bold text people copy by hand; underlining them would look like a link.
+// Named documents are bold. The contact email is regular weight in the accent blue
+// and opens the mail app when tapped. Nothing is underlined.
 const parseInlineText = (text: string): InlineSegment[] => {
   const segments: InlineSegment[] = [];
   const pattern = /\[([^\]]+)\]\([^)]+\)|\*\*([^*]+)\*\*|\*([^*]+)\*/g;
@@ -50,7 +55,11 @@ const parseInlineText = (text: string): InlineSegment[] => {
     if (match[1]) {
       pushText(match[1]);
     } else if (match[2]) {
-      segments.push({ text: match[2], bold: true });
+      segments.push(
+        EMAIL_PATTERN.test(match[2])
+          ? { text: match[2], email: true }
+          : { text: match[2], bold: true },
+      );
     } else if (match[3]) {
       segments.push({ text: match[3], italic: true });
     }
@@ -130,12 +139,32 @@ const sectionNumberFromHeading = (text: string) => {
   return match ? Number(match[1]) : undefined;
 };
 
+const openEmail = (address: string) => {
+  triggerHaptic('light');
+  // No mail app (simulator, or Mail removed): fail quietly rather than crash.
+  Linking.openURL(`mailto:${address}`).catch((error) => {
+    logger.warn('Could not open mail app for privacy policy contact', error);
+  });
+};
+
 const InlineText = ({ text, style }: { text: string; style?: object }) => (
   <>
     {parseInlineText(text).map((segment, index) => (
       <Text
         key={`${segment.text}-${index}`}
-        style={[style, segment.bold && styles.strong, segment.italic && styles.emphasis]}
+        style={[
+          style,
+          segment.bold && styles.strong,
+          segment.italic && styles.emphasis,
+          segment.email && styles.email,
+        ]}
+        {...(segment.email
+          ? {
+              onPress: () => openEmail(segment.text),
+              accessibilityRole: 'link' as const,
+              accessibilityHint: 'Opens your mail app',
+            }
+          : {})}
       >
         {segment.text}
       </Text>
@@ -154,11 +183,7 @@ const PolicyHeading = ({
   const sectionNumber = sectionNumberFromHeading(block.text);
 
   if (block.level === 2) {
-    return (
-      <Text style={styles.documentTitle}>
-        {cleanText.replace('WEIF - PRIVACY POLICY', 'WEIF PRIVACY POLICY')}
-      </Text>
-    );
+    return <Text style={styles.documentTitle}>{cleanText}</Text>;
   }
 
   if (block.level === 4) {
@@ -324,6 +349,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 8,
     textAlign: 'center',
+    // The document title is shown in capitals ("WEIF PRIVACY POLICY"); the source
+    // text keeps the lowercase brand name.
+    textTransform: 'uppercase',
   },
   updatedAt: {
     color: colors.muted,
@@ -344,6 +372,9 @@ const styles = StyleSheet.create({
   },
   strong: {
     fontFamily: typography.fontFamilySemiBold,
+  },
+  email: {
+    color: colors.secondary,
   },
   emphasis: {
     fontStyle: 'italic',

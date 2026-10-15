@@ -161,7 +161,7 @@ const SplashScreen = () => {
       onLayout={onLayoutRootView}
       testID="splash-container"
       accessible
-      accessibilityLabel="Who Else Is Free"
+      accessibilityLabel="Who else is free?"
       accessibilityRole="image"
     >
       <Image source={variant.image} style={styles.image} resizeMode="cover" />
@@ -176,7 +176,7 @@ const SplashScreen = () => {
             </Animated.View>
           </View>
           <Animated.Text style={[styles.tagline, { opacity: chromeOpacity }]}>
-            Who Else Is Free
+            Who else is free?
           </Animated.Text>
         </View>
         <Animated.Text
