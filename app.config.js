@@ -38,6 +38,14 @@ export default {
       predictiveBackGestureEnabled: false,
       softwareKeyboardLayoutMode: 'pan',
       permissions: ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION'],
+      // Firebase Analytics merges the advertising-ID permission and the Privacy
+      // Sandbox ad ID/attribution permissions into the manifest; weif shows no
+      // ads, so strip them (see firebase.json).
+      blockedPermissions: [
+        'com.google.android.gms.permission.AD_ID',
+        'android.permission.ACCESS_ADSERVICES_AD_ID',
+        'android.permission.ACCESS_ADSERVICES_ATTRIBUTION',
+      ],
     },
     androidNavigationBar: {
       // Preserve the original appearance outside onboarding. The focused
@@ -47,6 +55,7 @@ export default {
 
     plugins: [
       './plugins/withModularHeaders',
+      './plugins/withAnalyticsWithoutAdId',
       [
         'expo-splash-screen',
         {
