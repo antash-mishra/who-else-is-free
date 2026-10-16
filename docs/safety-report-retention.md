@@ -273,7 +273,7 @@ subject of that report. Treat it as a lead for a person to review, not as proof.
 
 ## Privacy policy
 
-The issue asks for the policy to change when this ships, not before. Merging to `master` deploys
+The issue asks for the policy to change when this ships, not before. Merging to `main` deploys
 the server (`.github/workflows/deploy-fly.yml`), so the in-app copy
 (`src/content/privacyPolicyMarkdown.ts`) and the tracked Notion export at the repository root
 (`Privacy Policy 3702ef2fbf48809782a1c5b89f71b3f3.md`) change in the same merge. Section 6 no longer
