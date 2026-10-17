@@ -806,6 +806,15 @@ func (r *EventRepository) DeletePushToken(ctx context.Context, userID int64, tok
 	return nil
 }
 
+// DeleteUnregisteredPushToken removes a token FCM no longer accepts, whichever
+// user it belongs to (tokens are unique). A token that is already gone is fine.
+func (r *EventRepository) DeleteUnregisteredPushToken(ctx context.Context, token string) error {
+	if _, err := r.db.ExecContext(ctx, deleteUnregisteredPushToken, token); err != nil {
+		return fmt.Errorf("delete unregistered push token: %w", err)
+	}
+	return nil
+}
+
 // ListPushTokensByUser returns all push tokens for a user.
 func (r *EventRepository) ListPushTokensByUser(ctx context.Context, userID int64) ([]PushToken, error) {
 	rows, err := r.db.QueryContext(ctx, selectPushTokensByUserID, userID)

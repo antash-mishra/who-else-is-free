@@ -678,6 +678,11 @@ DELETE FROM push_tokens
 WHERE user_id = ? AND token = ?;
 `
 
+const deleteUnregisteredPushToken = `
+DELETE FROM push_tokens
+WHERE token = ?;
+`
+
 const selectPushTokensByUserID = `
 SELECT id, user_id, token, device_id, platform, created_at, updated_at
 FROM push_tokens

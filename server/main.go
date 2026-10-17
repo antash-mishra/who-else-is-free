@@ -59,7 +59,7 @@ func main() {
 		}
 	}
 
-	pushSender := InitPushSender(ctx)
+	pushSender := InitPushSender(ctx, repo)
 	chatHub := NewChatHub(repo, signer, pushSender)
 
 	eventHandler := NewEventHandler(repo, chatHub)

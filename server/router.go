@@ -1,16 +1,50 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
+// requestLogger is gin's default request log line without the query string.
+// The chat socket sends its session token as ?token=, and place searches send
+// what the user typed, so neither should reach the server logs.
+func requestLogger(out io.Writer) gin.HandlerFunc {
+	return gin.LoggerWithConfig(gin.LoggerConfig{
+		Output: out,
+		Formatter: func(param gin.LogFormatterParams) string {
+			path, _, _ := strings.Cut(param.Path, "?")
+			var statusColor, methodColor, resetColor string
+			if param.IsOutputColor() {
+				statusColor = param.StatusCodeColor()
+				methodColor = param.MethodColor()
+				resetColor = param.ResetColor()
+			}
+			if param.Latency > time.Minute {
+				param.Latency = param.Latency.Truncate(time.Second)
+			}
+			return fmt.Sprintf("[GIN] %v |%s %3d %s| %13v | %15s |%s %-7s %s %#v\n%s",
+				param.TimeStamp.Format("2006/01/02 - 15:04:05"),
+				statusColor, param.StatusCode, resetColor,
+				param.Latency,
+				param.ClientIP,
+				methodColor, param.Method, resetColor,
+				path,
+				param.ErrorMessage,
+			)
+		},
+	})
+}
+
 func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, pushHandler *PushHandler, signer *tokenSigner) *gin.Engine {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(requestLogger(gin.DefaultWriter), gin.Recovery())
 	collector := newAnalyticsCollector()
 
 	r.Use(cors.New(cors.Config{
