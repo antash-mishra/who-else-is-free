@@ -259,12 +259,19 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
 - Avoid navigation side effects inside contexts unless there is no practical alternative.
 - Analytics carries no advertising identifiers: weif shows no ads. `firebase.json` turns off the
   Android advertising ID and SSAID, iOS SKAdNetwork registration, and ad storage/user-data/personalisation
-  consent defaults; `app.config.js` blocks the merged `com.google.android.gms.permission.AD_ID` permission
+  consent defaults, plus the iOS vendor ID (IDFV), so an install is identified only by its Firebase app
+  instance ID; `app.config.js` blocks the merged `com.google.android.gms.permission.AD_ID` permission
   and the Privacy Sandbox `ACCESS_ADSERVICES_AD_ID`/`ACCESS_ADSERVICES_ATTRIBUTION` permissions that
   `play-services-measurement-api` also merges; `plugins/withAnalyticsWithoutAdId.js` links the iOS analytics
   pod without IDFA support. All three only take effect in a new native build, and
   `src/__tests__/advertisingIdentifiers.test.ts` guards them. Keep them off: the privacy policy and store
-  privacy labels assume no ad IDs.
+  privacy labels assume no ad IDs. Event params never carry the user's own profile data (name, email,
+  gender, age); a plan's audience settings (`gender_preference`, `age_range_bucket`) are fine.
+- Server request logs (`requestLogger` in `server/router.go`) drop the query string: the chat socket
+  sends its session token as `?token=` and place searches carry typed text. Keep `gin.New()` with this
+  logger rather than `gin.Default()`.
+- Push tokens that FCM reports as unregistered are deleted on send (`forgetIfUnregistered` in
+  `server/push_firebase.go`); other failures, such as APNs credential errors, keep the token.
 
 ## Refactoring Rules
 

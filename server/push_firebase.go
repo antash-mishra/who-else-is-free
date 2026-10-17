@@ -25,14 +25,26 @@ type PushSender interface {
 
 // --- FCM implementation ---
 
+// unregisteredTokenStore forgets push tokens that FCM no longer accepts.
+type unregisteredTokenStore interface {
+	DeleteUnregisteredPushToken(ctx context.Context, token string) error
+}
+
+// isUnregisteredToken reports whether FCM rejected a token because the app was
+// uninstalled or the token expired. A variable so tests can stand in for FCM's
+// error type, which cannot be built outside the SDK.
+var isUnregisteredToken = messaging.IsUnregistered
+
 type fcmPushSender struct {
 	client *messaging.Client
+	tokens unregisteredTokenStore
 }
 
 // NewFCMPushSender initialises a Firebase Cloud Messaging sender.
 // It reads credentials from FIREBASE_CREDENTIALS_JSON (raw JSON string,
 // preferred for cloud deployments) or FIREBASE_CREDENTIALS_FILE (file path).
-func NewFCMPushSender(ctx context.Context) (PushSender, error) {
+// Tokens FCM reports as unregistered are deleted from tokens.
+func NewFCMPushSender(ctx context.Context, tokens unregisteredTokenStore) (PushSender, error) {
 	var opt option.ClientOption
 	if credsJSON := os.Getenv("FIREBASE_CREDENTIALS_JSON"); credsJSON != "" {
 		opt = option.WithCredentialsJSON([]byte(credsJSON))
@@ -52,7 +64,18 @@ func NewFCMPushSender(ctx context.Context) (PushSender, error) {
 		return nil, fmt.Errorf("init firebase messaging: %w", err)
 	}
 
-	return &fcmPushSender{client: client}, nil
+	return &fcmPushSender{client: client, tokens: tokens}, nil
+}
+
+// forgetIfUnregistered deletes a token that FCM rejected as unregistered, so
+// later pushes stop going to a device that no longer has the app.
+func (s *fcmPushSender) forgetIfUnregistered(ctx context.Context, token string, sendErr error) {
+	if s.tokens == nil || !isUnregisteredToken(sendErr) {
+		return
+	}
+	if err := s.tokens.DeleteUnregisteredPushToken(ctx, token); err != nil {
+		log.Printf("failed to delete unregistered push token: %v", err)
+	}
 }
 
 func (s *fcmPushSender) Send(ctx context.Context, n PushNotification) error {
@@ -89,6 +112,7 @@ func (s *fcmPushSender) Send(ctx context.Context, n PushNotification) error {
 
 	_, err := s.client.Send(ctx, msg)
 	if err != nil {
+		s.forgetIfUnregistered(ctx, n.Token, err)
 		return fmt.Errorf("fcm send: %w", err)
 	}
 	return nil
@@ -137,9 +161,11 @@ func (s *fcmPushSender) SendBatch(ctx context.Context, notifications []PushNotif
 		return fmt.Errorf("fcm send batch: %w", err)
 	}
 	if response.FailureCount > 0 {
-		for _, r := range response.Responses {
+		// SendEach returns one response per message, in order.
+		for i, r := range response.Responses {
 			if r.Error != nil {
 				log.Printf("fcm batch item error: %v", r.Error)
+				s.forgetIfUnregistered(ctx, msgs[i].Token, r.Error)
 			}
 		}
 	}
@@ -166,13 +192,13 @@ func (s *noopPushSender) SendBatch(_ context.Context, _ []PushNotification) erro
 
 // InitPushSender creates the appropriate PushSender based on config.
 // Returns a no-op sender when Firebase is not configured.
-func InitPushSender(ctx context.Context) PushSender {
+func InitPushSender(ctx context.Context, tokens unregisteredTokenStore) PushSender {
 	if os.Getenv("PUSH_ENABLED") != "true" {
 		log.Println("push notifications disabled (PUSH_ENABLED != true)")
 		return NewNoopPushSender()
 	}
 
-	sender, err := NewFCMPushSender(ctx)
+	sender, err := NewFCMPushSender(ctx, tokens)
 	if err != nil {
 		log.Printf("push notifications disabled: %v", err)
 		return NewNoopPushSender()

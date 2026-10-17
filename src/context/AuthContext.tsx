@@ -16,7 +16,7 @@ import { API_BASE_URL } from '@api/config';
 import { ApiError, extractServerErrorMessage } from '@api/errors';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 import type { UserGender } from '@constants/profileOptions';
-import { getAgeRangeBucket, trackEvent } from '@services/analytics';
+import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
 
 type AuthProviderName = 'google' | 'apple';
@@ -461,15 +461,14 @@ export const AuthProvider = ({
       await SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser));
 
       if (!user?.profileComplete && authUser.profileComplete) {
-        trackEvent('profile_completed', {
-          gender: authUser.gender,
-          age_range_bucket: getAgeRangeBucket(authUser.age, authUser.age),
-        }).catch(() => undefined);
+        // The user's own gender and age stay out of analytics; the privacy
+        // policy and store privacy labels do not declare them there.
+        trackEvent('profile_completed', { provider: authProvider }).catch(() => undefined);
       }
 
       return authUser;
     },
-    [authFetch, token, user?.profileComplete],
+    [authFetch, authProvider, token, user?.profileComplete],
   );
 
   const deleteAccount = useCallback(async (): Promise<void> => {
