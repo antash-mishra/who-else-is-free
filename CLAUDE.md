@@ -81,6 +81,10 @@ Who Else Is Free is an event discovery and social coordination app.
   within 3/255 of the iOS shadow's darkest point. `AvatarEditBadge` keeps its original iOS shadow
   props and takes `boxShadow` on Android only, so iOS is untouched.
 - Approving a join request advances the approver's read cursor server-side and the client marks that conversation read for a short grace window, so approval-generated messages (intro, join announcement) never surface as unread for the host.
+- `POST /api/events/:id/chat/requests` answers 409 with `code: "request_exists"` (a pending request) or
+  `code: "already_member"` (the host, or already in the chat). The app marks a plan requested only for
+  `request_exists`, and never sends a request as the plan's host: signing in from a plan's join sheet
+  keeps the plan open and drops the queued request if you turn out to be its host or a member (#217).
 - Chat system-message copy: new rows say `<Name> joined the plan` and `Plan details updated`;
   `backfillSystemMessageCopy` in `server/repository_schema.go` idempotently rewrites legacy
   `joined the chat` / `Updated Event Detail` bodies (system kind only) so older threads and Messages

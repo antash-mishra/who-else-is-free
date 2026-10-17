@@ -106,6 +106,7 @@ const EventDetailsScreenContent = ({
     shouldShowInvitePrompt,
     signInVisible,
     setSignInVisible,
+    handleSignInSuccess,
     inviteMessage,
     setInviteMessage,
     inviteError,
@@ -536,6 +537,7 @@ const EventDetailsScreenContent = ({
         }}
         signInVisible={signInVisible}
         onCloseSignIn={() => setSignInVisible(false)}
+        onSignInSuccess={handleSignInSuccess}
       />
     </>
   );

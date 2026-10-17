@@ -64,6 +64,7 @@ const props: React.ComponentProps<typeof EventDetailsOverlayRoutes> = {
   onReportedMemberBadgeHidden: jest.fn(),
   signInVisible: false,
   onCloseSignIn: jest.fn(),
+  onSignInSuccess: jest.fn(),
 };
 test('issue 135: member report prompt identifies the person', () => {
   const view = render(

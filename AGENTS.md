@@ -137,6 +137,10 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
   within 3/255 of the iOS shadow's darkest point. `AvatarEditBadge` keeps its original iOS shadow
   props and takes `boxShadow` on Android only, so iOS is untouched.
 - Approving a join request advances the approver's read cursor server-side and the client marks that conversation read for a short grace window, so approval-generated messages (intro, join announcement) never surface as unread for the host.
+- `POST /api/events/:id/chat/requests` answers 409 with `code: "request_exists"` (a pending request) or
+  `code: "already_member"` (the host, or already in the chat). The app marks a plan requested only for
+  `request_exists`, and never sends a request as the plan's host: signing in from a plan's join sheet
+  keeps the plan open and drops the queued request if you turn out to be its host or a member (#217).
 - State: React Context providers currently handle auth, events, chat, push, covers, bloom, and notifications state.
 - First-launch notification and location prompts are owned by Discover after `BloomContext.transitionComplete`; never request system permissions from `App.tsx`, provider mount effects, or the splash route. `PushContext.requestPushPermission` serializes notification authorization and token registration only observes existing grants; `useViewerLocation` inspects permission silently on mount and exposes `requestPermission` for the Discover sequence. Keep the prompts serialized so native dialogs cannot overlap.
 - Theme: shared tokens live in `src/theme`, including colors, spacing, typography, springs, radii, shadows, layout, and component tokens.

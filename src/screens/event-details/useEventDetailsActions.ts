@@ -191,6 +191,13 @@ export const useEventDetailsActions = ({
       setSignInVisible(true);
       return;
     }
+    if (isOwner || isConversationMember) {
+      // Signing in from the join sheet can turn the guest into the plan's host
+      // or an existing member, who has nothing to ask for (#217).
+      setShowInvitePrompt(false);
+      setInviteMessage('');
+      return;
+    }
     if (isSendingInvite) {
       return;
     }
@@ -214,6 +221,22 @@ export const useEventDetailsActions = ({
         body: JSON.stringify({ message: trimmed }),
       });
       if (response.status === 409) {
+        const conflict: { code?: string } = await response.json().catch(() => ({}));
+        if (conflict.code === 'already_member') {
+          // The server knows the user is in this plan before the app has
+          // loaded their chats; load them instead of marking a request.
+          setShowInvitePrompt(false);
+          setInviteMessage('');
+          trackEvent('join_request_failed', {
+            ...eventAnalyticsParams,
+            status_code: response.status,
+            reason_category: 'already_member',
+          }).catch(() => undefined);
+          refreshConversations().catch((err) => {
+            logger.error('Failed to refresh conversations after join conflict', err);
+          });
+          return;
+        }
         setHasPendingRequest(true);
         markEventRequested(event.id);
         setInviteError(getJoinRequestError(response.status));
@@ -287,8 +310,11 @@ export const useEventDetailsActions = ({
     event,
     eventAnalyticsParams,
     inviteMessage,
+    isConversationMember,
+    isOwner,
     isSendingInvite,
     markEventRequested,
+    refreshConversations,
     setHasPendingRequest,
     token,
     user,
@@ -305,6 +331,14 @@ export const useEventDetailsActions = ({
       handleSendInvite();
     }
   }, [user, token, pendingSendAfterSignIn]);
+
+  // Signing in from this plan keeps it open, so the user sees their request
+  // sent, or the plan as its host or member. New accounts finish onboarding.
+  const handleSignInSuccess = (profileComplete: boolean) => {
+    if (!profileComplete) {
+      navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
+    }
+  };
 
   const handleEdit = () => {
     if (!event) {
@@ -613,6 +647,7 @@ export const useEventDetailsActions = ({
     shouldShowInvitePrompt,
     signInVisible,
     setSignInVisible,
+    handleSignInSuccess,
     inviteMessage,
     setInviteMessage,
     inviteError,
