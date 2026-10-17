@@ -6,7 +6,11 @@
 
 import React from 'react';
 
+import { StyleSheet } from 'react-native';
+
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
+import { typography } from '@theme/index';
 
 import JoinRequestScreen from '../JoinRequestScreen';
 
@@ -167,13 +171,20 @@ describe('JoinRequestScreen Rendering', () => {
 
     it('should render close button', () => {
       const { getByLabelText } = render(<JoinRequestScreen />);
-      expect(getByLabelText('Close')).toBeTruthy();
+      expect(getByLabelText('Close sheet')).toBeTruthy();
     });
 
     it('should navigate back when close button is pressed', () => {
       const { getByLabelText } = render(<JoinRequestScreen />);
-      fireEvent.press(getByLabelText('Close'));
+      fireEvent.press(getByLabelText('Close sheet'));
       expect(mockGoBack).toHaveBeenCalled();
+    });
+
+    it('uses the shared sheet header, so the title matches every other sheet', () => {
+      const { getByText } = render(<JoinRequestScreen />);
+      const title = StyleSheet.flatten(getByText('Requests').props.style);
+      expect(title.fontSize).toBe(18);
+      expect(title.fontFamily).toBe(typography.fontFamilySemiBold);
     });
   });
 

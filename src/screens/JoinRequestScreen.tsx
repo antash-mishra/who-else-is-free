@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import CloseIcon from '@assets/ui/close.svg';
 import EmptyState from '@components/EmptyState';
 import { EventRequestRow, EventRequestRowSeparator } from '@components/events';
 import ScreenContainer from '@components/ScreenContainer';
-import { IconButton } from '@components/ui';
+import { SheetHeader } from '@components/sheets';
 import { useChat, ChatJoinRequest } from '@context/ChatContext';
 import { RootStackParamList } from '@navigation/types';
-import { colors, spacing, typography } from '@theme/index';
+import { colors, spacing } from '@theme/index';
 
 // Shared illustration for the request empty state.
 const EMPTY_ILLUSTRATION = require('@assets/empty-state/members.png');
@@ -106,14 +105,14 @@ const JoinRequestScreen = () => {
   return (
     <ScreenContainer edges={['bottom']}>
       <View style={styles.container}>
+        {/* The shared sheet header, so this sheet's title matches every other sheet
+            (Create plan's Gender, Age, Cover…). It opens as a navigation screen, so it
+            does not get the header from BottomSheet's `title` automatically. */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Requests</Text>
-          <IconButton
-            icon={<CloseIcon width={18} height={18} color={colors.iconMuted} />}
-            onPress={() => navigation.goBack()}
-            accessibilityLabel="Close"
-            size="sm"
-            variant="soft"
+          <SheetHeader
+            title="Requests"
+            onClose={() => navigation.goBack()}
+            closeTestID="join-request-close"
           />
         </View>
         <ScrollView
@@ -165,19 +164,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  // Same spacing as BottomSheet's own header: the sheet's 16pt top padding above,
+  // 16pt below.
   header: {
-    paddingTop: spacing.lg - spacing.md + 12,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.md,
+    marginBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: typography.fontFamilySemiBold,
-    lineHeight: 24,
-    letterSpacing: -0.5,
-    color: colors.text,
   },
   listContent: {
     paddingTop: spacing.md,
