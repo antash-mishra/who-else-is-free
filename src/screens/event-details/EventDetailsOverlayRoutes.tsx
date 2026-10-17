@@ -71,6 +71,7 @@ type EventDetailsOverlayRoutesProps = {
   onReportedMemberBadgeHidden: () => void;
   signInVisible: boolean;
   onCloseSignIn: () => void;
+  onSignInSuccess: (profileComplete: boolean) => void;
 };
 
 const getFirstName = (name?: string | null, fallback = 'Member') =>
@@ -135,6 +136,7 @@ const EventDetailsOverlayRoutes = ({
   onReportedMemberBadgeHidden,
   signInVisible,
   onCloseSignIn,
+  onSignInSuccess,
 }: EventDetailsOverlayRoutesProps) => {
   const memberFirstName = getFirstName(selectedMemberName);
   const memberTitleName = getFirstName(selectedMemberName, 'this member');
@@ -287,7 +289,7 @@ const EventDetailsOverlayRoutes = ({
         onHidden={onReportedMemberBadgeHidden}
       />
       <BottomSheetModal visible={signInVisible} onClose={onCloseSignIn}>
-        <SignInButtons />
+        <SignInButtons onSignInSuccess={onSignInSuccess} />
       </BottomSheetModal>
     </>
   );

@@ -829,7 +829,9 @@ func (h *ChatHTTPHandler) listMessages(c *gin.Context) {
 //   - 401 if the caller has no session
 //   - 400 for invalid event id
 //   - 404 if the event is missing
-//   - 409 if a request already exists or the user is already a member
+//   - 409 with code "request_exists" if the user already has a pending request,
+//     or code "already_member" if the user hosts the event or is already in
+//     its chat
 //   - 500 for repository/database failures
 func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 	claims, ok := sessionFromContext(c)
@@ -868,9 +870,9 @@ func (h *ChatHTTPHandler) requestJoin(c *gin.Context) {
 		case errors.Is(err, ErrUsersBlocked):
 			c.JSON(http.StatusForbidden, gin.H{"error": "interaction blocked between users"})
 		case errors.Is(err, ErrAlreadyConversationMember):
-			c.JSON(http.StatusConflict, gin.H{"error": "already a member of this chat"})
+			c.JSON(http.StatusConflict, gin.H{"error": "already a member of this chat", "code": "already_member"})
 		case errors.Is(err, ErrJoinRequestExists):
-			c.JSON(http.StatusConflict, gin.H{"error": "a pending request already exists"})
+			c.JSON(http.StatusConflict, gin.H{"error": "a pending request already exists", "code": "request_exists"})
 		case errors.Is(err, ErrConversationNotFound):
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "chat conversation missing for event"})
 		default:
