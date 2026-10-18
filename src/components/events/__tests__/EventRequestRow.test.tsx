@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { StyleSheet } from 'react-native';
+
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import EventRequestRow from '../EventRequestRow';
@@ -51,5 +53,18 @@ describe('EventRequestRow', () => {
     render(<EventRequestRow {...baseProps} expanded />);
 
     expect(screen.getByText('See less')).toBeTruthy();
+  });
+
+  it('spaces collapsed lines exactly like the expanded message, so See more does not shift text', () => {
+    // Collapsed messages render one Text per line. A per-Text top margin used to add
+    // 2pt to every collapsed line (24pt apart) against 22pt once expanded.
+    render(<EventRequestRow {...baseProps} message="one two three four" />);
+    fireMessageLayout(['one ', 'two ', 'three ', 'four']);
+
+    const firstLine = StyleSheet.flatten(screen.getByText('one ').props.style);
+    const seeMore = StyleSheet.flatten(screen.getByText('See more').props.style);
+    expect(firstLine.marginTop).toBeUndefined();
+    expect(firstLine.lineHeight).toBe(22);
+    expect(seeMore.lineHeight).toBe(firstLine.lineHeight);
   });
 });
