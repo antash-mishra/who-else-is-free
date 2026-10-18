@@ -7,6 +7,8 @@ export const typography = {
   fontFamilyBold: 'Inter_700Bold',
   titleLineHeight: 36,
   lineHeight: 30,
+  /** Line height for 16pt body paragraphs (1.375x): comfortable for a few lines of reading. */
+  bodyLineHeight: 22,
   letterSpacing: -0.5,
   detailLetterSpacing: -0.3,
   // Android applies negative letter spacing symmetrically around glyphs, so

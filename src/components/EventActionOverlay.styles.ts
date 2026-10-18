@@ -131,7 +131,8 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     fontFamily: typography.fontFamilyRegular,
     color: colors.text,
-    lineHeight: typography.lineHeight,
+    // Was the 30pt heading line height, which spread a multi-line intro far apart.
+    lineHeight: typography.bodyLineHeight,
     letterSpacing: typography.letterSpacing,
   },
 });
