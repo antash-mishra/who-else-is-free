@@ -71,7 +71,7 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
   Onboarding route opts out via `useOnboardingNavigationBar` and the local
   `modules/system-navigation` Expo module; blur/unmount restores protection, and the native
   module reapplies the route policy after activity resume/recreation. Keep safe-area clearance.
-  Native changes require prebuild/rebuild; runtime 1.0.2 separates this module from older clients.
+  Native changes require prebuild/rebuild; store builds include this module from 1.0.0.
 - Onboarding backgrounds fill an unpadded page; safe-area/header padding belongs on the
   pager. Use the page's `onLayout` size for the radial gradient and pass that `pageSize`
   to `AvatarEditBadge` so Android's explicit backdrop matches. Do not size background
@@ -128,7 +128,7 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
   Keep the label inside this native surface so the backdrop capture excludes the entire toast;
   a JS sibling scrim is captured again and makes Android darker. Do not tune generic
   `FrostedSurface` for the toast or add another Android overlay. Rebuild the native Android app
-  after changing this module; app-version OTA runtime 1.0.1 separates it from older clients.
+  after changing this module; store builds include it from 1.0.0.
   Native filter tests: `./android/gradlew -p android :toast-blur:testDebugUnitTest`.
 - Never put Android `elevation` on a translucent surface. Android tessellates an elevation shadow
   into a polygon and draws it behind the caster, so it shows through as a visible octagon; it is

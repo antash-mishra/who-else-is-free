@@ -18,7 +18,7 @@ Who Else Is Free is an event discovery and social coordination app.
 - Android's default navigation contrast stays enabled (`androidNavigationBar.enforceContrast: true`).
   Only focused onboarding disables it, through `useOnboardingNavigationBar` and the local
   `modules/system-navigation` Expo module. Blur/unmount restores other screens; native resume
-  reapplies the active policy. Keep safe-area padding. Native rebuild and runtime 1.0.2 are required.
+  reapplies the active policy. Keep safe-area padding. A native rebuild is required; store builds include it from 1.0.0.
 - Onboarding background coverage belongs to an unpadded full-page root; put safe-area/header
   padding on the pager. Measure the page with `onLayout` for radial-gradient geometry and pass
   `pageSize` to `AvatarEditBadge`. Android's reported app window can be shorter than the page.
@@ -71,7 +71,7 @@ Who Else Is Free is an event discovery and social coordination app.
   Keep the label inside this native surface so the backdrop capture excludes the entire toast;
   a JS sibling scrim is captured again and makes Android darker. Do not tune generic
   `FrostedSurface` for the toast or add another Android overlay. Rebuild the native Android app
-  after changing this module; app-version OTA runtime 1.0.1 separates it from older clients.
+  after changing this module; store builds include it from 1.0.0.
   Native filter tests: `./android/gradlew -p android :toast-blur:testDebugUnitTest`.
 - Never put Android `elevation` on a translucent surface. Android tessellates an elevation shadow
   into a polygon and draws it behind the caster, so it shows through as a visible octagon; it is

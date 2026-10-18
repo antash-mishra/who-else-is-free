@@ -30,8 +30,8 @@ The job waits for the build and the upload and fails if either fails. Builds
 queue on EAS first, so a run can take 30 to 60 minutes.
 
 `versionName` comes from `version` in `app.config.js`. It is also the EAS Update
-runtime version, so bump it only together with native changes; JavaScript-only
-changes keep it.
+runtime version, so bump it whenever native code changes; JavaScript-only
+changes can keep it.
 
 ## One-Time Setup
 
@@ -151,9 +151,10 @@ Release settings:
 - Manual release: turn on Managed publishing (Publishing overview), so an
   approved update waits until someone presses Publish. The `production` submit
   profile also uploads as a draft.
-- The release-info doc lists version 1.0.0, but Play shows `version` from
-  `app.config.js` (1.0.2). Keep 1.0.2: it is also the EAS Update runtime, and
-  runtimes 1.0.0 and 1.0.1 belong to older native builds.
+- Version: the store line starts at 1.0.0, as the release-info doc lists.
+  Earlier preview builds used 1.0.0 to 1.0.2 without an update channel, and the
+  one update published for runtime 1.0.0 sits on the `master` branch, which the
+  `production` channel does not serve.
 
 ## Gaps Before Production Review
 

@@ -2,8 +2,10 @@ export default {
   expo: {
     name: 'weif',
     slug: 'who-else-is-free',
-    // Route-scoped Android SystemNavigation needs a separate native OTA runtime.
-    version: '1.0.2',
+    // Also the EAS Update runtime: bump it with every native change. Store
+    // builds start at 1.0.0 on the `production` update channel, which keeps
+    // them apart from earlier preview builds (runtimes 1.0.0 to 1.0.2).
+    version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/weif/icon.png',
     userInterfaceStyle: 'light',
