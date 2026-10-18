@@ -41,10 +41,17 @@ export default {
       // Firebase Analytics merges the advertising-ID permission and the Privacy
       // Sandbox ad ID/attribution permissions into the manifest; weif shows no
       // ads, so strip them (see firebase.json).
+      // expo-image-picker adds camera and microphone access and the template
+      // adds draw-over-apps, but weif only opens the photo library, so the Play
+      // listing should not ask for them. The storage permissions stay: the
+      // picker requests both on Android 12 and lower.
       blockedPermissions: [
         'com.google.android.gms.permission.AD_ID',
         'android.permission.ACCESS_ADSERVICES_AD_ID',
         'android.permission.ACCESS_ADSERVICES_ATTRIBUTION',
+        'android.permission.CAMERA',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.SYSTEM_ALERT_WINDOW',
       ],
     },
     androidNavigationBar: {
