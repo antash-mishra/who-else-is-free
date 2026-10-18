@@ -93,11 +93,18 @@ const EventSectionList = <TItem extends EventItemProps>({
   const resolvedTopPadding =
     isEmpty && emptyStateTopPadding != null ? emptyStateTopPadding : headerPaddingTop;
 
+  // Space between date groups sits on every header but the first. It used to be a
+  // SectionSeparatorComponent gated on `leadingItem`, but SectionList captures a
+  // cell's separator props once, when the cell mounts: a card that moved to the top
+  // of a section (Newest re-sorts as plans arrive) kept a stale leadingItem and drew
+  // the section gap under its own header.
   const renderSectionHeader = useCallback(
     ({ section }: { section: EventSection<TItem> }) => (
-      <Text style={styles.sectionHeader}>{section.title}</Text>
+      <Text style={[styles.sectionHeader, section !== sections[0] && styles.sectionHeaderSpaced]}>
+        {section.title}
+      </Text>
     ),
-    [],
+    [sections],
   );
 
   const initialEntryIndices = useMemo(() => {
@@ -151,13 +158,12 @@ const EventSectionList = <TItem extends EventItemProps>({
         sections.length === 0 && styles.emptyList,
         contentContainerStyle,
       ]}
-      SectionSeparatorComponent={({ leadingItem }) =>
-        leadingItem ? <View style={styles.sectionSeparator} /> : null
-      }
       ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
       ListFooterComponent={
-        footer || shouldShowFooterSpacing ? (
+        footer || shouldShowFooterSpacing || !isEmpty ? (
           <View>
+            {/* The separator also used to follow the list's last card; keep that gap. */}
+            {!isEmpty && <View style={styles.listEndSpacer} />}
             {footer}
             {shouldShowFooterSpacing && (
               <View style={[styles.footerSpacing, { height: footerSpacingHeight }]} />
@@ -204,7 +210,10 @@ const styles = StyleSheet.create({
     lineHeight: typography.body + spacing.xs,
     letterSpacing: typography.detailLetterSpacing,
   },
-  sectionSeparator: {
+  sectionHeaderSpaced: {
+    marginTop: componentTokens.eventList.sectionSeparatorHeight,
+  },
+  listEndSpacer: {
     height: componentTokens.eventList.sectionSeparatorHeight,
   },
   itemSeparator: {
