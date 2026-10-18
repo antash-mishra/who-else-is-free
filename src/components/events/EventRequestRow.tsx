@@ -188,10 +188,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 22,
     letterSpacing: -0.3,
-    marginTop: 2,
   },
+  // The 2pt gap below the name sits on the block, not on requestMessage: collapsed
+  // messages render one Text per line, so a per-Text margin spaced those lines 24pt
+  // apart against 22pt when expanded, and "See more" made the text jump.
   messageContent: {
     position: 'relative',
+    marginTop: 2,
   },
   measureMessage: {
     position: 'absolute',
@@ -210,7 +213,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: typography.fontFamilyMedium,
     color: colors.iconColor,
-    lineHeight: 20,
+    // Same as requestMessage, so the last line is the same height either way.
+    lineHeight: 22,
     letterSpacing: -0.3,
     marginLeft: spacing.xs,
   },
