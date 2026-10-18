@@ -15,6 +15,7 @@ Project guide for coding agents and contributors working in this repository.
 - Refactor roadmap and rationale: `report/code-refactoring-consistency-plan.md`.
 - Performance reports: `report/performance-consistency-audit.html` and `report/performance-baseline.html`.
 - Google EAS/Fly secret runbook: `docs/google-build-and-places-secrets.md`.
+- Google Play release (EAS build/submit, `Android Release` workflow, Play Console setup): `docs/play-store-release.md`.
 - Sign-in modes (Google/Apple vs dev-login bypass): `docs/dev-login.md`.
 - Admin provisioning, verification, and revocation: `docs/admin-support-operations.md`.
 - Mobile QA history reports belong in `report/`; keep QA history separate from evergreen component/style references.
@@ -271,6 +272,12 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
   `src/__tests__/advertisingIdentifiers.test.ts` guards them. Keep them off: the privacy policy and store
   privacy labels assume no ad IDs. Event params never carry the user's own profile data (name, email,
   gender, age); a plan's audience settings (`gender_preference`, `age_range_bucket`) are fine.
+- Android releases: `app.config.js` also blocks camera, microphone and draw-over-apps permissions
+  (weif only opens the photo library; keep the storage permissions the picker requests on Android 12
+  and lower), guarded by `src/__tests__/androidPermissions.test.ts`. Production builds carry the EAS
+  Update channel `production`, and Play uploads go through the manual `Android Release` workflow
+  (`eas build --auto-submit-with-profile <track>`); the Play service account key lives on EAS, never in
+  this public repo. See `docs/play-store-release.md`.
 - Server request logs (`requestLogger` in `server/router.go`) drop the query string: the chat socket
   sends its session token as `?token=` and place searches carry typed text. Keep `gin.New()` with this
   logger rather than `gin.Default()`.
