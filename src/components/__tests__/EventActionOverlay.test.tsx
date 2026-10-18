@@ -6,7 +6,7 @@
 
 import React from 'react';
 
-import { ScrollView, TextInput } from 'react-native';
+import { ScrollView, StyleSheet, TextInput } from 'react-native';
 
 import { render, screen, fireEvent } from '@testing-library/react-native';
 
@@ -521,6 +521,16 @@ describe('EventActionOverlay', () => {
       render(<EventActionOverlay {...viewIntroProps} />);
 
       expect(screen.getByText('Your intro')).toBeTruthy();
+    });
+
+    it('sets the intro text at the 22pt body line height, not the 30pt heading one', () => {
+      render(<EventActionOverlay {...viewIntroProps} />);
+      const style = StyleSheet.flatten(
+        screen.getByText(`"${viewIntroProps.introMessage}"`).props.style,
+      );
+
+      expect(style.fontSize).toBe(16);
+      expect(style.lineHeight).toBe(22);
     });
 
     it('should show intro message in quotes', () => {
