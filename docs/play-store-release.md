@@ -58,14 +58,44 @@ apply to a new account.
 
 Play re-signs every install with the app signing key, whose certificate differs
 from the upload key above. Native Google Sign-In fails with `DEVELOPER_ERROR`
-until that certificate is registered:
+until that certificate is registered. Play's app signing certificate for weif:
 
-1. Play Console → Test and release → App integrity → App signing: copy the
-   **App signing key certificate** SHA-1.
-2. In the Google Cloud project that owns `GOOGLE_WEB_CLIENT_ID`
-   (`src/constants/google.ts`, project number `413387391765`), create an
-   OAuth client of type Android: package `com.whoelseisfree.app`, that SHA-1.
-3. Install the app from the internal testing link and sign in with Google.
+- SHA-1 `C9:9C:53:57:36:BA:D9:6A:1D:D7:8F:AE:B9:AD:EF:7D:34:8B:53:81`
+- SHA-256 `A1:67:EA:00:52:CD:94:01:6E:6F:19:56:98:5F:9E:51:B5:DB:95:22:0C:39:BD:76:B8:82:54:96:F4:0B:07:C6`
+
+Play Console shows the same values under Test and release → App integrity →
+App signing (**App signing key certificate**, not the upload key).
+
+The OAuth clients live in the Google Cloud project `who-else-is-free` (number
+`413387391765`), which owns `GOOGLE_WEB_CLIENT_ID` (`src/constants/google.ts`).
+It is not the Firebase project `weif-1100e`. Its OAuth clients:
+
+| Client                   | Type    | Package / SHA-1                                                   |
+| ------------------------ | ------- | ----------------------------------------------------------------- |
+| Web client 1             | Web     | `413387391765-afsj…`, the `webClientId` the app passes            |
+| Android Play app signing | Android | `com.whoelseisfree.app`, `C9:9C:…:53:81` (Play installs)          |
+| Android client 2         | Android | `com.whoelseisfree.app`, `FC:1E:…:7C:BA` (EAS: preview APKs)      |
+| Android client 1         | Android | `com.whoelseisfree.app`, `5E:8F:…:F6:25` (React Native debug key) |
+| Android client 3         | Android | `com.whoelseisfree.app`, `D9:FD:…:6A:B8` (unused)                 |
+
+Keep the EAS and Play clients: preview APKs carry the EAS signature and Play
+installs carry Play's. The OAuth consent screen is In production for External
+users, so no test-user list applies. A new client can take 5 minutes to a few
+hours to take effect.
+
+If Play's signing key ever changes (an upgrade in App integrity), add another
+Android client for the new SHA-1.
+
+**Symptom when it is missing:** Google's account picker opens, then weif shows
+"Unable to sign in with Google" and the server never receives
+`POST /api/google-login`. The device log has `SignInChimeraActivity: Failed to
+record the consent` and `AutoManageHelper: Unresolved error while connecting
+client` from Google Play services. To read the certificate of an installed
+build, pull its APK (`adb shell pm path com.whoelseisfree.app`, then
+`adb pull`) and run
+`apksigner verify --print-certs --min-sdk-version 24 --max-sdk-version 36 base.apk`.
+The SDK range skips Play's post-quantum (v3.2) signer, which JDK 17 cannot
+parse.
 
 ### 3. First upload, by hand
 
