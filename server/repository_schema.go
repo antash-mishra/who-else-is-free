@@ -1309,17 +1309,23 @@ func (r *EventRepository) ensureEventCoverKeyColumn(ctx context.Context) error {
 }
 
 func (r *EventRepository) ensureValidEventCoverKeys(ctx context.Context) error {
-	options := listCoverOptions()
-	if len(options) == 0 {
+	return r.resetUnknownEventCoverKeys(ctx, coverCatalog.knownKeys())
+}
+
+// resetUnknownEventCoverKeys moves plans whose cover key is not in keys to the
+// default cover. Covers removed from Drive stay known (the catalog retires
+// them), so their plans keep the key and the server serves a stand-in image.
+func (r *EventRepository) resetUnknownEventCoverKeys(ctx context.Context, keys []string) error {
+	if len(keys) == 0 {
 		return nil
 	}
 
-	placeholders := make([]string, len(options))
-	args := make([]any, 0, len(options)+1)
+	placeholders := make([]string, len(keys))
+	args := make([]any, 0, len(keys)+1)
 	args = append(args, defaultCoverKey)
-	for i, option := range options {
+	for i, key := range keys {
 		placeholders[i] = "?"
-		args = append(args, option.Key)
+		args = append(args, key)
 	}
 
 	query := fmt.Sprintf(

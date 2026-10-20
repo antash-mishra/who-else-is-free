@@ -1,0 +1,66 @@
+name: Sync covers
+
+# Keeps the cover catalog in step with the team Drive folder. When covers were
+# added, replaced or removed it commits server/covers_catalog.json to main
+# and starts the Fly deploy.
+on:
+  schedule:
+    # 09:00 and 21:00 IST (UTC+5:30)
+    - cron: '30 3,15 * * *'
+  workflow_dispatch:
+    inputs:
+      allow_removals:
+        description: Allow removing many covers (more than 10 in one run)
+        type: boolean
+        default: false
+
+concurrency:
+  group: covers-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    name: Sync covers from Drive
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Sync catalog from Drive
+        working-directory: server
+        env:
+          ALLOW_REMOVALS: ${{ inputs.allow_removals }}
+        run: |
+          args=(-summary "$RUNNER_TEMP/covers-summary.md")
+          if [ "$ALLOW_REMOVALS" = "true" ]; then
+            args+=(-allow-removals)
+          fi
+          go run ./cmd/covers-sync "${args[@]}"
+
+      - name: Show summary
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/covers-summary.md" ]; then
+            cat "$RUNNER_TEMP/covers-summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Test the server with the new catalog
+        working-directory: server
+        run: go test ./...
+
+      - name: Commit and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/publish-cover-catalog.sh "$RUNNER_TEMP/covers-summary.md"
