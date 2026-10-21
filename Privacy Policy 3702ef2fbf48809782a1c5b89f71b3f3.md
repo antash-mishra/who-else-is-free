@@ -2,7 +2,7 @@
 
 ## **weif privacy policy**
 
-#### Last updated October 14, 2026
+#### Last updated October 19, 2026
 
 This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how and why we might access, collect, store, use, and/or share ('process') your personal information when you use our services ('**Services**'), including when you:
 
@@ -134,7 +134,7 @@ If you believe we are unlawfully processing your personal information, you have 
 
 However, please note that this will not affect the lawfulness of the processing before its withdrawal nor will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent.
 
-**Account Information.** You can review and change your profile in the app at any time. To delete your account, go to Profile → Delete account. Section 6 explains what we keep after you delete it.
+**Account Information.** You can review and change your profile in the app at any time. To delete your account, go to Profile → Delete account. If you cannot use the app, you can ask us to delete it by email instead, as described in section 12. Section 6 explains what we keep after you delete it.
 
 ### 10. DO WE MAKE UPDATES TO THIS POLICY?
 
@@ -146,4 +146,4 @@ weif is operated by Sumit Narang, based in Dublin, Ireland. If you have question
 
 ### 12. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?
 
-You have the right to request access to the personal information we collect from you, details about how we have processed it, correct inaccuracies, or delete your personal information. You may also have the right to withdraw your consent to our processing of your personal information. These rights may be limited in some circumstances by applicable law. To delete your account and data, go to Profile → Delete account in the app. To request a copy of your data or ask us to correct it, email **contact@weifapp.com**.
+You have the right to request access to the personal information we collect from you, details about how we have processed it, correct inaccuracies, or delete your personal information. You may also have the right to withdraw your consent to our processing of your personal information. These rights may be limited in some circumstances by applicable law. To delete your account and data, go to Profile → Delete account in the app. If you cannot use the app, email **contact@weifapp.com** with the subject "Delete my account" and the name and email address you signed in with. We will reply to your account's email address to confirm the request is yours, then delete your account within 30 days of your confirmation. Full details are at **weifapp.com/delete-account**. To request a copy of your data or ask us to correct it, email **contact@weifapp.com**.

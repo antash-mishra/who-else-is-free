@@ -24,7 +24,7 @@ describe('PrivacyPolicyScreen', () => {
     expect(StyleSheet.flatten(getByText('weif privacy policy').props.style).textTransform).toBe(
       'uppercase',
     );
-    expect(getByText('Last updated October 14, 2026')).toBeTruthy();
+    expect(getByText('Last updated October 19, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();
     expect(getByLabelText('Jump to WHAT INFORMATION DO WE COLLECT?')).toBeTruthy();
     expect(getByText('Google API Services User Data Policy')).toBeTruthy();
@@ -43,7 +43,7 @@ describe('PrivacyPolicyScreen', () => {
 
   it('uses the real support address and one name for the document', () => {
     expect(privacyPolicyMarkdown).not.toContain('xyz@weif.com');
-    expect(privacyPolicyMarkdown.match(/contact@weifapp\.com/g)).toHaveLength(5);
+    expect(privacyPolicyMarkdown.match(/contact@weifapp\.com/g)).toHaveLength(6);
     expect(privacyPolicyMarkdown).not.toContain('Privacy Notice');
   });
 
@@ -79,6 +79,11 @@ describe('PrivacyPolicyScreen', () => {
     expect(privacyPolicyMarkdown).not.toContain('data subject access request');
     expect(privacyPolicyMarkdown).not.toContain('Learn more about withdrawing your consent');
     expect(privacyPolicyMarkdown).toContain('Profile → Delete account');
+    // Google Play needs a way to delete an account without the app.
+    expect(privacyPolicyMarkdown).toContain(
+      'If you cannot use the app, email **contact@weifapp.com**',
+    );
+    expect(privacyPolicyMarkdown).toContain('weifapp.com/delete-account');
     expect(privacyPolicyMarkdown).not.toContain('Log in to your account profile and update');
     expect(privacyPolicyMarkdown).not.toContain(
       'troubleshoot problems, assist with any investigations',
