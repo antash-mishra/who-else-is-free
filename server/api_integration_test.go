@@ -329,8 +329,12 @@ func TestAPIIntegration(t *testing.T) {
 		if len(payload.Data) == 0 {
 			t.Fatal("expected cover options")
 		}
-		if payload.Data[0].Key != defaultCoverKey {
-			t.Fatalf("expected first cover key %q, got %q", defaultCoverKey, payload.Data[0].Key)
+		hasDefault := false
+		for _, option := range payload.Data {
+			hasDefault = hasDefault || option.Key == defaultCoverKey
+		}
+		if !hasDefault {
+			t.Fatalf("expected the default cover %q in the list", defaultCoverKey)
 		}
 		if !strings.Contains(payload.Data[0].URL, "/assets/covers/"+payload.Data[0].FileName) {
 			t.Fatalf("expected static cover URL, got %q", payload.Data[0].URL)
@@ -338,8 +342,8 @@ func TestAPIIntegration(t *testing.T) {
 		if len(payload.Categories) == 0 {
 			t.Fatal("expected cover categories")
 		}
-		if payload.Categories[0].Key != coverCatalog[0].Category {
-			t.Fatalf("expected first category %q, got %q", coverCatalog[0].Category, payload.Categories[0].Key)
+		if payload.Categories[0].Key != coverCatalog.categories[0].Key {
+			t.Fatalf("expected first category %q, got %q", coverCatalog.categories[0].Key, payload.Categories[0].Key)
 		}
 		staticResp, err := http.Get(payload.Data[0].URL)
 		if err != nil {
