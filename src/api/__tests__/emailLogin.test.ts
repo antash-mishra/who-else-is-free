@@ -1,7 +1,7 @@
 import fetchMock from 'jest-fetch-mock';
 
-import { ApiError } from '@api/errors';
 import { postEmailCode, requestEmailCode } from '@api/emailLogin';
+import { ApiError } from '@api/errors';
 
 jest.mock('@api/config', () => ({
   API_BASE_URL: 'http://localhost:8080',
