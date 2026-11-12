@@ -142,8 +142,27 @@ func (r *EventRepository) RotateRefreshToken(ctx context.Context, raw string, no
 	if err != nil {
 		return 0, "", time.Time{}, fmt.Errorf("lookup refresh token: %w", err)
 	}
-	if revoked || expired {
+	if expired {
 		return 0, "", time.Time{}, ErrRefreshTokenInvalid
+	}
+	if revoked {
+		// A retired key presented while its family is still live means a copy
+		// of it exists elsewhere (a sibling the device never moved to, or a key
+		// it already rotated past): sign the whole family out. A key whose
+		// family was revoked as a whole (sign-out) is merely invalid.
+		result, err := tx.ExecContext(ctx, `
+			UPDATE refresh_tokens SET revoked_at = ? WHERE family_id = ? AND revoked_at IS NULL;
+		`, nowText, familyID)
+		if err != nil {
+			return 0, "", time.Time{}, fmt.Errorf("revoke reused refresh family: %w", err)
+		}
+		if affected, _ := result.RowsAffected(); affected == 0 {
+			return 0, "", time.Time{}, ErrRefreshTokenInvalid
+		}
+		if err := tx.Commit(); err != nil {
+			return 0, "", time.Time{}, fmt.Errorf("commit refresh revocation: %w", err)
+		}
+		return 0, "", time.Time{}, ErrRefreshTokenReused
 	}
 
 	var usedChildren int

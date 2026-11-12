@@ -104,13 +104,40 @@ func TestRotateRefreshTokenDetectsReuseAfterSuccessorUsed(t *testing.T) {
 func TestUsingOneSiblingRetiresTheOther(t *testing.T) {
 	repo, userID := newRefreshTestRepo(t)
 	key := mustIssueRefresh(t, repo, userID)
-	first := mustRotate(t, repo, key, refreshTestNow.Add(time.Minute))
+	_ = mustRotate(t, repo, key, refreshTestNow.Add(time.Minute))
 	second := mustRotate(t, repo, key, refreshTestNow.Add(2*time.Minute))
 
-	_ = mustRotate(t, repo, second, refreshTestNow.Add(time.Hour))
+	third := mustRotate(t, repo, second, refreshTestNow.Add(time.Hour))
+	// The device moved on through `second`; its newest key keeps working.
+	_ = mustRotate(t, repo, third, refreshTestNow.Add(2*time.Hour))
+}
+
+func TestRetiredSiblingReuseRevokesFamily(t *testing.T) {
+	repo, userID := newRefreshTestRepo(t)
+	key := mustIssueRefresh(t, repo, userID)
+	first := mustRotate(t, repo, key, refreshTestNow.Add(time.Minute))
+	second := mustRotate(t, repo, key, refreshTestNow.Add(2*time.Minute))
+	third := mustRotate(t, repo, second, refreshTestNow.Add(time.Hour))
+
 	_, _, _, err := repo.RotateRefreshToken(context.Background(), first, refreshTestNow.Add(2*time.Hour))
+	if !errors.Is(err, ErrRefreshTokenReused) {
+		t.Fatalf("a retired sibling presented later must count as reuse, got %v", err)
+	}
+	_, _, _, err = repo.RotateRefreshToken(context.Background(), third, refreshTestNow.Add(3*time.Hour))
 	if !errors.Is(err, ErrRefreshTokenInvalid) {
-		t.Fatalf("expected retired sibling to be invalid, got %v", err)
+		t.Fatalf("reuse must revoke the device's current key too, got %v", err)
+	}
+}
+
+func TestSignedOutKeyIsInvalidNotReuse(t *testing.T) {
+	repo, userID := newRefreshTestRepo(t)
+	key := mustIssueRefresh(t, repo, userID)
+	if err := repo.RevokeRefreshTokenFamily(context.Background(), key, refreshTestNow); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	_, _, _, err := repo.RotateRefreshToken(context.Background(), key, refreshTestNow.Add(time.Minute))
+	if !errors.Is(err, ErrRefreshTokenInvalid) {
+		t.Fatalf("expected ErrRefreshTokenInvalid after sign-out, got %v", err)
 	}
 }
 
