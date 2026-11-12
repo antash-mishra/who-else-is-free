@@ -17,7 +17,8 @@ type EmailSignInFormProps = {
 type Step = 'email' | 'code';
 
 const CODE_LENGTH = 6;
-const RESEND_COOLDOWN_SECONDS = 30;
+// Matches the server's one-code-per-minute limit for an address.
+const RESEND_COOLDOWN_SECONDS = 60;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INVALID_EMAIL_MESSAGE = 'Enter a valid email address.';
 const SEND_FAILED_MESSAGE = "We couldn't send the code. Please try again.";
@@ -57,6 +58,11 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
       return;
     }
     setError(null);
+    if (address === sentTo && resendSeconds > 0) {
+      // The code already sent to this address is still the newest one.
+      setStep('code');
+      return;
+    }
     setIsSending(true);
     try {
       await startEmailSignIn(address);
@@ -69,7 +75,7 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
     } finally {
       setIsSending(false);
     }
-  }, [email, startEmailSignIn]);
+  }, [email, resendSeconds, sentTo, startEmailSignIn]);
 
   const submitCode = useCallback(
     async (value: string) => {
@@ -109,7 +115,6 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
   const useDifferentEmail = useCallback(() => {
     setError(null);
     setCode('');
-    setResendSeconds(0);
     setStep('email');
   }, []);
 

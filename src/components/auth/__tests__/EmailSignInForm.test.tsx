@@ -120,25 +120,41 @@ describe('EmailSignInForm', () => {
     expect(screen.getByTestId('email-sign-in-code').props.value).toBe('');
   });
 
-  it('enables resend after 30 seconds', async () => {
+  it('waits out the server per-address window before enabling resend', async () => {
     jest.useFakeTimers();
     renderForm();
     await goToCodeStep();
 
-    expect(screen.getByText('Resend in 30s')).toBeTruthy();
+    expect(screen.getByText('Resend in 60s')).toBeTruthy();
+    await act(async () => {
+      jest.advanceTimersByTime(59_000);
+    });
     expect(screen.getByTestId('email-sign-in-resend').props.accessibilityState?.disabled).toBe(
       true,
     );
 
     await act(async () => {
-      jest.advanceTimersByTime(30_000);
+      jest.advanceTimersByTime(1_000);
     });
-
     expect(screen.getByText('Resend code')).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByTestId('email-sign-in-resend'));
     });
     expect(mockStartEmailSignIn).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the resend countdown when switching email and back to the same address', async () => {
+    jest.useFakeTimers();
+    renderForm();
+    await goToCodeStep();
+    fireEvent.press(screen.getByTestId('email-sign-in-change-email'));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('email-sign-in-send'));
+    });
+
+    expect(mockStartEmailSignIn).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('email-sign-in-code')).toBeTruthy();
   });
 
   it('returns to the email step keeping the address', async () => {
