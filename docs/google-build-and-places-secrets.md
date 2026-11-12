@@ -83,3 +83,21 @@ Local emulator testing can succeed while a preview build fails when it is not hi
 - Metro/dev-client sessions can keep an older bundle or environment until the server and app are restarted.
 
 To compare like for like, verify the exact URL the app is calling and test that endpoint with `curl`. The current fallback in `src/api/config.ts` is the Fly server unless `EXPO_PUBLIC_API_BASE_URL` is set.
+
+## Email Sign-in (Cloudflare Email Sending)
+
+The server sends sign-in codes through Cloudflare Email Sending's REST API. Set these Fly secrets;
+without the first three, email sign-in reports itself unavailable (503).
+
+| Secret                       | Value                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| `CLOUDFLARE_ACCOUNT_ID`      | The account that hosts the `weifapp.com` zone                                  |
+| `CLOUDFLARE_EMAIL_API_TOKEN` | API token limited to sending email on that account                             |
+| `EMAIL_LOGIN_FROM`           | From address on the onboarded sending subdomain, e.g. `login@mail.weifapp.com` |
+| `EMAIL_LOGIN_FROM_NAME`      | Optional display name, default `weif`                                          |
+| `EMAIL_LOGIN_DAILY_CAP`      | Optional total codes per 24h across all addresses, default 500                 |
+
+Onboard a sending subdomain rather than the apex: the apex keeps the Google Workspace MX, SPF and
+DKIM records that `contact@weifapp.com` depends on. Also register the from address in the Apple
+Developer portal (Sign in with Apple for Email Communication) so codes reach Apple private relay
+addresses. `EMAIL_LOGIN_DEV_LOG_CODES=1` is for local development only.

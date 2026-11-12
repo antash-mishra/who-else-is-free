@@ -85,6 +85,18 @@ curl -s -X POST http://localhost:8080/api/dev-login \
 
 ---
 
+## Email code sign-in locally
+
+"Continue with email" works locally without sending real email: start the backend with
+`EMAIL_LOGIN_DEV_LOG_CODES=1` and the code is written to the server log instead
+(`email-login dev code: 123456`). Without that flag, or the Cloudflare variables in
+`docs/google-build-and-places-secrets.md`, `/api/email-login/start` answers 503 and the app shows
+"Email sign-in isn't available right now." Never set the flag in production.
+
+```bash
+cd server && DEV_LOGIN_ENABLED=1 EMAIL_LOGIN_DEV_LOG_CODES=1 go run .
+```
+
 ## Switching back to normal login
 
 1. Stop the backend. Restart **without** `DEV_LOGIN_ENABLED`:

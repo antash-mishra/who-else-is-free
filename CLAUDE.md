@@ -127,6 +127,21 @@ Who Else Is Free is an event discovery and social coordination app.
   logger rather than `gin.Default()`.
 - Push tokens that FCM reports as unregistered are deleted on send (`forgetIfUnregistered` in
   `server/push_firebase.go`); other failures, such as APNs credential errors, keep the token.
+- Sign-in and sessions: Google, Apple (iOS) and email codes. Every sign-in response carries a 24h
+  access `token` plus a rotating `refresh_token` (90 days from last use, stored as a SHA-256 hash in
+  `refresh_tokens`; `server/refresh_tokens.go`). `/api/session/refresh` rotates it: a replaced key
+  keeps working until its successor is used once (lost responses never sign anyone out), and a
+  replaced key presented after that revokes the whole family. `/api/session/logout` revokes the
+  device's family. Client persistence lives in `src/context/authSession.ts`; `AuthContext`
+  refreshes through the key first and Google silent sign-in second, never signs out on a network
+  error, and `ChatContext` passes `{ onlyIfExpired: true }` so socket reconnects do not rotate keys.
+  Apple sessions check `getCredentialStateAsync` on restore/refresh and sign out when revoked. There
+  is no user-facing "stay signed in" option. Email sign-in (`/api/email-login/start` and `/verify`,
+  `server/email_login.go`, `EmailSignInForm` inside `SignInButtons`) sends a 6-digit code (10 min,
+  single use, 5 attempts, in-memory rate limits) through `emailSender` (`server/email_sender.go`,
+  Cloudflare Email Sending REST); start answers identically for known and unknown addresses. Account
+  lookups by email are case-insensitive and new emails are stored lowercased. Design and plan:
+  `docs/superpowers/specs/2026-11-12-email-code-sign-in-design.md`.
 - Startup permissions: Discover waits for `BloomContext.transitionComplete`, then serializes `PushContext.requestPushPermission` and `useViewerLocation().requestPermission`. Do not prompt from `App.tsx`, provider mount effects, or the splash route; silent checks and token/location loading for existing grants may still run there.
 - Admin support: persistent authorization lives in `admin_users` by immutable user ID;
   `ADMIN_BOOTSTRAP_EMAILS` only provisions verified initial accounts. Support Inbox API mapping is
