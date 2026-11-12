@@ -211,7 +211,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
         }
 
         reachedServer = true;
-        const user = await signInWithApple(credential.identityToken);
+        const user = await signInWithApple(credential.identityToken, credential.user);
         handlePostSignInNavigation(user.profileComplete);
       } catch (error) {
         const code = (error as { code?: string })?.code;

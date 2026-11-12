@@ -9,7 +9,10 @@ import {
   useState,
 } from 'react';
 
+import { Platform } from 'react-native';
+
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import * as SecureStore from 'expo-secure-store';
 
 import { API_BASE_URL } from '@api/config';
@@ -77,7 +80,7 @@ interface AuthContextValue {
   token: string | null;
   isSigningIn: boolean;
   signInWithGoogle: (idToken: string) => Promise<AuthUser>;
-  signInWithApple: (idToken: string) => Promise<AuthUser>;
+  signInWithApple: (idToken: string, appleUserId?: string) => Promise<AuthUser>;
   /** DEV ONLY. Issues a real session token for a fixed test user via /api/dev-login.
    *  Requires the backend to be started with DEV_LOGIN_ENABLED=1. */
   signInWithDevUser: (
@@ -99,6 +102,27 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/**
+ * True only when Apple reports that the person revoked weif under Sign in with
+ * Apple (or the Apple ID is gone). A failed check counts as not revoked, so a
+ * check error never signs anyone out.
+ */
+const isAppleCredentialRevoked = async (appleUserId: string | null): Promise<boolean> => {
+  if (Platform.OS !== 'ios' || !appleUserId) {
+    return false;
+  }
+  try {
+    const state = await AppleAuthentication.getCredentialStateAsync(appleUserId);
+    return (
+      state === AppleAuthentication.AppleAuthenticationCredentialState.REVOKED ||
+      state === AppleAuthentication.AppleAuthenticationCredentialState.NOT_FOUND
+    );
+  } catch (err) {
+    logger.warn('Apple credential state check failed', err);
+    return false;
+  }
+};
+
 export const AuthProvider = ({
   children,
   onSessionExpired,
@@ -116,6 +140,7 @@ export const AuthProvider = ({
   const refreshInFlightRef = useRef<Promise<RefreshOutcome> | null>(null);
   const tokenRef = useRef<string | null>(null);
   const sessionMetaRef = useRef<SessionMeta>(EMPTY_SESSION_META);
+  const handleSessionExpiredRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     const configureGoogleSignIn = async () => {
@@ -152,6 +177,13 @@ export const AuthProvider = ({
         setToken(stored.token);
         setAuthProvider(stored.provider);
         setUser(stored.user);
+        if (
+          stored.provider === 'apple' &&
+          (await isAppleCredentialRevoked(stored.appleUserId ?? null)) &&
+          isActive
+        ) {
+          handleSessionExpiredRef.current();
+        }
       } catch (err) {
         logger.warn('Failed to restore auth session', err);
       }
@@ -251,8 +283,14 @@ export const AuthProvider = ({
   );
 
   const signInWithApple = useCallback(
-    async (idToken: string) =>
-      signInWithProvider('apple', 'apple-login', idToken, 'Unable to sign in with Apple.'),
+    async (idToken: string, appleUserId?: string) =>
+      signInWithProvider(
+        'apple',
+        'apple-login',
+        idToken,
+        'Unable to sign in with Apple.',
+        appleUserId ?? null,
+      ),
     [signInWithProvider],
   );
 
@@ -362,7 +400,10 @@ export const AuthProvider = ({
       return refreshInFlightRef.current;
     }
     const refreshPromise = (async (): Promise<RefreshOutcome> => {
-      const { refreshToken, provider } = sessionMetaRef.current;
+      const { refreshToken, provider, appleUserId } = sessionMetaRef.current;
+      if (provider === 'apple' && (await isAppleCredentialRevoked(appleUserId))) {
+        return { status: 'rejected' };
+      }
       if (refreshToken) {
         const outcome = await exchangeRefreshToken(refreshToken);
         if (outcome.status !== 'rejected') {
@@ -426,6 +467,9 @@ export const AuthProvider = ({
     signOut();
     onSessionExpiredRef.current?.();
   }, [signOut]);
+  useEffect(() => {
+    handleSessionExpiredRef.current = handleSessionExpired;
+  }, [handleSessionExpired]);
 
   const authFetch = useCallback(
     async (input: RequestInfo | URL, init: RequestInit = {}, options: AuthFetchOptions = {}) => {

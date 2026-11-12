@@ -4,12 +4,16 @@
  */
 
 import React from 'react';
-import { Text, Button, View } from 'react-native';
+import { Text, Button, Platform, View } from 'react-native';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-native';
 import fetchMock from 'jest-fetch-mock';
 
 import { AuthProvider, useAuth } from '../AuthContext';
-import { mockSecureStore, mockGoogleSignIn } from '../../__tests__/mocks/mockModules';
+import {
+  mockAppleAuthentication,
+  mockSecureStore,
+  mockGoogleSignIn,
+} from '../../__tests__/mocks/mockModules';
 import { mockApiResponses, mockUsers } from '../../__tests__/mocks/mockData';
 
 // Test constants
@@ -674,6 +678,61 @@ describe('AuthContext Rendering Tests', () => {
       expect(logoutCalls).toHaveLength(1);
       expect(JSON.parse(String(logoutCalls[0][1]?.body))).toEqual({ refresh_token: 'refresh-1' });
       expect(mockSecureStore.storage.get(REFRESH_TOKEN_KEY)).toBeUndefined();
+    });
+  });
+
+  describe('Apple credential revocation', () => {
+    const APPLE_USER_KEY = 'whoelseisfree.appleUserId';
+    let restorePlatform: (() => void) | null = null;
+
+    beforeEach(() => {
+      const original = Platform.OS;
+      Object.defineProperty(Platform, 'OS', { configurable: true, get: () => 'ios' });
+      restorePlatform = () =>
+        Object.defineProperty(Platform, 'OS', { configurable: true, get: () => original });
+      mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
+      mockSecureStore.storage.set(USER_KEY, JSON.stringify(mockUsers[0]));
+      mockSecureStore.storage.set(AUTH_PROVIDER_KEY, 'apple');
+      mockSecureStore.storage.set(APPLE_USER_KEY, 'apple-user-1');
+    });
+
+    afterEach(() => {
+      restorePlatform?.();
+      mockAppleAuthentication.getCredentialStateAsync.mockReset();
+      mockAppleAuthentication.getCredentialStateAsync.mockResolvedValue(1);
+    });
+
+    it('signs out a restored Apple session whose credential was revoked', async () => {
+      mockAppleAuthentication.getCredentialStateAsync.mockResolvedValue(0);
+
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(mockAppleAuthentication.getCredentialStateAsync).toHaveBeenCalledWith(
+          'apple-user-1',
+        );
+        expect(screen.getByTestId('token')).toHaveTextContent('No Token');
+      });
+    });
+
+    it('keeps an Apple session when the credential check throws', async () => {
+      mockAppleAuthentication.getCredentialStateAsync.mockRejectedValue(new Error('unavailable'));
+
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(mockAppleAuthentication.getCredentialStateAsync).toHaveBeenCalled();
+      });
+      expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+    });
+
+    it('keeps an authorized Apple session', async () => {
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(mockAppleAuthentication.getCredentialStateAsync).toHaveBeenCalled();
+      });
+      expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
     });
   });
 
