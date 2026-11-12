@@ -47,8 +47,9 @@ func (f fakeAppleVerifier) Verify(_ context.Context, idToken string, _ []string)
 }
 
 type authTestEnv struct {
-	repo   *EventRepository
-	router *gin.Engine
+	repo    *EventRepository
+	router  *gin.Engine
+	handler *AuthHandler
 }
 
 func setupAuthTestEnv(t *testing.T, googleVerifier googleTokenVerifier, appleVerifier appleTokenVerifier) *authTestEnv {
@@ -102,7 +103,7 @@ func setupAuthTestEnv(t *testing.T, googleVerifier googleTokenVerifier, appleVer
 		_ = os.Remove(tmpFile.Name())
 	})
 
-	return &authTestEnv{repo: repo, router: router}
+	return &authTestEnv{repo: repo, router: router, handler: handler}
 }
 
 func (env *authTestEnv) postJSON(t *testing.T, path string, body any) *httptest.ResponseRecorder {

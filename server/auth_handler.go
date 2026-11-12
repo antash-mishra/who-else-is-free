@@ -35,6 +35,8 @@ type AuthHandler struct {
 	appleVerifier   appleTokenVerifier
 	identityHasher  *IdentityHasher
 	devLoginEnabled bool
+	emailSender     emailSender
+	emailLimits     *emailLoginLimits
 	// now is overridable in tests; nil means time.Now.
 	now func() time.Time
 }
@@ -58,6 +60,8 @@ func NewAuthHandler(repo *EventRepository, signer *tokenSigner) *AuthHandler {
 		appleVerifier:   newLiveAppleTokenVerifier(),
 		identityHasher:  newIdentityHasherFromEnv(),
 		devLoginEnabled: devLoginEnabled,
+		emailSender:     newEmailSenderFromEnv(),
+		emailLimits:     newEmailLoginLimitsFromEnv(),
 	}
 }
 
@@ -66,6 +70,8 @@ func (h *AuthHandler) RegisterRoutes(group *gin.RouterGroup) {
 	group.POST("/apple-login", h.appleLogin)
 	group.POST("/session/refresh", h.refreshSession)
 	group.POST("/session/logout", h.logoutSession)
+	group.POST("/email-login/start", h.startEmailLogin)
+	group.POST("/email-login/verify", h.verifyEmailLogin)
 	if h.devLoginEnabled {
 		group.POST("/dev-login", h.devLogin)
 	}
