@@ -16,6 +16,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as SecureStore from 'expo-secure-store';
 
 import { API_BASE_URL } from '@api/config';
+import { postEmailCode, requestEmailCode } from '@api/emailLogin';
 import { ApiError, extractServerErrorMessage } from '@api/errors';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 import type { UserGender } from '@constants/profileOptions';
@@ -88,6 +89,10 @@ interface AuthContextValue {
     name?: string,
     options?: { profileComplete?: boolean },
   ) => Promise<AuthUser>;
+  /** Emails a 6-digit sign-in code to `email`. */
+  startEmailSignIn: (email: string) => Promise<void>;
+  /** Signs in with an emailed code; wrong/expired codes throw an ApiError with `code`. */
+  verifyEmailCode: (email: string, code: string) => Promise<AuthUser>;
   signOut: () => void;
   refreshSessionSilently: (options?: RefreshSessionOptions) => Promise<string | null>;
   updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
@@ -334,6 +339,37 @@ export const AuthProvider = ({
           throw error;
         }
         throw new Error('Unable to sign in via dev-login. Please try again.');
+      } finally {
+        setIsSigningIn(false);
+      }
+    },
+    [applySession],
+  );
+
+  const startEmailSignIn = useCallback(async (email: string): Promise<void> => {
+    trackEvent('login_started', { provider: 'email' }).catch(() => undefined);
+    await requestEmailCode(email);
+  }, []);
+
+  const verifyEmailCode = useCallback(
+    async (email: string, code: string): Promise<AuthUser> => {
+      setIsSigningIn(true);
+      try {
+        const payload = await postEmailCode(email, code);
+        const authUser = await applySession(payload, 'email', null);
+        trackEvent(payload.is_new_user ? 'signup_succeeded' : 'login_succeeded', {
+          provider: 'email',
+        }).catch(() => undefined);
+        return authUser;
+      } catch (error) {
+        const isCodeError =
+          error instanceof ApiError &&
+          (error.code === 'code_invalid' || error.code === 'code_expired');
+        trackEvent('login_failed', {
+          provider: 'email',
+          failure_stage: isCodeError ? 'code' : 'server',
+        }).catch(() => undefined);
+        throw error;
       } finally {
         setIsSigningIn(false);
       }
@@ -606,6 +642,8 @@ export const AuthProvider = ({
       signInWithGoogle,
       signInWithApple,
       signInWithDevUser,
+      startEmailSignIn,
+      verifyEmailCode,
       signOut,
       refreshSessionSilently,
       updateProfile,
@@ -620,6 +658,8 @@ export const AuthProvider = ({
       signInWithGoogle,
       signInWithApple,
       signInWithDevUser,
+      startEmailSignIn,
+      verifyEmailCode,
       signOut,
       refreshSessionSilently,
       updateProfile,

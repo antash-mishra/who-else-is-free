@@ -736,6 +736,78 @@ describe('AuthContext Rendering Tests', () => {
     });
   });
 
+  describe('Email sign-in', () => {
+    const EmailConsumer = () => {
+      const { user, token, verifyEmailCode } = useAuth();
+      return (
+        <View>
+          <Text testID="email-user">{user?.email ?? 'No User'}</Text>
+          <Text testID="email-token">{token ?? 'No Token'}</Text>
+          <Button
+            testID="verify-email-button"
+            title="Verify"
+            onPress={() => {
+              verifyEmailCode('asha@example.com', '123456').catch(() => undefined);
+            }}
+          />
+        </View>
+      );
+    };
+
+    it('stores the email session with its refresh key', async () => {
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          user: { id: 9, name: 'asha', email: 'asha@example.com', profile_complete: false },
+          token: 'email-access',
+          expires_at: '2099-01-01T00:00:00Z',
+          refresh_token: 'email-refresh',
+          is_new_user: true,
+        }),
+      );
+
+      render(
+        <AuthProvider>
+          <EmailConsumer />
+        </AuthProvider>,
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('verify-email-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('email-token')).toHaveTextContent('email-access');
+      });
+      expect(mockSecureStore.storage.get(AUTH_PROVIDER_KEY)).toBe('email');
+      expect(mockSecureStore.storage.get('whoelseisfree.refreshToken')).toBe('email-refresh');
+    });
+
+    it('restores an email session as email', async () => {
+      mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
+      mockSecureStore.storage.set(USER_KEY, JSON.stringify(mockUsers[0]));
+      mockSecureStore.storage.set(AUTH_PROVIDER_KEY, 'email');
+      mockSecureStore.storage.set('whoelseisfree.refreshToken', 'refresh-1');
+      fetchMock
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce(JSON.stringify({ error: 'session expired, please sign in again' }), {
+          status: 401,
+        });
+
+      renderWithAuthProvider();
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('auth-fetch-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent('No Token');
+      });
+      expect(mockGoogleSignIn.GoogleSignin.signInSilently).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Google Sign-In Configuration', () => {
     it('should configure Google Sign-In on mount', async () => {
       renderWithAuthProvider();
