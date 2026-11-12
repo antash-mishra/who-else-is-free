@@ -89,6 +89,8 @@ Ship this first. It does not depend on email sign-in and fixes Apple immediately
 
 ### Behaviour
 
+- **Always on, invisible.** There is no "Stay signed in" checkbox, setting or prompt anywhere in
+  the app. Every sign-in stays signed in by default; the person never sees or chooses any of this.
 - Every successful sign-in (Google, Apple, email, and dev-login) returns, in addition to the
   existing 24h access token, a **refresh key**: a long random opaque string.
 - The app stores it in SecureStore beside the access token.
