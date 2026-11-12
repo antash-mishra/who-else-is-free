@@ -306,15 +306,15 @@ export const AuthProvider = ({
   /** Trades the stored refresh key for a new session. */
   const exchangeRefreshToken = useCallback(
     async (refreshToken: string): Promise<RefreshOutcome> => {
-      let response: Response;
-      try {
-        response = await fetch(`${API_BASE_URL}/api/session/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-      } catch (err) {
+      const response = await fetch(`${API_BASE_URL}/api/session/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch((err: unknown) => {
         logger.warn('Session refresh unavailable', err);
+        return null;
+      });
+      if (!response) {
         return { status: 'unavailable' };
       }
       if (response.status === 401) {
@@ -339,7 +339,7 @@ export const AuthProvider = ({
   const refreshWithGoogle = useCallback(async (): Promise<RefreshOutcome> => {
     try {
       const result = await GoogleSignin.signInSilently();
-      const idToken = (result as any)?.idToken ?? result?.data?.idToken;
+      const idToken = (result as { idToken?: string | null })?.idToken ?? result?.data?.idToken;
       if (!idToken) {
         return { status: 'rejected' };
       }
@@ -347,7 +347,7 @@ export const AuthProvider = ({
       return tokenRef.current
         ? { status: 'refreshed', token: tokenRef.current }
         : { status: 'rejected' };
-    } catch (err) {
+    } catch {
       return { status: 'rejected' };
     }
   }, [signInWithGoogle]);
