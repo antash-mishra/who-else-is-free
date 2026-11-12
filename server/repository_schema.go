@@ -479,7 +479,9 @@ FROM users;
 const selectUserByEmail = `
 SELECT id, name, email, password, gender, age, avatar, profile_complete, created_at
 FROM users
-WHERE email = ?;
+WHERE email = ? COLLATE NOCASE
+ORDER BY id
+LIMIT 1;
 `
 
 const selectUserByID = `

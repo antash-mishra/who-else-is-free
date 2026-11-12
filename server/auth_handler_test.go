@@ -514,3 +514,74 @@ func TestDevLoginIsIdempotentAcrossCalls(t *testing.T) {
 		t.Fatalf("dev-login must reuse the existing user: got %d then %d", p1.User.ID, p2.User.ID)
 	}
 }
+
+func googleLoginAs(t *testing.T, env *authTestEnv, email string) issuedSessionBody {
+	t.Helper()
+	rec := env.postJSON(t, "/api/google-login", map[string]any{"id_token": "google-token"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("google-login as %s: expected 200, got %d (%s)", email, rec.Code, rec.Body.String())
+	}
+	var body issuedSessionBody
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode google-login: %v", err)
+	}
+	return body
+}
+
+func TestGoogleLoginMatchesExistingEmailCaseInsensitively(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+	google := fakeGoogleVerifier{claims: map[string]any{
+		"email": "Asha@Gmail.com", "email_verified": true, "name": "Asha",
+	}}
+	env := setupAuthTestEnv(t, google, nil)
+	existing, err := env.repo.CreateUserWithPassword(context.Background(), "Asha", "asha@gmail.com", "placeholder")
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	body := googleLoginAs(t, env, "Asha@Gmail.com")
+
+	if body.User.ID != existing.ID {
+		t.Fatalf("expected existing user %d, got %d", existing.ID, body.User.ID)
+	}
+	if body.IsNewUser {
+		t.Fatalf("expected an existing user, got is_new_user=true")
+	}
+}
+
+func TestNewUsersAreStoredLowercase(t *testing.T) {
+	t.Setenv("GOOGLE_OAUTH_CLIENT_ID", "test-google-client")
+	google := fakeGoogleVerifier{claims: map[string]any{
+		"email": " New@Example.COM ", "email_verified": true, "name": "New",
+	}}
+	env := setupAuthTestEnv(t, google, nil)
+
+	body := googleLoginAs(t, env, "New@Example.COM")
+
+	user, err := env.repo.GetUserByID(context.Background(), body.User.ID)
+	if err != nil {
+		t.Fatalf("load user: %v", err)
+	}
+	if user.Email != "new@example.com" {
+		t.Fatalf("expected stored email new@example.com, got %q", user.Email)
+	}
+}
+
+func TestBootstrapAdminEmailIgnoresCase(t *testing.T) {
+	if !isBootstrapAdminEmail("Admin@Example.com", []string{"admin@example.com"}) {
+		t.Fatalf("expected a case-insensitive bootstrap admin match")
+	}
+	env := setupAuthTestEnv(t, nil, nil)
+	ctx := context.Background()
+	user, err := env.repo.CreateUserWithPassword(ctx, "Admin", "admin@example.com", "placeholder")
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	if _, err := env.repo.BootstrapAdmins(ctx, []string{"ADMIN@example.com"}); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	isAdmin, err := env.repo.IsAdmin(ctx, user.ID)
+	if err != nil || !isAdmin {
+		t.Fatalf("expected admin grant, got %v (%v)", isAdmin, err)
+	}
+}

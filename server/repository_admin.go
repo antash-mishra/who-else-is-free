@@ -89,7 +89,7 @@ func parseAdminBootstrapEmails(raw string) []string {
 func isBootstrapAdminEmail(email string, configured []string) bool {
 	trimmed := strings.TrimSpace(email)
 	for _, candidate := range configured {
-		if trimmed == candidate {
+		if strings.EqualFold(trimmed, candidate) {
 			return true
 		}
 	}

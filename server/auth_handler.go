@@ -272,7 +272,10 @@ func (h *AuthHandler) recordIdentityHashes(parentCtx context.Context, user *User
 	}
 }
 
+// getOrCreateUserByEmail finds the account for an email regardless of case and
+// stores new accounts with a trimmed, lowercased email.
 func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, displayName string) (*User, bool, error) {
+	email = normalizeEmail(email)
 	name := strings.TrimSpace(displayName)
 	if name == "" {
 		name = fallbackNameFromEmail(email)
@@ -371,6 +374,10 @@ func parseAudienceListEnv(key string) []string {
 		}
 	}
 	return audiences
+}
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }
 
 func fallbackNameFromEmail(email string) string {
