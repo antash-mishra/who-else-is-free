@@ -273,8 +273,11 @@ Keep aliases aligned across `tsconfig.json`, `babel.config.js`, and `jest.config
   Apple sessions check `getCredentialStateAsync` on restore/refresh and sign out when revoked. There
   is no user-facing "stay signed in" option. Email sign-in (`/api/email-login/start` and `/verify`,
   `server/email_login.go`, `EmailSignInForm` inside `SignInButtons`) sends a 6-digit code (10 min,
-  single use, 5 attempts, in-memory rate limits) through `emailSender` (`server/email_sender.go`,
-  Cloudflare Email Sending REST); start answers identically for known and unknown addresses. Account
+  single use, 5 attempts; in-memory per-minute/hour/IP limits plus 10 codes per address per day
+  counted in the database; client IP comes only from `Fly-Client-IP`) through `emailSender` (`server/email_sender.go`,
+  Cloudflare Email Sending REST); start answers identically for known and unknown addresses. The "Continue with email" button is
+  hidden unless the build sets `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`; turn it on only once the
+  server can send. Account
   lookups by email are case-insensitive and new emails are stored lowercased. Design and plan:
   `docs/superpowers/specs/2026-11-12-email-code-sign-in-design.md`.
 - Analytics carries no advertising identifiers: weif shows no ads. `firebase.json` turns off the

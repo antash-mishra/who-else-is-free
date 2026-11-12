@@ -9,10 +9,14 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import SignInButtons from '../SignInButtons';
 
 let mockDevLoginEnabled = false;
+let mockEmailSignInEnabled = true;
 jest.mock('@constants/featureFlags', () => ({
   APPLE_SIGNIN_DEV_ALL_PLATFORMS: false,
   get DEV_LOGIN_ENABLED() {
     return mockDevLoginEnabled;
+  },
+  get EMAIL_SIGN_IN_ENABLED() {
+    return mockEmailSignInEnabled;
   },
 }));
 
@@ -54,6 +58,15 @@ describe('SignInButtons dev login presets', () => {
 describe('SignInButtons email sign-in', () => {
   beforeEach(() => {
     mockDevLoginEnabled = false;
+    mockEmailSignInEnabled = true;
+  });
+
+  it('hides email sign-in until sending is configured for the build', async () => {
+    mockEmailSignInEnabled = false;
+    render(<SignInButtons />);
+
+    expect(await screen.findByTestId('google-sign-in-button')).toBeTruthy();
+    expect(screen.queryByTestId('email-sign-in-button')).toBeNull();
   });
 
   it('offers email sign-in next to the provider buttons', async () => {

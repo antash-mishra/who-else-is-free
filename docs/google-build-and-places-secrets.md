@@ -101,3 +101,7 @@ Onboard a sending subdomain rather than the apex: the apex keeps the Google Work
 DKIM records that `contact@weifapp.com` depends on. Also register the from address in the Apple
 Developer portal (Sign in with Apple for Email Communication) so codes reach Apple private relay
 addresses. `EMAIL_LOGIN_DEV_LOG_CODES=1` is for local development only.
+
+The app hides "Continue with email" unless the build (or EAS Update environment) sets
+`EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`. Set these secrets and confirm one real code arrives
+before turning that on, so no release offers a button the server cannot serve.
