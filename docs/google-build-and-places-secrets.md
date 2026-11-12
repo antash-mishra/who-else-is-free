@@ -98,9 +98,9 @@ without the first three, email sign-in reports itself unavailable (503).
 | `EMAIL_LOGIN_DAILY_CAP`      | Optional total codes per 24h across all addresses, default 500                 |
 
 Onboard a sending subdomain rather than the apex: the apex keeps the Google Workspace MX, SPF and
-DKIM records that `contact@weifapp.com` depends on. Also register the from address in the Apple
-Developer portal (Sign in with Apple for Email Communication) so codes reach Apple private relay
-addresses. `EMAIL_LOGIN_DEV_LOG_CODES=1` is for local development only.
+DKIM records that `contact@weifapp.com` depends on. The from address is deliberately not
+registered in the Apple Developer portal (Sign in with Apple for Email Communication), so codes sent
+to Apple private relay addresses are dropped; register it if weif ever emails Apple users. `EMAIL_LOGIN_DEV_LOG_CODES=1` is for local development only.
 
 The app hides "Continue with email" unless the build (or EAS Update environment) sets
 `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`. Set these secrets and confirm one real code arrives
