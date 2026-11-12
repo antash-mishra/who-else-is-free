@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"sync"
@@ -262,5 +263,38 @@ func TestPurgeExpiredEmailLoginCodes(t *testing.T) {
 	deleted, err := env.repo.PurgeExpiredEmailLoginCodes(context.Background(), env.now.Add(emailCodeTTL+25*time.Hour))
 	if err != nil || deleted != 1 {
 		t.Fatalf("expected 1 purged code, got %d (%v)", deleted, err)
+	}
+}
+
+// seedEmailCodes stores codes as if they were sent at `at`, outside the
+// in-memory limiters (as after a deploy restarts the server).
+func (env *emailLoginTestEnv) seedEmailCodes(t *testing.T, email string, count int, at time.Time) {
+	t.Helper()
+	for i := 0; i < count; i++ {
+		if _, err := env.repo.CreateEmailLoginCode(context.Background(), email, fmt.Sprintf("seed-%d", i), at.Add(time.Duration(i)*time.Second)); err != nil {
+			t.Fatalf("seed code: %v", err)
+		}
+	}
+}
+
+func TestEmailLoginStartCapsCodesPerAddressPerDayAcrossRestarts(t *testing.T) {
+	env := setupEmailLoginEnv(t)
+	env.seedEmailCodes(t, "asha@example.com", emailCodesPerAddressPerDay, env.now.Add(-23*time.Hour))
+
+	status, _ := env.start(t, "asha@example.com")
+	if status != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 once the daily per-address cap is reached, got %d", status)
+	}
+	if status, _ := env.start(t, "ravi@example.com"); status != http.StatusOK {
+		t.Fatalf("another address must be unaffected, got %d", status)
+	}
+}
+
+func TestEmailLoginStartDailyCapIgnoresCodesOlderThanADay(t *testing.T) {
+	env := setupEmailLoginEnv(t)
+	env.seedEmailCodes(t, "asha@example.com", emailCodesPerAddressPerDay, env.now.Add(-25*time.Hour))
+
+	if status, _ := env.start(t, "asha@example.com"); status != http.StatusOK {
+		t.Fatalf("codes from over a day ago must not count, got %d", status)
 	}
 }

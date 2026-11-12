@@ -26,9 +26,12 @@ const (
 	emailCodeTTL         = 10 * time.Minute
 	emailCodeMaxAttempts = 5
 	// emailCodeRetention keeps used and expired codes for a day before purge.
-	emailCodeRetention    = 24 * time.Hour
-	defaultEmailDailyCap  = 500
-	emailCodeDigitPattern = `^\d{6}$`
+	emailCodeRetention   = 24 * time.Hour
+	defaultEmailDailyCap = 500
+	// emailCodesPerAddressPerDay is stored in the database, so it survives the
+	// deploys that reset the in-memory limits.
+	emailCodesPerAddressPerDay = 10
+	emailCodeDigitPattern      = `^\d{6}$`
 )
 
 var (
@@ -89,6 +92,18 @@ func (r *EventRepository) CreateEmailLoginCode(ctx context.Context, email, codeH
 		return 0, fmt.Errorf("commit email code: %w", err)
 	}
 	return id, nil
+}
+
+// CountRecentEmailLoginCodes counts codes sent to email since `since`. Codes
+// whose send failed are deleted, so they never count.
+func (r *EventRepository) CountRecentEmailLoginCodes(ctx context.Context, email string, since time.Time) (int, error) {
+	var count int
+	if err := r.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM email_login_codes WHERE email = ? AND created_at > ?;
+	`, email, sqliteTime(since)).Scan(&count); err != nil {
+		return 0, fmt.Errorf("count recent email codes: %w", err)
+	}
+	return count, nil
 }
 
 func (r *EventRepository) DeleteEmailLoginCode(ctx context.Context, id int64) error {
@@ -261,14 +276,25 @@ func (h *AuthHandler) startEmailLogin(c *gin.Context) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+	sentToday, err := h.repo.CountRecentEmailLoginCodes(ctx, email, now.Add(-24*time.Hour))
+	if err != nil {
+		log.Printf("email-login: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "We couldn't send the code. Please try again."})
+		return
+	}
+	if sentToday >= emailCodesPerAddressPerDay {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Too many codes requested. Wait a minute and try again."})
+		return
+	}
+
 	code, err := newEmailLoginCode()
 	if err != nil {
 		log.Printf("email-login: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "We couldn't send the code. Please try again."})
 		return
 	}
-	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
-	defer cancel()
 	codeID, err := h.repo.CreateEmailLoginCode(ctx, email, h.hashEmailLoginCode(email, code), now)
 	if err != nil {
 		log.Printf("email-login: failed to store code: %v", err)
