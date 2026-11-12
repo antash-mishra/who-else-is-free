@@ -4,7 +4,7 @@
 
 import React from 'react';
 
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import SignInButtons from '../SignInButtons';
 
@@ -22,6 +22,8 @@ jest.mock('@context/AuthContext', () => ({
     signInWithGoogle: jest.fn(),
     signInWithApple: jest.fn(),
     signInWithDevUser: jest.fn(),
+    startEmailSignIn: jest.fn(),
+    verifyEmailCode: jest.fn(),
   }),
 }));
 
@@ -46,5 +48,30 @@ describe('SignInButtons dev login presets', () => {
 
     expect(await screen.findByTestId('google-sign-in-button')).toBeTruthy();
     expect(screen.getByTestId('dev-login-button')).toBeTruthy();
+  });
+});
+
+describe('SignInButtons email sign-in', () => {
+  beforeEach(() => {
+    mockDevLoginEnabled = false;
+  });
+
+  it('offers email sign-in next to the provider buttons', async () => {
+    render(<SignInButtons />);
+
+    expect(await screen.findByTestId('email-sign-in-button')).toBeTruthy();
+    expect(screen.getByTestId('google-sign-in-button')).toBeTruthy();
+  });
+
+  it('swaps the provider buttons for the email form', async () => {
+    render(<SignInButtons />);
+
+    fireEvent.press(await screen.findByTestId('email-sign-in-button'));
+
+    expect(screen.getByTestId('email-sign-in-input')).toBeTruthy();
+    expect(screen.queryByTestId('google-sign-in-button')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('email-sign-in-back'));
+    expect(screen.getByTestId('google-sign-in-button')).toBeTruthy();
   });
 });

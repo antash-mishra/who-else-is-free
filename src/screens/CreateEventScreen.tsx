@@ -547,7 +547,7 @@ const CreateEventScreen = () => {
         visible={activeSheet !== null && !(Platform.OS === 'android' && activeSheet === 'dateTime')}
         title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
-        avoidKeyboard={renderedSheet === 'description'}
+        avoidKeyboard={renderedSheet === 'description' || renderedSheet === 'signIn'}
         onOpened={() => setOpenedSheet(renderedSheet)}
         snapHeight={
           renderedSheet === 'location'

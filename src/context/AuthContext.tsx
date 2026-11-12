@@ -347,7 +347,6 @@ export const AuthProvider = ({
   );
 
   const startEmailSignIn = useCallback(async (email: string): Promise<void> => {
-    trackEvent('login_started', { provider: 'email' }).catch(() => undefined);
     await requestEmailCode(email);
   }, []);
 
