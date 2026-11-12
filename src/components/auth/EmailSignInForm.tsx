@@ -229,38 +229,40 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
-      <View style={styles.resendRow}>
-        <Text style={styles.resendHint}>{"Didn't get it?"}</Text>
-        <Pressable
-          testID="email-sign-in-resend"
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !canResend }}
-          disabled={!canResend}
-          hitSlop={8}
-          onPress={() => void sendCode()}
-        >
-          <Text style={[styles.resendAction, !canResend && styles.resendActionDisabled]}>
-            {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}
-          </Text>
-        </Pressable>
-      </View>
-      <View style={styles.buttons}>
-        <AppButton
-          label="Continue"
-          onPress={() => void submitCode(code)}
-          loading={isVerifying}
-          disabled={code.length < CODE_LENGTH || isVerifying}
-          disabledAppearance="dimmed"
-          haptic="submit"
-          testID="email-sign-in-verify"
-        />
-        <AppButton
-          label="Use a different email"
-          variant="secondary"
-          onPress={useDifferentEmail}
-          disabled={isVerifying}
-          testID="email-sign-in-change-email"
-        />
+      <View style={styles.footer}>
+        <View style={styles.buttons}>
+          <AppButton
+            label="Continue"
+            onPress={() => void submitCode(code)}
+            loading={isVerifying}
+            disabled={code.length < CODE_LENGTH || isVerifying}
+            disabledAppearance="dimmed"
+            haptic="submit"
+            testID="email-sign-in-verify"
+          />
+          <AppButton
+            label="Use a different email"
+            variant="secondary"
+            onPress={useDifferentEmail}
+            disabled={isVerifying}
+            testID="email-sign-in-change-email"
+          />
+        </View>
+        <View style={styles.resendRow}>
+          <Text style={styles.resendHint}>{"Didn't get it?"}</Text>
+          <Pressable
+            testID="email-sign-in-resend"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canResend }}
+            disabled={!canResend}
+            hitSlop={8}
+            onPress={() => void sendCode()}
+          >
+            <Text style={[styles.resendAction, !canResend && styles.resendActionDisabled]}>
+              {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );

@@ -7,8 +7,10 @@ const { codeInput } = componentTokens;
 // Mirrors the shared sheet prompts (EventActionOverlay.styles): title + muted
 // description, then the field, then the primary and secondary pill buttons.
 const styles = StyleSheet.create({
+  // Three groups (header, field, actions) with room between them, so the
+  // code step's boxes, error and buttons never read as one stack.
   container: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   header: {
     gap: spacing.xs,
@@ -32,7 +34,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   field: {
-    gap: spacing.sm,
+    gap: spacing.sm + spacing.xs,
   },
   error: {
     fontSize: typography.caption,
@@ -101,6 +103,9 @@ const styles = StyleSheet.create({
   },
   buttons: {
     gap: spacing.sm,
+  },
+  footer: {
+    gap: spacing.md,
   },
 });
 
