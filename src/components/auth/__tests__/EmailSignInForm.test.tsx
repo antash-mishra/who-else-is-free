@@ -44,6 +44,61 @@ describe('EmailSignInForm', () => {
     jest.useRealTimers();
   });
 
+  it('titles each step like the other sheets', async () => {
+    renderForm();
+    expect(screen.getByText('Sign in with email')).toBeTruthy();
+    expect(screen.getByText("We'll send you a 6-digit code. No password needed.")).toBeTruthy();
+
+    await goToCodeStep();
+    expect(screen.getByText('Check your email')).toBeTruthy();
+  });
+
+  it('shows each typed digit in its own box', async () => {
+    renderForm();
+    await goToCodeStep();
+
+    fireEvent.changeText(screen.getByTestId('email-sign-in-code'), '12a3');
+
+    expect(
+      screen.getByTestId('email-sign-in-code-cell-0', { includeHiddenElements: true }),
+    ).toHaveTextContent('1');
+    expect(
+      screen.getByTestId('email-sign-in-code-cell-1', { includeHiddenElements: true }),
+    ).toHaveTextContent('2');
+    expect(
+      screen.getByTestId('email-sign-in-code-cell-2', { includeHiddenElements: true }),
+    ).toHaveTextContent('3');
+    expect(
+      screen.getByTestId('email-sign-in-code-cell-3', { includeHiddenElements: true }),
+    ).toHaveTextContent('');
+    expect(
+      screen.queryByTestId('email-sign-in-code-cell-6', { includeHiddenElements: true }),
+    ).toBeNull();
+  });
+
+  it('enables Continue only with six digits and retries a wrong code', async () => {
+    mockVerifyEmailCode.mockRejectedValueOnce(
+      new ApiError("That code isn't right. Check it and try again.", 401, { code: 'code_invalid' }),
+    );
+    const { onSignedIn } = renderForm();
+    await goToCodeStep();
+
+    expect(screen.getByTestId('email-sign-in-verify').props.accessibilityState?.disabled).toBe(
+      true,
+    );
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('email-sign-in-code'), '000000');
+    });
+    await screen.findByText("That code isn't right. Check it and try again.");
+
+    expect(screen.getByTestId('email-sign-in-code').props.editable).not.toBe(false);
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('email-sign-in-verify'));
+    });
+    await waitFor(() => expect(onSignedIn).toHaveBeenCalledWith(signedInUser));
+    expect(mockVerifyEmailCode).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects an invalid address without calling the server', async () => {
     renderForm();
     fireEvent.changeText(screen.getByTestId('email-sign-in-input'), 'not-an-email');
