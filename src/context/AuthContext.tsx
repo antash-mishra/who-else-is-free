@@ -19,17 +19,19 @@ import type { UserGender } from '@constants/profileOptions';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
 
-type AuthProviderName = 'google' | 'apple';
+import {
+  type AuthProviderName,
+  type AuthUser,
+  type SessionPayload,
+  clearPersistedSession,
+  isTokenExpired,
+  persistSession,
+  readStoredSession,
+  toAuthUser,
+  USER_KEY,
+} from './authSession';
 
-type AuthUser = {
-  id: number;
-  name: string;
-  email: string;
-  gender?: UserGender;
-  age?: number;
-  avatar?: string;
-  profileComplete: boolean;
-};
+export type { AuthProviderName, AuthUser } from './authSession';
 
 type ProfileUpdateData = {
   name: string;
@@ -43,6 +45,31 @@ export type { ApiError } from '@api/errors';
 type AuthFetchOptions = {
   includeAuth?: boolean;
   retryOnUnauthorized?: boolean;
+};
+
+type RefreshSessionOptions = {
+  /** Return the current token without a request while it has not expired. */
+  onlyIfExpired?: boolean;
+};
+
+type RefreshOutcome =
+  | { status: 'refreshed'; token: string }
+  | { status: 'rejected' }
+  | { status: 'unavailable' };
+
+/** Session details that never render, kept beside the token for refresh. */
+type SessionMeta = {
+  provider: AuthProviderName | null;
+  refreshToken: string | null;
+  tokenExpiresAt: string | null;
+  appleUserId: string | null;
+};
+
+const EMPTY_SESSION_META: SessionMeta = {
+  provider: null,
+  refreshToken: null,
+  tokenExpiresAt: null,
+  appleUserId: null,
 };
 
 interface AuthContextValue {
@@ -59,7 +86,7 @@ interface AuthContextValue {
     options?: { profileComplete?: boolean },
   ) => Promise<AuthUser>;
   signOut: () => void;
-  refreshSessionSilently: () => Promise<string | null>;
+  refreshSessionSilently: (options?: RefreshSessionOptions) => Promise<string | null>;
   updateProfile: (data: ProfileUpdateData) => Promise<AuthUser>;
   deleteAccount: () => Promise<void>;
   handleSessionExpired: () => void;
@@ -71,10 +98,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const TOKEN_KEY = 'whoelseisfree.authToken';
-const USER_KEY = 'whoelseisfree.authUser';
-const AUTH_PROVIDER_KEY = 'whoelseisfree.authProvider';
 
 export const AuthProvider = ({
   children,
@@ -90,7 +113,9 @@ export const AuthProvider = ({
   const [token, setToken] = useState<string | null>(null);
   const [authProvider, setAuthProvider] = useState<AuthProviderName | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
+  const refreshInFlightRef = useRef<Promise<RefreshOutcome> | null>(null);
+  const tokenRef = useRef<string | null>(null);
+  const sessionMetaRef = useRef<SessionMeta>(EMPTY_SESSION_META);
 
   useEffect(() => {
     const configureGoogleSignIn = async () => {
@@ -113,33 +138,20 @@ export const AuthProvider = ({
     let isActive = true;
     const restoreSession = async () => {
       try {
-        const [storedToken, storedUser, storedProvider] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
-          SecureStore.getItemAsync(USER_KEY),
-          SecureStore.getItemAsync(AUTH_PROVIDER_KEY),
-        ]);
-
-        if (!isActive) {
+        const stored = await readStoredSession();
+        if (!isActive || !stored) {
           return;
         }
-
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          if (storedProvider === 'google' || storedProvider === 'apple') {
-            setAuthProvider(storedProvider);
-          } else {
-            // Backward compatibility for existing Google-only sessions.
-            setAuthProvider('google');
-          }
-
-          try {
-            const parsedUser = JSON.parse(storedUser) as AuthUser;
-            setUser(parsedUser);
-          } catch (err) {
-            logger.warn('Failed to parse stored user profile', err);
-            setUser(null);
-          }
-        }
+        tokenRef.current = stored.token;
+        sessionMetaRef.current = {
+          provider: stored.provider,
+          refreshToken: stored.refreshToken,
+          tokenExpiresAt: stored.tokenExpiresAt,
+          appleUserId: stored.appleUserId ?? null,
+        };
+        setToken(stored.token);
+        setAuthProvider(stored.provider);
+        setUser(stored.user);
       } catch (err) {
         logger.warn('Failed to restore auth session', err);
       }
@@ -152,12 +164,43 @@ export const AuthProvider = ({
     };
   }, []);
 
+  /** Applies a session from any sign-in or refresh response and persists it. */
+  const applySession = useCallback(
+    async (
+      payload: SessionPayload,
+      provider: AuthProviderName,
+      appleUserId: string | null = sessionMetaRef.current.appleUserId,
+    ): Promise<AuthUser> => {
+      const authUser = toAuthUser(payload.user);
+      // A response without a refresh key (an older server) keeps none: the
+      // previous key may already be rotated away.
+      const refreshToken = payload.refresh_token ?? null;
+      const tokenExpiresAt = payload.expires_at ?? null;
+      tokenRef.current = payload.token;
+      sessionMetaRef.current = { provider, refreshToken, tokenExpiresAt, appleUserId };
+      setUser(authUser);
+      setToken(payload.token);
+      setAuthProvider(provider);
+      await persistSession({
+        token: payload.token,
+        user: authUser,
+        provider,
+        refreshToken,
+        tokenExpiresAt,
+        appleUserId,
+      });
+      return authUser;
+    },
+    [],
+  );
+
   const signInWithProvider = useCallback(
     async (
       provider: AuthProviderName,
       endpoint: 'google-login' | 'apple-login',
       idToken: string,
       unauthorizedMessage: string,
+      appleUserId: string | null = null,
     ) => {
       setIsSigningIn(true);
       try {
@@ -177,39 +220,8 @@ export const AuthProvider = ({
           throw new Error(message);
         }
 
-        const payload = (await response.json()) as {
-          user: {
-            id: number;
-            name: string;
-            email: string;
-            gender?: UserGender;
-            age?: number;
-            avatar?: string;
-            profile_complete: boolean;
-          };
-          token: string;
-          is_new_user?: boolean;
-        };
-
-        const authUser: AuthUser = {
-          id: payload.user.id,
-          name: payload.user.name,
-          email: payload.user.email,
-          gender: payload.user.gender,
-          age: payload.user.age,
-          avatar: payload.user.avatar,
-          profileComplete: payload.user.profile_complete,
-        };
-
-        setUser(authUser);
-        setToken(payload.token);
-        setAuthProvider(provider);
-
-        await Promise.all([
-          SecureStore.setItemAsync(TOKEN_KEY, payload.token),
-          SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser)),
-          SecureStore.setItemAsync(AUTH_PROVIDER_KEY, provider),
-        ]);
+        const payload = (await response.json()) as SessionPayload;
+        const authUser = await applySession(payload, provider, appleUserId);
 
         trackEvent(payload.is_new_user ? 'signup_succeeded' : 'login_succeeded', {
           provider,
@@ -229,7 +241,7 @@ export const AuthProvider = ({
         setIsSigningIn(false);
       }
     },
-    [],
+    [applySession],
   );
 
   const signInWithGoogle = useCallback(
@@ -265,41 +277,15 @@ export const AuthProvider = ({
           body: JSON.stringify({ email, name, profile_complete: profileComplete }),
         });
         if (response.status === 404) {
-          throw new Error('Dev login is not enabled on the server. Start the backend with DEV_LOGIN_ENABLED=1.');
+          throw new Error(
+            'Dev login is not enabled on the server. Start the backend with DEV_LOGIN_ENABLED=1.',
+          );
         }
         if (!response.ok) {
           throw new Error(`Unable to dev-login. Server responded with status ${response.status}.`);
         }
-        const payload = (await response.json()) as {
-          user: {
-            id: number;
-            name: string;
-            email: string;
-            gender?: UserGender;
-            age?: number;
-            avatar?: string;
-            profile_complete: boolean;
-          };
-          token: string;
-          is_new_user?: boolean;
-        };
-        const authUser: AuthUser = {
-          id: payload.user.id,
-          name: payload.user.name,
-          email: payload.user.email,
-          gender: payload.user.gender,
-          age: payload.user.age,
-          avatar: payload.user.avatar,
-          profileComplete: payload.user.profile_complete,
-        };
-        setUser(authUser);
-        setToken(payload.token);
-        setAuthProvider('google');
-        await Promise.all([
-          SecureStore.setItemAsync(TOKEN_KEY, payload.token),
-          SecureStore.setItemAsync(USER_KEY, JSON.stringify(authUser)),
-          SecureStore.setItemAsync(AUTH_PROVIDER_KEY, 'google'),
-        ]);
+        const payload = (await response.json()) as SessionPayload;
+        const authUser = await applySession(payload, 'google', null);
         trackEvent('login_succeeded', { provider: 'dev' }).catch(() => undefined);
         return authUser;
       } catch (error) {
@@ -314,56 +300,125 @@ export const AuthProvider = ({
         setIsSigningIn(false);
       }
     },
-    [],
+    [applySession],
   );
 
-  const refreshSessionSilently = useCallback(async (): Promise<string | null> => {
-    if (authProvider !== 'google') {
-      return null;
-    }
+  /** Trades the stored refresh key for a new session. */
+  const exchangeRefreshToken = useCallback(
+    async (refreshToken: string): Promise<RefreshOutcome> => {
+      let response: Response;
+      try {
+        response = await fetch(`${API_BASE_URL}/api/session/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+      } catch (err) {
+        logger.warn('Session refresh unavailable', err);
+        return { status: 'unavailable' };
+      }
+      if (response.status === 401) {
+        sessionMetaRef.current = { ...sessionMetaRef.current, refreshToken: null };
+        return { status: 'rejected' };
+      }
+      if (!response.ok) {
+        return { status: 'unavailable' };
+      }
+      try {
+        const payload = (await response.json()) as SessionPayload;
+        await applySession(payload, sessionMetaRef.current.provider ?? 'google');
+        return { status: 'refreshed', token: payload.token };
+      } catch (err) {
+        logger.warn('Failed to apply refreshed session', err);
+        return { status: 'unavailable' };
+      }
+    },
+    [applySession],
+  );
 
+  const refreshWithGoogle = useCallback(async (): Promise<RefreshOutcome> => {
+    try {
+      const result = await GoogleSignin.signInSilently();
+      const idToken = (result as any)?.idToken ?? result?.data?.idToken;
+      if (!idToken) {
+        return { status: 'rejected' };
+      }
+      await signInWithGoogle(idToken);
+      return tokenRef.current
+        ? { status: 'refreshed', token: tokenRef.current }
+        : { status: 'rejected' };
+    } catch (err) {
+      return { status: 'rejected' };
+    }
+  }, [signInWithGoogle]);
+
+  /**
+   * Renews the session: the refresh key first (every provider), then Google
+   * silent sign-in for Google sessions without a working key. A network
+   * failure is 'unavailable' and never signs the person out.
+   */
+  const refreshSession = useCallback((): Promise<RefreshOutcome> => {
     if (refreshInFlightRef.current) {
       return refreshInFlightRef.current;
     }
-
-    const refreshPromise = (async (): Promise<string | null> => {
-      try {
-        const result = await GoogleSignin.signInSilently();
-        const idToken = (result as any)?.idToken ?? result?.data?.idToken;
-        if (!idToken) {
-          return null;
+    const refreshPromise = (async (): Promise<RefreshOutcome> => {
+      const { refreshToken, provider } = sessionMetaRef.current;
+      if (refreshToken) {
+        const outcome = await exchangeRefreshToken(refreshToken);
+        if (outcome.status !== 'rejected') {
+          return outcome;
         }
-        await signInWithGoogle(idToken);
-        const refreshedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-        return refreshedToken;
-      } catch (err) {
-        return null;
       }
+      if (provider === 'google') {
+        return refreshWithGoogle();
+      }
+      return { status: 'rejected' };
     })();
 
     refreshInFlightRef.current = refreshPromise;
-    try {
-      return await refreshPromise;
-    } finally {
+    refreshPromise.finally(() => {
       if (refreshInFlightRef.current === refreshPromise) {
         refreshInFlightRef.current = null;
       }
-    }
-  }, [authProvider, signInWithGoogle]);
+    });
+    return refreshPromise;
+  }, [exchangeRefreshToken, refreshWithGoogle]);
+
+  const refreshSessionSilently = useCallback(
+    async (options: RefreshSessionOptions = {}): Promise<string | null> => {
+      if (
+        options.onlyIfExpired &&
+        tokenRef.current &&
+        !isTokenExpired(sessionMetaRef.current.tokenExpiresAt)
+      ) {
+        return tokenRef.current;
+      }
+      const outcome = await refreshSession();
+      return outcome.status === 'refreshed' ? outcome.token : null;
+    },
+    [refreshSession],
+  );
 
   const clearStoredSession = useCallback(async () => {
+    tokenRef.current = null;
+    sessionMetaRef.current = EMPTY_SESSION_META;
     setUser(null);
     setToken(null);
     setAuthProvider(null);
 
-    await Promise.all([
-      SecureStore.deleteItemAsync(TOKEN_KEY),
-      SecureStore.deleteItemAsync(USER_KEY),
-      SecureStore.deleteItemAsync(AUTH_PROVIDER_KEY),
-    ]);
+    await clearPersistedSession();
   }, []);
 
   const signOut = useCallback(() => {
+    const { refreshToken } = sessionMetaRef.current;
+    if (refreshToken) {
+      // Best effort: signing out must also work offline.
+      fetch(`${API_BASE_URL}/api/session/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch((err) => logger.warn('Failed to revoke refresh key on sign out', err));
+    }
     void clearStoredSession();
   }, [clearStoredSession]);
 
@@ -397,9 +452,13 @@ export const AuthProvider = ({
 
       let response = await fetch(input, buildInit());
       if (response.status === 401 && includeAuth && retryOnUnauthorized && hasAuthToken) {
-        const refreshedToken = await refreshSessionSilently();
-        if (refreshedToken) {
-          response = await fetch(input, buildInit(refreshedToken));
+        const outcome = await refreshSession();
+        if (outcome.status === 'unavailable') {
+          // Keep the session: the refresh can be retried once the network is back.
+          return response;
+        }
+        if (outcome.status === 'refreshed') {
+          response = await fetch(input, buildInit(outcome.token));
         }
       }
 
@@ -409,7 +468,7 @@ export const AuthProvider = ({
 
       return response;
     },
-    [handleSessionExpired, refreshSessionSilently, token],
+    [handleSessionExpired, refreshSession, token],
   );
 
   const updateProfile = useCallback(
