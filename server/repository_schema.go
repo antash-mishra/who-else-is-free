@@ -885,6 +885,9 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	if _, err := r.db.ExecContext(ctx, createTableAdminUsers); err != nil {
 		return fmt.Errorf("create admin_users table: %w", err)
 	}
+	if err := r.ensureRefreshTokensTable(ctx); err != nil {
+		return err
+	}
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)
 	}
