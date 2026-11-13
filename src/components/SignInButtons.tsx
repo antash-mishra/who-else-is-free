@@ -20,7 +20,7 @@ import { useEmailSignInFlow, type EmailSignInFlow } from '@hooks/useEmailSignInF
 import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
-import { colors } from '@theme/index';
+import { colors, spacing } from '@theme/index';
 
 type SignInProvider = 'google' | 'apple';
 
@@ -320,7 +320,7 @@ const SignInButtons = ({ onSignInSuccess, onClose, flow: ownerFlow }: SignInButt
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: spacing.sm,
   },
   button: {
     paddingHorizontal: 16,
