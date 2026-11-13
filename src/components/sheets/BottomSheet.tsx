@@ -162,6 +162,11 @@ const BottomSheet = ({
   const [morph, setMorph] = useState<SheetMorph | null>(null);
   const shownBodyRef = useRef<SheetBody | null>(null);
   const morphHeight = useSharedValue(0);
+  // Reanimated keeps the last animated height on the view after the animated style is
+  // detached, which froze the body at the glide's final height: content that grew
+  // later (an error line) spilled down behind the keyboard instead of raising the
+  // sheet. The glide ends by switching that height to 'auto' before detaching.
+  const morphHeightReleased = useSharedValue(false);
   // Latest size of the current content and the running morph, for the glide.
   const incomingMeasureRef = useRef<{ key: string | undefined; height: number } | null>(null);
   const activeMorphIdRef = useRef<number | null>(null);
@@ -511,11 +516,12 @@ const BottomSheet = ({
       setMorph((current) => {
         if (current?.id !== id || current.toHeight !== undefined) return current;
         // The animated height attaches with the next render; start it at the pin.
+        morphHeightReleased.value = false;
         morphHeight.value = current.fromHeight;
         return { ...current, toHeight };
       });
     },
-    [morphHeight],
+    [morphHeight, morphHeightReleased],
   );
 
   const morphId = morph?.id;
@@ -528,7 +534,10 @@ const BottomSheet = ({
     const measured = incomingMeasureRef.current;
     if (measured && measured.key === contentKey) startGlide(morphId, measured.height);
     // Safety net only; the height glide normally ends the morph.
-    const timer = setTimeout(() => endMorph(morphId, measured?.height), sheetMorph.totalMs);
+    const timer = setTimeout(() => {
+      morphHeightReleased.value = true;
+      endMorph(morphId, measured?.height);
+    }, sheetMorph.totalMs);
     return () => clearTimeout(timer);
     // contentKey is read for the measurement match only; a new key means a new morph.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -543,12 +552,17 @@ const BottomSheet = ({
       (finished) => {
         'worklet';
 
-        if (finished) runOnJS(endMorph)(id, morphTarget);
+        if (!finished) return;
+        // Same height as the glide's end, so nothing moves; layout owns it from here.
+        morphHeightReleased.value = true;
+        runOnJS(endMorph)(id, morphTarget);
       },
     );
-  }, [endMorph, morphHeight, morphId, morphTarget]);
+  }, [endMorph, morphHeight, morphId, morphTarget, morphHeightReleased]);
 
-  const morphHeightStyle = useAnimatedStyle(() => ({ height: morphHeight.value }));
+  const morphHeightStyle = useAnimatedStyle(() => ({
+    height: morphHeightReleased.value ? 'auto' : morphHeight.value,
+  }));
 
   if (!isMounted && !retainInline) {
     return null;
@@ -618,6 +632,10 @@ const BottomSheet = ({
           testID={contentTestID}
         >
           <Animated.View
+            // A fresh native body per content swap. Its content remounts on a swap anyway
+            // (keyed by contentKey), and the new view carries no height left over by the
+            // previous glide that could override this swap's pin for its first frame.
+            key={`body-${morphSeq}`}
             style={[
               snapHeight ? styles.contentFill : styles.body,
               // While morphing: the plain pinned height holds from the first frame; the
