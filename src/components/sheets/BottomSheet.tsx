@@ -28,7 +28,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, componentTokens, layout, radii, sheetMorph, shadows, spacing } from '@theme/index';
+import {
+  colors,
+  componentTokens,
+  layout,
+  radii,
+  sheetKeyboardLiftDurationScale,
+  sheetMorph,
+  shadows,
+  spacing,
+} from '@theme/index';
 import { Springs } from '@theme/springs';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
 
@@ -319,8 +328,13 @@ const BottomSheet = ({
         keyboardHeight: event.endCoordinates.height ?? 0,
         safeAreaBottom: safeBottom,
       });
+      const keyboardDuration = event.duration ?? 220;
       keyboardOffset.value = withTiming(translation, {
-        duration: event.duration ?? 220,
+        // iOS rises a little ahead of the keyboard; Android keeps its timing.
+        duration:
+          Platform.OS === 'ios'
+            ? keyboardDuration * sheetKeyboardLiftDurationScale
+            : keyboardDuration,
         easing: Easing.out(Easing.cubic),
       });
     };
