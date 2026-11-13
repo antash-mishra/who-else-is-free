@@ -16,24 +16,33 @@ import { AppButton } from '@components/ui';
 import { APPLE_SIGNIN_DEV_ALL_PLATFORMS, EMAIL_SIGN_IN_ENABLED } from '@constants/featureFlags';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 import { useAuth } from '@context/AuthContext';
+import { useEmailSignInFlow, type EmailSignInFlow } from '@hooks/useEmailSignInFlow';
 import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
-import { colors } from '@theme/index';
+import { colors, spacing } from '@theme/index';
 
 type SignInProvider = 'google' | 'apple';
 
 type SignInButtonsProps = {
   onSignInSuccess?: (profileComplete: boolean) => void;
+  /** Closes the surrounding sheet; the email step's close button uses it. */
+  onClose?: () => void;
+  /**
+   * Email sign-in state, owned by the sheet's owner (`SignInSheet`) so the sheet can
+   * morph between steps. Without it the buttons keep their own and swap instantly.
+   */
+  flow?: EmailSignInFlow;
 };
 
-const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
+const SignInButtons = ({ onSignInSuccess, onClose, flow: ownerFlow }: SignInButtonsProps = {}) => {
+  const ownFlow = useEmailSignInFlow();
+  const flow = ownerFlow ?? ownFlow;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { signInWithGoogle, signInWithApple, isSigningIn } = useAuth();
   const [isNativeAvailable, setIsNativeAvailable] = useState<boolean | null>(null);
   const [isAppleAvailable, setIsAppleAvailable] = useState<boolean>(false);
   const [activeSignInProvider, setActiveSignInProvider] = useState<SignInProvider | null>(null);
-  const [isEmailFormVisible, setIsEmailFormVisible] = useState(false);
   const shouldShowAppleButton = Platform.OS === 'ios' || APPLE_SIGNIN_DEV_ALL_PLATFORMS;
   const isAuthBusy = isSigningIn || activeSignInProvider !== null;
   const isGoogleSigningIn = activeSignInProvider === 'google';
@@ -239,10 +248,11 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
     }
   }, [handlePostSignInNavigation, isAppleAvailable, isAuthBusy, signInWithApple]);
 
-  if (isEmailFormVisible) {
+  if (flow.view !== 'providers') {
     return (
       <EmailSignInForm
-        onBack={() => setIsEmailFormVisible(false)}
+        flow={flow}
+        onClose={onClose}
         onSignedIn={(user) => handlePostSignInNavigation(user.profileComplete)}
       />
     );
@@ -288,7 +298,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
           icon={<MailIcon width={20} height={20} color={colors.buttonText} />}
           onPress={() => {
             trackEvent('login_started', { provider: 'email' }).catch(() => undefined);
-            setIsEmailFormVisible(true);
+            flow.showEmail();
           }}
           disabled={isAuthBusy}
           testID="email-sign-in-button"
@@ -310,7 +320,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: spacing.sm,
   },
   button: {
     paddingHorizontal: 16,

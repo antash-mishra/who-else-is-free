@@ -20,6 +20,7 @@ import { genderDisplayLabels, getAgeLabel, groupDisplayLabels } from '@constants
 import { useAuth } from '@context/AuthContext';
 import { useCovers } from '@context/CoversContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
+import { useEmailSignInFlow } from '@hooks/useEmailSignInFlow';
 import { usePickEventCover } from '@hooks/usePickEventCover';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
 import { useViewerLocation } from '@hooks/useViewerLocation';
@@ -174,6 +175,13 @@ const CreateEventScreen = () => {
     closeSheetImmediately,
   } = useCreateEventSheets();
   const [openedSheet, setOpenedSheet] = useState<CreateEventSheet | null>(null);
+  // Email sign-in state lives here, not in the sheet content, so the sign-in sheet can
+  // morph between its steps; it resets once that sheet has finished closing.
+  const signInFlow = useEmailSignInFlow();
+  const resetSignInFlow = signInFlow.reset;
+  useEffect(() => {
+    if (renderedSheet !== 'signIn') resetSignInFlow();
+  }, [renderedSheet, resetSignInFlow]);
   const isSheetReady = activeSheet !== null && activeSheet === openedSheet;
   const openSheet = useCallback(
     (sheet: CreateEventSheet) => {
@@ -548,6 +556,7 @@ const CreateEventScreen = () => {
         title={getCreateEventSheetTitle(renderedSheet)}
         onClose={closeActiveSheet}
         avoidKeyboard={renderedSheet === 'description' || renderedSheet === 'signIn'}
+        contentKey={renderedSheet === 'signIn' ? signInFlow.view : undefined}
         onOpened={() => setOpenedSheet(renderedSheet)}
         snapHeight={
           renderedSheet === 'location'
@@ -591,6 +600,7 @@ const CreateEventScreen = () => {
           description={form.description}
           onDescriptionDone={handleDescriptionDone}
           onClose={closeActiveSheet}
+          signInFlow={signInFlow}
         />
       </CreateEventBottomSheet>
     </View>

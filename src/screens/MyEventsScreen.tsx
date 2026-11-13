@@ -14,7 +14,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AnimatedPager from '@components/AnimatedPager';
-import BottomSheetModal from '@components/BottomSheetModal';
 import ConfettiOverlay from '@components/ConfettiOverlay';
 import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
@@ -23,7 +22,7 @@ import { EventListLoadState, EventListPage, buildEventSections } from '@componen
 import FullPageEmptyState, { emptyStateCenteredTop } from '@components/FullPageEmptyState';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl, { SegmentedOption } from '@components/SegmentedControl';
-import SignInButtons from '@components/SignInButtons';
+import SignInSheet from '@components/auth/SignInSheet';
 import { useAuth } from '@context/AuthContext';
 import { useChat } from '@context/ChatContext';
 import { useEvents } from '@context/EventsContext';
@@ -189,9 +188,7 @@ const MyEventsScreen = () => {
             imageHeight={MY_EVENTS_EMPTY_IMAGE_HEIGHT}
           />
         </FullPageEmptyState>
-        <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
-          <SignInButtons />
-        </BottomSheetModal>
+        <SignInSheet visible={signInVisible} onClose={() => setSignInVisible(false)} />
       </View>
     );
   }

@@ -24,7 +24,7 @@ import ScalePressable from '@components/ScalePressable';
 import EventActionBadge from '@components/EventActionBadge';
 import ScreenContainer from '@components/ScreenContainer';
 import ChevronRightIcon from '@assets/ui/chevron-right.svg';
-import SignInButtons from '@components/SignInButtons';
+import SignInSheet from '@components/auth/SignInSheet';
 import { UnreadDot, IconButton } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
@@ -34,7 +34,6 @@ import { useNotifications } from '@context/NotificationsContext';
 import { logger } from '@services/logger';
 import { colors, componentTokens, spacing, typography } from '@theme/index';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
-import BottomSheetModal from '@components/BottomSheetModal';
 import EventActionOverlay from '@components/EventActionOverlay';
 import PrivacyPolicyIcon from '@assets/account-icons/privacy.svg';
 import { HapticFeedback, triggerHaptic } from '@services/haptics';
@@ -246,9 +245,7 @@ const ProfileScreen = () => {
             />
           </View>
         </ScrollView>
-        <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
-          <SignInButtons />
-        </BottomSheetModal>
+        <SignInSheet visible={signInVisible} onClose={() => setSignInVisible(false)} />
       </ScreenContainer>
     );
   }
