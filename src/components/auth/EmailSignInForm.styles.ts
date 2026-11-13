@@ -4,34 +4,28 @@ import { colors, componentTokens, spacing, typography } from '@theme/index';
 
 const { codeInput } = componentTokens;
 
-// Mirrors the shared sheet prompts (EventActionOverlay.styles): title + muted
-// description, then the field, then the primary and secondary pill buttons.
+// Both steps use the shared sheet header (title, muted description, close
+// button), then the field, then one primary pill button.
 const styles = StyleSheet.create({
   // Three groups (header, field, actions) with room between them, so the
   // code step's boxes, error and buttons never read as one stack.
   container: {
     gap: spacing.lg,
   },
-  header: {
-    gap: spacing.xs,
+  // The shared sheet header row: title and description in one column, the close
+  // button pinned to the top right so the description wraps before it.
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  title: {
-    fontSize: typography.subtitle,
-    fontFamily: typography.fontFamilySemiBold,
-    color: colors.text,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
-  },
+  // Both steps' descriptions sit under the sheet header, one size below body.
   description: {
-    fontSize: typography.body,
+    fontSize: typography.body - 1,
     fontFamily: typography.fontFamilyRegular,
     color: colors.mutedText,
     lineHeight: typography.bodyLineHeight,
     letterSpacing: typography.letterSpacing,
-  },
-  emphasis: {
-    fontFamily: typography.fontFamilyMedium,
-    color: colors.text,
   },
   field: {
     gap: spacing.sm + spacing.xs,
@@ -100,9 +94,6 @@ const styles = StyleSheet.create({
   },
   resendActionDisabled: {
     color: colors.mutedText,
-  },
-  buttons: {
-    gap: spacing.sm,
   },
   footer: {
     gap: spacing.md,

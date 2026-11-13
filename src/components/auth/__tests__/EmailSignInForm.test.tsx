@@ -3,6 +3,8 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { ApiError } from '@api/errors';
+import { OutgoingSheetLayerContext } from '@components/sheets/SheetLayerContext';
+import { useEmailSignInFlow } from '@hooks/useEmailSignInFlow';
 
 import EmailSignInForm from '../EmailSignInForm';
 
@@ -19,11 +21,16 @@ jest.mock('@context/AuthContext', () => ({
 
 const signedInUser = { id: 9, name: 'asha', email: 'asha@example.com', profileComplete: false };
 
-const renderForm = () => {
-  const onBack = jest.fn();
+// The flow normally lives with the sheet's owner; this stands in for it.
+const FormHarness = ({ onClose, onSignedIn }: { onClose?: () => void; onSignedIn: jest.Mock }) => {
+  const flow = useEmailSignInFlow();
+  return <EmailSignInForm flow={flow} onClose={onClose} onSignedIn={onSignedIn} />;
+};
+
+const renderForm = (onClose?: () => void) => {
   const onSignedIn = jest.fn();
-  render(<EmailSignInForm onBack={onBack} onSignedIn={onSignedIn} />);
-  return { onBack, onSignedIn };
+  render(<FormHarness onClose={onClose} onSignedIn={onSignedIn} />);
+  return { onSignedIn };
 };
 
 const goToCodeStep = async () => {
@@ -46,11 +53,11 @@ describe('EmailSignInForm', () => {
 
   it('titles each step like the other sheets', async () => {
     renderForm();
-    expect(screen.getByText('Sign in with email')).toBeTruthy();
-    expect(screen.getByText("We'll send you a 6-digit code. No password needed.")).toBeTruthy();
+    expect(screen.getByText('Continue with email')).toBeTruthy();
+    expect(screen.getByText("We'll email you a 6-digit code.")).toBeTruthy();
 
     await goToCodeStep();
-    expect(screen.getByText('Check your email')).toBeTruthy();
+    expect(screen.getByText('Verify your email')).toBeTruthy();
   });
 
   it('shows each typed digit in its own box', async () => {
@@ -198,32 +205,50 @@ describe('EmailSignInForm', () => {
     expect(mockStartEmailSignIn).toHaveBeenCalledTimes(2);
   });
 
-  it('keeps the resend countdown when switching email and back to the same address', async () => {
-    jest.useFakeTimers();
+  it('has no button to switch to a different email on the code step', async () => {
     renderForm();
     await goToCodeStep();
-    fireEvent.press(screen.getByTestId('email-sign-in-change-email'));
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('email-sign-in-send'));
-    });
-
-    expect(mockStartEmailSignIn).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('email-sign-in-code')).toBeTruthy();
+    expect(screen.queryByTestId('email-sign-in-change-email')).toBeNull();
   });
 
-  it('returns to the email step keeping the address', async () => {
+  it('closes the sheet from the code step close button', async () => {
+    const onClose = jest.fn();
+    renderForm(onClose);
+    await goToCodeStep();
+    fireEvent.press(screen.getByTestId('email-sign-in-close'));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('focuses its field on mount', () => {
+    renderForm();
+    expect(screen.getByTestId('email-sign-in-input').props.autoFocus).toBe(true);
+  });
+
+  it('does not take focus as the copy fading out of a sheet morph', () => {
+    render(
+      <OutgoingSheetLayerContext.Provider value>
+        <FormHarness onSignedIn={jest.fn()} />
+      </OutgoingSheetLayerContext.Provider>,
+    );
+    expect(screen.getByTestId('email-sign-in-input').props.autoFocus).toBe(false);
+  });
+
+  it('has no Back button on the email step', () => {
+    renderForm();
+    expect(screen.queryByTestId('email-sign-in-back')).toBeNull();
+  });
+
+  it('resets the flow from the close button when no onClose is given', async () => {
     renderForm();
     await goToCodeStep();
-
-    fireEvent.press(screen.getByTestId('email-sign-in-change-email'));
-
-    expect(screen.getByTestId('email-sign-in-input').props.value).toBe(' asha@example.com ');
+    fireEvent.press(screen.getByTestId('email-sign-in-close'));
+    expect(screen.getByTestId('email-sign-in-input').props.value).toBe('');
   });
 
-  it('calls onBack from the email step', () => {
-    const { onBack } = renderForm();
-    fireEvent.press(screen.getByTestId('email-sign-in-back'));
-    expect(onBack).toHaveBeenCalled();
+  it('closes the sheet from the close button when onClose is given', () => {
+    const onClose = jest.fn();
+    renderForm(onClose);
+    fireEvent.press(screen.getByTestId('email-sign-in-close'));
+    expect(onClose).toHaveBeenCalled();
   });
 });

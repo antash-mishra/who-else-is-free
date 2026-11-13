@@ -1,193 +1,90 @@
-/* global setInterval, clearInterval */
-
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 
-import { ApiError } from '@api/errors';
+import { SheetHeader, useIsOutgoingSheetLayer } from '@components/sheets';
 import { AppButton, TextField } from '@components/ui';
-import { useAuth, type AuthUser } from '@context/AuthContext';
-import { triggerHaptic } from '@services/haptics';
+import type { AuthUser } from '@context/AuthContext';
+import { EMAIL_CODE_LENGTH, type EmailSignInFlow } from '@hooks/useEmailSignInFlow';
 
 import styles from './EmailSignInForm.styles';
 
 type EmailSignInFormProps = {
-  onBack: () => void;
+  /** Owned by whoever owns the sheet, so its state survives the sheet's step morph. */
+  flow: EmailSignInFlow;
+  /** Closes the surrounding sheet from the header's close button; falls back to `flow.reset`. */
+  onClose?: () => void;
   onSignedIn: (user: AuthUser) => void;
 };
 
-type Step = 'email' | 'code';
-
-const CODE_LENGTH = 6;
-const CODE_CELLS = Array.from({ length: CODE_LENGTH }, (_, index) => index);
-// Matches the server's one-code-per-minute limit for an address.
-const RESEND_COOLDOWN_SECONDS = 60;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const INVALID_EMAIL_MESSAGE = 'Enter a valid email address.';
-const SEND_FAILED_MESSAGE = "We couldn't send the code. Please try again.";
-const SIGN_IN_FAILED_MESSAGE = 'Unable to sign in. Please try again.';
-
-const errorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error && error.message ? error.message : fallback;
+const CODE_CELLS = Array.from({ length: EMAIL_CODE_LENGTH }, (_, index) => index);
 
 /** Email address then emailed 6-digit code, shown in place of the provider buttons. */
-const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
-  const { startEmailSignIn, verifyEmailCode } = useAuth();
-  const [step, setStep] = useState<Step>('email');
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isSending, setIsSending] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+const EmailSignInForm = ({ flow, onClose, onSignedIn }: EmailSignInFormProps) => {
   const [isCodeFocused, setIsCodeFocused] = useState(false);
-  const [resendSeconds, setResendSeconds] = useState(0);
-  const verifyingRef = useRef(false);
-  const [sentTo, setSentTo] = useState('');
+  // The copy of the previous step fading out during a sheet morph must not take
+  // focus, or it would pull the keyboard back from the step fading in.
+  const autoFocus = !useIsOutgoingSheetLayer();
+  const { code, error, isSending, isVerifying, resendSeconds } = flow;
+  const close = onClose ?? flow.reset;
 
-  const isCountingDown = resendSeconds > 0;
-  useEffect(() => {
-    if (!isCountingDown) {
-      return undefined;
-    }
-    const timer = setInterval(() => {
-      setResendSeconds((seconds) => Math.max(seconds - 1, 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isCountingDown]);
-
-  const sendCode = useCallback(async () => {
-    const address = email.trim();
-    if (!EMAIL_PATTERN.test(address)) {
-      setError(INVALID_EMAIL_MESSAGE);
-      return;
-    }
-    setError(null);
-    if (address === sentTo && resendSeconds > 0) {
-      // The code already sent to this address is still the newest one.
-      setStep('code');
-      return;
-    }
-    setIsSending(true);
-    try {
-      await startEmailSignIn(address);
-      setSentTo(address);
-      setCode('');
-      setStep('code');
-      setResendSeconds(RESEND_COOLDOWN_SECONDS);
-    } catch (err) {
-      setError(errorMessage(err, SEND_FAILED_MESSAGE));
-    } finally {
-      setIsSending(false);
-    }
-  }, [email, resendSeconds, sentTo, startEmailSignIn]);
-
-  const submitCode = useCallback(
-    async (value: string) => {
-      if (verifyingRef.current) {
-        return;
-      }
-      verifyingRef.current = true;
-      setIsVerifying(true);
-      setError(null);
-      try {
-        const user = await verifyEmailCode(sentTo, value);
-        onSignedIn(user);
-      } catch (err) {
-        if (err instanceof ApiError && err.code === 'code_expired') {
-          setCode('');
-        }
-        triggerHaptic('error');
-        setError(errorMessage(err, SIGN_IN_FAILED_MESSAGE));
-      } finally {
-        verifyingRef.current = false;
-        setIsVerifying(false);
-      }
-    },
-    [onSignedIn, sentTo, verifyEmailCode],
-  );
-
-  const onChangeCode = useCallback(
-    (text: string) => {
-      const digits = text.replace(/\D/g, '').slice(0, CODE_LENGTH);
-      setCode(digits);
-      setError(null);
-      if (digits.length === CODE_LENGTH) {
-        void submitCode(digits);
-      }
-    },
-    [submitCode],
-  );
-
-  const useDifferentEmail = useCallback(() => {
-    setError(null);
-    setCode('');
-    setStep('email');
-  }, []);
-
-  if (step === 'email') {
+  if (flow.view !== 'code') {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title} accessibilityRole="header">
-            Sign in with email
-          </Text>
-          <Text style={styles.description}>
-            {"We'll send you a 6-digit code. No password needed."}
-          </Text>
+        <View style={styles.sheetHeader}>
+          <SheetHeader
+            title="Continue with email"
+            onClose={close}
+            closeTestID="email-sign-in-close"
+            description={
+              <Text style={styles.description}>{"We'll email you a 6-digit code."}</Text>
+            }
+          />
         </View>
         <TextField
           testID="email-sign-in-input"
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            setError(null);
-          }}
-          placeholder="you@example.com"
+          value={flow.email}
+          onChangeText={flow.changeEmail}
+          placeholder="Email address"
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="email"
           textContentType="emailAddress"
           returnKeyType="send"
-          onSubmitEditing={() => void sendCode()}
-          autoFocus
+          onSubmitEditing={() => void flow.sendCode()}
+          autoFocus={autoFocus}
           errorText={error}
           accessibilityLabel="Email address"
         />
-        <View style={styles.buttons}>
-          <AppButton
-            label="Send code"
-            onPress={() => void sendCode()}
-            loading={isSending}
-            disabled={isSending}
-            disabledAppearance="dimmed"
-            haptic="submit"
-            testID="email-sign-in-send"
-          />
-          <AppButton
-            label="Back"
-            variant="secondary"
-            onPress={onBack}
-            testID="email-sign-in-back"
-          />
-        </View>
+        <AppButton
+          label="Send code"
+          onPress={() => void flow.sendCode()}
+          loading={isSending}
+          disabled={isSending}
+          disabledAppearance="dimmed"
+          haptic="submit"
+          testID="email-sign-in-send"
+        />
       </View>
     );
   }
 
   const canResend = resendSeconds === 0 && !isSending && !isVerifying;
   // An error outlines every box; otherwise the box the next digit lands in.
-  const activeCell = isCodeFocused && !error ? Math.min(code.length, CODE_LENGTH - 1) : -1;
+  const activeCell = isCodeFocused && !error ? Math.min(code.length, EMAIL_CODE_LENGTH - 1) : -1;
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          Check your email
-        </Text>
-        <Text style={styles.description}>
-          Enter the 6-digit code we sent to <Text style={styles.emphasis}>{sentTo}</Text>
-        </Text>
+      <View style={styles.sheetHeader}>
+        <SheetHeader
+          title="Verify your email"
+          onClose={close}
+          closeTestID="email-sign-in-close"
+          description={
+            <Text style={styles.description}>Enter the 6-digit code we sent to {flow.sentTo}</Text>
+          }
+        />
       </View>
       <View style={styles.field}>
         <View>
@@ -213,14 +110,14 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
           <TextInput
             testID="email-sign-in-code"
             value={code}
-            onChangeText={onChangeCode}
+            onChangeText={(text) => flow.changeCode(text, onSignedIn)}
             onFocus={() => setIsCodeFocused(true)}
             onBlur={() => setIsCodeFocused(false)}
             keyboardType="number-pad"
-            maxLength={CODE_LENGTH}
+            maxLength={EMAIL_CODE_LENGTH}
             textContentType="oneTimeCode"
             autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
-            autoFocus
+            autoFocus={autoFocus}
             caretHidden
             selectionColor="transparent"
             accessibilityLabel="6-digit code"
@@ -230,24 +127,15 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
       <View style={styles.footer}>
-        <View style={styles.buttons}>
-          <AppButton
-            label="Continue"
-            onPress={() => void submitCode(code)}
-            loading={isVerifying}
-            disabled={code.length < CODE_LENGTH || isVerifying}
-            disabledAppearance="dimmed"
-            haptic="submit"
-            testID="email-sign-in-verify"
-          />
-          <AppButton
-            label="Use a different email"
-            variant="secondary"
-            onPress={useDifferentEmail}
-            disabled={isVerifying}
-            testID="email-sign-in-change-email"
-          />
-        </View>
+        <AppButton
+          label="Continue"
+          onPress={() => void flow.submitCode(code, onSignedIn)}
+          loading={isVerifying}
+          disabled={code.length < EMAIL_CODE_LENGTH || isVerifying}
+          disabledAppearance="dimmed"
+          haptic="submit"
+          testID="email-sign-in-verify"
+        />
         <View style={styles.resendRow}>
           <Text style={styles.resendHint}>{"Didn't get it?"}</Text>
           <Pressable
@@ -256,7 +144,7 @@ const EmailSignInForm = ({ onBack, onSignedIn }: EmailSignInFormProps) => {
             accessibilityState={{ disabled: !canResend }}
             disabled={!canResend}
             hitSlop={8}
-            onPress={() => void sendCode()}
+            onPress={() => void flow.sendCode()}
           >
             <Text style={[styles.resendAction, !canResend && styles.resendActionDisabled]}>
               {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}

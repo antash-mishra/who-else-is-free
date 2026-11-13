@@ -84,7 +84,7 @@ describe('SignInButtons email sign-in', () => {
     expect(screen.getByTestId('email-sign-in-input')).toBeTruthy();
     expect(screen.queryByTestId('google-sign-in-button')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('email-sign-in-back'));
+    fireEvent.press(screen.getByTestId('email-sign-in-close'));
     expect(screen.getByTestId('google-sign-in-button')).toBeTruthy();
   });
 });
