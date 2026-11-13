@@ -33,6 +33,7 @@ import { Springs } from '@theme/springs';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
 
 import SheetHeader from './SheetHeader';
+import { OutgoingSheetLayerContext } from './SheetLayerContext';
 
 export type BottomSheetPresentation = 'modal' | 'inline';
 export type BottomSheetAnimation = 'spring' | 'timing';
@@ -582,7 +583,13 @@ const BottomSheet = ({
       <View
         style={[styles.content, snapHeight ? styles.contentFill : null, sheetBody.contentStyle]}
       >
-        {sheetBody.children}
+        {isOutgoing ? (
+          <OutgoingSheetLayerContext.Provider value>
+            {sheetBody.children}
+          </OutgoingSheetLayerContext.Provider>
+        ) : (
+          sheetBody.children
+        )}
       </View>
     </>
   );
