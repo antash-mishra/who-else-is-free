@@ -1,7 +1,6 @@
-import BottomSheetModal from '@components/BottomSheetModal';
 import EventActionBadge from '@components/EventActionBadge';
 import EventActionOverlay from '@components/EventActionOverlay';
-import SignInButtons from '@components/SignInButtons';
+import SignInSheet from '@components/auth/SignInSheet';
 
 type ActionMenuItem = {
   label: string;
@@ -288,9 +287,11 @@ const EventDetailsOverlayRoutes = ({
         label={reportedMemberBadgeLabel ?? ''}
         onHidden={onReportedMemberBadgeHidden}
       />
-      <BottomSheetModal visible={signInVisible} onClose={onCloseSignIn}>
-        <SignInButtons onSignInSuccess={onSignInSuccess} />
-      </BottomSheetModal>
+      <SignInSheet
+        visible={signInVisible}
+        onClose={onCloseSignIn}
+        onSignInSuccess={onSignInSuccess}
+      />
     </>
   );
 };

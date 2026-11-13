@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, type ReactNode } from 'react';
 
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import CloseIcon from '@assets/ui/close.svg';
 import { IconButton } from '@components/ui';
@@ -10,11 +10,24 @@ type SheetHeaderProps = {
   title: string;
   onClose: () => void;
   closeTestID?: string;
+  /**
+   * Optional text under the title. It shares the title's column, so it wraps
+   * before the close button instead of running underneath it. Render it inside
+   * a row with `alignItems: 'flex-start'` so the close button stays at the top.
+   */
+  description?: ReactNode;
 };
 
-const SheetHeader = ({ title, onClose, closeTestID }: SheetHeaderProps) => (
+const SheetHeader = ({ title, onClose, closeTestID, description }: SheetHeaderProps) => (
   <React.Fragment>
-    <Text style={styles.title}>{title}</Text>
+    {description ? (
+      <View style={styles.titleColumn}>
+        <Text style={[styles.title, styles.columnTitle]}>{title}</Text>
+        {description}
+      </View>
+    ) : (
+      <Text style={styles.title}>{title}</Text>
+    )}
     <IconButton
       accessibilityLabel="Close sheet"
       icon={
@@ -41,6 +54,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginRight: spacing.md,
     flex: 1,
+  },
+  titleColumn: {
+    flex: 1,
+    marginRight: spacing.md,
+    gap: spacing.xs,
+  },
+  columnTitle: {
+    flex: 0,
+    marginRight: 0,
   },
 });
 

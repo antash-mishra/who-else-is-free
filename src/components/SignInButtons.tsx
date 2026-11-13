@@ -9,23 +9,35 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 
 import AppleLogo from '@assets/ui/apple-logo.svg';
 import GoogleLogo from '@assets/ui/google-logo.svg';
+import MailIcon from '@assets/ui/mail.svg';
+import EmailSignInForm from '@components/auth/EmailSignInForm';
 import DevLoginButton from '@components/DevLoginButton';
 import { AppButton } from '@components/ui';
-import { APPLE_SIGNIN_DEV_ALL_PLATFORMS } from '@constants/featureFlags';
+import { APPLE_SIGNIN_DEV_ALL_PLATFORMS, EMAIL_SIGN_IN_ENABLED } from '@constants/featureFlags';
 import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '@constants/google';
 import { useAuth } from '@context/AuthContext';
+import { useEmailSignInFlow, type EmailSignInFlow } from '@hooks/useEmailSignInFlow';
 import { RootStackParamList } from '@navigation/types';
 import { trackEvent } from '@services/analytics';
 import { logger } from '@services/logger';
-import { colors } from '@theme/index';
+import { colors, spacing } from '@theme/index';
 
 type SignInProvider = 'google' | 'apple';
 
 type SignInButtonsProps = {
   onSignInSuccess?: (profileComplete: boolean) => void;
+  /** Closes the surrounding sheet; the email step's close button uses it. */
+  onClose?: () => void;
+  /**
+   * Email sign-in state, owned by the sheet's owner (`SignInSheet`) so the sheet can
+   * morph between steps. Without it the buttons keep their own and swap instantly.
+   */
+  flow?: EmailSignInFlow;
 };
 
-const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
+const SignInButtons = ({ onSignInSuccess, onClose, flow: ownerFlow }: SignInButtonsProps = {}) => {
+  const ownFlow = useEmailSignInFlow();
+  const flow = ownerFlow ?? ownFlow;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { signInWithGoogle, signInWithApple, isSigningIn } = useAuth();
   const [isNativeAvailable, setIsNativeAvailable] = useState<boolean | null>(null);
@@ -211,7 +223,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
         }
 
         reachedServer = true;
-        const user = await signInWithApple(credential.identityToken);
+        const user = await signInWithApple(credential.identityToken, credential.user);
         handlePostSignInNavigation(user.profileComplete);
       } catch (error) {
         const code = (error as { code?: string })?.code;
@@ -235,6 +247,16 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
       setActiveSignInProvider(null);
     }
   }, [handlePostSignInNavigation, isAppleAvailable, isAuthBusy, signInWithApple]);
+
+  if (flow.view !== 'providers') {
+    return (
+      <EmailSignInForm
+        flow={flow}
+        onClose={onClose}
+        onSignedIn={(user) => handlePostSignInNavigation(user.profileComplete)}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -270,6 +292,20 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
         />
       ) : null}
 
+      {EMAIL_SIGN_IN_ENABLED ? (
+        <AppButton
+          label="Continue with email"
+          icon={<MailIcon width={20} height={20} color={colors.buttonText} />}
+          onPress={() => {
+            trackEvent('login_started', { provider: 'email' }).catch(() => undefined);
+            flow.showEmail();
+          }}
+          disabled={isAuthBusy}
+          testID="email-sign-in-button"
+          style={styles.button}
+        />
+      ) : null}
+
       {/*
         DEV ONLY, opt-in. DevLoginButton renders nothing unless a dev build was
         started with EXPO_PUBLIC_DEV_LOGIN_ENABLED=true (never in release builds),
@@ -284,7 +320,7 @@ const SignInButtons = ({ onSignInSuccess }: SignInButtonsProps = {}) => {
 
 const styles = StyleSheet.create({
   container: {
-    gap: 12,
+    gap: spacing.sm,
   },
   button: {
     paddingHorizontal: 16,

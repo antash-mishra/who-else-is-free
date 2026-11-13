@@ -32,6 +32,13 @@ export const motionGeometry = {
 } as const;
 
 /**
+ * iOS: a sheet rises above the keyboard over this share of the duration the keyboard
+ * reports, so it settles just ahead of the keyboard instead of exactly with it.
+ * Lowering stays matched to the keyboard.
+ */
+export const sheetKeyboardLiftDurationScale = 0.8;
+
+/**
  * One open sheet handing over to another (menu -> confirmation). The old content
  * fades out while the new fades in, and the sheet's content height glides
  * between them instead of jumping.

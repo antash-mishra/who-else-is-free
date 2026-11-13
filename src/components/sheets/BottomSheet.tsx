@@ -28,11 +28,21 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, componentTokens, layout, radii, sheetMorph, shadows, spacing } from '@theme/index';
+import {
+  colors,
+  componentTokens,
+  layout,
+  radii,
+  sheetKeyboardLiftDurationScale,
+  sheetMorph,
+  shadows,
+  spacing,
+} from '@theme/index';
 import { Springs } from '@theme/springs';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
 
 import SheetHeader from './SheetHeader';
+import { OutgoingSheetLayerContext } from './SheetLayerContext';
 
 export type BottomSheetPresentation = 'modal' | 'inline';
 export type BottomSheetAnimation = 'spring' | 'timing';
@@ -162,6 +172,11 @@ const BottomSheet = ({
   const [morph, setMorph] = useState<SheetMorph | null>(null);
   const shownBodyRef = useRef<SheetBody | null>(null);
   const morphHeight = useSharedValue(0);
+  // Reanimated keeps the last animated height on the view after the animated style is
+  // detached, which froze the body at the glide's final height: content that grew
+  // later (an error line) spilled down behind the keyboard instead of raising the
+  // sheet. The glide ends by switching that height to 'auto' before detaching.
+  const morphHeightReleased = useSharedValue(false);
   // Latest size of the current content and the running morph, for the glide.
   const incomingMeasureRef = useRef<{ key: string | undefined; height: number } | null>(null);
   const activeMorphIdRef = useRef<number | null>(null);
@@ -313,8 +328,13 @@ const BottomSheet = ({
         keyboardHeight: event.endCoordinates.height ?? 0,
         safeAreaBottom: safeBottom,
       });
+      const keyboardDuration = event.duration ?? 220;
       keyboardOffset.value = withTiming(translation, {
-        duration: event.duration ?? 220,
+        // iOS rises a little ahead of the keyboard; Android keeps its timing.
+        duration:
+          Platform.OS === 'ios'
+            ? keyboardDuration * sheetKeyboardLiftDurationScale
+            : keyboardDuration,
         easing: Easing.out(Easing.cubic),
       });
     };
@@ -511,11 +531,12 @@ const BottomSheet = ({
       setMorph((current) => {
         if (current?.id !== id || current.toHeight !== undefined) return current;
         // The animated height attaches with the next render; start it at the pin.
+        morphHeightReleased.value = false;
         morphHeight.value = current.fromHeight;
         return { ...current, toHeight };
       });
     },
-    [morphHeight],
+    [morphHeight, morphHeightReleased],
   );
 
   const morphId = morph?.id;
@@ -528,7 +549,10 @@ const BottomSheet = ({
     const measured = incomingMeasureRef.current;
     if (measured && measured.key === contentKey) startGlide(morphId, measured.height);
     // Safety net only; the height glide normally ends the morph.
-    const timer = setTimeout(() => endMorph(morphId, measured?.height), sheetMorph.totalMs);
+    const timer = setTimeout(() => {
+      morphHeightReleased.value = true;
+      endMorph(morphId, measured?.height);
+    }, sheetMorph.totalMs);
     return () => clearTimeout(timer);
     // contentKey is read for the measurement match only; a new key means a new morph.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -543,12 +567,17 @@ const BottomSheet = ({
       (finished) => {
         'worklet';
 
-        if (finished) runOnJS(endMorph)(id, morphTarget);
+        if (!finished) return;
+        // Same height as the glide's end, so nothing moves; layout owns it from here.
+        morphHeightReleased.value = true;
+        runOnJS(endMorph)(id, morphTarget);
       },
     );
-  }, [endMorph, morphHeight, morphId, morphTarget]);
+  }, [endMorph, morphHeight, morphId, morphTarget, morphHeightReleased]);
 
-  const morphHeightStyle = useAnimatedStyle(() => ({ height: morphHeight.value }));
+  const morphHeightStyle = useAnimatedStyle(() => ({
+    height: morphHeightReleased.value ? 'auto' : morphHeight.value,
+  }));
 
   if (!isMounted && !retainInline) {
     return null;
@@ -568,7 +597,13 @@ const BottomSheet = ({
       <View
         style={[styles.content, snapHeight ? styles.contentFill : null, sheetBody.contentStyle]}
       >
-        {sheetBody.children}
+        {isOutgoing ? (
+          <OutgoingSheetLayerContext.Provider value>
+            {sheetBody.children}
+          </OutgoingSheetLayerContext.Provider>
+        ) : (
+          sheetBody.children
+        )}
       </View>
     </>
   );
@@ -618,6 +653,10 @@ const BottomSheet = ({
           testID={contentTestID}
         >
           <Animated.View
+            // A fresh native body per content swap. Its content remounts on a swap anyway
+            // (keyed by contentKey), and the new view carries no height left over by the
+            // previous glide that could override this swap's pin for its first frame.
+            key={`body-${morphSeq}`}
             style={[
               snapHeight ? styles.contentFill : styles.body,
               // While morphing: the plain pinned height holds from the first frame; the
