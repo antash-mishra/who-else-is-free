@@ -219,6 +219,14 @@ describe('EmailSignInForm', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('turns off email autofill so the suggestion bar cannot bounce the sheet', () => {
+    renderForm();
+    const input = screen.getByTestId('email-sign-in-input');
+    expect(input.props.autoComplete).toBe('off');
+    expect(input.props.textContentType).toBe('none');
+    expect(input.props.keyboardType).toBe('email-address');
+  });
+
   it('focuses its field on mount', () => {
     renderForm();
     expect(screen.getByTestId('email-sign-in-input').props.autoFocus).toBe(true);

@@ -49,8 +49,12 @@ const EmailSignInForm = ({ flow, onClose, onSignedIn }: EmailSignInFormProps) =>
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          autoComplete="email"
-          textContentType="emailAddress"
+          spellCheck={false}
+          // No email autofill: iOS shows and hides its suggestion bar ("Hide My Email",
+          // saved addresses) as matches come and go while typing, resizing the keyboard
+          // and bouncing the sheet that sits on it.
+          autoComplete="off"
+          textContentType="none"
           returnKeyType="send"
           onSubmitEditing={() => void flow.sendCode()}
           autoFocus={autoFocus}
