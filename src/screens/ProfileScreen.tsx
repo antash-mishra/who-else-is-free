@@ -560,7 +560,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   guestTitle: {
-    fontSize: 16,
+    // Same size as the shared EmptyState title.
+    fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
     lineHeight: 20,
@@ -578,8 +579,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   guestButton: {
-    height: 52,
-    borderRadius: 26,
+    height: componentTokens.emptyStateButton.height,
+    borderRadius: componentTokens.emptyStateButton.radius,
     borderCurve: 'continuous',
     backgroundColor: colors.primaryButtonBackground,
     paddingHorizontal: 32,

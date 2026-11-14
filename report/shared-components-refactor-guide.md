@@ -832,7 +832,11 @@ Use it when:
 Placement rule:
 
 - The parent list/screen owns centering and available height.
-- `EmptyState` owns the content styling.
+- `EmptyState` owns the content styling: an 18px medium title, a 15px description 6px below it,
+  and actions 16px below that at `componentTokens.emptyStateButton` height (50). Profile's
+  signed-out "No profile" card matches these by hand; change both together.
+- `FullPageEmptyState` centres the block with `TEXT_BLOCK_HEIGHT` and `ACTION_BLOCK_HEIGHT`, which
+  count those gaps and the button height. Update them with any spacing or size change.
 - Keep a resolved empty state mounted while its list refreshes. Discover gates its first loader
   with `EventsContext.hasLoadedEvents`; Messages waits for the current user's first focus refresh
   before showing its empty artwork. Refresh spinners may run without replacing that artwork.
