@@ -4,6 +4,11 @@ export const componentTokens = {
     radius: 26,
     paddingHorizontal: 32,
   },
+  /** Empty-state actions ("Get started") and Profile's signed-out card: a little lower than `button`. */
+  emptyStateButton: {
+    height: 50,
+    radius: 25,
+  },
   input: {
     height: 52,
     multilineMinHeight: 140,
