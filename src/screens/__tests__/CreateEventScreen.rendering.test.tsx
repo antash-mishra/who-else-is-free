@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
@@ -189,6 +189,28 @@ describe('CreateEventScreen Rendering', () => {
     expect(mockTrackEvent).toHaveBeenCalledWith('event_create_started', {
       source: 'create_event_screen',
     });
+  });
+
+  it('shows a white status bar only while focused and restores the previous one on blur', () => {
+    const entry = { barStyle: 'light-content' };
+    const push = jest.spyOn(StatusBar, 'pushStackEntry').mockReturnValue(entry as never);
+    const pop = jest.spyOn(StatusBar, 'popStackEntry').mockImplementation(() => undefined);
+    try {
+      mockScreenFocused = false;
+      const view = render(<CreateEventScreen />);
+      expect(push).not.toHaveBeenCalled();
+
+      mockScreenFocused = true;
+      view.rerender(<CreateEventScreen />);
+      expect(push).toHaveBeenCalledWith({ barStyle: 'light-content', animated: true });
+
+      mockScreenFocused = false;
+      view.rerender(<CreateEventScreen />);
+      expect(pop).toHaveBeenCalledWith(entry);
+    } finally {
+      push.mockRestore();
+      pop.mockRestore();
+    }
   });
 
   it('refreshes a prepared form default date on first focus', () => {

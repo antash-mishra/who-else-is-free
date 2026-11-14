@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Platform, useWindowDimensions, View } from 'react-native';
+import { Platform, StatusBar, useWindowDimensions, View } from 'react-native';
 
 import {
   RouteProp,
@@ -127,6 +127,17 @@ const CreateEventScreen = () => {
   const initialLocationDisplayName = useMemo(
     () => getFormLocationDisplayName(editEvent),
     [editEvent],
+  );
+
+  // White status bar over the dark cover backdrop, only while this screen is focused:
+  // a hidden Create form is prepared in the background (usePrepareCreateEvent) and
+  // must not restyle the screens in front of it. Popping the stack entry restores
+  // whatever the screen underneath set (dark on Main, light on Event Details for Edit).
+  useFocusEffect(
+    useCallback(() => {
+      const entry = StatusBar.pushStackEntry({ barStyle: 'light-content', animated: true });
+      return () => StatusBar.popStackEntry(entry);
+    }, []),
   );
 
   useFocusEffect(
