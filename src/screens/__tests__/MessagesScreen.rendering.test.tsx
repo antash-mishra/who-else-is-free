@@ -339,9 +339,9 @@ describe('MessagesScreen Rendering', () => {
   });
 
   describe('Conversation List Rendering', () => {
-    it('should render the Chat header', () => {
+    it('should render the Chats header', () => {
       const { getByText } = render(<MessagesScreen />);
-      expect(getByText('Chat')).toBeTruthy();
+      expect(getByText('Chats')).toBeTruthy();
     });
 
     it('should render all conversations', () => {
