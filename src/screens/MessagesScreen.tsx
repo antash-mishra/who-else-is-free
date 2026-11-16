@@ -347,7 +347,7 @@ const MessagesScreen = () => {
       <View style={styles.screenRoot}>
         <ScreenContainer>
           <View style={styles.headerSpacing}>
-            <Text style={styles.headerTitle}>Chat</Text>
+            <Text style={styles.headerTitle}>Chats</Text>
           </View>
         </ScreenContainer>
         <FullPageEmptyState visible imageHeight={245} centered hasAction>
@@ -370,7 +370,7 @@ const MessagesScreen = () => {
     <View style={styles.screenRoot}>
       <ScreenContainer>
         <View style={styles.headerSpacing}>
-          <Text style={styles.headerTitle}>Chat</Text>
+          <Text style={styles.headerTitle}>Chats</Text>
         </View>
         <View style={styles.container}>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
