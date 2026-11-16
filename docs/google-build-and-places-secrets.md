@@ -98,9 +98,29 @@ without the first three, email sign-in reports itself unavailable (503).
 | `EMAIL_LOGIN_DAILY_CAP`      | Optional total codes per 24h across all addresses, default 500                 |
 
 Onboard a sending subdomain rather than the apex: the apex keeps the Google Workspace MX, SPF and
-DKIM records that `contact@weifapp.com` depends on. The from address is deliberately not
-registered in the Apple Developer portal (Sign in with Apple for Email Communication), so codes sent
-to Apple private relay addresses are dropped; register it if weif ever emails Apple users. `EMAIL_LOGIN_DEV_LOG_CODES=1` is for local development only.
+DKIM records that `contact@weifapp.com` depends on. `EMAIL_LOGIN_DEV_LOG_CODES=1` is for local
+development only.
+
+### Apple private relay (Hide My Email)
+
+Apple users who choose Hide My Email give weif a `@privaterelay.appleid.com` address, and Apple
+forwards mail to it only from registered senders that pass SPF. Both of weif's senders are
+registered under **Certificates, Identifiers & Profiles → Services → Sign in with Apple for Email
+Communication → Email Sources** (issue #236). This covers sign-in codes and the email-based account
+deletion confirmation that the privacy policy promises.
+
+| Sender                   | Domain registered  | SPF record on that domain                    |
+| ------------------------ | ------------------ | -------------------------------------------- |
+| `contact@weifapp.com`    | `weifapp.com`      | `v=spf1 include:_spf.google.com ~all`        |
+| `login@mail.weifapp.com` | `mail.weifapp.com` | `v=spf1 include:_spf.mx.cloudflare.net ~all` |
+
+`mail.weifapp.com` needs its own SPF TXT record (Cloudflare DNS, name `mail`). Apple checks the
+registered domain itself, and Cloudflare's SPF on `cf-bounce.mail.weifapp.com` does not count.
+Keep exactly one SPF record on each name.
+
+If `EMAIL_LOGIN_FROM` changes, register the new address in the portal before deploying it. An
+unregistered sender is silently dropped for relay users. Check the records with
+`dig +short TXT mail.weifapp.com` and re-verify in the portal after any DNS change.
 
 The app hides "Continue with email" unless the build (or EAS Update environment) sets
 `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`. Set these secrets and confirm one real code arrives
