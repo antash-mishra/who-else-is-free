@@ -66,17 +66,17 @@ const BLOCK_PADDING_VERTICAL = spacing.lg;
 
 /**
  * Text block height: the 4px image→title gap (EmptyState pulls `textContainer`
- * up with a negative margin), the 20px title line, the 8px title→description
+ * up with a negative margin), the 20px title line, the 6px title→description
  * gap, and one 20px description line.
  *
  * Assumes a single-line description. A description that wraps extends below the
  * centre rather than re-centring the block, so screens with different copy
  * lengths stay aligned with each other.
  */
-const TEXT_BLOCK_HEIGHT = 52;
+const TEXT_BLOCK_HEIGHT = 50;
 
 /** Action button plus the container's spacing.md gap above it. */
-const ACTION_BLOCK_HEIGHT = spacing.md + componentTokens.button.height;
+const ACTION_BLOCK_HEIGHT = spacing.md + componentTokens.emptyStateButton.height;
 
 /**
  * Optical correction lifting the block off the true centre. The heavier chrome

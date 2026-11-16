@@ -100,19 +100,22 @@ const styles = StyleSheet.create({
     // Pull the text block up so the image→title gap is spacing.xs (4) while the
     // container's other gaps (title block → buttons) stay spacing.md.
     marginTop: spacing.xs - spacing.md,
-    gap: spacing.sm,
+    // Title → description, matching Profile's signed-out card. FullPageEmptyState's
+    // TEXT_BLOCK_HEIGHT counts this.
+    gap: 6,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    fontSize: 17,
+    fontSize: typography.subtitle,
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
     lineHeight: 20,
     letterSpacing: typography.letterSpacing,
   },
   description: {
-    fontSize: typography.body,
+    // One size below body, matching Profile's signed-out card.
+    fontSize: typography.body - 1,
     color: colors.mutedText,
     textAlign: 'center',
     fontFamily: typography.fontFamilyRegular,
@@ -125,12 +128,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   button: {
-    height: componentTokens.button.height,
-    minHeight: componentTokens.button.height,
+    height: componentTokens.emptyStateButton.height,
+    minHeight: componentTokens.emptyStateButton.height,
+    borderRadius: componentTokens.emptyStateButton.radius,
   },
   secondaryButton: {
-    height: componentTokens.button.height,
-    minHeight: componentTokens.button.height,
+    height: componentTokens.emptyStateButton.height,
+    minHeight: componentTokens.emptyStateButton.height,
+    borderRadius: componentTokens.emptyStateButton.radius,
   },
 });
 
