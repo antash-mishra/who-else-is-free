@@ -4,12 +4,16 @@
  */
 
 import React from 'react';
-import { Text, Button, View } from 'react-native';
+import { Text, Button, Platform, View } from 'react-native';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react-native';
 import fetchMock from 'jest-fetch-mock';
 
 import { AuthProvider, useAuth } from '../AuthContext';
-import { mockSecureStore, mockGoogleSignIn } from '../../__tests__/mocks/mockModules';
+import {
+  mockAppleAuthentication,
+  mockSecureStore,
+  mockGoogleSignIn,
+} from '../../__tests__/mocks/mockModules';
 import { mockApiResponses, mockUsers } from '../../__tests__/mocks/mockData';
 
 // Test constants
@@ -21,8 +25,24 @@ const MOCK_ID_TOKEN = 'mock-google-id-token';
 
 // Test component that consumes the AuthContext
 const TestConsumer = () => {
-  const { user, token, isSigningIn, signInWithGoogle, signOut, updateProfile, deleteAccount, authFetch } = useAuth();
+  const {
+    user,
+    token,
+    isSigningIn,
+    signInWithGoogle,
+    signOut,
+    updateProfile,
+    deleteAccount,
+    authFetch,
+    refreshSessionSilently,
+  } = useAuth();
   const [authFetchStatus, setAuthFetchStatus] = React.useState('idle');
+  const [refreshResult, setRefreshResult] = React.useState('idle');
+
+  const handleRefreshIfExpired = async () => {
+    const refreshed = await refreshSessionSilently({ onlyIfExpired: true });
+    setRefreshResult(refreshed ?? 'null');
+  };
 
   const handleSignIn = async () => {
     try {
@@ -65,10 +85,14 @@ const TestConsumer = () => {
     <View>
       <Text testID="user-name">{user?.name || 'No User'}</Text>
       <Text testID="user-email">{user?.email || 'No Email'}</Text>
-      <Text testID="user-profile-complete">{user?.profileComplete ? 'Complete' : 'Incomplete'}</Text>
+      <Text testID="user-profile-complete">
+        {user?.profileComplete ? 'Complete' : 'Incomplete'}
+      </Text>
       <Text testID="token">{token || 'No Token'}</Text>
       <Text testID="is-signing-in">{isSigningIn ? 'Signing In' : 'Not Signing In'}</Text>
       <Text testID="auth-fetch-status">{authFetchStatus}</Text>
+      <Text testID="refresh-result">{refreshResult}</Text>
+      <Button testID="refresh-if-expired-button" title="Refresh" onPress={handleRefreshIfExpired} />
       <Button testID="sign-in-button" title="Sign In" onPress={handleSignIn} />
       <Button testID="sign-out-button" title="Sign Out" onPress={signOut} />
       <Button testID="update-profile-button" title="Update Profile" onPress={handleUpdateProfile} />
@@ -83,7 +107,7 @@ const renderWithAuthProvider = () => {
   return render(
     <AuthProvider>
       <TestConsumer />
-    </AuthProvider>
+    </AuthProvider>,
   );
 };
 
@@ -176,7 +200,7 @@ describe('AuthContext Rendering Tests', () => {
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(TOKEN_KEY, 'mock-jwt-token');
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
           USER_KEY,
-          expect.stringContaining('Ava Test')
+          expect.stringContaining('Ava Test'),
         );
       });
     });
@@ -353,7 +377,7 @@ describe('AuthContext Rendering Tests', () => {
       await waitFor(() => {
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
           USER_KEY,
-          expect.stringContaining('Updated Name')
+          expect.stringContaining('Updated Name'),
         );
       });
     });
@@ -384,7 +408,7 @@ describe('AuthContext Rendering Tests', () => {
 
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining('/api/profile'),
-        expect.objectContaining({ method: 'DELETE' })
+        expect.objectContaining({ method: 'DELETE' }),
       );
       expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(TOKEN_KEY);
       expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith(USER_KEY);
@@ -395,7 +419,9 @@ describe('AuthContext Rendering Tests', () => {
       const storedUser = mockUsers[0];
       mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
       mockSecureStore.storage.set(USER_KEY, JSON.stringify(storedUser));
-      fetchMock.mockResponseOnce(JSON.stringify({ error: 'failed to delete account' }), { status: 500 });
+      fetchMock.mockResponseOnce(JSON.stringify({ error: 'failed to delete account' }), {
+        status: 500,
+      });
 
       renderWithAuthProvider();
 
@@ -464,17 +490,19 @@ describe('AuthContext Rendering Tests', () => {
       fetchMock
         .mockResponseOnce('', { status: 401 })
         .mockResponseOnce('', { status: 401 })
-        .mockResponseOnce(JSON.stringify({
-          user: {
-            id: storedUser.id,
-            name: storedUser.name,
-            email: storedUser.email,
-            gender: storedUser.gender,
-            age: storedUser.age,
-            profile_complete: storedUser.profileComplete,
-          },
-          token: 'refreshed-jwt-token',
-        }))
+        .mockResponseOnce(
+          JSON.stringify({
+            user: {
+              id: storedUser.id,
+              name: storedUser.name,
+              email: storedUser.email,
+              gender: storedUser.gender,
+              age: storedUser.age,
+              profile_complete: storedUser.profileComplete,
+            },
+            token: 'refreshed-jwt-token',
+          }),
+        )
         .mockResponseOnce('{}', { status: 200 })
         .mockResponseOnce('{}', { status: 200 });
 
@@ -494,7 +522,7 @@ describe('AuthContext Rendering Tests', () => {
 
       expect(mockGoogleSignIn.GoogleSignin.signInSilently).toHaveBeenCalledTimes(1);
       const googleLoginCalls = fetchMock.mock.calls.filter(([url]) =>
-        String(url).includes('/api/google-login')
+        String(url).includes('/api/google-login'),
       );
       expect(googleLoginCalls).toHaveLength(1);
     });
@@ -510,6 +538,273 @@ describe('AuthContext Rendering Tests', () => {
       }).toThrow('useAuth must be used within an AuthProvider');
 
       console.error = consoleError;
+    });
+  });
+
+  describe('Lasting sessions', () => {
+    const REFRESH_TOKEN_KEY = 'whoelseisfree.refreshToken';
+    const TOKEN_EXPIRES_AT_KEY = 'whoelseisfree.authTokenExpiresAt';
+    const storedUser = mockUsers[0];
+    const refreshedBody = (token: string, refreshToken: string) =>
+      JSON.stringify({
+        user: {
+          id: storedUser.id,
+          name: storedUser.name,
+          email: storedUser.email,
+          profile_complete: storedUser.profileComplete,
+        },
+        token,
+        expires_at: '2099-01-01T00:00:00Z',
+        refresh_token: refreshToken,
+        refresh_expires_at: '2099-03-01T00:00:00Z',
+      });
+
+    const storeSession = (provider: string) => {
+      mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
+      mockSecureStore.storage.set(USER_KEY, JSON.stringify(storedUser));
+      mockSecureStore.storage.set(AUTH_PROVIDER_KEY, provider);
+      mockSecureStore.storage.set(REFRESH_TOKEN_KEY, 'refresh-1');
+    };
+
+    const pressAuthFetch = async () => {
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('auth-fetch-button'));
+      });
+    };
+
+    it('refreshes with the stored refresh key on 401 and retries', async () => {
+      storeSession('apple');
+      fetchMock
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce(refreshedBody('access-2', 'refresh-2'))
+        .mockResponseOnce('{}', { status: 200 })
+        .mockResponseOnce('{}', { status: 200 });
+
+      renderWithAuthProvider();
+      await pressAuthFetch();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-fetch-status')).toHaveTextContent('200-200');
+      });
+      const refreshCalls = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/api/session/refresh'),
+      );
+      expect(refreshCalls).toHaveLength(1);
+      expect(JSON.parse(String(refreshCalls[0][1]?.body))).toEqual({ refresh_token: 'refresh-1' });
+      expect(mockSecureStore.storage.get(REFRESH_TOKEN_KEY)).toBe('refresh-2');
+      expect(mockSecureStore.storage.get(TOKEN_KEY)).toBe('access-2');
+      expect(mockGoogleSignIn.GoogleSignin.signInSilently).not.toHaveBeenCalled();
+    });
+
+    it('keeps the session when refresh fails with a network error', async () => {
+      storeSession('apple');
+      fetchMock
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce('', { status: 401 })
+        .mockRejectOnce(new TypeError('Network request failed'));
+
+      renderWithAuthProvider();
+      await pressAuthFetch();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-fetch-status')).toHaveTextContent('401-401');
+      });
+      expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      expect(mockSecureStore.storage.get(TOKEN_KEY)).toBe(MOCK_TOKEN);
+      expect(mockSecureStore.storage.get(REFRESH_TOKEN_KEY)).toBe('refresh-1');
+    });
+
+    it('signs out when the refresh key is rejected and there is no Google fallback', async () => {
+      storeSession('apple');
+      fetchMock
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce(JSON.stringify({ error: 'session expired, please sign in again' }), {
+          status: 401,
+        });
+
+      renderWithAuthProvider();
+      await pressAuthFetch();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent('No Token');
+      });
+      expect(mockSecureStore.storage.get(REFRESH_TOKEN_KEY)).toBeUndefined();
+    });
+
+    it('skips refresh when the token is not expired and onlyIfExpired is set', async () => {
+      storeSession('email');
+      mockSecureStore.storage.set(
+        TOKEN_EXPIRES_AT_KEY,
+        new Date(Date.now() + 3_600_000).toISOString(),
+      );
+
+      renderWithAuthProvider();
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('refresh-if-expired-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('refresh-result')).toHaveTextContent(MOCK_TOKEN);
+      });
+      expect(fetchMock.mock.calls).toHaveLength(0);
+    });
+
+    it('revokes the refresh key on sign out', async () => {
+      storeSession('email');
+      fetchMock.mockRejectOnce(new TypeError('Network request failed'));
+
+      renderWithAuthProvider();
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('sign-out-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent('No Token');
+      });
+      const logoutCalls = fetchMock.mock.calls.filter(([url]) =>
+        String(url).includes('/api/session/logout'),
+      );
+      expect(logoutCalls).toHaveLength(1);
+      expect(JSON.parse(String(logoutCalls[0][1]?.body))).toEqual({ refresh_token: 'refresh-1' });
+      expect(mockSecureStore.storage.get(REFRESH_TOKEN_KEY)).toBeUndefined();
+    });
+  });
+
+  describe('Apple credential revocation', () => {
+    const APPLE_USER_KEY = 'whoelseisfree.appleUserId';
+    let restorePlatform: (() => void) | null = null;
+
+    beforeEach(() => {
+      const original = Platform.OS;
+      Object.defineProperty(Platform, 'OS', { configurable: true, get: () => 'ios' });
+      restorePlatform = () =>
+        Object.defineProperty(Platform, 'OS', { configurable: true, get: () => original });
+      mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
+      mockSecureStore.storage.set(USER_KEY, JSON.stringify(mockUsers[0]));
+      mockSecureStore.storage.set(AUTH_PROVIDER_KEY, 'apple');
+      mockSecureStore.storage.set(APPLE_USER_KEY, 'apple-user-1');
+    });
+
+    afterEach(() => {
+      restorePlatform?.();
+      mockAppleAuthentication.getCredentialStateAsync.mockReset();
+      mockAppleAuthentication.getCredentialStateAsync.mockResolvedValue(1);
+    });
+
+    it('signs out a restored Apple session whose credential was revoked', async () => {
+      mockAppleAuthentication.getCredentialStateAsync.mockResolvedValue(0);
+
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(mockAppleAuthentication.getCredentialStateAsync).toHaveBeenCalledWith(
+          'apple-user-1',
+        );
+        expect(screen.getByTestId('token')).toHaveTextContent('No Token');
+      });
+    });
+
+    it('keeps an Apple session when the credential check throws', async () => {
+      mockAppleAuthentication.getCredentialStateAsync.mockRejectedValue(new Error('unavailable'));
+
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(mockAppleAuthentication.getCredentialStateAsync).toHaveBeenCalled();
+      });
+      expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+    });
+
+    it('keeps an authorized Apple session', async () => {
+      renderWithAuthProvider();
+
+      await waitFor(() => {
+        expect(mockAppleAuthentication.getCredentialStateAsync).toHaveBeenCalled();
+      });
+      expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+    });
+  });
+
+  describe('Email sign-in', () => {
+    const EmailConsumer = () => {
+      const { user, token, verifyEmailCode } = useAuth();
+      return (
+        <View>
+          <Text testID="email-user">{user?.email ?? 'No User'}</Text>
+          <Text testID="email-token">{token ?? 'No Token'}</Text>
+          <Button
+            testID="verify-email-button"
+            title="Verify"
+            onPress={() => {
+              verifyEmailCode('asha@example.com', '123456').catch(() => undefined);
+            }}
+          />
+        </View>
+      );
+    };
+
+    it('stores the email session with its refresh key', async () => {
+      fetchMock.mockResponseOnce(
+        JSON.stringify({
+          user: { id: 9, name: 'asha', email: 'asha@example.com', profile_complete: false },
+          token: 'email-access',
+          expires_at: '2099-01-01T00:00:00Z',
+          refresh_token: 'email-refresh',
+          is_new_user: true,
+        }),
+      );
+
+      render(
+        <AuthProvider>
+          <EmailConsumer />
+        </AuthProvider>,
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('verify-email-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('email-token')).toHaveTextContent('email-access');
+      });
+      expect(mockSecureStore.storage.get(AUTH_PROVIDER_KEY)).toBe('email');
+      expect(mockSecureStore.storage.get('whoelseisfree.refreshToken')).toBe('email-refresh');
+    });
+
+    it('restores an email session as email', async () => {
+      mockSecureStore.storage.set(TOKEN_KEY, MOCK_TOKEN);
+      mockSecureStore.storage.set(USER_KEY, JSON.stringify(mockUsers[0]));
+      mockSecureStore.storage.set(AUTH_PROVIDER_KEY, 'email');
+      mockSecureStore.storage.set('whoelseisfree.refreshToken', 'refresh-1');
+      fetchMock
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce('', { status: 401 })
+        .mockResponseOnce(JSON.stringify({ error: 'session expired, please sign in again' }), {
+          status: 401,
+        });
+
+      renderWithAuthProvider();
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent(MOCK_TOKEN);
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('auth-fetch-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('token')).toHaveTextContent('No Token');
+      });
+      expect(mockGoogleSignIn.GoogleSignin.signInSilently).not.toHaveBeenCalled();
     });
   });
 

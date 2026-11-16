@@ -29,6 +29,11 @@ export type BottomSheetDescriptor = {
   /** Fired once the sheet has finished closing and left the screen. */
   onClosed?: () => void;
   onClose: () => void;
+  /**
+   * Names the content within this owner. Changing it while the sheet is open morphs
+   * to the new content (fade and height glide) like a hand-over between owners.
+   */
+  contentKey?: string;
 };
 
 type HostedBottomSheet = {
@@ -150,7 +155,14 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
             onOpened={renderedDescriptor.onOpened}
             // The shared 'active' sheet stays open while one owner hands over to
             // another (menu -> confirmation); the owner id lets it morph between them.
-            contentKey={renderedDescriptor.keepMounted ? undefined : ownerId}
+            // An owner's own contentKey (a step within one sheet) morphs the same way.
+            contentKey={
+              renderedDescriptor.keepMounted
+                ? undefined
+                : renderedDescriptor.contentKey === undefined
+                  ? ownerId
+                  : `${ownerId}:${renderedDescriptor.contentKey}`
+            }
             onClosed={() => {
               handleClosed(ownerId);
               renderedDescriptor.onClosed?.();

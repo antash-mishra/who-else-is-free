@@ -797,7 +797,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     socket.onerror = async () => {
       setConnectionError(CONNECTION_ERROR);
       setIsConnecting(false);
-      const refreshedToken = await refreshSessionSilentlyRef.current?.();
+      const refreshedToken = await refreshSessionSilentlyRef.current?.({ onlyIfExpired: true });
       if (refreshedToken) {
         tokenRef.current = refreshedToken;
       }
@@ -808,7 +808,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
       setIsConnecting(false);
       if (!manuallyClosedRef.current && user && token) {
         clearReconnectTimeout();
-        const refreshedToken = await refreshSessionSilentlyRef.current?.();
+        const refreshedToken = await refreshSessionSilentlyRef.current?.({ onlyIfExpired: true });
         if (refreshedToken) {
           tokenRef.current = refreshedToken;
         }

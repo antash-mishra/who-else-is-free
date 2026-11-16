@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -34,6 +35,17 @@ type AuthHandler struct {
 	appleVerifier   appleTokenVerifier
 	identityHasher  *IdentityHasher
 	devLoginEnabled bool
+	emailSender     emailSender
+	emailLimits     *emailLoginLimits
+	// now is overridable in tests; nil means time.Now.
+	now func() time.Time
+}
+
+func (h *AuthHandler) clock() time.Time {
+	if h.now != nil {
+		return h.now().UTC()
+	}
+	return time.Now().UTC()
 }
 
 func NewAuthHandler(repo *EventRepository, signer *tokenSigner) *AuthHandler {
@@ -48,12 +60,18 @@ func NewAuthHandler(repo *EventRepository, signer *tokenSigner) *AuthHandler {
 		appleVerifier:   newLiveAppleTokenVerifier(),
 		identityHasher:  newIdentityHasherFromEnv(),
 		devLoginEnabled: devLoginEnabled,
+		emailSender:     newEmailSenderFromEnv(),
+		emailLimits:     newEmailLoginLimitsFromEnv(),
 	}
 }
 
 func (h *AuthHandler) RegisterRoutes(group *gin.RouterGroup) {
 	group.POST("/google-login", h.googleLogin)
 	group.POST("/apple-login", h.appleLogin)
+	group.POST("/session/refresh", h.refreshSession)
+	group.POST("/session/logout", h.logoutSession)
+	group.POST("/email-login/start", h.startEmailLogin)
+	group.POST("/email-login/verify", h.verifyEmailLogin)
 	if h.devLoginEnabled {
 		group.POST("/dev-login", h.devLogin)
 	}
@@ -260,7 +278,10 @@ func (h *AuthHandler) recordIdentityHashes(parentCtx context.Context, user *User
 	}
 }
 
+// getOrCreateUserByEmail finds the account for an email regardless of case and
+// stores new accounts with a trimmed, lowercased email.
 func (h *AuthHandler) getOrCreateUserByEmail(parentCtx context.Context, email, displayName string) (*User, bool, error) {
+	email = normalizeEmail(email)
 	name := strings.TrimSpace(displayName)
 	if name == "" {
 		name = fallbackNameFromEmail(email)
@@ -297,6 +318,20 @@ func (h *AuthHandler) respondWithIssuedSession(c *gin.Context, user *User, logPr
 		}
 	}
 
+	ctx, cancel := context.WithTimeout(c.Request.Context(), requestTimeout)
+	defer cancel()
+	refreshToken, refreshExpiresAt, err := h.repo.IssueRefreshToken(ctx, user.ID, h.clock())
+	if err != nil {
+		log.Printf("%s: failed to issue refresh token for %d: %v", logPrefix, user.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to issue session token"})
+		return
+	}
+	h.issueSession(c, user, logPrefix, isNewUser, refreshToken, refreshExpiresAt)
+}
+
+// issueSession signs a fresh access token and writes the shared sign-in
+// response, including the device's current refresh key.
+func (h *AuthHandler) issueSession(c *gin.Context, user *User, logPrefix string, isNewUser bool, refreshToken string, refreshExpiresAt time.Time) {
 	token, claims, err := h.signer.issue(user.ID, user.Email)
 	if err != nil {
 		log.Printf("%s: failed to issue token for %d: %v", logPrefix, user.ID, err)
@@ -321,10 +356,12 @@ func (h *AuthHandler) respondWithIssuedSession(c *gin.Context, user *User, logPr
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"user":        userResponse,
-		"token":       token,
-		"expires_at":  claims.ExpiresAt,
-		"is_new_user": isNewUser,
+		"user":               userResponse,
+		"token":              token,
+		"expires_at":         claims.ExpiresAt,
+		"is_new_user":        isNewUser,
+		"refresh_token":      refreshToken,
+		"refresh_expires_at": refreshExpiresAt,
 	})
 }
 
@@ -343,6 +380,10 @@ func parseAudienceListEnv(key string) []string {
 		}
 	}
 	return audiences
+}
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }
 
 func fallbackNameFromEmail(email string) string {

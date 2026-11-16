@@ -31,6 +31,12 @@ export type BottomSheetModalProps = {
   onOpened?: () => void;
   /** Fired once the sheet has finished closing and left the screen. */
   onClosed?: () => void;
+  /**
+   * Names the content currently shown (for example a step). Changing it while the
+   * sheet is open fades the old content out and the new in while the height glides.
+   * Everything inside the sheet remounts on a change, so keep state above the sheet.
+   */
+  contentKey?: string;
 };
 
 const BottomSheetModal = ({
@@ -49,6 +55,7 @@ const BottomSheetModal = ({
   contentStyle,
   onOpened,
   onClosed,
+  contentKey,
 }: BottomSheetModalProps) => {
   const host = useOptionalBottomSheetHost();
   const ownerId = useId();
@@ -69,8 +76,10 @@ const BottomSheetModal = ({
       contentStyle,
       onOpened,
       onClosed,
+      contentKey,
     }),
     [
+      contentKey,
       avoidKeyboard,
       presentation,
       prepareInline,
@@ -131,6 +140,7 @@ const BottomSheetModal = ({
       contentStyle={contentStyle}
       onOpened={onOpened}
       onClosed={onClosed}
+      contentKey={contentKey}
     >
       {children}
     </BottomSheet>

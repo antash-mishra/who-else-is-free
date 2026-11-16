@@ -6,6 +6,10 @@ import EventActionOverlay from '@components/EventActionOverlay';
 
 import EventDetailsOverlayRoutes from '../EventDetailsOverlayRoutes';
 
+// The sign-in sheet keeps its email state (and so the auth context) while closed;
+// these tests cover the other overlays, rendered without an AuthProvider.
+jest.mock('@components/auth/SignInSheet', () => () => null);
+
 const props: React.ComponentProps<typeof EventDetailsOverlayRoutes> = {
   shouldShowInvitePrompt: false,
   inviteMessage: '',

@@ -176,6 +176,7 @@ Important groups:
 
 - `button`: height, radius, horizontal padding
 - `input`: height, radius, pill radius, padding
+- `codeInput`: six-box sign-in code cells (height, radius, gap, active border, digit size), used by `EmailSignInForm`
 - `checkbox`: size, radius, tick size
 - `iconButton`: button and icon sizes, plus `compactHitSlop` for compact header actions that retain a full touch target
 - `avatar`: shared avatar sizes
@@ -894,6 +895,11 @@ What it is:
 
 - Shared sign-in action block.
 - Uses `AppButton` for sign-in CTAs and handles Google/Apple loading states.
+- "Continue with email" (behind `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED`) swaps the buttons for
+  `EmailSignInForm` (`src/components/auth/`), laid out like the shared sheet prompts: semibold
+  title and muted description, the field, then a primary `AppButton` over a secondary one. The
+  code step draws six `componentTokens.codeInput` boxes over one transparent `TextInput`, so paste
+  and one-time-code autofill still reach a single native field.
 
 Where it is used:
 

@@ -42,8 +42,20 @@ func requestLogger(out io.Writer) gin.HandlerFunc {
 	})
 }
 
-func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, pushHandler *PushHandler, signer *tokenSigner) *gin.Engine {
+// newEngine returns a bare engine whose ClientIP comes from Fly's proxy header.
+// Forwarding headers are never trusted, so a client cannot choose its own IP
+// for the per-IP rate limits (email sign-in, anonymous help).
+func newEngine() *gin.Engine {
 	r := gin.New()
+	r.TrustedPlatform = gin.PlatformFlyIO
+	if err := r.SetTrustedProxies(nil); err != nil {
+		panic(err)
+	}
+	return r
+}
+
+func setupRouter(eventHandler *EventHandler, authHandler *AuthHandler, profileHandler *ProfileHandler, chatHub *ChatHub, pushHandler *PushHandler, signer *tokenSigner) *gin.Engine {
+	r := newEngine()
 	r.Use(requestLogger(gin.DefaultWriter), gin.Recovery())
 	collector := newAnalyticsCollector()
 

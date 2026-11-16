@@ -148,9 +148,16 @@ jest.mock('react-native-gesture-handler', () => {
 export const mockAppleAuthentication = {
   isAvailableAsync: jest.fn().mockResolvedValue(false),
   signInAsync: jest.fn(),
+  getCredentialStateAsync: jest.fn().mockResolvedValue(1),
   AppleAuthenticationScope: {
     FULL_NAME: 'FULL_NAME',
     EMAIL: 'EMAIL',
+  },
+  AppleAuthenticationCredentialState: {
+    REVOKED: 0,
+    AUTHORIZED: 1,
+    NOT_FOUND: 2,
+    TRANSFERRED: 3,
   },
 };
 

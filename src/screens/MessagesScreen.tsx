@@ -8,12 +8,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import BottomSheetModal from '@components/BottomSheetModal';
 import EmptyState from '@components/EmptyState';
 import FullPageEmptyState from '@components/FullPageEmptyState';
 import ScalePressable from '@components/ScalePressable';
 import ScreenContainer from '@components/ScreenContainer';
-import SignInButtons from '@components/SignInButtons';
+import SignInSheet from '@components/auth/SignInSheet';
 import { UnreadDot } from '@components/ui';
 import UserAvatar from '@components/UserAvatar';
 import { useAuth } from '@context/AuthContext';
@@ -362,9 +361,7 @@ const MessagesScreen = () => {
             imageHeight={245}
           />
         </FullPageEmptyState>
-        <BottomSheetModal visible={signInVisible} onClose={() => setSignInVisible(false)}>
-          <SignInButtons />
-        </BottomSheetModal>
+        <SignInSheet visible={signInVisible} onClose={() => setSignInVisible(false)} />
       </View>
     );
   }

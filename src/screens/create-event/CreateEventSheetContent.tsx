@@ -12,6 +12,7 @@ import {
   groupDisplayLabels,
   groupOptions,
 } from '@constants/eventOptions';
+import type { EmailSignInFlow } from '@hooks/useEmailSignInFlow';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
 
 import SignInButtons from '../../components/SignInButtons';
@@ -73,6 +74,8 @@ type CreateEventSheetContentProps = {
   description: string;
   onDescriptionDone: (text: string) => void;
   onClose: () => void;
+  /** Email sign-in state owned by the screen, so the sign-in sheet morphs between steps. */
+  signInFlow?: EmailSignInFlow;
 };
 
 /** Content switch for the Create/Edit Event bottom sheet, keyed by the rendered sheet. */
@@ -106,6 +109,7 @@ const CreateEventSheetContent = ({
   description,
   onDescriptionDone,
   onClose,
+  signInFlow,
 }: CreateEventSheetContentProps) => {
   switch (renderedSheet) {
     case 'dateTime':
@@ -184,7 +188,7 @@ const CreateEventSheetContent = ({
         />
       );
     case 'signIn':
-      return <SignInButtons />;
+      return <SignInButtons flow={signInFlow} onClose={onClose} />;
     default:
       return null;
   }

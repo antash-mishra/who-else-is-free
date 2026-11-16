@@ -479,7 +479,9 @@ FROM users;
 const selectUserByEmail = `
 SELECT id, name, email, password, gender, age, avatar, profile_complete, created_at
 FROM users
-WHERE email = ?;
+WHERE email = ? COLLATE NOCASE
+ORDER BY id
+LIMIT 1;
 `
 
 const selectUserByID = `
@@ -884,6 +886,12 @@ func (r *EventRepository) Init(ctx context.Context) error {
 	}
 	if _, err := r.db.ExecContext(ctx, createTableAdminUsers); err != nil {
 		return fmt.Errorf("create admin_users table: %w", err)
+	}
+	if err := r.ensureRefreshTokensTable(ctx); err != nil {
+		return err
+	}
+	if err := r.ensureEmailLoginCodesTable(ctx); err != nil {
+		return err
 	}
 	if _, err := r.db.ExecContext(ctx, createTableEvents); err != nil {
 		return fmt.Errorf("create events table: %w", err)

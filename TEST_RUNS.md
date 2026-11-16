@@ -812,3 +812,15 @@ whole-repository formatting were not run.
 - Environment: at host swap ~21.7/22.5 GB the emulator's input dispatcher wedged twice (ANR loops with the app's main thread idle); cold boots cleared it.
 - Tests: full Jest suite (142 suites / 1,568 tests), `npm run typecheck` and ESLint on the changed files pass; `git diff --check` clean. A whole-branch review found the Android 10 fallback and the closing-keyboard case; both are pinned by tests (no API 29 image was available to run on).
 - Screenshots: `report/screenshots/issue-190/`.
+
+## 2026-11-13 — Issue #230: Email code sign-in
+
+- Change: "Continue with email" on the shared `SignInButtons` sheet (behind `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED`) opens `EmailSignInForm`: email → 6-digit code (`/api/email-login/start` and `/verify`), 60 s resend window, lasting sessions through rotating refresh keys.
+- Setup: branch server on `:8083` with `EMAIL_LOGIN_DEV_LOG_CODES=1` and a fresh database; second Metro on `:8082` with `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`.
+- Flow: Profile → Get started → Continue with email → `asha.tester@example.test` → Send code → wrong code `111111` → logged code → onboarding → force-stop and relaunch.
+- Android `WEIF_API_36`: PASS. Restructured after review to match the shared sheet prompts: "Sign in with email" title and muted description, the email field, then black "Send code" over grey "Back". The code step reads "Check your email" with the address emphasised, six code boxes (the next box outlined), "Didn't get it? Resend in 60s", a faded Continue until six digits, and grey "Use a different email". A wrong code outlines every box red, shows "That code isn't right. Check it and try again." (401) and keeps the keyboard open; tapping a box after closing the keyboard refocuses the field, typing clears the error, and the right code signs in (200) to "What's your name?" prefilled `asha.tester`. After force-stop and relaunch (new process) every request authenticates and the app returns to onboarding, not sign-in.
+- Real email: a local branch server with the Cloudflare sender delivered a code from `login@mail.weifapp.com` to the owner's Gmail and verified it; reusing it returned `code_expired`.
+- Not run on device: refresh after the 24 h access token expires (covered by `AuthContext` and server session tests).
+- Not checked on iOS.
+- Tests: Go `go test ./...`; Jest 151 suites / 1,655 tests; `npm run typecheck`; ESLint on the touched files.
+- Screenshots: `report/screenshots/issue-230/`.

@@ -15,6 +15,14 @@ export const componentTokens = {
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
+  // Six-box sign-in code entry (EmailSignInForm): same height and surface as inputs.
+  codeInput: {
+    cellHeight: 56,
+    cellRadius: 16,
+    cellGap: 8,
+    activeBorderWidth: 1.5,
+    fontSize: 22,
+  },
   checkbox: {
     size: 18,
     radius: 6,
