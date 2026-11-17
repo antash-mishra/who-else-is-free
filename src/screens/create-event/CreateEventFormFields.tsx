@@ -96,11 +96,9 @@ const CreateEventFormFields = ({
             <Text style={styles.fieldValueText}>{groupTypeLabel}</Text>
           </View>
         </Pressable>
-      </View>
-    </View>
 
-    <View style={styles.fieldCard}>
-      <View style={styles.fieldCardInner}>
+        <View style={styles.fieldDivider} />
+
         <Pressable style={styles.fieldRow} onPress={onOpenGenderPicker}>
           <Text style={styles.fieldLabel}>Gender</Text>
           <View style={styles.fieldValuePill}>
