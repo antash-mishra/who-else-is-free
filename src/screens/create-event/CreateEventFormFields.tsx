@@ -68,7 +68,7 @@ const CreateEventFormFields = ({
     <View style={styles.fieldCard}>
       <View style={styles.fieldCardInner}>
         <OverflowTextInput
-          placeholder="Event name"
+          placeholder="Plan name"
           value={eventName}
           onChangeText={onChangeEventName}
           placeholderTextColor={colors.createTextFaint}

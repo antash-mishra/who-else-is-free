@@ -389,7 +389,7 @@ describe('BottomSheet follows Android keyboard frames (#190)', () => {
   });
 
   it('stays at rest when the previous keyboard is still closing as the sheet settles', () => {
-    // Create opens Details on keyboardWillHide, so Event name's keyboard closes during entry.
+    // Create opens Details on keyboardWillHide, so Plan name's keyboard closes during entry.
     const view = render(sheet());
     deliver(view, 'onMove', 300);
     deliver(view, 'onMove', 200);

@@ -225,7 +225,7 @@ describe('CreateEventScreen Rendering', () => {
   it('renders core fields and current datetime value', () => {
     render(<CreateEventScreen />);
 
-    expect(screen.getByPlaceholderText('Event name')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Plan name')).toBeTruthy();
     expect(screen.getByLabelText('Add details')).toBeTruthy();
     expect(screen.getByText('Select location')).toBeTruthy();
     expect(screen.getByText('Date & time')).toBeTruthy();
@@ -301,13 +301,13 @@ describe('CreateEventScreen Rendering', () => {
   it('preserves typed text when opening a sheet field', () => {
     render(<CreateEventScreen />);
 
-    const titleInput = screen.getByPlaceholderText('Event name');
+    const titleInput = screen.getByPlaceholderText('Plan name');
 
     fireEvent.changeText(titleInput, 'Coffee Meetup');
     fillDescription('Casual chat');
     fireEvent.press(screen.getByText('Gender'));
 
-    expect(screen.getByPlaceholderText('Event name').props.value).toBe('Coffee Meetup');
+    expect(screen.getByPlaceholderText('Plan name').props.value).toBe('Coffee Meetup');
     // DescriptionPreview renders a hidden measure copy + the visible text.
     expect(screen.getAllByText('Casual chat').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Gender').length).toBeGreaterThan(0);
@@ -340,7 +340,7 @@ describe('CreateEventScreen Rendering', () => {
   it('submits create payload with derived schedule fields', async () => {
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Coffee Meetup');
+    fireEvent.changeText(screen.getByPlaceholderText('Plan name'), 'Coffee Meetup');
     fillDescription('Casual chat');
     await selectMockLocation();
 
@@ -380,7 +380,7 @@ describe('CreateEventScreen Rendering', () => {
   it('keeps the submitted form visible until navigation completes', async () => {
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Coffee Meetup');
+    fireEvent.changeText(screen.getByPlaceholderText('Plan name'), 'Coffee Meetup');
     fillDescription('Casual chat');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
@@ -400,14 +400,14 @@ describe('CreateEventScreen Rendering', () => {
       );
     });
 
-    expect(screen.getByPlaceholderText('Event name').props.value).toBe('Coffee Meetup');
+    expect(screen.getByPlaceholderText('Plan name').props.value).toBe('Coffee Meetup');
   });
 
   it('treats null editEventId as create mode', async () => {
     currentRouteParams = { editEventId: null };
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Create From Null');
+    fireEvent.changeText(screen.getByPlaceholderText('Plan name'), 'Create From Null');
     fillDescription('Casual chat');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
@@ -423,7 +423,7 @@ describe('CreateEventScreen Rendering', () => {
     isGuestMode = true;
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Guest Event');
+    fireEvent.changeText(screen.getByPlaceholderText('Plan name'), 'Guest Event');
     fillDescription('Guest description');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
@@ -467,7 +467,7 @@ describe('CreateEventScreen Rendering', () => {
     ];
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Updated Name');
+    fireEvent.changeText(screen.getByPlaceholderText('Plan name'), 'Updated Name');
     fireEvent.press(screen.getByTestId('create-event-submit'));
 
     await waitFor(() => {
@@ -514,7 +514,7 @@ describe('CreateEventScreen Rendering', () => {
     mockIsPastDateTime = true;
     render(<CreateEventScreen />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Event name'), 'Past Event');
+    fireEvent.changeText(screen.getByPlaceholderText('Plan name'), 'Past Event');
     fillDescription('Past description');
     await selectMockLocation();
     fireEvent.press(screen.getByTestId('create-event-submit'));
