@@ -2,7 +2,7 @@
 
 ## **weif privacy policy**
 
-#### Last updated October 19, 2026
+#### Last updated November 17, 2026
 
 This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how and why we might access, collect, store, use, and/or share ('process') your personal information when you use our services ('**Services**'), including when you:
 
@@ -32,13 +32,17 @@ This Privacy Policy for weif ('**we**', '**us**', or '**our**') describes how an
 
 **Personal Information Provided by You.** The personal information that we collect depends on the context of your interactions with us and the Services, the choices you make, and the products and features you use. The personal information we collect may include the following:
 
-- Account information from Sign in with Apple or Google, such as your name, email address (which may be an Apple private relay address if you choose Hide My Email) and account identifier
+- Account information from Sign in with Apple or Google, or the email address you sign in with, such as your name, email address (which may be an Apple private relay address if you choose Hide My Email) and account identifier
 - Profile information: your name, age, gender and profile photo
 - Plans you create, including their title, place, time, description and who they are for
 - Messages you send in chats and requests to join plans
 - Reports and blocks you make
 - Messages you send to support, and the reply email you give us
 - Photos you upload as plan covers
+
+**Signing in with your email.** If you choose Continue with email, we send a 6-digit sign-in code to the email address you enter. We store that address and a scrambled (hashed) form of the code, never the code itself, so we can check it when you enter it.
+
+**Staying signed in.** So you don't have to sign in every time you open the app, we keep a sign-in key on your device. Our servers store only a scrambled (hashed) form of it.
 
 **Sensitive information.** We do not ask for sensitive information, such as health, religion or sexual orientation. Please think carefully before sharing it in plans or chats, which other users can see.
 
@@ -98,7 +102,7 @@ We do not sell your personal information. We share it only in the situations bel
 
 **Other Users.** Plans you create, including their title, place, time, description and who they are for, are visible to anyone using weif, along with your name and profile photo as the host. When you ask to join a plan, the host sees your name, profile photo and any message you include. Chat messages are visible only to the members of that chat. Your age and gender are not shown to other users.
 
-**Service providers.** We use service providers to run weif: Fly.io hosts our servers and database, Apple and Google provide sign-in, and Google Firebase provides analytics and push notifications. They process your information only on our behalf and under our instructions.
+**Service providers.** We use service providers to run weif: Fly.io hosts our servers and database, Apple and Google provide sign-in, Cloudflare sends the sign-in codes you ask for by email, and Google Firebase provides analytics and push notifications. They process your information only on our behalf and under our instructions.
 
 **International transfers.** Some of our servers and service providers are located outside the EU, including in the United States. When we transfer your information there, we use appropriate safeguards required by data protection law. To ask about these safeguards, email **contact@weifapp.com**.
 
@@ -109,6 +113,8 @@ We may use analytics and similar technologies, including Firebase Analytics, to 
 ### 6. HOW LONG DO WE KEEP YOUR INFORMATION?
 
 We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Policy, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). If another user reports you, we keep the report, the name you used, your recent messages in that plan's chat and a pseudonymised (one-way hashed) form of your sign-in identifiers, such as your email address, for up to 12 months, even after you delete your account. We do this to protect other users and to recognise a reported person who signs up again. We keep a report for longer only while it is still under review. Reports you make are kept for the same period, without a link to your account once you delete it.
+
+Sign-in codes expire 10 minutes after we send them and are deleted a day later. A sign-in key expires after 90 days without use. When you sign out it stops working straight away, and we delete it after 7 days. All sign-in keys are deleted when you delete your account.
 
 When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymise such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible.
 

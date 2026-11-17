@@ -16,6 +16,19 @@ describe('PrivacyPolicyScreen', () => {
     jest.clearAllMocks();
   });
 
+  it('covers email sign-in: the code, who sends it, staying signed in and how long each is kept', () => {
+    expect(privacyPolicyMarkdown).toContain('or the email address you sign in with');
+    expect(privacyPolicyMarkdown).toContain('**Signing in with your email.**');
+    expect(privacyPolicyMarkdown).toContain('**Staying signed in.**');
+    expect(privacyPolicyMarkdown).toContain(
+      'Cloudflare sends the sign-in codes you ask for by email',
+    );
+    expect(privacyPolicyMarkdown).toContain(
+      'Sign-in codes expire 10 minutes after we send them and are deleted a day later.',
+    );
+    expect(privacyPolicyMarkdown).toContain('A sign-in key expires after 90 days without use.');
+  });
+
   it('renders the privacy policy content from the markdown source', () => {
     const { getAllByText, getByLabelText, getByText } = render(<PrivacyPolicyScreen />);
 
@@ -24,7 +37,7 @@ describe('PrivacyPolicyScreen', () => {
     expect(StyleSheet.flatten(getByText('weif privacy policy').props.style).textTransform).toBe(
       'uppercase',
     );
-    expect(getByText('Last updated October 19, 2026')).toBeTruthy();
+    expect(getByText('Last updated November 17, 2026')).toBeTruthy();
     expect(getByText('TABLE OF CONTENTS')).toBeTruthy();
     expect(getByLabelText('Jump to WHAT INFORMATION DO WE COLLECT?')).toBeTruthy();
     expect(getByText('Google API Services User Data Policy')).toBeTruthy();
