@@ -262,6 +262,7 @@ Use shared primitives before local UI:
   directly to My Events with its created badge/confetti.
 - New Create sessions select a random loaded catalog cover through `getRandomCoverKey`; Edit keeps
   the event's existing cover.
+- Create/Edit plan sheets are tinted from the cover instead of plain white: `useCoverSheetTint` samples the cover through Skia (16px downsample, saturation-weighted) and `src/utils/coverTint.ts` turns it into a near-white HSL colour (lightness 0.94, saturation capped at 0.28, neutral covers stay grey-white), passed as `surfaceColor` through `CreateEventBottomSheet` → `BottomSheetModal` → `BottomSheet`. Other sheets omit it and stay white. Tune the look with the constants in `coverTint.ts`, not per sheet. Content that paints the sheet colour itself (list fades, gaps around cover tiles, date wheel fades) reads it with `useSheetSurfaceColor()` from `@components/sheets` instead of hard-coding white, search fields use the translucent `colors.sheetFill`, and unselected option pills (Group type, Gender, cover categories) are outlined with the translucent `colors.sheetPillBorder`, the Age slider's unselected track uses `colors.sheetTrack`, so both show on white and tinted sheets alike.
 - API requests: `requestJson`/`ApiError` in `src/api/client.ts`, error extraction in `src/api/errors.ts`
 - API payload mappers: `src/api/mappers` (`events.ts`, `chat.ts`)
 - API timeout helpers: `src/api/request.ts`

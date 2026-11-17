@@ -20,6 +20,8 @@ export type BottomSheetDescriptor = {
   title?: string;
   avoidKeyboard?: boolean;
   snapHeight?: number;
+  /** Sheet background instead of the default white (Create plan tints it from the cover). */
+  surfaceColor?: string;
   testID?: string;
   backdropTestID?: string;
   closeTestID?: string;
@@ -147,6 +149,7 @@ export const BottomSheetHostProvider = ({ children }: { children: ReactNode }) =
             title={renderedDescriptor.title}
             avoidKeyboard={renderedDescriptor.avoidKeyboard}
             snapHeight={renderedDescriptor.snapHeight}
+            surfaceColor={renderedDescriptor.surfaceColor}
             testID={renderedDescriptor.testID}
             backdropTestID={renderedDescriptor.backdropTestID}
             closeTestID={renderedDescriptor.closeTestID}

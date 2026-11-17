@@ -22,6 +22,8 @@ export type BottomSheetModalProps = {
   avoidKeyboard?: boolean;
   /** Pin the sheet to an exact height instead of sizing to content. */
   snapHeight?: number;
+  /** Sheet background instead of the default white (Create plan tints it from the cover). */
+  surfaceColor?: string;
   testID?: string;
   backdropTestID?: string;
   closeTestID?: string;
@@ -48,6 +50,7 @@ const BottomSheetModal = ({
   title,
   avoidKeyboard = true,
   snapHeight,
+  surfaceColor,
   testID = 'bottom-sheet-modal',
   backdropTestID = 'bottom-sheet-backdrop',
   closeTestID = 'bottom-sheet-close',
@@ -68,6 +71,7 @@ const BottomSheetModal = ({
       title,
       avoidKeyboard,
       snapHeight,
+      surfaceColor,
       onClose,
       testID,
       backdropTestID,
@@ -92,6 +96,7 @@ const BottomSheetModal = ({
       onClosed,
       onClose,
       snapHeight,
+      surfaceColor,
       testID,
       title,
     ],
@@ -132,6 +137,7 @@ const BottomSheetModal = ({
       title={title}
       avoidKeyboard={avoidKeyboard}
       snapHeight={snapHeight}
+      surfaceColor={surfaceColor}
       presentation="modal"
       testID={testID}
       backdropTestID={backdropTestID}

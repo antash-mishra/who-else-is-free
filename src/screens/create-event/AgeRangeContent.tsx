@@ -123,7 +123,7 @@ export default function AgeRangeContent({
               allowOverlap={false}
               enabled={visible}
               selectedTrackStyle={{ backgroundColor: colors.text, borderRadius: radii.pill }}
-              unselectedTrackStyle={{ backgroundColor: colors.border, borderRadius: radii.pill }}
+              unselectedTrackStyle={{ backgroundColor: colors.sheetTrack, borderRadius: radii.pill }}
               thumbStyle={{ ...shadows.ageRangeThumb, backgroundColor: colors.background }}
               pressedThumbStyle={reducedMotion ? undefined : { opacity: 0.9 }}
               onValuesChange={updateDraft}
