@@ -85,6 +85,13 @@ export const colors = {
   createButtonText: '#1A1E2E',
   createOverlay: 'rgba(10, 18, 40, 0.45)',
   coverCardBase: '#FFFFFF',
+  // Search fields and unselected pills inside sheets: a translucent darkening, so they
+  // show on white and on Create plan's cover-tinted sheets alike.
+  sheetFill: 'rgba(0, 0, 0, 0.05)',
+  // Border of unselected option pills inside sheets; translucent for the same reason.
+  sheetPillBorder: 'rgba(0, 0, 0, 0.12)',
+  // Unselected part of slider tracks inside sheets (Age); translucent for the same reason.
+  sheetTrack: 'rgba(0, 0, 0, 0.12)',
   profileGradientStart: '#E2E5FB',
   profileGradientEnd: '#B8DCFB',
   onboardingGradientStart: '#EAECFB',

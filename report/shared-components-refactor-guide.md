@@ -1086,6 +1086,13 @@ What it is:
 - Modal sheet wrapper for Create/Edit Event.
 - Uses `BottomSheetModal` with keyboard avoidance disabled so Create/Edit Event sheets share the
   app-wide modal transition and host coordination.
+- Takes `surfaceColor`: `CreateEventScreen` passes the cover tint from `useCoverSheetTint`
+  (`src/utils/coverTint.ts`), so Create/Edit sheets are near-white with a hint of the cover's colour.
+  Undefined (still sampling, or sampling failed) falls back to white. `BottomSheetModal`,
+  `BottomSheetHost` and `BottomSheet` all accept `surfaceColor`; no other sheet sets it.
+- Inside any sheet, `useSheetSurfaceColor()` returns its background (white unless tinted). Use it for
+  fades and gaps that must match the sheet (`CoverPickerContent` tiles and CTA fade,
+  `EventDateTimePickerContent` wheel fades), `colors.sheetFill` for search fields, `colors.sheetPillBorder` to outline unselected option pills, and `colors.sheetTrack` for the unselected part of slider tracks.
 
 Where it is used:
 

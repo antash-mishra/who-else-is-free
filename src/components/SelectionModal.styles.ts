@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.sheetPillBorder,
     backgroundColor: 'transparent',
   },
   chipSelected: {

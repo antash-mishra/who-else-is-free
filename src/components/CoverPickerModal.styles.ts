@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.inputSurface,
+    backgroundColor: colors.sheetFill,
     borderRadius: radii.md,
     borderCurve: 'continuous',
     height: 40,
@@ -60,12 +60,13 @@ const styles = StyleSheet.create({
     height: CHIP_HEIGHT,
     borderRadius: radii.md,
     borderCurve: 'continuous',
+    // Same outlined pill as the Group type / Gender options.
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.sheetPillBorder,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   chipActive: {
     backgroundColor: colors.text,

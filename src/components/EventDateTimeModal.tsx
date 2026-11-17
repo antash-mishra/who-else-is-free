@@ -21,8 +21,10 @@ import {
 
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useSheetSurfaceColor } from '@components/sheets';
 import { triggerHaptic } from '@services/haptics';
 import { colors, typography } from '@theme/index';
+import { withAlpha } from '@utils/color';
 import {
   clampDateTime,
   getPickerSectionDateLabel,
@@ -130,6 +132,8 @@ export const EventDateTimePickerContent = ({
     clampDateTime(toSafeDate(value), minDate, maxDate),
   );
   const [error, setError] = useState<string | null>(null);
+  // The wheel fades blend into the sheet: white, or Create plan's cover tint.
+  const surfaceColor = useSheetSurfaceColor();
 
   const visibleRef = useRef(visible);
   useLayoutEffect(() => {
@@ -494,12 +498,12 @@ export const EventDateTimePickerContent = ({
 
         {/* Fade gradients — each covers 2 items above/below centre */}
         <LinearGradient
-          colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0)']}
+          colors={[withAlpha(surfaceColor, 1), withAlpha(surfaceColor, 0)]}
           style={styles.fadeTop}
           pointerEvents="none"
         />
         <LinearGradient
-          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,1)']}
+          colors={[withAlpha(surfaceColor, 0), withAlpha(surfaceColor, 1)]}
           style={styles.fadeBottom}
           pointerEvents="none"
         />
@@ -517,6 +521,7 @@ export const EventDateTimePickerContent = ({
       selectedDateIndex,
       selectedHourLogical,
       selectedMinuteLogical,
+      surfaceColor,
     ],
   );
 

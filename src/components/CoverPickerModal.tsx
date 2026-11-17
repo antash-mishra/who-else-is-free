@@ -18,11 +18,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import CheckSelectedCoverIcon from '@assets/create-event/check-selected-cover.svg';
 import SearchIcon from '@assets/create-event/search.svg';
+import { useSheetSurfaceColor } from '@components/sheets';
 import { AppButton, AppText, FrostedSurface } from '@components/ui';
 import { CoverKey } from '@constants/covers';
 import { useCovers } from '@context/CoversContext';
 import { triggerHaptic } from '@services/haptics';
 import { colors, spacing } from '@theme/index';
+import { withAlpha } from '@utils/color';
 import { searchCovers } from '@utils/coverSearch';
 
 import BottomSheetModal from './BottomSheetModal';
@@ -54,6 +56,8 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
 }) => {
   const { height } = useWindowDimensions();
   const { bottom } = useSafeAreaInsets();
+  // White, or Create plan's cover tint: the tile gaps and the bottom fade paint it.
+  const surfaceColor = useSheetSurfaceColor();
   const { covers, categories } = useCovers();
   const [query, setQuery] = useState('');
   const [categoryKey, setCategoryKey] = useState<string | null>(null);
@@ -157,7 +161,7 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
               return (
                 <View style={[styles.optionRing, isSelected && styles.optionRingSelected]}>
                   <Pressable
-                    style={styles.option}
+                    style={[styles.option, { backgroundColor: surfaceColor }]}
                     onPress={() => {
                       triggerHaptic('selection');
                       onSelect(item.key);
@@ -187,14 +191,18 @@ export const CoverPickerContent: React.FC<CoverPickerContentProps> = ({
       )}
       {onPickPhoto && (
         <View style={[styles.libraryAction, { paddingBottom: sheetBottomInset }]}>
-          {/* Same white fade as the Event Details pinned CTA. */}
+          {/* The Event Details pinned CTA's fade, in the sheet's own colour. */}
           <LinearGradient
-            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.8)']}
+            colors={[withAlpha(surfaceColor, 0), withAlpha(surfaceColor, 0.8)]}
             locations={[0, 0.4]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
-          {pickerError && <AppText style={styles.pickerError}>{pickerError}</AppText>}
+          {pickerError && (
+            <AppText style={[styles.pickerError, { backgroundColor: surfaceColor }]}>
+              {pickerError}
+            </AppText>
+          )}
           <AppButton
             label="Add your own cover"
             fullWidth
