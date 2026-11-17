@@ -70,7 +70,7 @@ func TestBuildCatalog(t *testing.T) {
 			},
 		},
 	}
-	catalog := buildCatalog(tree)
+	catalog := buildCatalog(tree, coverCatalogFile{})
 
 	wantCategories := []catalogCategory{
 		{Key: "sports", Label: "Sports"},
@@ -89,6 +89,9 @@ func TestBuildCatalog(t *testing.T) {
 	if catalog.Covers[0].Label != "Badminton" || catalog.Covers[0].FileName != "sports-badminton-1.png" {
 		t.Fatalf("first cover fields wrong: %+v", catalog.Covers[0])
 	}
+	if catalog.Covers[0].DriveName != "image 1094.png" {
+		t.Fatalf("first cover should record its Drive file name: %+v", catalog.Covers[0])
+	}
 	if catalog.Covers[1].Key != "sports-tennis-1" {
 		t.Fatalf("second cover = %q", catalog.Covers[1].Key)
 	}
@@ -103,5 +106,197 @@ func TestBuildCatalog(t *testing.T) {
 	}
 	if g[1].Key != "generic-2" || g[1].DriveID != "g2" {
 		t.Fatalf("generic-2 wrong: %+v", g[1])
+	}
+}
+
+// prevCover is a catalog entry as an earlier sync wrote it.
+func prevCover(key, category string, tags []string, driveID, driveName string) catalogCover {
+	label := category
+	if len(tags) > 0 {
+		label = tags[0]
+	}
+	return catalogCover{
+		Key:       key,
+		Label:     label,
+		FileName:  key + ".png",
+		Category:  category,
+		Tags:      tags,
+		DriveID:   driveID,
+		DriveName: driveName,
+		SHA256:    "sha-" + driveID,
+	}
+}
+
+func coverByKey(t *testing.T, catalog coverCatalogFile, key string) catalogCover {
+	t.Helper()
+	for _, cover := range catalog.Covers {
+		if cover.Key == key {
+			return cover
+		}
+	}
+	t.Fatalf("no cover %q in %v", key, coverKeys(catalog))
+	return catalogCover{}
+}
+
+func coverKeys(catalog coverCatalogFile) []string {
+	keys := make([]string, len(catalog.Covers))
+	for i, cover := range catalog.Covers {
+		keys[i] = cover.Key
+	}
+	return keys
+}
+
+func TestBuildCatalogKeepsKeysForRenamedAndMovedFiles(t *testing.T) {
+	prev := coverCatalogFile{Covers: []catalogCover{
+		prevCover("sports-badminton-1", "sports", []string{"Badminton"}, "b1", "image 1094.png"),
+		prevCover("sports-badminton-2", "sports", []string{"Badminton"}, "b2", "image 1095.png"),
+	}}
+	tree := []driveCategory{{
+		Title: "Sports",
+		Tags: []driveTagGroup{
+			// b1 renamed, a new file that sorts first, and b2 moved to Tennis.
+			{Title: "Badminton", Files: []driveEntry{{ID: "b1", Title: "zz smash.png"}, {ID: "b0", Title: "aa serve.png"}}},
+			{Title: "Tennis", Files: []driveEntry{{ID: "b2", Title: "image 1095.png"}}},
+		},
+	}}
+
+	catalog := buildCatalog(tree, prev)
+
+	want := []string{"sports-badminton-3", "sports-badminton-1", "sports-badminton-2"}
+	if got := coverKeys(catalog); !reflect.DeepEqual(got, want) {
+		t.Fatalf("keys = %v, want %v", got, want)
+	}
+	if renamed := coverByKey(t, catalog, "sports-badminton-1"); renamed.DriveName != "zz smash.png" {
+		t.Fatalf("renamed cover should record its new name: %+v", renamed)
+	}
+	moved := coverByKey(t, catalog, "sports-badminton-2")
+	if moved.Label != "Tennis" || !reflect.DeepEqual(moved.Tags, []string{"Tennis"}) || moved.Retired {
+		t.Fatalf("moved cover should follow its folder: %+v", moved)
+	}
+}
+
+func TestBuildCatalogReplacesByFileNameInTheSameFolder(t *testing.T) {
+	prev := coverCatalogFile{Covers: []catalogCover{
+		prevCover("fitness-wellness-gym-1", "fitness-wellness", []string{"Gym"}, "old", "Group 78.png"),
+	}}
+	tree := []driveCategory{{
+		Title: "Fitness &amp; Wellness",
+		Tags:  []driveTagGroup{{Title: "Gym", Files: []driveEntry{{ID: "new", Title: "group 78.PNG"}}}},
+	}}
+
+	catalog := buildCatalog(tree, prev)
+
+	if len(catalog.Covers) != 1 {
+		t.Fatalf("covers = %v, want only the replacement", coverKeys(catalog))
+	}
+	got := catalog.Covers[0]
+	if got.Key != "fitness-wellness-gym-1" || got.DriveID != "new" || got.Retired {
+		t.Fatalf("replacement should take over the key: %+v", got)
+	}
+}
+
+func TestBuildCatalogDoesNotReplaceAcrossFolders(t *testing.T) {
+	prev := coverCatalogFile{Covers: []catalogCover{
+		prevCover("fitness-wellness-gym-1", "fitness-wellness", []string{"Gym"}, "old", "Group 78.png"),
+	}}
+	tree := []driveCategory{{
+		Title: "Fitness &amp; Wellness",
+		Tags:  []driveTagGroup{{Title: "Yoga", Files: []driveEntry{{ID: "new", Title: "Group 78.png"}}}},
+	}}
+
+	catalog := buildCatalog(tree, prev)
+
+	if got := coverKeys(catalog); !reflect.DeepEqual(got, []string{"fitness-wellness-yoga-1", "fitness-wellness-gym-1"}) {
+		t.Fatalf("keys = %v, want a new Yoga cover and Gym retired", got)
+	}
+	if !catalog.Covers[1].Retired {
+		t.Fatalf("gym-1 should be retired: %+v", catalog.Covers[1])
+	}
+}
+
+func TestBuildCatalogRetiresAndRestoresCovers(t *testing.T) {
+	brunch := []string{"Brunch", "Food"}
+	prev := coverCatalogFile{Covers: []catalogCover{
+		prevCover("food-drinks-brunch-1", "food-drinks", brunch, "x", "image 1192.png"),
+		prevCover("food-drinks-brunch-2", "food-drinks", brunch, "y", "image 1193.png"),
+	}}
+	onlyX := []driveCategory{{
+		Title: "Food &amp; Drinks",
+		Tags:  []driveTagGroup{{Title: "Brunch / Food", Files: []driveEntry{{ID: "x", Title: "image 1192.png"}}}},
+	}}
+
+	removed := buildCatalog(onlyX, prev)
+	retired := coverByKey(t, removed, "food-drinks-brunch-2")
+	if !retired.Retired || retired.DriveID != "y" || retired.SHA256 != "sha-y" {
+		t.Fatalf("removed cover should be retired with its last details: %+v", retired)
+	}
+
+	// Restored from Drive's Trash: the file ID comes back.
+	both := []driveCategory{{
+		Title: "Food &amp; Drinks",
+		Tags: []driveTagGroup{{Title: "Brunch / Food", Files: []driveEntry{
+			{ID: "x", Title: "image 1192.png"}, {ID: "y", Title: "image 1193.png"},
+		}}},
+	}}
+	restored := buildCatalog(both, removed)
+	if got := coverByKey(t, restored, "food-drinks-brunch-2"); got.Retired {
+		t.Fatalf("restored cover should be active again: %+v", got)
+	}
+	if len(restored.Covers) != 2 {
+		t.Fatalf("covers = %v, want 2", coverKeys(restored))
+	}
+}
+
+func TestBuildCatalogNeverReusesRetiredNumbers(t *testing.T) {
+	brunch := []string{"Brunch"}
+	retired := prevCover("food-drinks-brunch-2", "food-drinks", brunch, "y", "image 1193.png")
+	retired.Retired = true
+	prev := coverCatalogFile{Covers: []catalogCover{
+		prevCover("food-drinks-brunch-1", "food-drinks", brunch, "x", "image 1192.png"),
+		retired,
+	}}
+	tree := []driveCategory{{
+		Title: "Food &amp; Drinks",
+		Tags: []driveTagGroup{{Title: "Brunch", Files: []driveEntry{
+			{ID: "x", Title: "image 1192.png"}, {ID: "z", Title: "image 99.png"},
+		}}},
+	}}
+
+	catalog := buildCatalog(tree, prev)
+
+	want := []string{"food-drinks-brunch-1", "food-drinks-brunch-3", "food-drinks-brunch-2"}
+	if got := coverKeys(catalog); !reflect.DeepEqual(got, want) {
+		t.Fatalf("keys = %v, want %v", got, want)
+	}
+}
+
+func TestBuildCatalogGivesSameNamedNewFilesTheirOwnKeys(t *testing.T) {
+	tree := []driveCategory{{
+		Title: "Generic",
+		Files: []driveEntry{{ID: "a", Title: "Group 46.png"}, {ID: "b", Title: "Group 46.png"}},
+	}}
+
+	catalog := buildCatalog(tree, coverCatalogFile{})
+
+	if got := coverKeys(catalog); !reflect.DeepEqual(got, []string{"generic-1", "generic-2"}) {
+		t.Fatalf("keys = %v", got)
+	}
+}
+
+func TestNextCoverKey(t *testing.T) {
+	used := map[string]bool{
+		"sports-badminton-1": true,
+		"sports-badminton-4": true,
+		"sports-badminton-x": true,
+		"sports-1":           true,
+	}
+	if got := nextCoverKey("sports-badminton", used); got != "sports-badminton-5" {
+		t.Fatalf("next badminton = %q", got)
+	}
+	if got := nextCoverKey("sports", used); got != "sports-2" {
+		t.Fatalf("next sports = %q; keys of other groups must not count", got)
+	}
+	if got := nextCoverKey("sports-tennis", used); got != "sports-tennis-1" {
+		t.Fatalf("next tennis = %q", got)
 	}
 }
