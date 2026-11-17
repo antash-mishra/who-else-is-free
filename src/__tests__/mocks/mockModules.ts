@@ -65,6 +65,13 @@ jest.mock('@shopify/react-native-skia', () => {
     Circle: SkiaView,
     Group: SkiaView,
     Rect: SkiaView,
+    // useCoverSheetTint: decoding never resolves in tests, so sheets stay white.
+    AlphaType: { Unpremul: 3 },
+    ColorType: { RGBA_8888: 4 },
+    Skia: {
+      Data: { fromURI: () => new Promise(() => undefined) },
+      Image: { MakeImageFromEncoded: () => null },
+    },
   };
 });
 

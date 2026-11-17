@@ -14,6 +14,8 @@ interface CreateEventDateTimeSheetProps {
   maxDate: Date;
   onClose: () => void;
   onConfirm: (value: Date) => void;
+  /** Cover-tinted sheet background, as on the other Create plan sheets. */
+  surfaceColor?: string;
 }
 
 /** Android only: pay native wheel mounting after navigation settles, outside the tap path. */
@@ -34,15 +36,18 @@ const CreateEventDateTimeSheet = (props: CreateEventDateTimeSheetProps) => {
   // Blur unmounts the adapter, releasing the retained native content from the shared host.
   if (!focused || (!prepared && !props.visible)) return null;
 
+  const { surfaceColor, ...pickerProps } = props;
+
   return (
     <CreateEventBottomSheet
       visible={props.visible}
       presentation="inline"
       keepMounted
       title="Date & time"
+      surfaceColor={surfaceColor}
       onClose={props.onClose}
     >
-      <EventDateTimePickerContent {...props} prepareWhileHidden />
+      <EventDateTimePickerContent {...pickerProps} prepareWhileHidden />
     </CreateEventBottomSheet>
   );
 };

@@ -20,6 +20,7 @@ import { genderDisplayLabels, getAgeLabel, groupDisplayLabels } from '@constants
 import { useAuth } from '@context/AuthContext';
 import { useCovers } from '@context/CoversContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
+import { useCoverSheetTint } from '@hooks/useCoverSheetTint';
 import { useEmailSignInFlow } from '@hooks/useEmailSignInFlow';
 import { usePickEventCover } from '@hooks/usePickEventCover';
 import type { PlaceDetail } from '@hooks/usePlacesAutocomplete';
@@ -348,6 +349,8 @@ const CreateEventScreen = () => {
     () => form.coverAsset?.uri ?? form.coverUrl ?? resolveCover(form.coverKey),
     [form.coverKey, form.coverAsset, form.coverUrl, resolveCover],
   );
+  // Create plan sheets take a hint of the cover's colour instead of plain white.
+  const sheetSurfaceColor = useCoverSheetTint(selectedCoverUri);
 
   const contentContainerStyle = useMemo(
     () => [
@@ -560,11 +563,13 @@ const CreateEventScreen = () => {
           maxDate={pickerMaxDate}
           onConfirm={handleDateTimeConfirm}
           onClose={closeActiveSheet}
+          surfaceColor={sheetSurfaceColor}
         />
       ) : null}
       <CreateEventBottomSheet
         visible={activeSheet !== null && !(Platform.OS === 'android' && activeSheet === 'dateTime')}
         title={getCreateEventSheetTitle(renderedSheet)}
+        surfaceColor={sheetSurfaceColor}
         onClose={closeActiveSheet}
         avoidKeyboard={renderedSheet === 'description' || renderedSheet === 'signIn'}
         contentKey={renderedSheet === 'signIn' ? signInFlow.view : undefined}
