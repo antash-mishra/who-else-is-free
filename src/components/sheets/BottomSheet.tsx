@@ -42,7 +42,7 @@ import { Springs } from '@theme/springs';
 import { getKeyboardTranslation } from '@utils/bottomObstruction';
 
 import SheetHeader from './SheetHeader';
-import { OutgoingSheetLayerContext } from './SheetLayerContext';
+import { OutgoingSheetLayerContext, SheetSurfaceColorContext } from './SheetLayerContext';
 
 export type BottomSheetPresentation = 'modal' | 'inline';
 export type BottomSheetAnimation = 'spring' | 'timing';
@@ -54,6 +54,8 @@ export type BottomSheetProps = {
   title?: string;
   avoidKeyboard?: boolean;
   snapHeight?: number;
+  /** Sheet background instead of the default white (Create plan tints it from the cover). */
+  surfaceColor?: string;
   presentation?: BottomSheetPresentation;
   /** Retain an inline sheet's native layout while hidden. Never retains a native Modal. */
   keepMounted?: boolean;
@@ -143,6 +145,7 @@ const BottomSheet = ({
   title,
   avoidKeyboard = true,
   snapHeight,
+  surfaceColor,
   presentation = 'modal',
   keepMounted = false,
   animation = presentation === 'modal' ? 'spring' : 'timing',
@@ -597,13 +600,15 @@ const BottomSheet = ({
       <View
         style={[styles.content, snapHeight ? styles.contentFill : null, sheetBody.contentStyle]}
       >
-        {isOutgoing ? (
-          <OutgoingSheetLayerContext.Provider value>
-            {sheetBody.children}
-          </OutgoingSheetLayerContext.Provider>
-        ) : (
-          sheetBody.children
-        )}
+        <SheetSurfaceColorContext.Provider value={surfaceColor ?? colors.background}>
+          {isOutgoing ? (
+            <OutgoingSheetLayerContext.Provider value>
+              {sheetBody.children}
+            </OutgoingSheetLayerContext.Provider>
+          ) : (
+            sheetBody.children
+          )}
+        </SheetSurfaceColorContext.Provider>
       </View>
     </>
   );
@@ -632,6 +637,7 @@ const BottomSheet = ({
           styles.sheet,
           { maxHeight: sheetMaxHeight },
           snapHeight ? { height: snapHeight } : null,
+          surfaceColor ? { backgroundColor: surfaceColor } : null,
           sheetStyle,
         ]}
         renderToHardwareTextureAndroid={isAnimating}

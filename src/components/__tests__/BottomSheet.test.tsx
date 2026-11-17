@@ -24,6 +24,26 @@ describe('BottomSheet', () => {
     jest.restoreAllMocks();
   });
 
+  it('paints the sheet with surfaceColor and stays white without it', () => {
+    const { getByTestId, rerender } = render(
+      <BottomSheet {...defaultProps} surfaceColor="#F6EEF0">
+        <Text>Sheet content</Text>
+      </BottomSheet>,
+    );
+    expect(StyleSheet.flatten(getByTestId('bottom-sheet-modal').props.style).backgroundColor).toBe(
+      '#F6EEF0',
+    );
+
+    rerender(
+      <BottomSheet {...defaultProps}>
+        <Text>Sheet content</Text>
+      </BottomSheet>,
+    );
+    expect(StyleSheet.flatten(getByTestId('bottom-sheet-modal').props.style).backgroundColor).toBe(
+      '#FFFFFF',
+    );
+  });
+
   it('keeps iOS on keyboardWillShow and keyboardWillHide', () => {
     Platform.OS = 'ios';
     const removeSubscriptions: jest.Mock[] = [];

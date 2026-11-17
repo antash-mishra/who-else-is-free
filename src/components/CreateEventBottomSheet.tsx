@@ -12,6 +12,8 @@ type CreateEventBottomSheetProps = {
   children: React.ReactNode;
   onClose: () => void;
   snapHeight?: number;
+  /** Cover-tinted sheet background (useCoverSheetTint); white when undefined. */
+  surfaceColor?: string;
   /** Lift the sheet above the keyboard (for text-entry sheets like Description). */
   avoidKeyboard?: boolean;
   onOpened?: () => void;
@@ -27,6 +29,7 @@ const CreateEventBottomSheet = ({
   children,
   onClose,
   snapHeight,
+  surfaceColor,
   avoidKeyboard = false,
   onOpened,
   contentKey,
@@ -38,6 +41,7 @@ const CreateEventBottomSheet = ({
     onClose={onClose}
     title={title}
     snapHeight={snapHeight}
+    surfaceColor={surfaceColor}
     avoidKeyboard={avoidKeyboard}
     onOpened={onOpened}
     contentKey={contentKey}
