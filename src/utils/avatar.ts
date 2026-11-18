@@ -26,15 +26,15 @@ const AVATAR_COLORS = [
 // brand/artwork palette data — an allowed exception to the theme-token rule.
 const AVATAR_GRADIENTS = [
   ["#FEC1C2", "#F83134"], // red
-  ["#F1E0C1", "#FF4010"], // orange
-  ["#F8CDEE", "#FF22C8"], // magenta
-  ["#FFFFA7", "#F2A900"], // yellow
-  ["#CDFAF0", "#00B8A0"], // teal
-  ["#E9E1F9", "#7731F8"], // purple
   ["#CED2F7", "#313CF8"], // indigo
-  ["#D1ECF8", "#0193D7"], // blue
-  ["#CEF5BC", "#38BB00"], // green
   ["#C5F7E4", "#00A767"], // emerald
+  ["#FFD86B", "#FF3D7F"], // sunset: gold → pink
+  ["#FFE066", "#FF6A00"], // mango: yellow → orange
+  ["#6EE7FF", "#3D5AFE"], // electric: cyan → blue
+  ["#FFD452", "#FF2F2F"], // fire: yellow → red
+  ["#F5A8FF", "#6A3BFF"], // orchid: pink lilac → violet
+  ["#FFE45C", "#00C2A8"], // lemon → teal
+  ["#9EF01A", "#00A86B"], // lime → jade
 ] as const;
 
 export type AvatarGradient = readonly [string, string];
