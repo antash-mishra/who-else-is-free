@@ -28,6 +28,7 @@ import {
   sortEventsByCreatedAtDesc,
 } from '@components/events';
 import { emptyStateCenteredTop } from '@components/FullPageEmptyState';
+import LocationPermissionSheet from '@components/location-permission/LocationPermissionSheet';
 import ScreenContainer from '@components/ScreenContainer';
 import SegmentedControl from '@components/SegmentedControl';
 import { useAuth } from '@context/AuthContext';
@@ -35,6 +36,7 @@ import { useBloom } from '@context/BloomContext';
 import { useChat } from '@context/ChatContext';
 import { UserEvent, useEvents } from '@context/EventsContext';
 import { usePush } from '@context/PushContext';
+import { useLocationPermissionPrompt } from '@hooks/useLocationPermissionPrompt';
 import { useTabbedPages } from '@hooks/useTabbedPages';
 import { useViewerLocation } from '@hooks/useViewerLocation';
 import { RootStackParamList, RootTabParamList } from '@navigation/types';
@@ -87,6 +89,8 @@ const HomeScreen = () => {
   const { requestPushPermission } = usePush();
   const viewerLocation = useViewerLocation();
   const requestLocationPermission = viewerLocation.requestPermission;
+  const { offer: offerLocationPermission, sheetProps: locationPermissionSheetProps } =
+    useLocationPermissionPrompt(requestLocationPermission);
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -235,7 +239,8 @@ const HomeScreen = () => {
     const requestStartupPermissions = async () => {
       await requestPushPermission();
       if (!isCancelled) {
-        await requestLocationPermission();
+        // Location is explained in a sheet first; Continue leads to the system prompt.
+        await offerLocationPermission();
       }
     };
 
@@ -250,7 +255,7 @@ const HomeScreen = () => {
     return () => {
       isCancelled = true;
     };
-  }, [isFocused, requestLocationPermission, requestPushPermission, transitionComplete]);
+  }, [isFocused, offerLocationPermission, requestPushPermission, transitionComplete]);
 
   const showAllEventsLoading = !hasLoadedEvents && !error;
   const showAllEventsError = !!error && !isLoading && allEvents.length === 0;
@@ -405,6 +410,7 @@ const HomeScreen = () => {
         active={showWelcomeConfetti}
         onFinished={() => setShowWelcomeConfetti(false)}
       />
+      <LocationPermissionSheet {...locationPermissionSheetProps} />
     </ScreenContainer>
   );
 };
