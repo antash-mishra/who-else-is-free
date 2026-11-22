@@ -110,7 +110,9 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     color: colors.text,
     fontFamily: typography.fontFamilyMedium,
-    lineHeight: 20,
+    // Inter's glyphs need ~22px at 18px; a 20px line clipped descenders (g, y, p).
+    // FullPageEmptyState's TEXT_BLOCK_HEIGHT counts this.
+    lineHeight: 24,
     letterSpacing: typography.letterSpacing,
   },
   description: {
