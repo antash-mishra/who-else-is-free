@@ -184,7 +184,7 @@ describe('usePastEvents', () => {
       await result.current.refresh();
     });
     expect(result.current.events.map((event) => event.id)).toEqual(['1']);
-    expect(result.current.error).toBe("Couldn't load past plans.");
+    expect(result.current.error).toBe("Couldn't load past plans");
   });
 
   it('reuses unchanged items and preserves the array on an equal refresh', async () => {

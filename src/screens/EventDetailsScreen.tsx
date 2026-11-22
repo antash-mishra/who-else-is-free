@@ -683,15 +683,14 @@ const EventDetailsScreen = ({ onOverlayClose }: EventDetailsScreenProps = {}) =>
                 </Pressable>
               )}
               <Text style={styles.fallbackText}>
-                {loadStatus === 'error'
-                  ? 'Unable to load plan. Please try again.'
-                  : "We couldn't find that plan."}
+                {loadStatus === 'error' ? 'Unable to load plan' : "We couldn't find that plan"}
               </Text>
               {loadStatus === 'error' ? (
                 <AppButton
                   label="Try again"
                   variant="secondary"
                   onPress={() => setRetryKey((value) => value + 1)}
+                  style={styles.fallbackButton}
                 />
               ) : null}
             </>

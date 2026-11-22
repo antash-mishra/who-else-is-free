@@ -16,12 +16,12 @@ describe('EventListLoadState', () => {
   it('renders an accessible error state and retries', () => {
     const onRetry = jest.fn();
     render(
-      <EventListLoadState status="error" errorMessage="Unable to load plans." onRetry={onRetry} />,
+      <EventListLoadState status="error" errorMessage="Unable to load plans" onRetry={onRetry} />,
     );
 
     expect(screen.getByTestId('event-list-error-state')).toBeTruthy();
     expect(screen.getByLabelText('Unable to load plans')).toBeTruthy();
-    expect(screen.getByText('Unable to load plans.')).toBeTruthy();
+    expect(screen.getByText('Unable to load plans')).toBeTruthy();
 
     fireEvent.press(screen.getByText('Try again'));
     expect(onRetry).toHaveBeenCalledTimes(1);

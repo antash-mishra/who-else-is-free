@@ -258,9 +258,9 @@ export const EventsProvider = ({
       }
       logger.error('Failed to fetch events', err);
       if (isAbortError(err)) {
-        setError('Unable to load plans.');
+        setError('Unable to load plans');
       } else {
-        setError('Unable to load plans.');
+        setError('Unable to load plans');
       }
     } finally {
       if (requestId === eventsRequestIdRef.current) {

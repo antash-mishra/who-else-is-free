@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { PastEventItem } from '@api/pastEvents';
 import EmptyState from '@components/EmptyState';
 import { EventSectionList, buildEventItemSections } from '@components/events';
 import FullPageEmptyState from '@components/FullPageEmptyState';
+import LoadErrorState from '@components/LoadErrorState';
 import ScreenContainer from '@components/ScreenContainer';
 import ScreenHeader from '@components/ScreenHeader';
 import { AppButton } from '@components/ui';
@@ -82,12 +83,12 @@ const PastEventsScreen = () => {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : showError ? (
-          <View style={styles.centerContent}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={handleRefresh}>
-              <Text style={styles.retryButtonText}>Please try again</Text>
-            </Pressable>
-          </View>
+          <LoadErrorState
+            message={error ?? ''}
+            iconAccessibilityLabel="Unable to load past plans"
+            onRetry={handleRefresh}
+            style={styles.centerContent}
+          />
         ) : (
           <EventSectionList
             sections={sections}
@@ -153,19 +154,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyMedium,
     color: colors.error,
     textAlign: 'center',
-  },
-  retryButton: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-  },
-  retryButtonText: {
-    color: colors.buttonText,
-    fontSize: typography.body,
-    fontFamily: typography.fontFamilyMedium,
-    lineHeight: typography.lineHeight,
-    letterSpacing: typography.letterSpacing,
   },
 });
 

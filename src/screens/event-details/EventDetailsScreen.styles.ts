@@ -387,8 +387,16 @@ const styles = StyleSheet.create({
   fallbackText: {
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
+    // Same 18/24 title as EmptyState and LoadErrorState.
+    lineHeight: 24,
+    letterSpacing: typography.letterSpacing,
     color: colors.subText,
     textAlign: 'center',
+  },
+  fallbackButton: {
+    height: componentTokens.emptyStateButton.height,
+    minHeight: componentTokens.emptyStateButton.height,
+    borderRadius: componentTokens.emptyStateButton.radius,
   },
   fallbackBackButton: {
     position: 'absolute',

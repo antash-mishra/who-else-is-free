@@ -136,7 +136,7 @@ export const usePastEvents = (isFocused: boolean): UsePastEventsResult => {
         updateState((current) => ({
           ...current,
           hasLoaded: true,
-          error: "Couldn't load past plans.",
+          error: "Couldn't load past plans",
         }));
       } finally {
         if (version === generation.current) {
