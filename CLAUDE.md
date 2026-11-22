@@ -302,6 +302,7 @@ npm start
 npm run android
 npm run ios
 npm run web
+npm run dev:phones   # Metro on :8082, email sign-in + chat on, adb reverse for USB Android
 npm test
 npm run typecheck
 npm run lint
