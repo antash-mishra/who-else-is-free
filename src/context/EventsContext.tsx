@@ -109,6 +109,11 @@ interface EventsContextValue {
   error: string | null;
   refreshEvents: () => Promise<void>;
   refreshRequestedEvents: () => Promise<void>;
+  /**
+   * True while an events request is in flight or the last one succeeded within
+   * `maxAgeMs`. Lets a screen skip a refresh that would only repeat it.
+   */
+  hasFreshEvents: (maxAgeMs: number) => boolean;
   addUserEvent: (event: CreateEventInput) => Promise<string>;
   updateUserEvent: (eventId: string, event: UpdateEventInput) => Promise<void>;
   deleteUserEvent: (eventId: string) => Promise<void>;
@@ -189,6 +194,8 @@ export const EventsProvider = ({
   const [events, setEvents] = useState<UserEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedEvents, setHasLoadedEvents] = useState(false);
+  const eventsInFlightRef = useRef(false);
+  const eventsLoadedAtRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingGuestEvent, setPendingGuestEvent] = useState<GuestEventDraft | null>(null);
   const [guestSubmissionError, setGuestSubmissionError] = useState<string | null>(null);
@@ -223,9 +230,11 @@ export const EventsProvider = ({
     eventsRequestIdRef.current = requestId;
     setIsLoading(true);
     setError(null);
+    eventsInFlightRef.current = true;
     const fetchClient = authFetchRef.current;
     if (!fetchClient) {
       if (requestId === eventsRequestIdRef.current) {
+        eventsInFlightRef.current = false;
         setIsLoading(false);
         setHasLoadedEvents(true);
       }
@@ -252,6 +261,7 @@ export const EventsProvider = ({
           .filter((event) => isUpcomingEvent(event.eventDate, event.time, event.scheduledAt))
           .sort(sortEventsBySchedule),
       );
+      eventsLoadedAtRef.current = Date.now();
     } catch (err) {
       if (requestId !== eventsRequestIdRef.current) {
         return;
@@ -264,6 +274,7 @@ export const EventsProvider = ({
       }
     } finally {
       if (requestId === eventsRequestIdRef.current) {
+        eventsInFlightRef.current = false;
         setIsLoading(false);
         setHasLoadedEvents(true);
       }
@@ -690,6 +701,13 @@ export const EventsProvider = ({
     return visibleEvents.filter((event) => requestedEventIds.has(event.id));
   }, [visibleEvents, requestedEventIds]);
 
+  const hasFreshEvents = useCallback(
+    (maxAgeMs: number) =>
+      eventsInFlightRef.current ||
+      (eventsLoadedAtRef.current !== null && Date.now() - eventsLoadedAtRef.current < maxAgeMs),
+    [],
+  );
+
   const value = useMemo(
     () => ({
       events: visibleEvents,
@@ -700,6 +718,7 @@ export const EventsProvider = ({
       error,
       refreshEvents,
       refreshRequestedEvents,
+      hasFreshEvents,
       addUserEvent,
       updateUserEvent,
       deleteUserEvent,
@@ -721,6 +740,7 @@ export const EventsProvider = ({
       error,
       refreshEvents,
       refreshRequestedEvents,
+      hasFreshEvents,
       addUserEvent,
       updateUserEvent,
       deleteUserEvent,

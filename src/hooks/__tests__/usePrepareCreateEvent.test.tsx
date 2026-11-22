@@ -7,6 +7,7 @@ import { act, render } from '@testing-library/react-native';
 import { usePrepareCreateEvent } from '../usePrepareCreateEvent';
 
 let mockLoading = false;
+let mockTransitionComplete = true;
 let mockFocused = true;
 let mockRoutes = [{ name: 'Main' }];
 let mockPrepared: { name: string }[] = [];
@@ -20,6 +21,9 @@ const mockNavigation = {
 };
 
 jest.mock('@context/CoversContext', () => ({ useCovers: () => ({ isLoading: mockLoading }) }));
+jest.mock('@context/BloomContext', () => ({
+  useBloom: () => ({ transitionComplete: mockTransitionComplete }),
+}));
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
   useFocusEffect: (callback: () => (() => void) | undefined) => {
@@ -35,6 +39,7 @@ describe('idle Create preparation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLoading = false;
+    mockTransitionComplete = true;
     mockFocused = true;
     mockRoutes = [{ name: 'Main' }];
     mockPrepared = [];
@@ -48,6 +53,17 @@ describe('idle Create preparation', () => {
   it('waits for navigation interactions before preparing the form', () => {
     render(<Harness />);
     expect(mockPreload).not.toHaveBeenCalled();
+    act(() => mockIdle?.());
+    expect(mockPreload).toHaveBeenCalledWith('CreateEvent', { editEventId: null });
+  });
+
+  it('waits for the launch transition to finish before preparing the form', () => {
+    mockTransitionComplete = false;
+    const { rerender } = render(<Harness />);
+    expect(mockIdle).toBeUndefined();
+
+    mockTransitionComplete = true;
+    rerender(<Harness />);
     act(() => mockIdle?.());
     expect(mockPreload).toHaveBeenCalledWith('CreateEvent', { editEventId: null });
   });

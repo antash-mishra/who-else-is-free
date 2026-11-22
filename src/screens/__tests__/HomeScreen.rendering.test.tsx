@@ -30,6 +30,7 @@ let mockEventsValue = {
   error: null as string | null,
   refreshEvents: jest.fn().mockResolvedValue(undefined),
   refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
+  hasFreshEvents: jest.fn().mockReturnValue(false),
   isEventRequested: jest.fn().mockReturnValue(false),
 };
 let mockChatValue = { conversations: mockConversations };
@@ -166,6 +167,7 @@ describe('HomeScreen Rendering', () => {
       error: null,
       refreshEvents: jest.fn().mockResolvedValue(undefined),
       refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
+      hasFreshEvents: jest.fn().mockReturnValue(false),
       isEventRequested: jest.fn().mockReturnValue(false),
     };
     mockChatValue = { conversations: mockConversations };
@@ -489,6 +491,27 @@ describe('HomeScreen Rendering', () => {
       expect(queryByText('Dublin Pint')).toBeNull();
       expect(queryByText('Unknown distance')).toBeNull();
       expect(queryByText('Mystery Hangout')).toBeNull();
+    });
+  });
+
+  describe('Launch transition', () => {
+    it('signals the bloom ready on mount without waiting for plans', () => {
+      mockEventsValue.isLoading = true;
+      mockEventsValue.hasLoadedEvents = false;
+      render(<HomeScreen />);
+      expect(mockSignalReady).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips the first-focus refresh when launch plans are fresh', () => {
+      mockEventsValue.hasFreshEvents.mockReturnValue(true);
+      render(<HomeScreen />);
+      expect(mockEventsValue.hasFreshEvents).toHaveBeenCalledWith(30_000);
+      expect(mockEventsValue.refreshEvents).not.toHaveBeenCalled();
+    });
+
+    it('refreshes on first focus when plans are stale', () => {
+      render(<HomeScreen />);
+      expect(mockEventsValue.refreshEvents).toHaveBeenCalledTimes(1);
     });
   });
 
