@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     fontSize: typography.subtitle,
     fontFamily: typography.fontFamilyMedium,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 24,
     letterSpacing: -0.5,
     textAlign: 'center',
     marginBottom: 6,

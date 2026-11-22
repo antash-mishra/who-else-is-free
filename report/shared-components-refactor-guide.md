@@ -833,7 +833,7 @@ Use it when:
 Placement rule:
 
 - The parent list/screen owns centering and available height.
-- `EmptyState` owns the content styling: an 18px medium title, a 15px description 6px below it,
+- `EmptyState` owns the content styling: an 18px medium title on a 24px line, a 15px description 6px below it,
   and actions 16px below that at `componentTokens.emptyStateButton` height (50). Profile's
   signed-out "No profile" card matches these by hand; change both together.
 - `FullPageEmptyState` centres the block with `TEXT_BLOCK_HEIGHT` and `ACTION_BLOCK_HEIGHT`, which
