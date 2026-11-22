@@ -1,7 +1,7 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { AppButton, ErrorCircleIcon } from '@components/ui';
-import { colors, spacing, typography } from '@theme/index';
+import LoadErrorState from '@components/LoadErrorState';
+import { colors, spacing } from '@theme/index';
 
 export type EventListLoadStateStatus = 'loading' | 'error';
 
@@ -29,13 +29,11 @@ const EventListLoadState = ({
         color={colors.primary}
       />
     ) : (
-      <>
-        <ErrorCircleIcon accessibilityLabel="Unable to load plans" />
-        <Text style={styles.errorText}>{errorMessage}</Text>
-        {onRetry ? (
-          <AppButton label="Try again" onPress={onRetry} style={styles.retryButton} />
-        ) : null}
-      </>
+      <LoadErrorState
+        message={errorMessage ?? ''}
+        iconAccessibilityLabel="Unable to load plans"
+        onRetry={onRetry}
+      />
     )}
   </View>
 );
@@ -47,15 +45,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xl,
     gap: spacing.md,
-  },
-  errorText: {
-    fontSize: typography.title,
-    fontFamily: typography.fontFamilySemiBold,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  retryButton: {
-    minWidth: 172,
   },
 });
 

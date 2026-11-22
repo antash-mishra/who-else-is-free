@@ -250,9 +250,9 @@ describe('HomeScreen Rendering', () => {
     it('displays error message and retry button', () => {
       mockEventsValue.isLoading = false;
       mockEventsValue.events = [];
-      mockEventsValue.error = 'Unable to load plans.';
+      mockEventsValue.error = 'Unable to load plans';
       const { getByText, getByLabelText } = render(<HomeScreen />);
-      expect(getByText('Unable to load plans.')).toBeTruthy();
+      expect(getByText('Unable to load plans')).toBeTruthy();
       expect(getByText('Try again')).toBeTruthy();
       expect(getByLabelText('Unable to load plans')).toBeTruthy();
     });

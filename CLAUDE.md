@@ -229,6 +229,7 @@ Use shared primitives before local UI:
 - `IconButton` supports a compact visual size with an explicit shared hit-slop token when a header must keep the standard touch target without inheriting the button's layout height.
 - Sheets: `src/components/sheets`, `BottomSheetHostProvider`, `BottomSheetModal`, `CreateEventBottomSheet`
 - Event lists: `src/components/events`, including `EventListLoadState` for the shared full-page loading/error/retry presentation
+- Full-page load failures: `LoadErrorState` (red icon, 18/24 title in the text colour, empty-state-sized `Try again`), used by `EventListLoadState`, Notifications and Past plans
 - Tabbed pager wiring: `useTabbedPages` in `src/hooks/useTabbedPages.ts`. Spread `pagerProps` onto
   `AnimatedPager` and `tabsProps` onto `SegmentedControl` instead of passing `pageOffsetSV`,
   `selectedIndex` and `onChange` separately, so the tab indicator cannot stop tracking the pager.

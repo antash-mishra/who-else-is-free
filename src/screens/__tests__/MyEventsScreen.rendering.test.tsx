@@ -262,7 +262,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: [],
         requestedEvents: [],
         isLoading: false,
-        error: 'Unable to load plans.',
+        error: 'Unable to load plans',
         refreshEvents: jest.fn().mockResolvedValue(undefined),
         refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
       });
@@ -272,7 +272,7 @@ describe('MyEventsScreen Rendering', () => {
 
       expect(screen.getByTestId('event-list-error-state')).toBeTruthy();
       expect(screen.getByLabelText('Unable to load plans')).toBeTruthy();
-      expect(screen.getByText('Unable to load plans.')).toBeTruthy();
+      expect(screen.getByText('Unable to load plans')).toBeTruthy();
       expect(screen.getByText('Try again')).toBeTruthy();
       expect(screen.queryByText('No plans hosted')).toBeNull();
       expect(screen.getByTestId('segment-hosting')).toBeTruthy();
@@ -285,7 +285,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: [],
         requestedEvents: [],
         isLoading: false,
-        error: 'Unable to load plans.',
+        error: 'Unable to load plans',
         refreshEvents,
         refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
       });
@@ -302,7 +302,7 @@ describe('MyEventsScreen Rendering', () => {
         userEvents: userHostedEvents,
         requestedEvents: [],
         isLoading: false,
-        error: 'Unable to load plans.',
+        error: 'Unable to load plans',
         refreshEvents: jest.fn().mockResolvedValue(undefined),
         refreshRequestedEvents: jest.fn().mockResolvedValue(undefined),
       });

@@ -1091,7 +1091,7 @@ describe('EventDetailsScreen Rendering Tests', () => {
     it('renders fallback UI when event is not found', () => {
       const { getByText } = render(<EventDetailsScreen />);
 
-      expect(getByText("We couldn't find that plan.")).toBeTruthy();
+      expect(getByText("We couldn't find that plan")).toBeTruthy();
     });
 
     it('shows back button on fallback screen', () => {
@@ -1169,14 +1169,14 @@ describe('EventDetailsScreen Rendering Tests', () => {
       const { getByText, queryByText } = render(<EventDetailsScreen />);
 
       await waitFor(() => {
-        expect(getByText('Unable to load plan. Please try again.')).toBeTruthy();
+        expect(getByText('Unable to load plan')).toBeTruthy();
       });
-      expect(queryByText("We couldn't find that plan.")).toBeNull();
+      expect(queryByText("We couldn't find that plan")).toBeNull();
 
       fireEvent.press(getByText('Try again'));
 
       await waitFor(() => {
-        expect(getByText("We couldn't find that plan.")).toBeTruthy();
+        expect(getByText("We couldn't find that plan")).toBeTruthy();
       });
       expect(mockAuthState.authFetch).toHaveBeenCalledTimes(2);
 

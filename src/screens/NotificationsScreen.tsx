@@ -18,10 +18,11 @@ import BottomSheetModal from '@components/BottomSheetModal';
 import EmptyState from '@components/EmptyState';
 import EventActionBadge from '@components/EventActionBadge';
 import FullPageEmptyState from '@components/FullPageEmptyState';
+import LoadErrorState from '@components/LoadErrorState';
 import NotificationRow from '@components/NotificationRow';
 import ScreenContainer from '@components/ScreenContainer';
 import { SheetActionList } from '@components/sheets';
-import { AppButton, AppText, ErrorCircleIcon, IconButton } from '@components/ui';
+import { AppText, IconButton } from '@components/ui';
 import { useEvents } from '@context/EventsContext';
 import { useNotifications } from '@context/NotificationsContext';
 import { useOpenNotifications } from '@hooks/useOpenNotifications';
@@ -176,17 +177,12 @@ const NotificationsScreen = () => {
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : showError ? (
-          <View style={styles.centerContent}>
-            <ErrorCircleIcon accessibilityLabel="Unable to load notifications" />
-            <AppText variant="body" style={styles.errorText}>
-              {error}
-            </AppText>
-            <AppButton
-              label="Try again"
-              onPress={() => refresh().catch(() => undefined)}
-              style={styles.retryButton}
-            />
-          </View>
+          <LoadErrorState
+            message={error ?? ''}
+            iconAccessibilityLabel="Unable to load notifications"
+            onRetry={() => refresh().catch(() => undefined)}
+            style={styles.centerContent}
+          />
         ) : (
           <SectionList
             sections={sections}
@@ -288,13 +284,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.xl,
     gap: spacing.md,
-  },
-  errorText: {
-    color: colors.error,
-    textAlign: 'center',
-  },
-  retryButton: {
-    minWidth: 172,
   },
   list: {
     marginLeft: -spacing.md,

@@ -185,7 +185,7 @@ describe('HomeScreen', () => {
 
   describe('Error State', () => {
     it('should show error when error exists and not loading', () => {
-      const error = 'Unable to load plans.';
+      const error = 'Unable to load plans';
       const isLoading = false;
       const events: typeof mockEvents = [];
 
@@ -194,7 +194,7 @@ describe('HomeScreen', () => {
     });
 
     it('should not show error when loading', () => {
-      const error = 'Unable to load plans.';
+      const error = 'Unable to load plans';
       const isLoading = true;
       const events: typeof mockEvents = [];
 

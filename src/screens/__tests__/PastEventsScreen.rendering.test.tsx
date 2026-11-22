@@ -192,12 +192,12 @@ describe('PastEventsScreen', () => {
     const { getByText, queryByText } = render(<PastEventsScreen />);
 
     await waitFor(() => {
-      expect(getByText("Couldn't load past plans.")).toBeTruthy();
-      expect(getByText('Please try again')).toBeTruthy();
+      expect(getByText("Couldn't load past plans")).toBeTruthy();
+      expect(getByText('Try again')).toBeTruthy();
     });
     expect(queryByText('private upstream details')).toBeNull();
 
-    fireEvent.press(getByText('Please try again'));
+    fireEvent.press(getByText('Try again'));
     expect(mockAuthFetch).toHaveBeenCalledTimes(2);
   });
 });

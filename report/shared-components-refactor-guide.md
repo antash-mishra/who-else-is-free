@@ -1321,6 +1321,28 @@ Use it when:
 
 ## Event List Foundations
 
+### `LoadErrorState`
+
+File: `src/components/LoadErrorState.tsx`
+
+What it is:
+
+- Full-page load failure: the red `ErrorCircleIcon`, a title in the text colour sized like the
+  `EmptyState` title (18px medium on a 24px line), and a `Try again` button at
+  `componentTokens.emptyStateButton` height, as wide as its label.
+- Only the icon is red. Titles are short and carry no full stop (`Unable to load plans`).
+
+Where it is used:
+
+- `EventListLoadState` (Discover, My plans), `NotificationsScreen`, `PastEventsScreen`.
+- Event Details' load failure matches it by hand in its grey fallback (shared with "We couldn't
+  find that plan"); change both together.
+
+Use it when:
+
+- A screen's first load fails and there is nothing cached to show. Inline failures (Chats' banner,
+  Past plans' load-more footer) stay inline.
+
 ### `EventListLoadState`
 
 File: `src/components/events/EventListLoadState.tsx`
@@ -1328,7 +1350,7 @@ File: `src/components/events/EventListLoadState.tsx`
 What it is:
 
 - Shared full-page loading and error presentation for event-list screens.
-- Owns the centered spinner, accessible error icon and message, and `Try again` action.
+- Owns the centered spinner; its error branch renders `LoadErrorState`.
 
 Where it is used:
 
