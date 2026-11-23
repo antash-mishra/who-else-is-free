@@ -122,6 +122,6 @@ If `EMAIL_LOGIN_FROM` changes, register the new address in the portal before dep
 unregistered sender is silently dropped for relay users. Check the records with
 `dig +short TXT mail.weifapp.com` and re-verify in the portal after any DNS change.
 
-The app hides "Continue with email" unless the build (or EAS Update environment) sets
-`EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`. Set these secrets and confirm one real code arrives
-before turning that on, so no release offers a button the server cannot serve.
+The app shows "Continue with email" by default; a build (or EAS Update environment) hides it with
+`EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=false`. Keep these secrets set on Fly: without them
+`/api/email-login/start` answers 503 and the button cannot sign anyone in.

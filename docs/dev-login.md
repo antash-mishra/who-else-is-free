@@ -103,8 +103,8 @@ curl -s -X POST http://localhost:8080/api/dev-login \
 
 ## Email code sign-in locally
 
-The "Continue with email" button only shows when Metro runs with
-`EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true`. It works locally without sending real email: start the backend with
+The "Continue with email" button shows by default (Metro can hide it with
+`EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=false`). It works locally without sending real email: start the backend with
 `EMAIL_LOGIN_DEV_LOG_CODES=1` and the code is written to the server log instead
 (`email-login dev code: 123456`). Without that flag, or the Cloudflare variables in
 `docs/google-build-and-places-secrets.md`, `/api/email-login/start` answers 503 and the app shows
@@ -113,8 +113,6 @@ The "Continue with email" button only shows when Metro runs with
 ```bash
 cd server && DEV_LOGIN_ENABLED=1 EMAIL_LOGIN_DEV_LOG_CODES=1 go run .
 ```
-
-Add `EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true` to the Metro command from the setup steps above.
 
 ## Switching back to normal login
 
