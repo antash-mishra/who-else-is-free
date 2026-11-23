@@ -36,6 +36,7 @@ let mockChatValue = { conversations: mockConversations };
 const mockSignalReady = jest.fn();
 const mockRequestPushPermission = jest.fn().mockResolvedValue(true);
 const mockRequestLocationPermission = jest.fn().mockResolvedValue(undefined);
+const mockOfferLocationPermission = jest.fn().mockResolvedValue(undefined);
 let mockTransitionComplete = false;
 let mockViewerLocation = {
   coords: null as { latitude: number; longitude: number } | null,
@@ -51,6 +52,17 @@ jest.mock('@context/BloomContext', () => ({
   useBloom: () => ({
     signalReady: mockSignalReady,
     transitionComplete: mockTransitionComplete,
+  }),
+}));
+jest.mock('@hooks/useLocationPermissionPrompt', () => ({
+  useLocationPermissionPrompt: () => ({
+    offer: mockOfferLocationPermission,
+    sheetProps: {
+      visible: false,
+      onContinue: jest.fn(),
+      onDismiss: jest.fn(),
+      onClosed: jest.fn(),
+    },
   }),
 }));
 jest.mock('@context/PushContext', () => ({
@@ -179,20 +191,22 @@ describe('HomeScreen Rendering', () => {
     mockRoute.params = {};
   });
 
-  it('waits for the splash handoff, then requests startup permissions in order', async () => {
+  it('waits for the splash handoff, then asks for push and offers the location sheet in order', async () => {
     const view = render(<HomeScreen />);
 
     expect(mockRequestPushPermission).not.toHaveBeenCalled();
-    expect(mockRequestLocationPermission).not.toHaveBeenCalled();
+    expect(mockOfferLocationPermission).not.toHaveBeenCalled();
 
     mockTransitionComplete = true;
     view.rerender(<HomeScreen />);
 
-    await waitFor(() => expect(mockRequestLocationPermission).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockOfferLocationPermission).toHaveBeenCalledTimes(1));
     expect(mockRequestPushPermission).toHaveBeenCalledTimes(1);
     expect(mockRequestPushPermission.mock.invocationCallOrder[0]).toBeLessThan(
-      mockRequestLocationPermission.mock.invocationCallOrder[0],
+      mockOfferLocationPermission.mock.invocationCallOrder[0],
     );
+    // The system prompt is only reached through the sheet's Continue.
+    expect(mockRequestLocationPermission).not.toHaveBeenCalled();
   });
 
   it('consumes the deleted-event notice once and shows the informational prompt', () => {

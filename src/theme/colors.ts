@@ -96,4 +96,11 @@ export const colors = {
   profileGradientEnd: '#B8DCFB',
   onboardingGradientStart: '#EAECFB',
   onboardingGradientEnd: '#C4E4FB',
+  // Location permission sheet's map illustration (LocationMapIllustration).
+  locationMapLand: '#F2EFEA',
+  locationMapFrame: 'rgba(0, 0, 0, 0.03)',
+  locationMapRoad: '#FFFFFF',
+  locationMapPark: '#B9E8A5',
+  locationMapWater: '#9FD4FB',
+  locationDotHalo: 'rgba(47, 129, 230, 0.2)',
 } as const;
