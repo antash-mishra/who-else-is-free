@@ -53,6 +53,9 @@ const isLocalOrViewerOwnedEvent = (event: EventWithDistance<UserEvent>, viewerUs
 type SortOptionValue = 'upcoming' | 'nearest' | 'newest';
 type NotificationNotice = 'unavailable';
 
+/** Discover's first focus skips its refresh when launch loaded plans this recently. */
+const LAUNCH_REFRESH_SKIP_MS = 30_000;
+
 const baseSortOptions: Array<{ label: string; value: SortOptionValue }> = [
   { label: 'Upcoming', value: 'upcoming' },
   { label: 'Newest', value: 'newest' },
@@ -79,6 +82,7 @@ const HomeScreen = () => {
     error,
     refreshEvents,
     refreshRequestedEvents,
+    hasFreshEvents,
     isEventRequested,
   } = useEvents();
   const { user } = useAuth();
@@ -93,6 +97,7 @@ const HomeScreen = () => {
   const { height: windowHeight } = useWindowDimensions();
   const emptyStateTopPadding = emptyStateCenteredTop(windowHeight, 245);
   const hasSignalledReady = useRef(false);
+  const isFirstFocus = useRef(true);
   const hasStartedPermissionSequence = useRef(false);
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
   const [showReportedBadge, setShowReportedBadge] = useState(false);
@@ -217,12 +222,14 @@ const HomeScreen = () => {
     return buildSingleEventSection('Nearest', knownDistanceEvents, getBadgeLabel);
   }, [discoverableEvents, getBadgeLabel]);
 
+  // Lift the launch bloom as soon as Discover has mounted. Waiting for plans
+  // as well held the white screen on the network; Discover shows its own
+  // loading state underneath.
   useEffect(() => {
-    if (!isLoading && !hasSignalledReady.current) {
-      hasSignalledReady.current = true;
-      signalReady();
-    }
-  }, [isLoading, signalReady]);
+    if (hasSignalledReady.current) return;
+    hasSignalledReady.current = true;
+    signalReady();
+  }, [signalReady]);
 
   useEffect(() => {
     if (!isFocused || !transitionComplete || hasStartedPermissionSequence.current) {
@@ -274,9 +281,16 @@ const HomeScreen = () => {
     if (!isFocused) {
       return;
     }
+    // EventsContext loads plans at launch, so Discover's first focus would only
+    // repeat that request (and re-render Discover under the splash's fade).
+    const firstFocus = isFirstFocus.current;
+    isFirstFocus.current = false;
+    if (firstFocus && hasFreshEvents(LAUNCH_REFRESH_SKIP_MS)) {
+      return;
+    }
     refreshAll().catch(() => undefined);
     return;
-  }, [isFocused, refreshAll]);
+  }, [hasFreshEvents, isFocused, refreshAll]);
 
   const handleEventPress = useCallback(
     (item: EventItemProps) => {

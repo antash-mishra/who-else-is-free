@@ -1139,6 +1139,53 @@ describe('EventsContext - Rendering Tests', () => {
     });
   });
 
+  describe('hasFreshEvents', () => {
+    it('is fresh after a successful load and stale past the window', async () => {
+      fetchMock.mockResponseOnce(JSON.stringify({ data: [] }));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+
+      let capturedCtx: EventsContextValue | null = null;
+      render(
+        <EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
+      );
+
+      await waitFor(() => {
+        expect(capturedCtx!.hasLoadedEvents).toBe(true);
+        expect(capturedCtx!.isLoading).toBe(false);
+      });
+      expect(capturedCtx!.hasFreshEvents(30_000)).toBe(true);
+      expect(capturedCtx!.hasFreshEvents(-1)).toBe(false);
+    });
+
+    it('is not fresh after a failed load', async () => {
+      fetchMock.mockRejectOnce(new Error('Network failure'));
+      fetchMock.mockResponseOnce(JSON.stringify({ requests: [] }));
+
+      let capturedCtx: EventsContextValue | null = null;
+      render(
+        <EventsProvider>
+          <TestConsumer
+            onMount={(ctx) => {
+              capturedCtx = ctx;
+            }}
+          />
+        </EventsProvider>,
+      );
+
+      await waitFor(() => {
+        expect(capturedCtx!.error).not.toBeNull();
+        expect(capturedCtx!.isLoading).toBe(false);
+      });
+      expect(capturedCtx!.hasFreshEvents(30_000)).toBe(false);
+    });
+  });
+
   describe('error state handling', () => {
     it('should set error message on API failure', async () => {
       fetchMock.mockRejectOnce(new Error('Network failure'));

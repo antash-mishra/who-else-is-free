@@ -75,7 +75,9 @@ export const BloomProvider = ({ children }: { children: ReactNode }) => {
         clearTimeout(fallbackTimer.current);
         fallbackTimer.current = null;
       }
-      fallbackTimer.current = setTimeout(fadeOut, 250);
+      // One frame is enough for the screen under the bloom to be drawn. The
+      // fixed 250 ms hold this replaces only added to the white screen.
+      requestAnimationFrame(fadeOut);
     };
     if (isAtPeak.current) {
       doFade();
