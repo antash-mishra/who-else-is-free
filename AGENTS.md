@@ -38,6 +38,7 @@ Read `report/shared-components-refactor-guide.md` before adding or refactoring U
 - Android app: `npm run android`
 - iOS app: `npm run ios`
 - Web app: `npm run web`
+- Physical phones (dev builds): `npm run dev:phones` starts Metro on port 8082 with email sign-in and chat enabled, and forwards the port to a USB-connected Android phone when `adb` sees one. iPhone and Android dev builds connect to it at the same time; open `http://<Mac LAN IP>:8082` (or `http://localhost:8082` on USB Android) from the dev launcher.
 - Frontend tests: `npm test`
 - Frontend typecheck: `npm run typecheck`
 - Frontend lint: `npm run lint`

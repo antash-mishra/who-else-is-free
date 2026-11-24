@@ -7,6 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "dev:phones": "(adb reverse tcp:8082 tcp:8082 >/dev/null 2>&1 || true) && EXPO_PUBLIC_EMAIL_SIGN_IN_ENABLED=true EXPO_PUBLIC_CHAT_ENABLED=true expo start --dev-client --port 8082",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "format": "prettier . --write",
